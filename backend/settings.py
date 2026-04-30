@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     'corsheaders',
     'allauth',
     'allauth.account',
+      'django.contrib.sites', 
     'allauth.socialaccount',
     'allauth.socialaccount.providers.google',  # Google OAuth
     'dj_rest_auth',
@@ -65,6 +66,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'allauth.account.middleware.AccountMiddleware',  # Requis par allauth
 ]
 
 ROOT_URLCONF = 'backend.urls'
