@@ -9,7 +9,7 @@ class User(AbstractUser):
     telephone = models.CharField(max_length=20, unique=True, null=True, blank=True, validators=[telephone_validator])
     
     USERNAME_FIELD = 'email'
-    REQUIRED_FIELDS = ['username', 'telephone']
+    REQUIRED_FIELDS = ['telephone']
     
     class Meta:
         db_table = 'auth_user'
@@ -21,6 +21,21 @@ class User(AbstractUser):
     
     def __str__(self):
         return f"{self.email} ({self.telephone})"
+    
+    @property
+    def role(self):
+        """Détermine le rôle de l'utilisateur dynamiquement"""
+        if self.is_superuser:
+            return "admin"
+        
+        # On vérifie les relations OneToOne
+        if hasattr(self, 'client'):
+            if hasattr(self.client, 'prestataire'):
+                return "prestataire"
+            if hasattr(self.client, 'livreur'):
+                return "livreur"
+        
+        return "client"
 
 
 class Client(models.Model):
@@ -51,15 +66,20 @@ class Client(models.Model):
 
 class Prestataire(models.Model):
     """Prestataire = Client + spécificités"""
-    STATUT_CHOICES = [('actif', 'Actif'), ('suspendu', 'Suspendu'), ('inactif', 'Inactif')]
+    STATUT_CHOICES = [
+        ('en_attente', 'En attente'),
+        ('actif', 'Actif'),
+        ('suspendu', 'Suspendu'),
+        ('inactif', 'Inactif')
+    ]
     
     client = models.OneToOneField(Client, on_delete=models.CASCADE, related_name='prestataire')
-    entreprise = models.CharField(max_length=200, blank=True)
-    email_professionnel = models.EmailField(unique=True)
-    code_promo = models.CharField(max_length=50, unique=True)
+   
+   
+    code_promo = models.CharField(max_length=50, unique=True, null=True, blank=True)
     taux_commission = models.DecimalField(max_digits=5, decimal_places=2, default=0)
     solde_commission = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-    statut = models.CharField(max_length=20, choices=STATUT_CHOICES, default='actif')
+    statut = models.CharField(max_length=20, choices=STATUT_CHOICES, default='en_attente')
     date_creation = models.DateTimeField(auto_now_add=True)
     date_modification = models.DateTimeField(auto_now=True)
     
@@ -120,3 +140,38 @@ class Livreur(models.Model):
     
     def __str__(self):
         return f"{self.nom} {self.prenom} - {self.telephone}"
+
+
+class CommissionLog(models.Model):
+    """Historique des gains d'un prestataire (Ventes, Retraits, Bonus)"""
+    TYPE_CHOICES = [
+        ('vente', 'Commission sur vente'),
+        ('retrait', 'Retrait de solde'),
+        ('bonus', 'Bonus / Ajustement'),
+    ]
+
+    prestataire = models.ForeignKey(Prestataire, on_delete=models.CASCADE, related_name='historique_commissions')
+    type_operation = models.CharField(max_length=20, choices=TYPE_CHOICES, default='vente')
+    montant = models.DecimalField(max_digits=10, decimal_places=2) # Positif pour vente, négatif pour retrait
+    reference_commande = models.CharField(max_length=50, blank=True, null=True) # ID de la commande liée
+    date_operation = models.DateTimeField(auto_now_add=True)
+    description = models.TextField(blank=True)
+
+    class Meta:
+        db_table = 'commission_log'
+        ordering = ['-date_operation']
+
+    def __str__(self):
+        return f"{self.prestataire.nom} - {self.type_operation} - {self.montant}€"
+
+# ============================================================
+# SIGNALS (Automatisation)
+# ============================================================
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+
+@receiver(post_save, sender=User)
+def create_client_profile(sender, instance, created, **kwargs):
+    """Crée automatiquement un profil Client lors de la création d'un User"""
+    if created:
+        Client.objects.create(user=instance)

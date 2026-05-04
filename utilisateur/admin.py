@@ -50,7 +50,7 @@ class ClientAdmin(admin.ModelAdmin):
 
 @admin.register(Prestataire)
 class PrestataireAdmin(admin.ModelAdmin):
-    list_display = ('id', 'get_nom', 'get_prenom', 'entreprise', 'code_promo', 'taux_commission', 'solde_commission', 'statut')
+    list_display = ('id', 'get_nom', 'get_prenom', 'code_promo', 'taux_commission', 'solde_commission', 'statut')
     list_filter = ('statut', 'date_creation')
     search_fields = ('client__user__last_name', 'client__user__first_name', 'entreprise', 'email_professionnel', 'code_promo')
     readonly_fields = ('date_creation', 'date_modification')
