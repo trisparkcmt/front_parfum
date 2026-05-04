@@ -43,6 +43,8 @@ INSTALLED_APPS = [
     'rest_framework.authtoken',
     'rest_framework_simplejwt',
     'corsheaders',
+    'django_filters',
+    'drf_spectacular',
     'allauth',
     'allauth.account',
       'django.contrib.sites', 
@@ -165,5 +167,71 @@ ACCOUNT_EMAIL_VERIFICATION = 'none'  # À mettre 'mandatory' en production
 ACCOUNT_USERNAME_REQUIRED = False  # Le username n'est pas obligatoire pour l'utilisateur
 ACCOUNT_UNIQUE_EMAIL = True
 
+SOCIALACCOUNT_AUTO_SIGNUP = True  # Création automatique du compte sans formulaire
+SOCIALACCOUNT_LOGIN_ON_GET = True # Évite une étape de confirmation inutile
+
+SOCIALACCOUNT_PROVIDERS = {
+    'google': {
+        'SCOPE': [
+            'profile',
+            'email',
+        ],
+        'AUTH_PARAMS': {
+            'access_type': 'online',
+        }
+    }
+}
+
 # Adaptateur personnalisé pour gérer la connexion par téléphone
 """ACCOUNT_ADAPTER = 'users.adapters.CustomAccountAdapter'"""
+
+
+# ============================================================
+# DJANGO REST FRAMEWORK
+# ============================================================
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ),
+    'DEFAULT_PERMISSION_CLASSES': (
+        'rest_framework.permissions.IsAuthenticated',
+    ),
+    'DEFAULT_FILTER_BACKENDS': (
+        'django_filters.rest_framework.DjangoFilterBackend',
+        'rest_framework.filters.SearchFilter',
+        'rest_framework.filters.OrderingFilter',
+    ),
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+}
+
+# ============================================================
+# DJ-REST-AUTH (utilise JWT)
+# ============================================================
+REST_AUTH = {
+    'USE_JWT': True,
+    'JWT_AUTH_HTTPONLY': False,  # Permet de voir les tokens dans la réponse
+}
+
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = 'handougregoire@gmail.com' # ← Mets ton vrai mail ici
+EMAIL_HOST_PASSWORD = 'qvfs vdfn uyny xjqw'
+# Ton mot de passe d'application est parfait
+DEFAULT_FROM_EMAIL = 'Accessoire Exclusif'
+
+
+
+
+
+
+# ============================================================
+# DRF SPECTACULAR (Swagger / OpenAPI)
+# ============================================================
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'Accessoire Exclusif API',
+    'DESCRIPTION': 'API pour la plateforme de parfums et accessoires exclusifs',
+    'VERSION': '1.0.0',
+    'SERVE_INCLUDE_SCHEMA': False,
+}
