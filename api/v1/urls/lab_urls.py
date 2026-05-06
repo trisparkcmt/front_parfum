@@ -1,16 +1,21 @@
 from django.urls import path
-
-# Imports des views (à remplir quand tu créeras les views)
-# from laboratoire.views import ...
+from laboratoire.views import (
+    liste_creer_parfums_perso, 
+    detail_parfum_perso, 
+    recalculer_prix_parfum,
+    ia_recommandation
+)
 
 urlpatterns = [
-    # Parfums personnalisés (création DIY)
-    # path('parfums-perso/', ParfumPersonnaliseListView.as_view(), name='parfums-perso-list'),
-    # path('parfums-perso/<int:pk>/', ParfumPersonnaliseDetailView.as_view(), name='parfum-perso-detail'),
-
-    # Lignes d'essence dans un parfum perso
-    # path('parfums-perso/<int:pk>/lignes/', LigneParfumPersoView.as_view(), name='parfum-perso-lignes'),
-
-    # Calcul du prix
-    # path('parfums-perso/<int:pk>/recalculer/', RecalculerPrixView.as_view(), name='parfum-perso-recalculer'),
+    # Liste et Création
+    path('parfums-perso/', liste_creer_parfums_perso, name='parfum-perso-liste'),
+    
+    # Détail, Modification et Suppression
+    path('parfums-perso/<int:pk>/', detail_parfum_perso, name='parfum-perso-detail'),
+    
+    # Action spécifique : Recalculer le prix
+    path('parfums-perso/<int:pk>/recalculer/', recalculer_prix_parfum, name='parfum-perso-recalculer'),
+    
+    # IA Recommandation
+    path('ia-recommandation/', ia_recommandation, name='ia-recommandation'),
 ]

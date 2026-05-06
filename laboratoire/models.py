@@ -46,8 +46,8 @@ class ParfumPersonnaliseLigne(models.Model):
     parfum_personnalise = models.ForeignKey('laboratoire.ParfumPersonnalise', on_delete=models.CASCADE, related_name='lignes')
     essence = models.ForeignKey('catalogue.Essence', on_delete=models.CASCADE, related_name='utilisations')
     quantite_ml = models.DecimalField(max_digits=8, decimal_places=3, validators=[MinValueValidator(Decimal('0.1'))])
-    prix_par_ml_snapshot = models.DecimalField(max_digits=10, decimal_places=2, help_text="Prix de l'essence au moment de la création")
-    prix_ligne = models.DecimalField(max_digits=10, decimal_places=2, help_text="(prix_par_10ml_snapshot * quantite_ml) / 10")
+    prix_par_ml_snapshot = models.DecimalField(max_digits=10, decimal_places=2, help_text="Prix de l'essence au ml au moment de la création")
+    prix_ligne = models.DecimalField(max_digits=10, decimal_places=2, help_text="prix_par_ml_snapshot * quantite_ml")
     
     class Meta:
         db_table = 'parfum_personnalise_ligne'
@@ -59,5 +59,9 @@ class ParfumPersonnaliseLigne(models.Model):
         return f"{self.parfum_personnalise.nom} - {self.essence.nom}: {self.quantite_ml}ml"
     
     def save(self, *args, **kwargs):
-        self.prix_ligne = (self.prix_par_10ml_snapshot * self.quantite_ml) / Decimal('10')
+        if not self.prix_par_ml_snapshot:
+            # On prend le prix de l'essence et on divise par 10 (puisque Essence stocke le prix pour 10ml)
+            self.prix_par_ml_snapshot = self.essence.prix_par_10ml / Decimal('10')
+        
+        self.prix_ligne = self.prix_par_ml_snapshot * self.quantite_ml
         super().save(*args, **kwargs)
