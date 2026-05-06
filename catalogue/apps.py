@@ -1,5 +1,11 @@
+
+# catalogue/apps.py
 from django.apps import AppConfig
 
 
 class CatalogueConfig(AppConfig):
-    name = 'catalogue'
+    default_auto_field = 'django.db.models.BigAutoField'
+    name               = 'catalogue'
+
+    def ready(self):
+        import catalogue.signals  # ← charge les signals au démarrage

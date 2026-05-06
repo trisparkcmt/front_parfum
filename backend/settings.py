@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
 from pathlib import Path
+import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -37,6 +38,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django_filters',
     
     # Third party
     'rest_framework',
@@ -52,6 +54,8 @@ INSTALLED_APPS = [
     'allauth.socialaccount.providers.google',  # Google OAuth
     'dj_rest_auth',
     'dj_rest_auth.registration',
+    'drf_spectacular',
+    
     
     # Local apps
     'utilisateur',
@@ -59,6 +63,27 @@ INSTALLED_APPS = [
     'laboratoire',
     'orders',
 ]
+
+REST_FRAMEWORK = {
+    'DEFAULT_FILTER_BACKENDS': ['django_filters.rest_framework.DjangoFilterBackend'],
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+    'DEFAULT_PERMISSION_CLASSES': ['rest_framework.permissions.AllowAny',]
+}
+
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'API Boutique de Parfums',
+    'DESCRIPTION': 'Documentation interactive pour la gestion des parfums, essences et accessoires.',
+    'VERSION': '1.0.0',
+    'SERVE_INCLUDE_SCHEMA': False,
+    'COMPONENT_SPLIT_REQUEST': True,
+    'TAGS': [
+        {'name': 'Parfums',      'description': 'Catalogue des parfums'},
+        {'name': 'Essences',     'description': 'Catalogue des essences DIY'},
+        {'name': 'Accessoires',  'description': 'Catalogue des accessoires'},
+        {'name': 'Flacons',      'description': 'Catalogue des flacons'},
+    ],
+   
+}
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -186,6 +211,7 @@ SOCIALACCOUNT_PROVIDERS = {
 """ACCOUNT_ADAPTER = 'users.adapters.CustomAccountAdapter'"""
 
 
+
 # ============================================================
 # DJANGO REST FRAMEWORK
 # ============================================================
@@ -235,3 +261,8 @@ SPECTACULAR_SETTINGS = {
     'VERSION': '1.0.0',
     'SERVE_INCLUDE_SCHEMA': False,
 }
+
+#gerer les images 
+MEDIA_URL  = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
