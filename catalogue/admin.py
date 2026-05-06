@@ -1,10 +1,98 @@
+# admin.py
 from django.contrib import admin
 from django.utils.html import format_html
+from django.utils.safestring import mark_safe
 from .models import (
     Tag, TagParfum, TagEssence,
-    CategorieParfum, Parfum, Essence, 
+    CategorieParfum, Parfum, Essence,
     TypeAccessoire, Accessoire, TypeFlacon, Flacon
 )
+
+
+# ============================================================
+# HELPERS PARTAGÉS
+# ============================================================
+def apercu_image(image_field, hauteur=50):
+    url = None
+    if hasattr(image_field, 'url'):
+        try:
+            url = image_field.url
+        except ValueError:
+            pass
+    elif isinstance(image_field, str) and image_field:
+        url = image_field
+    if url:
+        return format_html(
+            '<img src="{}" style="height:{}px; border-radius:4px;" />',
+            url, hauteur
+        )
+    return "—"
+
+
+def statut_stock_html(stock_quantite, seuil):
+    if stock_quantite <= 0:
+        return format_html('<span style="color:red;font-weight:bold;">⛔ Épuisé</span>')
+    elif stock_quantite <= seuil:
+        return format_html(
+            '<span style="color:orange;font-weight:bold;">⚠️ Faible ({})</span>',
+            stock_quantite
+        )
+    return format_html(
+        '<span style="color:green;font-weight:bold;">✅ OK ({})</span>',
+        stock_quantite
+    )
+
+
+def badge_reduction(taux):
+    if taux and taux > 0:
+        return format_html(
+            '<span style="background:#e53e3e;color:white;padding:2px 8px;'
+            'border-radius:12px;font-weight:bold;">-{}%</span>',
+            taux
+        )
+    return mark_safe('<span style="color:#aaa;">Aucune</span>')
+
+
+# ============================================================
+# FILTRES PERSONNALISÉS PAR TYPE DE TAG
+# Un filtre par type → une classe → réutilisable sur Parfum et Essence
+# ============================================================
+def creer_filtre_tag(type_tag, titre):
+    """
+    Factory qui crée dynamiquement un filtre admin pour un type de tag donné.
+    Usage : FamilleOlfactiveFilter = creer_filtre_tag('famille_olfactive', 'Famille olfactive')
+    """
+    class FiltreTag(admin.SimpleListFilter):
+        title        = titre
+        parameter_name = f'tag_{type_tag}'
+
+        def lookups(self, request, model_admin):
+            """Retourne tous les tags actifs du type concerné."""
+            tags = Tag.objects.filter(type=type_tag, actif=True).order_by('nom')
+            return [(tag.pk, tag.nom) for tag in tags]
+
+        def queryset(self, request, queryset):
+            if self.value():
+                return queryset.filter(tags__pk=self.value()).distinct()
+            return queryset
+
+    FiltreTag.__name__ = f'Filtre_{type_tag}'
+    return FiltreTag
+
+
+# Filtres pour Parfum
+FamilleOlfactiveParfumFilter = creer_filtre_tag('famille_olfactive', 'Famille olfactive')
+HumeurParfumFilter           = creer_filtre_tag('humeur',            'Humeur compatible')
+SaisonParfumFilter           = creer_filtre_tag('saison',            'Saison compatible')
+OccasionParfumFilter         = creer_filtre_tag('occasion',          'Occasion')
+
+# Filtres pour Essence (inclut signes astro et moments journée)
+FamilleOlfactiveEssenceFilter  = creer_filtre_tag('famille_olfactive',  'Famille olfactive')
+HumeurEssenceFilter            = creer_filtre_tag('humeur',             'Humeur compatible')
+SaisonEssenceFilter            = creer_filtre_tag('saison',             'Saison compatible')
+OccasionEssenceFilter          = creer_filtre_tag('occasion',           'Occasion')
+SigneAstroEssenceFilter        = creer_filtre_tag('signe_astrologique', 'Signe astrologique')
+MomentJourneeEssenceFilter     = creer_filtre_tag('moment_journee',     'Moment de la journée')
 
 
 # ============================================================
@@ -12,11 +100,12 @@ from .models import (
 # ============================================================
 @admin.register(Tag)
 class TagAdmin(admin.ModelAdmin):
-    list_display = ('id', 'nom', 'type', 'actif', 'date_creation')
-    list_filter = ('type', 'actif')
+    list_display  = ('id', 'nom', 'type', 'actif', 'date_creation')
+    list_filter   = ('type', 'actif')
     search_fields = ('nom',)
     list_editable = ('actif',)
-    
+    list_per_page = 50
+
     fieldsets = (
         ('Informations', {
             'fields': ('nom', 'type', 'actif')
@@ -25,31 +114,45 @@ class TagAdmin(admin.ModelAdmin):
 
 
 class TagParfumInline(admin.TabularInline):
-    model = TagParfum
-    extra = 1
+    model               = TagParfum
+    extra               = 1
     autocomplete_fields = ('tag',)
 
 
 class TagEssenceInline(admin.TabularInline):
-    model = TagEssence
-    extra = 1
+    model               = TagEssence
+    extra               = 1
     autocomplete_fields = ('tag',)
 
 
 # ============================================================
-# CATEGORIES & PARFUMS
+# CATÉGORIES & PARFUMS
 # ============================================================
 @admin.register(CategorieParfum)
 class CategorieParfumAdmin(admin.ModelAdmin):
-    list_display = ('id', 'nom', 'slug', 'ordre_affichage', 'actif', 'date_creation')
-    list_filter = ('actif', 'date_creation')
-    search_fields = ('nom', 'description')
+    list_display        = (
+        'id', 'nom', 'slug', 'ordre_affichage',
+        'badge_taux_reduction',
+        'nb_parfums_en_promo',
+        'actif', 'date_creation'
+    )
+    list_filter         = ('actif', 'date_creation')
+    search_fields       = ('nom', 'description')
     prepopulated_fields = {'slug': ('nom',)}
-    ordering = ('ordre_affichage', 'nom')
-    
+    ordering            = ('ordre_affichage', 'nom')
+    list_per_page       = 50
+    readonly_fields     = ('date_creation',)
+
     fieldsets = (
         ('Informations générales', {
             'fields': ('nom', 'slug', 'description', 'image')
+        }),
+        ('Promotion catégorie', {
+            'description': (
+                '⚠️ Définir un taux ici mettra automatiquement à jour le prix promotionnel '
+                'de TOUS les parfums actifs de cette catégorie. Mettre à 0 pour désactiver.'
+            ),
+            'fields': ('taux_reduction',),
         }),
         ('Affichage', {
             'fields': ('ordre_affichage', 'actif')
@@ -60,17 +163,47 @@ class CategorieParfumAdmin(admin.ModelAdmin):
         }),
     )
 
+    @admin.display(description="Réduction")
+    def badge_taux_reduction(self, obj):
+        return badge_reduction(obj.taux_reduction)
+
+    @admin.display(description="Parfums en promo")
+    def nb_parfums_en_promo(self, obj):
+        count = obj.parfums.filter(actif=True, prix_promotionnel__isnull=False).count()
+        total = obj.parfums.filter(actif=True).count()
+        if count == 0:
+            return format_html('<span style="color:#aaa;">0 / {}</span>', total)
+        return format_html(
+            '<span style="color:#e53e3e;font-weight:bold;">{} / {}</span>',
+            count, total
+        )
+
 
 @admin.register(Parfum)
 class ParfumAdmin(admin.ModelAdmin):
-    list_display = ('id', 'nom', 'categorie', 'contenance_ml', 'prix_unitaire', 'prix_promotionnel', 'stock_quantite', 'actif', 'est_nouveau', 'est_bestseller')
-    list_filter = ('categorie', 'actif', 'est_nouveau', 'est_bestseller', 'genre_cible', 'intensite', 'date_creation')
-    search_fields = ('nom', 'slug', 'reference_sku', 'description_courte', 'description_longue')
-    readonly_fields = ('date_creation', 'date_modification')
+    list_display = (
+        'id', 'apercu_image_col', 'nom', 'categorie',
+        'contenance_ml', 'prix_unitaire', 'prix_promotionnel',
+        'badge_taux', 'statut_stock', 'actif',
+        'est_nouveau', 'est_bestseller'
+    )
+    list_filter = (
+        'categorie', 'actif', 'est_nouveau', 'est_bestseller',
+        'genre_cible', 'intensite',
+        # ← Filtres par tags
+        FamilleOlfactiveParfumFilter,
+        HumeurParfumFilter,
+        SaisonParfumFilter,
+        OccasionParfumFilter,
+        'date_creation',
+    )
+    search_fields       = ('nom', 'slug', 'reference_sku', 'description_courte')
+    readonly_fields     = ('date_creation', 'date_modification')
     prepopulated_fields = {'slug': ('nom',)}
-    list_editable = ('prix_unitaire', 'stock_quantite', 'actif')
-    inlines = [TagParfumInline]
-    
+    list_editable       = ('prix_unitaire', 'prix_promotionnel', 'actif')
+    list_per_page       = 50
+    inlines             = [TagParfumInline]
+
     fieldsets = (
         ('Informations générales', {
             'fields': ('categorie', 'nom', 'slug', 'reference_sku')
@@ -84,7 +217,11 @@ class ParfumAdmin(admin.ModelAdmin):
         ('Caractéristiques', {
             'fields': ('contenance_ml', 'genre_cible', 'intensite')
         }),
-        ('Prix et stock', {
+        ('Prix', {
+            'description': (
+                'Le prix promotionnel peut être défini manuellement ici, '
+                'ou calculé automatiquement via la réduction de la catégorie.'
+            ),
             'fields': ('prix_unitaire', 'prix_promotionnel', 'stock_quantite', 'seuil_alerte_stock')
         }),
         ('Images', {
@@ -98,9 +235,24 @@ class ParfumAdmin(admin.ModelAdmin):
             'classes': ('collapse',)
         }),
     )
-    
+
+    @admin.display(description="Aperçu")
+    def apercu_image_col(self, obj):
+        return apercu_image(obj.image_principale)
+
+    @admin.display(description="Stock")
+    def statut_stock(self, obj):
+        return statut_stock_html(obj.stock_quantite, obj.seuil_alerte_stock)
+
+    @admin.display(description="Réduction")
+    def badge_taux(self, obj):
+        if obj.prix_promotionnel and obj.prix_unitaire:
+            taux = (1 - obj.prix_promotionnel / obj.prix_unitaire) * 100
+            return badge_reduction(round(taux, 1))
+        return badge_reduction(None)
+
     def get_queryset(self, request):
-        return super().get_queryset(request).select_related('categorie')
+        return super().get_queryset(request).select_related('categorie').prefetch_related('tags')
 
 
 # ============================================================
@@ -108,12 +260,27 @@ class ParfumAdmin(admin.ModelAdmin):
 # ============================================================
 @admin.register(Essence)
 class EssenceAdmin(admin.ModelAdmin):
-    list_display = ('id', 'nom', 'code_reference', 'prix_par_10ml', 'stock_litre', 'intensite', 'genre_cible', 'actif')
-    list_filter = ('intensite', 'genre_cible', 'actif', 'date_creation')
-    search_fields = ('nom', 'code_reference', 'fournisseur', 'origine_pays')
+    list_display = (
+        'id', 'apercu_image_col', 'nom', 'code_reference',
+        'prix_par_10ml', 'statut_stock',
+        'intensite', 'genre_cible', 'actif'
+    )
+    list_filter = (
+        'intensite', 'genre_cible', 'actif',
+        # ← Filtres par tags
+        FamilleOlfactiveEssenceFilter,
+        HumeurEssenceFilter,
+        SaisonEssenceFilter,
+        OccasionEssenceFilter,
+        SigneAstroEssenceFilter,
+        MomentJourneeEssenceFilter,
+        'date_creation',
+    )
+    search_fields   = ('nom', 'code_reference', 'fournisseur', 'origine_pays')
     readonly_fields = ('date_creation', 'date_modification')
-    inlines = [TagEssenceInline]
-    
+    list_per_page   = 50
+    inlines         = [TagEssenceInline]
+
     fieldsets = (
         ('Informations générales', {
             'fields': ('nom', 'code_reference', 'description', 'description_ia')
@@ -127,6 +294,9 @@ class EssenceAdmin(admin.ModelAdmin):
         ('Caractéristiques', {
             'fields': ('intensite', 'genre_cible')
         }),
+        ('Image', {
+            'fields': ('image_principale',)
+        }),
         ('Statut', {
             'fields': ('actif',)
         }),
@@ -136,20 +306,53 @@ class EssenceAdmin(admin.ModelAdmin):
         }),
     )
 
+    @admin.display(description="Aperçu")
+    def apercu_image_col(self, obj):
+        return apercu_image(obj.image_principale)
+
+    @admin.display(description="Stock (L)")
+    def statut_stock(self, obj):
+        seuil = obj.seuil_alerte_stock or 0
+        if obj.stock_litre <= 0:
+            return format_html('<span style="color:red;font-weight:bold;">⛔ Épuisé</span>')
+        elif obj.stock_litre <= seuil:
+            return format_html(
+                '<span style="color:orange;font-weight:bold;">⚠️ Faible ({} L)</span>',
+                obj.stock_litre
+            )
+        return format_html(
+            '<span style="color:green;font-weight:bold;">✅ OK ({} L)</span>',
+            obj.stock_litre
+        )
+
 
 # ============================================================
 # ACCESSOIRES
 # ============================================================
 @admin.register(TypeAccessoire)
 class TypeAccessoireAdmin(admin.ModelAdmin):
-    list_display = ('id', 'nom', 'slug', 'actif', 'date_creation')
-    list_filter = ('actif',)
-    search_fields = ('nom', 'description')
+    list_display        = (
+        'id', 'nom', 'slug',
+        'badge_taux_reduction',
+        'nb_accessoires_en_promo',
+        'actif', 'date_creation'
+    )
+    list_filter         = ('actif',)
+    search_fields       = ('nom', 'description')
     prepopulated_fields = {'slug': ('nom',)}
-    
+    list_per_page       = 50
+    readonly_fields     = ('date_creation',)
+
     fieldsets = (
         ('Informations générales', {
             'fields': ('nom', 'slug', 'description', 'icone')
+        }),
+        ('Promotion type', {
+            'description': (
+                '⚠️ Définir un taux ici mettra automatiquement à jour le prix promotionnel '
+                'de TOUS les accessoires actifs de ce type. Mettre à 0 pour désactiver.'
+            ),
+            'fields': ('taux_reduction',),
         }),
         ('Statut', {
             'fields': ('actif',)
@@ -160,16 +363,36 @@ class TypeAccessoireAdmin(admin.ModelAdmin):
         }),
     )
 
+    @admin.display(description="Réduction")
+    def badge_taux_reduction(self, obj):
+        return badge_reduction(obj.taux_reduction)
+
+    @admin.display(description="En promo")
+    def nb_accessoires_en_promo(self, obj):
+        count = obj.accessoires.filter(actif=True, prix_promotionnel__isnull=False).count()
+        total = obj.accessoires.filter(actif=True).count()
+        if count == 0:
+            return format_html('<span style="color:#aaa;">0 / {}</span>', total)
+        return format_html(
+            '<span style="color:#e53e3e;font-weight:bold;">{} / {}</span>',
+            count, total
+        )
+
 
 @admin.register(Accessoire)
 class AccessoireAdmin(admin.ModelAdmin):
-    list_display = ('id', 'nom', 'type_accessoire', 'matiere', 'prix_unitaire', 'prix_promotionnel', 'stock_quantite', 'actif')
-    list_filter = ('type_accessoire', 'matiere', 'couleur', 'actif', 'date_creation')
-    search_fields = ('nom', 'slug', 'reference_sku', 'description_courte')
-    readonly_fields = ('date_creation', 'date_modification')
+    list_display = (
+        'id', 'apercu_image_col', 'nom', 'type_accessoire',
+        'matiere', 'prix_unitaire', 'prix_promotionnel',
+        'badge_taux', 'statut_stock', 'actif'
+    )
+    list_filter         = ('type_accessoire', 'matiere', 'couleur', 'actif', 'date_creation')
+    search_fields       = ('nom', 'slug', 'reference_sku', 'description_courte')
+    readonly_fields     = ('date_creation', 'date_modification')
     prepopulated_fields = {'slug': ('nom',)}
-    list_editable = ('prix_unitaire', 'stock_quantite', 'actif')
-    
+    list_editable       = ('prix_unitaire', 'prix_promotionnel', 'actif')
+    list_per_page       = 50
+
     fieldsets = (
         ('Informations générales', {
             'fields': ('type_accessoire', 'nom', 'slug', 'reference_sku')
@@ -180,7 +403,7 @@ class AccessoireAdmin(admin.ModelAdmin):
         ('Caractéristiques', {
             'fields': ('matiere', 'couleur', 'taille', 'poids_grammes')
         }),
-        ('Prix et stock', {
+        ('Prix', {
             'fields': ('prix_unitaire', 'prix_promotionnel', 'stock_quantite', 'seuil_alerte_stock')
         }),
         ('Images', {
@@ -194,7 +417,22 @@ class AccessoireAdmin(admin.ModelAdmin):
             'classes': ('collapse',)
         }),
     )
-    
+
+    @admin.display(description="Aperçu")
+    def apercu_image_col(self, obj):
+        return apercu_image(obj.image_principale)
+
+    @admin.display(description="Stock")
+    def statut_stock(self, obj):
+        return statut_stock_html(obj.stock_quantite, obj.seuil_alerte_stock)
+
+    @admin.display(description="Réduction")
+    def badge_taux(self, obj):
+        if obj.prix_promotionnel and obj.prix_unitaire:
+            taux = (1 - obj.prix_promotionnel / obj.prix_unitaire) * 100
+            return badge_reduction(round(taux, 1))
+        return badge_reduction(None)
+
     def get_queryset(self, request):
         return super().get_queryset(request).select_related('type_accessoire')
 
@@ -204,13 +442,22 @@ class AccessoireAdmin(admin.ModelAdmin):
 # ============================================================
 @admin.register(TypeFlacon)
 class TypeFlaconAdmin(admin.ModelAdmin):
-    list_display = ('id', 'nom', 'actif', 'date_creation')
-    list_filter = ('actif',)
+    list_display  = (
+        'id', 'nom',
+        'badge_taux_reduction',
+        'actif', 'date_creation'
+    )
+    list_filter   = ('actif',)
     search_fields = ('nom', 'description')
-    
+    list_per_page = 50
+    readonly_fields = ('date_creation',)
+
     fieldsets = (
         ('Informations générales', {
             'fields': ('nom', 'description', 'image')
+        }),
+        ('Promotion type', {
+            'fields': ('taux_reduction',),
         }),
         ('Statut', {
             'fields': ('actif',)
@@ -221,15 +468,24 @@ class TypeFlaconAdmin(admin.ModelAdmin):
         }),
     )
 
+    @admin.display(description="Réduction")
+    def badge_taux_reduction(self, obj):
+        return badge_reduction(obj.taux_reduction)
+
 
 @admin.register(Flacon)
 class FlaconAdmin(admin.ModelAdmin):
-    list_display = ('id', 'nom', 'type_flacon', 'contenance_ml', 'matiere', 'prix_unitaire', 'stock_quantite', 'actif')
-    list_filter = ('type_flacon', 'matiere', 'couleur', 'actif', 'date_creation')
-    search_fields = ('nom', 'reference_sku')
+    list_display = (
+        'id', 'apercu_image_col', 'nom', 'type_flacon',
+        'contenance_ml', 'matiere', 'prix_unitaire',
+        'statut_stock', 'actif'
+    )
+    list_filter     = ('type_flacon', 'matiere', 'couleur', 'actif', 'date_creation')
+    search_fields   = ('nom', 'reference_sku')
     readonly_fields = ('date_creation', 'date_modification')
-    list_editable = ('prix_unitaire', 'stock_quantite', 'actif')
-    
+    list_editable   = ('prix_unitaire', 'actif')
+    list_per_page   = 50
+
     fieldsets = (
         ('Informations générales', {
             'fields': ('type_flacon', 'nom', 'reference_sku')
@@ -251,6 +507,14 @@ class FlaconAdmin(admin.ModelAdmin):
             'classes': ('collapse',)
         }),
     )
-    
+
+    @admin.display(description="Aperçu")
+    def apercu_image_col(self, obj):
+        return apercu_image(obj.image_principale)
+
+    @admin.display(description="Stock")
+    def statut_stock(self, obj):
+        return statut_stock_html(obj.stock_quantite, obj.seuil_alerte_stock)
+
     def get_queryset(self, request):
         return super().get_queryset(request).select_related('type_flacon')

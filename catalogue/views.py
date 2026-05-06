@@ -1,3 +1,766 @@
-from django.shortcuts import render
+# views.py
+from rest_framework import viewsets
+from rest_framework.permissions import AllowAny
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework.filters import SearchFilter, OrderingFilter
+from django.db.models import Sum
+from django.utils import timezone
+from rest_framework.decorators import action
+from rest_framework.response import Response
+from drf_spectacular.utils import (
+    extend_schema,
+    extend_schema_view,
+    OpenApiParameter,
+    OpenApiExample,
+)
+from drf_spectacular.types import OpenApiTypes
+from rest_framework.permissions import IsAuthenticated
+from orders.models import CommandeLigneAccessoire
+from .permissions import IsAdminOrReadOnly
+from .models import Parfum, Essence, Accessoire, Flacon, Favori
+from .serializers import (
+    AccessoireSimilaireSerializer, ParfumSerializer, EssenceSerializer,
+    AccessoireSerializer, FlaconSerializer,ParfumSimilaireSerializer,
+)
+from django.db.models import Case, When
+from .filters import (
+    ParfumFilter, EssenceFilter,
+    AccessoireFilter, FlaconFilter,
+)
+from .pagination import StandardPagination
 
-# Create your views here.
+
+# ============================================================
+# PARFUMS
+# ============================================================
+@extend_schema_view(
+    list=extend_schema(
+        summary="Liste des parfums",
+        description="""
+Retourne la liste paginée de tous les parfums **actifs** du catalogue.
+
+**Pagination** : 50 résultats par page. Utilisez `?page=2` pour naviguer.
+
+**Filtres disponibles** :
+- Par tags : `famille_olfactive`, `humeur`, `saison`, `occasion`
+- Par caractéristiques : `genre`, `intensite`, `contenance_ml`
+- Par prix : `prix_min`, `prix_max`
+- Par statut : `est_nouveau`, `est_bestseller`
+
+**Tri** : `?ordering=prix_unitaire` ou `?ordering=-date_creation`
+
+**Recherche textuelle** : `?search=rose` (cherche dans nom, description, notes)
+        """,
+        tags=["Parfums"],
+        parameters=[
+            OpenApiParameter(
+                name="famille_olfactive",
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                description="Famille olfactive (ex: Floral, Boisé, Oriental, Aquatique)",
+                required=False,
+            ),
+            OpenApiParameter(
+                name="humeur",
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                description="Humeur compatible (ex: Romantique, Détendu, Énergique)",
+                required=False,
+            ),
+            OpenApiParameter(
+                name="saison",
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                description="Saison compatible (ex: Été, Hiver, Printemps, Automne)",
+                required=False,
+            ),
+            OpenApiParameter(
+                name="occasion",
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                description="Occasion (ex: Soirée, Bureau, Sport, Quotidien)",
+                required=False,
+            ),
+            OpenApiParameter(
+                name="genre",
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                description="Genre cible",
+                enum=["homme", "femme", "mixte"],
+                required=False,
+            ),
+            OpenApiParameter(
+                name="intensite",
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                description="Intensité du parfum",
+                enum=["légère", "moyenne", "forte", "très forte"],
+                required=False,
+            ),
+            OpenApiParameter(
+                name="contenance_ml",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.QUERY,
+                description="Contenance exacte en ml (ex: 30, 50, 75, 100)",
+                required=False,
+            ),
+            OpenApiParameter(
+                name="prix_min",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.QUERY,
+                description="Prix minimum en FCFA",
+                required=False,
+            ),
+            OpenApiParameter(
+                name="prix_max",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.QUERY,
+                description="Prix maximum en FCFA",
+                required=False,
+            ),
+            OpenApiParameter(
+                name="est_nouveau",
+                type=OpenApiTypes.BOOL,
+                location=OpenApiParameter.QUERY,
+                description="Filtrer les nouveautés uniquement",
+                required=False,
+            ),
+            OpenApiParameter(
+                name="est_bestseller",
+                type=OpenApiTypes.BOOL,
+                location=OpenApiParameter.QUERY,
+                description="Filtrer les bestsellers uniquement",
+                required=False,
+            ),
+            OpenApiParameter(
+                name="tags",
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                description="IDs de tags séparés par virgule (ex: ?tags=1,3,5)",
+                required=False,
+            ),
+            OpenApiParameter(
+                name="search",
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                description="Recherche textuelle dans nom, description et notes olfactives",
+                required=False,
+            ),
+            OpenApiParameter(
+                name="ordering",
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                description="Tri des résultats (ex: prix_unitaire, -prix_unitaire, nom, -date_creation)",
+                required=False,
+            ),
+            OpenApiParameter(
+                name="page",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.QUERY,
+                description="Numéro de page (défaut: 1)",
+                required=False,
+            ),
+            OpenApiParameter(
+                name="limit",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.QUERY,
+                description="Nombre de résultats par page (défaut: 50, max: 100)",
+                required=False,
+            ),
+        ],
+        examples=[
+            OpenApiExample(
+                name="Parfums floraux féminins",
+                summary="Filtrer par famille olfactive et genre",
+                value={"famille_olfactive": "Floral", "genre": "femme"},
+            ),
+            OpenApiExample(
+                name="Parfums dans une fourchette de prix",
+                summary="Filtrer par prix",
+                value={"prix_min": 15000, "prix_max": 50000},
+            ),
+        ],
+    ),
+    retrieve=extend_schema(
+        summary="Détail d'un parfum",
+        description="""
+Récupère les informations complètes d'un parfum via son **slug**.
+
+Retourne également :
+- Les tags associés (famille olfactive, humeur, saison, occasion)
+- Le `prix_actuel` (prix promotionnel si disponible, sinon prix normal)
+- Les notes olfactives (tête, cœur, fond)
+        """,
+        tags=["Parfums"],
+        examples=[
+            OpenApiExample(
+                name="Exemple de réponse",
+                summary="Parfum Royal Oud",
+                value={
+                    "id": 1,
+                    "nom": "Royal Oud",
+                    "slug": "royal-oud",
+                    "prix_actuel": "35000.00",
+                    "famille_olfactive": ["Boisé", "Oriental"],
+                    "humeurs_compatibles": ["Romantique"],
+                    "saisons_compatibles": ["Hiver", "Automne"],
+                },
+            ),
+        ],
+    ),
+)
+class ParfumViewSet(viewsets.ModelViewSet):
+    serializer_class   = ParfumSerializer
+    pagination_class   = StandardPagination
+    permission_classes = [IsAdminOrReadOnly]
+    filter_backends    = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+    filterset_class    = ParfumFilter
+    search_fields      = ['nom', 'description_courte', 'notes_tete', 'notes_coeur', 'notes_fond']
+    ordering_fields    = ['prix_unitaire', 'date_creation', 'nom', 'contenance_ml']
+    ordering           = ['-date_creation']
+    lookup_field       = 'slug'
+
+    def get_queryset(self):
+        return (
+            Parfum.objects
+            .filter(actif=True)
+            .select_related('categorie')
+            .prefetch_related('tags')
+            .distinct()
+        )
+
+ #Hotseller les parfums les plus vendus    
+    @action(detail=False, methods=['get'], url_path='bestsellers')
+    def bestsellers(self, request):
+        """Top 20 parfums les plus vendus (toutes périodes)"""
+        from orders.models import CommandeLigneParfum
+        ventes = (
+            CommandeLigneParfum.objects.filter(parfum__isnull=False)
+            .values('parfum_id')
+            .annotate(total=Sum('quantite'))
+            .order_by('-total')[:20]
+        )
+        ids = [v['parfum_id'] for v in ventes if v['total'] > 0]
+        # Garder l'ordre du classement
+        queryset = Parfum.objects.filter(actif=True, id__in=ids)
+        preserved_order = Case(*[When(id=pk, then=pos) for pos, pk in enumerate(ids)])
+        queryset = Parfum.objects.filter(actif=True, id__in=ids).order_by(preserved_order)
+        serializer = ParfumSimilaireSerializer(queryset, many=True, context={'request': request})
+        return Response(serializer.data)
+
+#Hotseller les parfums les plus vendus du moment 
+    @action(detail=False, methods=['get'], url_path='hotsellers')
+    def hotsellers(self, request):
+        """Top 10 parfums les plus vendus du mois en cours"""
+        from orders.models import CommandeLigneParfum
+        now = timezone.now()
+        debut_mois = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        ventes = (
+            CommandeLigneParfum.objects.filter(
+                parfum__isnull=False,
+                commande__date_creation__gte=debut_mois
+            )
+            .values('parfum_id')
+            .annotate(total=Sum('quantite'))
+            .order_by('-total')[:10]
+        )
+        ids = [v['parfum_id'] for v in ventes if v['total'] > 0]
+        queryset = Parfum.objects.filter(actif=True, id__in=ids)
+        preserved_order = Case(*[When(id=pk, then=pos) for pos, pk in enumerate(ids)])
+        queryset = Parfum.objects.filter(actif=True, id__in=ids).order_by(preserved_order)
+        serializer = ParfumSimilaireSerializer(queryset, many=True, context={'request': request})
+        return Response(serializer.data)
+    
+    #methodes pour les parfums favoris 
+    @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
+    def favori(self, request, slug=None):
+        parfum = self.get_object()
+        try:
+            client = request.user.client
+        except AttributeError:
+            return Response({'detail': 'Client non associé'}, status=400)
+        favori, created = Favori.objects.get_or_create(client=client, parfum=parfum)
+        if not created:
+            favori.delete()
+            return Response({'status': 'retiré', 'is_favori': False})
+        return Response({'status': 'ajouté', 'is_favori': True})
+    pass  
+
+# ============================================================
+# ESSENCES
+# ============================================================
+@extend_schema_view(
+    list=extend_schema(
+        summary="Liste des essences",
+        description="""
+Retourne la liste paginée de toutes les essences **actives**.
+
+Les essences sont les matières premières utilisées pour la création de parfums DIY
+dans le laboratoire.
+
+**Filtres disponibles** :
+- Par tags : `famille_olfactive`, `humeur`, `saison`, `occasion`, `signe_astrologique`, `moment_journee`
+- Par caractéristiques : `genre`, `intensite`
+- Par prix : `prix_min`, `prix_max` (prix pour 10ml en FCFA)
+- Par stock : `stock_min` (en litres)
+        """,
+        tags=["Essences"],
+        parameters=[
+            OpenApiParameter(
+                name="famille_olfactive",
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                description="Famille olfactive (ex: Floral, Boisé, Musqué)",
+                required=False,
+            ),
+            OpenApiParameter(
+                name="humeur",
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                description="Humeur compatible (ex: Romantique, Détendu)",
+                required=False,
+            ),
+            OpenApiParameter(
+                name="saison",
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                description="Saison compatible (ex: Été, Hiver)",
+                required=False,
+            ),
+            OpenApiParameter(
+                name="occasion",
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                description="Occasion (ex: Soirée, Quotidien)",
+                required=False,
+            ),
+            OpenApiParameter(
+                name="signe_astrologique",
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                description="Signe astrologique compatible (ex: Lion, Verseau, Scorpion)",
+                required=False,
+            ),
+            OpenApiParameter(
+                name="moment_journee",
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                description="Moment de la journée (ex: Matin, Soir, Nuit)",
+                required=False,
+            ),
+            OpenApiParameter(
+                name="genre",
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                description="Genre cible",
+                enum=["homme", "femme", "mixte"],
+                required=False,
+            ),
+            OpenApiParameter(
+                name="intensite",
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                description="Intensité de l'essence",
+                enum=["légère", "moyenne", "forte", "très forte"],
+                required=False,
+            ),
+            OpenApiParameter(
+                name="prix_min",
+                type=OpenApiTypes.NUMBER,
+                location=OpenApiParameter.QUERY,
+                description="Prix minimum pour 10ml en FCFA",
+                required=False,
+            ),
+            OpenApiParameter(
+                name="prix_max",
+                type=OpenApiTypes.NUMBER,
+                location=OpenApiParameter.QUERY,
+                description="Prix maximum pour 10ml en FCFA",
+                required=False,
+            ),
+            OpenApiParameter(
+                name="stock_min",
+                type=OpenApiTypes.NUMBER,
+                location=OpenApiParameter.QUERY,
+                description="Stock minimum disponible en litres",
+                required=False,
+            ),
+            OpenApiParameter(
+                name="tags",
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                description="IDs de tags séparés par virgule (ex: ?tags=1,3,5)",
+                required=False,
+            ),
+            OpenApiParameter(
+                name="search",
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                description="Recherche textuelle dans nom, description, fournisseur",
+                required=False,
+            ),
+            OpenApiParameter(
+                name="ordering",
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                description="Tri (ex: prix_par_10ml, -stock_litre, nom)",
+                required=False,
+            ),
+        ],
+    ),
+    retrieve=extend_schema(
+        summary="Détail d'une essence",
+        description="""
+Récupère les informations complètes d'une essence via son **ID**.
+
+Retourne également les compatibilités astrologiques et les moments
+de la journée recommandés.
+        """,
+        tags=["Essences"],
+    ),
+)
+class EssenceViewSet(viewsets.ModelViewSet):
+    serializer_class   = EssenceSerializer
+    pagination_class   = StandardPagination
+    permission_classes = [IsAdminOrReadOnly]
+    filter_backends    = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+    filterset_class    = EssenceFilter
+    search_fields      = ['nom', 'description', 'fournisseur', 'origine_pays']
+    ordering_fields    = ['prix_par_10ml', 'date_creation', 'nom', 'stock_litre']
+    ordering           = ['-date_creation']
+
+    def get_queryset(self):
+        return (
+            Essence.objects
+            .filter(actif=True)
+            .prefetch_related('tags')
+            .distinct()
+        )
+
+
+# ============================================================
+# ACCESSOIRES
+# ============================================================
+@extend_schema_view(
+    list=extend_schema(
+        summary="Liste des accessoires",
+        description="""
+Retourne la liste paginée de tous les accessoires **actifs**.
+
+**Filtres disponibles** :
+- Par type : `type_accessoire` (ID) ou `type_nom` (nom partiel)
+- Par prix : `prix_min`, `prix_max`
+- Par caractéristiques : `couleur`, `matiere`, `taille`
+- Par stock : `en_stock=true` (stock > seuil d'alerte)
+        """,
+        tags=["Accessoires"],
+        parameters=[
+            OpenApiParameter(
+                name="type_accessoire",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.QUERY,
+                description="ID du type d'accessoire",
+                required=False,
+            ),
+            OpenApiParameter(
+                name="type_nom",
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                description="Nom partiel du type (ex: Diffuseur, Bougie, Pochette)",
+                required=False,
+            ),
+            OpenApiParameter(
+                name="prix_min",
+                type=OpenApiTypes.NUMBER,
+                location=OpenApiParameter.QUERY,
+                description="Prix minimum en FCFA",
+                required=False,
+            ),
+            OpenApiParameter(
+                name="prix_max",
+                type=OpenApiTypes.NUMBER,
+                location=OpenApiParameter.QUERY,
+                description="Prix maximum en FCFA",
+                required=False,
+            ),
+            OpenApiParameter(
+                name="couleur",
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                description="Couleur de l'accessoire (ex: Noir, Doré, Transparent)",
+                required=False,
+            ),
+            OpenApiParameter(
+                name="matiere",
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                description="Matière (ex: Bois, Cuir, Verre, Métal)",
+                required=False,
+            ),
+            OpenApiParameter(
+                name="taille",
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                description="Taille (ex: S, M, L, XL)",
+                required=False,
+            ),
+            OpenApiParameter(
+                name="en_stock",
+                type=OpenApiTypes.BOOL,
+                location=OpenApiParameter.QUERY,
+                description="`true` = stock suffisant | `false` = stock faible ou épuisé",
+                required=False,
+            ),
+            OpenApiParameter(
+                name="search",
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                description="Recherche textuelle dans nom, description, matière, couleur",
+                required=False,
+            ),
+            OpenApiParameter(
+                name="ordering",
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                description="Tri (ex: prix_unitaire, -prix_unitaire, nom)",
+                required=False,
+            ),
+        ],
+    ),
+    retrieve=extend_schema(
+        summary="Détail d'un accessoire",
+        description="Récupère les informations complètes d'un accessoire via son **slug**.",
+        tags=["Accessoires"],
+    ),
+)
+class AccessoireViewSet(viewsets.ModelViewSet):
+    serializer_class   = AccessoireSerializer
+    pagination_class   = StandardPagination
+    permission_classes = [IsAdminOrReadOnly]
+    filter_backends    = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+    filterset_class    = AccessoireFilter
+    search_fields      = ['nom', 'description_courte', 'matiere', 'couleur']
+    ordering_fields    = ['prix_unitaire', 'date_creation', 'nom', 'poids_grammes']
+    ordering           = ['-date_creation']
+    lookup_field       = 'slug'
+
+    def get_queryset(self):
+        return (
+            Accessoire.objects
+            .filter(actif=True)
+            .select_related('type_accessoire')
+            .distinct()
+        )
+    
+    @action(detail=False, methods=['get'], url_path='bestsellers')
+    def bestsellers(self, request):
+        """Top 20 parfums les plus vendus (toutes périodes)"""
+        from orders.models import CommandeLigneAccessoire
+        ventes = (
+            CommandeLigneAccessoire.objects.filter(accessoire__isnull=False)
+            .values('accessoire_id')
+            .annotate(total=Sum('quantite'))
+            .order_by('-total')[:20]
+        )
+        ids = [v['accessoire_id'] for v in ventes if v['total'] > 0]
+        # Garder l'ordre du classement
+        queryset = Accessoire.objects.filter(actif=True, id__in=ids)
+        order = {id: idx for idx, id in enumerate(ids)}
+        queryset = sorted(queryset, key=lambda p: order.get(p.id, 999))
+        serializer = AccessoireSimilaireSerializer(queryset, many=True, context={'request': request})
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['get'], url_path='hotsellers')
+    def hotsellers(self, request):
+        """Top 10 parfums les plus vendus du mois en cours"""
+        from orders.models import CommandeLigneAccessoire
+        now = timezone.now()
+        debut_mois = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        ventes = (
+            CommandeLigneAccessoire.objects.filter(
+                accessoire__isnull=False,
+                commande__date_creation__gte=debut_mois
+            )
+            .values('accessoire_id')
+            .annotate(total=Sum('quantite'))
+            .order_by('-total')[:10]
+        )
+        ids = [v['accessoire_id'] for v in ventes if v['total'] > 0]
+        queryset = Accessoire.objects.filter(actif=True, id__in=ids)
+        order = {id: idx for idx, id in enumerate(ids)}
+        queryset = sorted(queryset, key=lambda p: order.get(p.id, 999))
+        serializer = AccessoireSimilaireSerializer(queryset, many=True, context={'request': request})
+        return Response(serializer.data)
+    #accessoires favoris 
+    @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
+    def favori(self, request, slug=None):
+        accessoire = self.get_object()
+        try:
+            client = request.user.client
+        except AttributeError:
+            return Response({'detail': 'Client non associé'}, status=400)
+        favori, created = Favori.objects.get_or_create(client=client, accessoire=accessoire)
+        if not created:
+            favori.delete()
+            return Response({'status': 'retiré', 'is_favori': False})
+        return Response({'status': 'ajouté', 'is_favori': True})
+# ============================================================
+# FLACONS
+# ============================================================
+@extend_schema_view(
+    list=extend_schema(
+        summary="Liste des flacons",
+        description="""
+Retourne la liste paginée de tous les flacons **actifs**.
+
+Les flacons sont utilisés pour le conditionnement des parfums personnalisés
+créés dans le laboratoire DIY.
+
+> ⚠️ Un flacon dont le stock est **inférieur ou égal au seuil d'alerte**
+> ne peut pas être sélectionné pour une commande.
+
+**Filtres disponibles** :
+- Par type : `type_flacon` (ID) ou `type_nom` (nom partiel)
+- Par contenance : `contenance_ml` (exacte), `contenance_min`, `contenance_max`
+- Par stock : `stock_min`, `stock_max`, `en_stock`
+- Par caractéristiques : `matiere`, `couleur`
+        """,
+        tags=["Flacons"],
+        parameters=[
+            OpenApiParameter(
+                name="type_flacon",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.QUERY,
+                description="ID du type de flacon",
+                required=False,
+            ),
+            OpenApiParameter(
+                name="type_nom",
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                description="Nom partiel du type (ex: Spray, Roll-on, Atomiseur)",
+                required=False,
+            ),
+            OpenApiParameter(
+                name="contenance_ml",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.QUERY,
+                description="Contenance exacte en ml (ex: 30, 50, 75, 100)",
+                required=False,
+            ),
+            OpenApiParameter(
+                name="contenance_min",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.QUERY,
+                description="Contenance minimum en ml",
+                required=False,
+            ),
+            OpenApiParameter(
+                name="contenance_max",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.QUERY,
+                description="Contenance maximum en ml",
+                required=False,
+            ),
+            OpenApiParameter(
+                name="stock_min",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.QUERY,
+                description="Quantité minimum en stock",
+                required=False,
+            ),
+            OpenApiParameter(
+                name="stock_max",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.QUERY,
+                description="Quantité maximum en stock",
+                required=False,
+            ),
+            OpenApiParameter(
+                name="en_stock",
+                type=OpenApiTypes.BOOL,
+                location=OpenApiParameter.QUERY,
+                description="`true` = commandable (stock > seuil) | `false` = bloqué (stock ≤ seuil)",
+                required=False,
+            ),
+            OpenApiParameter(
+                name="matiere",
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                description="Matière du flacon (ex: Verre, Plastique, Aluminium)",
+                required=False,
+            ),
+            OpenApiParameter(
+                name="couleur",
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                description="Couleur du flacon (ex: Transparent, Noir, Ambré)",
+                required=False,
+            ),
+            OpenApiParameter(
+                name="search",
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                description="Recherche textuelle dans nom, matière, couleur",
+                required=False,
+            ),
+            OpenApiParameter(
+                name="ordering",
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                description="Tri (ex: contenance_ml, -stock_quantite, prix_unitaire)",
+                required=False,
+            ),
+        ],
+        examples=[
+            OpenApiExample(
+                name="Flacons spray 50ml disponibles",
+                summary="Filtrer par type et contenance",
+                value={"type_nom": "Spray", "contenance_ml": 50, "en_stock": True},
+            ),
+        ],
+    ),
+    retrieve=extend_schema(
+        summary="Détail d'un flacon",
+        description="""
+Récupère les informations complètes d'un flacon via son **ID**.
+
+Le champ `stock_suffisant` indique si le flacon peut être utilisé
+pour une commande (stock > seuil_alerte_stock).
+        """,
+        tags=["Flacons"],
+    ),
+)
+class FlaconViewSet(viewsets.ModelViewSet):
+    serializer_class   = FlaconSerializer
+    pagination_class   = StandardPagination
+    permission_classes = [IsAdminOrReadOnly]
+    filter_backends    = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+    filterset_class    = FlaconFilter
+    search_fields      = ['nom', 'matiere', 'couleur']
+    ordering_fields    = ['prix_unitaire', 'date_creation', 'nom', 'contenance_ml', 'stock_quantite']
+    ordering           = ['-date_creation']
+
+    def get_queryset(self):
+        return (
+            Flacon.objects
+            .filter(actif=True)
+            .select_related('type_flacon')
+            .distinct()
+        )
+    
+from .serializers import FavoriSerializer
+
+class FavoriViewSet(viewsets.ReadOnlyModelViewSet):
+    serializer_class = FavoriSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        try:
+            client = self.request.user.client
+            # On ajoute select_related pour charger parfum et accessoire en une seule fois
+            return (Favori.objects.filter(client=client)
+                    .select_related('parfum', 'accessoire')
+                    .order_by('-date_ajout'))
+        except AttributeError:
+            return Favori.objects.none()

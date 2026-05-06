@@ -1,0 +1,1123 @@
+openapi: 3.0.3
+info:
+  title: API Boutique de Parfums
+  version: 1.0.0
+  description: Documentation interactive pour la gestion des parfums, essences et
+    accessoires.
+paths:
+  /api/v1/lab/essences/:
+    get:
+      operationId: v1_lab_essences_list
+      description: "\nRetourne la liste paginée de toutes les essences **actives**.\n\nLes
+        essences sont les matières premières utilisées pour la création de parfums
+        DIY\ndans le laboratoire.\n\n**Filtres disponibles** :\n- Par tags : `famille_olfactive`,
+        `humeur`, `saison`, `occasion`, `signe_astrologique`, `moment_journee`\n-
+        Par caractéristiques : `genre`, `intensite`\n- Par prix : `prix_min`, `prix_max`
+        (prix pour 10ml en FCFA)\n- Par stock : `stock_min` (en litres)\n        "
+      summary: Liste des essences
+      parameters:
+      - in: query
+        name: famille_olfactive
+        schema:
+          type: string
+        description: 'Famille olfactive (ex: Floral, Boisé, Musqué)'
+      - in: query
+        name: genre
+        schema:
+          type: string
+          enum:
+          - femme
+          - homme
+          - mixte
+        description: Genre cible
+      - in: query
+        name: humeur
+        schema:
+          type: string
+        description: 'Humeur compatible (ex: Romantique, Détendu)'
+      - in: query
+        name: intensite
+        schema:
+          type: string
+          enum:
+          - forte
+          - légère
+          - moyenne
+          - très forte
+        description: Intensité de l'essence
+      - name: limit
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - in: query
+        name: moment_journee
+        schema:
+          type: string
+        description: 'Moment de la journée (ex: Matin, Soir, Nuit)'
+      - in: query
+        name: occasion
+        schema:
+          type: string
+        description: 'Occasion (ex: Soirée, Quotidien)'
+      - in: query
+        name: ordering
+        schema:
+          type: string
+        description: 'Tri (ex: prix_par_10ml, -stock_litre, nom)'
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - in: query
+        name: prix_max
+        schema:
+          type: number
+        description: Prix maximum pour 10ml en FCFA
+      - in: query
+        name: prix_min
+        schema:
+          type: number
+        description: Prix minimum pour 10ml en FCFA
+      - in: query
+        name: saison
+        schema:
+          type: string
+        description: 'Saison compatible (ex: Été, Hiver)'
+      - in: query
+        name: search
+        schema:
+          type: string
+        description: Recherche textuelle dans nom, description, fournisseur
+      - in: query
+        name: signe_astrologique
+        schema:
+          type: string
+        description: 'Signe astrologique compatible (ex: Lion, Verseau, Scorpion)'
+      - in: query
+        name: stock_min
+        schema:
+          type: number
+        description: Stock minimum disponible en litres
+      - in: query
+        name: tags
+        schema:
+          type: string
+        description: 'IDs de tags séparés par virgule (ex: ?tags=1,3,5)'
+      tags:
+      - Essences
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedEssenceList'
+          description: ''
+  /api/v1/lab/essences/{id}/:
+    get:
+      operationId: v1_lab_essences_retrieve
+      description: "\nRécupère les informations complètes d'une essence via son **ID**.\n\nRetourne
+        également les compatibilités astrologiques et les moments\nde la journée recommandés.\n
+        \       "
+      summary: Détail d'une essence
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Essence.
+        required: true
+      tags:
+      - Essences
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Essence'
+          description: ''
+  /api/v1/shop/accessoires/:
+    get:
+      operationId: v1_shop_accessoires_list
+      description: "\nRetourne la liste paginée de tous les accessoires **actifs**.\n\n**Filtres
+        disponibles** :\n- Par type : `type_accessoire` (ID) ou `type_nom` (nom partiel)\n-
+        Par prix : `prix_min`, `prix_max`\n- Par caractéristiques : `couleur`, `matiere`,
+        `taille`\n- Par stock : `en_stock=true` (stock > seuil d'alerte)\n        "
+      summary: Liste des accessoires
+      parameters:
+      - in: query
+        name: couleur
+        schema:
+          type: string
+        description: 'Couleur de l''accessoire (ex: Noir, Doré, Transparent)'
+      - in: query
+        name: en_stock
+        schema:
+          type: boolean
+        description: '`true` = stock suffisant | `false` = stock faible ou épuisé'
+      - name: limit
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - in: query
+        name: matiere
+        schema:
+          type: string
+        description: 'Matière (ex: Bois, Cuir, Verre, Métal)'
+      - in: query
+        name: ordering
+        schema:
+          type: string
+        description: 'Tri (ex: prix_unitaire, -prix_unitaire, nom)'
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - in: query
+        name: prix_max
+        schema:
+          type: number
+        description: Prix maximum en FCFA
+      - in: query
+        name: prix_min
+        schema:
+          type: number
+        description: Prix minimum en FCFA
+      - in: query
+        name: search
+        schema:
+          type: string
+        description: Recherche textuelle dans nom, description, matière, couleur
+      - in: query
+        name: taille
+        schema:
+          type: string
+        description: 'Taille (ex: S, M, L, XL)'
+      - in: query
+        name: type_accessoire
+        schema:
+          type: integer
+        description: ID du type d'accessoire
+      - in: query
+        name: type_nom
+        schema:
+          type: string
+        description: 'Nom partiel du type (ex: Diffuseur, Bougie, Pochette)'
+      tags:
+      - Accessoires
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedAccessoireList'
+          description: ''
+  /api/v1/shop/accessoires/{slug}/:
+    get:
+      operationId: v1_shop_accessoires_retrieve
+      description: Récupère les informations complètes d'un accessoire via son **slug**.
+      summary: Détail d'un accessoire
+      parameters:
+      - in: path
+        name: slug
+        schema:
+          type: string
+        required: true
+      tags:
+      - Accessoires
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Accessoire'
+          description: ''
+  /api/v1/shop/flacons/:
+    get:
+      operationId: v1_shop_flacons_list
+      description: "\nRetourne la liste paginée de tous les flacons **actifs**.\n\nLes
+        flacons sont utilisés pour le conditionnement des parfums personnalisés\ncréés
+        dans le laboratoire DIY.\n\n> ⚠️ Un flacon dont le stock est **inférieur ou
+        égal au seuil d'alerte**\n> ne peut pas être sélectionné pour une commande.\n\n**Filtres
+        disponibles** :\n- Par type : `type_flacon` (ID) ou `type_nom` (nom partiel)\n-
+        Par contenance : `contenance_ml` (exacte), `contenance_min`, `contenance_max`\n-
+        Par stock : `stock_min`, `stock_max`, `en_stock`\n- Par caractéristiques :
+        `matiere`, `couleur`\n        "
+      summary: Liste des flacons
+      parameters:
+      - in: query
+        name: contenance_max
+        schema:
+          type: integer
+        description: Contenance maximum en ml
+      - in: query
+        name: contenance_min
+        schema:
+          type: integer
+        description: Contenance minimum en ml
+      - in: query
+        name: contenance_ml
+        schema:
+          type: integer
+        description: 'Contenance exacte en ml (ex: 30, 50, 75, 100)'
+      - in: query
+        name: couleur
+        schema:
+          type: string
+        description: 'Couleur du flacon (ex: Transparent, Noir, Ambré)'
+      - in: query
+        name: en_stock
+        schema:
+          type: boolean
+        description: '`true` = commandable (stock > seuil) | `false` = bloqué (stock
+          ≤ seuil)'
+      - name: limit
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - in: query
+        name: matiere
+        schema:
+          type: string
+        description: 'Matière du flacon (ex: Verre, Plastique, Aluminium)'
+      - in: query
+        name: ordering
+        schema:
+          type: string
+        description: 'Tri (ex: contenance_ml, -stock_quantite, prix_unitaire)'
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - in: query
+        name: search
+        schema:
+          type: string
+        description: Recherche textuelle dans nom, matière, couleur
+      - in: query
+        name: stock_max
+        schema:
+          type: integer
+        description: Quantité maximum en stock
+      - in: query
+        name: stock_min
+        schema:
+          type: integer
+        description: Quantité minimum en stock
+      - in: query
+        name: type_flacon
+        schema:
+          type: integer
+        description: ID du type de flacon
+      - in: query
+        name: type_nom
+        schema:
+          type: string
+        description: 'Nom partiel du type (ex: Spray, Roll-on, Atomiseur)'
+      tags:
+      - Flacons
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedFlaconList'
+              examples:
+                FlaconsSpray50mlDisponibles:
+                  value:
+                    count: 123
+                    next: http://api.example.org/accounts/?page=4
+                    previous: http://api.example.org/accounts/?page=2
+                    results:
+                    - type_nom: Spray
+                      contenance_ml: 50
+                      en_stock: true
+                  summary: Filtrer par type et contenance
+          description: ''
+  /api/v1/shop/flacons/{id}/:
+    get:
+      operationId: v1_shop_flacons_retrieve
+      description: "\nRécupère les informations complètes d'un flacon via son **ID**.\n\nLe
+        champ `stock_suffisant` indique si le flacon peut être utilisé\npour une commande
+        (stock > seuil_alerte_stock).\n        "
+      summary: Détail d'un flacon
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Flacon.
+        required: true
+      tags:
+      - Flacons
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Flacon'
+          description: ''
+  /api/v1/shop/parfums/:
+    get:
+      operationId: v1_shop_parfums_list
+      description: "\nRetourne la liste paginée de tous les parfums **actifs** du
+        catalogue.\n\n**Pagination** : 50 résultats par page. Utilisez `?page=2` pour
+        naviguer.\n\n**Filtres disponibles** :\n- Par tags : `famille_olfactive`,
+        `humeur`, `saison`, `occasion`\n- Par caractéristiques : `genre`, `intensite`,
+        `contenance_ml`\n- Par prix : `prix_min`, `prix_max`\n- Par statut : `est_nouveau`,
+        `est_bestseller`\n\n**Tri** : `?ordering=prix_unitaire` ou `?ordering=-date_creation`\n\n**Recherche
+        textuelle** : `?search=rose` (cherche dans nom, description, notes)\n        "
+      summary: Liste des parfums
+      parameters:
+      - in: query
+        name: contenance_ml
+        schema:
+          type: integer
+        description: 'Contenance exacte en ml (ex: 30, 50, 75, 100)'
+      - in: query
+        name: est_bestseller
+        schema:
+          type: boolean
+        description: Filtrer les bestsellers uniquement
+      - in: query
+        name: est_nouveau
+        schema:
+          type: boolean
+        description: Filtrer les nouveautés uniquement
+      - in: query
+        name: famille_olfactive
+        schema:
+          type: string
+        description: 'Famille olfactive (ex: Floral, Boisé, Oriental, Aquatique)'
+      - in: query
+        name: genre
+        schema:
+          type: string
+          enum:
+          - femme
+          - homme
+          - mixte
+        description: Genre cible
+      - in: query
+        name: humeur
+        schema:
+          type: string
+        description: 'Humeur compatible (ex: Romantique, Détendu, Énergique)'
+      - in: query
+        name: intensite
+        schema:
+          type: string
+          enum:
+          - forte
+          - légère
+          - moyenne
+          - très forte
+        description: Intensité du parfum
+      - in: query
+        name: limit
+        schema:
+          type: integer
+        description: 'Nombre de résultats par page (défaut: 50, max: 100)'
+      - in: query
+        name: occasion
+        schema:
+          type: string
+        description: 'Occasion (ex: Soirée, Bureau, Sport, Quotidien)'
+      - in: query
+        name: ordering
+        schema:
+          type: string
+        description: 'Tri des résultats (ex: prix_unitaire, -prix_unitaire, nom, -date_creation)'
+      - in: query
+        name: page
+        schema:
+          type: integer
+        description: 'Numéro de page (défaut: 1)'
+      - in: query
+        name: prix_max
+        schema:
+          type: integer
+        description: Prix maximum en FCFA
+      - in: query
+        name: prix_min
+        schema:
+          type: integer
+        description: Prix minimum en FCFA
+      - in: query
+        name: saison
+        schema:
+          type: string
+        description: 'Saison compatible (ex: Été, Hiver, Printemps, Automne)'
+      - in: query
+        name: search
+        schema:
+          type: string
+        description: Recherche textuelle dans nom, description et notes olfactives
+      - in: query
+        name: tags
+        schema:
+          type: string
+        description: 'IDs de tags séparés par virgule (ex: ?tags=1,3,5)'
+      tags:
+      - Parfums
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedParfumList'
+              examples:
+                ParfumsFlorauxFéminins:
+                  value:
+                    count: 123
+                    next: http://api.example.org/accounts/?page=4
+                    previous: http://api.example.org/accounts/?page=2
+                    results:
+                    - famille_olfactive: Floral
+                      genre: femme
+                  summary: Filtrer par famille olfactive et genre
+                ParfumsDansUneFourchetteDePrix:
+                  value:
+                    count: 123
+                    next: http://api.example.org/accounts/?page=4
+                    previous: http://api.example.org/accounts/?page=2
+                    results:
+                    - prix_min: 15000
+                      prix_max: 50000
+                  summary: Filtrer par prix
+          description: ''
+  /api/v1/shop/parfums/{slug}/:
+    get:
+      operationId: v1_shop_parfums_retrieve
+      description: "\nRécupère les informations complètes d'un parfum via son **slug**.\n\nRetourne
+        également :\n- Les tags associés (famille olfactive, humeur, saison, occasion)\n-
+        Le `prix_actuel` (prix promotionnel si disponible, sinon prix normal)\n- Les
+        notes olfactives (tête, cœur, fond)\n        "
+      summary: Détail d'un parfum
+      parameters:
+      - in: path
+        name: slug
+        schema:
+          type: string
+        required: true
+      tags:
+      - Parfums
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Parfum'
+              examples:
+                ExempleDeRéponse:
+                  value:
+                    id: 1
+                    nom: Royal Oud
+                    slug: royal-oud
+                    prix_actuel: '35000.00'
+                    famille_olfactive:
+                    - Boisé
+                    - Oriental
+                    humeurs_compatibles:
+                    - Romantique
+                    saisons_compatibles:
+                    - Hiver
+                    - Automne
+                  summary: Parfum Royal Oud
+          description: ''
+components:
+  schemas:
+    Accessoire:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        nom:
+          type: string
+          maxLength: 200
+        slug:
+          type: string
+          maxLength: 220
+          pattern: ^[-a-zA-Z0-9_]+$
+        reference_sku:
+          type: string
+          maxLength: 100
+        type_accessoire:
+          allOf:
+          - $ref: '#/components/schemas/TypeAccessoire'
+          readOnly: true
+        description_courte:
+          type: string
+          maxLength: 500
+        matiere:
+          type: string
+          maxLength: 100
+        couleur:
+          type: string
+          maxLength: 50
+        taille:
+          type: string
+          maxLength: 50
+        prix_unitaire:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+        prix_promotionnel:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          nullable: true
+        prix_actuel:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          readOnly: true
+        stock_quantite:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: -9223372036854775808
+          format: int64
+        poids_grammes:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,6}(?:\.\d{0,2})?$
+          nullable: true
+        image_principale:
+          type: string
+          maxLength: 255
+        date_creation:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - date_creation
+      - id
+      - nom
+      - prix_actuel
+      - prix_unitaire
+      - reference_sku
+      - slug
+      - type_accessoire
+    BlankEnum:
+      enum:
+      - ''
+    Essence:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        nom:
+          type: string
+          maxLength: 150
+        code_reference:
+          type: string
+          maxLength: 50
+        description:
+          type: string
+        fournisseur:
+          type: string
+          maxLength: 200
+        origine_pays:
+          type: string
+          maxLength: 100
+        prix_par_10ml:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+        stock_litre:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,7}(?:\.\d{0,3})?$
+        genre_cible:
+          $ref: '#/components/schemas/GenreCibleEnum'
+        intensite:
+          oneOf:
+          - $ref: '#/components/schemas/IntensiteEnum'
+          - $ref: '#/components/schemas/BlankEnum'
+        tags:
+          type: array
+          items:
+            $ref: '#/components/schemas/Tag'
+          readOnly: true
+        famille_olfactive:
+          type: array
+          items:
+            type: string
+          readOnly: true
+        humeurs_compatibles:
+          type: array
+          items:
+            type: string
+          readOnly: true
+        occasions:
+          type: array
+          items:
+            type: string
+          readOnly: true
+        saisons_compatibles:
+          type: array
+          items:
+            type: string
+          readOnly: true
+        signes_astrologiques_compatibles:
+          type: array
+          items:
+            type: string
+          readOnly: true
+        moments_journee:
+          type: array
+          items:
+            type: string
+          readOnly: true
+        date_creation:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - code_reference
+      - date_creation
+      - famille_olfactive
+      - humeurs_compatibles
+      - id
+      - moments_journee
+      - nom
+      - occasions
+      - prix_par_10ml
+      - saisons_compatibles
+      - signes_astrologiques_compatibles
+      - tags
+    Flacon:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        nom:
+          type: string
+          maxLength: 200
+        reference_sku:
+          type: string
+          maxLength: 100
+        type_flacon:
+          allOf:
+          - $ref: '#/components/schemas/TypeFlacon'
+          readOnly: true
+        contenance_ml:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: -9223372036854775808
+          format: int64
+          description: 30, 50, 75, 100, 150 ml
+        matiere:
+          type: string
+          maxLength: 100
+        couleur:
+          type: string
+          maxLength: 50
+        hauteur_cm:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,3}(?:\.\d{0,2})?$
+          nullable: true
+        largeur_cm:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,3}(?:\.\d{0,2})?$
+          nullable: true
+        poids_grammes:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,6}(?:\.\d{0,2})?$
+          nullable: true
+        prix_unitaire:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+        stock_quantite:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: -9223372036854775808
+          format: int64
+        seuil_alerte_stock:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: -9223372036854775808
+          format: int64
+          description: En dessous de ce seuil la commande est bloquée
+        stock_suffisant:
+          type: boolean
+          description: |-
+            True  → stock > seuil_alerte_stock (commande possible)
+            False → stock ≤ seuil_alerte_stock (commande bloquée)
+          readOnly: true
+        image_principale:
+          type: string
+          maxLength: 255
+        date_creation:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - contenance_ml
+      - date_creation
+      - id
+      - nom
+      - prix_unitaire
+      - reference_sku
+      - stock_suffisant
+      - type_flacon
+    GenreCibleEnum:
+      enum:
+      - homme
+      - femme
+      - mixte
+      type: string
+      description: |-
+        * `homme` - Homme
+        * `femme` - Femme
+        * `mixte` - Mixte
+    IntensiteEnum:
+      enum:
+      - légère
+      - moyenne
+      - forte
+      - très forte
+      type: string
+      description: |-
+        * `légère` - Légère
+        * `moyenne` - Moyenne
+        * `forte` - Forte
+        * `très forte` - Très forte
+    PaginatedAccessoireList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Accessoire'
+    PaginatedEssenceList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Essence'
+    PaginatedFlaconList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Flacon'
+    PaginatedParfumList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Parfum'
+    Parfum:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        nom:
+          type: string
+          maxLength: 200
+        slug:
+          type: string
+          maxLength: 220
+          pattern: ^[-a-zA-Z0-9_]+$
+        reference_sku:
+          type: string
+          maxLength: 100
+        description_courte:
+          type: string
+          maxLength: 500
+        contenance_ml:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: -9223372036854775808
+          format: int64
+          description: 30, 50, 75, 100 ml
+        prix_unitaire:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+        prix_promotionnel:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          nullable: true
+        prix_actuel:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          readOnly: true
+        genre_cible:
+          $ref: '#/components/schemas/GenreCibleEnum'
+        intensite:
+          oneOf:
+          - $ref: '#/components/schemas/IntensiteEnum'
+          - $ref: '#/components/schemas/BlankEnum'
+        notes_tete:
+          type: string
+          maxLength: 300
+        notes_coeur:
+          type: string
+          maxLength: 300
+        notes_fond:
+          type: string
+          maxLength: 300
+        tags:
+          type: array
+          items:
+            $ref: '#/components/schemas/Tag'
+          readOnly: true
+        famille_olfactive:
+          type: array
+          items:
+            type: string
+          readOnly: true
+        humeurs_compatibles:
+          type: array
+          items:
+            type: string
+          readOnly: true
+        occasions:
+          type: array
+          items:
+            type: string
+          readOnly: true
+        saisons_compatibles:
+          type: array
+          items:
+            type: string
+          readOnly: true
+        est_nouveau:
+          type: boolean
+        est_bestseller:
+          type: boolean
+        image_principale:
+          type: string
+          maxLength: 255
+        stock_quantite:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: -9223372036854775808
+          format: int64
+        date_creation:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - contenance_ml
+      - date_creation
+      - famille_olfactive
+      - humeurs_compatibles
+      - id
+      - nom
+      - occasions
+      - prix_actuel
+      - prix_unitaire
+      - reference_sku
+      - saisons_compatibles
+      - slug
+      - tags
+    Tag:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        nom:
+          type: string
+          maxLength: 100
+        type:
+          $ref: '#/components/schemas/TypeEnum'
+      required:
+      - id
+      - nom
+      - type
+    TypeAccessoire:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        nom:
+          type: string
+          maxLength: 100
+        slug:
+          type: string
+          maxLength: 120
+          pattern: ^[-a-zA-Z0-9_]+$
+        description:
+          type: string
+        icone:
+          type: string
+          maxLength: 255
+      required:
+      - id
+      - nom
+      - slug
+    TypeEnum:
+      enum:
+      - famille_olfactive
+      - signe_astrologique
+      - humeur
+      - saison
+      - moment_journee
+      - occasion
+      type: string
+      description: |-
+        * `famille_olfactive` - Famille olfactive
+        * `signe_astrologique` - Signe astrologique
+        * `humeur` - Humeur compatible
+        * `saison` - Saison compatible
+        * `moment_journee` - Moment de la journée
+        * `occasion` - Occasion
+    TypeFlacon:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        nom:
+          type: string
+          maxLength: 100
+        description:
+          type: string
+        image:
+          type: string
+          maxLength: 255
+      required:
+      - id
+      - nom
+  securitySchemes:
+    basicAuth:
+      type: http
+      scheme: basic
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: sessionid
+tags:
+- name: Parfums
+  description: Catalogue des parfums
+- name: Essences
+  description: Catalogue des essences DIY
+- name: Accessoires
+  description: Catalogue des accessoires
+- name: Flacons
+  description: Catalogue des flacons
