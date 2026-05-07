@@ -1,3 +1,20 @@
+/**
+ * @file lib/utils.ts
+ * @description General Purpose Helper Functions & Logic Utilities.
+ *
+ * This library contains pure functions and small logic wrappers used across 
+ * various components to ensure code reuse and clean implementation.
+ * 
+ * **Key Utilities**:
+ * - **`cn(...inputs)`**: A wrapper for `clsx` and `tailwind-merge` to handle conditional class merging and conflict resolution in Tailwind CSS.
+ * - **`formatPrice(amount)`**: Formats a numerical value into a localized currency string (FCFA) for consistent pricing display.
+ * - **`blendColors(colors)`**: A sophisticated algorithm that takes an array of HEX colors and weights to calculate a single average color. Used primarily for the visual perfume mixer in the Numba Atelier.
+ * - **`generateWhatsAppLink(...)`**: Orchestrates the checkout process by generating a URL that pre-fills a WhatsApp message with order details, items, and totals.
+ * - **`generateId()`**: Generates a unique, timestamped ID for entities like custom compositions.
+ * - **Date Formatters**: (`formatDate`, `formatDateTime`) Provides localized French date strings for dashboards and order history.
+ * 
+ * **Benefit**: Decouples business logic from UI components, making the codebase easier to test and maintain.
+ */
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { WHATSAPP_BASE_URL, WHATSAPP_NUMBER, CURRENCY } from './constants';

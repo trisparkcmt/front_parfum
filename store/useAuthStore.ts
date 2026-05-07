@@ -1,5 +1,25 @@
 'use client';
 
+/**
+ * @file store/useAuthStore.ts
+ * @description Centralized Authentication & User Session Store.
+ *
+ * This store manages the global state of the user's authentication status and 
+ * identity within the application.
+ * 
+ * **State Properties**:
+ * - **`user`**: Stores the current user's profile data (ID, name, email, role).
+ * - **`isAuthenticated`**: A boolean flag indicating if a session is active.
+ * - **`isLoading`**: Tracks asynchronous authentication operations.
+ * 
+ * **Core Actions**:
+ * - **`login`**: Simulates an authentication request, verifying credentials and updating the store with mock user data.
+ * - **`register`**: Creates a new mock user account and automatically logs them in.
+ * - **`logout`**: Clears the user session and resets the authentication state.
+ * - **`updateProfile`**: Allows the user to modify their basic account information.
+ * 
+ * **Persistence**: Uses Zustand's `persist` middleware to synchronize the user session with `localStorage`, ensuring the session survives page reloads.
+ */
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { User, UserRole } from '@/types';

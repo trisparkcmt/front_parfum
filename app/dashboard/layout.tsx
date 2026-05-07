@@ -1,5 +1,17 @@
 'use client';
 
+/**
+ * @file app/dashboard/layout.tsx
+ * @description Global Dashboard Layout Frame.
+ *
+ * This component provides the structural foundation for all role-based dashboards 
+ * (Admin, Client, Partner, Delivery). It is responsible for:
+ * - **Access Control**: Utilizes the `useAuthGuard` hook to ensure the user is authenticated and potentially restricts access based on allowed roles.
+ * - **Navigation**: Renders the specialized `DashboardSidebar` using `DASHBOARD_NAV_LINKS` from the constants library.
+ * - **Responsive Design**: Implements a sidebar-based layout that adapts to mobile screens (collapsible sidebar) and desktop (persistent sidebar).
+ * - **Dynamic Content**: Provides a scrollable `<main>` area where the specific dashboard pages are injected as `children`.
+ * - **State Integration**: Uses `useAuthStore` to display the logged-in user's name and role in the sidebar header.
+ */
 import { useAuthGuard } from '@/hooks/useAuthGuard';
 import { useAuthStore } from '@/store/useAuthStore';
 import { Loader2 } from 'lucide-react';

@@ -1,5 +1,20 @@
 'use client';
 
+/**
+ * @file app/shop/perfumes/[id]/page.tsx
+ * @description Dynamic Detail Page for a Specific Perfume.
+ *
+ * This component provides an in-depth profile for an individual fragrance, 
+ * emphasizing its olfactive characteristics and brand heritage.
+ * 
+ * **Key Modules**:
+ * - **Fragrance Pyramid**: Displays the Top, Heart, and Base notes using visual indicators to explain the scent's evolution.
+ * - **Olfactive Profile**: Highlights the primary and secondary families (e.g., Oriental-Spicy) with descriptive badges.
+ * - **Dynamic Data Resolution**: Resolves the `id` param to find the matching perfume in the `mockProducts` library.
+ * - **Purchase Flow**: Integrates with `useCartStore` for shopping and `useFavoritesStore` for wishlist management.
+ * 
+ * **Atmospheric Design**: Uses background gradients and luxury typography to evoke the "vibe" of the specific perfume.
+ */
 import { use } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -17,7 +32,7 @@ import { useToastStore } from '@/store/useToastStore';
 export default function PerfumeDetail({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
   const product = allProducts.find(p => p.id === resolvedParams.id);
-  
+
   const { addProduct } = useCartStore();
   const { addFavorite, removeFavorite, isFavorite } = useFavoritesStore();
   const { addToast } = useToastStore();
@@ -43,20 +58,20 @@ export default function PerfumeDetail({ params }: { params: Promise<{ id: string
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 pt-24 lg:pt-32">
       <Link href="/shop/perfumes" className="inline-flex items-center gap-2 text-sm text-foreground/50 hover:text-gold mb-8 transition-colors">
         <ArrowLeft size={16} /> Retour à la parfumerie
       </Link>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
         {/* Image */}
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
           className="relative aspect-square rounded-3xl overflow-hidden bg-cream-dark dark:bg-deep-black/50 border border-white/5"
         >
           <div className="absolute inset-0 flex items-center justify-center text-gold/10">
-             <Droplets size={120} />
+            <Droplets size={120} />
           </div>
           {product.images[0] && (
             <Image
@@ -70,7 +85,7 @@ export default function PerfumeDetail({ params }: { params: Promise<{ id: string
         </motion.div>
 
         {/* Info */}
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
           className="flex flex-col justify-center"
@@ -87,7 +102,7 @@ export default function PerfumeDetail({ params }: { params: Promise<{ id: string
             {product.originalBrand && (
               <p className="text-foreground/50 text-sm mb-4">Inspiration : {product.originalBrand}</p>
             )}
-            
+
             <div className="flex items-center gap-4 mb-6">
               <p className="font-display text-3xl font-bold text-gold">{formatPrice(product.price)}</p>
               {product.rating && (
@@ -106,7 +121,7 @@ export default function PerfumeDetail({ params }: { params: Promise<{ id: string
 
           {/* Olfactive Notes Pyramid */}
           {product.notes && (
-            <div className="mb-8 bg-charcoal/50 border border-white/5 rounded-2xl p-6">
+            <div className="mb-8 bg-charcoal/50 border border-white/5  p-6">
               <h3 className="font-display text-lg font-semibold mb-4 text-gold flex items-center gap-2">
                 <Sparkles size={18} /> Pyramide Olfactive
               </h3>
@@ -131,9 +146,9 @@ export default function PerfumeDetail({ params }: { params: Promise<{ id: string
             <Button size="lg" className="flex-1" onClick={handleAddToCart} rightIcon={<ShoppingBag size={20} />}>
               Ajouter au panier
             </Button>
-            <Button 
-              variant="secondary" 
-              size="lg" 
+            <Button
+              variant="secondary"
+              size="lg"
               className="px-6"
               onClick={handleToggleFavorite}
             >

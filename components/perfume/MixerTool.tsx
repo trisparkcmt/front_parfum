@@ -1,5 +1,24 @@
 'use client';
 
+/**
+ * @file components/perfume/MixerTool.tsx
+ * @description Visual Liquid Blending & Bottle Simulation.
+ *
+ * This component provides a highly visual, interactive representation of a perfume 
+ * bottle being filled with various essences in the Numba Atelier. 
+ * 
+ * **Key Visual Logic**:
+ * - **Liquid Level Simulation**: Uses `framer-motion` to animate the height of the liquid container (`percentage`), which is calculated based on the `totalMl` relative to `MAX_COMPOSITION_ML`.
+ * - **Dynamic Color Blending**: Integrates the `blendColors` utility. It calculates the resulting liquid color by weighting the HEX codes of each added essence by its specific milliliter volume.
+ * - **Glass Aesthetic**: Implements a multi-layered design with a `deep-black` background and semi-transparent borders to simulate a luxury glass flacon.
+ * - **Interactive Feedback**: Includes a real-time capacity progress bar and status text that changes when the bottle reaches 100% capacity.
+ * 
+ * **Props**:
+ * - `essences`: Array of `CompositionEssence` objects containing the ingredient data.
+ * - `totalMl`: The cumulative volume of all essences added to the mix.
+ * 
+ * **Technical Implementation**: Leverages CSS `mix-blend-mode` for realistic lighting effects and `spring` transitions for smooth volume changes.
+ */
 import { motion } from 'framer-motion';
 import { Droplets } from 'lucide-react';
 import { MAX_COMPOSITION_ML } from '@/lib/constants';
@@ -36,7 +55,7 @@ export function MixerTool({ essences, totalMl }: MixerToolProps) {
         {/* Liquid */}
         <motion.div
           className="w-full relative"
-          initial={{ height: 0 }}
+          initial={{ height: 10 }}
           animate={{ height: `${percentage}%` }}
           transition={{ type: 'spring', bounce: 0.2, duration: 1 }}
           style={{ backgroundColor: blendedColor }}

@@ -1,3 +1,19 @@
+/**
+ * @file lib/constants.ts
+ * @description Application-Wide Configuration & Static Content.
+ *
+ * This file serves as the single source of truth for fixed values, labels, 
+ * and configuration settings used throughout the Accessories Exclusif platform.
+ * 
+ * **Key Constant Groups**:
+ * - **Theme Colors**: Defines the brand's primary color palette (Gold, Charcoal, Silver) for programmatic use.
+ * - **Navigation Links**: Defines the structure for the `MAIN_NAV_LINKS` and role-specific `DASHBOARD_NAV_LINKS`.
+ * - **Olfactive Families**: A mapping of perfume family keys (e.g., 'woody') to their localized labels and emojis.
+ * - **Business Rules**: Stores core e-commerce parameters such as `MAX_COMPOSITION_ML` (100) and `ESSENCE_INCREMENT_ML` (10).
+ * - **UI Labels**: Centralizes display strings for product categories and order statuses to ensure linguistic consistency.
+ * 
+ * **Benefit**: Centralizing these values simplifies future maintenance and localization efforts.
+ */
 import type { NavLink, OlfactiveFamily } from '@/types';
 
 // ============================================================
@@ -130,9 +146,9 @@ export const DASHBOARD_NAV_LINKS: Record<string, NavLink[]> = {
     { label: 'Mon Dashboard', href: '/partner', icon: 'BarChart3' },
   ],
   client: [
-    { label: 'Mon Profil', href: '/client/profile', icon: 'User' },
-    { label: 'Mes Favoris', href: '/client/favorites', icon: 'Heart' },
-    { label: 'Mes Compositions', href: '/client/compositions', icon: 'FlaskConical' },
+    { label: 'Mon Profil', href: '/dashboard/client', icon: 'User' },
+    { label: 'Mes Favoris', href: '/dashboard/client/favorites', icon: 'Heart' },
+    { label: 'Mes Compositions', href: '/dashboard/client/compositions', icon: 'FlaskConical' },
   ],
 };
 

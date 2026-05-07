@@ -1,5 +1,19 @@
 'use client';
 
+/**
+ * @file app/(auth)/login/page.tsx
+ * @description User Authentication / Login Page.
+ *
+ * This component provides the interface for existing users to sign in.
+ * Key technical features include:
+ * - **Form Management**: Utilizes `react-hook-form` for efficient state handling.
+ * - **Validation**: Uses `zod` schema-based validation for the email and password fields.
+ * - **State Integration**: Connects to the `useAuthStore` to execute the login process.
+ * - **Feedback**: Triggers success or error toasts based on the authentication result.
+ * - **Navigation**: Supports post-login redirection using the `redirect` query parameter.
+ *
+ * It features a premium, animated UI using `framer-motion`.
+ */
 import { Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -65,7 +79,7 @@ function LoginFormContent() {
           error={errors.email?.message}
           {...register('email')}
         />
-        
+
         <div className="space-y-1">
           <Input
             label="Mot de passe"
@@ -93,9 +107,9 @@ function LoginFormContent() {
           Créer un compte
         </Link>
       </div>
-      
+
       {/* Helper text since we use mock data */}
-      <div className="mt-8 p-4 bg-gold/10 border border-gold/20 rounded-lg text-xs text-foreground/70">
+      <div className="mt-8 p-4 bg-gold/10 border border-gold/20  text-xs text-foreground/70">
         <p className="font-bold mb-1 text-gold">Comptes de test (mot de passe libre) :</p>
         <ul className="list-disc pl-4 space-y-1">
           <li><strong>Client :</strong> jean@mail.com</li>

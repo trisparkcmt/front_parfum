@@ -25,19 +25,19 @@
   --color-background: var(--background);
   --color-foreground: var(--foreground);
 
-  --font-sans: var(--font-inter), ui-sans-serif, system-ui;
-  --font-serif: var(--font-playfair), ui-serif, Georgia;
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-roboto), ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  --font-serif: var(--font-roboto), ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  --font-mono: var(--font-roboto);
 }
 
 :root {
   --background: #FAF7F2;
-  --foreground: #050505;
+  --foreground: #151515 ;
 }
-
+ 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #050505;
+    --background: #151515;
     --foreground: #FAF7F2;
   }
 }

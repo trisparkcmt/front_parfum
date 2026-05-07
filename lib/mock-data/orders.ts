@@ -1,3 +1,18 @@
+/**
+ * @file lib/mock-data/orders.ts
+ * @description Simulated Transaction & Delivery Datasets.
+ *
+ * This file provides the mock data required to populate the various 
+ * dashboards (Client, Admin, Delivery, Partner).
+ * 
+ * **Datasets**:
+ * - **`mockUsers`**: Simulated user accounts with different roles (admin, client, delivery, partner).
+ * - **`mockPromoCodes`**: Promotional codes linked to specific partners for discount calculation.
+ * - **`mockOrders`**: A comprehensive list of simulated customer orders, including statuses (Pending, Validated, Shipped), items purchased, and user IDs. Used by the Client and Admin dashboards.
+ * - **`mockDeliveryTasks`**: A specialized view of the orders assigned to delivery personnel. Includes logistic-specific data like addresses, contact numbers, and collection amounts.
+ * 
+ * **Benefit**: Enables full front-end development and testing of dashboard logic without requiring a live backend database.
+ */
 import type { Order, User, PromoCode, DeliveryTask } from '@/types';
 
 export const mockUsers: User[] = [

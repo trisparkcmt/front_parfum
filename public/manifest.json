@@ -1,0 +1,42 @@
+{
+  "name": "Way of Life — Studio de Pilates Reformer",
+  "short_name": "Way of Life",
+  "description": "Studio de Pilates reformer à Yaoundé. Réservez vos séances, consultez le planning et rejoignez notre communauté.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f2efec",
+  "theme_color": "#30d5c8",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "lang": "fr",
+  "categories": ["health", "fitness", "lifestyle"],
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "Planning des cours",
+      "short_name": "Planning",
+      "url": "/services",
+      "icons": []
+    },
+    {
+      "name": "Réserver un cours",
+      "short_name": "Réserver",
+      "url": "/contact",
+      "icons": []
+    }
+  ]
+}

@@ -1,11 +1,26 @@
 'use client';
 
+/**
+ * @file components/shared/Footer.tsx
+ * @description Global Application Footer.
+ *
+ * This component provides site-wide brand information, navigation links, 
+ * and trust-building elements for the Accessories Exclusif platform.
+ * 
+ * **Main Modules**:
+ * - **Brand Identity**: Displays the logo and a short localized description of the "Exclusif" luxury philosophy.
+ * - **Navigation Columns**: Organizes links into logical groups (Boutique, Atelier, Service Client, Légal).
+ * - **Contact & Social**: Provides direct access to the brand's social media profiles and customer support email.
+ * - **Localization**: Displays current copyright information and ensures all text is in French.
+ * 
+ * **UI Design**: Uses a `glass-dark` aesthetic with subtle gold accents to maintain the platform's high-end feel.
+ */
 import Link from 'next/link';
 import { Gem, Camera, Globe, MessageCircle, Mail, MapPin, Phone } from 'lucide-react';
 
 export function Footer() {
   return (
-    <footer className="bg-deep-black text-cream/70 border-t border-white/5">
+    <footer className="  bg-deep-black text-cream/70 border-t border-white/5">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12">
           {/* Brand */}
@@ -22,20 +37,20 @@ export function Footer() {
               Découvrez l&apos;atelier Numba et créez votre signature olfactive.
             </p>
             <div className="flex gap-3">
-              <a href="#" className="p-2 rounded-lg bg-white/5 hover:bg-gold/10 hover:text-gold transition-colors" aria-label="Instagram">
+              <a href="#" className="p-2  bg-white/5 hover:bg-gold/10 hover:text-gold transition-colors" aria-label="Instagram">
                 <Camera size={18} />
               </a>
-              <a href="#" className="p-2 rounded-lg bg-white/5 hover:bg-gold/10 hover:text-gold transition-colors" aria-label="Facebook">
+              <a href="#" className="p-2  bg-white/5 hover:bg-gold/10 hover:text-gold transition-colors" aria-label="Facebook">
                 <Globe size={18} />
               </a>
-              <a href="https://wa.me/237680254243" target="_blank" rel="noopener noreferrer" className="p-2 rounded-lg bg-white/5 hover:bg-gold/10 hover:text-gold transition-colors">
+              <a href="https://wa.me/237680254243" target="_blank" rel="noopener noreferrer" className="p-2  bg-white/5 hover:bg-gold/10 hover:text-gold transition-colors">
                 <MessageCircle size={18} />
               </a>
             </div>
           </div>
 
           {/* Navigation */}
-          <div>
+          <div className = 'hidden md:flex flex-col '>
             <h4 className="font-display text-sm font-semibold text-cream mb-4 uppercase tracking-wider">Navigation</h4>
             <ul className="space-y-3">
               {[

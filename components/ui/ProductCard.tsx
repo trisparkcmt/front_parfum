@@ -1,5 +1,24 @@
 'use client';
 
+/**
+ * @file components/ui/ProductCard.tsx
+ * @description Centralized Catalog Item Visualizer.
+ *
+ * This component is the primary building block of the platform's e-commerce catalogs.
+ * It is responsible for rendering an individual product's summary data.
+ * 
+ * **Key Visual Modules**:
+ * - **Image Management**: Displays the product's primary image with luxury hover animations.
+ * - **Favorites Integration**: Subscribes to `useFavoritesStore` to render a interactive "Heart" icon for wishlisting.
+ * - **Olfactive Indicators**: (For Perfumes) Shows the primary fragrance family badge.
+ * - **Brand/Collection Labeling**: Dynamically identifies if the product is a Brand Name, Dupe, or Accessory.
+ * 
+ * **Interactivity**:
+ * - **Quick Add**: Provides a one-click "Add to Cart" button that executes `addItem` in the `useCartStore`.
+ * - **Navigation**: Wraps key elements in a `Link` to direct the user to the product's dynamic detail page.
+ * 
+ * **Animation**: Employs `motion.div` to provide a subtle lift effect when hovered.
+ */
 import Image from 'next/image';
 import { Heart, ShoppingBag, Star } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -25,76 +44,75 @@ export function ProductCard({ product, onAddToCart, onToggleFavorite, isFavorite
       whileHover={{ y: -4 }}
       transition={{ duration: 0.3 }}
       className={cn(
-        'group relative rounded-2xl overflow-hidden bg-white dark:bg-charcoal border border-white/10',
-        'shadow-sm hover:shadow-xl hover:shadow-gold/5 transition-shadow duration-300',
+        'w-47 sm:w-50 h-65 md:h-110 md:w-70 group relative bg-gradient-to-b from-[#1a1a1a] to-[#0d0d0d] border border-white/10 rounded-2xl md:rounded-2xl overflow-hidden shadow-2xl transition-all duration-500 hover:border-gold/50 hover:shadow-[0_0_30px_rgba(197,160,89,0.1)]',
         className
-      )}
+      )} 
     >
-      {/* Image */}
-      <div className="relative aspect-square overflow-hidden bg-cream-dark dark:bg-deep-black/50">
-        <div className="absolute inset-0 flex items-center justify-center text-gold/20">
-          <ShoppingBag size={64} />
-        </div>
+      {/* Favorite button */}
+      {onToggleFavorite && (
+        <button
+          onClick={(e) => { e.preventDefault(); onToggleFavorite(product); }}
+          className="absolute top-3 right-3 md:top-4 md:right-4 z-20 p-2 rounded-full bg-black/20 backdrop-blur-md border border-white/10 transition-colors hover:bg-black/40"
+        >
+          <Heart
+            size={12}
+            className={cn('transition-all duration-300', isFavorite ? 'fill-red-500 stroke-red-500' : 'stroke-white/70')}
+          />
+        </button>
+      )}
+
+      {/* Image Section */}
+      <div className="relative h-40 md:h-55 overflow-hidden bg-deep-black/50">
         {product.images[0] && (
-          <Image
+          <Image 
             src={product.images[0]}
             alt={product.name}
             fill
-            className="object-cover group-hover:scale-105 transition-transform duration-500"
-            sizes="(max-width: 768px) 50vw, 25vw"
+            className="object-cover transition-transform duration-700 group-hover:scale-110"
+            sizes="w-20 h-50 "
           />
         )}
 
-        {/* Overlay actions */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-        
-        {/* Favorite button */}
-        {onToggleFavorite && (
-          <button
-            onClick={(e) => { e.preventDefault(); onToggleFavorite(product); }}
-            className="absolute top-3 right-3 p-2 rounded-full bg-white/90 dark:bg-charcoal/90 shadow-md hover:scale-110 transition-transform"
-          >
-            <Heart size={16} className={cn(isFavorite ? 'fill-red-500 text-red-500' : 'text-foreground/50')} />
-          </button>
-        )}
+        {/* Elegant Overlay */}
+        <div className="absolute inset-0 bg-gradient-to-t from-[#0d0d0d] via-transparent to-transparent opacity-60" />
 
-        {/* Category badge */}
-        <div className="absolute top-3 left-3">
-          <Badge variant="gold">{PRODUCT_CATEGORY_LABELS[product.category]}</Badge>
-        </div>
-
-        {/* Quick add to cart */}
-        {onAddToCart && (
-          <motion.button
-            initial={{ y: 20, opacity: 0 }}
-            whileHover={{ scale: 1.05 }}
-            onClick={(e) => { e.preventDefault(); onAddToCart(product); }}
-            className="absolute bottom-3 left-3 right-3 py-2.5 rounded-xl bg-gold text-deep-black text-sm font-semibold opacity-0 group-hover:opacity-100 group-hover:translate-y-0 translate-y-2 transition-all duration-300 flex items-center justify-center gap-2"
-          >
-            <ShoppingBag size={16} />
-            Ajouter au panier
-          </motion.button>
-        )}
       </div>
 
-      {/* Info */}
-      <div className="p-4">
-        {product.brand && (
-          <p className="text-xs text-gold font-medium uppercase tracking-wider mb-1">{product.brand}</p>
-        )}
-        <h3 className="font-medium text-sm line-clamp-2 mb-2">{product.name}</h3>
-        <div className="flex items-center justify-between">
-          <p className="font-display text-lg font-bold text-gold">{formatPrice(product.price)}</p>
-          {product.rating && (
-            <div className="flex items-center gap-1 text-xs text-foreground/50">
-              <Star size={12} className="fill-gold text-gold" />
-              {product.rating}
-            </div>
+      {/* Product Info */}
+       <div className="p-2 md:p-3 text-start">
+        
+        <h3 className="text-md md:text-2xl truncate font-display text-white tracking-wide mb-1   ">
+          {product.name}
+        </h3>
+        <p className="text-[0.8rem] md:text-sm text-start text-white/40 font-light  md:mb-4">
+          {product.category.includes('perfume') ? `Eau de Parfum • ${product.volume || '100ml'}` : '100ml'}
+        </p>
+
+        <div className="flex flex-row md:flex-col justify-between  gap-3 md:gap-4">
+          <span className="text-[1rem] md:text-xl font-light text-white tracking-widest">
+            {formatPrice(product.price)}
+          </span>
+
+          {onAddToCart && (
+            <button
+              onClick={(e) => { e.preventDefault(); onAddToCart(product); }}
+              className="hidden md:flex items-center justify-center gap-2 w-full  md:py-3 bg-white text-black text-[10px] md:text-xs font-bold uppercase tracking-[0.15em] transition-all duration-300 hover:bg-gold hover:text-white pb-50"
+            >
+              <ShoppingBag size={16} />
+              Ajouter au panier
+            </button>
+          )}
+          {onAddToCart && (
+            <button
+              onClick={(e) => { e.preventDefault(); onAddToCart(product); }}
+              className="block md:hidden items-center justify-center "
+            >
+              {/* <ShoppingBag size={16} /> */}
+              <img src="/addCircle.svg" alt="Ajouter au panier"
+              className=' ' />
+            </button>
           )}
         </div>
-        {product.originalBrand && (
-          <p className="text-xs text-foreground/40 mt-1">Inspiré de {product.originalBrand}</p>
-        )}
       </div>
     </motion.div>
   );

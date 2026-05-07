@@ -1,45 +1,102 @@
 'use client';
 
+/**
+ * @file app/page.tsx
+ * @description Home / Landing Page Component.
+ *
+ * This file serves as the primary entry point for users visiting the platform.
+ * It showcases the brand's core offerings through several high-impact sections:
+ * - **Hero Section**: Implements a luxury visual introduction with smooth text animations.
+ * - **Category Showcase**: Allows users to quickly navigate to Accessories, Perfumes, or the Atelier.
+ * - **Featured Products**: Highlights top-rated or new luxury items using the `ProductCard` component.
+ * - **Numba Introduction**: Promotes the custom perfume creation experience.
+ *
+ * It utilizes `framer-motion` for reveal animations and provides a seamless
+ * transition to deeper parts of the e-commerce experience.
+ */
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowRight, Sparkles, Droplets, Watch } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
+import { Gallery6 } from './carousel';
+import PromoSection from './promo';
+import { allProducts } from '@/lib/mock-data';
+import { ProductCard } from '@/components/ui/ProductCard';
+import { useCartStore } from '@/store/useCartStore';
+import { useFavoritesStore } from '@/store/useFavoritesStore';
+import { useToastStore } from '@/store/useToastStore';
 
 export default function Home() {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+    const [activeFilter, setActiveFilter] = useState<string>('all');
+  
+    const { addProduct } = useCartStore();
+    const { addFavorite, removeFavorite, isFavorite } = useFavoritesStore();
+    const { addToast } = useToastStore();
+  
+    const handleAddToCart = (product: any) => {
+      addProduct(product, 1);
+      addToast(`${product.name} ajouté au panier`);
+    };
+  
+    const handleToggleFavorite = (product: any) => {
+      if (isFavorite(product.id)) {
+        removeFavorite(product.id);
+      } else {
+        addFavorite(product);
+        addToast(`${product.name} ajouté aux favoris`, 'info');
+      }
+    };
+
+  if (!mounted) {
+    return <div className="min-h-screen bg-deep-black" />; // Prevent flash of unstyled content
+  }
+  const filterProduct =()=>{
+    
+  }
+
   return (
     <div className="flex flex-col w-full">
       {/* Hero Section */}
-      <section className="relative h-[85vh] w-full flex items-center justify-center overflow-hidden">
+      <section className="relative h-[70vh] md:h-[75vh] w-full flex items-end pb-5 justify-center overflow-hidden">
         {/* Background */}
         <div className="absolute inset-0 bg-deep-black z-0">
-          <div className="absolute inset-0 bg-gradient-to-r from-black via-black/80 to-transparent z-10" />
+          <div className="absolute inset-0 bg-black/65 z-10" />
           <div className="absolute inset-0 animate-pulse-gold opacity-30" />
           {/* Placeholder image that looks like luxury fashion/perfume */}
-          <div className="absolute right-0 top-0 bottom-0 w-full md:w-2/3 bg-[url('https://images.unsplash.com/photo-1594035910387-fea47794261f?q=80&w=2000&auto=format&fit=crop')] bg-cover bg-center opacity-40 mix-blend-luminosity" />
+          <div 
+            className="absolute right-0 top-0 bottom-0 w-full  bg-cover bg-center " 
+            style={{ backgroundImage: "url('/hero.png')" }}
+          />
         </div>
 
-        <div className="relative z-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
+        <div className="relative z-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full  flex flex-col justify-between ">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 1, ease: 'easeOut' }}
-            className="max-w-2xl"
+            className="max-w-2xl "
           >
-            <h1 className="font-display text-5xl md:text-7xl font-bold text-white leading-tight mb-6">
+            <h1 className="font-display text-3xl md:text-6xl font-bold text-white leading-tight ">
               L'Élégance <br />
               <span className="text-gradient-gold">Sans Compromis</span>
             </h1>
-            <p className="text-lg md:text-xl text-cream/80 mb-10 leading-relaxed font-light">
+            <p className="text-sm md:text-lg lg:text-xl text-cream/80  leading-relaxed font-light">
               Découvrez notre collection exclusive d'accessoires de luxe et plongez dans l'art de la haute parfumerie avec notre atelier de création sur mesure Numba.
             </p>
             <div className="flex flex-wrap gap-4">
               <Link href="/shop/accessories">
-                <Button size="lg" className="w-full sm:w-auto">
+                <Button size="md" className="w-full sm:w-auto">
                   Découvrir la Boutique
                 </Button>
               </Link>
               <Link href="/numba">
-                <Button variant="secondary" size="lg" className="w-full sm:w-auto" rightIcon={<Sparkles size={18} />}>
+                <Button variant="secondary" size="md" className="w-full sm:w-auto" rightIcon={<Sparkles size={18} />}>
                   Atelier Olfactif
                 </Button>
               </Link>
@@ -48,70 +105,38 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Services Section */}
-      <section className="py-24 bg-cream dark:bg-deep-black transition-colors duration-300">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="font-display text-3xl md:text-4xl font-bold mb-4">L'Expérience Exclusif</h2>
-            <div className="h-1 w-20 bg-gold mx-auto" />
-          </div>
+      {/* Collections Carousel */}
+      <Gallery6 
+        heading="Nos best seller" 
+        demoUrl="/shop/perfumes"
+      />
+      {/* Hots seller */}
+      <section className="flex flex-col justify-center pb-4 items-center h-auto">
+  <h1 className='text-2xl md:text-6xl font-medium mb-6'>Nos produits du moment</h1>
+  <div className="flex flex-row justify-center flex-wrap gap-2 md:gap-6">
+    {allProducts.map((product, index) => (
+      /* Use a standard filter/ternary outside the JSX return or ensure the null case is handled */
+      product.price >= 70000 ? (
+        <motion.div
+          key={product.id}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: index * 0.05 }}
+        >
+          <ProductCard
+            product={product}
+            onAddToCart={handleAddToCart}
+            onToggleFavorite={handleToggleFavorite}
+            isFavorite={isFavorite(product.id)}
+          />
+        </motion.div>
+      ) : null
+    ))}
+  </div>
+</section>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <motion.div 
-              whileHover={{ y: -10 }}
-              className="p-8 rounded-2xl glass-dark border border-white/5 group bg-charcoal"
-            >
-              <div className="w-14 h-14 rounded-xl bg-gold/10 flex items-center justify-center mb-6 text-gold group-hover:scale-110 transition-transform">
-                <Watch size={28} />
-              </div>
-              <h3 className="text-xl font-bold text-cream mb-3">Accessoires d'Exception</h3>
-              <p className="text-cream/60 leading-relaxed mb-6">
-                Montres, bijoux et maroquinerie sélectionnés pour leur qualité irréprochable et leur design intemporel.
-              </p>
-              <Link href="/shop/accessories" className="inline-flex items-center text-gold font-medium hover:gap-2 transition-all">
-                Explorer <ArrowRight size={16} className="ml-1" />
-              </Link>
-            </motion.div>
-
-            <motion.div 
-              whileHover={{ y: -10 }}
-              className="p-8 rounded-2xl border border-gold/20 relative overflow-hidden group bg-gold/5 dark:bg-gold/10"
-            >
-              <div className="absolute top-0 right-0 p-4 opacity-10 text-gold scale-150 rotate-12">
-                <Droplets size={100} />
-              </div>
-              <div className="relative z-10">
-                <div className="w-14 h-14 rounded-xl bg-gold text-deep-black flex items-center justify-center mb-6 group-hover:scale-110 transition-transform shadow-lg shadow-gold/30">
-                  <Droplets size={28} />
-                </div>
-                <h3 className="text-xl font-bold text-deep-black dark:text-cream mb-3">Parfumerie & Dupes</h3>
-                <p className="text-charcoal/70 dark:text-cream/70 leading-relaxed mb-6">
-                  Les plus grandes fragrances mondiales et nos inspirations (dupes) premium créées par des maîtres parfumeurs.
-                </p>
-                <Link href="/shop/perfumes" className="inline-flex items-center text-deep-black dark:text-gold font-bold hover:gap-2 transition-all">
-                  Découvrir <ArrowRight size={16} className="ml-1" />
-                </Link>
-              </div>
-            </motion.div>
-
-            <motion.div 
-              whileHover={{ y: -10 }}
-              className="p-8 rounded-2xl glass-dark border border-white/5 group bg-charcoal"
-            >
-              <div className="w-14 h-14 rounded-xl bg-gold/10 flex items-center justify-center mb-6 text-gold group-hover:scale-110 transition-transform">
-                <Sparkles size={28} />
-              </div>
-              <h3 className="text-xl font-bold text-cream mb-3">Atelier Numba & IA</h3>
-              <p className="text-cream/60 leading-relaxed mb-6">
-                Créez votre parfum sur mesure avec l'aide de notre Sommelier IA ou composez-le vous-même avec nos essences rares.
-              </p>
-              <Link href="/numba" className="inline-flex items-center text-gold font-medium hover:gap-2 transition-all">
-                Lancer l'expérience <ArrowRight size={16} className="ml-1" />
-              </Link>
-            </motion.div>
-          </div>
-        </div>
-      </section>
+      {/* Promotional Section */}
+      <PromoSection />
     </div>
   );
 }

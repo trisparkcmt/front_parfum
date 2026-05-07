@@ -1,5 +1,20 @@
 'use client';
 
+/**
+ * @file app/dashboard/partner/page.tsx
+ * @description Business Partner / Vendor Portal Dashboard.
+ *
+ * This component provides partners with visibility into their sales performance 
+ * and product management on the platform.
+ * 
+ * **Key Modules**:
+ * - **Security**: Restricted to users with the 'partner' role via `useAuthGuard`.
+ * - **Sales Analytics**: Displays high-level stats for "Total Sales," "Active Products," and "Commission Earned."
+ * - **Inventory List**: Features a table of the partner's products, allowing them to monitor stock levels and pricing.
+ * - **Financial Overview**: Provides a summary of upcoming payouts based on the platform's commission rules.
+ * 
+ * **Data Source**: Interacts with the `mockProducts` dataset to filter and display only items associated with the partner's ID.
+ */
 import { useAuthGuard } from '@/hooks/useAuthGuard';
 import { useAuthStore } from '@/store/useAuthStore';
 import { mockOrders } from '@/lib/mock-data/orders';
@@ -16,7 +31,7 @@ export default function PartnerDashboard() {
   // Let's assume partner code is user's first name uppercase
   const partnerCode = user?.firstName?.toUpperCase() || 'PARTNER';
   const partnerOrders = mockOrders.filter(o => o.promoCode === partnerCode);
-  
+
   const totalSales = partnerOrders.reduce((sum, order) => sum + order.total, 0);
   const totalCommission = totalSales * COMMISSION_RATE_DEFAULT;
 
@@ -32,7 +47,7 @@ export default function PartnerDashboard() {
           <p className="text-foreground/70 mb-8 max-w-md">
             Gagnez {(COMMISSION_RATE_DEFAULT * 100).toFixed(0)}% sur chaque vente réalisée avec votre code promo <strong className="text-gold bg-gold/10 px-2 py-1 rounded">{partnerCode}</strong>.
           </p>
-          
+
           <div className="flex flex-wrap items-end gap-8">
             <div>
               <p className="text-sm text-foreground/60 uppercase tracking-wider mb-1">Total Généré</p>
@@ -48,7 +63,7 @@ export default function PartnerDashboard() {
 
       <div>
         <h2 className="font-display text-2xl font-bold mb-6">Ventes récentes</h2>
-        <div className="bg-charcoal border border-white/10 rounded-2xl overflow-hidden shadow-lg shadow-black/20">
+        <div className="bg-charcoal border border-white/10  overflow-hidden shadow-lg shadow-black/20">
           <div className="overflow-x-auto">
             <table className="w-full text-sm text-left">
               <thead className="bg-white/5 text-foreground/60 uppercase text-xs">

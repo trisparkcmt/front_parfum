@@ -1,5 +1,20 @@
 'use client';
 
+/**
+ * @file app/dashboard/client/page.tsx
+ * @description Personal Client Dashboard & Account Overview.
+ *
+ * This component provides a personalized space for customers to manage their relationship 
+ * with the brand.
+ * 
+ * **Key Sections**:
+ * - **Order History**: Dynamically filters the `mockOrders` dataset to display the current client's past purchases.
+ * - **Order Tracking**: Shows the status of active deliveries (e.g., Validated, Shipped, Delivered) using the `Badge` component.
+ * - **Numba Creations Tracking**: Provides a summary of the custom perfumes created and purchased by the user.
+ * - **Quick Stats**: Displays at-a-glance information about the user's total spending and number of custom compositions.
+ * 
+ * **Integration**: Uses `useAuthStore` to retrieve the client ID and `formatPrice` for localized currency display.
+ */
 import { useAuthGuard } from '@/hooks/useAuthGuard';
 import { useAuthStore } from '@/store/useAuthStore';
 import { mockOrders } from '@/lib/mock-data/orders';
@@ -17,9 +32,9 @@ export default function ClientDashboard() {
   return (
     <div className="space-y-8">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
+        <div className="bg-white/5 border border-white/10  p-6">
           <div className="flex items-center gap-4 mb-4">
-            <div className="w-12 h-12 rounded-xl bg-gold/20 flex items-center justify-center text-gold">
+            <div className="w-12 h-12  bg-gold/20 flex items-center justify-center text-gold">
               <Package size={24} />
             </div>
             <div>
@@ -28,9 +43,9 @@ export default function ClientDashboard() {
             </div>
           </div>
         </div>
-        <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
+        <div className="bg-white/5 border border-white/10  p-6">
           <div className="flex items-center gap-4 mb-4">
-            <div className="w-12 h-12 rounded-xl bg-blue-500/20 flex items-center justify-center text-blue-400">
+            <div className="w-12 h-12  bg-blue-500/20 flex items-center justify-center text-blue-400">
               <Droplets size={24} />
             </div>
             <div>
@@ -45,7 +60,7 @@ export default function ClientDashboard() {
 
       <div>
         <h2 className="font-display text-2xl font-bold mb-6">Historique des commandes</h2>
-        <div className="bg-charcoal border border-white/10 rounded-2xl overflow-hidden">
+        <div className="bg-charcoal border border-white/10  overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm text-left">
               <thead className="bg-white/5 text-foreground/60 uppercase text-xs">
@@ -65,8 +80,8 @@ export default function ClientDashboard() {
                     <td className="px-6 py-4">
                       <Badge variant={
                         order.status === 'delivered' ? 'success' :
-                        order.status === 'shipped' ? 'info' :
-                        order.status === 'processing' ? 'warning' : 'default'
+                          order.status === 'shipped' ? 'info' :
+                            order.status === 'processing' ? 'warning' : 'default'
                       }>
                         {order.status}
                       </Badge>

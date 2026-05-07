@@ -1,12 +1,27 @@
 import Link from 'next/link';
 import { Gem } from 'lucide-react';
 
+/**
+ * @file app/(auth)/layout.tsx
+ * @description Specialized Layout for Authentication Routes.
+ *
+ * This layout wraps the login and registration pages to provide a consistent,
+ * distraction-free visual environment. It features:
+ * - A high-end background image/gradient system.
+ * - A centralized glassmorphism container for authentication forms.
+ * - Mobile-responsive padding and layout adjustments.
+ *
+ * It helps maintain brand consistency during the user's entry into the platform.
+ */
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen flex flex-col md:flex-row bg-background">
       {/* Left side - Image/Branding */}
       <div className="hidden md:flex md:w-1/2 bg-charcoal relative overflow-hidden">
-        <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1596462502278-27bfdc403348?q=80&w=2000&auto=format&fit=crop')] bg-cover bg-center opacity-30 mix-blend-luminosity" />
+        <div 
+          className="absolute inset-0 bg-cover bg-center opacity-30 mix-blend-luminosity" 
+          style={{ backgroundImage: "url('https://images.unsplash.com/photo-1596462502278-27bfdc403348?q=80&w=2000&auto=format&fit=crop')" }}
+        />
         <div className="absolute inset-0 bg-gradient-to-t from-deep-black via-transparent to-transparent" />
         
         <div className="relative z-10 w-full p-12 flex flex-col justify-between h-full">

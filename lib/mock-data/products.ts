@@ -1,3 +1,21 @@
+/**
+ * @file lib/mock-data/products.ts
+ * @description Catalog Dataset for Luxury Accessories & Perfumes.
+ *
+ * This file contains the primary inventory dataset for the Accessories Exclusif 
+ * marketplace.
+ * 
+ * **Product Data Model**:
+ * - **`id` / `name`**: Unique identifiers and display names.
+ * - **`category`**: Segmentation (e.g., 'perfume', 'accessory', 'dupe').
+ * - **`price`**: The retail price in FCFA.
+ * - **`images`**: An array of image URLs (using Unsplash placeholders for mockups).
+ * - **`rating` / `reviews`**: Social proof metadata.
+ * - **`olfactiveProfile`**: (For Perfumes) Defines the fragrance family and notes.
+ * - **`specifications`**: (For Accessories) Detailed technical data like material or brand.
+ * 
+ * **Role**: Powers the `Shop` pages, `ProductCard` components, and individual `ProductDetail` views.
+ */
 import type { Product } from '@/types';
 
 export const mockAccessories: Product[] = [
@@ -8,7 +26,7 @@ export const mockAccessories: Product[] = [
     price: 185000,
     category: 'accessory',
     subCategory: 'watches',
-    images: ['/images/products/watch-gold.jpg'],
+    images: ['/parfume1.png'],
     brand: 'Exclusif Collection',
     inStock: true,
     rating: 4.8,
@@ -23,7 +41,7 @@ export const mockAccessories: Product[] = [
     price: 125000,
     category: 'accessory',
     subCategory: 'watches',
-    images: ['/images/products/watch-silver.jpg'],
+    images: ['/parfume1.png'],
     brand: 'Exclusif Collection',
     inStock: true,
     rating: 4.6,
@@ -38,7 +56,7 @@ export const mockAccessories: Product[] = [
     price: 95000,
     category: 'accessory',
     subCategory: 'jewelry',
-    images: ['/images/products/necklace-pearls.jpg'],
+    images: ['/parfume1.png'],
     brand: 'Numba Accessories',
     inStock: true,
     rating: 4.9,
@@ -53,7 +71,7 @@ export const mockAccessories: Product[] = [
     price: 35000,
     category: 'accessory',
     subCategory: 'jewelry',
-    images: ['/images/products/bracelet-leather.jpg'],
+    images: ['/parfume1.png'],
     brand: 'Exclusif Collection',
     inStock: true,
     rating: 4.5,
@@ -68,7 +86,7 @@ export const mockAccessories: Product[] = [
     price: 75000,
     category: 'accessory',
     subCategory: 'sunglasses',
-    images: ['/images/products/sunglasses-aviator.jpg'],
+    images: ['/parfume1.png'],
     brand: 'Exclusif Vision',
     inStock: true,
     rating: 4.7,
@@ -83,7 +101,7 @@ export const mockAccessories: Product[] = [
     price: 65000,
     category: 'accessory',
     subCategory: 'bags',
-    images: ['/images/products/bag-crossbody.jpg'],
+    images: ['/parfume1.png'],
     brand: 'Exclusif Collection',
     inStock: true,
     rating: 4.4,
@@ -98,7 +116,7 @@ export const mockAccessories: Product[] = [
     price: 45000,
     category: 'accessory',
     subCategory: 'belts',
-    images: ['/images/products/belt-black.jpg'],
+    images: ['/parfume1.png'],
     brand: 'Exclusif Collection',
     inStock: true,
     rating: 4.6,
@@ -113,7 +131,7 @@ export const mockAccessories: Product[] = [
     price: 55000,
     category: 'accessory',
     subCategory: 'jewelry',
-    images: ['/images/products/ring-rosegold.jpg'],
+    images: ['/parfume1.png'],
     brand: 'Numba Accessories',
     inStock: true,
     rating: 4.8,
@@ -130,7 +148,7 @@ export const mockPerfumes: Product[] = [
     description: 'Intense et mystérieux. Lavande, réglisse et santal.',
     price: 95000,
     category: 'perfume-brand',
-    images: ['/images/products/perfume-sauvage.jpg'],
+    images: ['/parfume1.png'],
     brand: 'Dior',
     inStock: true,
     rating: 4.9,
@@ -146,7 +164,7 @@ export const mockPerfumes: Product[] = [
     description: 'Liberté masculine. Boisé aromatique vibrant.',
     price: 85000,
     category: 'perfume-brand',
-    images: ['/images/products/perfume-bleu.jpg'],
+    images: ['/parfume1.png'],
     brand: 'Chanel',
     inStock: true,
     rating: 4.8,
@@ -162,7 +180,7 @@ export const mockPerfumes: Product[] = [
     description: 'Séduction nocturne. Cardamome, lavande et cèdre.',
     price: 78000,
     category: 'perfume-brand',
-    images: ['/images/products/perfume-nuit.jpg'],
+    images: ['/parfume1.png'],
     brand: 'Yves Saint Laurent',
     inStock: true,
     rating: 4.7,
@@ -178,7 +196,7 @@ export const mockPerfumes: Product[] = [
     description: 'La profondeur de l\'océan. Aquatique boisé raffiné.',
     price: 82000,
     category: 'perfume-brand',
-    images: ['/images/products/perfume-acqua.jpg'],
+    images: ['/images/products/perfume-acqua.jpg '],
     brand: 'Giorgio Armani',
     inStock: true,
     rating: 4.6,
@@ -194,7 +212,7 @@ export const mockPerfumes: Product[] = [
     description: 'Notre interprétation du Sauvage. Même puissance, prix accessible.',
     price: 15000,
     category: 'perfume-dupe',
-    images: ['/images/products/dupe-sauvage.jpg'],
+    images: ['/parfume1.png'],
     brand: 'Exclusif Parfums',
     originalBrand: 'Dior - Sauvage',
     inStock: true,
@@ -211,7 +229,7 @@ export const mockPerfumes: Product[] = [
     description: 'Inspiré du Bleu de Chanel. Fraîcheur boisée accessible.',
     price: 12000,
     category: 'perfume-dupe',
-    images: ['/images/products/dupe-bleu.jpg'],
+    images: ['/parfume1.png'],
     brand: 'Exclusif Parfums',
     originalBrand: 'Chanel - Bleu',
     inStock: true,
@@ -228,7 +246,7 @@ export const mockPerfumes: Product[] = [
     description: 'Version accessible de La Nuit de l\'Homme YSL.',
     price: 13000,
     category: 'perfume-dupe',
-    images: ['/images/products/dupe-nuit.jpg'],
+    images: ['/parfume1.png'],
     brand: 'Exclusif Parfums',
     originalBrand: 'YSL - La Nuit de l\'Homme',
     inStock: true,

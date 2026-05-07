@@ -1,5 +1,19 @@
 'use client';
 
+/**
+ * @file app/(auth)/register/page.tsx
+ * @description User Registration / Sign-up Page.
+ *
+ * This component handles the creation of new user accounts on the platform.
+ * Key responsibilities:
+ * - **Data Collection**: Gathers user metadata including first name, last name, email, and phone number.
+ * - **Validation**: Implements strict client-side validation via `zod` to ensure data integrity.
+ * - **Account Creation**: Interfaces with the `register` method in `useAuthStore` to create a mock account.
+ * - **Auto-Login**: Automatically authenticates the user upon successful registration.
+ * - **Redirection**: Directs the user back to their previous page or the homepage.
+ *
+ * It utilizes a multi-field form with real-time error feedback and luxury styling.
+ */
 import { Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';

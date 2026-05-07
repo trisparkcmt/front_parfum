@@ -1,3 +1,19 @@
+/**
+ * @file lib/mock-data/essences.ts
+ * @description Olfactive Essence Dataset for the Numba Atelier.
+ *
+ * This file contains the complete library of fragrance ingredients (essences) 
+ * available for the custom perfume creation experience.
+ * 
+ * **Essence Data Model**:
+ * - **`id` / `name`**: Unique identifiers for each ingredient.
+ * - **`family`**: Categorization (e.g., 'Citrus', 'Woody', 'Floral').
+ * - **`description`**: A localized sensory description of the scent profile.
+ * - **`color`**: A HEX code representing the physical color of the essence, used for liquid blending.
+ * - **`pricePerMl`**: The cost in FCFA per milliliter, allowing for granular price calculation.
+ * 
+ * **Role**: Serves as the primary data source for the `AtelierLab` and the `MixerTool`.
+ */
 import type { Essence } from '@/types';
 
 export const mockEssences: Essence[] = [

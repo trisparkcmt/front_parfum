@@ -1,5 +1,26 @@
 'use client';
 
+/**
+ * @file components/perfume/GeminiChat.tsx
+ * @description AI-Powered Fragrance Sommelier Chat Interface.
+ *
+ * This component provides an interactive conversational experience where users can 
+ * describe their scent preferences and receive intelligent perfume recommendations.
+ * 
+ * **Core Functionalities**:
+ * - **Natural Language Processing**: Captures user input (prompts) and sends them to the `/api/perfume/ai-advisor` endpoint.
+ * - **AI-Driven Formulation**: Processes the JSON response from the AI, which includes a perfume name, an artistic explanation, and a specific essence-by-essence formula.
+ * - **Formula Parsing**: Dynamically maps the AI-suggested essence names to the `mockEssences` dataset to calculate real-world prices and volumes.
+ * - **One-Click Creation**: Allows users to instantly convert the AI's recommendation into a `CustomComposition` and add it to their shopping cart.
+ * 
+ * **UI/UX Implementation**:
+ * - **Stateful Transitions**: Uses `AnimatePresence` and `motion` to switch between the "Chat Input" state and the "AI Result" state.
+ * - **Mockup Suggestion Chips**: Provides quick-start buttons for common user requests (e.g., "Séduisant", "Frais & Sport").
+ * - **Loading Feedback**: Features an "Analyse..." state with a spinner during AI computation.
+ * 
+ * **Integration**:
+ * - **Zustand**: Communicates with `useCartStore` for checkout, `useAuthStore` for user context, and `useToastStore` for error handling.
+ */
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, Send, Loader2, Plus, ShoppingBag } from 'lucide-react';
@@ -102,9 +123,9 @@ export function GeminiChat() {
             <div className="absolute top-0 right-0 p-8 opacity-5">
               <Sparkles size={100} />
             </div>
-            
+
             <div className="flex items-center gap-4 mb-6">
-              <div className="w-12 h-12 rounded-2xl bg-gold/20 flex items-center justify-center text-gold">
+              <div className="w-12 h-12  bg-gold/20 flex items-center justify-center text-gold">
                 <Sparkles size={24} />
               </div>
               <div>
@@ -118,7 +139,7 @@ export function GeminiChat() {
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
                 placeholder="Ex: Je cherche un parfum frais et boisé pour le printemps, avec une touche d'agrumes..."
-                className="w-full min-h-[120px] bg-black/20 border border-white/10 rounded-xl p-4 text-sm focus:outline-none focus:border-gold focus:ring-1 focus:ring-gold/50 resize-none mb-4"
+                className="w-full min-h-[120px] bg-black/20 border border-white/10  p-4 text-sm focus:outline-none focus:border-gold focus:ring-1 focus:ring-gold/50 resize-none mb-4"
               />
               <div className="flex justify-between items-center flex-wrap gap-4">
                 <div className="flex flex-wrap gap-2">
@@ -157,7 +178,7 @@ export function GeminiChat() {
               <p className="text-foreground/80 italic max-w-lg mx-auto">"{result.explanation}"</p>
             </div>
 
-            <div className="bg-charcoal/50 border border-white/10 rounded-2xl p-6 mb-8">
+            <div className="bg-charcoal/50 border border-white/10  p-6 mb-8">
               <h4 className="font-medium text-sm text-gold mb-4 uppercase tracking-wider">Formule ({parsedComposition.totalMl}ml)</h4>
               <div className="space-y-4">
                 {parsedComposition.essences.map(item => (
@@ -175,7 +196,7 @@ export function GeminiChat() {
                   </div>
                 ))}
               </div>
-              
+
               <div className="mt-6 pt-4 border-t border-white/10 flex flex-col sm:flex-row justify-between items-center gap-4">
                 <span className="text-foreground/60">Prix calculé ({parsedComposition.totalMl}ml)</span>
                 <span className="font-display text-2xl font-bold text-gold">{formatPrice(parsedComposition.totalPrice)}</span>
@@ -183,14 +204,14 @@ export function GeminiChat() {
             </div>
 
             <div className="flex flex-col sm:flex-row gap-4">
-              <Button 
-                variant="secondary" 
+              <Button
+                variant="secondary"
                 className="flex-1"
                 onClick={() => setResult(null)}
               >
                 Recommencer
               </Button>
-              <Button 
+              <Button
                 className="flex-1"
                 onClick={handleAddToCart}
                 rightIcon={<ShoppingBag size={18} />}
