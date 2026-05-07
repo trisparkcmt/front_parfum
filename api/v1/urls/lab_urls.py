@@ -1,3 +1,4 @@
+
 from django.urls import path
 from laboratoire.views import (
     liste_creer_parfums_perso, 
@@ -19,3 +20,4 @@ urlpatterns = [
     # IA Recommandation
     path('ia-recommandation/', ia_recommandation, name='ia-recommandation'),
 ]
+

@@ -8,7 +8,7 @@ from catalogue.models import Parfum, Essence, Accessoire, Flacon
 def get_catalogue_context():
     """Récupère et formate le catalogue pour l'IA"""
     parfums = Parfum.objects.filter(actif=True).values('id', 'nom', 'contenance_ml', 'description_ia', 'prix_unitaire')
-    essences = Essence.objects.filter(actif=True).values('id', 'nom', 'description_ia', 'prix_par_10ml')
+    essences = Essence.objects.filter(actif=True).values('id', 'nom', 'description_ia', 'prix_par_ml')
     accessoires = Accessoire.objects.filter(actif=True).values('id', 'nom', 'description_courte', 'prix_unitaire')
     flacons = Flacon.objects.filter(actif=True).values('id', 'nom', 'contenance_ml', 'prix_unitaire')
     

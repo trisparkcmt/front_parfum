@@ -6,8 +6,8 @@ from rest_framework.pagination import PageNumberPagination
 from django.shortcuts import get_object_or_404
 from django.core.mail import send_mail
 from django.db.models import Q, Sum
-from .serializers import UserSerializer, PrestataireSerializer, PrestataireApplicationSerializer, PrestataireValidationSerializer
-from .models import Prestataire
+from .serializers import UserSerializer, PrestataireSerializer, PrestataireApplicationSerializer, PrestataireValidationSerializer, MeSerializer
+from .models import Prestataire, User
 import random
 import string
 
@@ -36,7 +36,21 @@ def manage_me(request):
     user = request.user
 
     if request.method == 'GET':
-        serializer = UserSerializer(user)
+        user = (
+            User.objects
+            .select_related('client')
+            .prefetch_related(
+                'client__favoris__parfum__tags',
+                'client__favoris__accessoire',
+                'client__parfums_personnalises__flacon',
+                'client__parfums_personnalises__lignes__essence',
+                'client__commandes__lignes_parfums__parfum',
+                'client__commandes__lignes_parfums_perso__parfum_personnalise',
+                'client__commandes__lignes_accessoires__accessoire',
+            )
+            .get(pk=user.pk)
+        )
+        serializer = MeSerializer(user, context={'request': request})
         return Response(serializer.data) 
 
     elif request.method in ['PUT', 'PATCH']:
