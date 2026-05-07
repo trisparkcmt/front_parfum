@@ -416,12 +416,12 @@ class EssenceAPITest(APITestCase):
         self.tag_lion   = Tag.objects.create(nom="Lion",   type="signe_astrologique")
         self.essence_active = Essence.objects.create(
             nom="Oud Royal", code_reference="ESS001",
-            prix_par_10ml=5000, stock_litre=2, actif=True
+            prix_par_ml=500, stock_litre=2, actif=True
         )
         self.essence_active.tags.add(self.tag_floral, self.tag_lion)
         self.essence_inactive = Essence.objects.create(
             nom="Musc Blanc", code_reference="ESS002",
-            prix_par_10ml=3000, stock_litre=0, actif=False
+            prix_par_ml=300, stock_litre=0, actif=False
         )
 
     def test_liste_essences_actives_uniquement(self):
@@ -440,9 +440,9 @@ class EssenceAPITest(APITestCase):
         self.assertEqual(response_vide.data['count'], 0)
 
     def test_filtre_par_prix(self):
-        response = self.client.get('/api/v1/lab/essences/?prix_min=4000&prix_max=6000')
+        response = self.client.get('/api/v1/lab/essences/?prix_min=400&prix_max=600')
         self.assertEqual(response.data['count'], 1)
-        response_vide = self.client.get('/api/v1/lab/essences/?prix_max=1000')
+        response_vide = self.client.get('/api/v1/lab/essences/?prix_max=100')
         self.assertEqual(response_vide.data['count'], 0)
 
 

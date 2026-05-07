@@ -74,8 +74,8 @@ class EssenceFilter(django_filters.FilterSet):
     # --- Autres filtres ---
     genre     = django_filters.CharFilter(field_name='genre_cible')
     intensite = django_filters.CharFilter(field_name='intensite')
-    prix_min  = django_filters.NumberFilter(field_name='prix_par_10ml', lookup_expr='gte')
-    prix_max  = django_filters.NumberFilter(field_name='prix_par_10ml', lookup_expr='lte')
+    prix_min  = django_filters.NumberFilter(field_name='prix_par_ml', lookup_expr='gte')
+    prix_max  = django_filters.NumberFilter(field_name='prix_par_ml', lookup_expr='lte')
     stock_min = django_filters.NumberFilter(field_name='stock_litre',   lookup_expr='gte')
 
     def filter_famille_olfactive(self, queryset, name, value):

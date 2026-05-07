@@ -3,7 +3,10 @@ from django.db.models import Count, Q
 def get_similar_products(instance, model, tag_field='tags', limit=4):
     if not instance.pk:
         return model.objects.none()
-    tag_ids = getattr(instance, tag_field).values_list('id', flat=True)
+    tags_manager = getattr(instance, tag_field, None)
+    if tags_manager is None:
+        return model.objects.none()
+    tag_ids = tags_manager.values_list('id', flat=True)
     if not tag_ids:
         return model.objects.none()
     return model.objects.filter(actif=True).exclude(pk=instance.pk)\

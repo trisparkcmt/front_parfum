@@ -162,24 +162,19 @@ class EssenceSerializer(serializers.ModelSerializer):
     saisons_compatibles              = serializers.ListField(child=serializers.CharField(), read_only=True)
     signes_astrologiques_compatibles = serializers.ListField(child=serializers.CharField(), read_only=True)
     moments_journee                  = serializers.ListField(child=serializers.CharField(), read_only=True)
-    image_principale                 = serializers.SerializerMethodField()
     
     class Meta:
         model  = Essence
         fields = [
             'id', 'nom', 'code_reference',
             'description', 'fournisseur', 'origine_pays',
-            'prix_par_10ml', 'stock_litre',
-            'genre_cible', 'intensite', 'image_principale', 
+            'prix_par_ml', 'stock_litre',
+            'genre_cible', 'intensite',
             'tags', 'famille_olfactive', 'humeurs_compatibles',
             'occasions', 'saisons_compatibles',
             'signes_astrologiques_compatibles', 'moments_journee',
             'date_creation',
         ]
-
-    @extend_schema_field(OpenApiTypes.URI)
-    def get_image_principale(self, obj):
-        return get_image_url(self.context.get('request'), obj.image_principale)
 
 
 

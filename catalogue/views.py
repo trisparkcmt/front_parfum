@@ -301,7 +301,7 @@ dans le laboratoire.
 **Filtres disponibles** :
 - Par tags : `famille_olfactive`, `humeur`, `saison`, `occasion`, `signe_astrologique`, `moment_journee`
 - Par caractéristiques : `genre`, `intensite`
-- Par prix : `prix_min`, `prix_max` (prix pour 10ml en FCFA)
+- Par prix : `prix_min`, `prix_max` (prix par ml en FCFA)
 - Par stock : `stock_min` (en litres)
         """,
         tags=["Essences"],
@@ -368,14 +368,14 @@ dans le laboratoire.
                 name="prix_min",
                 type=OpenApiTypes.NUMBER,
                 location=OpenApiParameter.QUERY,
-                description="Prix minimum pour 10ml en FCFA",
+                description="Prix minimum par ml en FCFA",
                 required=False,
             ),
             OpenApiParameter(
                 name="prix_max",
                 type=OpenApiTypes.NUMBER,
                 location=OpenApiParameter.QUERY,
-                description="Prix maximum pour 10ml en FCFA",
+                description="Prix maximum par ml en FCFA",
                 required=False,
             ),
             OpenApiParameter(
@@ -403,7 +403,7 @@ dans le laboratoire.
                 name="ordering",
                 type=OpenApiTypes.STR,
                 location=OpenApiParameter.QUERY,
-                description="Tri (ex: prix_par_10ml, -stock_litre, nom)",
+                description="Tri (ex: prix_par_ml, -stock_litre, nom)",
                 required=False,
             ),
         ],
@@ -426,7 +426,7 @@ class EssenceViewSet(viewsets.ModelViewSet):
     filter_backends    = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_class    = EssenceFilter
     search_fields      = ['nom', 'description', 'fournisseur', 'origine_pays']
-    ordering_fields    = ['prix_par_10ml', 'date_creation', 'nom', 'stock_litre']
+    ordering_fields    = ['prix_par_ml', 'date_creation', 'nom', 'stock_litre']
     ordering           = ['-date_creation']
 
     def get_queryset(self):

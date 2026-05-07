@@ -13,7 +13,7 @@ paths:
         DIY\ndans le laboratoire.\n\n**Filtres disponibles** :\n- Par tags : `famille_olfactive`,
         `humeur`, `saison`, `occasion`, `signe_astrologique`, `moment_journee`\n-
         Par caractéristiques : `genre`, `intensite`\n- Par prix : `prix_min`, `prix_max`
-        (prix pour 10ml en FCFA)\n- Par stock : `stock_min` (en litres)\n        "
+        (prix par ml en FCFA)\n- Par stock : `stock_min` (en litres)\n        "
       summary: Liste des essences
       parameters:
       - in: query
@@ -65,7 +65,7 @@ paths:
         name: ordering
         schema:
           type: string
-        description: 'Tri (ex: prix_par_10ml, -stock_litre, nom)'
+        description: 'Tri (ex: prix_par_ml, -stock_litre, nom)'
       - name: page
         required: false
         in: query
@@ -76,12 +76,12 @@ paths:
         name: prix_max
         schema:
           type: number
-        description: Prix maximum pour 10ml en FCFA
+        description: Prix maximum par ml en FCFA
       - in: query
         name: prix_min
         schema:
           type: number
-        description: Prix minimum pour 10ml en FCFA
+        description: Prix minimum par ml en FCFA
       - in: query
         name: saison
         schema:
@@ -665,7 +665,7 @@ components:
         origine_pays:
           type: string
           maxLength: 100
-        prix_par_10ml:
+        prix_par_ml:
           type: string
           format: decimal
           pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
@@ -727,7 +727,7 @@ components:
       - moments_journee
       - nom
       - occasions
-      - prix_par_10ml
+      - prix_par_ml
       - saisons_compatibles
       - signes_astrologiques_compatibles
       - tags

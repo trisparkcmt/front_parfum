@@ -45,8 +45,8 @@ INSTALLED_APPS = [
     'rest_framework.authtoken',
     'rest_framework_simplejwt',
     'corsheaders',
-    'django_filters',
-    'drf_spectacular',
+   
+    
     'allauth',
     'allauth.account',
       'django.contrib.sites', 
@@ -236,6 +236,7 @@ REST_FRAMEWORK = {
 REST_AUTH = {
     'USE_JWT': True,
     'JWT_AUTH_HTTPONLY': False,  # Permet de voir les tokens dans la réponse
+    'LOGIN_SERIALIZER': 'utilisateur.serializers.EmailOrTelephoneLoginSerializer',
 }
 
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
@@ -265,4 +266,3 @@ SPECTACULAR_SETTINGS = {
 #gerer les images 
 MEDIA_URL  = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
-

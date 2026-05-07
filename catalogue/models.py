@@ -287,7 +287,7 @@ class Essence(models.Model):
     # Stock
     stock_litre = models.DecimalField(max_digits=10, decimal_places=3, default=0)
     seuil_alerte_stock = models.DecimalField(max_digits=10, decimal_places=3, null=True, blank=True)
-    prix_par_10ml = models.DecimalField(max_digits=10, decimal_places=2)
+    prix_par_ml = models.DecimalField(max_digits=10, decimal_places=2)
     
     # Tags (ManyToMany via la table de liaison)
     tags = models.ManyToManyField(Tag, through='TagEssence', related_name='essences', blank=True)
@@ -316,11 +316,11 @@ class Essence(models.Model):
         verbose_name_plural = 'Essences'
     
     def __str__(self):
-        return f"{self.nom} - {self.prix_par_10ml} FCFA/10ml"
+        return f"{self.nom} - {self.prix_par_ml} FCFA/ml"
     
     def calculer_prix_quantite(self, quantite_ml):
         """Calcule le prix pour une quantité donnée en ml"""
-        return (self.prix_par_10ml * Decimal(str(quantite_ml))) / Decimal('10')
+        return self.prix_par_ml * Decimal(str(quantite_ml))
     
     # Méthodes pour récupérer les tags par type
     def get_tags_by_type(self, tag_type):
@@ -505,4 +505,3 @@ class Flacon(models.Model):
     def __str__(self):
         return f"{self.nom} ({self.contenance_ml}ml) - {self.prix_unitaire} FCFA"
     
-

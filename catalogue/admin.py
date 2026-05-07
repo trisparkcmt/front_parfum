@@ -261,8 +261,8 @@ class ParfumAdmin(admin.ModelAdmin):
 @admin.register(Essence)
 class EssenceAdmin(admin.ModelAdmin):
     list_display = (
-        'id', 'apercu_image_col', 'nom', 'code_reference',
-        'prix_par_10ml', 'statut_stock',
+        'id', 'nom', 'code_reference',
+        'prix_par_ml', 'statut_stock',
         'intensite', 'genre_cible', 'actif'
     )
     list_filter = (
@@ -289,13 +289,10 @@ class EssenceAdmin(admin.ModelAdmin):
             'fields': ('fournisseur', 'origine_pays', 'concentration_max')
         }),
         ('Stock', {
-            'fields': ('stock_litre', 'seuil_alerte_stock', 'prix_par_10ml')
+            'fields': ('stock_litre', 'seuil_alerte_stock', 'prix_par_ml')
         }),
         ('Caractéristiques', {
             'fields': ('intensite', 'genre_cible')
-        }),
-        ('Image', {
-            'fields': ('image_principale',)
         }),
         ('Statut', {
             'fields': ('actif',)
@@ -305,10 +302,6 @@ class EssenceAdmin(admin.ModelAdmin):
             'classes': ('collapse',)
         }),
     )
-
-    @admin.display(description="Aperçu")
-    def apercu_image_col(self, obj):
-        return apercu_image(obj.image_principale)
 
     @admin.display(description="Stock (L)")
     def statut_stock(self, obj):
