@@ -8,9 +8,9 @@ from .models import ParfumPersonnalise, ParfumPersonnaliseLigne
 class ParfumPersonnaliseLigneInline(admin.TabularInline):
     model = ParfumPersonnaliseLigne
     extra = 1
-    fields = ('essence', 'quantite_ml', 'prix_par_ml_snapshot', 'prix_ligne')
+    fields = ('essence_catalogue', 'essence_personnalisee', 'quantite_ml', 'prix_par_ml_snapshot', 'prix_ligne')
     readonly_fields = ('prix_ligne',)
-    autocomplete_fields = ('essence',)
+    autocomplete_fields = ('essence_catalogue',)
 
 
 @admin.register(ParfumPersonnalise)
@@ -73,15 +73,15 @@ class ParfumPersonnaliseAdmin(admin.ModelAdmin):
 
 @admin.register(ParfumPersonnaliseLigne)
 class ParfumPersonnaliseLigneAdmin(admin.ModelAdmin):
-    list_display = ('id', 'parfum_personnalise', 'essence', 'quantite_ml', 'prix_par_ml_snapshot', 'prix_ligne')
+    list_display = ('id', 'parfum_personnalise', 'essence_catalogue', 'essence_personnalisee', 'quantite_ml', 'prix_par_ml_snapshot', 'prix_ligne')
     list_filter = ('parfum_personnalise__statut',)
-    search_fields = ('parfum_personnalise__nom', 'essence__nom')
+    search_fields = ('parfum_personnalise__nom', 'essence_catalogue__nom', 'essence_personnalisee__nom')
     readonly_fields = ('prix_ligne',)
-    autocomplete_fields = ('parfum_personnalise', 'essence')
+    autocomplete_fields = ('parfum_personnalise', 'essence_catalogue')
     
     fieldsets = (
         ('Lien', {
-            'fields': ('parfum_personnalise', 'essence')
+            'fields': ('parfum_personnalise', 'essence_catalogue', 'essence_personnalisee')
         }),
         ('Quantité et prix', {
             'fields': ('quantite_ml', 'prix_par_ml_snapshot', 'prix_ligne')
@@ -89,4 +89,4 @@ class ParfumPersonnaliseLigneAdmin(admin.ModelAdmin):
     )
     
     def get_queryset(self, request):
-        return super().get_queryset(request).select_related('parfum_personnalise', 'parfum_personnalise__client', 'essence')
+        return super().get_queryset(request).select_related('parfum_personnalise', 'parfum_personnalise__client', 'essence_catalogue', 'essence_personnalisee')

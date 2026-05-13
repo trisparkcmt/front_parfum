@@ -3,6 +3,52 @@ from django.core.validators import MinValueValidator
 from decimal import Decimal
 
 
+class EssencePersonnalisee(models.Model):
+    client = models.ForeignKey('utilisateur.Client', on_delete=models.CASCADE, related_name='essences_personnalisees')
+    nom = models.CharField(max_length=200, help_text="Nom donné par le client à son essence")
+    prix_par_ml_calcule = models.DecimalField(max_digits=10, decimal_places=2, default=0, help_text="Prix calculé en fonction des ingrédients")
+    date_creation = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        db_table = 'essence_personnalisee'
+        verbose_name = 'Essence Personnalisée'
+        verbose_name_plural = 'Essences Personnalisées'
+        
+    def __str__(self):
+        return f"{self.nom} - {self.client.user.email}"
+        
+    def recalculer_prix(self):
+        # Le prix de l'essence personnalisée au ml est la moyenne pondérée ou la somme des prix des ingrédients.
+        # Pour simplifier, si 1ml d'essence perso contient 1ml d'ingrédients, le prix total des ingrédients donne le prix total de l'essence.
+        # Le prix_par_ml sera calculé lors de l'ajout des ingrédients.
+        total_prix = sum(ligne.prix_ligne for ligne in self.lignes.all())
+        total_volume = sum(ligne.quantite_ml for ligne in self.lignes.all())
+        if total_volume > 0:
+            self.prix_par_ml_calcule = total_prix / total_volume
+        else:
+            self.prix_par_ml_calcule = Decimal('0')
+        self.save()
+        return self.prix_par_ml_calcule
+
+class EssencePersonnaliseeLigne(models.Model):
+    essence_personnalisee = models.ForeignKey(EssencePersonnalisee, on_delete=models.CASCADE, related_name='lignes')
+    ingredient = models.ForeignKey('catalogue.Ingredient', on_delete=models.CASCADE, related_name='utilisations')
+    quantite_ml = models.DecimalField(max_digits=8, decimal_places=3, validators=[MinValueValidator(Decimal('0.1'))])
+    prix_par_ml_snapshot = models.DecimalField(max_digits=10, decimal_places=2)
+    prix_ligne = models.DecimalField(max_digits=10, decimal_places=2)
+
+    class Meta:
+        db_table = 'essence_personnalisee_ligne'
+        verbose_name = 'Ligne d\'essence personnalisée'
+        verbose_name_plural = 'Lignes d\'essences personnalisées'
+        unique_together = [['essence_personnalisee', 'ingredient']]
+        
+    def save(self, *args, **kwargs):
+        if not self.prix_par_ml_snapshot:
+            self.prix_par_ml_snapshot = self.ingredient.prix_par_ml
+        self.prix_ligne = self.prix_par_ml_snapshot * self.quantite_ml
+        super().save(*args, **kwargs)
+
 class ParfumPersonnalise(models.Model):
     STATUT_CHOICES = [
         ('brouillon', 'Brouillon'),
@@ -44,7 +90,11 @@ class ParfumPersonnalise(models.Model):
 
 class ParfumPersonnaliseLigne(models.Model):
     parfum_personnalise = models.ForeignKey('laboratoire.ParfumPersonnalise', on_delete=models.CASCADE, related_name='lignes')
-    essence = models.ForeignKey('catalogue.Essence', on_delete=models.CASCADE, related_name='utilisations')
+    
+    # L'essence utilisée peut provenir soit du catalogue (admin), soit d'une création perso du client
+    essence_catalogue = models.ForeignKey('catalogue.Essence', on_delete=models.CASCADE, related_name='utilisations_parfum', null=True, blank=True)
+    essence_personnalisee = models.ForeignKey('laboratoire.EssencePersonnalisee', on_delete=models.CASCADE, related_name='utilisations_parfum', null=True, blank=True)
+    
     quantite_ml = models.DecimalField(max_digits=8, decimal_places=3, validators=[MinValueValidator(Decimal('0.1'))])
     prix_par_ml_snapshot = models.DecimalField(max_digits=10, decimal_places=2, help_text="Prix de l'essence au ml au moment de la création")
     prix_ligne = models.DecimalField(max_digits=10, decimal_places=2, help_text="prix_par_ml_snapshot * quantite_ml")
@@ -53,15 +103,19 @@ class ParfumPersonnaliseLigne(models.Model):
         db_table = 'parfum_personnalise_ligne'
         verbose_name = 'Ligne de parfum personnalisé'
         verbose_name_plural = 'Lignes de parfums personnalisés'
-        unique_together = [['parfum_personnalise', 'essence']]
     
     def __str__(self):
-        return f"{self.parfum_personnalise.nom} - {self.essence.nom}: {self.quantite_ml}ml"
+        nom_essence = self.essence_catalogue.nom if self.essence_catalogue else (self.essence_personnalisee.nom if self.essence_personnalisee else "Inconnu")
+        return f"{self.parfum_personnalise.nom} - {nom_essence}: {self.quantite_ml}ml"
     
     def save(self, *args, **kwargs):
         if not self.prix_par_ml_snapshot:
-            # On prend le prix de l'essence et on divise par 10 (puisque Essence stocke le prix pour 10ml)
-            self.prix_par_ml_snapshot = self.essence.prix_par_10ml / Decimal('10')
-        
+            if self.essence_catalogue:
+                self.prix_par_ml_snapshot = self.essence_catalogue.prix_par_ml
+            elif self.essence_personnalisee:
+                self.prix_par_ml_snapshot = self.essence_personnalisee.prix_par_ml_calcule
+            else:
+                self.prix_par_ml_snapshot = Decimal('0')
+                
         self.prix_ligne = self.prix_par_ml_snapshot * self.quantite_ml
         super().save(*args, **kwargs)

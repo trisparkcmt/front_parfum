@@ -1,3 +1,146 @@
 from django.test import TestCase
+from django.contrib.auth import get_user_model
+from decimal import Decimal
 
-# Create your tests here.
+from laboratoire.models import ParfumPersonnalise, ParfumPersonnaliseLigne
+from api.v1.serializers import ParfumPersonnaliseSerializer
+from catalogue.models import Essence, Flacon
+from utilisateur.models import Client
+
+
+class DummyRequest:
+    def __init__(self, user):
+        self.user = user
+
+
+class ParfumPersonnaliseSerializerTests(TestCase):
+    def setUp(self):
+        self.User = get_user_model()
+        self.user = self.User.objects.create_user(
+            username='testuser',
+            email='test@example.com',
+            password='test1234',
+            telephone='+1234567890'
+        )
+        self.client_profile = self.user.client
+
+        self.flacon = Flacon.objects.create(
+            type_flacon=None,
+            nom='Flacon test',
+            reference_sku='FL-TEST',
+            contenance_ml=50,
+            prix_unitaire=Decimal('1000.00'),
+            stock_quantite=10,
+            actif=True
+        )
+
+        self.essence1 = Essence.objects.create(
+            nom='Essence 1',
+            code_reference='ESS1',
+            prix_par_ml=Decimal('10.00'),
+            actif=True
+        )
+        self.essence2 = Essence.objects.create(
+            nom='Essence 2',
+            code_reference='ESS2',
+            prix_par_ml=Decimal('20.00'),
+            actif=True
+        )
+
+        self.parfum = ParfumPersonnalise.objects.create(
+            client=self.client_profile,
+            flacon=self.flacon,
+            nom='Parfum Origine',
+            description='Description initiale',
+            contenance_ml=Decimal('30.00'),
+            prix_essences=Decimal('0.00'),
+            prix_flacon_snapshot=self.flacon.prix_unitaire,
+            prix_total=self.flacon.prix_unitaire
+        )
+
+        self.ligne = ParfumPersonnaliseLigne.objects.create(
+            parfum_personnalise=self.parfum,
+            essence=self.essence1,
+            quantite_ml=Decimal('10.00'),
+            prix_par_ml_snapshot=self.essence1.prix_par_ml
+        )
+
+    def test_update_parfum_personnalise_with_lignes(self):
+        payload = {
+            'nom': 'Parfum Modifié',
+            'description': 'Nouvelle description',
+            'lignes': [
+                {
+                    'id': self.ligne.id,
+                    'essence': self.essence2.id,
+                    'quantite_ml': '15.00'
+                }
+            ]
+        }
+        serializer = ParfumPersonnaliseSerializer(
+            self.parfum,
+            data=payload,
+            partial=True,
+            context={'request': DummyRequest(self.user)}
+        )
+        self.assertTrue(serializer.is_valid(), msg=serializer.errors)
+        parfum = serializer.save()
+
+        self.parfum.refresh_from_db()
+        self.assertEqual(self.parfum.nom, 'Parfum Modifié')
+        self.assertEqual(self.parfum.description, 'Nouvelle description')
+        self.assertEqual(self.parfum.lignes.count(), 1)
+
+        ligne = self.parfum.lignes.first()
+        self.assertEqual(ligne.essence, self.essence2)
+        self.assertEqual(ligne.quantite_ml, Decimal('15.00'))
+        self.assertEqual(ligne.prix_par_ml_snapshot, self.essence2.prix_par_ml)
+        self.assertEqual(self.parfum.prix_essences, ligne.prix_ligne)
+        self.assertEqual(self.parfum.prix_total, self.parfum.prix_essences + self.parfum.prix_flacon_snapshot)
+
+    def test_add_new_ligne_to_parfum_personnalise(self):
+        payload = {
+            'lignes': [
+                {
+                    'id': self.ligne.id,
+                    'essence': self.essence1.id,
+                    'quantite_ml': '10.00'
+                },
+                {
+                    'essence': self.essence2.id,
+                    'quantite_ml': '5.00'
+                }
+            ]
+        }
+        serializer = ParfumPersonnaliseSerializer(
+            self.parfum,
+            data=payload,
+            partial=True,
+            context={'request': DummyRequest(self.user)}
+        )
+        self.assertTrue(serializer.is_valid(), msg=serializer.errors)
+        parfum = serializer.save()
+
+        self.parfum.refresh_from_db()
+        self.assertEqual(self.parfum.lignes.count(), 2)
+        self.assertTrue(self.parfum.lignes.filter(essence=self.essence1).exists())
+        self.assertTrue(self.parfum.lignes.filter(essence=self.essence2).exists())
+        self.assertEqual(self.parfum.prix_essences, sum(l.prix_ligne for l in self.parfum.lignes.all()))
+
+    def test_remove_ligne_from_parfum_personnalise(self):
+        payload = {
+            'lignes': []
+        }
+        serializer = ParfumPersonnaliseSerializer(
+            self.parfum,
+            data=payload,
+            partial=True,
+            context={'request': DummyRequest(self.user)}
+        )
+        self.assertTrue(serializer.is_valid(), msg=serializer.errors)
+        parfum = serializer.save()
+
+        self.parfum.refresh_from_db()
+        self.assertEqual(self.parfum.lignes.count(), 0)
+        self.assertEqual(self.parfum.prix_essences, Decimal('0.00'))
+        self.assertEqual(self.parfum.prix_total, self.parfum.prix_flacon_snapshot)

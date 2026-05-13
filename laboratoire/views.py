@@ -4,7 +4,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from django.shortcuts import get_object_or_404
 from .models import ParfumPersonnalise
-from api.v1.serializers import (
+from laboratoire.serializers import (
     ParfumPersonnaliseSerializer, 
     ParfumLabSerializer, 
     EssenceLabSerializer, 
@@ -134,9 +134,9 @@ def ia_recommandation(request):
                     'id': essence.id,
                     'nom': essence.nom,
                     'code_reference': essence.code_reference,
-                    'prix_par_10ml': str(essence.prix_par_10ml),
+                    'prix_par_ml': str(essence.prix_par_ml),
                     'quantite_ml': quantite_ml,
-                    'prix_total_quantite': str((essence.prix_par_10ml * quantite_ml) / 10)
+                    'prix_total_quantite': str(essence.prix_par_ml * quantite_ml)
                 })
     
     # Construction de la réponse

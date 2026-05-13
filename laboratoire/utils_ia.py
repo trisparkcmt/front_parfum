@@ -1,7 +1,8 @@
 import os
 import json
 import re
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 from django.conf import settings
 from catalogue.models import Parfum, Essence, Accessoire, Flacon
 
@@ -20,7 +21,7 @@ def get_catalogue_context():
         
     context += "\n=== ESSENCES (pour création sur mesure) ===\n"
     for e in essences:
-        context += f"- ID: {e['id']}, Nom: {e['nom']}, Prix/10ml: {e['prix_par_10ml']} FCFA, Description: {e['description_ia']}\n"
+        context += f"- ID: {e['id']}, Nom: {e['nom']}, Prix/ml: {e['prix_par_ml']} FCFA, Description: {e['description_ia']}\n"
     
     context += "\n=== FLACONS (pour création sur mesure) ===\n"
     for f in flacons:
@@ -40,10 +41,12 @@ def demander_recommandation_ia(prompt_utilisateur):
     if not api_key:
         return {"error": "Clé API Gemini manquante. Veuillez configurer GEMINI_API_KEY."}
         
-    genai.configure(api_key=api_key)
+    # Initialisation du client google.genai
+    client = genai.Client(api_key=api_key)
     
-    # On utilise un modèle Gemini disponible pour la version d'API actuelle
-    model = genai.GenerativeModel('models/gemini-flash-latest')
+    # Ton API n'a plus accès à la version 1.5. 
+    # On utilise gemini-2.5-flash ou gemini-2.0-flash-lite (qui a souvent un quota gratuit généreux)
+    model_name = 'gemini-2.5-flash'
     
     catalogue_context = get_catalogue_context()
     
@@ -85,7 +88,7 @@ RÈGLES CRITIQUES :
 - Les essences doivent totaliser EXACTEMENT la quantité demandée (ex: si 30ml: 10+8+12=30)
 - Le flacon_id doit correspondre à un flacon avec contenance adaptée
 - Les parfums doivent avoir la contenance exacte demandée
-- Si budget_max_fcfa > 0, s'assurer que le coût total respecte ce budget
+- Si budget_max_fcfa > 0, s'assurer que le coût total respecte ce budget ou est inferieur au budget 
 - Si quantité non spécifiée, utiliser 50ml par défaut
 - Si budget non spécifié, utiliser 0 (pas de limite)
 - Ne mets AUCUN texte avant ou après le JSON.
@@ -93,21 +96,17 @@ RÈGLES CRITIQUES :
     
     try:
         # On utilise une température basse pour que l'IA reste factuelle et respecte le JSON
-        response = model.generate_content(
-            f"{system_prompt}\n\nDemande du client : {prompt_utilisateur}",
-            generation_config=genai.types.GenerationConfig(temperature=0.2)
+        response = client.models.generate_content(
+            model=model_name,
+            contents=f"{system_prompt}\n\nDemande du client : {prompt_utilisateur}",
+            config=types.GenerateContentConfig(
+                temperature=0.2,
+                response_mime_type="application/json",
+            )
         )
         
-        # Nettoyage de la réponse (au cas où Gemini ajoute des backticks markdown ````json ... ````)
         reponse_texte = response.text.strip()
-        if reponse_texte.startswith("```json"):
-            reponse_texte = reponse_texte[7:]
-        if reponse_texte.startswith("```"):
-            reponse_texte = reponse_texte[3:]
-        if reponse_texte.endswith("```"):
-            reponse_texte = reponse_texte[:-3]
-            
-        reponse_json = json.loads(reponse_texte.strip())
+        reponse_json = json.loads(reponse_texte)
         return reponse_json
         
     except json.JSONDecodeError:
