@@ -1,5 +1,5 @@
 
-from django.urls import path
+from django.urls import path, include
 from laboratoire.views import (
     liste_creer_parfums_perso, 
     detail_parfum_perso, 
@@ -8,6 +8,7 @@ from laboratoire.views import (
     liste_creer_essences_perso,
     detail_essence_perso
 )
+from catalogue.urls import lab_urlpatterns
 
 urlpatterns = [
     # Liste et Création
@@ -25,5 +26,8 @@ urlpatterns = [
     # Essences Personnalisées
     path('essences-perso/', liste_creer_essences_perso, name='essence-perso-liste'),
     path('essences-perso/<int:pk>/', detail_essence_perso, name='essence-perso-detail'),
+    
+    # Essences Catalogue (ViewSet)
+    path('', include(lab_urlpatterns)),
 ]
 

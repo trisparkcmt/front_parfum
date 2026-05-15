@@ -25,7 +25,12 @@ def liste_creer_parfums_perso(request):
         return Response({"error": "Profil client manquant"}, status=status.HTTP_400_BAD_REQUEST)
 
     if request.method == 'GET':
-        parfums = ParfumPersonnalise.objects.filter(client=request.user.client).prefetch_related('lignes__essence')
+        parfums = ParfumPersonnalise.objects.filter(client=request.user.client).prefetch_related(
+            'lignes__essence_catalogue',
+            'lignes__essence_personnalisee',
+            'lignes__essence_personnalisee__lignes',
+            'lignes__essence_personnalisee__lignes__ingredient'
+        )
         serializer = ParfumPersonnaliseSerializer(parfums, many=True)
         return Response(serializer.data)
 

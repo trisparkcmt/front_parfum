@@ -133,10 +133,15 @@ class ParfumPersonnaliseLigneSerializer(serializers.ModelSerializer):
         # Vérifier qu'une et une seule essence est fournie
         essence_cat = data.get('essence_catalogue')
         essence_perso = data.get('essence_personnalisee')
+        essence_cat_provided = 'essence_catalogue' in self.initial_data
+        essence_perso_provided = 'essence_personnalisee' in self.initial_data
         
         if essence_cat and essence_perso:
             raise serializers.ValidationError("Vous ne pouvez pas fournir à la fois une essence du catalogue et une essence personnalisée pour la même ligne.")
         if not essence_cat and not essence_perso:
+            if self.instance and not essence_cat_provided and not essence_perso_provided:
+                # Mise à jour partielle d'une ligne existante : on conserve l'essence déjà liée
+                return data
             raise serializers.ValidationError("Vous devez fournir soit une essence du catalogue, soit une essence personnalisée.")
         return data
 
