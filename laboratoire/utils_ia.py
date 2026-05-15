@@ -4,12 +4,13 @@ import re
 from google import genai
 from google.genai import types
 from django.conf import settings
-from catalogue.models import Parfum, Essence, Accessoire, Flacon
+from catalogue.models import Parfum, Essence, Accessoire, Flacon, Ingredient
 
 def get_catalogue_context():
     """Récupère et formate le catalogue pour l'IA"""
     parfums = Parfum.objects.filter(actif=True).values('id', 'nom', 'contenance_ml', 'description_ia', 'prix_unitaire')
-    essences = Essence.objects.filter(actif=True).values('id', 'nom', 'description_ia', 'prix_par_ml')
+    essences = Essence.objects.filter(actif=True).values('id', 'nom', 'description_ia', 'prix_par_ml', 'categorie')
+    ingredients = Ingredient.objects.filter(actif=True).values('id', 'nom', 'note_olfactive', 'prix_par_ml')
     accessoires = Accessoire.objects.filter(actif=True).values('id', 'nom', 'description_courte', 'prix_unitaire')
     flacons = Flacon.objects.filter(actif=True).values('id', 'nom', 'contenance_ml', 'prix_unitaire')
     
@@ -19,11 +20,15 @@ def get_catalogue_context():
     for p in parfums:
         context += f"- ID: {p['id']}, Nom: {p['nom']}, Contenance: {p['contenance_ml']}ml, Prix: {p['prix_unitaire']} FCFA, Description: {p['description_ia']}\n"
         
-    context += "\n=== ESSENCES (pour création sur mesure) ===\n"
+    context += "\n=== ESSENCES PRÉFABRIQUÉES ===\n"
     for e in essences:
-        context += f"- ID: {e['id']}, Nom: {e['nom']}, Prix/ml: {e['prix_par_ml']} FCFA, Description: {e['description_ia']}\n"
+        context += f"- ID: {e['id']}, Nom: {e['nom']}, Catégorie: {e['categorie']}, Prix/ml: {e['prix_par_ml']} FCFA, Description: {e['description_ia']}\n"
     
-    context += "\n=== FLACONS (pour création sur mesure) ===\n"
+    context += "\n=== INGRÉDIENTS (pour création 100% sur mesure) ===\n"
+    for i in ingredients:
+        context += f"- ID: {i['id']}, Nom: {i['nom']}, Note: {i['note_olfactive']}, Prix/ml: {i['prix_par_ml']} FCFA\n"
+    
+    context += "\n=== FLACONS ===\n"
     for f in flacons:
         context += f"- ID: {f['id']}, Nom: {f['nom']}, Contenance: {f['contenance_ml']}ml, Prix: {f['prix_unitaire']} FCFA\n"
         
@@ -53,44 +58,44 @@ def demander_recommandation_ia(prompt_utilisateur):
     system_prompt = f"""Tu es un expert parfumeur pour la boutique Accessoire Exclusif.
 Un client va te faire une demande avec potentiellement :
 - Une quantité désirée en ml (ex: "30ml", "50ml")
-- Un budget maximum (ex: "moins de 50000 FCFA", "budget: 100000")
+- Un budget maximum (ex: "moins de 50000 FCFA")
 
-Tu dois analyser sa demande, extraire :
-1. La quantité en ml demandée (sinon proposer 50ml par défaut)
-2. Le budget maximum en FCFA s'il est spécifié (sinon laisser à 0 = pas de limite)
+Tu dois analyser sa demande, extraire la quantité et le budget.
+Puis recommander une création de parfum personnalisée.
 
-Puis recommander :
-1. Des parfums existants qui correspondent à la contenance demandée et respectent le budget
-2. Un flacon adapté à la quantité
-3. Des essences avec les quantités précises en ml pour un mélange totalisant exactement la quantité
-4. Des accessoires complémentaires
-5. S'assurer que le coût total (flacon + essences + accessoires) respecte le budget si spécifié
+RÈGLE D'OR (LA RÈGLE DES 45%) :
+La somme totale des ml de TOUTES les essences et de TOUS les ingrédients que tu proposes NE DOIT JAMAIS DEPASSER EXACTEMENT 45% de la contenance du flacon choisi. (Exemple: pour un flacon de 50ml, le total des essences/ingrédients doit être MAXIMUM 22.5ml). Le reste sera de la base/alcool (non mentionnée ici).
+
+MÉTHODES DE CRÉATION :
+Pour la création, tu as 2 choix (tu peux faire l'un ou l'autre, ou un mix) :
+1. "Méthode Simple" : Utiliser des Essences Préfabriquées.
+2. "Méthode Sur Mesure" : Utiliser des Ingrédients purs (tu dois essayer de respecter une pyramide olfactive : Tête, Coeur, Fond).
 
 Voici notre catalogue :
 {catalogue_context}
 
 IMPORTANT : Tu DOIS répondre UNIQUEMENT au format JSON strict (sans Markdown autour) :
 {{
-    "message": "Ton message d'explication chaleureux et professionnel pour le client (max 3 phrases)",
+    "message": "Ton message d'explication chaleureux (max 3 phrases)",
     "quantite_demandee_ml": 50,
     "budget_max_fcfa": 0,
     "flacon_id": 1,
-    "parfums": [liste des IDs entiers des parfums ayant la contenance exacte, max 3],
-    "essences": [
-        {{"id": 1, "quantite_ml": 15}},
-        {{"id": 2, "quantite_ml": 20}},
-        {{"id": 3, "quantite_ml": 15}}
+    "essences_pre_faites": [
+        {{"id": 1, "quantite_ml": 10.5}}
     ],
-    "accessoires": [liste des IDs entiers des accessoires recommandés, max 3]
+    "ingredients_sur_mesure": [
+        {{"id": 5, "quantite_ml": 5}},
+        {{"id": 12, "quantite_ml": 7}}
+    ],
+    "parfums_existants_recommandes": [1, 2],
+    "accessoires": [1]
 }}
 
 RÈGLES CRITIQUES :
-- Les essences doivent totaliser EXACTEMENT la quantité demandée (ex: si 30ml: 10+8+12=30)
-- Le flacon_id doit correspondre à un flacon avec contenance adaptée
-- Les parfums doivent avoir la contenance exacte demandée
-- Si budget_max_fcfa > 0, s'assurer que le coût total respecte ce budget ou est inferieur au budget 
-- Si quantité non spécifiée, utiliser 50ml par défaut
-- Si budget non spécifié, utiliser 0 (pas de limite)
+- Le total (quantités essences_pre_faites + quantités ingredients_sur_mesure) DOIT être <= (contenance du flacon * 0.45). C'est critique !
+- Le flacon_id doit correspondre à la contenance désirée.
+- Ne propose pas d'essences ou ingrédients qui n'existent pas dans le catalogue.
+- Si budget_max_fcfa > 0, calcule mentalement le coût (Flacon + (Essences * prix/ml) + (Ingredients * prix/ml) + Accessoires) et respecte le budget.
 - Ne mets AUCUN texte avant ou après le JSON.
 """
     

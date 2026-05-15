@@ -69,6 +69,49 @@ class EssencePersonnaliseeSerializer(serializers.ModelSerializer):
             
         return essence_perso
 
+    def update(self, instance, validated_data):
+        lignes_data = validated_data.pop('lignes', None)
+        request = self.context.get('request')
+
+        if not request or not hasattr(request.user, 'client'):
+            raise serializers.ValidationError("L'utilisateur doit avoir un profil client.")
+
+        with transaction.atomic():
+            essence_perso = super().update(instance, validated_data)
+
+            if lignes_data is not None:
+                existing_lignes = {ligne.id: ligne for ligne in essence_perso.lignes.all()}
+                sent_ids = []
+
+                for ligne_data in lignes_data:
+                    ligne_id = ligne_data.get('id')
+                    if ligne_id:
+                        if ligne_id not in existing_lignes:
+                            raise serializers.ValidationError(f"Ligne d'essence personnalisée introuvable : {ligne_id}")
+                        sent_ids.append(ligne_id)
+                        ligne = existing_lignes[ligne_id]
+                        
+                        origine_ingredient = ligne.ingredient
+                        nouvel_ingredient = ligne_data.get('ingredient', ligne.ingredient)
+                        
+                        ligne.ingredient = nouvel_ingredient
+                        ligne.quantite_ml = ligne_data.get('quantite_ml', ligne.quantite_ml)
+                        
+                        if not ligne.prix_par_ml_snapshot or nouvel_ingredient != origine_ingredient:
+                            ligne.prix_par_ml_snapshot = None  # Force le recalcul dans save()
+                            
+                        ligne.save()
+                    else:
+                        EssencePersonnaliseeLigne.objects.create(essence_personnalisee=essence_perso, **ligne_data)
+
+                for ligne_id, ligne in existing_lignes.items():
+                    if ligne_id not in sent_ids:
+                        ligne.delete()
+
+            essence_perso.recalculer_prix()
+
+        return essence_perso
+
 
 class ParfumPersonnaliseLigneSerializer(serializers.ModelSerializer):
     essence_catalogue_detail = EssenceLabSerializer(source='essence_catalogue', read_only=True)

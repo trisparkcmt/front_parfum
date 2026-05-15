@@ -4,7 +4,9 @@ from laboratoire.views import (
     liste_creer_parfums_perso, 
     detail_parfum_perso, 
     recalculer_prix_parfum,
-    ia_recommandation
+    ia_recommandation,
+    liste_creer_essences_perso,
+    detail_essence_perso
 )
 
 urlpatterns = [
@@ -19,5 +21,9 @@ urlpatterns = [
     
     # IA Recommandation
     path('ia-recommandation/', ia_recommandation, name='ia-recommandation'),
+    
+    # Essences Personnalisées
+    path('essences-perso/', liste_creer_essences_perso, name='essence-perso-liste'),
+    path('essences-perso/<int:pk>/', detail_essence_perso, name='essence-perso-detail'),
 ]
 
