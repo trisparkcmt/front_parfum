@@ -14,10 +14,10 @@ from .models import (
 # ============================================================
 def apercu_image(image_field, hauteur=50):
     url = None
-    if hasattr(image_field, 'url'):
+    if image_field:
         try:
             url = image_field.url
-        except ValueError:
+        except (AttributeError, ValueError):
             pass
     elif isinstance(image_field, str) and image_field:
         url = image_field
@@ -31,7 +31,7 @@ def apercu_image(image_field, hauteur=50):
 
 def statut_stock_html(stock_quantite, seuil):
     if stock_quantite <= 0:
-        return format_html('<span style="color:red;font-weight:bold;">⛔ Épuisé</span>')
+        return mark_safe('<span style="color:red;font-weight:bold;">⛔ Épuisé</span>')
     elif stock_quantite <= seuil:
         return format_html(
             '<span style="color:orange;font-weight:bold;">⚠️ Faible ({})</span>',
@@ -262,11 +262,13 @@ class ParfumAdmin(admin.ModelAdmin):
 class EssenceAdmin(admin.ModelAdmin):
     list_display = (
         'id', 'nom', 'code_reference',
-        'prix_par_ml', 'statut_stock',
-        'intensite', 'genre_cible', 'actif'
+        'stock_flacon', 'stock_ouvert_ml', 'stock_total_ml',
+        'prix_unitaire_fini', 'prix_par_ml', 'statut_stock',
+        'intensite', 'genre_cible', 'categorie', 'actif'
     )
     list_filter = (
-        'intensite', 'genre_cible', 'actif',
+        'intensite', 'genre_cible', 'categorie',
+        'vendu_comme_produit_fini', 'actif',
         # ← Filtres par tags
         FamilleOlfactiveEssenceFilter,
         HumeurEssenceFilter,
@@ -277,25 +279,28 @@ class EssenceAdmin(admin.ModelAdmin):
         'date_creation',
     )
     search_fields   = ('nom', 'code_reference', 'fournisseur', 'origine_pays')
-    readonly_fields = ('date_creation', 'date_modification')
+    readonly_fields = ('stock_ml_total_reel', 'prix_par_ml', 'date_creation', 'date_modification')
     list_per_page   = 50
     inlines         = [TagEssenceInline]
 
     fieldsets = (
         ('Informations générales', {
-            'fields': ('nom', 'code_reference', 'description', 'description_ia')
+            'fields': ('nom', 'code_reference', 'marque', 'description', 'description_ia')
         }),
-        ('Fournisseur', {
-            'fields': ('fournisseur', 'origine_pays', 'concentration_max')
+        ('Fournisseur et technique', {
+            'fields': ('fournisseur', 'origine_pays', 'concentration_max', 'couleur', 'duree')
         }),
         ('Stock', {
-            'fields': ('stock_litre', 'seuil_alerte_stock', 'prix_par_ml')
+            'fields': ('stock_flacon', 'contenance_ml', 'stock_ouvert_ml', 'stock_ml_total_reel', 'seuil_alerte_stock')
+        }),
+        ('Prix', {
+            'fields': ('prix_unitaire_fini', 'prix_par_ml')
         }),
         ('Caractéristiques', {
-            'fields': ('intensite', 'genre_cible')
+            'fields': ('intensite', 'genre_cible', 'categorie', 'notes_tete', 'notes_coeur', 'notes_fond')
         }),
         ('Statut', {
-            'fields': ('actif',)
+            'fields': ('actif', 'vendu_comme_produit_fini')
         }),
         ('Dates', {
             'fields': ('date_creation', 'date_modification'),
@@ -303,19 +308,24 @@ class EssenceAdmin(admin.ModelAdmin):
         }),
     )
 
-    @admin.display(description="Stock (L)")
+    @admin.display(description="Stock total (ml)", ordering="stock_ml_total_reel")
+    def stock_total_ml(self, obj):
+        return obj.stock_ml_total_reel
+
+    @admin.display(description="Stock (ml)")
     def statut_stock(self, obj):
         seuil = obj.seuil_alerte_stock or 0
-        if obj.stock_litre <= 0:
-            return format_html('<span style="color:red;font-weight:bold;">⛔ Épuisé</span>')
-        elif obj.stock_litre <= seuil:
+        stock_total = obj.stock_ml_total_reel
+        if stock_total <= 0:
+            return mark_safe('<span style="color:red;font-weight:bold;">⛔ Épuisé</span>')
+        elif stock_total <= seuil:
             return format_html(
-                '<span style="color:orange;font-weight:bold;">⚠️ Faible ({} L)</span>',
-                obj.stock_litre
+                '<span style="color:orange;font-weight:bold;">⚠️ Faible ({} ml)</span>',
+                stock_total
             )
         return format_html(
-            '<span style="color:green;font-weight:bold;">✅ OK ({} L)</span>',
-            obj.stock_litre
+            '<span style="color:green;font-weight:bold;">✅ OK ({} ml)</span>',
+            stock_total
         )
 
 
