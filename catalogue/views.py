@@ -452,20 +452,11 @@ Les ingrédients sont les composants individuels utilisés dans le laboratoire
 pour créer des parfums personnalisés.
 
 **Filtres disponibles** :
-- Par type de note olfactive : `note_olfactive` (tête, coeur, fond)
 - Par prix : `prix_min`, `prix_max` (prix par ml en FCFA)
 - Par stock : `stock_min` (en ml)
         """,
         tags=["Ingrédients"],
         parameters=[
-            OpenApiParameter(
-                name="note_olfactive",
-                type=OpenApiTypes.STR,
-                location=OpenApiParameter.QUERY,
-                description="Type de note olfactive",
-                enum=["tête", "coeur", "fond"],
-                required=False,
-            ),
             OpenApiParameter(
                 name="prix_min",
                 type=OpenApiTypes.NUMBER,

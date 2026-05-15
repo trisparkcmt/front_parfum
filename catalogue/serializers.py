@@ -158,7 +158,7 @@ class IngredientSerializer(serializers.ModelSerializer):
     class Meta:
         model  = Ingredient
         fields = [
-            'id', 'nom', 'description', 'note_olfactive',
+            'id', 'nom', 'description',
             'prix_par_ml', 'stock_ml', 'actif',
             'date_creation',
         ]
