@@ -416,12 +416,14 @@ class EssenceAPITest(APITestCase):
         self.tag_lion   = Tag.objects.create(nom="Lion",   type="signe_astrologique")
         self.essence_active = Essence.objects.create(
             nom="Oud Royal", code_reference="ESS001",
-            prix_par_ml=500, stock_litre=2, actif=True
+            prix_unitaire_fini=5000, contenance_ml=10,
+            stock_flacon=2, stock_ouvert_ml=0, actif=True
         )
         self.essence_active.tags.add(self.tag_floral, self.tag_lion)
         self.essence_inactive = Essence.objects.create(
             nom="Musc Blanc", code_reference="ESS002",
-            prix_par_ml=300, stock_litre=0, actif=False
+            prix_unitaire_fini=3000, contenance_ml=10,
+            stock_flacon=0, stock_ouvert_ml=0, actif=False
         )
 
     def test_liste_essences_actives_uniquement(self):

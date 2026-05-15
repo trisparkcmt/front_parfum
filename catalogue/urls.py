@@ -1,6 +1,6 @@
 # catalogue/urls.py
 from rest_framework.routers import DefaultRouter
-from .views import ParfumViewSet, EssenceViewSet, AccessoireViewSet, FlaconViewSet, FavoriViewSet
+from .views import IngredientViewSet, ParfumViewSet, EssenceViewSet, AccessoireViewSet, FlaconViewSet, FavoriViewSet
 
 # ============================================================
 # ROUTER SHOP — /api/shop/...
@@ -17,6 +17,7 @@ shop_router.register(r'favoris', FavoriViewSet, basename='favori')
 # ============================================================
 lab_router = DefaultRouter()
 lab_router.register(r'essences', EssenceViewSet, basename='essence')
+lab_router.register(r'ingredients', IngredientViewSet, basename='ingredient')
 
 # Exportés et utilisés dans shop_urls.py et lab_urls.py
 shop_urlpatterns = shop_router.urls

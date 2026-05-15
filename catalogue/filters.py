@@ -76,7 +76,7 @@ class EssenceFilter(django_filters.FilterSet):
     intensite = django_filters.CharFilter(field_name='intensite')
     prix_min  = django_filters.NumberFilter(field_name='prix_par_ml', lookup_expr='gte')
     prix_max  = django_filters.NumberFilter(field_name='prix_par_ml', lookup_expr='lte')
-    stock_min = django_filters.NumberFilter(field_name='stock_litre',   lookup_expr='gte')
+    stock_min = django_filters.NumberFilter(field_name='stock_ml_total_reel', lookup_expr='gte')
 
     def filter_famille_olfactive(self, queryset, name, value):
         return filtrer_par_tag_type(queryset, 'famille_olfactive', value)

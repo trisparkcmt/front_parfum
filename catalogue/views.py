@@ -17,10 +17,11 @@ from drf_spectacular.types import OpenApiTypes
 from rest_framework.permissions import IsAuthenticated
 from orders.models import CommandeLigneAccessoire
 from .permissions import IsAdminOrReadOnly
-from .models import Parfum, Essence, Accessoire, Flacon, Favori
+from .models import Parfum, Essence, Accessoire, Flacon, Favori, Ingredient
 from .serializers import (
     AccessoireSimilaireSerializer, ParfumSerializer, EssenceSerializer,
-    AccessoireSerializer, FlaconSerializer,ParfumSimilaireSerializer,
+    AccessoireSerializer, FlaconSerializer, ParfumSimilaireSerializer,
+    IngredientSerializer, FavoriSerializer,
 )
 from django.db.models import Case, When
 from .filters import (
@@ -302,7 +303,7 @@ dans le laboratoire.
 - Par tags : `famille_olfactive`, `humeur`, `saison`, `occasion`, `signe_astrologique`, `moment_journee`
 - Par caractéristiques : `genre`, `intensite`
 - Par prix : `prix_min`, `prix_max` (prix par ml en FCFA)
-- Par stock : `stock_min` (en litres)
+- Par stock : `stock_min` (en ml)
         """,
         tags=["Essences"],
         parameters=[
@@ -382,7 +383,7 @@ dans le laboratoire.
                 name="stock_min",
                 type=OpenApiTypes.NUMBER,
                 location=OpenApiParameter.QUERY,
-                description="Stock minimum disponible en litres",
+                description="Stock minimum disponible en ml",
                 required=False,
             ),
             OpenApiParameter(
@@ -403,7 +404,7 @@ dans le laboratoire.
                 name="ordering",
                 type=OpenApiTypes.STR,
                 location=OpenApiParameter.QUERY,
-                description="Tri (ex: prix_par_ml, -stock_litre, nom)",
+                description="Tri (ex: prix_par_ml, -stock_ml_total_reel, nom)",
                 required=False,
             ),
         ],
@@ -426,7 +427,7 @@ class EssenceViewSet(viewsets.ModelViewSet):
     filter_backends    = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_class    = EssenceFilter
     search_fields      = ['nom', 'description', 'fournisseur', 'origine_pays']
-    ordering_fields    = ['prix_par_ml', 'date_creation', 'nom', 'stock_litre']
+    ordering_fields    = ['prix_par_ml', 'date_creation', 'nom', 'stock_ml_total_reel', 'prix_unitaire_fini']
     ordering           = ['-date_creation']
 
     def get_queryset(self):
@@ -436,6 +437,80 @@ class EssenceViewSet(viewsets.ModelViewSet):
             .prefetch_related('tags')
             .distinct()
         )
+
+
+# ============================================================
+# INGRÉDIENTS
+# ============================================================
+@extend_schema_view(
+    list=extend_schema(
+        summary="Liste des ingrédients",
+        description="""
+Retourne la liste paginée de tous les ingrédients **actifs**.
+
+Les ingrédients sont les composants individuels utilisés dans le laboratoire
+pour créer des parfums personnalisés.
+
+**Filtres disponibles** :
+- Par prix : `prix_min`, `prix_max` (prix par ml en FCFA)
+- Par stock : `stock_min` (en ml)
+        """,
+        tags=["Ingrédients"],
+        parameters=[
+            OpenApiParameter(
+                name="prix_min",
+                type=OpenApiTypes.NUMBER,
+                location=OpenApiParameter.QUERY,
+                description="Prix minimum par ml en FCFA",
+                required=False,
+            ),
+            OpenApiParameter(
+                name="prix_max",
+                type=OpenApiTypes.NUMBER,
+                location=OpenApiParameter.QUERY,
+                description="Prix maximum par ml en FCFA",
+                required=False,
+            ),
+            OpenApiParameter(
+                name="stock_min",
+                type=OpenApiTypes.NUMBER,
+                location=OpenApiParameter.QUERY,
+                description="Stock minimum disponible en ml",
+                required=False,
+            ),
+            OpenApiParameter(
+                name="search",
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                description="Recherche textuelle dans nom et description",
+                required=False,
+            ),
+            OpenApiParameter(
+                name="ordering",
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                description="Tri (ex: prix_par_ml, -stock_ml, nom)",
+                required=False,
+            ),
+        ],
+    ),
+    retrieve=extend_schema(
+        summary="Détail d'un ingrédient",
+        description="Récupère les informations complètes d'un ingrédient via son **ID**.",
+        tags=["Ingrédients"],
+    ),
+)
+class IngredientViewSet(viewsets.ModelViewSet):
+    serializer_class   = IngredientSerializer
+    pagination_class   = StandardPagination
+    permission_classes = [IsAdminOrReadOnly]
+    filter_backends    = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+    search_fields      = ['nom', 'description']
+    ordering_fields    = ['prix_par_ml', 'date_creation', 'nom', 'stock_ml']
+    ordering           = ['-date_creation']
+
+    def get_queryset(self):
+        return Ingredient.objects.filter(actif=True)
 
 
 # ============================================================
@@ -749,7 +824,6 @@ class FlaconViewSet(viewsets.ModelViewSet):
             .distinct()
         )
     
-from .serializers import FavoriSerializer
 
 class FavoriViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = FavoriSerializer

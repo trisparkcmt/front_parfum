@@ -4,7 +4,7 @@ from rest_framework import serializers
 from drf_spectacular.utils import extend_schema_field
 from drf_spectacular.types import OpenApiTypes
 from .utils import get_similar_products
-from .models import Tag, Parfum, Essence, Accessoire, Flacon, TypeAccessoire, TypeFlacon, Favori
+from .models import Tag, Parfum, Essence, Accessoire, Flacon, TypeAccessoire, TypeFlacon, Favori, Ingredient
 
 # catalogue/serializers.py (ajouter après les imports existants)
 
@@ -152,6 +152,19 @@ class ParfumSerializer(serializers.ModelSerializer):
                 return False
         return False
 # ============================================================
+# INGREDIENTS
+# ============================================================
+class IngredientSerializer(serializers.ModelSerializer):
+    class Meta:
+        model  = Ingredient
+        fields = [
+            'id', 'nom', 'description',
+            'prix_par_ml', 'stock_ml', 'actif',
+            'date_creation',
+        ]
+
+
+# ============================================================
 # ESSENCES
 # ============================================================
 class EssenceSerializer(serializers.ModelSerializer):
@@ -166,14 +179,18 @@ class EssenceSerializer(serializers.ModelSerializer):
     class Meta:
         model  = Essence
         fields = [
-            'id', 'nom', 'code_reference',
-            'description', 'fournisseur', 'origine_pays',
-            'prix_par_ml', 'stock_litre',
-            'genre_cible', 'intensite',
+            'id', 'nom', 'code_reference', 'marque',
+            'description', 'description_ia', 'fournisseur', 'origine_pays',
+            'stock_flacon', 'contenance_ml', 'stock_ouvert_ml', 'stock_ml_total_reel',
+            'seuil_alerte_stock',
+            'prix_unitaire_fini', 'prix_par_ml',
+            'intensite', 'genre_cible', 'categorie',
+            'notes_tete', 'notes_coeur', 'notes_fond',
             'tags', 'famille_olfactive', 'humeurs_compatibles',
             'occasions', 'saisons_compatibles',
             'signes_astrologiques_compatibles', 'moments_journee',
-            'date_creation',
+            'actif', 'vendu_comme_produit_fini',
+            'date_creation', 'date_modification',
         ]
 
 
