@@ -17,11 +17,11 @@ from drf_spectacular.types import OpenApiTypes
 from rest_framework.permissions import IsAuthenticated
 from orders.models import CommandeLigneAccessoire
 from .permissions import IsAdminOrReadOnly
-from .models import Parfum, Essence, Accessoire, Flacon, Favori, Ingredient
+from .models import CategorieParfum, Parfum, Essence, Accessoire, Flacon, Favori, Ingredient, Tag, TypeAccessoire, TypeFlacon
 from .serializers import (
-    AccessoireSimilaireSerializer, ParfumSerializer, EssenceSerializer,
+    AccessoireSimilaireSerializer, CategorieParfumSerializer, ParfumSerializer, EssenceSerializer,
     AccessoireSerializer, FlaconSerializer, ParfumSimilaireSerializer,
-    IngredientSerializer, FavoriSerializer,
+    IngredientSerializer, FavoriSerializer, TagSerializer, TypeAccessoireSerializer, TypeFlaconSerializer,
 )
 from django.db.models import Case, When
 from .filters import (
@@ -838,3 +838,45 @@ class FavoriViewSet(viewsets.ReadOnlyModelViewSet):
                     .order_by('-date_ajout'))
         except AttributeError:
             return Favori.objects.none()
+        
+class TagViewSet(viewsets.ModelViewSet):
+    queryset = Tag.objects.all()
+    permission_classes = [IsAdminOrReadOnly]
+    serializer_class = TagSerializer
+    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+    search_fields = ['nom', 'type']
+    ordering_fields = ['nom', 'type', 'date_creation']
+    ordering = ['nom']
+
+class CategorieParfumViewSet(viewsets.ModelViewSet):
+    queryset = CategorieParfum.objects.filter(actif=True)
+    serializer_class = CategorieParfumSerializer
+    permission_classes = [IsAdminOrReadOnly]
+    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+    search_fields = ['nom', 'description']
+    ordering_fields = ['nom', 'ordre_affichage', 'date_creation']
+    ordering = ['ordre_affichage', 'nom']
+
+class TypeAccessoireViewSet(viewsets.ModelViewSet):
+    """
+    API pour les types d'accessoires.
+    """
+    queryset = TypeAccessoire.objects.filter(actif=True)
+    serializer_class = TypeAccessoireSerializer
+    permission_classes = [IsAdminOrReadOnly]
+    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+    search_fields = ['nom', 'description']
+    ordering_fields = ['nom', 'date_creation']
+    ordering = ['nom']
+
+class TypeFlaconViewSet(viewsets.ModelViewSet):
+    """
+    API pour les types de flacons.
+    """
+    queryset = TypeFlacon.objects.filter(actif=True)
+    serializer_class = TypeFlaconSerializer
+    permission_classes = [IsAdminOrReadOnly]
+    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+    search_fields = ['nom', 'description']
+    ordering_fields = ['nom', 'date_creation']
+    ordering = ['nom']

@@ -4,7 +4,7 @@ from rest_framework import serializers
 from drf_spectacular.utils import extend_schema_field
 from drf_spectacular.types import OpenApiTypes
 from .utils import get_similar_products
-from .models import Tag, Parfum, Essence, Accessoire, Flacon, TypeAccessoire, TypeFlacon, Favori, Ingredient
+from .models import CategorieParfum, Tag, Parfum, Essence, Accessoire, Flacon, TypeAccessoire, TypeFlacon, Favori, Ingredient
 
 # catalogue/serializers.py (ajouter après les imports existants)
 
@@ -354,3 +354,10 @@ class FavoriSerializer(serializers.ModelSerializer):
 
     def get_type_produit(self, obj):
         return "parfum" if obj.parfum else "accessoire"
+
+
+class CategorieParfumSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CategorieParfum
+        fields = ['id', 'nom', 'slug', 'description', 'image', 'ordre_affichage', 'actif', 'taux_reduction', 'date_creation']
+        read_only_fields = ['date_creation']
