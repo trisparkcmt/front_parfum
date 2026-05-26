@@ -3,7 +3,7 @@ from django.contrib.auth import get_user_model
 from decimal import Decimal
 
 from laboratoire.models import ParfumPersonnalise, ParfumPersonnaliseLigne
-from api.v1.serializers import ParfumPersonnaliseSerializer
+from laboratoire.serializers import ParfumPersonnaliseSerializer
 from catalogue.models import Essence, Flacon
 from utilisateur.models import Client
 
@@ -52,7 +52,6 @@ class ParfumPersonnaliseSerializerTests(TestCase):
             flacon=self.flacon,
             nom='Parfum Origine',
             description='Description initiale',
-            contenance_ml=Decimal('30.00'),
             prix_essences=Decimal('0.00'),
             prix_flacon_snapshot=self.flacon.prix_unitaire,
             prix_total=self.flacon.prix_unitaire

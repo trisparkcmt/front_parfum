@@ -133,8 +133,9 @@ class ParfumPersonnaliseLigneSerializer(serializers.ModelSerializer):
         # Vérifier qu'une et une seule essence est fournie
         essence_cat = data.get('essence_catalogue')
         essence_perso = data.get('essence_personnalisee')
-        essence_cat_provided = 'essence_catalogue' in self.initial_data
-        essence_perso_provided = 'essence_personnalisee' in self.initial_data
+        initial = getattr(self, 'initial_data', None)
+        essence_cat_provided = initial is not None and 'essence_catalogue' in initial
+        essence_perso_provided = initial is not None and 'essence_personnalisee' in initial
         
         if essence_cat and essence_perso:
             raise serializers.ValidationError("Vous ne pouvez pas fournir à la fois une essence du catalogue et une essence personnalisée pour la même ligne.")
@@ -154,7 +155,7 @@ class ParfumPersonnaliseSerializer(serializers.ModelSerializer):
         model = ParfumPersonnalise
         fields = [
             'id', 'client', 'flacon', 'flacon_detail', 'nom', 'description', 
-            'contenance_ml', 'prix_essences', 'prix_flacon_snapshot', 
+            'prix_essences', 'prix_flacon_snapshot', 
             'prix_total', 'statut', 'note_laboratoire', 'lignes', 'date_creation'
         ]
         read_only_fields = ['client', 'prix_essences', 'prix_flacon_snapshot', 'prix_total', 'statut', 'note_laboratoire']

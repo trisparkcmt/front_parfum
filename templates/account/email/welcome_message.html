@@ -1,0 +1,13 @@
+{% extends "email/base.html" %}
+
+{% block content %}
+    <h1>Félicitations, {{ user.first_name|default:"client(e)" }} !</h1>
+    
+    <p>Votre adresse email a été validée avec succès. Nous sommes ravis de vous compter parmi les membres privilégiés de <strong>Accessoires Exclusifs</strong>.</p>
+    
+    <p>Vous pouvez dès à présent explorer notre catalogue de parfums et accessoires premium, ou créer votre propre fragrance sur mesure dans notre Laboratoire exclusif.</p>
+    
+    <div class="btn-container">
+        <a href="{{ frontend_url }}" class="btn">Découvrir la collection</a>
+    </div>
+{% endblock %}

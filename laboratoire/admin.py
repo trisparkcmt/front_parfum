@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.urls import reverse
 from django.utils.html import format_html
 from django.utils.safestring import mark_safe
-from .models import ParfumPersonnalise, ParfumPersonnaliseLigne
+from .models import ParfumPersonnalise, ParfumPersonnaliseLigne, EssencePersonnalisee, EssencePersonnaliseeLigne
 
 
 class ParfumPersonnaliseLigneInline(admin.TabularInline):
@@ -15,7 +15,7 @@ class ParfumPersonnaliseLigneInline(admin.TabularInline):
 
 @admin.register(ParfumPersonnalise)
 class ParfumPersonnaliseAdmin(admin.ModelAdmin):
-    list_display = ('id', 'nom', 'client_info', 'contenance_ml', 'prix_total', 'statut', 'date_creation', 'voir_lignes')
+    list_display = ('id', 'nom', 'client_info', 'prix_total', 'statut', 'date_creation', 'voir_lignes')
     list_filter = ('statut', 'date_creation')
     search_fields = ('nom', 'client__user__email', 'client__user__username', 'client__user__first_name', 'client__user__last_name')
     readonly_fields = ('date_creation', 'date_modification', 'prix_essences', 'prix_total', 'prix_flacon_snapshot')
@@ -26,7 +26,7 @@ class ParfumPersonnaliseAdmin(admin.ModelAdmin):
             'fields': ('client', 'nom', 'description')
         }),
         ('Composition', {
-            'fields': ('flacon', 'contenance_ml')
+            'fields': ('flacon',)
         }),
         ('Prix', {
             'fields': ('prix_essences', 'prix_flacon_snapshot', 'prix_total')
@@ -48,6 +48,15 @@ class ParfumPersonnaliseAdmin(admin.ModelAdmin):
             obj.client.telephone
         )
     client_info.short_description = 'Client'
+
+    def voir_lignes(self, obj):
+        count = obj.lignes.count()
+        return format_html(
+            '<a href="{}" target="_blank">{} ingrédient(s)</a>',
+            f'/admin/laboratoire/essencepersonnaliseligne/?essence_personnalisee__id__exact={obj.id}',
+            count
+        )
+    voir_lignes.short_description = 'Ingrédients'
     
     def voir_lignes(self, obj):
         """Lien pour voir les lignes de composition"""
@@ -90,3 +99,56 @@ class ParfumPersonnaliseLigneAdmin(admin.ModelAdmin):
     
     def get_queryset(self, request):
         return super().get_queryset(request).select_related('parfum_personnalise', 'parfum_personnalise__client', 'essence_catalogue', 'essence_personnalisee')
+
+
+@admin.register(EssencePersonnaliseeLigne)
+class EssencePersonnaliseeLigneAdmin(admin.ModelAdmin):
+    list_display = ('id', 'essence_personnalisee', 'ingredient', 'quantite_ml', 'prix_ligne')
+    autocomplete_fields = ('essence_personnalisee', 'ingredient')
+
+
+class EssencePersonnaliseeLigneInline(admin.TabularInline):
+    model = EssencePersonnaliseeLigne
+    extra = 1
+    fields = ('ingredient', 'quantite_ml', 'prix_par_ml_snapshot', 'prix_ligne')
+    readonly_fields = ('prix_par_ml_snapshot', 'prix_ligne')
+    autocomplete_fields = ('ingredient',)
+
+
+@admin.register(EssencePersonnalisee)
+class EssencePersonnaliseeAdmin(admin.ModelAdmin):
+    list_display = ('id', 'nom', 'client_info', 'prix_par_ml_calcule', 'date_creation', 'voir_lignes')
+    list_filter = ('date_creation',)
+    search_fields = ('nom', 'client__user__email', 'client__user__username')
+    readonly_fields = ('prix_par_ml_calcule', 'date_creation')
+    inlines = [EssencePersonnaliseeLigneInline]
+
+    fieldsets = (
+        ('Informations générales', {
+            'fields': ('client', 'nom')
+        }),
+        ('Prix', {
+            'fields': ('prix_par_ml_calcule',)
+        }),
+        ('Dates', {
+            'fields': ('date_creation',),
+            'classes': ('collapse',)
+        }),
+    )
+
+    def client_info(self, obj):
+        return format_html(
+            '<b>{}</b><br/><small>{}</small>',
+            obj.client.user.get_full_name() or obj.client.user.email,
+            obj.client.telephone
+        )
+    client_info.short_description = 'Client'
+
+    def voir_lignes(self, obj):
+        count = obj.lignes.count()
+        return format_html(
+            '<a href="{}" target="_blank">{} ingrédient(s)</a>',
+            f'/admin/laboratoire/essencepersonnaliseligne/?essence_personnalisee__id__exact={obj.id}',
+            count
+        )
+    voir_lignes.short_description = 'Ingrédients'

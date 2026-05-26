@@ -1,33 +1,19 @@
-
 from django.urls import path, include
+from rest_framework.routers import DefaultRouter
 from laboratoire.views import (
-    liste_creer_parfums_perso, 
-    detail_parfum_perso, 
-    recalculer_prix_parfum,
+    ParfumPersonnaliseViewSet,
+    EssencePersonnaliseeViewSet,
     ia_recommandation,
-    liste_creer_essences_perso,
-    detail_essence_perso
 )
 from catalogue.urls import lab_urlpatterns
 
+router = DefaultRouter()
+router.register(r'parfums-perso', ParfumPersonnaliseViewSet, basename='parfumpersonnalise')
+router.register(r'essences-perso', EssencePersonnaliseeViewSet, basename='essencepersonnalisee')
+
 urlpatterns = [
-    # Liste et Création
-    path('parfums-perso/', liste_creer_parfums_perso, name='parfum-perso-liste'),
-    
-    # Détail, Modification et Suppression
-    path('parfums-perso/<int:pk>/', detail_parfum_perso, name='parfum-perso-detail'),
-    
-    # Action spécifique : Recalculer le prix
-    path('parfums-perso/<int:pk>/recalculer/', recalculer_prix_parfum, name='parfum-perso-recalculer'),
-    
-    # IA Recommandation
     path('ia-recommandation/', ia_recommandation, name='ia-recommandation'),
-    
-    # Essences Personnalisées
-    path('essences-perso/', liste_creer_essences_perso, name='essence-perso-liste'),
-    path('essences-perso/<int:pk>/', detail_essence_perso, name='essence-perso-detail'),
-    
-    # Essences Catalogue (ViewSet)
+    path('', include(router.urls)),
     path('', include(lab_urlpatterns)),
 ]
 

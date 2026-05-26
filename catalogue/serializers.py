@@ -325,10 +325,12 @@ class FavoriSerializer(serializers.ModelSerializer):
     prix_produit = serializers.SerializerMethodField()
     image_produit = serializers.SerializerMethodField()
     type_produit = serializers.SerializerMethodField()
+    slug_produit = serializers.SerializerMethodField()
+    id_produit = serializers.SerializerMethodField()
 
     class Meta:
         model = Favori
-        fields = ['id', 'date_ajout', 'nom_produit', 'prix_produit', 'image_produit', 'type_produit']
+        fields = ['id', 'date_ajout', 'nom_produit', 'prix_produit', 'image_produit', 'type_produit', 'slug_produit', 'id_produit']
 
     def get_nom_produit(self, obj):
         if obj.parfum:
@@ -354,3 +356,13 @@ class FavoriSerializer(serializers.ModelSerializer):
 
     def get_type_produit(self, obj):
         return "parfum" if obj.parfum else "accessoire"
+
+    def get_slug_produit(self, obj):
+        if obj.parfum:
+            return obj.parfum.slug
+        return obj.accessoire.slug if obj.accessoire else None
+
+    def get_id_produit(self, obj):
+        if obj.parfum:
+            return obj.parfum.id
+        return obj.accessoire.id if obj.accessoire else None

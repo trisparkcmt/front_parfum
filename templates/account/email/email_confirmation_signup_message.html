@@ -1,0 +1,19 @@
+{% extends "email/base.html" %}
+{% load i18n %}
+
+{% block content %}
+    <h1>Confirmez votre adresse email</h1>
+    
+    <p>Bonjour,</p>
+    <p>Vous recevez cet email car vous avez créé un compte sur <strong>Accessoires Exclusifs</strong> avec l'adresse <strong>{{ email }}</strong>.</p>
+    
+    <p>Pour finaliser votre inscription et sécuriser votre compte, veuillez confirmer votre adresse email.</p>
+    
+    <div class="btn-container">
+        <a href="{{ activate_url }}" class="btn">Confirmer mon email</a>
+    </div>
+    
+    <p style="font-size: 14px; color: #888888; text-align: center;">
+        Si vous n'êtes pas à l'origine de cette inscription, vous pouvez simplement ignorer ce message.
+    </p>
+{% endblock %}

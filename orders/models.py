@@ -160,6 +160,7 @@ class Commande(models.Model):
     
     note_client = models.TextField(blank=True)
     note_interne = models.TextField(blank=True)
+    motif_echec_livraison = models.TextField(blank=True, null=True)
     
     date_creation = models.DateTimeField(auto_now_add=True)
     date_modification = models.DateTimeField(auto_now=True)

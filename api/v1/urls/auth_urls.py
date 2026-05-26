@@ -1,28 +1,57 @@
 from django.urls import path, include
 from utilisateur.views import (
-    manage_me, GoogleLogin, apply_prestataire, 
+    manage_me, change_email, GoogleLogin, apply_prestataire, 
     list_prestataire_requests, validate_prestataire,
-    prestataire_dashboard,
+    prestataire_dashboard, prestataire_finance_history, prestataire_payouts_list,
     # Admin views
     admin_users_list, admin_user_toggle_status,
     admin_prestataires_list, admin_prestataire_update,
-    admin_global_stats
+    admin_global_stats,
+    # Payouts
+    admin_prestataire_payout, admin_payouts_list, monetbil_payout_webhook,
+    # Livreur & Admin Delivery views
+    livreur_dashboard, livreur_commandes_list, livreur_update_delivery_status,
+    admin_livreurs_list, admin_promote_to_livreur, admin_update_livreur,
+    admin_assign_delivery, admin_deliveries_monitor,
+    # Connexion personnalisée
+    WebLoginView, MobileLoginView, DeprecatedLoginView,
+    ThrottledPasswordResetView, ThrottledRegisterView,
+    ThrottledVerifyEmailView, ThrottledResendEmailVerificationView
 )
 
 urlpatterns = [
-    # Authentification classique
+    # Authentification classique séparée
+    path('login/', DeprecatedLoginView.as_view(), name='rest_login'),
+    path('web/login/', WebLoginView.as_view(), name='web_login'),
+    path('mobile/login/', MobileLoginView.as_view(), name='mobile_login'),
+    path('password/reset/', ThrottledPasswordResetView.as_view(), name='rest_password_reset'),
     path('', include('dj_rest_auth.urls')),
-    path('registration/', include('dj_rest_auth.registration.urls')),
+
+    # Inscription avec limitation anti-abus, mêmes URLs que dj-rest-auth
+    path('registration/', ThrottledRegisterView.as_view(), name='rest_register'),
+    path('registration/verify-email/', ThrottledVerifyEmailView.as_view(), name='rest_verify_email'),
+    path('registration/resend-email/', ThrottledResendEmailVerificationView.as_view(), name='rest_resend_email'),
 
     # Authentification Google
     path('google/', GoogleLogin.as_view(), name='google_login'),
 
     # Profil utilisateur personnalisé
     path('me/', manage_me, name='me'),
+    path('me/change-email/', change_email, name='me-change-email'),
 
     # Workflow Prestataire (Côté Client)
     path('prestataire/apply/', apply_prestataire, name='prestataire-apply'),
     path('prestataire/dashboard/', prestataire_dashboard, name='prestataire-dashboard'),
+    path('prestataire/historique/', prestataire_finance_history, name='prestataire-historique'),
+    path('prestataire/payouts/', prestataire_payouts_list, name='prestataire-payouts'),
+
+    # Webhook public pour Monetbil Payouts
+    path('payout/webhook/', monetbil_payout_webhook, name='monetbil-payout-webhook'),
+
+    # Livreur Endpoints
+    path('livreur/dashboard/', livreur_dashboard, name='livreur-dashboard'),
+    path('livreur/livraisons/', livreur_commandes_list, name='livreur-commandes-list'),
+    path('livreur/livraisons/<int:pk>/statut/', livreur_update_delivery_status, name='livreur-update-delivery-status'),
 
     # ADMINISTRATION (Routes réservées aux Admin)
     path('admin/users/', admin_users_list, name='admin-users-list'),
@@ -30,5 +59,14 @@ urlpatterns = [
     path('admin/prestataires/', admin_prestataires_list, name='admin-prestataires-list'),
     path('admin/prestataires/validate/<int:pk>/', validate_prestataire, name='admin-prestataire-validate'),
     path('admin/prestataires/<int:pk>/update/', admin_prestataire_update, name='admin-prestataire-update'),
+    path('admin/prestataires/<int:pk>/payout/', admin_prestataire_payout, name='admin-prestataire-payout'),
+    path('admin/payouts/', admin_payouts_list, name='admin-payouts-list'),
     path('admin/stats/global/', admin_global_stats, name='admin-global-stats'),
+    
+    # Admin Delivery Endpoints
+    path('admin/livreurs/', admin_livreurs_list, name='admin-livreurs-list'),
+    path('admin/livreurs/promote/', admin_promote_to_livreur, name='admin-promote-to-livreur'),
+    path('admin/livreurs/<int:pk>/', admin_update_livreur, name='admin-update-livreur'),
+    path('admin/commandes/<int:pk>/affecter-livreur/', admin_assign_delivery, name='admin-assign-delivery'),
+    path('admin/livraisons/', admin_deliveries_monitor, name='admin-deliveries-monitor'),
 ]

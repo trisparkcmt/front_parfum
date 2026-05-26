@@ -420,6 +420,7 @@ de la journée recommandés.
         tags=["Essences"],
     ),
 )
+
 class EssenceViewSet(viewsets.ModelViewSet):
     serializer_class   = EssenceSerializer
     pagination_class   = StandardPagination

@@ -1,0 +1,16 @@
+{% extends "email/base.html" %}
+{% load i18n %}
+
+{% block content %}
+    <h1>Bienvenue, {{ user.first_name|default:"Cher/Chère client(e)" }} !</h1>
+    
+    <p>Merci de rejoindre <strong>Accessoires Exclusifs</strong>. Afin de finaliser la création de votre compte et garantir la sécurité de vos données, veuillez confirmer votre adresse email.</p>
+    
+    <div class="btn-container">
+        <a href="{{ activate_url }}" class="btn">Confirmer mon email</a>
+    </div>
+    
+    <p style="font-size: 14px; color: #888888; text-align: center;">
+        Si vous n'avez pas créé de compte sur notre plateforme, vous pouvez ignorer cet email en toute sécurité. Le compte ne sera pas activé.
+    </p>
+{% endblock %}

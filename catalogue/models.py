@@ -260,15 +260,15 @@ class Parfum(models.Model):
 
 
 class Ingredient(models.Model):
-    # NOTE_CHOICES = [
-    #     ('tête', 'Tête'),
-    #     ('coeur', 'Cœur'),
-    #     ('fond', 'Fond'),
-    # ]
+    NOTE_CHOICES = [
+        ('tête', 'Tête'),
+        ('coeur', 'Cœur'),
+        ('fond', 'Fond'),
+    ]
     
     nom = models.CharField(max_length=150)
     description = models.TextField(blank=True)
-    # note_olfactive = models.CharField(max_length=20, blank=True , null=True choices=NOTE_CHOICES)
+    note_olfactive = models.CharField(max_length=20, blank=True, null=True, choices=NOTE_CHOICES)
     prix_par_ml = models.DecimalField(max_digits=10, decimal_places=2)
     stock_ml = models.DecimalField(max_digits=10, decimal_places=3, default=0)
     actif = models.BooleanField(default=True)
@@ -280,7 +280,7 @@ class Ingredient(models.Model):
         verbose_name_plural = 'Ingrédients'
         
     def __str__(self):
-        return f"{self.nom} ({self.get_note_olfactive_display()})"
+        return self.nom
 
 
 from django.db import models

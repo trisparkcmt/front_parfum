@@ -26,8 +26,16 @@ SECRET_KEY = 'django-insecure-$du6=b@-a^c&sg#hj$ffnx+pyfquths_*9kvzx&gn^q$4-hdut
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["*","127.0.0.1","192.168.1.173","0.0.0.0", "integral-logically-gator.ngrok-free.app"]
 
+# Autoriser les requêtes POST/PUT depuis ngrok (indispensable pour l'auth)
+CSRF_TRUSTED_ORIGINS = ["https://integral-logically-gator.ngrok-free.app"]
+
+# Informer Django que le tunnel ngrok gère le HTTPS
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
+# Faire confiance à l'en-tête Host envoyé par le proxy (ngrok)
+USE_X_FORWARDED_HOST = True
 
 # Application definition
 
@@ -64,28 +72,8 @@ INSTALLED_APPS = [
     'orders',
 ]
 
-REST_FRAMEWORK = {
-    'DEFAULT_FILTER_BACKENDS': ['django_filters.rest_framework.DjangoFilterBackend'],
-    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
-    'DEFAULT_PERMISSION_CLASSES': ['rest_framework.permissions.AllowAny',]
-}
-
-SPECTACULAR_SETTINGS = {
-    'TITLE': 'API Boutique de Parfums',
-    'DESCRIPTION': 'Documentation interactive pour la gestion des parfums, essences et accessoires.',
-    'VERSION': '1.0.0',
-    'SERVE_INCLUDE_SCHEMA': False,
-    'COMPONENT_SPLIT_REQUEST': True,
-    'TAGS': [
-        {'name': 'Parfums',      'description': 'Catalogue des parfums'},
-        {'name': 'Essences',     'description': 'Catalogue des essences DIY'},
-        {'name': 'Accessoires',  'description': 'Catalogue des accessoires'},
-        {'name': 'Flacons',      'description': 'Catalogue des flacons'},
-    ],
-   
-}
-
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',  # Devrait être le plus haut possible
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -101,7 +89,7 @@ ROOT_URLCONF = 'backend.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [BASE_DIR / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -180,7 +168,7 @@ STATIC_URL = 'static/'
 
 
 # Site ID pour django-allauth
-SITE_ID = 1
+SITE_ID = 3
 
 # ============================================================
 # CONFIGURATION DJANGO-ALLAUTH
@@ -188,12 +176,15 @@ SITE_ID = 1
 # Authentification par email ou téléphone
 ACCOUNT_AUTHENTICATION_METHOD = 'email'  # Base sur email
 ACCOUNT_EMAIL_REQUIRED = True
-ACCOUNT_EMAIL_VERIFICATION = 'none'  # À mettre 'mandatory' en production
+ACCOUNT_EMAIL_VERIFICATION = 'mandatory'  # L'utilisateur doit vérifier son email avant validation
 ACCOUNT_USERNAME_REQUIRED = False  # Le username n'est pas obligatoire pour l'utilisateur
 ACCOUNT_UNIQUE_EMAIL = True
+ACCOUNT_CHANGE_EMAIL = True  # Remplace user.email uniquement après confirmation allauth
 
 SOCIALACCOUNT_AUTO_SIGNUP = True  # Création automatique du compte sans formulaire
 SOCIALACCOUNT_LOGIN_ON_GET = True # Évite une étape de confirmation inutile
+SOCIALACCOUNT_EMAIL_AUTHENTICATION_AUTO_CONNECT = True
+SOCIALACCOUNT_EMAIL_AUTHENTICATION = True
 
 SOCIALACCOUNT_PROVIDERS = {
     'google': {
@@ -207,16 +198,17 @@ SOCIALACCOUNT_PROVIDERS = {
     }
 }
 
-# Adaptateur personnalisé pour gérer la connexion par téléphone
-"""ACCOUNT_ADAPTER = 'users.adapters.CustomAccountAdapter'"""
+# URL du Frontend (Variable d'environnement ou localhost par défaut)
+FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://localhost:3000')
 
-
-
+# Adaptateur personnalisé pour gérer la redirection des emails vers le Frontend
+ACCOUNT_ADAPTER = 'utilisateur.adapters.CustomAccountAdapter'
 # ============================================================
 # DJANGO REST FRAMEWORK
 # ============================================================
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
+        'dj_rest_auth.jwt_auth.JWTCookieAuthentication',
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ),
     'DEFAULT_PERMISSION_CLASSES': (
@@ -227,6 +219,19 @@ REST_FRAMEWORK = {
         'rest_framework.filters.SearchFilter',
         'rest_framework.filters.OrderingFilter',
     ),
+    'DEFAULT_THROTTLE_RATES': {
+        'login_ip': '20/15min',
+        'login_credential': '5/15min',
+        'register_ip': '3/hour',
+        'register_email': '5/day',
+        'resend_email_short': '1/2min',
+        'resend_email_daily': '5/day',
+        'password_reset_ip': '10/hour',
+        'password_reset_email': '3/hour',
+        'change_email': '3/hour',
+        'ia_anon': '5/hour',
+        'ia_user': '30/day',
+    },
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
 }
 
@@ -235,19 +240,34 @@ REST_FRAMEWORK = {
 # ============================================================
 REST_AUTH = {
     'USE_JWT': True,
-    'JWT_AUTH_HTTPONLY': False,  # Permet de voir les tokens dans la réponse
+    'JWT_AUTH_COOKIE': 'access-token',
+    'JWT_AUTH_REFRESH_COOKIE': 'refresh-token',
+    'JWT_AUTH_HTTPONLY': True,
+    'JWT_AUTH_SECURE': True,
+    'JWT_AUTH_SAMESITE': 'None',
     'LOGIN_SERIALIZER': 'utilisateur.serializers.EmailOrTelephoneLoginSerializer',
+    'REGISTER_SERIALIZER': 'utilisateur.serializers.CustomRegisterSerializer',
+    'PASSWORD_CHANGE_SERIALIZER': 'utilisateur.serializers.CustomPasswordChangeSerializer',
+    'PASSWORD_RESET_USE_SITES_DOMAIN': False,
+    'PASSWORD_RESET_CONFIRM_URL': FRONTEND_URL + '/auth/reset-password-confirm/{uid}/{token}/',
 }
 
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+# EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 EMAIL_HOST_USER = 'handougregoire@gmail.com' # ← Mets ton vrai mail ici
 EMAIL_HOST_PASSWORD = 'qvfs vdfn uyny xjqw'
 # Ton mot de passe d'application est parfait
-DEFAULT_FROM_EMAIL = 'Accessoire Exclusif'
+DEFAULT_FROM_EMAIL = 'Accessoire Exclusif <handougregoire@gmail.com>'
 
+# Configuration des cookies pour le Cross-Site (Frontend distant)
+SESSION_COOKIE_SAMESITE = 'None'
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SAMESITE = 'None'
+CSRF_COOKIE_SECURE = True
+CSRF_TRUSTED_ORIGINS = ["https://integral-logically-gator.ngrok-free.app", "http://172.20.10.5:3000"]
 
 
 
@@ -266,9 +286,35 @@ SPECTACULAR_SETTINGS = {
 
 
 
-GEMINI_API_KEY='AIzaSyCJWtJ0sHkr5vCRyKxMd4hvzyCN5rfTkK8'
+GEMINI_API_KEY = os.getenv('GEMINI_API_KEY', 'AIzaSyCJWtJ0sHkr5vCRyKxMd4hvzyCN5rfTkK8')
+
+# Configuration Monetbil (Virement/Payout)
+MONETBIL_SERVICE_KEY = os.getenv('MONETBIL_SERVICE_KEY', 'NhlyzHMYo961mQZ3uCQEUX2xUGUaFhUm')
+MONETBIL_SERVICE_SECRET = os.getenv('MONETBIL_SERVICE_SECRET', 'uhvzMBmTvIHR2AYMZdZHeAid3G3SfFqos1fj6TXzkABOZ9e8BVLCjSUcZqLuPXkl')
+MONETBIL_API_URL = os.getenv('MONETBIL_API_URL', 'https://api.monetbil.com/v1')
 
 #gerer les images 
 MEDIA_URL  = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
+# ============================================================
+# CONFIGURATION CORS (Sécurité d'accès cross-origin)
+# ============================================================
+from corsheaders.defaults import default_headers
+
+CORS_ALLOW_ALL_ORIGINS = False
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "http://172.20.10.5:3000",
+    "https://integral-logically-gator.ngrok-free.app",
+]
+CORS_ALLOW_CREDENTIALS = True  # Crucial pour autoriser le partage des cookies HttpOnly
+CORS_ALLOW_HEADERS = list(default_headers) + [
+    'x-client-type',
+    'ngrok-skip-browser-warning',
+]
+# CORS_ALLOWED_ORIGINS = [
+#     "http://localhost:3000",  # Frontend Web
+#     "http://127.0.0.1:3000",
+# ]

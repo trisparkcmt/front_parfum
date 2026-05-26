@@ -1,0 +1,10 @@
+Confirmez votre adresse email
+
+Bonjour,
+
+Vous recevez cet email car vous avez créé un compte sur Accessoires Exclusifs avec l'adresse {{ email }}.
+
+Pour finaliser votre inscription et sécuriser votre compte, veuillez confirmer votre adresse email en copiant-collant ce lien dans votre navigateur :
+{{ activate_url }}
+
+L'équipe Accessoires Exclusifs

@@ -1,150 +1,107 @@
-from rest_framework.decorators import api_view, permission_classes
+from decimal import Decimal
+
+from rest_framework import viewsets, status
+from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
-from rest_framework import status
-from django.shortcuts import get_object_or_404
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework.filters import SearchFilter, OrderingFilter
+
 from .models import ParfumPersonnalise, EssencePersonnalisee
-from laboratoire.serializers import (
-    ParfumPersonnaliseSerializer, 
+from .serializers import (
+    ParfumPersonnaliseSerializer,
     EssencePersonnaliseeSerializer,
-    ParfumLabSerializer, 
-    EssenceLabSerializer, 
-    AccessoireLabSerializer
+    ParfumLabSerializer,
+    EssenceLabSerializer,
+    AccessoireLabSerializer,
 )
+from .permissions import IsCreatorOrReadOnly
+from catalogue.pagination import StandardPagination
 from catalogue.models import Parfum, Essence, Accessoire, Flacon, Ingredient
 from .utils_ia import demander_recommandation_ia
 
-@api_view(['GET', 'POST'])
-@permission_classes([IsAuthenticated])
-def liste_creer_parfums_perso(request):
-    """
-    GET: Liste les parfums personnalisés du client connecté
-    POST: Crée un nouveau parfum personnalisé
-    """
-    if not hasattr(request.user, 'client'):
-        return Response({"error": "Profil client manquant"}, status=status.HTTP_400_BAD_REQUEST)
 
-    if request.method == 'GET':
-        parfums = ParfumPersonnalise.objects.filter(client=request.user.client).prefetch_related(
+class ParfumPersonnaliseViewSet(viewsets.ModelViewSet):
+    serializer_class = ParfumPersonnaliseSerializer
+    permission_classes = [IsAuthenticated, IsCreatorOrReadOnly]
+    pagination_class = StandardPagination
+    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+    filterset_fields = [
+        'statut',
+        'flacon',
+        'client__user__email',
+        'nom',
+        'date_creation',
+        'date_modification',
+        'prix_total',
+    ]
+    search_fields = [
+        'nom',
+        'description',
+        'client__user__email',
+        'lignes__essence_catalogue__nom',
+        'lignes__essence_personnalisee__nom',
+    ]
+    ordering_fields = ['prix_total', 'date_creation', 'nom']
+    ordering = ['-date_creation']
+
+    def get_queryset(self):
+        queryset = ParfumPersonnalise.objects.all().select_related(
+            'flacon', 'client', 'client__user'
+        ).prefetch_related(
             'lignes__essence_catalogue',
             'lignes__essence_personnalisee',
             'lignes__essence_personnalisee__lignes',
-            'lignes__essence_personnalisee__lignes__ingredient'
-        )
-        serializer = ParfumPersonnaliseSerializer(parfums, many=True)
+            'lignes__essence_personnalisee__lignes__ingredient',
+        ).distinct()
+
+        if self.request.user.is_staff:
+            return queryset
+
+        if hasattr(self.request.user, 'client'):
+            return queryset.filter(client=self.request.user.client)
+
+        return queryset.none()
+
+    @action(detail=True, methods=['post'], url_path='recalculer')
+    def recalculer(self, request, pk=None):
+        parfum = self.get_object()
+        parfum.recalculer_prix()
+        serializer = self.get_serializer(parfum)
         return Response(serializer.data)
 
-    elif request.method == 'POST':
-        serializer = ParfumPersonnaliseSerializer(data=request.data, context={'request': request})
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+class EssencePersonnaliseeViewSet(viewsets.ModelViewSet):
+    serializer_class = EssencePersonnaliseeSerializer
+    permission_classes = [IsAuthenticated, IsCreatorOrReadOnly]
+    pagination_class = StandardPagination
+    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+    filterset_fields = [
+        'nom',
+        'client__user__email',
+        'date_creation',
+        'prix_par_ml_calcule',
+    ]
+    search_fields = ['nom', 'client__user__email', 'lignes__ingredient__nom']
+    ordering_fields = ['prix_par_ml_calcule', 'date_creation', 'nom']
+    ordering = ['-date_creation']
 
-@api_view(['GET', 'PUT', 'PATCH', 'DELETE'])
-@permission_classes([IsAuthenticated])
-def detail_parfum_perso(request, pk):
-    """
-    GET: Détails d'un parfum
-    PUT/PATCH: Modifier un parfum
-    DELETE: Supprimer un parfum
-    """
-    if not hasattr(request.user, 'client'):
-        return Response({"error": "Profil client manquant"}, status=status.HTTP_400_BAD_REQUEST)
+    def get_queryset(self):
+        queryset = EssencePersonnalisee.objects.all().select_related(
+            'client', 'client__user'
+        ).prefetch_related('lignes__ingredient').distinct()
 
-    parfum = get_object_or_404(ParfumPersonnalise, pk=pk, client=request.user.client)
+        if self.request.user.is_staff:
+            return queryset
 
-    if request.method == 'GET':
-        serializer = ParfumPersonnaliseSerializer(parfum)
-        return Response(serializer.data)
+        if hasattr(self.request.user, 'client'):
+            return queryset.filter(client=self.request.user.client)
 
-    elif request.method in ['PUT', 'PATCH']:
-        partial = (request.method == 'PATCH')
-        serializer = ParfumPersonnaliseSerializer(parfum, data=request.data, partial=partial, context={'request': request})
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-    elif request.method == 'DELETE':
-        parfum.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
-
-
-@api_view(['GET', 'POST'])
-@permission_classes([IsAuthenticated])
-def liste_creer_essences_perso(request):
-    """
-    GET: Liste les essences personnalisées du client connecté
-    POST: Crée une nouvelle essence personnalisée
-    """
-    if not hasattr(request.user, 'client'):
-        return Response({"error": "Profil client manquant"}, status=status.HTTP_400_BAD_REQUEST)
-
-    if request.method == 'GET':
-        essences = EssencePersonnalisee.objects.filter(client=request.user.client).prefetch_related('lignes__ingredient')
-        serializer = EssencePersonnaliseeSerializer(essences, many=True)
-        return Response(serializer.data)
-
-    elif request.method == 'POST':
-        serializer = EssencePersonnaliseeSerializer(data=request.data, context={'request': request})
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-
-@api_view(['GET', 'PUT', 'PATCH', 'DELETE'])
-@permission_classes([IsAuthenticated])
-def detail_essence_perso(request, pk):
-    """
-    GET: Détails d'une essence personnalisée
-    PUT/PATCH: Modifier une essence personnalisée
-    DELETE: Supprimer une essence personnalisée
-    """
-    if not hasattr(request.user, 'client'):
-        return Response({"error": "Profil client manquant"}, status=status.HTTP_400_BAD_REQUEST)
-
-    essence = get_object_or_404(EssencePersonnalisee, pk=pk, client=request.user.client)
-
-    if request.method == 'GET':
-        serializer = EssencePersonnaliseeSerializer(essence)
-        return Response(serializer.data)
-
-    elif request.method in ['PUT', 'PATCH']:
-        partial = (request.method == 'PATCH')
-        serializer = EssencePersonnaliseeSerializer(essence, data=request.data, partial=partial, context={'request': request})
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-    elif request.method == 'DELETE':
-        essence.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        return queryset.none()
 
 
 @api_view(['POST'])
-@permission_classes([IsAuthenticated])
-def recalculer_prix_parfum(request, pk):
-    """
-    Action pour recalculer le prix total d'un parfum
-    """
-    if not hasattr(request.user, 'client'):
-        return Response({"error": "Profil client manquant"}, status=status.HTTP_400_BAD_REQUEST)
-
-    parfum = get_object_or_404(ParfumPersonnalise, pk=pk, client=request.user.client)
-    parfum.recalculer_prix()
-    
-    return Response({
-        'status': 'prix recalculé',
-        'prix_essences': parfum.prix_essences,
-        'prix_total': parfum.prix_total
-    })
-
-@api_view(['POST'])
-@permission_classes([AllowAny]) # On peut laisser ça public pour attirer les clients
+@permission_classes([AllowAny])
 def ia_recommandation(request):
     """
     Reçoit un prompt de l'utilisateur, interroge l'IA Gemini et renvoie des produits.
@@ -152,42 +109,35 @@ def ia_recommandation(request):
     prompt = request.data.get('prompt')
     if not prompt:
         return Response({"error": "Veuillez fournir un 'prompt'."}, status=status.HTTP_400_BAD_REQUEST)
-        
-    # Appel à l'IA
+
     reponse_ia = demander_recommandation_ia(prompt)
-    
     if "error" in reponse_ia:
         return Response(reponse_ia, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-    
-    # Récupération des données
+
     ids_parfums = reponse_ia.get('parfums_existants_recommandes', [])
     essences_data = reponse_ia.get('essences_pre_faites', [])
     ingredients_data = reponse_ia.get('ingredients_sur_mesure', [])
     ids_accessoires = reponse_ia.get('accessoires', [])
     flacon_id = reponse_ia.get('flacon_id')
     quantite_demandee_ml = reponse_ia.get('quantite_demandee_ml', 50)
-    
-    # Récupération des objets en BD
+
     parfums = Parfum.objects.filter(id__in=ids_parfums, actif=True)
     accessoires = Accessoire.objects.filter(id__in=ids_accessoires, actif=True)
     flacon = None
-    
-    # Récupération du flacon recommandé
+
     if flacon_id:
         try:
             flacon = Flacon.objects.get(id=flacon_id, actif=True)
         except Flacon.DoesNotExist:
             flacon = None
-    
-    # Traitement des essences avec quantités
+
     essences_recommandees = []
     essence_ids = [e.get('id') for e in essences_data if isinstance(e, dict)]
     essences_db = {e.id: e for e in Essence.objects.filter(id__in=essence_ids, actif=True)}
-    
     for essence_data in essences_data:
         if isinstance(essence_data, dict):
             essence_id = essence_data.get('id')
-            quantite_ml = essence_data.get('quantite_ml', 0)
+            quantite_ml = Decimal(str(essence_data.get('quantite_ml', 0)))
             if essence_id in essences_db:
                 essence = essences_db[essence_id]
                 essences_recommandees.append({
@@ -196,18 +146,16 @@ def ia_recommandation(request):
                     'code_reference': essence.code_reference,
                     'prix_par_ml': str(essence.prix_par_ml),
                     'quantite_ml': quantite_ml,
-                    'prix_total_quantite': str(essence.prix_par_ml * quantite_ml)
+                    'prix_total_quantite': str(essence.prix_par_ml * quantite_ml),
                 })
 
-    # Traitement des ingrédients avec quantités
     ingredients_recommandes = []
     ingredient_ids = [i.get('id') for i in ingredients_data if isinstance(i, dict)]
     ingredients_db = {i.id: i for i in Ingredient.objects.filter(id__in=ingredient_ids, actif=True)}
-    
     for ing_data in ingredients_data:
         if isinstance(ing_data, dict):
             ing_id = ing_data.get('id')
-            quantite_ml = ing_data.get('quantite_ml', 0)
+            quantite_ml = Decimal(str(ing_data.get('quantite_ml', 0)))
             if ing_id in ingredients_db:
                 ingredient = ingredients_db[ing_id]
                 ingredients_recommandes.append({
@@ -216,23 +164,21 @@ def ia_recommandation(request):
                     'note_olfactive': ingredient.get_note_olfactive_display(),
                     'prix_par_ml': str(ingredient.prix_par_ml),
                     'quantite_ml': quantite_ml,
-                    'prix_total_quantite': str(ingredient.prix_par_ml * quantite_ml)
+                    'prix_total_quantite': str(ingredient.prix_par_ml * quantite_ml),
                 })
-    
-    # Construction de la réponse
+
     response_data = {
-        "message": reponse_ia.get("message", "Voici quelques recommandations :"),
-        "quantite_demandee_ml": quantite_demandee_ml,
-        "flacon": {
-            "id": flacon.id,
-            "nom": flacon.nom,
-            "contenance_ml": flacon.contenance_ml,
-            "prix_unitaire": str(flacon.prix_unitaire)
+        'message': reponse_ia.get('message', 'Voici quelques recommandations :'),
+        'quantite_demandee_ml': quantite_demandee_ml,
+        'flacon': {
+            'id': flacon.id,
+            'nom': flacon.nom,
+            'prix_unitaire': str(flacon.prix_unitaire),
         } if flacon else None,
-        "parfums_existants": ParfumLabSerializer(parfums, many=True).data,
-        "essences_pre_faites": essences_recommandees,
-        "ingredients_sur_mesure": ingredients_recommandes,
-        "accessoires": AccessoireLabSerializer(accessoires, many=True).data
+        'parfums_existants': ParfumLabSerializer(parfums, many=True).data,
+        'essences_pre_faites': essences_recommandees,
+        'ingredients_sur_mesure': ingredients_recommandes,
+        'accessoires': AccessoireLabSerializer(accessoires, many=True).data,
     }
-    
+
     return Response(response_data)

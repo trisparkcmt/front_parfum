@@ -1,5 +1,6 @@
-from django.db import models
+from django.db import models, transaction
 from django.core.validators import MinValueValidator
+from django.core.exceptions import ValidationError
 from decimal import Decimal
 
 
@@ -61,7 +62,6 @@ class ParfumPersonnalise(models.Model):
     flacon = models.ForeignKey('catalogue.Flacon', on_delete=models.SET_NULL, null=True, related_name='parfums_personnalises')
     nom = models.CharField(max_length=200)
     description = models.TextField(blank=True)
-    contenance_ml = models.DecimalField(max_digits=8, decimal_places=2)
     prix_essences = models.DecimalField(max_digits=10, decimal_places=2, help_text="Somme calculée des prix des essences")
     prix_flacon_snapshot = models.DecimalField(max_digits=10, decimal_places=2, help_text="Prix du flacon au moment de la création")
     prix_total = models.DecimalField(max_digits=10, decimal_places=2, help_text="prix_essences + prix_flacon_snapshot")
@@ -87,6 +87,68 @@ class ParfumPersonnalise(models.Model):
         self.save()
         return self.prix_total
 
+    def clean(self):
+        """Valide que le volume total d'essences ne dépasse pas 45% de la contenance du flacon.
+
+        La validation ne s'applique que si un flacon est défini et que des lignes existent.
+        """
+        if not self.flacon:
+            return
+
+        # Si l'objet n'est pas encore en base, ou s'il n'y a pas de lignes, on ignore (les lignes
+        # seront validées lors de leur sauvegarde)
+        if not self.pk or not self.lignes.exists():
+            return
+
+        contenance_flacon = Decimal(str(self.flacon.contenance_ml))
+        volume_total_essences = sum(ligne.quantite_ml for ligne in self.lignes.all())
+        volume_max_autorise = contenance_flacon * Decimal('0.45')
+
+        if volume_total_essences > volume_max_autorise:
+            msg = (
+                f"Le volume total d'essences ({volume_total_essences} ml) dépasse la limite autorisée de 45% "
+                f"pour le flacon sélectionné ({volume_max_autorise} ml max). "
+                "Réduisez les quantités d'essences ou choisissez un flacon de plus grande contenance."
+            )
+            # Fournir le message à la fois comme erreur non-field et attachée au champ 'lignes'
+            raise ValidationError({
+                '__all__': msg,
+                'lignes': msg,
+            })
+
+    def save(self, *args, **kwargs):
+        # Détection d'un changement de flacon pour mettre à jour le snapshot prix et recalculer
+        flacon_changed = False
+        if self.pk:
+            try:
+                previous = ParfumPersonnalise.objects.get(pk=self.pk)
+                prev_flacon_id = previous.flacon.id if previous.flacon else None
+                new_flacon_id = self.flacon.id if self.flacon else None
+                if prev_flacon_id != new_flacon_id:
+                    flacon_changed = True
+                    self.prix_flacon_snapshot = self.flacon.prix_unitaire if self.flacon else Decimal('0')
+            except ParfumPersonnalise.DoesNotExist:
+                pass
+        else:
+            # Nouvel objet : initialiser le snapshot si non fourni
+            if not self.prix_flacon_snapshot:
+                self.prix_flacon_snapshot = self.flacon.prix_unitaire if self.flacon else Decimal('0')
+
+        # Recalculer les prix avant sauvegarde si les lignes existent
+        if self.pk and self.lignes.exists():
+            total_essences = sum(ligne.prix_ligne for ligne in self.lignes.all())
+            self.prix_essences = total_essences
+            self.prix_total = total_essences + (self.prix_flacon_snapshot or Decimal('0'))
+        else:
+            # Pas de lignes connues (ex: création initiale) : mettre à jour le total avec le snapshot
+            self.prix_total = (self.prix_essences or Decimal('0')) + (self.prix_flacon_snapshot or Decimal('0'))
+
+        # Validation modèle : si on modifie le flacon ou si des lignes existent
+        if (self.pk and self.lignes.exists()) or flacon_changed:
+            self.full_clean()
+
+        super().save(*args, **kwargs)
+
 
 class ParfumPersonnaliseLigne(models.Model):
     parfum_personnalise = models.ForeignKey('laboratoire.ParfumPersonnalise', on_delete=models.CASCADE, related_name='lignes')
@@ -109,6 +171,7 @@ class ParfumPersonnaliseLigne(models.Model):
         return f"{self.parfum_personnalise.nom} - {nom_essence}: {self.quantite_ml}ml"
     
     def save(self, *args, **kwargs):
+        # Sauvegarde atomique : on enregistre la ligne puis on recalcul et valide le parfum parent.
         if not self.prix_par_ml_snapshot:
             if self.essence_catalogue:
                 self.prix_par_ml_snapshot = self.essence_catalogue.prix_par_ml
@@ -116,6 +179,31 @@ class ParfumPersonnaliseLigne(models.Model):
                 self.prix_par_ml_snapshot = self.essence_personnalisee.prix_par_ml_calcule
             else:
                 self.prix_par_ml_snapshot = Decimal('0')
-                
+
         self.prix_ligne = self.prix_par_ml_snapshot * self.quantite_ml
-        super().save(*args, **kwargs)
+
+        with transaction.atomic():
+            super().save(*args, **kwargs)
+
+            # Recalculer le prix du parfum parent
+            parfum = self.parfum_personnalise
+            try:
+                parfum.recalculer_prix()
+                # Valider la contrainte globale du parfum (peut lever ValidationError)
+                parfum.full_clean()
+            except ValidationError as e:
+                # Enrichir le message avec le contexte de la ligne pour une meilleure lisibilité
+                detail = ''
+                try:
+                    essence_name = self.essence_catalogue.nom if self.essence_catalogue else (
+                        self.essence_personnalisee.nom if self.essence_personnalisee else 'essence inconnue'
+                    )
+                    detail = f" (ligne: {essence_name}, quantité: {self.quantite_ml} ml)"
+                except Exception:
+                    detail = ''
+
+                if hasattr(e, 'message_dict'):
+                    # ajouter le détail à chaque message existant
+                    raise ValidationError({k: [f"{m} {detail}" for m in v] for k, v in e.message_dict.items()})
+                else:
+                    raise ValidationError(f"{e} {detail}")

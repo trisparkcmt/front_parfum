@@ -3,8 +3,8 @@ from django.contrib import admin
 from django.utils.html import format_html
 from django.utils.safestring import mark_safe
 from .models import (
-    Tag, TagParfum, TagEssence,
-    CategorieParfum, Parfum, Essence,
+    Favori, Tag, TagParfum, TagEssence,
+    CategorieParfum, Parfum, Essence, Ingredient,
     TypeAccessoire, Accessoire, TypeFlacon, Flacon
 )
 
@@ -111,6 +111,28 @@ class TagAdmin(admin.ModelAdmin):
             'fields': ('nom', 'type', 'actif')
         }),
     )
+
+
+@admin.register(TagParfum)
+class TagParfumAdmin(admin.ModelAdmin):
+    list_display = ('id', 'parfum', 'tag')
+    search_fields = ('parfum__nom', 'tag__nom')
+    autocomplete_fields = ('parfum', 'tag')
+
+
+@admin.register(TagEssence)
+class TagEssenceAdmin(admin.ModelAdmin):
+    list_display = ('id', 'essence', 'tag')
+    search_fields = ('essence__nom', 'tag__nom')
+    autocomplete_fields = ('essence', 'tag')
+
+
+@admin.register(Favori)
+class FavoriAdmin(admin.ModelAdmin):
+    list_display = ('id', 'client', 'parfum', 'accessoire', 'date_ajout')
+    list_filter = ('date_ajout',)
+    search_fields = ('client__user__email', 'parfum__nom', 'accessoire__nom')
+    autocomplete_fields = ('client', 'parfum', 'accessoire')
 
 
 class TagParfumInline(admin.TabularInline):
@@ -258,6 +280,27 @@ class ParfumAdmin(admin.ModelAdmin):
 # ============================================================
 # ESSENCES
 # ============================================================
+@admin.register(Ingredient)
+class IngredientAdmin(admin.ModelAdmin):
+    list_display = ('id', 'nom', 'prix_par_ml', 'stock_ml', 'actif', 'date_creation')
+    list_filter = ('actif', 'date_creation')
+    search_fields = ('nom', 'description')
+    readonly_fields = ('date_creation',)
+
+    fieldsets = (
+        ('Informations générales', {
+            'fields': ('nom', 'description', 'prix_par_ml', 'stock_ml')
+        }),
+        ('Statut', {
+            'fields': ('actif',)
+        }),
+        ('Dates', {
+            'fields': ('date_creation',),
+            'classes': ('collapse',)
+        }),
+    )
+
+
 @admin.register(Essence)
 class EssenceAdmin(admin.ModelAdmin):
     list_display = (
