@@ -4,7 +4,7 @@ from rest_framework import serializers
 from drf_spectacular.utils import extend_schema_field
 from drf_spectacular.types import OpenApiTypes
 from .utils import get_similar_products
-from .models import CategorieParfum, Tag, Parfum, Essence, Accessoire, Flacon, TypeAccessoire, TypeFlacon, Favori, Ingredient
+from .models import CategorieParfum, LotEssence, ProduitFiniEssence, Tag, Parfum, Essence, Accessoire, Flacon, TypeAccessoire, TypeFlacon, Favori, Ingredient
 
 # catalogue/serializers.py (ajouter après les imports existants)
 
@@ -152,6 +152,29 @@ class ParfumSerializer(serializers.ModelSerializer):
                 return False
         return False
 # ============================================================
+# PARFUMS : sérialiseurs admin/public + list/detail
+# ============================================================
+
+class ParfumAdminListSerializer(ParfumSerializer):
+    """Admin : liste (sans produits similaires)"""
+    class Meta(ParfumSerializer.Meta):
+        fields = [f for f in ParfumSerializer.Meta.fields if f != 'produits_similaires']
+
+class ParfumAdminDetailSerializer(ParfumSerializer):
+    """Admin : détail (avec produits similaires)"""
+    pass
+
+class ParfumPublicListSerializer(ParfumSerializer):
+    """Public : liste (sans produits similaires, champs réduits)"""
+    class Meta(ParfumSerializer.Meta):
+        fields = [f for f in ParfumSerializer.Meta.fields if f not in ('produits_similaires', 'reference_sku', 'images_supplementaires', 'stock_quantite', 'taux_reduction')]
+
+class ParfumPublicDetailSerializer(ParfumSerializer):
+    """Public : détail (avec produits similaires)"""
+    class Meta(ParfumSerializer.Meta):
+        fields = [f for f in ParfumSerializer.Meta.fields if f not in ('reference_sku', 'images_supplementaires', 'stock_quantite', 'taux_reduction')]
+    
+# ============================================================
 # INGREDIENTS
 # ============================================================
 class IngredientSerializer(serializers.ModelSerializer):
@@ -165,36 +188,104 @@ class IngredientSerializer(serializers.ModelSerializer):
 
 
 # ============================================================
-# ESSENCES
+# ESSENCES (catalogue complet pour admin)
 # ============================================================
 class EssenceSerializer(serializers.ModelSerializer):
-    tags                             = TagSerializer(many=True, read_only=True)
-    famille_olfactive                = serializers.ListField(child=serializers.CharField(), read_only=True)
-    humeurs_compatibles              = serializers.ListField(child=serializers.CharField(), read_only=True)
-    occasions                        = serializers.ListField(child=serializers.CharField(), read_only=True)
-    saisons_compatibles              = serializers.ListField(child=serializers.CharField(), read_only=True)
+    tags = TagSerializer(many=True, read_only=True)
+    famille_olfactive = serializers.ListField(child=serializers.CharField(), read_only=True)
+    humeurs_compatibles = serializers.ListField(child=serializers.CharField(), read_only=True)
+    occasions = serializers.ListField(child=serializers.CharField(), read_only=True)
+    saisons_compatibles = serializers.ListField(child=serializers.CharField(), read_only=True)
     signes_astrologiques_compatibles = serializers.ListField(child=serializers.CharField(), read_only=True)
-    moments_journee                  = serializers.ListField(child=serializers.CharField(), read_only=True)
-    
+    moments_journee = serializers.ListField(child=serializers.CharField(), read_only=True)
+
     class Meta:
-        model  = Essence
+        model = Essence
         fields = [
-            'id', 'nom', 'code_reference', 'marque',
+            'id', 'marque', 'nom', 'categorie', 'code_reference',
             'description', 'description_ia', 'fournisseur', 'origine_pays',
-            'stock_flacon', 'contenance_ml', 'stock_ouvert_ml', 'stock_ml_total_reel',
-            'seuil_alerte_stock',
-            'prix_unitaire_fini', 'prix_par_ml',
-            'intensite', 'genre_cible', 'categorie',
+            'concentration_max', 'couleur', 'duree',
+            'intensite', 'genre_cible',
             'notes_tete', 'notes_coeur', 'notes_fond',
             'tags', 'famille_olfactive', 'humeurs_compatibles',
             'occasions', 'saisons_compatibles',
             'signes_astrologiques_compatibles', 'moments_journee',
-            'actif', 'vendu_comme_produit_fini',
-            'date_creation', 'date_modification',
+            'prix_par_ml', 'actif', 'date_creation', 'date_modification'
         ]
+# ============================================================
+# ESSENCES : pour le labo et le catalogue
+# ============================================================
+
+class EssenceLaboListSerializer(serializers.ModelSerializer):
+    stock_total_ml = serializers.SerializerMethodField()
+    prix_par_ml = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
+
+    class Meta:
+        model = Essence
+        fields = ['id', 'marque', 'nom', 'categorie', 'stock_total_ml', 'prix_par_ml']
+
+    def get_stock_total_ml(self, obj):
+        return obj.stock_total_ml()
 
 
+class EssenceLaboDetailSerializer(EssenceSerializer):
+    stock_total_ml = serializers.SerializerMethodField()
 
+    class Meta(EssenceSerializer.Meta):
+        fields = EssenceSerializer.Meta.fields + ['stock_total_ml']
+
+    def get_stock_total_ml(self, obj):
+        return obj.stock_total_ml()
+
+# ============================================================
+# CATALOGUE : produits finis (essences vendues en flacon)
+# ============================================================
+class ProduitFiniEssencePublicSerializer(serializers.ModelSerializer):
+    marque = serializers.CharField(source='essence.marque', read_only=True)
+    nom = serializers.CharField(source='essence.nom', read_only=True)
+    categorie = serializers.CharField(source='essence.categorie', read_only=True)
+
+    class Meta:
+        model = ProduitFiniEssence
+        fields = ['id', 'marque', 'nom', 'categorie', 'taille_ml', 'prix_actuel', 'stock_disponible']
+# ============================================================
+# LOTessence et produit finis 
+# ============================================================
+class LotEssenceSerializer(serializers.ModelSerializer):
+    essence_details = EssenceLaboListSerializer(source='essence', read_only=True)
+
+    class Meta:
+        model = LotEssence
+        fields = ['id', 'essence', 'essence_details', 'stock_ml', 'seuil_alerte_ml', 'actif', 'date_reception', 'reference_fournisseur']
+        read_only_fields = ['date_reception']
+
+
+class ProduitFiniEssenceSerializer(serializers.ModelSerializer):
+    essence_details = EssenceSerializer(source='essence', read_only=True)
+    prix_actuel = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
+    prix_par_ml = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
+
+    class Meta:
+        model = ProduitFiniEssence
+        fields = [
+            'id', 'essence', 'essence_details', 'taille_ml',
+            'prix', 'prix_promotionnel', 'prix_actuel', 'prix_par_ml',
+            'stock_disponible', 'actif'
+        ]
+        
+class EssenceLaboSerializer(serializers.Serializer):
+    id = serializers.IntegerField()
+    marque = serializers.CharField()
+    nom = serializers.CharField()
+    categorie = serializers.CharField()
+    stock_total_ml = serializers.DecimalField(max_digits=12, decimal_places=2)
+    prix_moyen_ml = serializers.DecimalField(max_digits=10, decimal_places=2)
+    description = serializers.CharField()
+    intensite = serializers.CharField()
+    genre_cible = serializers.CharField()
+    notes_tete = serializers.CharField()
+    notes_coeur = serializers.CharField()
+    notes_fond = serializers.CharField()
 # ============================================================
 # ACCESSOIRES
 # ============================================================
@@ -269,6 +360,24 @@ class AccessoireSerializer(serializers.ModelSerializer):
             except AttributeError:
                 return False
         return False
+# ============================================================
+# ACCESSOIRES : sérialiseurs admin/public + list/detail
+# ============================================================
+
+class AccessoireAdminListSerializer(AccessoireSerializer):
+    class Meta(AccessoireSerializer.Meta):
+        fields = [f for f in AccessoireSerializer.Meta.fields if f != 'produits_similaires']
+
+class AccessoireAdminDetailSerializer(AccessoireSerializer):
+    pass
+
+class AccessoirePublicListSerializer(AccessoireSerializer):
+    class Meta(AccessoireSerializer.Meta):
+       fields = [f for f in AccessoireSerializer.Meta.fields if f not in ('produits_similaires', 'reference_sku', 'images_supplementaires', 'stock_quantite', 'taux_reduction')] 
+
+class AccessoirePublicDetailSerializer(AccessoireSerializer):
+    class Meta(AccessoireSerializer.Meta):
+        fields = [f for f in AccessoireSerializer.Meta.fields if f not in ('reference_sku', 'images_supplementaires', 'stock_quantite', 'taux_reduction')]
 
 # ============================================================
 # FLACONS
@@ -361,3 +470,4 @@ class CategorieParfumSerializer(serializers.ModelSerializer):
         model = CategorieParfum
         fields = ['id', 'nom', 'slug', 'description', 'image', 'ordre_affichage', 'actif', 'taux_reduction', 'date_creation']
         read_only_fields = ['date_creation']
+
