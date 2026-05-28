@@ -21,7 +21,7 @@ from .permissions import IsAdminOrReadOnly
 from .models import CategorieParfum, LotEssence, Parfum, Essence, Accessoire, Flacon, Favori, Ingredient, ProduitFiniEssence, Tag, TypeAccessoire, TypeFlacon
 from .serializers import (
     AccessoireAdminDetailSerializer, AccessoireAdminListSerializer, AccessoirePublicDetailSerializer, AccessoirePublicListSerializer, AccessoireSimilaireSerializer, CategorieParfumSerializer, EssenceLaboDetailSerializer, EssenceLaboListSerializer, LotEssenceSerializer, ParfumAdminDetailSerializer, ParfumAdminListSerializer, ParfumPublicDetailSerializer, ParfumPublicListSerializer, ParfumSerializer, EssenceSerializer,
-    AccessoireSerializer, FlaconSerializer, ParfumSimilaireSerializer,
+    AccessoireSerializer, FlaconSerializer, FlaconPublicSerializer, ParfumSimilaireSerializer, EssenceCreateFullSerializer,
     IngredientSerializer, FavoriSerializer, ProduitFiniEssencePublicSerializer, ProduitFiniEssenceSerializer, TagSerializer, TypeAccessoireSerializer, TypeFlaconSerializer,
 )
 from django.db.models import Case, When
@@ -440,13 +440,18 @@ class EssenceViewSet(viewsets.ModelViewSet):
     search_fields = ['marque', 'nom', 'code_reference']
     ordering_fields = ['marque', 'nom', 'date_creation']
     ordering = ['marque', 'nom']
+    lookup_field = 'slug'
 
     def get_queryset(self):
         if self.request.user.is_staff:
             return Essence.objects.all().prefetch_related('tags')
         return Essence.objects.filter(actif=True).prefetch_related('tags')
     
-    
+    def get_serializer_class(self):
+        if self.action == 'create':
+            return EssenceCreateFullSerializer
+        return EssenceSerializer
+
 class LotEssenceViewSet(viewsets.ModelViewSet):
     serializer_class = LotEssenceSerializer
     permission_classes = [IsAdminOrReadOnly]   # lecture publique, écriture admin
@@ -458,15 +463,21 @@ class LotEssenceViewSet(viewsets.ModelViewSet):
             return LotEssence.objects.all().select_related('essence')
         return LotEssence.objects.filter(actif=True).select_related('essence')
     
-class ProduitFiniEssenceViewSet(viewsets.ReadOnlyModelViewSet):
+class ProduitFiniEssenceViewSet(viewsets.ModelViewSet):
     serializer_class = ProduitFiniEssencePublicSerializer
-    permission_classes = [AllowAny]
+    permission_classes = [IsAdminOrReadOnly]
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_fields = ['essence', 'taille_ml']
-    search_fields = ['essence__marque', 'essence__nom']
+    search_fields = ['essence__marque', 'essence__nom'] 
+    
+    def get_serializer_class(self):
+        if self.action in ['create', 'update', 'partial_update']:
+             return ProduitFiniEssenceSerializer   # sérialiseur d'écriture
+        return ProduitFiniEssencePublicSerializer  # lecture publique
 
     def get_queryset(self):
         return ProduitFiniEssence.objects.filter(actif=True, stock_disponible__gt=0).select_related('essence')
+    
 
 class EssenceLaboViewSet(viewsets.GenericViewSet):
     permission_classes = [AllowAny]
@@ -477,18 +488,13 @@ class EssenceLaboViewSet(viewsets.GenericViewSet):
         serializer = EssenceLaboListSerializer(essences, many=True, context={'request': request})
         return Response(serializer.data)
 
-    @action(detail=True, methods=['get'], url_path='detail')
-    def detail_labo(self, request, pk=None):
-        essence = get_object_or_404(Essence, pk=pk, actif=True)
+    @action(detail=True, methods=['get'], url_path='detail', lookup_field='slug')
+    def detail_labo(self, request, slug=None):
+        essence = get_object_or_404(Essence, slug=slug, actif=True)
         serializer = EssenceLaboDetailSerializer(essence, context={'request': request})
         return Response(serializer.data)
 
-    @action(detail=True, methods=['get'], url_path='detail')
-    def detail_labo(self, request, pk=None):
-        essence = get_object_or_404(Essence, pk=pk, actif=True)
-        serializer = EssenceLaboDetailSerializer(essence, context={'request': request})
-        return Response(serializer.data)
-
+    
     
 # ============================================================
 # INGRÉDIENTS
@@ -559,6 +565,7 @@ class IngredientViewSet(viewsets.ModelViewSet):
     search_fields      = ['nom', 'description']
     ordering_fields    = ['prix_par_ml', 'date_creation', 'nom', 'stock_ml']
     ordering           = ['-date_creation']
+    lookup_field       = 'slug'
 
     def get_queryset(self):
         return Ingredient.objects.filter(actif=True)
@@ -874,11 +881,18 @@ class FlaconViewSet(viewsets.ModelViewSet):
     search_fields      = ['nom', 'matiere', 'couleur']
     ordering_fields    = ['prix_unitaire', 'date_creation', 'nom', 'contenance_ml', 'stock_quantite']
     ordering           = ['-date_creation']
+    lookup_field       = 'slug'
 
     def get_queryset(self):
         if self.request.user.is_staff:
             return Flacon.objects.all().select_related('type_flacon')
         return Flacon.objects.filter(actif=True).select_related('type_flacon')
+
+    def get_serializer_class(self):
+        if self.action == 'list':
+            return FlaconPublicSerializer
+        return FlaconSerializer
+    
     
 
 class FavoriViewSet(viewsets.ReadOnlyModelViewSet):
@@ -903,6 +917,7 @@ class TagViewSet(viewsets.ModelViewSet):
     search_fields = ['nom', 'type']
     ordering_fields = ['nom', 'type', 'date_creation']
     ordering = ['nom']
+    lookup_field = 'slug'
 
 class CategorieParfumViewSet(viewsets.ModelViewSet):
     queryset = CategorieParfum.objects.filter(actif=True)

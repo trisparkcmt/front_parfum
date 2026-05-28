@@ -320,12 +320,12 @@ class EssenceAdmin(admin.ModelAdmin):
 @admin.register(LotEssence)
 class LotEssenceAdmin(admin.ModelAdmin):
     list_display = (
-        'id', 'essence', 'contenance_ml', 'quantite_restante_ml',
-        'date_reception', 'date_peremption', 'actif'
+        'id', 'essence', 'stock_ml', 'stock_precedent_ml', 'seuil_alerte_ml',
+        'date_reception', 'actif'
     )
-    list_filter = ('actif', 'date_reception', 'contenance_ml')
+    list_filter = ('actif', 'date_reception')
     search_fields = ('essence__marque', 'essence__nom', 'reference_fournisseur')
-    list_editable = ('quantite_restante_ml', 'actif')
+    list_editable = ('stock_ml', 'actif')
     readonly_fields = ('date_reception',)
     list_per_page = 50
 
@@ -334,15 +334,16 @@ class LotEssenceAdmin(admin.ModelAdmin):
             'fields': ('essence',)
         }),
         ('Caractéristiques du lot', {
-            'fields': ('contenance_ml', 'quantite_restante_ml', 'reference_fournisseur')
+            'fields': ('stock_ml', 'stock_precedent_ml', 'seuil_alerte_ml', 'reference_fournisseur')
         }),
         ('Dates', {
-            'fields': ('date_reception', 'date_peremption')
+            'fields': ('date_reception',)
         }),
         ('Statut', {
             'fields': ('actif',)
         }),
     )
+    readonly_fields = ('date_reception', 'stock_precedent_ml')
 
 
 # ============================================================
@@ -352,7 +353,7 @@ class LotEssenceAdmin(admin.ModelAdmin):
 class ProduitFiniEssenceAdmin(admin.ModelAdmin):
     list_display = (
         'id', 'essence', 'taille_ml', 'prix', 'prix_promotionnel',
-        'prix_actuel', 'stock_disponible', 'actif'
+        'prix_actuel', 'stock_disponible', 'stock_precedent', 'actif'
     )
     list_filter = ('actif', 'taille_ml', 'essence__categorie')
     search_fields = ('essence__marque', 'essence__nom')
@@ -368,12 +369,13 @@ class ProduitFiniEssenceAdmin(admin.ModelAdmin):
             'fields': ('prix', 'prix_promotionnel', 'prix_actuel')
         }),
         ('Stock', {
-            'fields': ('stock_disponible',)
+            'fields': ('stock_disponible', 'stock_precedent')
         }),
         ('Statut', {
             'fields': ('actif',)
         }),
     )
+    readonly_fields = ('prix_actuel', 'stock_precedent')
 
     @admin.display(description="Prix actuel", ordering='prix')
     def prix_actuel(self, obj):

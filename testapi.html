@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🧪 Test API Catalogue & Labo – Complet</title>
+    <style>
+        * { box-sizing: border-box; }
+        body { font-family: system-ui, 'Segoe UI', sans-serif; background: #f1f5f9; margin: 0; padding: 20px; }
+        .container { max-width: 1400px; margin: 0 auto; }
+        h1 { margin-top: 0; }
+        .card { background: white; border-radius: 20px; padding: 20px; margin-bottom: 20px; box-shadow: 0 2px 6px rgba(0,0,0,0.05); }
+        .flex { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-bottom: 12px; }
+        .flex-column { flex-direction: column; align-items: stretch; }
+        label { font-weight: 500; min-width: 100px; }
+        input, select, textarea { padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 30px; font-size: 0.9rem; }
+        textarea { font-family: monospace; border-radius: 16px; }
+        button { background: #0f172a; color: white; border: none; padding: 8px 20px; border-radius: 30px; cursor: pointer; font-weight: 500; transition: 0.2s; }
+        button.primary { background: #0d6efd; }
+        button.primary:hover { background: #0b5ed7; }
+        button.danger { background: #dc2626; }
+        button.danger:hover { background: #b91c1c; }
+        button.success { background: #10b981; }
+        button.secondary { background: #475569; }
+        .response { background: #1e293b; color: #e2e8f0; padding: 16px; font-family: monospace; font-size: 0.75rem; white-space: pre-wrap; overflow-x: auto; max-height: 500px; border-radius: 16px; margin-top: 12px; }
+        .token-info { background: #eef2ff; padding: 8px 16px; border-radius: 16px; font-size: 0.8rem; margin-top: 12px; word-break: break-all; }
+        .badge { background: #334155; padding: 2px 8px; border-radius: 20px; font-size: 0.7rem; }
+        .inline-check { display: flex; align-items: center; gap: 8px; }
+        .random-btn { background: #f59e0b; color: #1e293b; }
+        .random-btn:hover { background: #d97706; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>🧪 API Catalogue & Laboratoire – Testeur complet</h1>
+
+    <!-- Carte de connexion -->
+    <div class="card">
+        <div class="flex">
+            <label>🔐 Connexion :</label>
+            <input type="email" id="loginEmail" placeholder="Email" value="admin@example.com">
+            <input type="password" id="loginPassword" placeholder="Mot de passe" value="admin123">
+            <button id="loginBtn" class="primary">Se connecter</button>
+            <button id="logoutBtn" class="danger">Déconnexion</button>
+        </div>
+        <div class="flex">
+            <label>🌐 Base URL :</label>
+            <input type="text" id="baseUrl" value="http://localhost:8000/api/v1" size="50">
+            <button id="testBaseBtn" class="secondary">Tester connexion</button>
+            <span id="baseStatus"></span>
+        </div>
+        <div id="tokenDisplay" class="token-info"></div>
+    </div>
+
+    <!-- Carte d'inscription -->
+    <div class="card">
+        <h2>📝 Inscription</h2>
+        <div class="flex">
+            <label for="registerEmail">Email :</label>
+            <input type="email" id="registerEmail" placeholder="Email" value="newuser@example.com">
+        </div>
+        <div class="flex">
+            <label for="registerTelephone">Téléphone :</label>
+            <input type="text" id="registerTelephone" placeholder="+237690000000" value="+237690000000">
+        </div>
+        <div class="flex">
+            <label for="registerFirstName">Prénom :</label>
+            <input type="text" id="registerFirstName" placeholder="Prénom" value="Nouveau">
+        </div>
+        <div class="flex">
+            <label for="registerLastName">Nom :</label>
+            <input type="text" id="registerLastName" placeholder="Nom" value="Utilisateur">
+        </div>
+        <div class="flex">
+            <label for="registerPassword1">Mot de passe :</label>
+            <input type="password" id="registerPassword1" placeholder="Mot de passe" value="password123">
+        </div>
+        <div class="flex">
+            <label for="registerPassword2">Confirmer :</label>
+            <input type="password" id="registerPassword2" placeholder="Confirmer mot de passe" value="password123">
+        </div>
+        <button id="registerBtn" class="success">S'inscrire</button>
+        <div id="registerResponse" class="response"></div>
+    </div>
+
+
+    <!-- Requête personnalisée -->
+    <div class="card">
+        <div class="flex">
+            <label>Endpoint :</label>
+            <select id="endpointSelect" style="flex:3;"></select>
+            <button id="sendReq" class="primary">➡️ Envoyer</button>
+        </div>
+        <div class="flex">
+            <label>Méthode :</label>
+            <select id="methodSelect">
+                <option value="GET">GET</option>
+                <option value="POST">POST</option>
+                <option value="PUT">PUT</option>
+                <option value="PATCH">PATCH</option>
+                <option value="DELETE">DELETE</option>
+            </select>
+            <label>Paramètre (slug/ID) :</label>
+            <input type="text" id="pathParam" placeholder="ex: royal-oud ou 1">
+            <div class="inline-check">
+                <input type="checkbox" id="useTokenCheckbox">
+                <label>🔑 Utiliser le token (authentifié)</label>
+            </div>
+        </div>
+        <div class="flex">
+            <textarea id="jsonBody" rows="6" placeholder='Corps JSON (pour POST/PUT/PATCH)' style="width:100%;"></textarea>
+            <button id="randomJsonBtn" class="random-btn">🎲 Générer JSON aléatoire</button>
+            <button id="formatJsonBtn" class="secondary">📐 Formater JSON</button>
+        </div>
+        <div id="response" class="response">⚡ Cliquez sur "Envoyer"</div>
+    </div>
+
+    <details>
+        <summary>📋 Liste de tous les endpoints disponibles (cliquez pour afficher)</summary>
+        <div id="endpointList" style="padding: 16px; background:#f8fafc; border-radius: 16px; margin-top: 10px;"></div>
+    </details>
+</div>
+
+<script>
+    // ==================== Configuration ====================
+    let baseUrl = localStorage.getItem('apiBase') || 'http://localhost:8000/api/v1';
+    let accessToken = localStorage.getItem('accessToken') || '';
+    document.getElementById('baseUrl').value = baseUrl;
+    updateTokenUI();
+
+    function updateTokenUI() {
+        const tokenDiv = document.getElementById('tokenDisplay');
+        if (accessToken) {
+            tokenDiv.innerHTML = `🔑 Token actif : ${accessToken.substring(0, 40)}...<br>👉 Utilisez la case "Utiliser le token" pour les requêtes authentifiées.`;
+        } else {
+            tokenDiv.innerHTML = '🔓 Non authentifié. Connectez-vous pour obtenir un token.';
+        }
+    }
+
+    function saveToken(token) {
+        accessToken = token;
+        localStorage.setItem('accessToken', token);
+        updateTokenUI();
+    }
+    function clearToken() {
+        accessToken = '';
+        localStorage.removeItem('accessToken');
+        updateTokenUI();
+    }
+
+    // ==================== Connexion ====================
+    document.getElementById('loginBtn').addEventListener('click', async () => {
+        const email = document.getElementById('loginEmail').value;
+        const password = document.getElementById('loginPassword').value;
+        const loginUrl = `${baseUrl}/auth/login/`;
+        try {
+            const res = await fetch(loginUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password })
+            });
+            const data = await res.json();
+            if (res.ok && data.access) {
+                saveToken(data.access);
+                document.getElementById('baseStatus').innerHTML = '✅ Connecté';
+                setTimeout(() => document.getElementById('baseStatus').innerHTML = '', 2000);
+            } else {
+                alert(`Erreur connexion : ${JSON.stringify(data)}`);
+            }
+        } catch (err) {
+            alert(`Erreur réseau : ${err.message}`);
+        }
+    });
+    document.getElementById('logoutBtn').addEventListener('click', () => {
+        clearToken();
+        document.getElementById('baseStatus').innerHTML = '🔓 Déconnecté';
+        setTimeout(() => document.getElementById('baseStatus').innerHTML = '', 2000);
+    });
+    document.getElementById('testBaseBtn').addEventListener('click', async () => {
+        baseUrl = document.getElementById('baseUrl').value.trim();
+        localStorage.setItem('apiBase', baseUrl);
+        const testUrl = `${baseUrl}/shop/parfums/`;
+        try {
+            const res = await fetch(testUrl);
+            document.getElementById('baseStatus').innerHTML = `✅ Connecté (${res.status})`;
+        } catch (err) {
+            document.getElementById('baseStatus').innerHTML = `❌ Erreur : ${err.message}`;
+        }
+        setTimeout(() => document.getElementById('baseStatus').innerHTML = '', 3000);
+    });
+
+    // ==================== Génération aléatoire de JSON ====================
+    function generateRandomJSON(endpointName) {
+        const name = endpointName.toLowerCase();
+        const randSuffix = Math.floor(Math.random() * 90000) + 10000;
+
+        // 1. Détections prioritaires (plus spécifiques)
+        if (name.includes('catégorie')) {
+            return {
+                "nom": `Catégorie ${randSuffix}`,
+                "slug": `cat-parfum-${randSuffix}`,
+                "description": "Une description de catégorie.",
+                "ordre_affichage": 1,
+                "taux_reduction": "10.00",
+                "actif": true
+            };
+        } else if (name.includes('type') && name.includes('acc')) {
+            return {
+                "nom": `Type ACC ${randSuffix}`,
+                "slug": `type-acc-${randSuffix}`,
+                "description": "Description du type.",
+                "actif": true
+            };
+        } else if (name.includes('type') && name.includes('flacon')) {
+            return {
+                "nom": `Type Flacon ${randSuffix}`,
+                "slug": `type-flacon-${randSuffix}`,
+                "description": "Description flacon.",
+                "actif": true
+            };
+        } else if ((name.includes('produit') && name.includes('fini')) || name.includes('produits-essence')) {
+            return {
+                "essence": 1,
+                "taille_ml": [10, 30, 50, 100][Math.floor(Math.random() * 4)],
+                "prix": "15000.00",
+                "prix_promotionnel": null,
+                "stock_disponible": 25,
+                "actif": true
+            };
+        } else if (name.includes('ingrédient')) {
+            return {
+                "nom": `Ingrédient ${randSuffix}`,
+                "slug": `ing-${randSuffix}`,
+                "description": "Note de test.",
+                "prix_par_ml": "150.00",
+                "stock_ml": "1000.000",
+                "actif": true
+            };
+        } else if (name.includes('lot')) {
+            return {
+                "essence": 1,
+                "stock_ml": "500.00",
+                "seuil_alerte_ml": "50.00",
+                "reference_fournisseur": `LOT-${randSuffix}`,
+                "actif": true
+            };
+        } 
+        
+        // 2. Détections standards
+        else if (name.includes('parfum')) {
+            return {
+                "nom": `Parfum ${Math.floor(Math.random() * 1000)}`,
+                "slug": `parfum-test-${randSuffix}`,
+                "reference_sku": `SKU${Math.floor(Math.random() * 10000)}`,
+                "description_courte": "Une description courte aléatoire.",
+                "description_longue": "Description longue générée automatiquement pour ce parfum.",
+                "contenance_ml": [30, 50, 75, 100][Math.floor(Math.random() * 4)],
+                "prix_unitaire": (Math.random() * 50000 + 5000).toFixed(2),
+                "stock_quantite": Math.floor(Math.random() * 100),
+                "genre_cible": ["homme", "femme", "mixte"][Math.floor(Math.random() * 3)],
+                "intensite": ["légère", "moyenne", "forte", "très forte"][Math.floor(Math.random() * 4)],
+                "actif": true,
+                "categorie_id": 1
+            };
+        } else if (name.includes('accessoire')) {
+            return {
+                "nom": `Accessoire ${Math.floor(Math.random() * 1000)}`,
+                "slug": `acc-test-${randSuffix}`,
+                "reference_sku": `ACC${Math.floor(Math.random() * 10000)}`,
+                "description_courte": "Description courte.",
+                "prix_unitaire": (Math.random() * 20000 + 1000).toFixed(2),
+                "stock_quantite": Math.floor(Math.random() * 50),
+                "matiere": ["Bois", "Métal", "Verre", "Plastique"][Math.floor(Math.random() * 4)],
+                "couleur": ["Noir", "Blanc", "Doré", "Argenté"][Math.floor(Math.random() * 4)],
+                "taille": ["S", "M", "L", "XL"][Math.floor(Math.random() * 4)],
+                "actif": true,
+                "type_accessoire_id": 1
+            };
+        } else if (name.includes('flacon')) {
+            return {
+                "nom": `Flacon ${Math.floor(Math.random() * 1000)}`,
+                "slug": `flacon-test-${randSuffix}`,
+                "reference_sku": `FLA${Math.floor(Math.random() * 10000)}`,
+                "contenance_ml": [30, 50, 75, 100, 150][Math.floor(Math.random() * 5)],
+                "matiere": ["Verre", "Plastique", "Aluminium"][Math.floor(Math.random() * 3)],
+                "couleur": ["Transparent", "Noir", "Ambré"][Math.floor(Math.random() * 3)],
+                "prix_unitaire": (Math.random() * 5000 + 500).toFixed(2),
+                "stock_quantite": Math.floor(Math.random() * 100),
+                "actif": true,
+                "type_flacon_id": 1
+            };
+        } else if (name.includes('essence')) {
+            return {
+                "marque": ["Dior", "Chanel", "Guerlain", "Tom Ford"][Math.floor(Math.random() * 4)],
+                "nom": `Essence ${Math.floor(Math.random() * 1000)}`,
+                "slug": `essence-test-${randSuffix}`,
+                "categorie": ["premium", "super_premium", "high"][Math.floor(Math.random() * 3)],
+                "code_reference": `ESS${Math.floor(Math.random() * 10000)}`,
+                "prix_par_ml": (Math.random() * 200 + 10).toFixed(2),
+                "actif": true,
+                "initial_lot": {
+                    "stock_ml": "1000.00",
+                    "seuil_alerte_ml": "100.00",
+                    "reference_fournisseur": "RECEPT-INITIALE"
+                },
+                "produits_finis": [
+                    { "taille_ml": 30, "prix": "15000.00", "stock_disponible": 10 }
+                ]
+            };
+        } else if (name.includes('inscription')) {
+            const timestamp = Date.now();
+            const randomPhone = `+23769${Math.floor(Math.random() * 10000000).toString().padStart(7, '0')}`;
+            return { "email": `user${timestamp}@example.com`, "telephone": randomPhone, "password1": "password123", "password2": "password123", "first_name": "Random", "last_name": "User" };
+        } else if (name.includes('tag')) {
+            return {
+                "nom": `Tag ${randSuffix}`,
+                "slug": `tag-test-${randSuffix}`,
+                "type": ["famille_olfactive", "humeur", "saison", "occasion"][Math.floor(Math.random() * 4)],
+                "actif": true
+            };
+        } else {
+            return { "error": "Aucune génération définie pour cet endpoint", "endpoint": endpointName };
+        }
+    }
+
+    // ==================== Liste des endpoints ====================
+    const endpoints = [
+        { name: "Parfums – Liste", url: "/shop/parfums/", method: "GET", needId: false },
+        { name: "Parfums – Détail (slug)", url: "/shop/parfums/{slug}/", method: "GET", needId: true, idType: "slug" },
+        { name: "Parfums – Bestsellers", url: "/shop/parfums/bestsellers/", method: "GET" },
+        { name: "Parfums – Hotsellers", url: "/shop/parfums/hotsellers/", method: "GET" },
+        { name: "Parfums – Créer (admin)", url: "/shop/parfums/", method: "POST", needAuth: true },
+        { name: "Parfums – Modifier (slug)", url: "/shop/parfums/{slug}/", method: "PUT", needId: true, idType: "slug", needAuth: true },
+        { name: "Parfums – Patch (slug)", url: "/shop/parfums/{slug}/", method: "PATCH", needId: true, idType: "slug", needAuth: true },
+        { name: "Parfums – Supprimer", url: "/shop/parfums/{slug}/", method: "DELETE", needId: true, idType: "slug", needAuth: true },
+        { name: "Parfums – Favori (toggle)", url: "/shop/parfums/{slug}/favori/", method: "POST", needId: true, idType: "slug", needAuth: true },
+        { name: "Accessoires – Liste", url: "/shop/accessoires/", method: "GET" },
+        { name: "Accessoires – Détail (slug)", url: "/shop/accessoires/{slug}/", method: "GET", needId: true, idType: "slug" },
+        { name: "Accessoires – Bestsellers", url: "/shop/accessoires/bestsellers/", method: "GET" },
+        { name: "Accessoires – Hotsellers", url: "/shop/accessoires/hotsellers/", method: "GET" },
+        { name: "Accessoires – Créer (admin)", url: "/shop/accessoires/", method: "POST", needAuth: true },
+        { name: "Accessoires – Modifier (slug)", url: "/shop/accessoires/{slug}/", method: "PUT", needId: true, idType: "slug", needAuth: true },
+        { name: "Accessoires – Patch (slug)", url: "/shop/accessoires/{slug}/", method: "PATCH", needId: true, idType: "slug", needAuth: true },
+        { name: "Accessoires – Supprimer", url: "/shop/accessoires/{slug}/", method: "DELETE", needId: true, idType: "slug", needAuth: true },
+        { name: "Accessoires – Favori", url: "/shop/accessoires/{slug}/favori/", method: "POST", needId: true, idType: "slug", needAuth: true },
+        { name: "Flacons – Liste", url: "/shop/flacons/", method: "GET" },
+        { name: "Flacons – Détail (slug)", url: "/shop/flacons/{slug}/", method: "GET", needId: true, idType: "slug" },
+        { name: "Flacons – Créer (admin)", url: "/shop/flacons/", method: "POST", needAuth: true },
+        { name: "Flacons – Modifier (slug)", url: "/shop/flacons/{slug}/", method: "PUT", needId: true, idType: "slug", needAuth: true },
+        { name: "Flacons – Patch (slug)", url: "/shop/flacons/{slug}/", method: "PATCH", needId: true, idType: "slug", needAuth: true },
+        { name: "Flacons – Supprimer", url: "/shop/flacons/{slug}/", method: "DELETE", needId: true, idType: "slug", needAuth: true },
+        { name: "Favoris – Ma liste", url: "/shop/favoris/", method: "GET", needAuth: true },
+        { name: "Tags – Liste", url: "/shop/tags/", method: "GET" },
+        { name: "Tags – Créer (admin)", url: "/shop/tags/", method: "POST", needAuth: true },
+        { name: "Tags – Patch (admin)", url: "/shop/tags/{slug}/", method: "PATCH", needId: true, idType: "slug", needAuth: true },
+        { name: "Catégories parfum – Liste", url: "/shop/categories-parfum/", method: "GET" },
+        { name: "Catégories parfum – Créer (admin)", url: "/shop/categories-parfum/", method: "POST", needAuth: true },
+        { name: "Catégories parfum – Patch (admin)", url: "/shop/categories-parfum/{slug}/", method: "PATCH", needId: true, idType: "slug", needAuth: true },
+        { name: "Types accessoire – Liste", url: "/shop/types-accessoire/", method: "GET" },
+        { name: "Types accessoire – Créer (admin)", url: "/shop/types-accessoire/", method: "POST", needAuth: true },
+        { name: "Types accessoire – Patch (admin)", url: "/shop/types-accessoire/{slug}/", method: "PATCH", needId: true, idType: "slug", needAuth: true },
+        { name: "Types flacon – Liste", url: "/shop/types-flacon/", method: "GET" },
+        { name: "Types flacon – Créer (admin)", url: "/shop/types-flacon/", method: "POST", needAuth: true },
+        { name: "Types flacon – Patch (admin)", url: "/shop/types-flacon/{slug}/", method: "PATCH", needId: true, idType: "slug", needAuth: true },
+        { name: "Produits finis (essences) – Liste", url: "/shop/produits-essence/", method: "GET" },
+        { name: "Produits finis – Créer (admin)", url: "/shop/produits-essence/", method: "POST", needAuth: true },
+        { name: "Produits finis – Patch (admin)", url: "/shop/produits-essence/{id}/", method: "PATCH", needId: true, idType: "id", needAuth: true },
+        { name: "Essences (catalogue) – Liste", url: "/lab/essences/", method: "GET" },
+        { name: "Essences – Détail (slug)", url: "/lab/essences/{slug}/", method: "GET", needId: true, idType: "slug" },
+        { name: "Essences – Créer (admin)", url: "/lab/essences/", method: "POST", needAuth: true },
+        { name: "Essences – Patch (admin)", url: "/lab/essences/{slug}/", method: "PATCH", needId: true, idType: "slug", needAuth: true },
+        { name: "Lots essence – Liste", url: "/lab/lots-essence/", method: "GET" },
+        { name: "Auth – Inscription", url: "/auth/registration/", method: "POST" },
+        { name: "Lots essence – Créer (admin)", url: "/lab/lots-essence/", method: "POST", needAuth: true },
+        { name: "Lots essence – Patch (admin)", url: "/lab/lots-essence/{id}/", method: "PATCH", needId: true, idType: "id", needAuth: true },
+        { name: "Laboratoire – Stock disponible", url: "/lab/labo/essences/disponible/", method: "GET" },
+        { name: "Laboratoire – Détail essence (labo)", url: "/lab/labo/essences/{slug}/detail/", method: "GET", needId: true, idType: "slug" },
+        { name: "Ingrédients – Liste", url: "/lab/ingredients/", method: "GET" },
+        { name: "Ingrédients – Créer (admin)", url: "/lab/ingredients/", method: "POST", needAuth: true },
+        { name: "Ingrédients – Patch (admin)", url: "/lab/ingredients/{slug}/", method: "PATCH", needId: true, idType: "slug", needAuth: true }
+    ];
+
+    const endpointSelect = document.getElementById('endpointSelect');
+    const methodSelect = document.getElementById('methodSelect');
+    const pathParam = document.getElementById('pathParam');
+    const jsonBody = document.getElementById('jsonBody');
+    const responseDiv = document.getElementById('response');
+
+    // Nouveaux éléments pour l'inscription
+    const registerEmail = document.getElementById('registerEmail');
+    const registerTelephone = document.getElementById('registerTelephone');
+    const registerFirstName = document.getElementById('registerFirstName');
+    const registerLastName = document.getElementById('registerLastName');
+    const registerPassword1 = document.getElementById('registerPassword1');
+    const registerPassword2 = document.getElementById('registerPassword2');
+    const useTokenCheckbox = document.getElementById('useTokenCheckbox');
+
+    function populateSelect() {
+        endpointSelect.innerHTML = '';
+        endpoints.forEach((ep, idx) => {
+            let opt = document.createElement('option');
+            opt.value = idx;
+            opt.textContent = `${ep.method} ${ep.name}`;
+            endpointSelect.appendChild(opt);
+        });
+        const listDiv = document.getElementById('endpointList');
+        listDiv.innerHTML = '<ul style="columns:2;">' + endpoints.map(ep => `<li>${ep.method} ${ep.name} → ${ep.url}</li>`).join('') + '</ul>';
+    }
+    populateSelect();
+
+    endpointSelect.addEventListener('change', () => {
+        const idx = endpointSelect.value;
+        const ep = endpoints[idx];
+        methodSelect.value = ep.method;
+        if (ep.needId) {
+            pathParam.placeholder = ep.idType === 'slug' ? 'slug (ex: royal-oud)' : 'ID numérique';
+        } else {
+            pathParam.placeholder = 'aucun paramètre';
+        }
+    });
+
+    // Génération aléatoire
+    document.getElementById('randomJsonBtn').addEventListener('click', () => {
+        const idx = endpointSelect.value;
+        const ep = endpoints[idx];
+        if (ep.method === 'GET' || ep.method === 'DELETE') {
+            alert("La génération aléatoire n'est utile que pour POST, PUT, PATCH");
+            return;
+        }
+        const randomData = generateRandomJSON(ep.name);
+        jsonBody.value = JSON.stringify(randomData, null, 2);
+    });
+
+    document.getElementById('formatJsonBtn').addEventListener('click', () => {
+        try {
+            let parsed = JSON.parse(jsonBody.value);
+            jsonBody.value = JSON.stringify(parsed, null, 2);
+        } catch (e) {
+            responseDiv.innerHTML = `❌ JSON invalide : ${e.message}`;
+        }
+    });
+
+    function buildUrl() {
+        const idx = endpointSelect.value;
+        const ep = endpoints[idx];
+        let url = ep.url;
+        const param = pathParam.value.trim();
+        if (ep.needId && param) {
+            url = url.replace('{slug}', param).replace('{id}', param);
+        } else if (ep.needId && !param) {
+            alert("Veuillez saisir un identifiant (slug ou ID)");
+            return null;
+        }
+        return baseUrl + url;
+    }
+
+    async function sendRequest() {
+        const url = buildUrl();
+        if (!url) return;
+        const method = methodSelect.value;
+        let body = null;
+        const bodyText = jsonBody.value.trim();
+        if (method !== 'GET' && method !== 'DELETE') {
+            if (bodyText) {
+                try {
+                    body = JSON.parse(bodyText);
+                } catch (e) {
+                    responseDiv.innerHTML = `❌ JSON invalide : ${e.message}`;
+                    return;
+                }
+            }
+        }
+        const headers = { 'Content-Type': 'application/json' };
+        const useToken = useTokenCheckbox.checked;
+        if (useToken && accessToken) {
+            headers['Authorization'] = `Bearer ${accessToken}`;
+        }
+        responseDiv.innerHTML = '🔄 Chargement...';
+        try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 15000);
+            const fetchOptions = { method, headers, signal: controller.signal };
+            if (body) fetchOptions.body = JSON.stringify(body);
+            const resp = await fetch(url, fetchOptions);
+            clearTimeout(timeoutId);
+            let data;
+            const contentType = resp.headers.get('content-type');
+            if (contentType && contentType.includes('application/json')) {
+                data = await resp.json();
+            } else {
+                data = await resp.text();
+            }
+            const pretty = typeof data === 'object' ? JSON.stringify(data, null, 2) : data;
+            responseDiv.innerHTML = `${resp.ok ? '✅' : '❌'} ${resp.status} ${resp.statusText}\n\n${pretty}`;
+        } catch (err) {
+            responseDiv.innerHTML = `❌ Erreur réseau : ${err.message}`;
+        }
+    }
+
+    document.getElementById('sendReq').addEventListener('click', sendRequest);
+
+    // Logique pour le bouton d'inscription
+    document.getElementById('registerBtn').addEventListener('click', async () => {
+        const email = registerEmail.value;
+        const telephone = registerTelephone.value;
+        const first_name = registerFirstName.value;
+        const last_name = registerLastName.value;
+        const password1 = registerPassword1.value;
+        const password2 = registerPassword2.value;
+        const registerResponseDiv = document.getElementById('registerResponse');
+
+        if (password1 !== password2) {
+            registerResponseDiv.innerHTML = '❌ Les mots de passe ne correspondent pas.';
+            return;
+        }
+
+        const registerUrl = `${baseUrl}/auth/registration/`;
+        const payload = { email, telephone, first_name, last_name, password1, password2 };
+
+        try {
+            registerResponseDiv.innerHTML = '🔄 Inscription en cours...';
+            const res = await fetch(registerUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json();
+            if (res.ok && data.access) {
+                saveToken(data.access); // Sauvegarde le token pour le nouvel utilisateur
+                registerResponseDiv.innerHTML = '✅ Inscription réussie et connecté !';
+            } else {
+                registerResponseDiv.innerHTML = `❌ Erreur inscription : ${JSON.stringify(data, null, 2)}`;
+            }
+        } catch (err) {
+            registerResponseDiv.innerHTML = `❌ Erreur réseau : ${err.message}`;
+        }
+    });
+    useTokenCheckbox.checked = false;
+</script>
+</body>
+</html>

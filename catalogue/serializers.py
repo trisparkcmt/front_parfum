@@ -3,6 +3,7 @@ from decimal import Decimal
 from rest_framework import serializers
 from drf_spectacular.utils import extend_schema_field
 from drf_spectacular.types import OpenApiTypes
+from django.db import transaction
 from .utils import get_similar_products
 from .models import CategorieParfum, LotEssence, ProduitFiniEssence, Tag, Parfum, Essence, Accessoire, Flacon, TypeAccessoire, TypeFlacon, Favori, Ingredient
 
@@ -69,7 +70,7 @@ def get_image_url(request, image_field):
 class TagSerializer(serializers.ModelSerializer):
     class Meta:
         model  = Tag
-        fields = ['id', 'nom', 'type']
+        fields = ['id', 'nom', 'slug', 'type']
 
 
 
@@ -101,7 +102,7 @@ class ParfumSerializer(serializers.ModelSerializer):
             'occasions', 'saisons_compatibles',
             'est_nouveau', 'est_bestseller',
             'image_principale', 'images_supplementaires', 'stock_quantite',
-            'date_creation','produits_similaires', 'is_favori',
+            'date_creation','produits_similaires', 'is_favori', 'categorie'
         ]
 
     @extend_schema_field(OpenApiTypes.STR)
@@ -167,7 +168,10 @@ class ParfumAdminDetailSerializer(ParfumSerializer):
 class ParfumPublicListSerializer(ParfumSerializer):
     """Public : liste (sans produits similaires, champs réduits)"""
     class Meta(ParfumSerializer.Meta):
-        fields = [f for f in ParfumSerializer.Meta.fields if f not in ('produits_similaires', 'reference_sku', 'images_supplementaires', 'stock_quantite', 'taux_reduction')]
+        fields = [f for f in ParfumSerializer.Meta.fields if f not in ('produits_similaires', 'reference_sku', 'images_supplementaires', 'stock_quantite', 'taux_reduction','description_courte'
+            'notes_tete', 'notes_coeur', 'notes_fond',
+            'tags', 'famille_olfactive', 'humeurs_compatibles',
+            'occasions', 'saisons_compatibles',)]
 
 class ParfumPublicDetailSerializer(ParfumSerializer):
     """Public : détail (avec produits similaires)"""
@@ -181,7 +185,7 @@ class IngredientSerializer(serializers.ModelSerializer):
     class Meta:
         model  = Ingredient
         fields = [
-            'id', 'nom', 'description',
+            'id', 'nom', 'slug', 'description',
             'prix_par_ml', 'stock_ml', 'actif',
             'date_creation',
         ]
@@ -202,7 +206,7 @@ class EssenceSerializer(serializers.ModelSerializer):
     class Meta:
         model = Essence
         fields = [
-            'id', 'marque', 'nom', 'categorie', 'code_reference',
+            'id', 'marque', 'nom', 'slug', 'categorie', 'code_reference',
             'description', 'description_ia', 'fournisseur', 'origine_pays',
             'concentration_max', 'couleur', 'duree',
             'intensite', 'genre_cible',
@@ -256,8 +260,17 @@ class LotEssenceSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = LotEssence
-        fields = ['id', 'essence', 'essence_details', 'stock_ml', 'seuil_alerte_ml', 'actif', 'date_reception', 'reference_fournisseur']
+        fields = [
+            'id', 'essence', 'essence_details', 'stock_ml', 
+            'stock_precedent_ml', 'seuil_alerte_ml', 'actif', 
+            'date_reception', 'reference_fournisseur'
+        ]
         read_only_fields = ['date_reception']
+
+    def create(self, validated_data):
+        essence = validated_data.get('essence')
+        validated_data['stock_precedent_ml'] = essence.stock_total_ml()
+        return super().create(validated_data)
 
 
 class ProduitFiniEssenceSerializer(serializers.ModelSerializer):
@@ -270,8 +283,54 @@ class ProduitFiniEssenceSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'essence', 'essence_details', 'taille_ml',
             'prix', 'prix_promotionnel', 'prix_actuel', 'prix_par_ml',
-            'stock_disponible', 'actif'
+            'stock_disponible', 'stock_precedent', 'actif'
         ]
+
+    def create(self, validated_data):
+        essence = validated_data.get('essence')
+        taille = validated_data.get('taille_ml')
+        # Gestion du unique_together : si le format existe, on le met à jour
+        existing = ProduitFiniEssence.objects.filter(essence=essence, taille_ml=taille).first()
+        if existing:
+            validated_data['stock_precedent'] = existing.stock_disponible
+            return self.update(existing, validated_data)
+        
+        validated_data['stock_precedent'] = 0
+        return super().create(validated_data)
+
+    def update(self, instance, validated_data):
+        if 'stock_disponible' in validated_data:
+            instance.stock_precedent = instance.stock_disponible
+        return super().update(instance, validated_data)
+
+class _LotEssenceInputSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = LotEssence
+        fields = ['stock_ml', 'seuil_alerte_ml', 'reference_fournisseur']
+
+class _ProduitFiniInputSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ProduitFiniEssence
+        fields = ['taille_ml', 'prix', 'prix_promotionnel', 'stock_disponible']
+
+class EssenceCreateFullSerializer(EssenceSerializer):
+    initial_lot = _LotEssenceInputSerializer(write_only=True, required=False)
+    produits_finis = _ProduitFiniInputSerializer(many=True, write_only=True, required=False)
+
+    class Meta(EssenceSerializer.Meta):
+        fields = EssenceSerializer.Meta.fields + ['initial_lot', 'produits_finis']
+
+    def create(self, validated_data):
+        lot_data = validated_data.pop('initial_lot', None)
+        prods_data = validated_data.pop('produits_finis', [])
+        
+        with transaction.atomic():
+            essence = Essence.objects.create(**validated_data)
+            if lot_data:
+                LotEssence.objects.create(essence=essence, stock_precedent_ml=0, **lot_data)
+            for prod in prods_data:
+                ProduitFiniEssence.objects.create(essence=essence, stock_precedent=0, **prod)
+        return essence
         
 class EssenceLaboSerializer(serializers.Serializer):
     id = serializers.IntegerField()
@@ -373,7 +432,8 @@ class AccessoireAdminDetailSerializer(AccessoireSerializer):
 
 class AccessoirePublicListSerializer(AccessoireSerializer):
     class Meta(AccessoireSerializer.Meta):
-       fields = [f for f in AccessoireSerializer.Meta.fields if f not in ('produits_similaires', 'reference_sku', 'images_supplementaires', 'stock_quantite', 'taux_reduction')] 
+       fields = [f for f in AccessoireSerializer.Meta.fields if f not in ('description_courte',
+            'matiere', 'couleur', 'taille','poids_grammes','produits_similaires', 'reference_sku', 'images_supplementaires','taux_reduction')] 
 
 class AccessoirePublicDetailSerializer(AccessoireSerializer):
     class Meta(AccessoireSerializer.Meta):
@@ -386,7 +446,7 @@ class TypeFlaconSerializer(serializers.ModelSerializer):
     image = serializers.SerializerMethodField()
     class Meta:
         model  = TypeFlacon
-        fields = ['id', 'nom', 'description', 'image']
+        fields = ['id', 'nom', 'slug', 'description', 'image']
 
     @extend_schema_field(OpenApiTypes.URI)
     def get_image(self, obj):
@@ -401,7 +461,7 @@ class FlaconSerializer(serializers.ModelSerializer):
 
     class Meta:
         model  = Flacon
-        fields = [
+        fields = ['slug',
             'id', 'nom', 'reference_sku',
             'type_flacon',
             'contenance_ml',
@@ -421,6 +481,17 @@ class FlaconSerializer(serializers.ModelSerializer):
         """
         return obj.stock_quantite > obj.seuil_alerte_stock
     
+    @extend_schema_field(OpenApiTypes.URI)
+    def get_image_principale(self, obj):
+        return get_image_url(self.context.get('request'), obj.image_principale)
+
+class FlaconPublicSerializer(serializers.ModelSerializer):
+    image_principale = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Flacon
+        fields = ['id', 'nom', 'slug', 'image_principale', 'prix_unitaire', 'contenance_ml']
+
     @extend_schema_field(OpenApiTypes.URI)
     def get_image_principale(self, obj):
         return get_image_url(self.context.get('request'), obj.image_principale)
@@ -470,4 +541,3 @@ class CategorieParfumSerializer(serializers.ModelSerializer):
         model = CategorieParfum
         fields = ['id', 'nom', 'slug', 'description', 'image', 'ordre_affichage', 'actif', 'taux_reduction', 'date_creation']
         read_only_fields = ['date_creation']
-

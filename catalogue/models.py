@@ -1,6 +1,9 @@
 from django.db import models
 from decimal import Decimal
 from django.core.validators import MinValueValidator, MaxValueValidator
+from django.utils.text import slugify
+import random
+import string
 
 # UTILITAIRE — chemin dynamique pour les uploads
 
@@ -74,6 +77,7 @@ class Tag(models.Model):
     ]
     
     nom = models.CharField(max_length=100)
+    slug = models.SlugField(max_length=120, unique=True, null=True, blank=True)
     type = models.CharField(max_length=30, choices=TYPE_CHOICES)
     actif = models.BooleanField(default=True)
     date_creation = models.DateTimeField(auto_now_add=True)
@@ -87,6 +91,12 @@ class Tag(models.Model):
     
     def __str__(self):
         return f"{self.nom} ({self.get_type_display()})"
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            random_suffix = ''.join(random.choices(string.digits, k=5))
+            self.slug = f"{slugify(f'{self.nom}-{self.type}')}-{random_suffix}"
+        super().save(*args, **kwargs)
 
 
 class TagParfum(models.Model):
@@ -130,7 +140,7 @@ class TagEssence(models.Model):
 # ============================================================
 class CategorieParfum(models.Model):
     nom = models.CharField(max_length=100)
-    slug = models.SlugField(max_length=120, unique=True)
+    slug = models.SlugField(max_length=120, unique=True, blank=True)
     description = models.TextField(blank=True)
     image = models.ImageField(upload_to=upload_to_categorie,blank=True, null=True,
         help_text="Image de la catégorie (jpg, png, webp)"
@@ -157,6 +167,12 @@ class CategorieParfum(models.Model):
     def __str__(self):
         return self.nom
 
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            random_suffix = ''.join(random.choices(string.digits, k=5))
+            self.slug = f"{slugify(self.nom)}-{random_suffix}"
+        super().save(*args, **kwargs)
+
 
 class Parfum(models.Model):
     GENRE_CHOICES = [
@@ -173,7 +189,7 @@ class Parfum(models.Model):
     
     categorie = models.ForeignKey(CategorieParfum, on_delete=models.SET_NULL, null=True, related_name='parfums')
     nom = models.CharField(max_length=200)
-    slug = models.SlugField(max_length=220, unique=True)
+    slug = models.SlugField(max_length=220, unique=True, blank=True)
     marque = models.CharField(max_length=200 ,blank=True)
     duree = models.CharField(max_length=200 ,blank=True)
     reference_sku = models.CharField(max_length=100, unique=True)
@@ -229,6 +245,12 @@ class Parfum(models.Model):
     def __str__(self):
         return f"{self.nom} - {self.prix_unitaire} FCFA"
     
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            random_suffix = ''.join(random.choices(string.digits, k=5))
+            self.slug = f"{slugify(self.nom)}-{random_suffix}"
+        super().save(*args, **kwargs)
+
     @property
     def prix_actuel(self):
         return self.prix_promotionnel if self.prix_promotionnel else self.prix_unitaire
@@ -267,6 +289,7 @@ class Ingredient(models.Model):
     # ]
     
     nom = models.CharField(max_length=150)
+    slug = models.SlugField(max_length=170, unique=True, blank=True)
     description = models.TextField(blank=True)
     # note_olfactive = models.CharField(max_length=20, blank=True , null=True choices=NOTE_CHOICES)
     prix_par_ml = models.DecimalField(max_digits=10, decimal_places=2)
@@ -279,6 +302,12 @@ class Ingredient(models.Model):
         verbose_name = 'Ingrédient'
         verbose_name_plural = 'Ingrédients'
         
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            random_suffix = ''.join(random.choices(string.digits, k=5))
+            self.slug = f"{slugify(self.nom)}-{random_suffix}"
+        super().save(*args, **kwargs)
+
     def __str__(self):
         return f"{self.nom} ({self.get_note_olfactive_display()})"
 
@@ -312,6 +341,7 @@ class Essence(models.Model):
     # Identité (triplet unique)
     marque = models.CharField(max_length=100)
     nom = models.CharField(max_length=150)
+    slug = models.SlugField(max_length=170, unique=True, null=True, blank=True)
     categorie = models.CharField(max_length=20, choices=CATEGORIE_CHOICES, default='premium')
     code_reference = models.CharField(max_length=50, unique=True)
 
@@ -354,6 +384,12 @@ class Essence(models.Model):
     def __str__(self):
         return f"{self.marque} - {self.nom} ({self.get_categorie_display()})"
 
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            random_suffix = ''.join(random.choices(string.digits, k=5))
+            self.slug = f"{slugify(f'{self.marque}-{self.nom}')}-{random_suffix}"
+        super().save(*args, **kwargs)
+
     @property
     def nom_complet(self):
         return f"{self.marque} - {self.nom}"
@@ -392,6 +428,7 @@ class Essence(models.Model):
 class LotEssence(models.Model):
     essence = models.ForeignKey(Essence, on_delete=models.CASCADE, related_name='lots')
     stock_ml = models.DecimalField(max_digits=12, decimal_places=2, default=0, help_text="Quantité en ml disponible pour le laboratoire")
+    stock_precedent_ml = models.DecimalField(max_digits=12, decimal_places=2, default=0, editable=False, help_text="Stock total de l'essence avant cet ajout")
     seuil_alerte_ml = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True, help_text="Alerte si stock ≤ seuil")
     actif = models.BooleanField(default=True)
     date_reception = models.DateTimeField(auto_now_add=True)   # optionnel, pour traçabilité
@@ -418,6 +455,7 @@ class ProduitFiniEssence(models.Model):
     prix = models.DecimalField(max_digits=10, decimal_places=2)
     prix_promotionnel = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     stock_disponible = models.PositiveIntegerField(default=0)
+    stock_precedent = models.PositiveIntegerField(default=0, editable=False, help_text="Stock de ce format avant la mise à jour")
     actif = models.BooleanField(default=True)
 
     class Meta:
@@ -450,7 +488,7 @@ class ProduitFiniEssence(models.Model):
 # ============================================================
 class TypeAccessoire(models.Model):
     nom = models.CharField(max_length=100)
-    slug = models.SlugField(max_length=120, unique=True)
+    slug = models.SlugField(max_length=120, unique=True, blank=True)
     description = models.TextField(blank=True)
     icone = models.ImageField(
         upload_to=upload_to_type_accessoire,
@@ -478,12 +516,18 @@ class TypeAccessoire(models.Model):
     def __str__(self):
         return self.nom
 
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            random_suffix = ''.join(random.choices(string.digits, k=5))
+            self.slug = f"{slugify(self.nom)}-{random_suffix}"
+        super().save(*args, **kwargs)
+
 
 class Accessoire(models.Model):
     type_accessoire = models.ForeignKey(TypeAccessoire, on_delete=models.SET_NULL, null=True, related_name='accessoires')
     nom = models.CharField(max_length=200)
     marque = models.CharField(max_length=200, blank=True)
-    slug = models.SlugField(max_length=220, unique=True)
+    slug = models.SlugField(max_length=220, unique=True, blank=True)
     reference_sku = models.CharField(max_length=100, unique=True)
     description_courte = models.CharField(max_length=500, blank=True)
     description_longue = models.TextField(blank=True)
@@ -516,6 +560,12 @@ class Accessoire(models.Model):
     def __str__(self):
         return f"{self.nom} - {self.prix_unitaire} FCFA"
     
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            random_suffix = ''.join(random.choices(string.digits, k=5))
+            self.slug = f"{slugify(self.nom)}-{random_suffix}"
+        super().save(*args, **kwargs)
+
     @property
     def prix_actuel(self):
         return self.prix_promotionnel if self.prix_promotionnel else self.prix_unitaire
@@ -526,6 +576,7 @@ class Accessoire(models.Model):
 # ============================================================
 class TypeFlacon(models.Model):
     nom = models.CharField(max_length=100)
+    slug = models.SlugField(max_length=120, unique=True, null=True, blank=True)
     description = models.TextField(blank=True)
     image = models.ImageField(
         upload_to=upload_to_type_flacon,
@@ -553,10 +604,17 @@ class TypeFlacon(models.Model):
     def __str__(self):
         return self.nom
 
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            random_suffix = ''.join(random.choices(string.digits, k=5))
+            self.slug = f"{slugify(self.nom)}-{random_suffix}"
+        super().save(*args, **kwargs)
+
 
 class Flacon(models.Model):
     type_flacon = models.ForeignKey(TypeFlacon, on_delete=models.SET_NULL, null=True, related_name='flacons')
     nom = models.CharField(max_length=200)
+    slug = models.SlugField(max_length=220, unique=True, null=True, blank=True)
     reference_sku = models.CharField(max_length=100, unique=True)
     contenance_ml = models.IntegerField(help_text="30, 50, 75, 100, 150 ml")
     matiere = models.CharField(max_length=100, blank=True)
@@ -586,3 +644,8 @@ class Flacon(models.Model):
     def __str__(self):
         return f"{self.nom} ({self.contenance_ml}ml) - {self.prix_unitaire} FCFA"
     
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            random_suffix = ''.join(random.choices(string.digits, k=5))
+            self.slug = f"{slugify(f'{self.nom}-{self.contenance_ml}')}-{random_suffix}"
+        super().save(*args, **kwargs)
