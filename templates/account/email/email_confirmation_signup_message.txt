@@ -1,0 +1,11 @@
+Activation de votre compte Accessoires Exclusifs
+
+Bonjour,
+
+Merci de vous être inscrit. Afin de finaliser la création de votre compte, veuillez confirmer votre adresse email en copiant-collant le lien suivant dans votre navigateur :
+
+{{ activate_url }}
+
+Si vous n'avez pas créé ce compte, vous pouvez ignorer cet email.
+
+L'équipe Accessoires Exclusifs

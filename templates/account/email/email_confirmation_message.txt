@@ -1,0 +1,9 @@
+Bienvenue chez Accessoires Exclusifs !
+
+Merci de nous avoir rejoints. Afin de finaliser la création de votre compte, veuillez confirmer votre adresse email en copiant-collant le lien suivant dans votre navigateur :
+
+{{ activate_url }}
+
+Si vous n'avez pas créé ce compte, veuillez ignorer cet email.
+
+L'équipe Accessoires Exclusifs

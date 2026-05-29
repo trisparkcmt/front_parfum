@@ -2,8 +2,10 @@ from rest_framework import serializers
 from django.conf import settings
 from django.contrib.auth import authenticate
 from django.urls import reverse
-from dj_rest_auth.serializers import LoginSerializer
-from .models import User, Client, Prestataire, CommissionLog
+from dj_rest_auth.serializers import LoginSerializer, PasswordChangeSerializer
+from dj_rest_auth.registration.serializers import RegisterSerializer
+from drf_spectacular.utils import extend_schema_serializer
+from .models import User, Client, Prestataire, CommissionLog, Notification, PayoutTransaction, Livreur
 from catalogue.models import Favori
 from laboratoire.models import ParfumPersonnalise, ParfumPersonnaliseLigne
 from orders.models import (
@@ -14,16 +16,23 @@ from orders.models import (
 )
 
 
+@extend_schema_serializer(
+    exclude_fields=['username'],
+)
 class EmailOrTelephoneLoginSerializer(LoginSerializer):
     """Connexion avec email ou téléphone sans changer l'inscription."""
     email = serializers.CharField(required=False, allow_blank=True)
     telephone = serializers.CharField(required=False, allow_blank=True)
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # On retire le champ username par défaut pour nettoyer l'interface Swagger et l'API
+        self.fields.pop('username', None)
+
     def validate(self, attrs):
         identifier = (
             attrs.get('email')
             or attrs.get('telephone')
-            or attrs.get('username')
         )
         password = attrs.get('password')
 
@@ -42,11 +51,42 @@ class EmailOrTelephoneLoginSerializer(LoginSerializer):
             password=password
         )
         if not authenticated_user:
+            # Si le mot de passe est correct mais que l'utilisateur est inactif car non vérifié
+            if user.check_password(password) and not user.is_active:
+                from allauth.account.models import EmailAddress
+                email_address = EmailAddress.objects.filter(user=user, email=user.email).first()
+                if email_address and not email_address.verified:
+                    try:
+                        email_address.send_confirmation(self.context.get('request'), signup=False)
+                    except Exception:
+                        pass
+                    raise serializers.ValidationError({
+                        "non_field_errors": [
+                            "Votre compte n'est pas encore activé. Un email de validation a été envoyé automatiquement."
+                        ],
+                        "email_non_verifie": True,
+                        "email": user.email
+                    })
+                else:
+                    raise serializers.ValidationError("Ce compte est désactivé par un administrateur.")
             raise serializers.ValidationError('Identifiants invalides.')
 
         self.validate_auth_user_status(authenticated_user)
         if 'dj_rest_auth.registration' in settings.INSTALLED_APPS:
-            self.validate_email_verification_status(authenticated_user, email=authenticated_user.email)
+            from allauth.account.models import EmailAddress
+            email_address = EmailAddress.objects.filter(user=authenticated_user, email=authenticated_user.email).first()
+            if email_address and not email_address.verified:
+                try:
+                    email_address.send_confirmation(self.context.get('request'), signup=False)
+                except Exception:
+                    pass
+                raise serializers.ValidationError({
+                    "non_field_errors": [
+                        "Votre adresse email n'est pas vérifiée. Un email de validation a été envoyé automatiquement."
+                    ],
+                    "email_non_verifie": True,
+                    "email": authenticated_user.email
+                })
 
         attrs['user'] = authenticated_user
         return attrs
@@ -59,19 +99,153 @@ class EmailOrTelephoneLoginSerializer(LoginSerializer):
         except User.DoesNotExist:
             return None
 
+@extend_schema_serializer(
+    exclude_fields=['username', 'password1', 'password2'],
+)
+class CustomRegisterSerializer(RegisterSerializer):
+    """
+    Sérialiseur d'inscription personnalisé :
+    - Rend le téléphone, prénom et nom optionnels.
+    - Utilise les noms de champs définis dans ApiDoc.md.
+    - Préserve la validation de robustesse du mot de passe de Django.
+    """
+    email = serializers.EmailField(required=True)
+    password = serializers.CharField(write_only=True)
+    password_confirm = serializers.CharField(write_only=True)
+    first_name = serializers.CharField(required=False, allow_blank=True)
+    last_name = serializers.CharField(required=False, allow_blank=True)
+    telephone = serializers.CharField(required=False, allow_blank=True)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # On retire les champs par défaut de dj-rest-auth pour qu'ils ne polluent pas Swagger
+        # ni l'interface API, car on utilise nos propres noms (password, password_confirm)
+        self.fields.pop('username', None)
+        self.fields.pop('password1', None)
+        self.fields.pop('password2', None)
+
+    def validate(self, attrs):
+        # Validation manuelle de la correspondance des mots de passe
+        if attrs.get('password') != attrs.get('password_confirm'):
+            raise serializers.ValidationError({"password_confirm": "Les mots de passe ne correspondent pas."})
+        
+        # SOLUTION : On génère le username ici à partir de l'email.
+        # Cela évite l'erreur "Enter a valid username" car on fournit une valeur valide (ex: 'djouffogregoire')
+        # avant que les validateurs de Django ne s'exécutent.
+        if not attrs.get('username') and attrs.get('email'):
+            attrs['username'] = attrs.get('email').split('@')[0]
+
+        # On mappe les champs pour que le validateur interne d'allauth (robustesse) fonctionne
+        attrs['password1'] = attrs.get('password')
+        attrs['password2'] = attrs.get('password_confirm')
+        
+        return super().validate(attrs)
+
+    def get_cleaned_data(self):
+        # Prépare les données nettoyées pour la création de l'utilisateur
+        cleaned_data = super().get_cleaned_data()
+        cleaned_data.update({
+            'first_name': self.validated_data.get('first_name', ''),
+            'last_name': self.validated_data.get('last_name', ''),
+            'telephone': self.validated_data.get('telephone', ''),
+            # On s'assure que password1/2 sont transmis
+            'password1': self.validated_data.get('password'),
+            'password2': self.validated_data.get('password_confirm'),
+        })
+        return cleaned_data
+
+    def custom_signup(self, request, user):
+        # Enregistre les données supplémentaires sur l'objet User
+        user.first_name = self.validated_data.get('first_name', '')
+        user.last_name = self.validated_data.get('last_name', '')
+        user.telephone = self.validated_data.get('telephone', '')
+        
+        from django.conf import settings
+        if getattr(settings, 'ACCOUNT_EMAIL_VERIFICATION', 'optional') == 'mandatory':
+            user.is_active = False  # Par sécurité
+            
+        user.save()
+
+@extend_schema_serializer(
+    exclude_fields=['new_password1', 'new_password2'],
+)
+class CustomPasswordChangeSerializer(PasswordChangeSerializer):
+    """
+    Sérialiseur pour changer le mot de passe, aligné sur ApiDoc.md.
+    """
+    old_password = serializers.CharField(required=True)
+    new_password = serializers.CharField(required=True)
+    new_password_confirm = serializers.CharField(required=True)
+
+    def validate(self, attrs):
+        if attrs.get('new_password') != attrs.get('new_password_confirm'):
+            raise serializers.ValidationError(
+                {"new_password_confirm": "Les nouveaux mots de passe ne correspondent pas."}
+            )
+        
+        # On mappe vers les noms attendus par Allauth en interne
+        attrs['new_password1'] = attrs.get('new_password')
+        attrs['new_password2'] = attrs.get('new_password_confirm')
+        
+        # On vérifie la robustesse via le validateur standard
+        from django.contrib.auth.password_validation import validate_password
+        validate_password(attrs.get('new_password'), self.context['request'].user)
+        
+        return attrs
+
 class CommissionLogSerializer(serializers.ModelSerializer):
     """Serializer pour l'historique des gains"""
     class Meta:
         model = CommissionLog
         fields = ['id', 'type_operation', 'montant', 'reference_commande', 'date_operation', 'description']
 
+class NotificationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Notification
+        fields = ['id', 'type', 'title', 'message', 'url', 'is_read', 'metadata', 'created_at']
+
 class PrestataireDashboardSerializer(serializers.ModelSerializer):
     """Serializer pour le résumé du dashboard prestataire"""
-    historique = CommissionLogSerializer(source='historique_commissions', many=True, read_only=True)
+    total_gains = serializers.SerializerMethodField()
+    total_retraits = serializers.SerializerMethodField()
+    solde_bloque = serializers.SerializerMethodField()
+    payouts_recents = serializers.SerializerMethodField()
+    historique_recent = serializers.SerializerMethodField()
     
     class Meta:
         model = Prestataire
-        fields = ['solde_commission', 'taux_commission', 'code_promo', 'statut', 'historique']
+        fields = [
+            'id', 'solde_commission', 'taux_commission', 'reduction_client_pourcentage', 
+            'code_promo', 'statut', 'total_gains', 'total_retraits', 'solde_bloque', 
+            'payouts_recents', 'historique_recent'
+        ]
+
+    def get_total_gains(self, obj):
+        from django.db.models import Sum
+        res = obj.historique_commissions.filter(montant__gt=0).aggregate(Sum('montant'))['montant__sum']
+        val = res or Decimal('0.00')
+        return f"{val:.2f}"
+
+    def get_total_retraits(self, obj):
+        from django.db.models import Sum
+        res = obj.historique_commissions.filter(montant__lt=0).aggregate(Sum('montant'))['montant__sum']
+        val = abs(res) if res else Decimal('0.00')
+        return f"{val:.2f}"
+
+    def get_solde_bloque(self, obj):
+        from django.db.models import Sum
+        res = obj.payouts.filter(statut='en_cours').aggregate(Sum('montant'))['montant__sum']
+        val = res or Decimal('0.00')
+        return f"{val:.2f}"
+
+    def get_payouts_recents(self, obj):
+        recent = obj.payouts.all()[:5]
+        return PayoutTransactionSerializer(recent, many=True).data
+
+    def get_historique_recent(self, obj):
+        recent = obj.historique_commissions.all()[:10]
+        return CommissionLogSerializer(recent, many=True).data
+
 
 
 class PrestataireApplicationSerializer(serializers.ModelSerializer):
@@ -84,9 +258,10 @@ class PrestataireValidationSerializer(serializers.ModelSerializer):
     """Serializer pour la validation par l'administrateur"""
     class Meta:
         model = Prestataire
-        fields = ['taux_commission'] # L'admin doit obligatoirement remplir le taux
+        fields = ['taux_commission', 'reduction_client_pourcentage'] # L'admin doit obligatoirement remplir le taux et la réduction client
         extra_kwargs = {
-            'taux_commission': {'required': True}
+            'taux_commission': {'required': True},
+            'reduction_client_pourcentage': {'required': True}
         }
 
 class UserSerializer(serializers.ModelSerializer):
@@ -94,7 +269,18 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ['id', 'email', 'telephone', 'first_name', 'last_name', 'role']
-        read_only_fields = ['role'] # Le rôle reste non-modifiable, mais l'email l'est désormais
+        read_only_fields = ['role']
+        extra_kwargs = {
+            'email': {'read_only': True},
+        }
+
+
+class MeUpdateSerializer(serializers.ModelSerializer):
+    """Serializer pour modifier le profil sans gérer le changement d'email."""
+    class Meta:
+        model = User
+        fields = ['telephone', 'first_name', 'last_name']
+
 
 class ClientSerializer(serializers.ModelSerializer):
     """Serializer pour le profil Client complet"""
@@ -170,15 +356,33 @@ class MeFavoriSerializer(serializers.ModelSerializer):
 
 
 class MeParfumPersonnaliseLigneSerializer(serializers.ModelSerializer):
-    essence_id = serializers.IntegerField(source='essence.id', read_only=True)
-    essence_nom = serializers.CharField(source='essence.nom', read_only=True)
+    essence_type = serializers.SerializerMethodField()
+    essence_id = serializers.SerializerMethodField()
+    essence_nom = serializers.SerializerMethodField()
 
     class Meta:
         model = ParfumPersonnaliseLigne
         fields = [
-            'id', 'essence_id', 'essence_nom', 'quantite_ml',
-            'prix_par_ml_snapshot', 'prix_ligne'
+            'id', 'essence_type', 'essence_id', 'essence_nom',
+            'quantite_ml', 'prix_par_ml_snapshot', 'prix_ligne'
         ]
+
+    def get_essence_type(self, obj):
+        if obj.essence:
+            return 'catalogue'
+        if obj.essence_personnalisee:
+            return 'personnalisee'
+        return None
+
+    def get_essence_id(self, obj):
+        return obj.essence_id or obj.essence_personnalisee_id
+
+    def get_essence_nom(self, obj):
+        if obj.essence:
+            return obj.essence.essence.nom
+        if obj.essence_personnalisee:
+            return obj.essence_personnalisee.nom
+        return None
 
 
 class MeParfumPersonnaliseSerializer(serializers.ModelSerializer):
@@ -191,7 +395,7 @@ class MeParfumPersonnaliseSerializer(serializers.ModelSerializer):
         model = ParfumPersonnalise
         fields = [
             'id', 'nom', 'description', 'detail_url', 'flacon_id', 'flacon_nom',
-            'contenance_ml', 'prix_essences', 'prix_flacon_snapshot',
+            'prix_essences', 'prix_flacon_snapshot',
             'prix_total', 'statut', 'note_laboratoire', 'lignes',
             'date_creation', 'date_modification'
         ]
@@ -379,4 +583,61 @@ class AdminPrestataireUpdateSerializer(serializers.ModelSerializer):
     """Serializer pour modifier un prestataire depuis l'admin"""
     class Meta:
         model = Prestataire
-        fields = ['taux_commission', 'statut']
+        fields = ['taux_commission', 'reduction_client_pourcentage', 'statut']
+
+
+class PayoutTransactionSerializer(serializers.ModelSerializer):
+    """Serializer pour l'historique des virements"""
+    class Meta:
+        model = PayoutTransaction
+        fields = [
+            'id', 'prestataire', 'montant', 'telephone_destination',
+            'reference_unique', 'statut', 'motif_echec', 'date_creation', 'date_finalisation'
+        ]
+        read_only_fields = fields
+
+
+from decimal import Decimal
+
+class PayoutRequestSerializer(serializers.Serializer):
+    """Serializer pour valider une demande de virement admin"""
+    montant = serializers.DecimalField(max_digits=10, decimal_places=2, min_value=Decimal('0.01'))
+
+
+class LivreurSerializer(serializers.ModelSerializer):
+    """Serializer complet pour le profil Livreur"""
+    user_details = UserSerializer(source='client.user', read_only=True)
+    
+    class Meta:
+        model = Livreur
+        fields = [
+            'id', 'user_details', 'photo', 'statut', 
+            'nombre_livraisons', 'date_embauche', 'date_creation'
+        ]
+        read_only_fields = ['nombre_livraisons', 'date_creation']
+
+class LivreurUpdateSerializer(serializers.ModelSerializer):
+    """Serializer pour modifier le statut du livreur depuis l'admin"""
+    class Meta:
+        model = Livreur
+        fields = ['statut']
+
+class LivreurCommandeSerializer(serializers.ModelSerializer):
+    """Serializer allégé pour les livraisons attribuées à un livreur"""
+    client_nom = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = Commande
+        fields = [
+            'id', 'numero_commande', 'statut', 'statut_livraison', 
+            'livraison_nom_complet', 'livraison_quartier', 'livraison_ville', 
+            'livraison_telephone', 'methode_paiement', 'statut_paiement',
+            'total_ttc', 'date_creation', 'date_livraison_reelle', 'note_client',
+            'motif_echec_livraison', 'client_nom'
+        ]
+        read_only_fields = fields
+
+    def get_client_nom(self, obj):
+        user = obj.client.user
+        full_name = f"{user.first_name} {user.last_name}".strip()
+        return full_name or user.email

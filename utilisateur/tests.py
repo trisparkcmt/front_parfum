@@ -1,8 +1,9 @@
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from rest_framework.test import APITestCase
 from utilisateur.models import User
 
 
+@override_settings(ACCOUNT_EMAIL_VERIFICATION='none')
 class AuthEndpointsTest(APITestCase):
     def setUp(self):
         self.registration_url = '/api/v1/auth/registration/'
@@ -62,7 +63,11 @@ class AuthEndpointsTest(APITestCase):
         access_token = self.authenticate({'email': self.user.email, 'password': self.password})
         self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {access_token}')
 
-        response_patch = self.client.patch(self.me_url, {'telephone': '+2250700000009'}, format='json')
+        response_patch = self.client.patch(
+            self.me_url,
+            {'telephone': '+2250700000009', 'current_password': self.password},
+            format='json'
+        )
         self.assertEqual(response_patch.status_code, 200)
         self.assertEqual(response_patch.data['telephone'], '+2250700000009')
 
@@ -109,3 +114,633 @@ class AuthEndpointsTest(APITestCase):
         response_second = self.client.post(self.apply_prestataire_url, format='json')
         self.assertEqual(response_second.status_code, 400)
         self.assertIn('detail', response_second.data)
+
+
+from unittest.mock import patch
+from decimal import Decimal
+from utilisateur.models import Prestataire, PayoutTransaction, CommissionLog, Client
+
+class MonetbilPayoutsTest(APITestCase):
+    def setUp(self):
+        # 1. Admin user
+        self.admin = User.objects.create_superuser(
+            username='admin_test',
+            email='admin@example.com',
+            password='AdminPassword123!',
+            telephone='+237600000001'
+        )
+        
+        # 2. Prestataire user
+        self.prestataire_user = User.objects.create_user(
+            username='prestataire_test',
+            email='prestataire@example.com',
+            password='UserPassword123!',
+            telephone='677123456' # Cameroon number to check cleaning
+        )
+        # In utilisateur/models.py, a Client profile is automatically created on User creation (via post_save signal)
+        self.client_profile = self.prestataire_user.client
+        
+        # Create Prestataire profile
+        self.prestataire = Prestataire.objects.create(
+            client=self.client_profile,
+            code_promo='TESTPROMO',
+            taux_commission=Decimal('10.00'),
+            reduction_client_pourcentage=Decimal('5.00'),
+            solde_commission=Decimal('10000.00'),
+            statut='actif'
+        )
+
+        self.payout_url = f'/api/v1/auth/admin/prestataires/{self.prestataire.pk}/payout/'
+        self.webhook_url = '/api/v1/auth/payout/webhook/'
+
+    def test_payout_requires_admin(self):
+        # Authenticate as regular user
+        self.client.force_authenticate(user=self.prestataire_user)
+        response = self.client.post(self.payout_url, {'montant': '1000.00'}, format='json')
+        self.assertEqual(response.status_code, 403)
+
+    def test_payout_insufficient_funds(self):
+        self.client.force_authenticate(user=self.admin)
+        response = self.client.post(self.payout_url, {'montant': '15000.00'}, format='json')
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('Solde insuffisant', response.data['detail'])
+        
+        # Verify no balance deduction
+        self.prestataire.refresh_from_db()
+        self.assertEqual(self.prestataire.solde_commission, Decimal('10000.00'))
+
+    def test_payout_invalid_phone(self):
+        self.client.force_authenticate(user=self.admin)
+        # Temporarily change telephone to invalid
+        self.prestataire_user.telephone = '123'
+        self.prestataire_user.save()
+        
+        response = self.client.post(self.payout_url, {'montant': '5000.00'}, format='json')
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('n\'est pas valide', response.data['detail'])
+
+    @patch('requests.post')
+    def test_payout_successful_initiation(self, mock_post):
+        # Mock Monetbil response
+        mock_post.return_value.status_code = 201
+        mock_post.return_value.json.return_value = {
+            'success': True,
+            'message': 'Successfully processed transaction.',
+            'transaction': 123456
+        }
+
+        self.client.force_authenticate(user=self.admin)
+        response = self.client.post(self.payout_url, {'montant': '5000.00'}, format='json')
+        self.assertEqual(response.status_code, 201)
+        
+        # Verify transaction database creation
+        tx = PayoutTransaction.objects.get(reference_unique=response.data['reference_unique'])
+        self.assertEqual(tx.montant, Decimal('5000.00'))
+        self.assertEqual(tx.statut, 'en_cours')
+        self.assertEqual(tx.telephone_destination, '237677123456') # Cleaned automatically
+        
+        # Verify immediate debit
+        self.prestataire.refresh_from_db()
+        self.assertEqual(self.prestataire.solde_commission, Decimal('5000.00'))
+
+    @patch('requests.post')
+    def test_payout_rejected_by_monetbil(self, mock_post):
+        # Mock Monetbil API failure
+        mock_post.return_value.status_code = 400
+        mock_post.return_value.json.return_value = {
+            'success': False,
+            'message': 'Service balance insufficient.'
+        }
+
+        self.client.force_authenticate(user=self.admin)
+        response = self.client.post(self.payout_url, {'montant': '5000.00'}, format='json')
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('rejeté l\'opération', response.data['detail'])
+        
+        # Verify balance refunded
+        self.prestataire.refresh_from_db()
+        self.assertEqual(self.prestataire.solde_commission, Decimal('10000.00'))
+        
+        # Verify transaction is recorded as echec
+        tx = PayoutTransaction.objects.get(prestataire=self.prestataire)
+        self.assertEqual(tx.statut, 'echec')
+        self.assertIn('Service balance insufficient', tx.motif_echec)
+
+    def test_webhook_success_notification(self):
+        # Create a pending transaction
+        tx = PayoutTransaction.objects.create(
+            prestataire=self.prestataire,
+            montant=Decimal('4000.00'),
+            telephone_destination='237677123456',
+            reference_unique='tx_success_123',
+            statut='en_cours'
+        )
+        # Deduct balance as done in initiation
+        self.prestataire.solde_commission -= Decimal('4000.00')
+        self.prestataire.save()
+
+        # Send webhook notification (public client, no auth required)
+        payload = {
+            'processing_number': 'tx_success_123',
+            'status': 'success',
+            'message': 'Le transfert a été effectué'
+        }
+        response = self.client.post(self.webhook_url, payload, format='json')
+        self.assertEqual(response.status_code, 200)
+        
+        # Verify transaction is marked success
+        tx.refresh_from_db()
+        self.assertEqual(tx.statut, 'succes')
+        
+        # Verify balance is NOT restored (remains at 6000)
+        self.prestataire.refresh_from_db()
+        self.assertEqual(self.prestataire.solde_commission, Decimal('6000.00'))
+        
+        # Verify CommissionLog retrait is created
+        log = CommissionLog.objects.get(prestataire=self.prestataire, type_operation='retrait')
+        self.assertEqual(log.montant, Decimal('-4000.00'))
+
+    def test_webhook_failure_notification_refunds_balance(self):
+        # Create a pending transaction
+        tx = PayoutTransaction.objects.create(
+            prestataire=self.prestataire,
+            montant=Decimal('4000.00'),
+            telephone_destination='237677123456',
+            reference_unique='tx_fail_123',
+            statut='en_cours'
+        )
+        # Deduct balance as done in initiation
+        self.prestataire.solde_commission -= Decimal('4000.00')
+        self.prestataire.save()
+
+        payload = {
+            'processing_number': 'tx_fail_123',
+            'status': 'failed',
+            'message': 'Solde insuffisant sur le compte marchand'
+        }
+        response = self.client.post(self.webhook_url, payload, format='json')
+        self.assertEqual(response.status_code, 200)
+        
+        # Verify transaction is marked echec
+        tx.refresh_from_db()
+        self.assertEqual(tx.statut, 'echec')
+        self.assertEqual(tx.motif_echec, 'Solde insuffisant sur le compte marchand')
+        
+        # Verify balance is restored/refunded
+        self.prestataire.refresh_from_db()
+        self.assertEqual(self.prestataire.solde_commission, Decimal('10000.00'))
+
+
+class PrestataireDashboardEndpointsTest(APITestCase):
+    def setUp(self):
+        # 1. Admin user
+        self.admin = User.objects.create_superuser(
+            username='admin_dashboard_test',
+            email='admin_db@example.com',
+            password='AdminPassword123!'
+        )
+        
+        # 2. Regular user (no prestataire)
+        self.regular_user = User.objects.create_user(
+            username='client_test',
+            email='client@example.com',
+            password='UserPassword123!'
+        )
+        
+        # 3. Active Prestataire user
+        self.prest_user = User.objects.create_user(
+            username='prest_user',
+            email='prest@example.com',
+            password='UserPassword123!'
+        )
+        self.prest = Prestataire.objects.create(
+            client=self.prest_user.client,
+            code_promo='PREST1',
+            taux_commission=Decimal('15.00'),
+            reduction_client_pourcentage=Decimal('5.00'),
+            solde_commission=Decimal('8000.00'),
+            statut='actif'
+        )
+        
+        # 4. Inactive Prestataire user
+        self.inactive_user = User.objects.create_user(
+            username='inactive_user',
+            email='inactive@example.com',
+            password='UserPassword123!'
+        )
+        self.inactive_prest = Prestataire.objects.create(
+            client=self.inactive_user.client,
+            code_promo='PREST_INACTIVE',
+            statut='en_attente'
+        )
+
+        # Create some logs for prest
+        # positive commissions (credits)
+        CommissionLog.objects.create(prestataire=self.prest, type_operation='vente', montant=Decimal('5000.00'), description='Sale 1')
+        CommissionLog.objects.create(prestataire=self.prest, type_operation='bonus', montant=Decimal('2000.00'), description='Bonus 1')
+        # negative commissions (debits)
+        CommissionLog.objects.create(prestataire=self.prest, type_operation='retrait', montant=Decimal('-3000.00'), description='Retrait 1')
+
+        # Create some payouts
+        PayoutTransaction.objects.create(
+            prestataire=self.prest,
+            montant=Decimal('1000.00'),
+            telephone_destination='237677123456',
+            reference_unique='tx_payout_1',
+            statut='en_cours'
+        )
+        PayoutTransaction.objects.create(
+            prestataire=self.prest,
+            montant=Decimal('2000.00'),
+            telephone_destination='237677123456',
+            reference_unique='tx_payout_2',
+            statut='succes'
+        )
+
+        self.dashboard_url = '/api/v1/auth/prestataire/dashboard/'
+        self.history_url = '/api/v1/auth/prestataire/historique/'
+        self.payouts_url = '/api/v1/auth/prestataire/payouts/'
+
+    def test_dashboard_access_control(self):
+        # Unauthenticated -> 401
+        response = self.client.get(self.dashboard_url)
+        self.assertEqual(response.status_code, 401)
+
+        # Regular user -> 403
+        self.client.force_authenticate(user=self.regular_user)
+        response = self.client.get(self.dashboard_url)
+        self.assertEqual(response.status_code, 403)
+
+        # Inactive prestataire -> 403
+        self.client.force_authenticate(user=self.inactive_user)
+        response = self.client.get(self.dashboard_url)
+        self.assertEqual(response.status_code, 403)
+
+        # Active prestataire -> 200
+        self.client.force_authenticate(user=self.prest_user)
+        response = self.client.get(self.dashboard_url)
+        self.assertEqual(response.status_code, 200)
+
+    def test_dashboard_stats_and_data(self):
+        self.client.force_authenticate(user=self.prest_user)
+        response = self.client.get(self.dashboard_url)
+        self.assertEqual(response.status_code, 200)
+        
+        # Verify stats
+        self.assertEqual(response.data['solde_commission'], '8000.00')
+        self.assertEqual(response.data['total_gains'], '7000.00') # 5000 + 2000
+        self.assertEqual(response.data['total_retraits'], '3000.00') # abs(-3000)
+        self.assertEqual(response.data['solde_bloque'], '1000.00') # payout in progress
+
+        # Verify recent items are serialized
+        self.assertEqual(len(response.data['historique_recent']), 3)
+        self.assertEqual(len(response.data['payouts_recents']), 2)
+
+    def test_admin_access_to_prestataire_dashboard(self):
+        self.client.force_authenticate(user=self.admin)
+        
+        # Without prestataire_id query param -> returns 200 with global stats
+        response = self.client.get(self.dashboard_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['id'], None)
+        self.assertEqual(response.data['solde_commission'], '8000.00')
+        self.assertEqual(response.data['total_gains'], '7000.00')
+        self.assertEqual(response.data['total_retraits'], '3000.00')
+        self.assertEqual(response.data['solde_bloque'], '1000.00')
+        
+        # With prestataire_id query param -> returns specific prestataire stats
+        response = self.client.get(f"{self.dashboard_url}?prestataire_id={self.prest.pk}")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['code_promo'], 'PREST1')
+
+    def test_prestataire_finance_history_filtering_and_pagination(self):
+        self.client.force_authenticate(user=self.prest_user)
+        
+        # General list (no filter) -> returns paginated results
+        response = self.client.get(self.history_url)
+        self.assertEqual(response.status_code, 200)
+        # Should have results (paginated envelope contains 'results')
+        self.assertIn('results', response.data)
+        self.assertEqual(len(response.data['results']), 3)
+
+        # Filtering by type_operation = 'retrait'
+        response = self.client.get(f"{self.history_url}?type_operation=retrait")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data['results']), 1)
+        self.assertEqual(response.data['results'][0]['type_operation'], 'retrait')
+
+    def test_admin_access_to_finance_history(self):
+        self.client.force_authenticate(user=self.admin)
+        # With prestataire_id
+        response = self.client.get(f"{self.history_url}?prestataire_id={self.prest.pk}")
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('results', response.data)
+        self.assertEqual(len(response.data['results']), 3)
+
+        # Without prestataire_id -> global history of all prestataires
+        response = self.client.get(self.history_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('results', response.data)
+        self.assertEqual(len(response.data['results']), 3)
+
+    def test_prestataire_payouts_list(self):
+        self.client.force_authenticate(user=self.prest_user)
+        response = self.client.get(self.payouts_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('results', response.data)
+        self.assertEqual(len(response.data['results']), 2)
+
+        # Filter by status
+        response = self.client.get(f"{self.payouts_url}?statut=en_cours")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data['results']), 1)
+        self.assertEqual(response.data['results'][0]['statut'], 'en_cours')
+
+    def test_admin_access_to_payouts_list(self):
+        self.client.force_authenticate(user=self.admin)
+        # With prestataire_id
+        response = self.client.get(f"{self.payouts_url}?prestataire_id={self.prest.pk}")
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('results', response.data)
+        self.assertEqual(len(response.data['results']), 2)
+
+        # Without prestataire_id -> global payouts of all prestataires
+        response = self.client.get(self.payouts_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('results', response.data)
+        self.assertEqual(len(response.data['results']), 2)
+
+
+from utilisateur.models import Livreur
+from orders.models import Commande
+
+class LivreurEndpointsTest(APITestCase):
+    def setUp(self):
+        # Admin user
+        self.admin = User.objects.create_superuser(
+            username='admin_livreur_test',
+            email='admin_livreur@example.com',
+            password='AdminPassword123!',
+            telephone='+237600000002'
+        )
+
+        # Standard client user
+        self.client_user = User.objects.create_user(
+            username='client_test',
+            email='client@example.com',
+            password='UserPassword123!',
+            telephone='+237600000003'
+        )
+
+        # Livreur user (active)
+        self.livreur_user = User.objects.create_user(
+            username='livreur_test',
+            email='livreur@example.com',
+            password='LivreurPassword123!',
+            telephone='+237600000004'
+        )
+        self.livreur = Livreur.objects.create(
+            client=self.livreur_user.client,
+            statut='disponible'
+        )
+
+        # Inactive Livreur user
+        self.inactive_livreur_user = User.objects.create_user(
+            username='inactive_livreur_test',
+            email='inactive_livreur@example.com',
+            password='LivreurPassword123!',
+            telephone='+237600000005'
+        )
+        self.inactive_livreur = Livreur.objects.create(
+            client=self.inactive_livreur_user.client,
+            statut='inactif'
+        )
+
+        # Commandes (Orders)
+        self.commande_cash = Commande.objects.create(
+            numero_commande='CMD-CASH-123',
+            client=self.client_user.client,
+            statut='en_attente',
+            statut_livraison='en_attente_affectation',
+            sous_total=Decimal('5000.00'),
+            total_ttc=Decimal('5500.00'),
+            livraison_nom_complet='Jean Dupont',
+            livraison_telephone='+237600000003',
+            methode_paiement='cash',
+            statut_paiement='en_attente'
+        )
+
+        self.commande_momo = Commande.objects.create(
+            numero_commande='CMD-MOMO-123',
+            client=self.client_user.client,
+            statut='en_attente',
+            statut_livraison=None,
+            sous_total=Decimal('10000.00'),
+            total_ttc=Decimal('10500.00'),
+            livraison_nom_complet='Jean Dupont',
+            livraison_telephone='+237600000003',
+            methode_paiement='mobile_money',
+            statut_paiement='en_attente'
+        )
+
+    def test_access_restrictions(self):
+        # 1. Unauthenticated client
+        response = self.client.get('/api/v1/auth/livreur/dashboard/')
+        self.assertEqual(response.status_code, 401)
+
+        # 2. Standard client user on livreur dashboard
+        self.client.force_authenticate(user=self.client_user)
+        response = self.client.get('/api/v1/auth/livreur/dashboard/')
+        self.assertEqual(response.status_code, 403)
+
+        # 3. Standard client user on admin endpoints
+        response = self.client.get('/api/v1/auth/admin/livreurs/')
+        self.assertEqual(response.status_code, 403)
+
+    def test_livreur_dashboard_and_list(self):
+        # Assign commande_cash to our livreur first
+        self.commande_cash.livreur = self.livreur
+        self.commande_cash.statut_livraison = 'assignée'
+        self.commande_cash.save()
+
+        self.client.force_authenticate(user=self.livreur_user)
+        
+        # Dashboard
+        response = self.client.get('/api/v1/auth/livreur/dashboard/')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['id'], self.livreur.id)
+        self.assertEqual(response.data['statut'], 'disponible')
+        self.assertEqual(len(response.data['livraisons_actives']), 1)
+        self.assertEqual(response.data['livraisons_actives'][0]['numero_commande'], 'CMD-CASH-123')
+
+        # History list
+        response = self.client.get('/api/v1/auth/livreur/livraisons/')
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('results', response.data)
+        self.assertEqual(len(response.data['results']), 1)
+
+    def test_livreur_inactive_or_suspended_blocked(self):
+        # Make the livreur inactive
+        self.client.force_authenticate(user=self.inactive_livreur_user)
+
+        response = self.client.get('/api/v1/auth/livreur/dashboard/')
+        self.assertEqual(response.status_code, 403)
+        self.assertIn("n'est pas actif", response.data['detail'])
+
+        response = self.client.get('/api/v1/auth/livreur/livraisons/')
+        self.assertEqual(response.status_code, 403)
+
+        # Try updating status
+        response = self.client.post(
+            f'/api/v1/auth/livreur/livraisons/{self.commande_cash.pk}/statut/',
+            {'action': 'livrer'},
+            format='json'
+        )
+        self.assertEqual(response.status_code, 403)
+
+    def test_admin_assign_delivery_to_livreur(self):
+        self.client.force_authenticate(user=self.admin)
+
+        # Assign to active livreur
+        response = self.client.post(
+            f'/api/v1/auth/admin/commandes/{self.commande_cash.pk}/affecter-livreur/',
+            {'livreur_id': self.livreur.pk},
+            format='json'
+        )
+        self.assertEqual(response.status_code, 200)
+        
+        self.commande_cash.refresh_from_db()
+        self.assertEqual(self.commande_cash.livreur, self.livreur)
+        self.assertEqual(self.commande_cash.statut_livraison, 'assignée')
+
+        # Try assigning to inactive livreur
+        response = self.client.post(
+            f'/api/v1/auth/admin/commandes/{self.commande_momo.pk}/affecter-livreur/',
+            {'livreur_id': self.inactive_livreur.pk},
+            format='json'
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("inactif ou suspendu", response.data['detail'])
+
+    def test_livreur_update_delivery_status_success_cash(self):
+        # Setup assignment
+        self.commande_cash.livreur = self.livreur
+        self.commande_cash.statut_livraison = 'assignée'
+        self.commande_cash.save()
+
+        self.client.force_authenticate(user=self.livreur_user)
+
+        # Complete delivery
+        response = self.client.post(
+            f'/api/v1/auth/livreur/livraisons/{self.commande_cash.pk}/statut/',
+            {'action': 'livrer'},
+            format='json'
+        )
+        self.assertEqual(response.status_code, 200)
+
+        self.commande_cash.refresh_from_db()
+        self.assertEqual(self.commande_cash.statut_livraison, 'livrée')
+        self.assertEqual(self.commande_cash.statut, 'livrée')
+        self.assertEqual(self.commande_cash.statut_paiement, 'payé')  # Cash-on-delivery automatically updated
+        self.assertIsNotNone(self.commande_cash.date_livraison_reelle)
+
+        self.livreur.refresh_from_db()
+        self.assertEqual(self.livreur.nombre_livraisons, 1)
+
+    def test_livreur_update_delivery_status_success_mobile_money(self):
+        # Setup assignment
+        self.commande_momo.livreur = self.livreur
+        self.commande_momo.statut_livraison = 'assignée'
+        self.commande_momo.save()
+
+        self.client.force_authenticate(user=self.livreur_user)
+
+        # Complete delivery
+        response = self.client.post(
+            f'/api/v1/auth/livreur/livraisons/{self.commande_momo.pk}/statut/',
+            {'action': 'livrer'},
+            format='json'
+        )
+        self.assertEqual(response.status_code, 200)
+
+        self.commande_momo.refresh_from_db()
+        self.assertEqual(self.commande_momo.statut_livraison, 'livrée')
+        self.assertEqual(self.commande_momo.statut, 'livrée')
+        self.assertEqual(self.commande_momo.statut_paiement, 'en_attente')  # Mobile money shouldn't auto-update to paid
+
+    def test_livreur_update_delivery_status_failed(self):
+        # Setup assignment
+        self.commande_cash.livreur = self.livreur
+        self.commande_cash.statut_livraison = 'assignée'
+        self.commande_cash.save()
+
+        self.client.force_authenticate(user=self.livreur_user)
+
+        # Failed delivery attempt without motif -> 400
+        response = self.client.post(
+            f'/api/v1/auth/livreur/livraisons/{self.commande_cash.pk}/statut/',
+            {'action': 'echouer'},
+            format='json'
+        )
+        self.assertEqual(response.status_code, 400)
+
+        # Failed delivery attempt with motif
+        response = self.client.post(
+            f'/api/v1/auth/livreur/livraisons/{self.commande_cash.pk}/statut/',
+            {'action': 'echouer', 'motif': 'Client injoignable par téléphone'},
+            format='json'
+        )
+        self.assertEqual(response.status_code, 200)
+
+        self.commande_cash.refresh_from_db()
+        self.assertEqual(self.commande_cash.statut_livraison, 'échouée')
+        self.assertEqual(self.commande_cash.motif_echec_livraison, 'Client injoignable par téléphone')
+
+    def test_admin_livreurs_management(self):
+        self.client.force_authenticate(user=self.admin)
+
+        # List all livreurs
+        response = self.client.get('/api/v1/auth/admin/livreurs/')
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('results', response.data)
+        # We created two livreurs in setUp
+        self.assertEqual(len(response.data['results']), 2)
+
+        # Promote another client user to livreur
+        new_client_user = User.objects.create_user(
+            username='new_client_to_promote',
+            email='new_client@example.com',
+            password='Password123!',
+            telephone='+237600000009'
+        )
+        response = self.client.post(
+            '/api/v1/auth/admin/livreurs/promote/',
+            {'user_id': new_client_user.pk},
+            format='json'
+        )
+        self.assertEqual(response.status_code, 201)
+        self.assertTrue(Livreur.objects.filter(client=new_client_user.client).exists())
+
+        # Update livreur status
+        livreur_to_suspend = self.livreur
+        response = self.client.patch(
+            f'/api/v1/auth/admin/livreurs/{livreur_to_suspend.pk}/',
+            {'statut': 'suspendu'},
+            format='json'
+        )
+        self.assertEqual(response.status_code, 200)
+        livreur_to_suspend.refresh_from_db()
+        self.assertEqual(livreur_to_suspend.statut, 'suspendu')
+
+        # Monitor deliveries
+        self.commande_cash.livreur = self.livreur
+        self.commande_cash.statut_livraison = 'assignée'
+        self.commande_cash.save()
+
+        response = self.client.get('/api/v1/auth/admin/livraisons/')
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('results', response.data)
+        self.assertEqual(len(response.data['results']), 1)
+
+
+

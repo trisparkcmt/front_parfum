@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+    body {
+        margin: 0;
+        padding: 0;
+        background-color: #0a0a0a;
+        color: #ffffff;
+        font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+        -webkit-font-smoothing: antialiased;
+    }
+    .email-wrapper {
+        width: 100%;
+        background-color: #0a0a0a;
+        padding: 40px 0;
+    }
+    .email-content {
+        max-width: 600px;
+        margin: 0 auto;
+        background-color: #121212;
+        border: 1px solid #d4af37;
+        border-radius: 8px;
+        overflow: hidden;
+    }
+    .header {
+        text-align: center;
+        padding: 40px 20px;
+        background-color: #000000;
+        border-bottom: 1px solid #333333;
+    }
+    .logo-text {
+        color: #d4af37;
+        font-size: 28px;
+        letter-spacing: 4px;
+        text-transform: uppercase;
+        margin: 0;
+        font-weight: 300;
+    }
+    .logo-subtext {
+        color: #aaaaaa;
+        font-size: 12px;
+        letter-spacing: 2px;
+        margin-top: 10px;
+        text-transform: lowercase;
+        font-style: italic;
+    }
+    .body {
+        padding: 40px 30px;
+        line-height: 1.6;
+        color: #e0e0e0;
+    }
+    h1 {
+        color: #d4af37;
+        font-weight: 300;
+        font-size: 24px;
+        margin-top: 0;
+        margin-bottom: 20px;
+        text-align: center;
+    }
+    p {
+        margin-bottom: 20px;
+        font-size: 16px;
+    }
+    .btn-container {
+        text-align: center;
+        margin: 40px 0;
+    }
+    .btn {
+        display: inline-block;
+        padding: 14px 30px;
+        background-color: #d4af37;
+        color: #000000 !important;
+        text-decoration: none;
+        font-weight: bold;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+        font-size: 14px;
+        border-radius: 4px;
+        transition: background-color 0.3s;
+    }
+    .btn:hover {
+        background-color: #f3c93f;
+    }
+    .footer {
+        text-align: center;
+        padding: 30px;
+        background-color: #050505;
+        color: #666666;
+        font-size: 12px;
+    }
+    .footer a {
+        color: #d4af37;
+        text-decoration: none;
+    }
+</style>
+</head>
+<body>
+    <div class="email-wrapper">
+        <table class="email-content" width="100%" cellpadding="0" cellspacing="0" role="presentation">
+            <tr>
+                <td class="header">
+                    <!-- Pour utiliser ton image, décommente la ligne suivante et remplace l'URL absolue -->
+                    <!-- <img src="https://ton-site.com/media/logo.png" alt="Accessoires Exclusifs" width="150" style="margin-bottom: 15px;"> -->
+                    <h2 class="logo-text">Accessoires_Exclusifs</h2>
+                    <div class="logo-subtext">redefine your style</div>
+                </td>
+            </tr>
+            <tr>
+                <td class="body">
+                    {% block content %}{% endblock %}
+                </td>
+            </tr>
+            <tr>
+                <td class="footer">
+                    &copy; {% now "Y" %} Accessoires Exclusifs. Tous droits réservés.<br><br>
+                    Vous recevez cet email car vous êtes inscrit sur <a href="{{ frontend_url }}">notre plateforme</a>.
+                </td>
+            </tr>
+        </table>
+    </div>
+</body>
+</html>

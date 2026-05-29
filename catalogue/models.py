@@ -1,6 +1,9 @@
 from django.db import models
 from decimal import Decimal
 from django.core.validators import MinValueValidator, MaxValueValidator
+from django.utils.text import slugify
+import random
+import string
 
 # UTILITAIRE — chemin dynamique pour les uploads
 
@@ -74,6 +77,7 @@ class Tag(models.Model):
     ]
     
     nom = models.CharField(max_length=100)
+    slug = models.SlugField(max_length=120, unique=True, null=True, blank=True)
     type = models.CharField(max_length=30, choices=TYPE_CHOICES)
     actif = models.BooleanField(default=True)
     date_creation = models.DateTimeField(auto_now_add=True)
@@ -87,6 +91,12 @@ class Tag(models.Model):
     
     def __str__(self):
         return f"{self.nom} ({self.get_type_display()})"
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            random_suffix = ''.join(random.choices(string.digits, k=5))
+            self.slug = f"{slugify(f'{self.nom}-{self.type}')}-{random_suffix}"
+        super().save(*args, **kwargs)
 
 
 class TagParfum(models.Model):
@@ -130,7 +140,7 @@ class TagEssence(models.Model):
 # ============================================================
 class CategorieParfum(models.Model):
     nom = models.CharField(max_length=100)
-    slug = models.SlugField(max_length=120, unique=True)
+    slug = models.SlugField(max_length=120, unique=True, blank=True)
     description = models.TextField(blank=True)
     image = models.ImageField(upload_to=upload_to_categorie,blank=True, null=True,
         help_text="Image de la catégorie (jpg, png, webp)"
@@ -157,6 +167,12 @@ class CategorieParfum(models.Model):
     def __str__(self):
         return self.nom
 
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            random_suffix = ''.join(random.choices(string.digits, k=5))
+            self.slug = f"{slugify(self.nom)}-{random_suffix}"
+        super().save(*args, **kwargs)
+
 
 class Parfum(models.Model):
     GENRE_CHOICES = [
@@ -173,7 +189,7 @@ class Parfum(models.Model):
     
     categorie = models.ForeignKey(CategorieParfum, on_delete=models.SET_NULL, null=True, related_name='parfums')
     nom = models.CharField(max_length=200)
-    slug = models.SlugField(max_length=220, unique=True)
+    slug = models.SlugField(max_length=220, unique=True, blank=True)
     marque = models.CharField(max_length=200 ,blank=True)
     duree = models.CharField(max_length=200 ,blank=True)
     reference_sku = models.CharField(max_length=100, unique=True)
@@ -229,6 +245,12 @@ class Parfum(models.Model):
     def __str__(self):
         return f"{self.nom} - {self.prix_unitaire} FCFA"
     
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            random_suffix = ''.join(random.choices(string.digits, k=5))
+            self.slug = f"{slugify(self.nom)}-{random_suffix}"
+        super().save(*args, **kwargs)
+
     @property
     def prix_actuel(self):
         return self.prix_promotionnel if self.prix_promotionnel else self.prix_unitaire
@@ -260,15 +282,10 @@ class Parfum(models.Model):
 
 
 class Ingredient(models.Model):
-    # NOTE_CHOICES = [
-    #     ('tête', 'Tête'),
-    #     ('coeur', 'Cœur'),
-    #     ('fond', 'Fond'),
-    # ]
-    
     nom = models.CharField(max_length=150)
+    slug = models.SlugField(max_length=170, unique=True, blank=True)
     description = models.TextField(blank=True)
-    # note_olfactive = models.CharField(max_length=20, blank=True , null=True choices=NOTE_CHOICES)
+
     prix_par_ml = models.DecimalField(max_digits=10, decimal_places=2)
     stock_ml = models.DecimalField(max_digits=10, decimal_places=3, default=0)
     actif = models.BooleanField(default=True)
@@ -279,14 +296,27 @@ class Ingredient(models.Model):
         verbose_name = 'Ingrédient'
         verbose_name_plural = 'Ingrédients'
         
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            random_suffix = ''.join(random.choices(string.digits, k=5))
+            self.slug = f"{slugify(self.nom)}-{random_suffix}"
+        super().save(*args, **kwargs)
+
     def __str__(self):
-        return f"{self.nom} ({self.get_note_olfactive_display()})"
+        return self.nom
+
 
 
 from django.db import models
 from django.core.validators import MinValueValidator
 from decimal import Decimal
 import math
+
+
+# ============================================================
+# ESSENCE (catalogue)
+# ============================================================
 
 class Essence(models.Model):
     INTENSITE_CHOICES = [
@@ -303,79 +333,50 @@ class Essence(models.Model):
     CATEGORIE_CHOICES = [
         ('super_premium', 'Super Premium'),
         ('premium', 'Premium'),
-        ('high', 'High'),
-    ]
-    
+        ('high', 'High'),]
+
     # --- Identité ---
+
+
+    # Identité (triplet unique)
+    marque = models.CharField(max_length=100)
     nom = models.CharField(max_length=150)
+    slug = models.SlugField(max_length=170, unique=True, null=True, blank=True)
+    categorie = models.CharField(max_length=20, choices=CATEGORIE_CHOICES, default='premium')
     code_reference = models.CharField(max_length=50, unique=True)
-    marque = models.CharField(max_length=100, blank=True)
-    
-    # --- Descriptions ---
+
+
+    # Descriptions
     description = models.TextField(blank=True)
-    description_ia = models.TextField(blank=True, help_text="Description narrative envoyée à l'IA")
-    
-    # --- Fournisseur & Technique ---
+    description_ia = models.TextField(blank=True)
+
+    # Fournisseur & technique
+
     fournisseur = models.CharField(max_length=200, blank=True)
     origine_pays = models.CharField(max_length=100, blank=True)
     concentration_max = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
     couleur = models.CharField(max_length=50, blank=True)
     duree = models.CharField(max_length=50, blank=True)
-    
-    # --- STOCK (Logique Synchronisée) ---
-    # Nombre de flacons neufs (scellés) en rayon
-    stock_flacon = models.PositiveIntegerField(
-        default=0, 
-        verbose_name="Nombre de flacons neufs"
-    )
-    # Taille du flacon (ex: 10, 15, 30, 50, 100)
-    contenance_ml = models.PositiveIntegerField(
-        default=10, 
-        help_text="Contenance d'un flacon (ex: 10 pour 10ml)"
-    )
-    # Millilitres restants de flacons déjà ouverts pour le Labo
-    stock_ouvert_ml = models.DecimalField(
-        max_digits=10, 
-        decimal_places=2, 
-        default=0,
-        verbose_name="Reliquat Labo (ml ouverts)"
-    )
-    # Stock total calculé (Flacons neufs * contenance + stock ouvert)
-    stock_ml_total_reel = models.DecimalField(
-        max_digits=10, 
-        decimal_places=2, 
-        editable=False, 
-        default=0
-    )
-    seuil_alerte_stock = models.DecimalField(max_digits=10, decimal_places=3, null=True, blank=True)
 
-    # --- PRIX ---
-    prix_unitaire_fini = models.DecimalField(
-        max_digits=10, 
-        decimal_places=2, 
-        verbose_name="Prix du flacon",  default=0
-    )
-    # Automatiquement calculé : prix_unitaire_fini / contenance_ml
-    prix_par_ml = models.DecimalField(
-        max_digits=10, 
-        decimal_places=2, 
-        editable=False 
-    )
-    
-    # --- Attributs Olfactifs ---
+
+    # Attributs olfactifs
     intensite = models.CharField(max_length=20, choices=INTENSITE_CHOICES, blank=True)
     genre_cible = models.CharField(max_length=20, choices=GENRE_CHOICES, default='mixte')
-    categorie = models.CharField(max_length=20, choices=CATEGORIE_CHOICES, default='premium')
+
     notes_tete = models.CharField(max_length=300, blank=True)
     notes_coeur = models.CharField(max_length=300, blank=True)
     notes_fond = models.CharField(max_length=300, blank=True)
 
-    # --- Tags ---
+
+    # Tags
     tags = models.ManyToManyField('Tag', through='TagEssence', related_name='essences', blank=True)
-    
-    # --- Statuts & Dates ---
+
+    # Prix pour le laboratoire (au ml)
+    prix_par_ml = models.DecimalField(max_digits=10, decimal_places=2, default=0, help_text="Prix au ml utilisé dans le laboratoire")
+
+    # Statut
     actif = models.BooleanField(default=True)
-    vendu_comme_produit_fini = models.BooleanField(default=True)
+
     date_creation = models.DateTimeField(auto_now_add=True)
     date_modification = models.DateTimeField(auto_now=True)
 
@@ -383,111 +384,119 @@ class Essence(models.Model):
         db_table = 'essence'
         verbose_name = 'Essence'
         verbose_name_plural = 'Essences'
-        ordering = ['nom']
+
+        ordering = ['marque', 'nom']
+        unique_together = [['marque', 'nom', 'categorie']]   # ← triplet unique
 
     def __str__(self):
-        return f"{self.nom} ({self.stock_flacon} flacons | {self.stock_ouvert_ml}ml ouverts)"
+        return f"{self.marque} - {self.nom} ({self.get_categorie_display()})"
 
     def save(self, *args, **kwargs):
-        """Calculs automatiques lors de la sauvegarde."""
-        # 1. Calcul du prix au ML (Prix flacon / contenance)
-        if self.prix_unitaire_fini and self.contenance_ml:
-            self.prix_par_ml = self.prix_unitaire_fini / Decimal(self.contenance_ml)
-        
-        # 2. Mise à jour du stock total en ML (lecture seule pour info)
-        self.stock_ml_total_reel = Decimal(self.stock_flacon * self.contenance_ml) + Decimal(self.stock_ouvert_ml)
-        
+        if not self.slug:
+            random_suffix = ''.join(random.choices(string.digits, k=5))
+            self.slug = f"{slugify(f'{self.marque}-{self.nom}')}-{random_suffix}"
         super().save(*args, **kwargs)
 
-    # --- Méthodes Métier ---
-    
-    def calculer_prix_quantite(self, quantite_ml):
-        """Calcule le prix pour une quantité donnée en ml (utilisé en labo)"""
-        return self.prix_par_ml * Decimal(str(quantite_ml))
+    @property
+    def nom_complet(self):
+        return f"{self.marque} - {self.nom}"
 
     def get_tags_by_type(self, tag_type):
-        """Récupère tous les tags d'un type donné"""
         return self.tags.filter(type=tag_type)
-
-    # --- Properties (Compatibilité & Interface) ---
 
     @property
     def famille_olfactive(self):
         return [tag.nom for tag in self.get_tags_by_type('famille_olfactive')]
-    
     @property
     def humeurs_compatibles(self):
         return [tag.nom for tag in self.get_tags_by_type('humeur')]
-    
     @property
     def moments_journee(self):
         return [tag.nom for tag in self.get_tags_by_type('moment_journee')]
-    
     @property
     def occasions(self):
         return [tag.nom for tag in self.get_tags_by_type('occasion')]
-    
     @property
     def saisons_compatibles(self):
         return [tag.nom for tag in self.get_tags_by_type('saison')]
-
     @property
     def signes_astrologiques_compatibles(self):
         return [tag.nom for tag in self.get_tags_by_type('signe_astrologique')]
 
-    @property
-    def stock_ml_total(self):
-        """Retourne le stock total théorique en ML."""
-        return self.stock_ml_total_reel
-    @property
-    def tranches_age_compatibles(self):
-        # Si tu veux garder les tranches d'âge (optionnel)
-        # Sinon, on peut aussi les mettre dans Tag avec un type 'tranche_age'
-        return []  # À implémenter si nécessaire
+
+    def stock_total_ml(self):
+        """Retourne le stock total en ml pour le laboratoire (somme des lots actifs)."""
+        from .models import LotEssence
+        total = self.lots.filter(actif=True).aggregate(total=models.Sum('stock_ml'))['total'] or 0
+        return total
+    
     # ============================================================
-    # MÉTHODES MÉTIER POUR LE STOCK
-    # ============================================================
-    def vendre_flacon(self, quantite=1):
-        """
-        Vente d'un ou plusieurs flacons neufs.
-        Décrémente stock_flacon et stock_ml_total_reel (via save()).
-        """
-        if self.stock_flacon < quantite:
-            raise ValueError(f"Stock flacons insuffisant (disponible: {self.stock_flacon})")
-        self.stock_flacon -= quantite
-        # Le stock total ml sera recalculé automatiquement dans save()
+# LOT D'ESSENCE (stock laboratoire)
+# ============================================================
+class LotEssence(models.Model):
+    essence = models.ForeignKey(Essence, on_delete=models.CASCADE, related_name='lots')
+    stock_ml = models.DecimalField(max_digits=12, decimal_places=2, default=0, help_text="Quantité en ml disponible pour le laboratoire")
+    stock_precedent_ml = models.DecimalField(max_digits=12, decimal_places=2, default=0, editable=False, help_text="Stock total de l'essence avant cet ajout")
+    seuil_alerte_ml = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True, help_text="Alerte si stock ≤ seuil")
+    actif = models.BooleanField(default=True)
+    date_reception = models.DateTimeField(auto_now_add=True)   # optionnel, pour traçabilité
+    reference_fournisseur = models.CharField(max_length=100, blank=True)
+
+    class Meta:
+        db_table = 'lot_essence'
+        verbose_name = 'Lot d\'essence (labo)'
+        verbose_name_plural = 'Lots d\'essence (labo)'
+        ordering = ['date_reception']
+
+    def __str__(self):
+        return f"{self.essence.nom_complet} - {self.stock_ml} ml"
+
+    @property
+    def stock_insuffisant(self):
+        return self.seuil_alerte_ml is not None and self.stock_ml <= self.seuil_alerte_ml
+   # ============================================================
+# PRODUIT FINI (essence vendue en flacon)
+# ============================================================
+class ProduitFiniEssence(models.Model):
+    essence = models.ForeignKey(Essence, on_delete=models.CASCADE, related_name='produits_finis')
+    taille_ml = models.PositiveIntegerField(help_text="Taille du flacon vendu (ex: 10, 15, 30, 50)")
+    prix = models.DecimalField(max_digits=10, decimal_places=2)
+    prix_promotionnel = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    stock_disponible = models.PositiveIntegerField(default=0)
+    stock_precedent = models.PositiveIntegerField(default=0, editable=False, help_text="Stock de ce format avant la mise à jour")
+    actif = models.BooleanField(default=True)
+
+    class Meta:
+        db_table = 'produit_fini_essence'
+        verbose_name = 'Produit fini (essence)'
+        verbose_name_plural = 'Produits finis (essences)'
+        unique_together = [['essence', 'taille_ml']]
+
+    def __str__(self):
+        return f"{self.essence.nom_complet} - {self.taille_ml}ml - {self.prix} FCFA"
+
+    @property
+    def prix_actuel(self):
+        return self.prix_promotionnel if self.prix_promotionnel else self.prix
+
+    @property
+    def prix_par_ml(self):
+        return self.prix_actuel / self.taille_ml if self.taille_ml else 0
+
+    def vendre(self, quantite=1):
+        """Vente d'un ou plusieurs flacons (pour les commandes)."""
+        if self.stock_disponible < quantite:
+            raise ValueError("Stock insuffisant")
+        self.stock_disponible -= quantite
         self.save()
-
-    def prelever_ml(self, quantite_ml):
-        """
-        Prélèvement pour le laboratoire (parfum personnalisé).
-        Utilise d'abord le reliquat ouvert (stock_ouvert_ml), puis ouvre des flacons neufs si nécessaire.
-        """
-        if self.stock_ml_total_reel < quantite_ml:
-            raise ValueError(f"Stock total insuffisant (disponible: {self.stock_ml_total_reel} ml)")
-
-        # On utilise d'abord le stock déjà ouvert
-        if self.stock_ouvert_ml >= quantite_ml:
-            self.stock_ouvert_ml -= quantite_ml
-        else:
-            reste = quantite_ml - self.stock_ouvert_ml
-            self.stock_ouvert_ml = 0
-            # Calcul du nombre de flacons neufs à ouvrir (division entière supérieure)
-            flacons_ouvrir = (reste + self.contenance_ml - 1) // self.contenance_ml
-            if self.stock_flacon < flacons_ouvrir:
-                raise ValueError("Stock flacons insuffisant pour ouvrir de nouveaux flacons")
-            self.stock_flacon -= flacons_ouvrir
-            # Le nouveau reliquat est ce qui reste dans les flacons ouverts après prélèvement
-            self.stock_ouvert_ml = (flacons_ouvrir * self.contenance_ml) - reste
-        self.save()
-
+        # Note : aucune décrémentation sur LotEssence car la vente en flacon ne touche pas le stock laboratoire.
 
 # ============================================================
 # ACCESSOIRES
 # ============================================================
 class TypeAccessoire(models.Model):
     nom = models.CharField(max_length=100)
-    slug = models.SlugField(max_length=120, unique=True)
+    slug = models.SlugField(max_length=120, unique=True, blank=True)
     description = models.TextField(blank=True)
     icone = models.ImageField(
         upload_to=upload_to_type_accessoire,
@@ -515,12 +524,18 @@ class TypeAccessoire(models.Model):
     def __str__(self):
         return self.nom
 
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            random_suffix = ''.join(random.choices(string.digits, k=5))
+            self.slug = f"{slugify(self.nom)}-{random_suffix}"
+        super().save(*args, **kwargs)
+
 
 class Accessoire(models.Model):
     type_accessoire = models.ForeignKey(TypeAccessoire, on_delete=models.SET_NULL, null=True, related_name='accessoires')
     nom = models.CharField(max_length=200)
     marque = models.CharField(max_length=200, blank=True)
-    slug = models.SlugField(max_length=220, unique=True)
+    slug = models.SlugField(max_length=220, unique=True, blank=True)
     reference_sku = models.CharField(max_length=100, unique=True)
     description_courte = models.CharField(max_length=500, blank=True)
     description_longue = models.TextField(blank=True)
@@ -553,6 +568,12 @@ class Accessoire(models.Model):
     def __str__(self):
         return f"{self.nom} - {self.prix_unitaire} FCFA"
     
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            random_suffix = ''.join(random.choices(string.digits, k=5))
+            self.slug = f"{slugify(self.nom)}-{random_suffix}"
+        super().save(*args, **kwargs)
+
     @property
     def prix_actuel(self):
         return self.prix_promotionnel if self.prix_promotionnel else self.prix_unitaire
@@ -563,6 +584,7 @@ class Accessoire(models.Model):
 # ============================================================
 class TypeFlacon(models.Model):
     nom = models.CharField(max_length=100)
+    slug = models.SlugField(max_length=120, unique=True, null=True, blank=True)
     description = models.TextField(blank=True)
     image = models.ImageField(
         upload_to=upload_to_type_flacon,
@@ -590,10 +612,17 @@ class TypeFlacon(models.Model):
     def __str__(self):
         return self.nom
 
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            random_suffix = ''.join(random.choices(string.digits, k=5))
+            self.slug = f"{slugify(self.nom)}-{random_suffix}"
+        super().save(*args, **kwargs)
+
 
 class Flacon(models.Model):
     type_flacon = models.ForeignKey(TypeFlacon, on_delete=models.SET_NULL, null=True, related_name='flacons')
     nom = models.CharField(max_length=200)
+    slug = models.SlugField(max_length=220, unique=True, null=True, blank=True)
     reference_sku = models.CharField(max_length=100, unique=True)
     contenance_ml = models.IntegerField(help_text="30, 50, 75, 100, 150 ml")
     matiere = models.CharField(max_length=100, blank=True)
@@ -623,3 +652,8 @@ class Flacon(models.Model):
     def __str__(self):
         return f"{self.nom} ({self.contenance_ml}ml) - {self.prix_unitaire} FCFA"
     
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            random_suffix = ''.join(random.choices(string.digits, k=5))
+            self.slug = f"{slugify(f'{self.nom}-{self.contenance_ml}')}-{random_suffix}"
+        super().save(*args, **kwargs)

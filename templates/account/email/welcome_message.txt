@@ -1,0 +1,8 @@
+Bienvenue chez Accessoires Exclusifs !
+
+Félicitations, votre adresse email a été validée avec succès. Nous sommes ravis de vous compter parmi nos membres privilégiés.
+
+Vous pouvez dès à présent explorer notre catalogue ou créer votre propre fragrance dans le Laboratoire.
+Rendez-vous sur : {{ frontend_url }}
+
+L'équipe Accessoires Exclusifs

@@ -1,10 +1,913 @@
 openapi: 3.0.3
 info:
-  title: API Boutique de Parfums
+  title: Accessoire Exclusif API
   version: 1.0.0
-  description: Documentation interactive pour la gestion des parfums, essences et
-    accessoires.
+  description: API pour la plateforme de parfums et accessoires exclusifs
 paths:
+  /api/v1/auth/admin/commandes/{id}/affecter-livreur/:
+    post:
+      operationId: v1_auth_admin_commandes_affecter_livreur_create
+      description: Assigne une commande à un livreur actif.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - v1
+      security:
+      - jwtHeaderAuth: []
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/v1/auth/admin/livraisons/:
+    get:
+      operationId: v1_auth_admin_livraisons_retrieve
+      description: Suivi global de toutes les livraisons pour l'administrateur.
+      tags:
+      - v1
+      security:
+      - jwtHeaderAuth: []
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/v1/auth/admin/livreurs/:
+    get:
+      operationId: v1_auth_admin_livreurs_retrieve
+      description: Liste complète de tous les livreurs (pour affectation ou gestion
+        admin).
+      tags:
+      - v1
+      security:
+      - jwtHeaderAuth: []
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/v1/auth/admin/livreurs/{id}/:
+    patch:
+      operationId: v1_auth_admin_livreurs_partial_update
+      description: Modifie le profil ou le statut d'un livreur.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - v1
+      security:
+      - jwtHeaderAuth: []
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/v1/auth/admin/livreurs/promote/:
+    post:
+      operationId: v1_auth_admin_livreurs_promote_create
+      description: Crée un profil Livreur à partir d'un Client existant via son ID
+        utilisateur (user_id).
+      tags:
+      - v1
+      security:
+      - jwtHeaderAuth: []
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/v1/auth/admin/payouts/:
+    get:
+      operationId: v1_auth_admin_payouts_retrieve
+      description: Liste de tous les virements (payouts) initiés par l'admin avec
+        pagination
+      tags:
+      - v1
+      security:
+      - jwtHeaderAuth: []
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/v1/auth/admin/prestataires/:
+    get:
+      operationId: v1_auth_admin_prestataires_retrieve
+      description: Liste de tous les prestataires avec filtrage par statut
+      tags:
+      - v1
+      security:
+      - jwtHeaderAuth: []
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/v1/auth/admin/prestataires/{id}/payout/:
+    post:
+      operationId: v1_auth_admin_prestataires_payout_create
+      description: Initiation d'un virement mobile money vers un prestataire par l'administrateur
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - v1
+      security:
+      - jwtHeaderAuth: []
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/v1/auth/admin/prestataires/{id}/update/:
+    patch:
+      operationId: v1_auth_admin_prestataires_update_partial_update
+      description: Modifier le taux de commission ou le statut d'un prestataire actif
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - v1
+      security:
+      - jwtHeaderAuth: []
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/v1/auth/admin/prestataires/validate/{id}/:
+    patch:
+      operationId: v1_auth_admin_prestataires_validate_partial_update
+      description: |-
+        Endpoint pour valider un prestataire (Réservé à l'Admin).
+        L'admin doit fournir le taux_commission.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - v1
+      security:
+      - jwtHeaderAuth: []
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/v1/auth/admin/stats/global/:
+    get:
+      operationId: v1_auth_admin_stats_global_retrieve
+      description: Statistiques financières pour le dashboard admin
+      tags:
+      - v1
+      security:
+      - jwtHeaderAuth: []
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/v1/auth/admin/users/:
+    get:
+      operationId: v1_auth_admin_users_retrieve
+      description: Liste paginée et recherchable de tous les utilisateurs
+      tags:
+      - v1
+      security:
+      - jwtHeaderAuth: []
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/v1/auth/admin/users/{id}/toggle-status/:
+    patch:
+      operationId: v1_auth_admin_users_toggle_status_partial_update
+      description: Bloquer ou débloquer un utilisateur (is_active)
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - v1
+      security:
+      - jwtHeaderAuth: []
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/v1/auth/google/:
+    post:
+      operationId: v1_auth_google_create
+      description: |-
+        class used for social authentications
+        example usage for facebook with access_token
+        -------------
+        from allauth.socialaccount.providers.facebook.views import FacebookOAuth2Adapter
+
+        class FacebookLogin(SocialLoginView):
+            adapter_class = FacebookOAuth2Adapter
+        -------------
+
+        example usage for facebook with code
+
+        -------------
+        from allauth.socialaccount.providers.facebook.views import FacebookOAuth2Adapter
+        from allauth.socialaccount.providers.oauth2.client import OAuth2Client
+
+        class FacebookLogin(SocialLoginView):
+            adapter_class = FacebookOAuth2Adapter
+            client_class = OAuth2Client
+            callback_url = 'localhost:8000'
+        -------------
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SocialLogin'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/SocialLogin'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/SocialLogin'
+      security:
+      - jwtHeaderAuth: []
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SocialLogin'
+          description: ''
+  /api/v1/auth/livreur/dashboard/:
+    get:
+      operationId: v1_auth_livreur_dashboard_retrieve
+      description: |-
+        Dashboard pour le livreur connecté et actif.
+        Affiche son statut, son nombre de livraisons et ses livraisons actives.
+      tags:
+      - v1
+      security:
+      - jwtHeaderAuth: []
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/v1/auth/livreur/livraisons/:
+    get:
+      operationId: v1_auth_livreur_livraisons_retrieve
+      description: Liste paginée de toutes les livraisons assignées au livreur connecté.
+      tags:
+      - v1
+      security:
+      - jwtHeaderAuth: []
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/v1/auth/livreur/livraisons/{id}/statut/:
+    post:
+      operationId: v1_auth_livreur_livraisons_statut_create
+      description: |-
+        Mise à jour du statut d'une livraison attribuée au livreur connecté.
+        Actions autorisées : 'livrer', 'echouer'.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - v1
+      security:
+      - jwtHeaderAuth: []
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/v1/auth/login/:
+    post:
+      operationId: v1_auth_login_create
+      description: Vue obsolète pour empêcher l'utilisation du login générique non
+        sécurisé.
+      tags:
+      - v1
+      security:
+      - jwtHeaderAuth: []
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /api/v1/auth/logout/:
+    post:
+      operationId: v1_auth_logout_create
+      description: |-
+        Calls Django logout method and delete the Token object
+        assigned to the current User object.
+
+        Accepts/Returns nothing.
+      tags:
+      - v1
+      security:
+      - jwtHeaderAuth: []
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestAuthDetail'
+          description: ''
+  /api/v1/auth/me/:
+    get:
+      operationId: v1_auth_me_retrieve
+      description: Permet à l'utilisateur connecté de voir ou modifier son profil.
+      tags:
+      - v1
+      security:
+      - jwtHeaderAuth: []
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+    put:
+      operationId: v1_auth_me_update
+      description: Permet à l'utilisateur connecté de voir ou modifier son profil.
+      tags:
+      - v1
+      security:
+      - jwtHeaderAuth: []
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+    patch:
+      operationId: v1_auth_me_partial_update
+      description: Permet à l'utilisateur connecté de voir ou modifier son profil.
+      tags:
+      - v1
+      security:
+      - jwtHeaderAuth: []
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/v1/auth/me/change-email/:
+    post:
+      operationId: v1_auth_me_change_email_create
+      description: Demande le changement d'email via le flux de confirmation allauth.
+      tags:
+      - v1
+      security:
+      - jwtHeaderAuth: []
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/v1/auth/mobile/login/:
+    post:
+      operationId: v1_auth_mobile_login_create
+      description: |-
+        Vue de connexion spécifique pour Mobile / Clients API :
+        - Retourne les jetons d'accès et de rafraîchissement directement dans le corps JSON de la réponse.
+        - Supprime les cookies de la réponse pour ne pas polluer l'application mobile.
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmailOrTelephoneLogin'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/EmailOrTelephoneLogin'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/EmailOrTelephoneLogin'
+        required: true
+      security:
+      - jwtHeaderAuth: []
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmailOrTelephoneLogin'
+          description: ''
+  /api/v1/auth/password/change/:
+    post:
+      operationId: v1_auth_password_change_create
+      description: |-
+        Calls Django Auth SetPasswordForm save method.
+
+        Accepts the following POST parameters: new_password1, new_password2
+        Returns the success/fail message.
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PasswordChange'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PasswordChange'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PasswordChange'
+        required: true
+      security:
+      - jwtHeaderAuth: []
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestAuthDetail'
+          description: ''
+  /api/v1/auth/password/reset/:
+    post:
+      operationId: v1_auth_password_reset_create
+      description: |-
+        Calls Django Auth PasswordResetForm save method.
+
+        Accepts the following POST parameters: email
+        Returns the success/fail message.
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PasswordReset'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PasswordReset'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PasswordReset'
+        required: true
+      security:
+      - jwtHeaderAuth: []
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestAuthDetail'
+          description: ''
+  /api/v1/auth/password/reset/confirm/:
+    post:
+      operationId: v1_auth_password_reset_confirm_create
+      description: |-
+        Password reset e-mail link is confirmed, therefore
+        this resets the user's password.
+
+        Accepts the following POST parameters: token, uid,
+            new_password1, new_password2
+        Returns the success/fail message.
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PasswordResetConfirm'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PasswordResetConfirm'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PasswordResetConfirm'
+        required: true
+      security:
+      - jwtHeaderAuth: []
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestAuthDetail'
+          description: ''
+  /api/v1/auth/payout/webhook/:
+    get:
+      operationId: v1_auth_payout_webhook_retrieve
+      description: Webhook public appelé par Monetbil pour notifier du statut final
+        d'un virement (succès/échec)
+      tags:
+      - v1
+      security:
+      - jwtHeaderAuth: []
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+    post:
+      operationId: v1_auth_payout_webhook_create
+      description: Webhook public appelé par Monetbil pour notifier du statut final
+        d'un virement (succès/échec)
+      tags:
+      - v1
+      security:
+      - jwtHeaderAuth: []
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /api/v1/auth/prestataire/apply/:
+    post:
+      operationId: v1_auth_prestataire_apply_create
+      description: Endpoint pour qu'un utilisateur postule en tant que prestataire.
+      tags:
+      - v1
+      security:
+      - jwtHeaderAuth: []
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/v1/auth/prestataire/dashboard/:
+    get:
+      operationId: v1_auth_prestataire_dashboard_retrieve
+      description: |-
+        Dashboard pour le prestataire connecté (ou pour l'admin via ?prestataire_id=ID).
+        Si l'admin fait la requête sans prestataire_id, il accède aux infos de tous les prestataires confondus.
+        Affiche le solde, le code promo, les stats et l'historique récent.
+      tags:
+      - v1
+      security:
+      - jwtHeaderAuth: []
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/v1/auth/prestataire/historique/:
+    get:
+      operationId: v1_auth_prestataire_historique_retrieve
+      description: |-
+        Historique financier complet (crédits/débits) pour le prestataire connecté
+        (ou pour l'admin via ?prestataire_id=ID).
+        Si l'admin fait la requête sans prestataire_id, il accède à l'historique de tous les prestataires.
+        Supporte la pagination et le filtrage par type_operation.
+      tags:
+      - v1
+      security:
+      - jwtHeaderAuth: []
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/v1/auth/prestataire/payouts/:
+    get:
+      operationId: v1_auth_prestataire_payouts_retrieve
+      description: |-
+        Liste de toutes les demandes de virement initiées pour le prestataire connecté
+        (ou pour l'admin via ?prestataire_id=ID).
+        Si l'admin fait la requête sans prestataire_id, il accède aux virements de tous les prestataires.
+        Supporte la pagination.
+      tags:
+      - v1
+      security:
+      - jwtHeaderAuth: []
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/v1/auth/registration/:
+    post:
+      operationId: v1_auth_registration_create
+      description: |-
+        Registers a new user.
+
+        Accepts the following POST parameters: username, email, password1, password2.
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Register'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Register'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Register'
+        required: true
+      security:
+      - jwtHeaderAuth: []
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      - {}
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JWT'
+          description: ''
+  /api/v1/auth/registration/resend-email/:
+    post:
+      operationId: v1_auth_registration_resend_email_create
+      description: |-
+        Resends another email to an unverified email.
+
+        Accepts the following POST parameter: email.
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResendEmailVerification'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ResendEmailVerification'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ResendEmailVerification'
+        required: true
+      security:
+      - jwtHeaderAuth: []
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      - {}
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestAuthDetail'
+          description: ''
+  /api/v1/auth/registration/verify-email/:
+    post:
+      operationId: v1_auth_registration_verify_email_create
+      description: |-
+        Verifies the email associated with the provided key.
+
+        Accepts the following POST parameter: key.
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VerifyEmail'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/VerifyEmail'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/VerifyEmail'
+        required: true
+      security:
+      - jwtHeaderAuth: []
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestAuthDetail'
+          description: ''
+  /api/v1/auth/token/refresh/:
+    post:
+      operationId: v1_auth_token_refresh_create
+      description: |-
+        Takes a refresh type JSON web token and returns an access type JSON web
+        token if the refresh token is valid.
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TokenRefresh'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TokenRefresh'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TokenRefresh'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenRefresh'
+          description: ''
+  /api/v1/auth/token/verify/:
+    post:
+      operationId: v1_auth_token_verify_create
+      description: |-
+        Takes a token and indicates if it is valid.  This view provides no
+        information about a token's fitness for a particular use.
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TokenVerify'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TokenVerify'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TokenVerify'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenVerify'
+          description: ''
+  /api/v1/auth/user/:
+    get:
+      operationId: v1_auth_user_retrieve
+      description: |-
+        Reads and updates UserModel fields
+        Accepts GET, PUT, PATCH methods.
+
+        Default accepted fields: username, first_name, last_name
+        Default display fields: pk, username, email, first_name, last_name
+        Read-only fields: pk, email
+
+        Returns UserModel fields.
+      tags:
+      - v1
+      security:
+      - jwtHeaderAuth: []
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserDetails'
+          description: ''
+    put:
+      operationId: v1_auth_user_update
+      description: |-
+        Reads and updates UserModel fields
+        Accepts GET, PUT, PATCH methods.
+
+        Default accepted fields: username, first_name, last_name
+        Default display fields: pk, username, email, first_name, last_name
+        Read-only fields: pk, email
+
+        Returns UserModel fields.
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserDetails'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/UserDetails'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/UserDetails'
+      security:
+      - jwtHeaderAuth: []
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserDetails'
+          description: ''
+    patch:
+      operationId: v1_auth_user_partial_update
+      description: |-
+        Reads and updates UserModel fields
+        Accepts GET, PUT, PATCH methods.
+
+        Default accepted fields: username, first_name, last_name
+        Default display fields: pk, username, email, first_name, last_name
+        Read-only fields: pk, email
+
+        Returns UserModel fields.
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedUserDetails'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedUserDetails'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedUserDetails'
+      security:
+      - jwtHeaderAuth: []
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserDetails'
+          description: ''
+  /api/v1/auth/web/login/:
+    post:
+      operationId: v1_auth_web_login_create
+      description: |-
+        Vue de connexion spécifique pour le Web :
+        - Génère et stocke les jetons d'accès et de rafraîchissement uniquement dans des cookies HttpOnly.
+        - Supprime tout jeton (access et refresh) du corps JSON de la réponse pour empêcher l'accès via JavaScript (protection XSS).
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmailOrTelephoneLogin'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/EmailOrTelephoneLogin'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/EmailOrTelephoneLogin'
+        required: true
+      security:
+      - jwtHeaderAuth: []
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmailOrTelephoneLogin'
+          description: ''
   /api/v1/lab/essences/:
     get:
       operationId: v1_lab_essences_list
@@ -13,7 +916,7 @@ paths:
         DIY\ndans le laboratoire.\n\n**Filtres disponibles** :\n- Par tags : `famille_olfactive`,
         `humeur`, `saison`, `occasion`, `signe_astrologique`, `moment_journee`\n-
         Par caractéristiques : `genre`, `intensite`\n- Par prix : `prix_min`, `prix_max`
-        (prix par ml en FCFA)\n- Par stock : `stock_min` (en litres)\n        "
+        (prix par ml en FCFA)\n- Par stock : `stock_min` (en ml)\n        "
       summary: Liste des essences
       parameters:
       - in: query
@@ -65,7 +968,7 @@ paths:
         name: ordering
         schema:
           type: string
-        description: 'Tri (ex: prix_par_ml, -stock_litre, nom)'
+        description: 'Tri (ex: prix_par_ml, -stock_ml_total_reel, nom)'
       - name: page
         required: false
         in: query
@@ -101,7 +1004,7 @@ paths:
         name: stock_min
         schema:
           type: number
-        description: Stock minimum disponible en litres
+        description: Stock minimum disponible en ml
       - in: query
         name: tags
         schema:
@@ -110,9 +1013,9 @@ paths:
       tags:
       - Essences
       security:
-      - cookieAuth: []
-      - basicAuth: []
-      - {}
+      - jwtHeaderAuth: []
+      - jwtCookieAuth: []
+      - jwtAuth: []
       responses:
         '200':
           content:
@@ -120,6 +1023,226 @@ paths:
               schema:
                 $ref: '#/components/schemas/PaginatedEssenceList'
           description: ''
+    post:
+      operationId: v1_lab_essences_create
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Essence'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Essence'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Essence'
+        required: true
+      security:
+      - jwtHeaderAuth: []
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Essence'
+          description: ''
+  /api/v1/lab/essences-perso/:
+    get:
+      operationId: v1_lab_essences_perso_list
+      parameters:
+      - in: query
+        name: client__user__email
+        schema:
+          type: string
+      - in: query
+        name: date_creation
+        schema:
+          type: string
+          format: date-time
+      - name: limit
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - in: query
+        name: nom
+        schema:
+          type: string
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - in: query
+        name: prix_par_ml_calcule
+        schema:
+          type: number
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - v1
+      security:
+      - jwtHeaderAuth: []
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedEssencePersonnaliseeList'
+          description: ''
+    post:
+      operationId: v1_lab_essences_perso_create
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EssencePersonnalisee'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/EssencePersonnalisee'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/EssencePersonnalisee'
+        required: true
+      security:
+      - jwtHeaderAuth: []
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EssencePersonnalisee'
+          description: ''
+  /api/v1/lab/essences-perso/{id}/:
+    get:
+      operationId: v1_lab_essences_perso_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Essence Personnalisée.
+        required: true
+      tags:
+      - v1
+      security:
+      - jwtHeaderAuth: []
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EssencePersonnalisee'
+          description: ''
+    put:
+      operationId: v1_lab_essences_perso_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Essence Personnalisée.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EssencePersonnalisee'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/EssencePersonnalisee'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/EssencePersonnalisee'
+        required: true
+      security:
+      - jwtHeaderAuth: []
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EssencePersonnalisee'
+          description: ''
+    patch:
+      operationId: v1_lab_essences_perso_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Essence Personnalisée.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedEssencePersonnalisee'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedEssencePersonnalisee'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedEssencePersonnalisee'
+      security:
+      - jwtHeaderAuth: []
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EssencePersonnalisee'
+          description: ''
+    delete:
+      operationId: v1_lab_essences_perso_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Essence Personnalisée.
+        required: true
+      tags:
+      - v1
+      security:
+      - jwtHeaderAuth: []
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
   /api/v1/lab/essences/{id}/:
     get:
       operationId: v1_lab_essences_retrieve
@@ -137,15 +1260,557 @@ paths:
       tags:
       - Essences
       security:
-      - cookieAuth: []
-      - basicAuth: []
-      - {}
+      - jwtHeaderAuth: []
+      - jwtCookieAuth: []
+      - jwtAuth: []
       responses:
         '200':
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Essence'
+          description: ''
+    put:
+      operationId: v1_lab_essences_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Essence.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Essence'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Essence'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Essence'
+        required: true
+      security:
+      - jwtHeaderAuth: []
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Essence'
+          description: ''
+    patch:
+      operationId: v1_lab_essences_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Essence.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedEssence'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedEssence'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedEssence'
+      security:
+      - jwtHeaderAuth: []
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Essence'
+          description: ''
+    delete:
+      operationId: v1_lab_essences_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Essence.
+        required: true
+      tags:
+      - v1
+      security:
+      - jwtHeaderAuth: []
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/lab/ia-recommandation/:
+    post:
+      operationId: v1_lab_ia_recommandation_create
+      description: Reçoit un prompt de l'utilisateur, interroge l'IA Gemini et renvoie
+        des produits.
+      tags:
+      - v1
+      security:
+      - jwtHeaderAuth: []
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /api/v1/lab/ingredients/:
+    get:
+      operationId: v1_lab_ingredients_list
+      description: "\nRetourne la liste paginée de tous les ingrédients **actifs**.\n\nLes
+        ingrédients sont les composants individuels utilisés dans le laboratoire\npour
+        créer des parfums personnalisés.\n\n**Filtres disponibles** :\n- Par prix
+        : `prix_min`, `prix_max` (prix par ml en FCFA)\n- Par stock : `stock_min`
+        (en ml)\n        "
+      summary: Liste des ingrédients
+      parameters:
+      - name: limit
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - in: query
+        name: ordering
+        schema:
+          type: string
+        description: 'Tri (ex: prix_par_ml, -stock_ml, nom)'
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - in: query
+        name: prix_max
+        schema:
+          type: number
+        description: Prix maximum par ml en FCFA
+      - in: query
+        name: prix_min
+        schema:
+          type: number
+        description: Prix minimum par ml en FCFA
+      - in: query
+        name: search
+        schema:
+          type: string
+        description: Recherche textuelle dans nom et description
+      - in: query
+        name: stock_min
+        schema:
+          type: number
+        description: Stock minimum disponible en ml
+      tags:
+      - Ingrédients
+      security:
+      - jwtHeaderAuth: []
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedIngredientList'
+          description: ''
+    post:
+      operationId: v1_lab_ingredients_create
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Ingredient'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Ingredient'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Ingredient'
+      security:
+      - jwtHeaderAuth: []
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ingredient'
+          description: ''
+  /api/v1/lab/ingredients/{id}/:
+    get:
+      operationId: v1_lab_ingredients_retrieve
+      description: Récupère les informations complètes d'un ingrédient via son **ID**.
+      summary: Détail d'un ingrédient
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Ingrédient.
+        required: true
+      tags:
+      - Ingrédients
+      security:
+      - jwtHeaderAuth: []
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ingredient'
+          description: ''
+    put:
+      operationId: v1_lab_ingredients_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Ingrédient.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Ingredient'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Ingredient'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Ingredient'
+      security:
+      - jwtHeaderAuth: []
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ingredient'
+          description: ''
+    patch:
+      operationId: v1_lab_ingredients_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Ingrédient.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedIngredient'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedIngredient'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedIngredient'
+      security:
+      - jwtHeaderAuth: []
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ingredient'
+          description: ''
+    delete:
+      operationId: v1_lab_ingredients_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Ingrédient.
+        required: true
+      tags:
+      - v1
+      security:
+      - jwtHeaderAuth: []
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/lab/parfums-perso/:
+    get:
+      operationId: v1_lab_parfums_perso_list
+      parameters:
+      - in: query
+        name: client__user__email
+        schema:
+          type: string
+      - in: query
+        name: date_creation
+        schema:
+          type: string
+          format: date-time
+      - in: query
+        name: date_modification
+        schema:
+          type: string
+          format: date-time
+      - in: query
+        name: flacon
+        schema:
+          type: integer
+      - name: limit
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - in: query
+        name: nom
+        schema:
+          type: string
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - in: query
+        name: prix_total
+        schema:
+          type: number
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      - in: query
+        name: statut
+        schema:
+          type: string
+          enum:
+          - brouillon
+          - validé
+        description: |-
+          * `brouillon` - Brouillon
+          * `validé` - Validé
+      tags:
+      - v1
+      security:
+      - jwtHeaderAuth: []
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedParfumPersonnaliseList'
+          description: ''
+    post:
+      operationId: v1_lab_parfums_perso_create
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ParfumPersonnalise'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ParfumPersonnalise'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ParfumPersonnalise'
+        required: true
+      security:
+      - jwtHeaderAuth: []
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ParfumPersonnalise'
+          description: ''
+  /api/v1/lab/parfums-perso/{id}/:
+    get:
+      operationId: v1_lab_parfums_perso_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Parfum personnalisé.
+        required: true
+      tags:
+      - v1
+      security:
+      - jwtHeaderAuth: []
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ParfumPersonnalise'
+          description: ''
+    put:
+      operationId: v1_lab_parfums_perso_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Parfum personnalisé.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ParfumPersonnalise'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ParfumPersonnalise'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ParfumPersonnalise'
+        required: true
+      security:
+      - jwtHeaderAuth: []
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ParfumPersonnalise'
+          description: ''
+    patch:
+      operationId: v1_lab_parfums_perso_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Parfum personnalisé.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedParfumPersonnalise'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedParfumPersonnalise'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedParfumPersonnalise'
+      security:
+      - jwtHeaderAuth: []
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ParfumPersonnalise'
+          description: ''
+    delete:
+      operationId: v1_lab_parfums_perso_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Parfum personnalisé.
+        required: true
+      tags:
+      - v1
+      security:
+      - jwtHeaderAuth: []
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/lab/parfums-perso/{id}/recalculer/:
+    post:
+      operationId: v1_lab_parfums_perso_recalculer_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Parfum personnalisé.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ParfumPersonnalise'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ParfumPersonnalise'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ParfumPersonnalise'
+        required: true
+      security:
+      - jwtHeaderAuth: []
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ParfumPersonnalise'
           description: ''
   /api/v1/shop/accessoires/:
     get:
@@ -221,15 +1886,42 @@ paths:
       tags:
       - Accessoires
       security:
-      - cookieAuth: []
-      - basicAuth: []
-      - {}
+      - jwtHeaderAuth: []
+      - jwtCookieAuth: []
+      - jwtAuth: []
       responses:
         '200':
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/PaginatedAccessoireList'
+          description: ''
+    post:
+      operationId: v1_shop_accessoires_create
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Accessoire'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Accessoire'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Accessoire'
+        required: true
+      security:
+      - jwtHeaderAuth: []
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Accessoire'
           description: ''
   /api/v1/shop/accessoires/{slug}/:
     get:
@@ -245,15 +1937,219 @@ paths:
       tags:
       - Accessoires
       security:
-      - cookieAuth: []
-      - basicAuth: []
-      - {}
+      - jwtHeaderAuth: []
+      - jwtCookieAuth: []
+      - jwtAuth: []
       responses:
         '200':
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Accessoire'
+          description: ''
+    put:
+      operationId: v1_shop_accessoires_update
+      parameters:
+      - in: path
+        name: slug
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Accessoire'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Accessoire'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Accessoire'
+        required: true
+      security:
+      - jwtHeaderAuth: []
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Accessoire'
+          description: ''
+    patch:
+      operationId: v1_shop_accessoires_partial_update
+      parameters:
+      - in: path
+        name: slug
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedAccessoire'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedAccessoire'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedAccessoire'
+      security:
+      - jwtHeaderAuth: []
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Accessoire'
+          description: ''
+    delete:
+      operationId: v1_shop_accessoires_destroy
+      parameters:
+      - in: path
+        name: slug
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      security:
+      - jwtHeaderAuth: []
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/shop/accessoires/{slug}/favori/:
+    post:
+      operationId: v1_shop_accessoires_favori_create
+      parameters:
+      - in: path
+        name: slug
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Accessoire'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Accessoire'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Accessoire'
+        required: true
+      security:
+      - jwtHeaderAuth: []
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Accessoire'
+          description: ''
+  /api/v1/shop/accessoires/bestsellers/:
+    get:
+      operationId: v1_shop_accessoires_bestsellers_retrieve
+      description: Top 20 parfums les plus vendus (toutes périodes)
+      tags:
+      - v1
+      security:
+      - jwtHeaderAuth: []
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Accessoire'
+          description: ''
+  /api/v1/shop/accessoires/hotsellers/:
+    get:
+      operationId: v1_shop_accessoires_hotsellers_retrieve
+      description: Top 10 parfums les plus vendus du mois en cours
+      tags:
+      - v1
+      security:
+      - jwtHeaderAuth: []
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Accessoire'
+          description: ''
+  /api/v1/shop/favoris/:
+    get:
+      operationId: v1_shop_favoris_list
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - v1
+      security:
+      - jwtHeaderAuth: []
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Favori'
+          description: ''
+  /api/v1/shop/favoris/{id}/:
+    get:
+      operationId: v1_shop_favoris_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Favori.
+        required: true
+      tags:
+      - v1
+      security:
+      - jwtHeaderAuth: []
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Favori'
           description: ''
   /api/v1/shop/flacons/:
     get:
@@ -344,9 +2240,9 @@ paths:
       tags:
       - Flacons
       security:
-      - cookieAuth: []
-      - basicAuth: []
-      - {}
+      - jwtHeaderAuth: []
+      - jwtCookieAuth: []
+      - jwtAuth: []
       responses:
         '200':
           content:
@@ -365,6 +2261,33 @@ paths:
                       en_stock: true
                   summary: Filtrer par type et contenance
           description: ''
+    post:
+      operationId: v1_shop_flacons_create
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Flacon'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Flacon'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Flacon'
+        required: true
+      security:
+      - jwtHeaderAuth: []
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Flacon'
+          description: ''
   /api/v1/shop/flacons/{id}/:
     get:
       operationId: v1_shop_flacons_retrieve
@@ -382,9 +2305,9 @@ paths:
       tags:
       - Flacons
       security:
-      - cookieAuth: []
-      - basicAuth: []
-      - {}
+      - jwtHeaderAuth: []
+      - jwtCookieAuth: []
+      - jwtAuth: []
       responses:
         '200':
           content:
@@ -392,6 +2315,91 @@ paths:
               schema:
                 $ref: '#/components/schemas/Flacon'
           description: ''
+    put:
+      operationId: v1_shop_flacons_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Flacon.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Flacon'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Flacon'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Flacon'
+        required: true
+      security:
+      - jwtHeaderAuth: []
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Flacon'
+          description: ''
+    patch:
+      operationId: v1_shop_flacons_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Flacon.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedFlacon'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedFlacon'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedFlacon'
+      security:
+      - jwtHeaderAuth: []
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Flacon'
+          description: ''
+    delete:
+      operationId: v1_shop_flacons_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Flacon.
+        required: true
+      tags:
+      - v1
+      security:
+      - jwtHeaderAuth: []
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
   /api/v1/shop/parfums/:
     get:
       operationId: v1_shop_parfums_list
@@ -496,9 +2504,9 @@ paths:
       tags:
       - Parfums
       security:
-      - cookieAuth: []
-      - basicAuth: []
-      - {}
+      - jwtHeaderAuth: []
+      - jwtCookieAuth: []
+      - jwtAuth: []
       responses:
         '200':
           content:
@@ -525,6 +2533,33 @@ paths:
                       prix_max: 50000
                   summary: Filtrer par prix
           description: ''
+    post:
+      operationId: v1_shop_parfums_create
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Parfum'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Parfum'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Parfum'
+        required: true
+      security:
+      - jwtHeaderAuth: []
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Parfum'
+          description: ''
   /api/v1/shop/parfums/{slug}/:
     get:
       operationId: v1_shop_parfums_retrieve
@@ -542,9 +2577,9 @@ paths:
       tags:
       - Parfums
       security:
-      - cookieAuth: []
-      - basicAuth: []
-      - {}
+      - jwtHeaderAuth: []
+      - jwtCookieAuth: []
+      - jwtAuth: []
       responses:
         '200':
           content:
@@ -567,6 +2602,156 @@ paths:
                     - Hiver
                     - Automne
                   summary: Parfum Royal Oud
+          description: ''
+    put:
+      operationId: v1_shop_parfums_update
+      parameters:
+      - in: path
+        name: slug
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Parfum'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Parfum'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Parfum'
+        required: true
+      security:
+      - jwtHeaderAuth: []
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Parfum'
+          description: ''
+    patch:
+      operationId: v1_shop_parfums_partial_update
+      parameters:
+      - in: path
+        name: slug
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedParfum'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedParfum'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedParfum'
+      security:
+      - jwtHeaderAuth: []
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Parfum'
+          description: ''
+    delete:
+      operationId: v1_shop_parfums_destroy
+      parameters:
+      - in: path
+        name: slug
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      security:
+      - jwtHeaderAuth: []
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/shop/parfums/{slug}/favori/:
+    post:
+      operationId: v1_shop_parfums_favori_create
+      parameters:
+      - in: path
+        name: slug
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Parfum'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Parfum'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Parfum'
+        required: true
+      security:
+      - jwtHeaderAuth: []
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Parfum'
+          description: ''
+  /api/v1/shop/parfums/bestsellers/:
+    get:
+      operationId: v1_shop_parfums_bestsellers_retrieve
+      description: Top 20 parfums les plus vendus (toutes périodes)
+      tags:
+      - v1
+      security:
+      - jwtHeaderAuth: []
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Parfum'
+          description: ''
+  /api/v1/shop/parfums/hotsellers/:
+    get:
+      operationId: v1_shop_parfums_hotsellers_retrieve
+      description: Top 10 parfums les plus vendus du mois en cours
+      tags:
+      - v1
+      security:
+      - jwtHeaderAuth: []
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Parfum'
           description: ''
 components:
   schemas:
@@ -606,15 +2791,15 @@ components:
           type: string
           format: decimal
           pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
-        prix_promotionnel:
-          type: string
-          format: decimal
-          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
-          nullable: true
         prix_actuel:
           type: string
-          format: decimal
-          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          readOnly: true
+        taux_reduction:
+          type: number
+          format: float
+          readOnly: true
+        en_promotion:
+          type: boolean
           readOnly: true
         stock_quantite:
           type: integer
@@ -628,23 +2813,60 @@ components:
           nullable: true
         image_principale:
           type: string
-          maxLength: 255
+          format: uri
+          readOnly: true
+        images_supplementaires: {}
         date_creation:
           type: string
           format: date-time
           readOnly: true
+        produits_similaires:
+          type: string
+          readOnly: true
+        is_favori:
+          type: string
+          readOnly: true
       required:
       - date_creation
+      - en_promotion
       - id
+      - image_principale
+      - is_favori
       - nom
       - prix_actuel
       - prix_unitaire
+      - produits_similaires
       - reference_sku
       - slug
+      - taux_reduction
       - type_accessoire
     BlankEnum:
       enum:
       - ''
+    CategorieEnum:
+      enum:
+      - super_premium
+      - premium
+      - high
+      type: string
+      description: |-
+        * `super_premium` - Super Premium
+        * `premium` - Premium
+        * `high` - High
+    EmailOrTelephoneLogin:
+      type: object
+      description: Connexion avec email ou téléphone sans changer l'inscription.
+      properties:
+        username:
+          type: string
+        email:
+          type: string
+        password:
+          type: string
+        telephone:
+          type: string
+      required:
+      - password
     Essence:
       type: object
       properties:
@@ -657,28 +2879,74 @@ components:
         code_reference:
           type: string
           maxLength: 50
+        marque:
+          type: string
+          maxLength: 100
         description:
           type: string
+        description_ia:
+          type: string
+          description: Description narrative envoyée à l'IA
         fournisseur:
           type: string
           maxLength: 200
         origine_pays:
           type: string
           maxLength: 100
+        stock_flacon:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          title: Nombre de flacons neufs
+        contenance_ml:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          description: 'Contenance d''un flacon (ex: 10 pour 10ml)'
+        stock_ouvert_ml:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          title: Reliquat Labo (ml ouverts)
+        stock_ml_total_reel:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          readOnly: true
+        seuil_alerte_stock:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,7}(?:\.\d{0,3})?$
+          nullable: true
+        prix_unitaire_fini:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          title: Prix du flacon
         prix_par_ml:
           type: string
           format: decimal
           pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
-        stock_litre:
-          type: string
-          format: decimal
-          pattern: ^-?\d{0,7}(?:\.\d{0,3})?$
-        genre_cible:
-          $ref: '#/components/schemas/GenreCibleEnum'
+          readOnly: true
         intensite:
           oneOf:
           - $ref: '#/components/schemas/IntensiteEnum'
           - $ref: '#/components/schemas/BlankEnum'
+        genre_cible:
+          $ref: '#/components/schemas/GenreCibleEnum'
+        categorie:
+          $ref: '#/components/schemas/CategorieEnum'
+        notes_tete:
+          type: string
+          maxLength: 300
+        notes_coeur:
+          type: string
+          maxLength: 300
+        notes_fond:
+          type: string
+          maxLength: 300
         tags:
           type: array
           items:
@@ -714,13 +2982,22 @@ components:
           items:
             type: string
           readOnly: true
+        actif:
+          type: boolean
+        vendu_comme_produit_fini:
+          type: boolean
         date_creation:
+          type: string
+          format: date-time
+          readOnly: true
+        date_modification:
           type: string
           format: date-time
           readOnly: true
       required:
       - code_reference
       - date_creation
+      - date_modification
       - famille_olfactive
       - humeurs_compatibles
       - id
@@ -730,7 +3007,116 @@ components:
       - prix_par_ml
       - saisons_compatibles
       - signes_astrologiques_compatibles
+      - stock_ml_total_reel
       - tags
+    EssenceLab:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        nom:
+          type: string
+          readOnly: true
+        code_reference:
+          type: string
+          readOnly: true
+        prix_par_ml:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          readOnly: true
+      required:
+      - code_reference
+      - id
+      - nom
+      - prix_par_ml
+    EssencePersonnalisee:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        nom:
+          type: string
+          description: Nom donné par le client à son essence
+          maxLength: 200
+        prix_par_ml_calcule:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          readOnly: true
+          description: Prix calculé en fonction des ingrédients
+        lignes:
+          type: array
+          items:
+            $ref: '#/components/schemas/EssencePersonnaliseeLigne'
+        date_creation:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - date_creation
+      - id
+      - lignes
+      - nom
+      - prix_par_ml_calcule
+    EssencePersonnaliseeLigne:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        ingredient:
+          type: integer
+        ingredient_detail:
+          allOf:
+          - $ref: '#/components/schemas/Ingredient'
+          readOnly: true
+        quantite_ml:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,5}(?:\.\d{0,3})?$
+        prix_ligne:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          readOnly: true
+      required:
+      - id
+      - ingredient
+      - ingredient_detail
+      - prix_ligne
+      - quantite_ml
+    Favori:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        date_ajout:
+          type: string
+          format: date-time
+          readOnly: true
+        nom_produit:
+          type: string
+          readOnly: true
+        prix_produit:
+          type: string
+          readOnly: true
+        image_produit:
+          type: string
+          readOnly: true
+        type_produit:
+          type: string
+          readOnly: true
+      required:
+      - date_ajout
+      - id
+      - image_produit
+      - nom_produit
+      - prix_produit
+      - type_produit
     Flacon:
       type: object
       properties:
@@ -797,7 +3183,9 @@ components:
           readOnly: true
         image_principale:
           type: string
-          maxLength: 255
+          format: uri
+          readOnly: true
+        images_supplementaires: {}
         date_creation:
           type: string
           format: date-time
@@ -806,11 +3194,42 @@ components:
       - contenance_ml
       - date_creation
       - id
+      - image_principale
       - nom
       - prix_unitaire
       - reference_sku
       - stock_suffisant
       - type_flacon
+    FlaconLab:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        nom:
+          type: string
+          readOnly: true
+        contenance_ml:
+          type: integer
+          readOnly: true
+          description: 30, 50, 75, 100, 150 ml
+        prix_unitaire:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          readOnly: true
+        image_principale:
+          type: string
+          format: uri
+          readOnly: true
+          nullable: true
+          description: Image principale du flacon
+      required:
+      - contenance_ml
+      - id
+      - image_principale
+      - nom
+      - prix_unitaire
     GenreCibleEnum:
       enum:
       - homme
@@ -821,6 +3240,35 @@ components:
         * `homme` - Homme
         * `femme` - Femme
         * `mixte` - Mixte
+    Ingredient:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        nom:
+          type: string
+          readOnly: true
+        description:
+          type: string
+          readOnly: true
+        note_olfactive:
+          readOnly: true
+          nullable: true
+          oneOf:
+          - $ref: '#/components/schemas/NoteOlfactiveEnum'
+          - $ref: '#/components/schemas/NullEnum'
+        prix_par_ml:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          readOnly: true
+      required:
+      - description
+      - id
+      - nom
+      - note_olfactive
+      - prix_par_ml
     IntensiteEnum:
       enum:
       - légère
@@ -833,6 +3281,33 @@ components:
         * `moyenne` - Moyenne
         * `forte` - Forte
         * `très forte` - Très forte
+    JWT:
+      type: object
+      description: Serializer for JWT authentication.
+      properties:
+        access:
+          type: string
+        refresh:
+          type: string
+        user:
+          $ref: '#/components/schemas/UserDetails'
+      required:
+      - access
+      - refresh
+      - user
+    NoteOlfactiveEnum:
+      enum:
+      - tête
+      - coeur
+      - fond
+      type: string
+      description: |-
+        * `tête` - Tête
+        * `coeur` - Cœur
+        * `fond` - Fond
+    NullEnum:
+      enum:
+      - null
     PaginatedAccessoireList:
       type: object
       required:
@@ -879,6 +3354,29 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Essence'
+    PaginatedEssencePersonnaliseeList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/EssencePersonnalisee'
     PaginatedFlaconList:
       type: object
       required:
@@ -902,6 +3400,29 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Flacon'
+    PaginatedIngredientList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Ingredient'
     PaginatedParfumList:
       type: object
       required:
@@ -925,6 +3446,29 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Parfum'
+    PaginatedParfumPersonnaliseList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/ParfumPersonnalise'
     Parfum:
       type: object
       properties:
@@ -954,15 +3498,22 @@ components:
           type: string
           format: decimal
           pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
-        prix_promotionnel:
-          type: string
-          format: decimal
-          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
-          nullable: true
         prix_actuel:
           type: string
-          format: decimal
-          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          description: |-
+            Retourne le prix final en str formatée '25000.00'.
+            Priorité : prix_promotionnel > prix_unitaire.
+            Le signal a déjà calculé prix_promotionnel si une réduction catégorie existe.
+          readOnly: true
+        taux_reduction:
+          type: number
+          format: float
+          description: |-
+            Calcule le taux affiché au client.
+            Retourne None si aucune réduction n'est appliquée.
+          readOnly: true
+        en_promotion:
+          type: boolean
           readOnly: true
         genre_cible:
           $ref: '#/components/schemas/GenreCibleEnum'
@@ -1010,7 +3561,10 @@ components:
           type: boolean
         image_principale:
           type: string
-          maxLength: 255
+          format: uri
+          readOnly: true
+        images_supplementaires:
+          description: URLs des images supplémentaires (géré via l'upload multiple)
         stock_quantite:
           type: integer
           maximum: 9223372036854775807
@@ -1020,20 +3574,739 @@ components:
           type: string
           format: date-time
           readOnly: true
+        produits_similaires:
+          type: string
+          readOnly: true
+        is_favori:
+          type: string
+          readOnly: true
       required:
       - contenance_ml
       - date_creation
+      - en_promotion
       - famille_olfactive
       - humeurs_compatibles
       - id
+      - image_principale
+      - is_favori
       - nom
       - occasions
       - prix_actuel
       - prix_unitaire
+      - produits_similaires
       - reference_sku
       - saisons_compatibles
       - slug
       - tags
+      - taux_reduction
+    ParfumPersonnalise:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        client:
+          type: integer
+          readOnly: true
+        flacon:
+          type: integer
+          nullable: true
+        flacon_detail:
+          allOf:
+          - $ref: '#/components/schemas/FlaconLab'
+          readOnly: true
+        nom:
+          type: string
+          maxLength: 200
+        description:
+          type: string
+        prix_essences:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          readOnly: true
+          description: Somme calculée des prix des essences
+        prix_flacon_snapshot:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          readOnly: true
+          description: Prix du flacon au moment de la création
+        prix_total:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          readOnly: true
+          description: prix_essences + prix_flacon_snapshot
+        statut:
+          allOf:
+          - $ref: '#/components/schemas/StatutEnum'
+          readOnly: true
+        note_laboratoire:
+          type: string
+          readOnly: true
+          description: Retour du labo en cas de refus
+        lignes:
+          type: array
+          items:
+            $ref: '#/components/schemas/ParfumPersonnaliseLigne'
+        date_creation:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - client
+      - date_creation
+      - flacon_detail
+      - id
+      - lignes
+      - nom
+      - note_laboratoire
+      - prix_essences
+      - prix_flacon_snapshot
+      - prix_total
+      - statut
+    ParfumPersonnaliseLigne:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        essence_catalogue:
+          type: integer
+          nullable: true
+        essence_personnalisee:
+          type: integer
+          nullable: true
+        essence_catalogue_detail:
+          allOf:
+          - $ref: '#/components/schemas/EssenceLab'
+          readOnly: true
+        essence_personnalisee_detail:
+          allOf:
+          - $ref: '#/components/schemas/EssencePersonnalisee'
+          readOnly: true
+        quantite_ml:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,5}(?:\.\d{0,3})?$
+        prix_par_ml_snapshot:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          readOnly: true
+          description: Prix de l'essence au ml au moment de la création
+        prix_ligne:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          readOnly: true
+          description: prix_par_ml_snapshot * quantite_ml
+      required:
+      - essence_catalogue_detail
+      - essence_personnalisee_detail
+      - id
+      - prix_ligne
+      - prix_par_ml_snapshot
+      - quantite_ml
+    PasswordChange:
+      type: object
+      properties:
+        new_password1:
+          type: string
+          maxLength: 128
+        new_password2:
+          type: string
+          maxLength: 128
+      required:
+      - new_password1
+      - new_password2
+    PasswordReset:
+      type: object
+      description: Serializer for requesting a password reset e-mail.
+      properties:
+        email:
+          type: string
+          format: email
+      required:
+      - email
+    PasswordResetConfirm:
+      type: object
+      description: Serializer for confirming a password reset attempt.
+      properties:
+        new_password1:
+          type: string
+          maxLength: 128
+        new_password2:
+          type: string
+          maxLength: 128
+        uid:
+          type: string
+        token:
+          type: string
+      required:
+      - new_password1
+      - new_password2
+      - token
+      - uid
+    PatchedAccessoire:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        nom:
+          type: string
+          maxLength: 200
+        slug:
+          type: string
+          maxLength: 220
+          pattern: ^[-a-zA-Z0-9_]+$
+        reference_sku:
+          type: string
+          maxLength: 100
+        type_accessoire:
+          allOf:
+          - $ref: '#/components/schemas/TypeAccessoire'
+          readOnly: true
+        description_courte:
+          type: string
+          maxLength: 500
+        matiere:
+          type: string
+          maxLength: 100
+        couleur:
+          type: string
+          maxLength: 50
+        taille:
+          type: string
+          maxLength: 50
+        prix_unitaire:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+        prix_actuel:
+          type: string
+          readOnly: true
+        taux_reduction:
+          type: number
+          format: float
+          readOnly: true
+        en_promotion:
+          type: boolean
+          readOnly: true
+        stock_quantite:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: -9223372036854775808
+          format: int64
+        poids_grammes:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,6}(?:\.\d{0,2})?$
+          nullable: true
+        image_principale:
+          type: string
+          format: uri
+          readOnly: true
+        images_supplementaires: {}
+        date_creation:
+          type: string
+          format: date-time
+          readOnly: true
+        produits_similaires:
+          type: string
+          readOnly: true
+        is_favori:
+          type: string
+          readOnly: true
+    PatchedEssence:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        nom:
+          type: string
+          maxLength: 150
+        code_reference:
+          type: string
+          maxLength: 50
+        marque:
+          type: string
+          maxLength: 100
+        description:
+          type: string
+        description_ia:
+          type: string
+          description: Description narrative envoyée à l'IA
+        fournisseur:
+          type: string
+          maxLength: 200
+        origine_pays:
+          type: string
+          maxLength: 100
+        stock_flacon:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          title: Nombre de flacons neufs
+        contenance_ml:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          description: 'Contenance d''un flacon (ex: 10 pour 10ml)'
+        stock_ouvert_ml:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          title: Reliquat Labo (ml ouverts)
+        stock_ml_total_reel:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          readOnly: true
+        seuil_alerte_stock:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,7}(?:\.\d{0,3})?$
+          nullable: true
+        prix_unitaire_fini:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          title: Prix du flacon
+        prix_par_ml:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          readOnly: true
+        intensite:
+          oneOf:
+          - $ref: '#/components/schemas/IntensiteEnum'
+          - $ref: '#/components/schemas/BlankEnum'
+        genre_cible:
+          $ref: '#/components/schemas/GenreCibleEnum'
+        categorie:
+          $ref: '#/components/schemas/CategorieEnum'
+        notes_tete:
+          type: string
+          maxLength: 300
+        notes_coeur:
+          type: string
+          maxLength: 300
+        notes_fond:
+          type: string
+          maxLength: 300
+        tags:
+          type: array
+          items:
+            $ref: '#/components/schemas/Tag'
+          readOnly: true
+        famille_olfactive:
+          type: array
+          items:
+            type: string
+          readOnly: true
+        humeurs_compatibles:
+          type: array
+          items:
+            type: string
+          readOnly: true
+        occasions:
+          type: array
+          items:
+            type: string
+          readOnly: true
+        saisons_compatibles:
+          type: array
+          items:
+            type: string
+          readOnly: true
+        signes_astrologiques_compatibles:
+          type: array
+          items:
+            type: string
+          readOnly: true
+        moments_journee:
+          type: array
+          items:
+            type: string
+          readOnly: true
+        actif:
+          type: boolean
+        vendu_comme_produit_fini:
+          type: boolean
+        date_creation:
+          type: string
+          format: date-time
+          readOnly: true
+        date_modification:
+          type: string
+          format: date-time
+          readOnly: true
+    PatchedEssencePersonnalisee:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        nom:
+          type: string
+          description: Nom donné par le client à son essence
+          maxLength: 200
+        prix_par_ml_calcule:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          readOnly: true
+          description: Prix calculé en fonction des ingrédients
+        lignes:
+          type: array
+          items:
+            $ref: '#/components/schemas/EssencePersonnaliseeLigne'
+        date_creation:
+          type: string
+          format: date-time
+          readOnly: true
+    PatchedFlacon:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        nom:
+          type: string
+          maxLength: 200
+        reference_sku:
+          type: string
+          maxLength: 100
+        type_flacon:
+          allOf:
+          - $ref: '#/components/schemas/TypeFlacon'
+          readOnly: true
+        contenance_ml:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: -9223372036854775808
+          format: int64
+          description: 30, 50, 75, 100, 150 ml
+        matiere:
+          type: string
+          maxLength: 100
+        couleur:
+          type: string
+          maxLength: 50
+        hauteur_cm:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,3}(?:\.\d{0,2})?$
+          nullable: true
+        largeur_cm:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,3}(?:\.\d{0,2})?$
+          nullable: true
+        poids_grammes:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,6}(?:\.\d{0,2})?$
+          nullable: true
+        prix_unitaire:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+        stock_quantite:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: -9223372036854775808
+          format: int64
+        seuil_alerte_stock:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: -9223372036854775808
+          format: int64
+          description: En dessous de ce seuil la commande est bloquée
+        stock_suffisant:
+          type: boolean
+          description: |-
+            True  → stock > seuil_alerte_stock (commande possible)
+            False → stock ≤ seuil_alerte_stock (commande bloquée)
+          readOnly: true
+        image_principale:
+          type: string
+          format: uri
+          readOnly: true
+        images_supplementaires: {}
+        date_creation:
+          type: string
+          format: date-time
+          readOnly: true
+    PatchedIngredient:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        nom:
+          type: string
+          maxLength: 150
+        description:
+          type: string
+        prix_par_ml:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+        stock_ml:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,7}(?:\.\d{0,3})?$
+        actif:
+          type: boolean
+        date_creation:
+          type: string
+          format: date-time
+          readOnly: true
+    PatchedParfum:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        nom:
+          type: string
+          maxLength: 200
+        slug:
+          type: string
+          maxLength: 220
+          pattern: ^[-a-zA-Z0-9_]+$
+        reference_sku:
+          type: string
+          maxLength: 100
+        description_courte:
+          type: string
+          maxLength: 500
+        contenance_ml:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: -9223372036854775808
+          format: int64
+          description: 30, 50, 75, 100 ml
+        prix_unitaire:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+        prix_actuel:
+          type: string
+          description: |-
+            Retourne le prix final en str formatée '25000.00'.
+            Priorité : prix_promotionnel > prix_unitaire.
+            Le signal a déjà calculé prix_promotionnel si une réduction catégorie existe.
+          readOnly: true
+        taux_reduction:
+          type: number
+          format: float
+          description: |-
+            Calcule le taux affiché au client.
+            Retourne None si aucune réduction n'est appliquée.
+          readOnly: true
+        en_promotion:
+          type: boolean
+          readOnly: true
+        genre_cible:
+          $ref: '#/components/schemas/GenreCibleEnum'
+        intensite:
+          oneOf:
+          - $ref: '#/components/schemas/IntensiteEnum'
+          - $ref: '#/components/schemas/BlankEnum'
+        notes_tete:
+          type: string
+          maxLength: 300
+        notes_coeur:
+          type: string
+          maxLength: 300
+        notes_fond:
+          type: string
+          maxLength: 300
+        tags:
+          type: array
+          items:
+            $ref: '#/components/schemas/Tag'
+          readOnly: true
+        famille_olfactive:
+          type: array
+          items:
+            type: string
+          readOnly: true
+        humeurs_compatibles:
+          type: array
+          items:
+            type: string
+          readOnly: true
+        occasions:
+          type: array
+          items:
+            type: string
+          readOnly: true
+        saisons_compatibles:
+          type: array
+          items:
+            type: string
+          readOnly: true
+        est_nouveau:
+          type: boolean
+        est_bestseller:
+          type: boolean
+        image_principale:
+          type: string
+          format: uri
+          readOnly: true
+        images_supplementaires:
+          description: URLs des images supplémentaires (géré via l'upload multiple)
+        stock_quantite:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: -9223372036854775808
+          format: int64
+        date_creation:
+          type: string
+          format: date-time
+          readOnly: true
+        produits_similaires:
+          type: string
+          readOnly: true
+        is_favori:
+          type: string
+          readOnly: true
+    PatchedParfumPersonnalise:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        client:
+          type: integer
+          readOnly: true
+        flacon:
+          type: integer
+          nullable: true
+        flacon_detail:
+          allOf:
+          - $ref: '#/components/schemas/FlaconLab'
+          readOnly: true
+        nom:
+          type: string
+          maxLength: 200
+        description:
+          type: string
+        prix_essences:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          readOnly: true
+          description: Somme calculée des prix des essences
+        prix_flacon_snapshot:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          readOnly: true
+          description: Prix du flacon au moment de la création
+        prix_total:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          readOnly: true
+          description: prix_essences + prix_flacon_snapshot
+        statut:
+          allOf:
+          - $ref: '#/components/schemas/StatutEnum'
+          readOnly: true
+        note_laboratoire:
+          type: string
+          readOnly: true
+          description: Retour du labo en cas de refus
+        lignes:
+          type: array
+          items:
+            $ref: '#/components/schemas/ParfumPersonnaliseLigne'
+        date_creation:
+          type: string
+          format: date-time
+          readOnly: true
+    PatchedUserDetails:
+      type: object
+      description: User model w/o password
+      properties:
+        pk:
+          type: integer
+          readOnly: true
+          title: ID
+        email:
+          type: string
+          format: email
+          readOnly: true
+        first_name:
+          type: string
+          maxLength: 150
+        last_name:
+          type: string
+          maxLength: 150
+    Register:
+      type: object
+      properties:
+        username:
+          type: string
+          maxLength: 150
+          minLength: 1
+        email:
+          type: string
+          format: email
+        password1:
+          type: string
+          writeOnly: true
+        password2:
+          type: string
+          writeOnly: true
+      required:
+      - email
+      - password1
+      - password2
+      - username
+    ResendEmailVerification:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+      required:
+      - email
+    RestAuthDetail:
+      type: object
+      properties:
+        detail:
+          type: string
+          readOnly: true
+      required:
+      - detail
+    SocialLogin:
+      type: object
+      properties:
+        access_token:
+          type: string
+        code:
+          type: string
+        id_token:
+          type: string
+    StatutEnum:
+      enum:
+      - brouillon
+      - validé
+      type: string
+      description: |-
+        * `brouillon` - Brouillon
+        * `validé` - Validé
     Tag:
       type: object
       properties:
@@ -1049,6 +4322,26 @@ components:
       - id
       - nom
       - type
+    TokenRefresh:
+      type: object
+      properties:
+        access:
+          type: string
+          readOnly: true
+        refresh:
+          type: string
+          writeOnly: true
+      required:
+      - access
+      - refresh
+    TokenVerify:
+      type: object
+      properties:
+        token:
+          type: string
+          writeOnly: true
+      required:
+      - token
     TypeAccessoire:
       type: object
       properties:
@@ -1066,8 +4359,10 @@ components:
           type: string
         icone:
           type: string
-          maxLength: 255
+          format: uri
+          readOnly: true
       required:
+      - icone
       - id
       - nom
       - slug
@@ -1100,24 +4395,51 @@ components:
           type: string
         image:
           type: string
-          maxLength: 255
+          format: uri
+          readOnly: true
       required:
       - id
+      - image
       - nom
+    UserDetails:
+      type: object
+      description: User model w/o password
+      properties:
+        pk:
+          type: integer
+          readOnly: true
+          title: ID
+        email:
+          type: string
+          format: email
+          readOnly: true
+        first_name:
+          type: string
+          maxLength: 150
+        last_name:
+          type: string
+          maxLength: 150
+      required:
+      - email
+      - pk
+    VerifyEmail:
+      type: object
+      properties:
+        key:
+          type: string
+          writeOnly: true
+      required:
+      - key
   securitySchemes:
-    basicAuth:
+    jwtAuth:
       type: http
-      scheme: basic
-    cookieAuth:
+      scheme: bearer
+      bearerFormat: JWT
+    jwtCookieAuth:
       type: apiKey
       in: cookie
-      name: sessionid
-tags:
-- name: Parfums
-  description: Catalogue des parfums
-- name: Essences
-  description: Catalogue des essences DIY
-- name: Accessoires
-  description: Catalogue des accessoires
-- name: Flacons
-  description: Catalogue des flacons
+      name: access-token
+    jwtHeaderAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

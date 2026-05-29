@@ -239,3 +239,21 @@ class PanierLigneParfumPersoAdmin(admin.ModelAdmin):
 class PanierLigneAccessoireAdmin(admin.ModelAdmin):
     list_display = ('id', 'panier', 'accessoire', 'quantite', 'sous_total')
     autocomplete_fields = ('panier', 'accessoire')
+
+
+@admin.register(CommandeLigneParfum)
+class CommandeLigneParfumAdmin(admin.ModelAdmin):
+    list_display = ('id', 'commande', 'nom_snapshot', 'quantite', 'remise_ligne', 'sous_total')
+    autocomplete_fields = ('commande',)
+
+
+@admin.register(CommandeLigneParfumPerso)
+class CommandeLigneParfumPersoAdmin(admin.ModelAdmin):
+    list_display = ('id', 'commande', 'parfum_personnalise', 'quantite', 'prix_snapshot', 'sous_total', 'statut_laboratoire')
+    autocomplete_fields = ('commande', 'parfum_personnalise')
+
+
+@admin.register(CommandeLigneAccessoire)
+class CommandeLigneAccessoireAdmin(admin.ModelAdmin):
+    list_display = ('id', 'commande', 'nom_snapshot', 'quantite', 'remise_ligne', 'sous_total')
+    autocomplete_fields = ('commande',)

@@ -1,6 +1,42 @@
 from django.db import models
-from django.contrib.auth.models import AbstractUser
+from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django.core.validators import RegexValidator
+
+class CustomUserManager(BaseUserManager):
+    def create_user(self, username=None, email=None, password=None, **extra_fields):
+        if email is None:
+            if username is not None and '@' in username:
+                email = username
+                username = None
+            else:
+                email = extra_fields.pop('email', None)
+
+        if not email:
+            raise ValueError("L'adresse email doit être fournie.")
+        
+        email = self.normalize_email(email)
+        
+        if not username:
+            username = email.split('@')[0]
+            
+        extra_fields['username'] = username
+        
+        user = self.model(email=email, **extra_fields)
+        user.set_password(password)
+        user.save(using=self._db)
+        return user
+
+    def create_superuser(self, username=None, email=None, password=None, **extra_fields):
+        extra_fields.setdefault('is_staff', True)
+        extra_fields.setdefault('is_superuser', True)
+        extra_fields.setdefault('is_active', True)
+
+        if extra_fields.get('is_staff') is not True:
+            raise ValueError('Superuser must have is_staff=True.')
+        if extra_fields.get('is_superuser') is not True:
+            raise ValueError('Superuser must have is_superuser=True.')
+
+        return self.create_user(username=username, email=email, password=password, **extra_fields)
 
 class User(AbstractUser):
     """Utilisateur de base (connexion email/téléphone)"""
@@ -10,6 +46,8 @@ class User(AbstractUser):
     
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['telephone']
+    
+    objects = CustomUserManager()
     
     class Meta:
         db_table = 'auth_user'
@@ -78,6 +116,7 @@ class Prestataire(models.Model):
    
     code_promo = models.CharField(max_length=50, unique=True, null=True, blank=True)
     taux_commission = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+    reduction_client_pourcentage = models.DecimalField(max_digits=5, decimal_places=2, default=0)
     solde_commission = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     statut = models.CharField(max_length=20, choices=STATUT_CHOICES, default='en_attente')
     date_creation = models.DateTimeField(auto_now_add=True)
@@ -163,6 +202,60 @@ class CommissionLog(models.Model):
 
     def __str__(self):
         return f"{self.prestataire.nom} - {self.type_operation} - {self.montant}€"
+
+
+class PayoutTransaction(models.Model):
+    """Transaction de virement (payout) Mobile Money vers un prestataire via Monetbil"""
+    STATUT_CHOICES = [
+        ('en_cours', 'En cours'),
+        ('succes', 'Succès'),
+        ('echec', 'Échec'),
+    ]
+
+    prestataire = models.ForeignKey(Prestataire, on_delete=models.CASCADE, related_name='payouts')
+    montant = models.DecimalField(max_digits=10, decimal_places=2)
+    telephone_destination = models.CharField(max_length=20)
+    reference_unique = models.CharField(max_length=100, unique=True)  # Correspond au processing_number de Monetbil
+    statut = models.CharField(max_length=20, choices=STATUT_CHOICES, default='en_cours')
+    motif_echec = models.TextField(blank=True, null=True)
+    date_creation = models.DateTimeField(auto_now_add=True)
+    date_finalisation = models.DateTimeField(blank=True, null=True)
+
+    class Meta:
+        db_table = 'payout_transaction'
+        ordering = ['-date_creation']
+
+    def __str__(self):
+        return f"Payout {self.reference_unique} - {self.prestataire} - {self.montant} ({self.statut})"
+
+
+class Notification(models.Model):
+    """Notification envoyée à un administrateur ou à un utilisateur."""
+    recipient = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='notifications',
+        null=True,
+        blank=True,
+        help_text='Utilisateur destinataire de la notification.'
+    )
+    type = models.CharField(max_length=100, default='general')
+    title = models.CharField(max_length=200)
+    message = models.TextField()
+    url = models.CharField(max_length=255, blank=True)
+    is_global_admin = models.BooleanField(default=False)
+    is_read = models.BooleanField(default=False)
+    metadata = models.JSONField(default=dict, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'notification'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        target = self.recipient.email if self.recipient else 'admin'
+        return f"Notification pour {target}: {self.title}"
+
 
 # ============================================================
 # SIGNALS (Automatisation)

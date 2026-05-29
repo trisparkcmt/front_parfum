@@ -7,10 +7,21 @@ from drf_spectacular.views import (
     SpectacularSwaggerView,
     SpectacularRedocView,
 )
+from utilisateur.views import confirm_email_direct, password_reset_confirm_page
 
 urlpatterns = [
     path('admin/', admin.site.urls),          # Interface d'administration Django
     path('api/', include('api.urls')),       # Redirection vers l'application API
+    path(
+        'accounts/confirm-email/<str:key>/',
+        confirm_email_direct,
+        name='account_confirm_email'
+    ),
+    path(
+        'accounts/password/reset/confirm/<str:uid>/<str:token>/',
+        password_reset_confirm_page,
+        name='password_reset_confirm'
+    ),
     path('accounts/', include('allauth.urls')), # Requis pour allauth
 
     

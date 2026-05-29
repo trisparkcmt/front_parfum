@@ -1,15 +1,116 @@
-from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import IsAuthenticated, IsAdminUser
+from allauth.account.forms import AddEmailForm
+from allauth.account.forms import default_token_generator
+from allauth.account.models import EmailConfirmation, EmailConfirmationHMAC
+from allauth.account.utils import url_str_to_user_pk
+from django.contrib.auth.forms import SetPasswordForm
+from django.contrib.auth import get_user_model
+from django.conf import settings
+from django.http import HttpResponse
+from rest_framework.decorators import api_view, permission_classes, throttle_classes
+from rest_framework.permissions import IsAuthenticated, IsAdminUser, AllowAny
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.pagination import PageNumberPagination
-from django.shortcuts import get_object_or_404
-from django.core.mail import send_mail
+from django.shortcuts import get_object_or_404, render
+from django.core.mail import send_mail, EmailMultiAlternatives
+from django.template.loader import render_to_string
+from django.db import transaction
 from django.db.models import Q, Sum
-from .serializers import UserSerializer, PrestataireSerializer, PrestataireApplicationSerializer, PrestataireValidationSerializer, MeSerializer
-from .models import Prestataire, User
+from django.utils import timezone
+from dj_rest_auth.views import LoginView, PasswordResetView
+from dj_rest_auth.app_settings import api_settings as dj_rest_auth_settings
+from .serializers import (
+    UserSerializer, PrestataireSerializer, PrestataireApplicationSerializer,
+    PrestataireValidationSerializer, MeSerializer, MeUpdateSerializer,
+    NotificationSerializer, PayoutTransactionSerializer, PayoutRequestSerializer,
+    LivreurSerializer, LivreurUpdateSerializer, LivreurCommandeSerializer
+)
+from .models import Prestataire, User, Notification, PayoutTransaction, CommissionLog, Livreur
+from orders.models import Commande
+from .throttles import (
+    ChangeEmailThrottle,
+    LoginCredentialThrottle,
+    LoginIPThrottle,
+    PasswordResetEmailThrottle,
+    PasswordResetIPThrottle,
+    RegisterEmailThrottle,
+    RegisterIPThrottle,
+    ResendEmailDailyThrottle,
+    ResendEmailShortThrottle,
+)
 import random
 import string
+import requests
+import uuid
+
+AuthUser = get_user_model()
+
+# ============================================================
+# VUE DE CONNEXION HYBRIDE (Cookie pour web + JSON pour mobile)
+# ============================================================
+
+from rest_framework.views import APIView
+
+class DeprecatedLoginView(APIView):
+    """
+    Vue obsolète pour empêcher l'utilisation du login générique non sécurisé.
+    """
+    permission_classes = (AllowAny,)
+    throttle_classes = [LoginIPThrottle]
+
+    def post(self, request, *args, **kwargs):
+        return Response(
+            {
+                "detail": "L'endpoint '/api/v1/auth/login/' est obsolète pour des raisons de sécurité. "
+                          "Veuillez utiliser '/api/v1/auth/web/login/' pour les applications Web (sécurité HttpOnly) "
+                          "ou '/api/v1/auth/mobile/login/' pour les clients Mobile/API."
+            },
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+
+class WebLoginView(LoginView):
+    """
+    Vue de connexion spécifique pour le Web :
+    - Génère et stocke les jetons d'accès et de rafraîchissement uniquement dans des cookies HttpOnly.
+    - Supprime tout jeton (access et refresh) du corps JSON de la réponse pour empêcher l'accès via JavaScript (protection XSS).
+    """
+    throttle_classes = [LoginIPThrottle, LoginCredentialThrottle]
+
+    def get_response(self):
+        response = super().get_response()
+        if response.status_code == 200:
+            # Sécurité Web : on retire les tokens du corps de la réponse JSON.
+            # Ils sont transmis de façon sécurisée via les cookies HttpOnly (Set-Cookie).
+            response.data.pop('access', None)
+            response.data.pop('refresh', None)
+        return response
+
+
+class MobileLoginView(LoginView):
+    """
+    Vue de connexion spécifique pour Mobile / Clients API :
+    - Retourne les jetons d'accès et de rafraîchissement directement dans le corps JSON de la réponse.
+    - Supprime les cookies de la réponse pour ne pas polluer l'application mobile.
+    """
+    throttle_classes = [LoginIPThrottle, LoginCredentialThrottle]
+
+    def get_response(self):
+        response = super().get_response()
+        if response.status_code == 200:
+            # Client Mobile/API : on s'assure que les deux jetons sont présents dans le JSON
+            if dj_rest_auth_settings.USE_JWT and hasattr(self, 'refresh_token') and self.refresh_token:
+                response.data['refresh'] = str(self.refresh_token)
+            
+            # Suppression des cookies de la réponse pour le client mobile
+            if hasattr(response, 'cookies'):
+                response.cookies.clear()
+        return response
+
+
+class ThrottledPasswordResetView(PasswordResetView):
+    throttle_classes = [PasswordResetIPThrottle, PasswordResetEmailThrottle]
+
 
 #==============================utils================================
 
@@ -24,6 +125,641 @@ class AdminPagination(PageNumberPagination):
     page_size = 50
     page_size_query_param = 'page_size'
     max_page_size = 100
+
+
+class PrestatairePagination(PageNumberPagination):
+    """Configuration de la pagination pour le prestataire (20 par page)"""
+    page_size = 20
+    page_size_query_param = 'page_size'
+    max_page_size = 50
+
+
+
+def confirm_email_direct(request, key):
+    """Confirme directement l'email depuis le lien allauth."""
+    confirmation = EmailConfirmationHMAC.from_key(key)
+    if confirmation is None:
+        try:
+            confirmation = EmailConfirmation.objects.get(key=key)
+        except EmailConfirmation.DoesNotExist:
+            confirmation = None
+
+    frontend_url = getattr(settings, 'FRONTEND_URL', 'http://localhost:3000')
+
+    if confirmation is None or confirmation.confirm(request) is None:
+        error_html = """<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Lien expiré | Accessoires Exclusifs</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&family=Outfit:wght@500;600;700&display=swap" rel="stylesheet">
+    <style>
+      :root {
+        --bg-color: #08090c;
+        --card-bg: rgba(17, 19, 26, 0.65);
+        --border-color: rgba(197, 160, 89, 0.15);
+        --primary-accent: #c5a059;
+        --primary-accent-glow: rgba(197, 160, 89, 0.3);
+        --text-primary: #ffffff;
+        --text-secondary: #8e95a5;
+        --error-color: #ef4444;
+        --error-bg: rgba(239, 68, 68, 0.1);
+        --error-border: rgba(239, 68, 68, 0.2);
+      }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        background-color: var(--bg-color);
+        color: var(--text-primary);
+        font-family: 'Inter', sans-serif;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow-x: hidden;
+        position: relative;
+      }
+      body::before {
+        content: "";
+        position: absolute;
+        width: 600px;
+        height: 600px;
+        background: radial-gradient(circle, rgba(197, 160, 89, 0.08) 0%, rgba(0,0,0,0) 70%);
+        top: -150px;
+        left: -150px;
+        z-index: 0;
+      }
+      body::after {
+        content: "";
+        position: absolute;
+        width: 600px;
+        height: 600px;
+        background: radial-gradient(circle, rgba(139, 92, 246, 0.05) 0%, rgba(0,0,0,0) 70%);
+        bottom: -150px;
+        right: -150px;
+        z-index: 0;
+      }
+      main {
+        position: relative;
+        z-index: 10;
+        padding: 24px;
+        width: 100%;
+        display: flex;
+        justify-content: center;
+      }
+      .card {
+        background: var(--card-bg);
+        backdrop-filter: blur(24px);
+        -webkit-backdrop-filter: blur(24px);
+        border: 1px solid var(--border-color);
+        box-shadow: 0 30px 60px rgba(0, 0, 0, 0.6), 0 0 80px rgba(197, 160, 89, 0.03);
+        border-radius: 28px;
+        padding: 48px 40px;
+        width: 100%;
+        max-width: 450px;
+        text-align: center;
+        animation: cardAppear 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
+      }
+      @keyframes cardAppear {
+        from {
+          opacity: 0;
+          transform: translateY(20px) scale(0.98);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0) scale(1);
+        }
+      }
+      .expired-icon {
+        width: 80px;
+        height: 80px;
+        margin: 0 auto 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(197, 160, 89, 0.1);
+        border-radius: 50%;
+        color: var(--primary-accent);
+        border: 1.5px solid rgba(197, 160, 89, 0.2);
+        animation: pulseIcon 2s infinite ease-in-out;
+      }
+      @keyframes pulseIcon {
+        0%, 100% {
+          box-shadow: 0 0 0 0px rgba(197, 160, 89, 0.2);
+        }
+        50% {
+          box-shadow: 0 0 0 12px rgba(197, 160, 89, 0);
+        }
+      }
+      h1 {
+        font-family: 'Outfit', sans-serif;
+        font-size: 28px;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        margin-bottom: 12px;
+        background: linear-gradient(135deg, #ffffff 30%, #e5c07b 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+      }
+      p {
+        font-size: 15px;
+        line-height: 1.6;
+        color: var(--text-secondary);
+        margin-bottom: 28px;
+      }
+      .input-group {
+        position: relative;
+        margin-bottom: 20px;
+        text-align: left;
+      }
+      .input-group input {
+        width: 100%;
+        padding: 16px 20px;
+        background: rgba(255, 255, 255, 0.02);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 14px;
+        color: var(--text-primary);
+        font-size: 15px;
+        font-family: 'Inter', sans-serif;
+        transition: all 0.3s ease;
+        outline: none;
+      }
+      .input-group input:focus {
+        border-color: var(--primary-accent);
+        box-shadow: 0 0 15px var(--primary-accent-glow);
+        background: rgba(255, 255, 255, 0.04);
+      }
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        padding: 16px 24px;
+        background: linear-gradient(135deg, #c5a059 0%, #ab843c 100%);
+        border: none;
+        border-radius: 14px;
+        color: #0b0c10;
+        font-family: 'Outfit', sans-serif;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        text-decoration: none;
+        box-shadow: 0 8px 20px rgba(197, 160, 89, 0.25);
+        transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      }
+      .btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 12px 28px rgba(197, 160, 89, 0.4);
+      }
+      .btn:active {
+        transform: translateY(0);
+      }
+      .btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none !important;
+        box-shadow: none !important;
+      }
+      .spinner {
+        display: inline-block;
+        width: 18px;
+        height: 18px;
+        border: 2px solid rgba(11, 12, 16, 0.3);
+        border-radius: 50%;
+        border-top-color: #0b0c10;
+        animation: spin 0.8s linear infinite;
+        margin-right: 10px;
+      }
+      @keyframes spin {
+        to { transform: rotate(360deg); }
+      }
+      .feedback {
+        display: none;
+        padding: 14px 16px;
+        border-radius: 12px;
+        font-size: 14px;
+        margin-bottom: 20px;
+        text-align: left;
+        line-height: 1.5;
+        animation: fadeIn 0.3s ease;
+      }
+      .feedback.error {
+        background: var(--error-bg);
+        border: 1px solid var(--error-border);
+        color: #f87171;
+      }
+      @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(-5px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+      .success-icon-container {
+        width: 80px;
+        height: 80px;
+        margin: 0 auto 24px;
+        position: relative;
+      }
+      .success-svg {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        display: block;
+        stroke-width: 2;
+        stroke: var(--primary-accent);
+        stroke-miterlimit: 10;
+        box-shadow: inset 0px 0px 0px var(--primary-accent);
+        animation: fillSuccess .4s ease-in-out .4s forwards, scaleSuccess .3s ease-in-out .9s both;
+      }
+      .success-circle {
+        stroke-dasharray: 166;
+        stroke-dashoffset: 166;
+        stroke-width: 2;
+        stroke-miterlimit: 10;
+        stroke: var(--primary-accent);
+        fill: none;
+        animation: strokeSuccess 0.6s cubic-bezier(0.65, 0, 0.45, 1) forwards;
+      }
+      .success-check {
+        transform-origin: 50% 50%;
+        stroke-dasharray: 48;
+        stroke-dashoffset: 48;
+        animation: strokeSuccess 0.3s cubic-bezier(0.65, 0, 0.45, 1) 0.8s forwards;
+      }
+      @keyframes fillSuccess {
+        100% { box-shadow: inset 0px 0px 0px 40px rgba(197, 160, 89, 0.1); }
+      }
+      @keyframes scaleSuccess {
+        0%, 100% { transform: none; }
+        50% { transform: scale3d(1.1, 1.1, 1); }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div class="card">
+        <div class="expired-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        </div>
+        <h1>Lien expiré ou invalide</h1>
+        <p>Ce lien de confirmation n'est plus valide. Entrez votre adresse email ci-dessous pour recevoir un nouveau lien de validation.</p>
+        
+        <div id="feedback" class="feedback"></div>
+        
+        <form id="resendForm">
+          <div class="input-group">
+            <input type="email" id="email" placeholder="Saisir votre adresse email" required>
+          </div>
+          <button type="submit" id="submitBtn" class="btn">Renvoyer le lien de confirmation</button>
+        </form>
+      </div>
+    </main>
+    <script>
+      document.getElementById('resendForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const emailInput = document.getElementById('email');
+        const email = emailInput.value.trim();
+        const button = document.getElementById('submitBtn');
+        const feedback = document.getElementById('feedback');
+        
+        if (!email) return;
+        
+        button.disabled = true;
+        button.innerHTML = '<span class="spinner"></span>Envoi en cours...';
+        feedback.style.display = 'none';
+        feedback.className = 'feedback';
+        
+        fetch('/api/v1/auth/registration/resend-email/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken') || ''
+          },
+          body: JSON.stringify({ email: email })
+        })
+        .then(async response => {
+          const data = await response.json();
+          if (response.ok) {
+            document.querySelector('.card').innerHTML = `
+              <div class="success-icon-container">
+                <svg class="success-svg" viewBox="0 0 52 52">
+                  <circle class="success-circle" cx="26" cy="26" r="25" fill="none"/>
+                  <path class="success-check" fill="none" d="M14.1 27.2l7.1 7.2 16.7-16.8"/>
+                </svg>
+              </div>
+              <h1 style="background: linear-gradient(135deg, #ffffff 30%, #10b981 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Lien envoyé !</h1>
+              <p style="margin-bottom: 24px;">Un nouveau lien de confirmation a été envoyé avec succès à l'adresse <strong>${escapeHtml(email)}</strong>.</p>
+              <p style="font-size: 13px; color: #64748b;">Pensez à vérifier vos spams ou courriers indésirables si vous ne le recevez pas dans quelques minutes.</p>
+              <a href="{{ FRONTEND_URL }}" class="btn" style="margin-top: 32px;">Retourner à l'accueil</a>
+            `;
+          } else {
+            button.disabled = false;
+            button.innerHTML = 'Renvoyer le lien de confirmation';
+            feedback.style.display = 'block';
+            feedback.classList.add('error');
+            
+            let errorMsg = "Une erreur est survenue lors du renvoi.";
+            if (data.detail) {
+              errorMsg = data.detail;
+            } else if (data.email) {
+              errorMsg = Array.isArray(data.email) ? data.email[0] : data.email;
+            } else if (data.non_field_errors) {
+              errorMsg = Array.isArray(data.non_field_errors) ? data.non_field_errors[0] : data.non_field_errors;
+            }
+            feedback.innerHTML = errorMsg;
+          }
+        })
+        .catch(error => {
+          button.disabled = false;
+          button.innerHTML = 'Renvoyer le lien de confirmation';
+          feedback.style.display = 'block';
+          feedback.classList.add('error');
+          feedback.innerHTML = "Impossible de se connecter au serveur. Veuillez réessayer.";
+        });
+      });
+
+      function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+          const cookies = document.cookie.split(';');
+          for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+              cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+              break;
+            }
+          }
+        }
+        return cookieValue;
+      }
+
+      function escapeHtml(str) {
+        return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+      }
+    </script>
+  </body>
+</html>""".replace('{{ FRONTEND_URL }}', frontend_url)
+        return HttpResponse(error_html, status=400)
+
+    success_html = """<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Email confirmé | Accessoires Exclusifs</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&family=Outfit:wght@500;600;700&display=swap" rel="stylesheet">
+    <style>
+      :root {
+        --bg-color: #08090c;
+        --card-bg: rgba(17, 19, 26, 0.65);
+        --border-color: rgba(197, 160, 89, 0.15);
+        --primary-accent: #c5a059;
+        --primary-accent-glow: rgba(197, 160, 89, 0.4);
+        --text-primary: #ffffff;
+        --text-secondary: #8e95a5;
+        --glow: rgba(197, 160, 89, 0.15);
+      }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        background-color: var(--bg-color);
+        color: var(--text-primary);
+        font-family: 'Inter', sans-serif;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow-x: hidden;
+        position: relative;
+      }
+      body::before {
+        content: "";
+        position: absolute;
+        width: 600px;
+        height: 600px;
+        background: radial-gradient(circle, rgba(197, 160, 89, 0.08) 0%, rgba(0,0,0,0) 70%);
+        top: -150px;
+        left: -150px;
+        z-index: 0;
+      }
+      body::after {
+        content: "";
+        position: absolute;
+        width: 600px;
+        height: 600px;
+        background: radial-gradient(circle, rgba(139, 92, 246, 0.05) 0%, rgba(0,0,0,0) 70%);
+        bottom: -150px;
+        right: -150px;
+        z-index: 0;
+      }
+      main {
+        position: relative;
+        z-index: 10;
+        padding: 24px;
+        width: 100%;
+        display: flex;
+        justify-content: center;
+      }
+      .card {
+        background: var(--card-bg);
+        backdrop-filter: blur(24px);
+        -webkit-backdrop-filter: blur(24px);
+        border: 1px solid var(--border-color);
+        box-shadow: 0 30px 60px rgba(0, 0, 0, 0.6), 0 0 80px rgba(197, 160, 89, 0.03);
+        border-radius: 28px;
+        padding: 48px 40px;
+        width: 100%;
+        max-width: 450px;
+        text-align: center;
+        animation: cardAppear 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
+      }
+      @keyframes cardAppear {
+        from {
+          opacity: 0;
+          transform: translateY(20px) scale(0.98);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0) scale(1);
+        }
+      }
+      h1 {
+        font-family: 'Outfit', sans-serif;
+        font-size: 28px;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        margin-bottom: 12px;
+        background: linear-gradient(135deg, #ffffff 30%, #e5c07b 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+      }
+      p {
+        font-size: 15px;
+        line-height: 1.6;
+        color: var(--text-secondary);
+        margin-bottom: 32px;
+      }
+      .success-icon-container {
+        width: 80px;
+        height: 80px;
+        margin: 0 auto 24px;
+        position: relative;
+      }
+      .success-svg {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        display: block;
+        stroke-width: 2;
+        stroke: var(--primary-accent);
+        stroke-miterlimit: 10;
+        box-shadow: inset 0px 0px 0px var(--primary-accent);
+        animation: fillSuccess .4s ease-in-out .4s forwards, scaleSuccess .3s ease-in-out .9s both;
+      }
+      .success-circle {
+        stroke-dasharray: 166;
+        stroke-dashoffset: 166;
+        stroke-width: 2;
+        stroke-miterlimit: 10;
+        stroke: var(--primary-accent);
+        fill: none;
+        animation: strokeSuccess 0.6s cubic-bezier(0.65, 0, 0.45, 1) forwards;
+      }
+      .success-check {
+        transform-origin: 50% 50%;
+        stroke-dasharray: 48;
+        stroke-dashoffset: 48;
+        animation: strokeSuccess 0.3s cubic-bezier(0.65, 0, 0.45, 1) 0.8s forwards;
+      }
+      @keyframes strokeSuccess {
+        100% { stroke-dashoffset: 0; }
+      }
+      @keyframes fillSuccess {
+        100% { box-shadow: inset 0px 0px 0px 40px rgba(197, 160, 89, 0.1); }
+      }
+      @keyframes scaleSuccess {
+        0%, 100% { transform: none; }
+        50% { transform: scale3d(1.1, 1.1, 1); }
+      }
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        padding: 16px 24px;
+        background: linear-gradient(135deg, #c5a059 0%, #ab843c 100%);
+        border: none;
+        border-radius: 14px;
+        color: #0b0c10;
+        font-family: 'Outfit', sans-serif;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        text-decoration: none;
+        box-shadow: 0 8px 20px rgba(197, 160, 89, 0.25);
+        transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      }
+      .btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 12px 28px rgba(197, 160, 89, 0.4);
+      }
+      .btn:active {
+        transform: translateY(0);
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div class="card">
+        <div class="success-icon-container">
+          <svg class="success-svg" viewBox="0 0 52 52">
+            <circle class="success-circle" cx="26" cy="26" r="25" fill="none"/>
+            <path class="success-check" fill="none" d="M14.1 27.2l7.1 7.2 16.7-16.8"/>
+          </svg>
+        </div>
+        <h1>Compte activé !</h1>
+        <p>Votre adresse email a été confirmée avec succès. Vous pouvez maintenant retourner dans l'application pour vous connecter.</p>
+        <a href="{{ FRONTEND_URL }}" class="btn">Retourner à l'application</a>
+      </div>
+    </main>
+  </body>
+</html>""".replace('{{ FRONTEND_URL }}', frontend_url)
+    return HttpResponse(success_html, status=200)
+
+
+def password_reset_confirm_page(request, uid, token):
+    """Page backend pour choisir un nouveau mot de passe depuis le lien email."""
+    try:
+        user_pk = url_str_to_user_pk(uid)
+        user = AuthUser.objects.get(pk=user_pk)
+    except (AuthUser.DoesNotExist, TypeError, ValueError, OverflowError):
+        user = None
+
+    if user is None or not default_token_generator.check_token(user, token):
+        return render(
+            request,
+            'account/password_reset_result.html',
+            {
+                'success': False,
+                'title': 'Lien invalide ou expire',
+                'message': "Ce lien de reinitialisation n'est plus valide. Demandez un nouveau lien depuis l'application.",
+                'frontend_url': settings.FRONTEND_URL,
+            },
+            status=400,
+        )
+
+    if request.method == 'POST':
+        form = SetPasswordForm(user=user, data=request.POST)
+        if form.is_valid():
+            form.save()
+            _send_password_changed_email(request, user)
+            return render(
+                request,
+                'account/password_reset_result.html',
+                {
+                    'success': True,
+                    'title': 'Mot de passe modifie',
+                    'message': "Votre mot de passe a bien ete modifie. Vous pouvez retourner dans l'application.",
+                    'frontend_url': settings.FRONTEND_URL,
+                },
+            )
+    else:
+        form = SetPasswordForm(user=user)
+
+    return render(
+        request,
+        'account/password_reset_confirm_form.html',
+        {
+            'form': form,
+            'frontend_url': settings.FRONTEND_URL,
+        },
+    )
+
+
+def _send_password_changed_email(request, user):
+    context = {
+        'user': user,
+        'frontend_url': settings.FRONTEND_URL,
+        'request': request,
+    }
+    subject = 'Votre mot de passe a ete modifie'
+    text_content = render_to_string('account/email/password_changed_message.txt', context)
+    html_content = render_to_string('account/email/password_changed_message.html', context)
+
+    msg = EmailMultiAlternatives(subject, text_content, settings.DEFAULT_FROM_EMAIL, [user.email])
+    msg.attach_alternative(html_content, "text/html")
+    msg.send(fail_silently=False)
 
 #==============================utilisateur==========================
 
@@ -43,7 +779,8 @@ def manage_me(request):
                 'client__favoris__parfum__tags',
                 'client__favoris__accessoire',
                 'client__parfums_personnalises__flacon',
-                'client__parfums_personnalises__lignes__essence',
+                'client__parfums_personnalises__lignes__essence__essence',
+                'client__parfums_personnalises__lignes__essence_personnalisee',
                 'client__commandes__lignes_parfums__parfum',
                 'client__commandes__lignes_parfums_perso__parfum_personnalise',
                 'client__commandes__lignes_accessoires__accessoire',
@@ -53,24 +790,68 @@ def manage_me(request):
         serializer = MeSerializer(user, context={'request': request})
         return Response(serializer.data) 
 
-    elif request.method in ['PUT', 'PATCH']:
-        # Sécurité : Si l'utilisateur change son email, on demande son mot de passe actuel
-        new_email = request.data.get('email')
-        if new_email and new_email != user.email:
-            if user.has_usable_password():
-                current_password = request.data.get('current_password')
-                if not current_password or not user.check_password(current_password):
-                    return Response(
-                        {"detail": "Le mot de passe actuel est requis pour modifier l'adresse email."},
-                        status=status.HTTP_400_BAD_REQUEST
-                    )
+    elif request.method in ['PUT', 'PATCH']:        
+        if 'email' in request.data:
+            return Response(
+                {"detail": "Utilisez /api/v1/auth/me/change-email/ pour modifier l'adresse email."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        new_telephone = request.data.get('telephone')
+        if new_telephone and new_telephone != user.telephone and user.has_usable_password():
+            current_password = request.data.get('current_password')
+            if not current_password or not user.check_password(current_password):
+                return Response(
+                    {"detail": "Le mot de passe actuel est requis pour modifier le numéro de téléphone."},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
 
         partial = request.method == 'PATCH'
-        serializer = UserSerializer(user, data=request.data, partial=partial)
+        serializer = MeUpdateSerializer(user, data=request.data, partial=partial)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+#==============================email=================================
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+@throttle_classes([ChangeEmailThrottle])
+def change_email(request):
+    """Demande le changement d'email via le flux de confirmation allauth."""
+    user = request.user
+    new_email = request.data.get('email')
+
+    if not new_email:
+        return Response({"detail": "L'adresse email est requise."}, status=status.HTTP_400_BAD_REQUEST)
+
+    if new_email == user.email:
+        return Response(
+            {"detail": "Cette adresse est déjà associée à votre compte."},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    if user.has_usable_password():
+        current_password = request.data.get('current_password')
+        if not current_password or not user.check_password(current_password):
+            return Response(
+                {"detail": "Le mot de passe actuel est requis pour modifier l'adresse email."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+    form = AddEmailForm(user, data={'email': new_email})
+    if not form.is_valid():
+        return Response(form.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    email_address = form.save(request)
+    return Response(
+        {
+            "detail": "Un email de confirmation a été envoyé à la nouvelle adresse.",
+            "email": email_address.email,
+        },
+        status=status.HTTP_200_OK
+    )
 
 #==============================prestataire==========================
 
@@ -112,6 +893,24 @@ def list_prestataire_requests(request):
     serializer = PrestataireSerializer(requests, many=True)
     return Response(serializer.data)
 
+@api_view(['GET'])
+@permission_classes([IsAdminUser])
+def detail_prestataire_request(request, pk):
+    """Récupère les informations détaillées d'une demande prestataire."""
+    prestataire = get_object_or_404(Prestataire, pk=pk)
+    serializer = PrestataireSerializer(prestataire)
+    return Response(serializer.data)
+
+@api_view(['GET'])
+@permission_classes([IsAdminUser])
+def admin_notifications(request):
+    """Liste des notifications destinées à l'admin connecté."""
+    notifications = Notification.objects.filter(
+        Q(recipient=request.user) | Q(is_global_admin=True)
+    ).order_by('-created_at')
+    serializer = NotificationSerializer(notifications, many=True)
+    return Response(serializer.data)
+
 from django.template.loader import render_to_string
 from django.core.mail import EmailMultiAlternatives
 from django.utils.html import strip_tags
@@ -128,7 +927,7 @@ def validate_prestataire(request, pk):
     if prestataire.statut != 'en_attente':
         return Response({"detail": "Ce prestataire a déjà été traité."}, status=status.HTTP_400_BAD_REQUEST)
         
-    serializer = PrestataireValidationSerializer(prestataire, data=request.data, partial=True)
+    serializer = PrestataireValidationSerializer(prestataire, data=request.data)
     if serializer.is_valid():
         # Génération du code promo et activation
         promo_code = generate_promo_code()
@@ -143,6 +942,7 @@ def validate_prestataire(request, pk):
         context = {
             'first_name': user.first_name,
             'taux_commission': prestataire.taux_commission,
+            'reduction_client_pourcentage': prestataire.reduction_client_pourcentage,
             'code_promo': promo_code
         }
         
@@ -156,36 +956,151 @@ def validate_prestataire(request, pk):
         return Response({
             "detail": "Prestataire validé avec succès.",
             "code_promo": promo_code,
-            "taux_commission": prestataire.taux_commission
+            "taux_commission": prestataire.taux_commission,
+            "reduction_client_pourcentage": prestataire.reduction_client_pourcentage
         }, status=status.HTTP_200_OK)
         
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+from rest_framework.exceptions import ValidationError, PermissionDenied
 from .serializers import (
     UserSerializer, PrestataireSerializer, PrestataireApplicationSerializer, 
-    PrestataireValidationSerializer, PrestataireDashboardSerializer
+    PrestataireValidationSerializer, PrestataireDashboardSerializer,
+    CommissionLogSerializer
 )
+
+def get_prestataire_for_request(request):
+    """
+    Helper pour récupérer le prestataire ciblé par la requête.
+    - Si l'utilisateur est admin, il peut passer 'prestataire_id' dans les paramètres de requête.
+    - Sinon, on récupère le profil prestataire de l'utilisateur connecté s'il est actif.
+    """
+    user = request.user
+    if user.is_staff:
+        prestataire_id = request.query_params.get('prestataire_id')
+        if not prestataire_id:
+            # Fallback si l'admin a son propre profil prestataire
+            try:
+                return user.client.prestataire
+            except (AttributeError, Prestataire.DoesNotExist):
+                raise ValidationError("Le paramètre 'prestataire_id' est requis pour les administrateurs.")
+        return get_object_or_404(Prestataire, pk=prestataire_id)
+    
+    try:
+        prestataire = user.client.prestataire
+    except (AttributeError, Prestataire.DoesNotExist):
+        raise PermissionDenied("Accès réservé aux prestataires.")
+        
+    if prestataire.statut != 'actif':
+        raise PermissionDenied("Votre compte prestataire n'est pas encore actif.")
+        
+    return prestataire
+
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def prestataire_dashboard(request):
     """
-    Dashboard privé pour le prestataire connecté.
-    Affiche son solde, son code promo et l'historique de ses gains.
+    Dashboard pour le prestataire connecté (ou pour l'admin via ?prestataire_id=ID).
+    Si l'admin fait la requête sans prestataire_id, il accède aux infos de tous les prestataires confondus.
+    Affiche le solde, le code promo, les stats et l'historique récent.
     """
     user = request.user
-    
-    # On vérifie si l'utilisateur a un profil prestataire actif
-    try:
-        prestataire = user.client.prestataire
-    except (AttributeError, Prestataire.DoesNotExist):
-        return Response({"detail": "Accès réservé aux prestataires."}, status=status.HTTP_403_FORBIDDEN)
-    
-    if prestataire.statut != 'actif':
-        return Response({"detail": "Votre compte prestataire n'est pas encore actif."}, status=status.HTTP_403_FORBIDDEN)
+    if user.is_staff and not request.query_params.get('prestataire_id'):
+        from decimal import Decimal
+        from django.db.models import Sum
         
+        solde_commission = Prestataire.objects.aggregate(Sum('solde_commission'))['solde_commission__sum'] or Decimal('0.00')
+        total_gains = CommissionLog.objects.filter(montant__gt=0).aggregate(Sum('montant'))['montant__sum'] or Decimal('0.00')
+        total_retraits = CommissionLog.objects.filter(montant__lt=0).aggregate(Sum('montant'))['montant__sum'] or Decimal('0.00')
+        solde_bloque = PayoutTransaction.objects.filter(statut='en_cours').aggregate(Sum('montant'))['montant__sum'] or Decimal('0.00')
+        
+        payouts_recents_qs = PayoutTransaction.objects.all()[:5]
+        payouts_recents = PayoutTransactionSerializer(payouts_recents_qs, many=True).data
+        
+        historique_recent_qs = CommissionLog.objects.all()[:10]
+        historique_recent = CommissionLogSerializer(historique_recent_qs, many=True).data
+        
+        data = {
+            'id': None,
+            'solde_commission': f"{solde_commission:.2f}",
+            'taux_commission': None,
+            'reduction_client_pourcentage': None,
+            'code_promo': None,
+            'statut': 'actif',
+            'total_gains': f"{total_gains:.2f}",
+            'total_retraits': f"{abs(total_retraits):.2f}",
+            'solde_bloque': f"{solde_bloque:.2f}",
+            'payouts_recents': payouts_recents,
+            'historique_recent': historique_recent
+        }
+        return Response(data)
+
+    prestataire = get_prestataire_for_request(request)
     serializer = PrestataireDashboardSerializer(prestataire)
     return Response(serializer.data)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def prestataire_finance_history(request):
+    """
+    Historique financier complet (crédits/débits) pour le prestataire connecté
+    (ou pour l'admin via ?prestataire_id=ID).
+    Si l'admin fait la requête sans prestataire_id, il accède à l'historique de tous les prestataires.
+    Supporte la pagination et le filtrage par type_operation.
+    """
+    user = request.user
+    if user.is_staff and not request.query_params.get('prestataire_id'):
+        logs = CommissionLog.objects.all().order_by('-date_operation')
+    else:
+        prestataire = get_prestataire_for_request(request)
+        logs = CommissionLog.objects.filter(prestataire=prestataire).order_by('-date_operation')
+    
+    # Filtrage par type
+    type_op = request.query_params.get('type_operation')
+    if type_op:
+        logs = logs.filter(type_operation=type_op)
+        
+    paginator = PrestatairePagination()
+    page = paginator.paginate_queryset(logs, request)
+    if page is not None:
+        serializer = CommissionLogSerializer(page, many=True)
+        return paginator.get_paginated_response(serializer.data)
+        
+    serializer = CommissionLogSerializer(logs, many=True)
+    return Response(serializer.data)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def prestataire_payouts_list(request):
+    """
+    Liste de toutes les demandes de virement initiées pour le prestataire connecté
+    (ou pour l'admin via ?prestataire_id=ID).
+    Si l'admin fait la requête sans prestataire_id, il accède aux virements de tous les prestataires.
+    Supporte la pagination.
+    """
+    user = request.user
+    if user.is_staff and not request.query_params.get('prestataire_id'):
+        payouts = PayoutTransaction.objects.all().order_by('-date_creation')
+    else:
+        prestataire = get_prestataire_for_request(request)
+        payouts = PayoutTransaction.objects.filter(prestataire=prestataire).order_by('-date_creation')
+    
+    statut = request.query_params.get('statut')
+    if statut:
+        payouts = payouts.filter(statut=statut)
+        
+    paginator = PrestatairePagination()
+    page = paginator.paginate_queryset(payouts, request)
+    if page is not None:
+        serializer = PayoutTransactionSerializer(page, many=True)
+        return paginator.get_paginated_response(serializer.data)
+        
+    serializer = PayoutTransactionSerializer(payouts, many=True)
+    return Response(serializer.data)
+
 
 from .serializers import AdminUserSerializer, AdminPrestataireUpdateSerializer, User, CommissionLog
 
@@ -266,11 +1181,483 @@ def admin_global_stats(request):
         "solde_total_commission_dus": solde_total_dus
     })
 
+
+#==============================Monetbil Payouts=====================
+
+import re
+
+def clean_cameroon_phone(phone):
+    """
+    Nettoie et valide un numéro de téléphone pour Monetbil (Cameroun).
+    Retourne le format international à 12 chiffres sans le signe '+' (ex: 2376XXXXXXXX).
+    """
+    if not phone:
+        return None
+    # Ne garde que les chiffres
+    cleaned = re.sub(r'\D', '', phone)
+    # Si le numéro contient l'indicatif pays
+    if cleaned.startswith('237'):
+        if len(cleaned) == 12:
+            return cleaned
+        return None
+    # Si c'est un numéro à 9 chiffres, on ajoute l'indicatif pays
+    if len(cleaned) == 9:
+        return f"237{cleaned}"
+    return None
+
+
+@api_view(['POST'])
+@permission_classes([IsAdminUser])
+def admin_prestataire_payout(request, pk):
+    """
+    Initiation d'un virement mobile money vers un prestataire par l'administrateur
+    """
+    prestataire = get_object_or_404(Prestataire, pk=pk)
+    
+    # 1. Validation du montant
+    serializer = PayoutRequestSerializer(data=request.data)
+    if not serializer.is_valid():
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    montant = serializer.validated_data['montant']
+    
+    # 2. Nettoyage et validation du numéro de téléphone
+    raw_phone = prestataire.user.telephone
+    cleaned_phone = clean_cameroon_phone(raw_phone)
+    if not cleaned_phone:
+        return Response(
+            {"detail": f"Le numéro de téléphone du prestataire ({raw_phone}) n'est pas valide pour un virement Monetbil (Cameroun)."},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    # 3. Opération atomique pour vérifier le solde et débiter
+    try:
+        with transaction.atomic():
+            # Verrouiller le prestataire pour éviter les race conditions
+            prestataire = Prestataire.objects.select_for_update().get(pk=prestataire.pk)
+            
+            if prestataire.solde_commission < montant:
+                return Response(
+                    {"detail": f"Solde insuffisant. Solde disponible : {prestataire.solde_commission}€, demandé : {montant}€."},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # Débiter immédiatement le solde
+            prestataire.solde_commission -= montant
+            prestataire.save()
+            
+            # Générer une référence unique
+            ref_unique = f"payout_{uuid.uuid4().hex[:16]}"
+            
+            # Créer l'enregistrement de la transaction
+            payout_tx = PayoutTransaction.objects.create(
+                prestataire=prestataire,
+                montant=montant,
+                telephone_destination=cleaned_phone,
+                reference_unique=ref_unique,
+                statut='en_cours'
+            )
+    except Exception as e:
+        return Response({"detail": f"Erreur lors de l'initiation en base de données : {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    # 4. Appel à l'API Monetbil Payout (withdrawal)
+    # L'API Monetbil attend des montants entiers pour le FCFA (XAF).
+    amount_xaf = int(montant)
+    
+    # URL de notification absolue pour le webhook
+    notify_url = request.build_absolute_uri('/api/v1/auth/payout/webhook/')
+    
+    payload = {
+        'service_key': settings.MONETBIL_SERVICE_KEY,
+        'service_secret': settings.MONETBIL_SERVICE_SECRET,
+        'phonenumber': cleaned_phone,
+        'amount': amount_xaf,
+        'processing_number': ref_unique,
+        'payout_notification_url': notify_url
+    }
+    
+    try:
+        response = requests.post(
+            f"{settings.MONETBIL_API_URL}/payouts/withdrawal",
+            json=payload,
+            timeout=15
+        )
+        response_data = response.json()
+    except requests.exceptions.RequestException as e:
+        # En cas d'erreur de communication, on recrédite le prestataire et on marque la transaction en échec
+        with transaction.atomic():
+            prestataire = Prestataire.objects.select_for_update().get(pk=prestataire.pk)
+            prestataire.solde_commission += montant
+            prestataire.save()
+            
+            payout_tx.statut = 'echec'
+            payout_tx.motif_echec = f"Erreur de connexion à Monetbil : {str(e)}"
+            payout_tx.date_finalisation = timezone.now()
+            payout_tx.save()
+            
+        return Response(
+            {"detail": "Impossible de contacter l'API Monetbil. Le solde du prestataire a été restitué.", "error": str(e)},
+            status=status.HTTP_502_BAD_GATEWAY
+        )
+    
+    # 5. Traitement de la réponse de Monetbil
+    if response.status_code in [200, 201] and response_data.get('success') is True:
+        # Succès de l'initiation (la transaction est en attente chez l'opérateur)
+        return Response(PayoutTransactionSerializer(payout_tx).data, status=status.HTTP_201_CREATED)
+    else:
+        # Échec de l'initiation
+        err_msg = response_data.get('message') or f"Monetbil HTTP {response.status_code}"
+        with transaction.atomic():
+            prestataire = Prestataire.objects.select_for_update().get(pk=prestataire.pk)
+            prestataire.solde_commission += montant
+            prestataire.save()
+            
+            payout_tx.statut = 'echec'
+            payout_tx.motif_echec = f"Rejet par Monetbil : {err_msg}"
+            payout_tx.date_finalisation = timezone.now()
+            payout_tx.save()
+            
+        return Response(
+            {"detail": f"Monetbil a rejeté l'opération : {err_msg}. Le solde du prestataire a été restitué."},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+
+@api_view(['POST', 'GET'])
+@permission_classes([AllowAny])
+def monetbil_payout_webhook(request):
+    """
+    Webhook public appelé par Monetbil pour notifier du statut final d'un virement (succès/échec)
+    """
+    # Les données peuvent être passées en POST ou en GET
+    data = request.data if request.method == 'POST' else request.query_params
+    
+    processing_number = data.get('processing_number') or data.get('payment_ref')
+    status_val = data.get('status')
+    message = data.get('message') or data.get('reason')
+    
+    if not processing_number:
+        return Response({"detail": "processing_number manquant"}, status=status.HTTP_400_BAD_REQUEST)
+        
+    try:
+        payout_tx = PayoutTransaction.objects.get(reference_unique=processing_number)
+    except PayoutTransaction.DoesNotExist:
+        return Response({"detail": "Transaction non trouvée"}, status=status.HTTP_404_NOT_FOUND)
+        
+    if payout_tx.statut != 'en_cours':
+        return Response({"detail": f"Transaction déjà finalisée avec le statut : {payout_tx.statut}"}, status=status.HTTP_200_OK)
+        
+    try:
+        with transaction.atomic():
+            payout_tx = PayoutTransaction.objects.select_for_update().get(pk=payout_tx.pk)
+            
+            if payout_tx.statut != 'en_cours':
+                return Response({"detail": "Transaction déjà traitée par un autre thread"}, status=status.HTTP_200_OK)
+            
+            if status_val == 'success':
+                payout_tx.statut = 'succes'
+                payout_tx.date_finalisation = timezone.now()
+                payout_tx.save()
+                
+                # Enregistrer le retrait dans l'historique financier du prestataire
+                CommissionLog.objects.create(
+                    prestataire=payout_tx.prestataire,
+                    type_operation='retrait',
+                    montant=-payout_tx.montant,
+                    description=f"Retrait de commission Mobile Money réussi vers {payout_tx.telephone_destination} (Ref: {payout_tx.reference_unique})."
+                )
+            elif status_val in ['failed', 'cancelled']:
+                payout_tx.statut = 'echec'
+                payout_tx.motif_echec = message or f"Échec notifié par le webhook (Status: {status_val})"
+                payout_tx.date_finalisation = timezone.now()
+                payout_tx.save()
+                
+                # Restituer le solde au prestataire
+                prestataire = Prestataire.objects.select_for_update().get(pk=payout_tx.prestataire.pk)
+                prestataire.solde_commission += payout_tx.montant
+                prestataire.save()
+            else:
+                return Response({"detail": f"Statut inconnu ignoré : {status_val}"}, status=status.HTTP_400_BAD_REQUEST)
+                
+    except Exception as e:
+        return Response({"detail": f"Erreur interne lors du traitement : {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+    return Response({"detail": "Webhook traité avec succès"}, status=status.HTTP_200_OK)
+
+
+@api_view(['GET'])
+@permission_classes([IsAdminUser])
+def admin_payouts_list(request):
+    """
+    Liste de tous les virements (payouts) initiés par l'admin avec pagination
+    """
+    payouts = PayoutTransaction.objects.all().order_by('-date_creation')
+    
+    statut = request.query_params.get('statut')
+    if statut:
+        payouts = payouts.filter(statut=statut)
+        
+    prestataire_id = request.query_params.get('prestataire')
+    if prestataire_id:
+        payouts = payouts.filter(prestataire_id=prestataire_id)
+        
+    paginator = AdminPagination()
+    page = paginator.paginate_queryset(payouts, request)
+    if page is not None:
+        serializer = PayoutTransactionSerializer(page, many=True)
+        return paginator.get_paginated_response(serializer.data)
+        
+    serializer = PayoutTransactionSerializer(payouts, many=True)
+    return Response(serializer.data)
+
+
 #==============================social===============================
 
 from allauth.socialaccount.providers.google.views import GoogleOAuth2Adapter
 from allauth.socialaccount.providers.oauth2.client import OAuth2Client
-from dj_rest_auth.registration.views import SocialLoginView
+from dj_rest_auth.registration.views import RegisterView, ResendEmailVerificationView, SocialLoginView, VerifyEmailView
+
+
+class ThrottledRegisterView(RegisterView):
+    throttle_classes = [RegisterIPThrottle, RegisterEmailThrottle]
+
+
+class ThrottledVerifyEmailView(VerifyEmailView):
+    pass
+
+
+class ThrottledResendEmailVerificationView(ResendEmailVerificationView):
+    throttle_classes = [ResendEmailShortThrottle, ResendEmailDailyThrottle]
+
 
 class GoogleLogin(SocialLoginView):
     adapter_class = GoogleOAuth2Adapter
+    throttle_classes = [LoginIPThrottle]
+
+
+# ============================================================
+# GESTION DES LIVREURS
+# ============================================================
+
+def get_livreur_for_request(request):
+    """
+    Helper pour récupérer le livreur connecté et vérifier s'il est actif.
+    """
+    user = request.user
+    try:
+        livreur = user.client.livreur
+    except (AttributeError, Livreur.DoesNotExist):
+        raise PermissionDenied("Accès réservé aux livreurs.")
+        
+    if livreur.statut in ['inactif', 'suspendu']:
+        raise PermissionDenied("Votre compte livreur n'est pas actif.")
+        
+    return livreur
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def livreur_dashboard(request):
+    """
+    Dashboard pour le livreur connecté et actif.
+    Affiche son statut, son nombre de livraisons et ses livraisons actives.
+    """
+    livreur = get_livreur_for_request(request)
+    
+    # Livraisons actives (statut_livraison est 'assignée')
+    actives = Commande.objects.filter(livreur=livreur, statut_livraison='assignée').order_by('-date_creation')
+    actives_data = LivreurCommandeSerializer(actives, many=True).data
+    
+    data = {
+        "id": livreur.id,
+        "statut": livreur.statut,
+        "nombre_livraisons": livreur.nombre_livraisons,
+        "livraisons_actives": actives_data
+    }
+    return Response(data)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def livreur_commandes_list(request):
+    """
+    Liste paginée de toutes les livraisons assignées au livreur connecté.
+    """
+    livreur = get_livreur_for_request(request)
+    commandes = Commande.objects.filter(livreur=livreur).order_by('-date_creation')
+    
+    statut = request.query_params.get('statut_livraison')
+    if statut:
+        commandes = commandes.filter(statut_livraison=statut)
+        
+    paginator = PrestatairePagination()
+    page = paginator.paginate_queryset(commandes, request)
+    if page is not None:
+        serializer = LivreurCommandeSerializer(page, many=True)
+        return paginator.get_paginated_response(serializer.data)
+        
+    serializer = LivreurCommandeSerializer(commandes, many=True)
+    return Response(serializer.data)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def livreur_update_delivery_status(request, pk):
+    """
+    Mise à jour du statut d'une livraison attribuée au livreur connecté.
+    Actions autorisées : 'livrer', 'echouer'.
+    """
+    livreur = get_livreur_for_request(request)
+    commande = get_object_or_404(Commande, pk=pk, livreur=livreur)
+    
+    if commande.statut_livraison not in ['assignée']:
+        return Response({"detail": "Cette commande ne peut plus être modifiée."}, status=status.HTTP_400_BAD_REQUEST)
+        
+    action = request.data.get('action')
+    if action == 'livrer':
+        with transaction.atomic():
+            commande.statut_livraison = 'livrée'
+            commande.statut = 'livrée'
+            commande.date_livraison_reelle = timezone.now()
+            
+            # Si le paiement est cash, valider le paiement
+            if commande.methode_paiement == 'cash':
+                commande.statut_paiement = 'payé'
+                
+            commande.save()
+            
+            # Incrémenter le compteur du livreur
+            livreur.nombre_livraisons += 1
+            livreur.save()
+            
+        return Response({"detail": "Livraison validée avec succès.", "statut_livraison": commande.statut_livraison})
+        
+    elif action == 'echouer':
+        motif = request.data.get('motif')
+        if not motif:
+            return Response({"detail": "Le motif d'échec est requis."}, status=status.HTTP_400_BAD_REQUEST)
+            
+        commande.statut_livraison = 'échouée'
+        commande.motif_echec_livraison = motif
+        commande.save()
+        return Response({"detail": "Échec de livraison enregistré.", "statut_livraison": commande.statut_livraison})
+        
+    else:
+        return Response({"detail": "Action invalide. Choix possibles : 'livrer', 'echouer'."}, status=status.HTTP_400_BAD_REQUEST)
+
+
+# ============================================================
+# ADMINISTRATION (GESTION DES LIVRAISONS & LIVREURS)
+# ============================================================
+
+@api_view(['GET'])
+@permission_classes([IsAdminUser])
+def admin_livreurs_list(request):
+    """
+    Liste complète de tous les livreurs (pour affectation ou gestion admin).
+    """
+    livreurs = Livreur.objects.all().order_by('-date_creation')
+    
+    statut = request.query_params.get('statut')
+    if statut:
+        livreurs = livreurs.filter(statut=statut)
+        
+    paginator = AdminPagination()
+    page = paginator.paginate_queryset(livreurs, request)
+    if page is not None:
+        serializer = LivreurSerializer(page, many=True)
+        return paginator.get_paginated_response(serializer.data)
+        
+    serializer = LivreurSerializer(livreurs, many=True)
+    return Response(serializer.data)
+
+
+@api_view(['POST'])
+@permission_classes([IsAdminUser])
+def admin_promote_to_livreur(request):
+    """
+    Crée un profil Livreur à partir d'un Client existant via son ID utilisateur (user_id).
+    """
+    user_id = request.data.get('user_id')
+    if not user_id:
+        return Response({"detail": "Le paramètre user_id est requis."}, status=status.HTTP_400_BAD_REQUEST)
+        
+    user = get_object_or_404(User, pk=user_id)
+    try:
+        client = user.client
+    except AttributeError:
+        return Response({"detail": "Cet utilisateur n'a pas de profil Client associé."}, status=status.HTTP_400_BAD_REQUEST)
+        
+    if hasattr(client, 'livreur'):
+        return Response({"detail": "Cet utilisateur est déjà enregistré comme livreur."}, status=status.HTTP_400_BAD_REQUEST)
+        
+    livreur = Livreur.objects.create(client=client, statut='disponible')
+    serializer = LivreurSerializer(livreur)
+    return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+
+@api_view(['PATCH'])
+@permission_classes([IsAdminUser])
+def admin_update_livreur(request, pk):
+    """
+    Modifie le profil ou le statut d'un livreur.
+    """
+    livreur = get_object_or_404(Livreur, pk=pk)
+    serializer = LivreurUpdateSerializer(livreur, data=request.data, partial=True)
+    if serializer.is_valid():
+        serializer.save()
+        return Response(serializer.data)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['POST'])
+@permission_classes([IsAdminUser])
+def admin_assign_delivery(request, pk):
+    """
+    Assigne une commande à un livreur actif.
+    """
+    commande = get_object_or_404(Commande, pk=pk)
+    livreur_id = request.data.get('livreur_id')
+    if not livreur_id:
+        return Response({"detail": "Le paramètre livreur_id est requis."}, status=status.HTTP_400_BAD_REQUEST)
+        
+    livreur = get_object_or_404(Livreur, pk=livreur_id)
+    
+    # Vérification si le livreur est actif
+    if livreur.statut in ['inactif', 'suspendu']:
+        return Response({"detail": "Impossible d'assigner une commande à un livreur inactif ou suspendu."}, status=status.HTTP_400_BAD_REQUEST)
+        
+    commande.livreur = livreur
+    commande.statut_livraison = 'assignée'
+    commande.save()
+    
+    return Response({
+        "detail": f"Commande assignée avec succès au livreur {livreur.nom} {livreur.prenom}.",
+        "statut_livraison": commande.statut_livraison
+    })
+
+
+@api_view(['GET'])
+@permission_classes([IsAdminUser])
+def admin_deliveries_monitor(request):
+    """
+    Suivi global de toutes les livraisons pour l'administrateur.
+    """
+    commandes = Commande.objects.filter(statut_livraison__isnull=False).order_by('-date_creation')
+    
+    statut = request.query_params.get('statut_livraison')
+    if statut:
+        commandes = commandes.filter(statut_livraison=statut)
+        
+    livreur_id = request.query_params.get('livreur_id')
+    if livreur_id:
+        commandes = commandes.filter(livreur_id=livreur_id)
+        
+    paginator = AdminPagination()
+    page = paginator.paginate_queryset(commandes, request)
+    if page is not None:
+        serializer = LivreurCommandeSerializer(page, many=True)
+        return paginator.get_paginated_response(serializer.data)
+        
+    serializer = LivreurCommandeSerializer(commandes, many=True)
+    return Response(serializer.data)

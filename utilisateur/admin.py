@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from django.utils.translation import gettext_lazy as _
-from .models import User, Client, Prestataire, Livreur
+from .models import User, Client, Prestataire, Livreur, CommissionLog
 
 
 @admin.register(User)
@@ -84,6 +84,14 @@ class PrestataireAdmin(admin.ModelAdmin):
     
     def get_queryset(self, request):
         return super().get_queryset(request).select_related('client', 'client__user')
+
+
+@admin.register(CommissionLog)
+class CommissionLogAdmin(admin.ModelAdmin):
+    list_display = ('id', 'prestataire', 'type_operation', 'montant', 'reference_commande', 'date_operation')
+    list_filter = ('type_operation', 'date_operation')
+    search_fields = ('prestataire__client__user__email', 'reference_commande', 'description')
+    autocomplete_fields = ('prestataire',)
 
 
 @admin.register(Livreur)
