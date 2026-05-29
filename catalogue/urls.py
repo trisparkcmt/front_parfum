@@ -1,6 +1,8 @@
 # catalogue/urls.py
 from rest_framework.routers import DefaultRouter
-from .views import IngredientViewSet, ParfumViewSet, EssenceViewSet, AccessoireViewSet, FlaconViewSet, FavoriViewSet
+
+from .views import EssenceLaboViewSet, IngredientViewSet, LotEssenceViewSet, ParfumViewSet, EssenceViewSet, AccessoireViewSet, FlaconViewSet, FavoriViewSet, ProduitFiniEssenceViewSet, TagViewSet
+from .views import CategorieParfumViewSet, TypeAccessoireViewSet, TypeFlaconViewSet
 
 # ============================================================
 # ROUTER SHOP — /api/shop/...
@@ -11,6 +13,11 @@ shop_router.register(r'parfums',     ParfumViewSet,     basename='parfum')
 shop_router.register(r'accessoires', AccessoireViewSet, basename='accessoire')
 shop_router.register(r'flacons',     FlaconViewSet,     basename='flacon')
 shop_router.register(r'favoris', FavoriViewSet, basename='favori')
+shop_router.register(r'tags', TagViewSet, basename='tag') 
+shop_router.register(r'categories-parfum', CategorieParfumViewSet, basename='categorieparfum')
+shop_router.register(r'types-accessoire', TypeAccessoireViewSet, basename='typeaccessoire')
+shop_router.register(r'types-flacon', TypeFlaconViewSet, basename='typeflacon')
+shop_router.register(r'produits-essence', ProduitFiniEssenceViewSet, basename='produitessence')
 # ============================================================
 # ROUTER LAB — /api/lab/...
 # Essences
@@ -18,6 +25,10 @@ shop_router.register(r'favoris', FavoriViewSet, basename='favori')
 lab_router = DefaultRouter()
 lab_router.register(r'essences', EssenceViewSet, basename='essence')
 lab_router.register(r'ingredients', IngredientViewSet, basename='ingredient')
+
+lab_router.register(r'lots-essence', LotEssenceViewSet, basename='lotessence')
+lab_router.register(r'labo/essences', EssenceLaboViewSet, basename='essencelabo')
+
 
 # Exportés et utilisés dans shop_urls.py et lab_urls.py
 shop_urlpatterns = shop_router.urls

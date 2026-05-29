@@ -10,7 +10,7 @@ def get_catalogue_context():
     """Récupère et formate le catalogue pour l'IA"""
     parfums = Parfum.objects.filter(actif=True).values('id', 'nom', 'contenance_ml', 'description_ia', 'prix_unitaire')
     essences = Essence.objects.filter(actif=True).values('id', 'nom', 'description_ia', 'prix_par_ml', 'categorie')
-    ingredients = Ingredient.objects.filter(actif=True).values('id', 'nom', 'note_olfactive', 'prix_par_ml')
+    ingredients = Ingredient.objects.filter(actif=True).values('id', 'nom', 'prix_par_ml')
     accessoires = Accessoire.objects.filter(actif=True).values('id', 'nom', 'description_courte', 'prix_unitaire')
     flacons = Flacon.objects.filter(actif=True).values('id', 'nom', 'contenance_ml', 'prix_unitaire')
     
@@ -26,7 +26,7 @@ def get_catalogue_context():
     
     context += "\n=== INGRÉDIENTS (pour création 100% sur mesure) ===\n"
     for i in ingredients:
-        context += f"- ID: {i['id']}, Nom: {i['nom']}, Note: {i['note_olfactive']}, Prix/ml: {i['prix_par_ml']} FCFA\n"
+        context += f"- ID: {i['id']}, Nom: {i['nom']}, Prix/ml: {i['prix_par_ml']} FCFA\n"
     
     context += "\n=== FLACONS ===\n"
     for f in flacons:

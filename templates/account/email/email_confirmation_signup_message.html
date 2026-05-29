@@ -2,18 +2,16 @@
 {% load i18n %}
 
 {% block content %}
-    <h1>Confirmez votre adresse email</h1>
+    <h1>Bienvenue sur Accessoires Exclusifs !</h1>
     
     <p>Bonjour,</p>
-    <p>Vous recevez cet email car vous avez créé un compte sur <strong>Accessoires Exclusifs</strong> avec l'adresse <strong>{{ email }}</strong>.</p>
-    
-    <p>Pour finaliser votre inscription et sécuriser votre compte, veuillez confirmer votre adresse email.</p>
+    <p>Merci de vous être inscrit. Afin de finaliser la création de votre compte et garantir la sécurité de vos données, veuillez confirmer votre adresse email.</p>
     
     <div class="btn-container">
         <a href="{{ activate_url }}" class="btn">Confirmer mon email</a>
     </div>
     
     <p style="font-size: 14px; color: #888888; text-align: center;">
-        Si vous n'êtes pas à l'origine de cette inscription, vous pouvez simplement ignorer ce message.
+        Si vous n'avez pas créé de compte sur notre plateforme, vous pouvez ignorer cet email en toute sécurité.
     </p>
 {% endblock %}

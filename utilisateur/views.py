@@ -779,7 +779,7 @@ def manage_me(request):
                 'client__favoris__parfum__tags',
                 'client__favoris__accessoire',
                 'client__parfums_personnalises__flacon',
-                'client__parfums_personnalises__lignes__essence_catalogue',
+                'client__parfums_personnalises__lignes__essence__essence',
                 'client__parfums_personnalises__lignes__essence_personnalisee',
                 'client__commandes__lignes_parfums__parfum',
                 'client__commandes__lignes_parfums_perso__parfum_personnalise',

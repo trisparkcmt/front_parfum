@@ -1,6 +1,42 @@
 from django.db import models
-from django.contrib.auth.models import AbstractUser
+from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django.core.validators import RegexValidator
+
+class CustomUserManager(BaseUserManager):
+    def create_user(self, username=None, email=None, password=None, **extra_fields):
+        if email is None:
+            if username is not None and '@' in username:
+                email = username
+                username = None
+            else:
+                email = extra_fields.pop('email', None)
+
+        if not email:
+            raise ValueError("L'adresse email doit être fournie.")
+        
+        email = self.normalize_email(email)
+        
+        if not username:
+            username = email.split('@')[0]
+            
+        extra_fields['username'] = username
+        
+        user = self.model(email=email, **extra_fields)
+        user.set_password(password)
+        user.save(using=self._db)
+        return user
+
+    def create_superuser(self, username=None, email=None, password=None, **extra_fields):
+        extra_fields.setdefault('is_staff', True)
+        extra_fields.setdefault('is_superuser', True)
+        extra_fields.setdefault('is_active', True)
+
+        if extra_fields.get('is_staff') is not True:
+            raise ValueError('Superuser must have is_staff=True.')
+        if extra_fields.get('is_superuser') is not True:
+            raise ValueError('Superuser must have is_superuser=True.')
+
+        return self.create_user(username=username, email=email, password=password, **extra_fields)
 
 class User(AbstractUser):
     """Utilisateur de base (connexion email/téléphone)"""
@@ -10,6 +46,8 @@ class User(AbstractUser):
     
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['telephone']
+    
+    objects = CustomUserManager()
     
     class Meta:
         db_table = 'auth_user'

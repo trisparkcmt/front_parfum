@@ -39,7 +39,7 @@ class ParfumPersonnaliseViewSet(viewsets.ModelViewSet):
         'nom',
         'description',
         'client__user__email',
-        'lignes__essence_catalogue__nom',
+        'lignes__essence__essence__nom',
         'lignes__essence_personnalisee__nom',
     ]
     ordering_fields = ['prix_total', 'date_creation', 'nom']
@@ -49,7 +49,7 @@ class ParfumPersonnaliseViewSet(viewsets.ModelViewSet):
         queryset = ParfumPersonnalise.objects.all().select_related(
             'flacon', 'client', 'client__user'
         ).prefetch_related(
-            'lignes__essence_catalogue',
+            'lignes__essence__essence',
             'lignes__essence_personnalisee',
             'lignes__essence_personnalisee__lignes',
             'lignes__essence_personnalisee__lignes__ingredient',
@@ -59,7 +59,9 @@ class ParfumPersonnaliseViewSet(viewsets.ModelViewSet):
             return queryset
 
         if hasattr(self.request.user, 'client'):
-            return queryset.filter(client=self.request.user.client)
+            if self.action in ['retrieve', 'update', 'partial_update', 'destroy']:
+                return queryset.filter(client=self.request.user.client)
+            return queryset.filter(client=self.request.user.client, enregistre=True)
 
         return queryset.none()
 
@@ -134,14 +136,24 @@ def ia_recommandation(request):
     essences_recommandees = []
     essence_ids = [e.get('id') for e in essences_data if isinstance(e, dict)]
     essences_db = {e.id: e for e in Essence.objects.filter(id__in=essence_ids, actif=True)}
+    
+    # Précharger les lots d'essence actifs correspondants pour le laboratoire
+    from catalogue.models import LotEssence
+    lots_db = {}
+    for lot in LotEssence.objects.filter(essence_id__in=essence_ids, actif=True).select_related('essence'):
+        if lot.essence_id not in lots_db:
+            lots_db[lot.essence_id] = lot
+
     for essence_data in essences_data:
         if isinstance(essence_data, dict):
             essence_id = essence_data.get('id')
             quantite_ml = Decimal(str(essence_data.get('quantite_ml', 0)))
             if essence_id in essences_db:
                 essence = essences_db[essence_id]
+                lot = lots_db.get(essence.id)
                 essences_recommandees.append({
                     'id': essence.id,
+                    'lot_essence_id': lot.id if lot else None,
                     'nom': essence.nom,
                     'code_reference': essence.code_reference,
                     'prix_par_ml': str(essence.prix_par_ml),
@@ -161,7 +173,6 @@ def ia_recommandation(request):
                 ingredients_recommandes.append({
                     'id': ingredient.id,
                     'nom': ingredient.nom,
-                    'note_olfactive': ingredient.get_note_olfactive_display(),
                     'prix_par_ml': str(ingredient.prix_par_ml),
                     'quantite_ml': quantite_ml,
                     'prix_total_quantite': str(ingredient.prix_par_ml * quantite_ml),

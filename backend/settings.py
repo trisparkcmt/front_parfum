@@ -77,12 +77,18 @@ MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'allauth.account.middleware.AccountMiddleware',  # Requis par allauth
 ]
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:8080",
+    "http://127.0.0.1:8080",
+]
+CORS_ALLOW_ALL_ORIGINS = True
 
 ROOT_URLCONF = 'backend.urls'
 
@@ -302,13 +308,16 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 # ============================================================
 from corsheaders.defaults import default_headers
 
-CORS_ALLOW_ALL_ORIGINS = False
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-    "http://172.20.10.5:3000",
-    "https://integral-logically-gator.ngrok-free.app",
-]
+if DEBUG:
+    CORS_ALLOW_ALL_ORIGINS = True
+else:
+    CORS_ALLOW_ALL_ORIGINS = False
+    CORS_ALLOWED_ORIGINS = [
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "http://172.20.10.5:3000",
+        "https://integral-logically-gator.ngrok-free.app",
+    ]
 CORS_ALLOW_CREDENTIALS = True  # Crucial pour autoriser le partage des cookies HttpOnly
 CORS_ALLOW_HEADERS = list(default_headers) + [
     'x-client-type',

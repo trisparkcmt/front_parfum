@@ -56,16 +56,37 @@ class EmailOrTelephoneLoginSerializer(LoginSerializer):
                 from allauth.account.models import EmailAddress
                 email_address = EmailAddress.objects.filter(user=user, email=user.email).first()
                 if email_address and not email_address.verified:
-                    raise serializers.ValidationError(
-                        "Votre compte n'est pas encore activé. Veuillez confirmer votre adresse email."
-                    )
+                    try:
+                        email_address.send_confirmation(self.context.get('request'), signup=False)
+                    except Exception:
+                        pass
+                    raise serializers.ValidationError({
+                        "non_field_errors": [
+                            "Votre compte n'est pas encore activé. Un email de validation a été envoyé automatiquement."
+                        ],
+                        "email_non_verifie": True,
+                        "email": user.email
+                    })
                 else:
                     raise serializers.ValidationError("Ce compte est désactivé par un administrateur.")
             raise serializers.ValidationError('Identifiants invalides.')
 
         self.validate_auth_user_status(authenticated_user)
         if 'dj_rest_auth.registration' in settings.INSTALLED_APPS:
-            self.validate_email_verification_status(authenticated_user, email=authenticated_user.email)
+            from allauth.account.models import EmailAddress
+            email_address = EmailAddress.objects.filter(user=authenticated_user, email=authenticated_user.email).first()
+            if email_address and not email_address.verified:
+                try:
+                    email_address.send_confirmation(self.context.get('request'), signup=False)
+                except Exception:
+                    pass
+                raise serializers.ValidationError({
+                    "non_field_errors": [
+                        "Votre adresse email n'est pas vérifiée. Un email de validation a été envoyé automatiquement."
+                    ],
+                    "email_non_verifie": True,
+                    "email": authenticated_user.email
+                })
 
         attrs['user'] = authenticated_user
         return attrs
@@ -120,6 +141,31 @@ class CustomRegisterSerializer(RegisterSerializer):
         
         return super().validate(attrs)
 
+    def get_cleaned_data(self):
+        # Prépare les données nettoyées pour la création de l'utilisateur
+        cleaned_data = super().get_cleaned_data()
+        cleaned_data.update({
+            'first_name': self.validated_data.get('first_name', ''),
+            'last_name': self.validated_data.get('last_name', ''),
+            'telephone': self.validated_data.get('telephone', ''),
+            # On s'assure que password1/2 sont transmis
+            'password1': self.validated_data.get('password'),
+            'password2': self.validated_data.get('password_confirm'),
+        })
+        return cleaned_data
+
+    def custom_signup(self, request, user):
+        # Enregistre les données supplémentaires sur l'objet User
+        user.first_name = self.validated_data.get('first_name', '')
+        user.last_name = self.validated_data.get('last_name', '')
+        user.telephone = self.validated_data.get('telephone', '')
+        
+        from django.conf import settings
+        if getattr(settings, 'ACCOUNT_EMAIL_VERIFICATION', 'optional') == 'mandatory':
+            user.is_active = False  # Par sécurité
+            
+        user.save()
+
 @extend_schema_serializer(
     exclude_fields=['new_password1', 'new_password2'],
 )
@@ -146,31 +192,6 @@ class CustomPasswordChangeSerializer(PasswordChangeSerializer):
         validate_password(attrs.get('new_password'), self.context['request'].user)
         
         return attrs
-
-    def get_cleaned_data(self):
-        # Prépare les données nettoyées pour la création de l'utilisateur
-        cleaned_data = super().get_cleaned_data()
-        cleaned_data.update({
-            'first_name': self.validated_data.get('first_name', ''),
-            'last_name': self.validated_data.get('last_name', ''),
-            'telephone': self.validated_data.get('telephone', ''),
-            # On s'assure que password1/2 sont transmis
-            'password1': self.validated_data.get('password'),
-            'password2': self.validated_data.get('password_confirm'),
-        })
-        return cleaned_data
-
-    def custom_signup(self, request, user):
-        # Enregistre les données supplémentaires sur l'objet User
-        user.first_name = self.validated_data.get('first_name', '')
-        user.last_name = self.validated_data.get('last_name', '')
-        user.telephone = self.validated_data.get('telephone', '')
-        
-        from django.conf import settings
-        if getattr(settings, 'ACCOUNT_EMAIL_VERIFICATION', 'optional') == 'mandatory':
-            user.is_active = False  # Par sécurité
-            
-        user.save()
 
 class CommissionLogSerializer(serializers.ModelSerializer):
     """Serializer pour l'historique des gains"""
@@ -347,18 +368,18 @@ class MeParfumPersonnaliseLigneSerializer(serializers.ModelSerializer):
         ]
 
     def get_essence_type(self, obj):
-        if obj.essence_catalogue:
+        if obj.essence:
             return 'catalogue'
         if obj.essence_personnalisee:
             return 'personnalisee'
         return None
 
     def get_essence_id(self, obj):
-        return obj.essence_catalogue_id or obj.essence_personnalisee_id
+        return obj.essence_id or obj.essence_personnalisee_id
 
     def get_essence_nom(self, obj):
-        if obj.essence_catalogue:
-            return obj.essence_catalogue.nom
+        if obj.essence:
+            return obj.essence.essence.nom
         if obj.essence_personnalisee:
             return obj.essence_personnalisee.nom
         return None

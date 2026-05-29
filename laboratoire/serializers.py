@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from catalogue.models import Essence, Flacon, Accessoire, Parfum, Ingredient
+from catalogue.models import Essence, Flacon, Accessoire, Parfum, Ingredient, LotEssence
 from laboratoire.models import ParfumPersonnalise, ParfumPersonnaliseLigne, EssencePersonnalisee, EssencePersonnaliseeLigne
 from django.db import transaction
 from decimal import Decimal
@@ -13,7 +13,7 @@ class EssenceLabSerializer(serializers.ModelSerializer):
 class IngredientSerializer(serializers.ModelSerializer):
     class Meta:
         model = Ingredient
-        fields = ['id', 'nom', 'description', 'note_olfactive', 'prix_par_ml']
+        fields = ['id', 'nom', 'description', 'prix_par_ml']
         read_only_fields = fields
 
 class FlaconLabSerializer(serializers.ModelSerializer):
@@ -114,36 +114,58 @@ class EssencePersonnaliseeSerializer(serializers.ModelSerializer):
 
 
 class ParfumPersonnaliseLigneSerializer(serializers.ModelSerializer):
-    essence_catalogue_detail = EssenceLabSerializer(source='essence_catalogue', read_only=True)
-    essence_personnalisee_detail = EssencePersonnaliseeSerializer(source='essence_personnalisee', read_only=True)
+    essence_detail = serializers.SerializerMethodField()
     
-    essence_catalogue = serializers.PrimaryKeyRelatedField(queryset=Essence.objects.all(), required=False, allow_null=True)
+    essence = serializers.PrimaryKeyRelatedField(queryset=LotEssence.objects.all(), required=False, allow_null=True)
     essence_personnalisee = serializers.PrimaryKeyRelatedField(queryset=EssencePersonnalisee.objects.all(), required=False, allow_null=True)
 
     class Meta:
         model = ParfumPersonnaliseLigne
         fields = [
-            'id', 'essence_catalogue', 'essence_personnalisee', 
-            'essence_catalogue_detail', 'essence_personnalisee_detail', 
+            'id', 'essence', 'essence_personnalisee', 
+            'essence_detail', 
             'quantite_ml', 'prix_par_ml_snapshot', 'prix_ligne'
         ]
         read_only_fields = ['prix_par_ml_snapshot', 'prix_ligne']
 
+    def get_essence_detail(self, obj):
+        if obj.essence:
+            return {
+                'nom': obj.essence.essence.nom,
+                'marque': obj.essence.essence.marque,
+                'categorie': obj.essence.essence.categorie,
+                'prix_par_ml': str(obj.essence.essence.prix_par_ml),
+            }
+        elif obj.essence_personnalisee:
+            return {
+                'nom': obj.essence_personnalisee.nom,
+                'marque': "Création sur mesure",
+                'categorie': "sur_mesure",
+                'prix_par_ml': str(obj.essence_personnalisee.prix_par_ml_calcule),
+            }
+        return None
+
     def validate(self, data):
-        # Vérifier qu'une et une seule essence est fournie
-        essence_cat = data.get('essence_catalogue')
+        essence = data.get('essence')
         essence_perso = data.get('essence_personnalisee')
         initial = getattr(self, 'initial_data', None)
-        essence_cat_provided = initial is not None and 'essence_catalogue' in initial
+        essence_provided = initial is not None and 'essence' in initial
         essence_perso_provided = initial is not None and 'essence_personnalisee' in initial
         
-        if essence_cat and essence_perso:
-            raise serializers.ValidationError("Vous ne pouvez pas fournir à la fois une essence du catalogue et une essence personnalisée pour la même ligne.")
-        if not essence_cat and not essence_perso:
-            if self.instance and not essence_cat_provided and not essence_perso_provided:
-                # Mise à jour partielle d'une ligne existante : on conserve l'essence déjà liée
+        # S'assurer qu'un seul des deux est fourni
+        if essence and essence_perso:
+            raise serializers.ValidationError("Vous ne pouvez pas fournir à la fois un lot d'essence du catalogue et une essence personnalisée pour la même ligne.")
+        if not essence and not essence_perso:
+            if self.instance and not essence_provided and not essence_perso_provided:
                 return data
-            raise serializers.ValidationError("Vous devez fournir soit une essence du catalogue, soit une essence personnalisée.")
+            raise serializers.ValidationError("Vous devez fournir soit un lot d'essence du catalogue, soit une essence personnalisée.")
+            
+        # S'assurer que l'essence personnalisée appartient au client connecté
+        request = self.context.get('request')
+        if essence_perso and request and hasattr(request.user, 'client'):
+            if essence_perso.client != request.user.client:
+                raise serializers.ValidationError({"essence_personnalisee": "L'essence personnalisée choisie doit vous appartenir."})
+                
         return data
 
 
@@ -156,7 +178,7 @@ class ParfumPersonnaliseSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'client', 'flacon', 'flacon_detail', 'nom', 'description', 
             'prix_essences', 'prix_flacon_snapshot', 
-            'prix_total', 'statut', 'note_laboratoire', 'lignes', 'date_creation'
+            'prix_total', 'statut', 'note_laboratoire', 'lignes', 'enregistre', 'date_creation'
         ]
         read_only_fields = ['client', 'prix_essences', 'prix_flacon_snapshot', 'prix_total', 'statut', 'note_laboratoire']
 
@@ -191,8 +213,18 @@ class ParfumPersonnaliseSerializer(serializers.ModelSerializer):
         validated_data['prix_essences'] = Decimal('0')
         validated_data['prix_total'] = Decimal('0')
         
+        # Gérer l'absence de nom
+        if not validated_data.get('nom'):
+            validated_data['nom'] = "Parfum personnalisé"
+            
         with transaction.atomic():
             parfum = ParfumPersonnalise.objects.create(client=client, **validated_data)
+            
+            # Si le nom n'est pas fourni, le nommer dynamiquement
+            if validated_data.get('nom') == "Parfum personnalisé":
+                parfum.nom = f"Parfum personnalisé #{parfum.id}"
+                parfum.save(update_fields=['nom'])
+                
             for ligne_data in lignes_data:
                 ParfumPersonnaliseLigne.objects.create(parfum_personnalise=parfum, **ligne_data)
             
@@ -230,7 +262,7 @@ class ParfumPersonnaliseSerializer(serializers.ModelSerializer):
                         sent_ids.append(ligne_id)
                         ligne = existing_lignes[ligne_id]
                         
-                        ligne.essence_catalogue = ligne_data.get('essence_catalogue', ligne.essence_catalogue)
+                        ligne.essence = ligne_data.get('essence', ligne.essence)
                         ligne.essence_personnalisee = ligne_data.get('essence_personnalisee', ligne.essence_personnalisee)
                         ligne.quantite_ml = ligne_data.get('quantite_ml', ligne.quantite_ml)
                         

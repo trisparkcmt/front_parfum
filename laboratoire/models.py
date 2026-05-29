@@ -53,22 +53,20 @@ class EssencePersonnaliseeLigne(models.Model):
 class ParfumPersonnalise(models.Model):
     STATUT_CHOICES = [
         ('brouillon', 'Brouillon'),
-       
         ('validé', 'Validé'),
-  
     ]
     
     client = models.ForeignKey('utilisateur.Client', on_delete=models.CASCADE, related_name='parfums_personnalises')
     flacon = models.ForeignKey('catalogue.Flacon', on_delete=models.SET_NULL, null=True, related_name='parfums_personnalises')
-    nom = models.CharField(max_length=200)
+    nom = models.CharField(max_length=200, blank=True, null=True)
     description = models.TextField(blank=True)
     prix_essences = models.DecimalField(max_digits=10, decimal_places=2, help_text="Somme calculée des prix des essences")
     prix_flacon_snapshot = models.DecimalField(max_digits=10, decimal_places=2, help_text="Prix du flacon au moment de la création")
     prix_total = models.DecimalField(max_digits=10, decimal_places=2, help_text="prix_essences + prix_flacon_snapshot")
     statut = models.CharField(max_length=30, choices=STATUT_CHOICES, default='brouillon')
     note_laboratoire = models.TextField(blank=True, help_text="Retour du labo en cas de refus")
+    enregistre = models.BooleanField(default=True, help_text="Détermine si le parfum est enregistré dans la collection du client.")
     
-    # date_validation = models.DateTimeField(null=True, blank=True)
     date_creation = models.DateTimeField(auto_now_add=True)
     date_modification = models.DateTimeField(auto_now=True)
     
@@ -78,7 +76,7 @@ class ParfumPersonnalise(models.Model):
         verbose_name_plural = 'Parfums personnalisés'
     
     def __str__(self):
-        return f"{self.nom} - {self.client.user.email}"
+        return f"{self.nom or 'Parfum sans nom'} - {self.client.user.email}"
     
     def recalculer_prix(self):
         total_essences = sum(ligne.prix_ligne for ligne in self.lignes.all())
@@ -95,8 +93,6 @@ class ParfumPersonnalise(models.Model):
         if not self.flacon:
             return
 
-        # Si l'objet n'est pas encore en base, ou s'il n'y a pas de lignes, on ignore (les lignes
-        # seront validées lors de leur sauvegarde)
         if not self.pk or not self.lignes.exists():
             return
 
@@ -110,7 +106,6 @@ class ParfumPersonnalise(models.Model):
                 f"pour le flacon sélectionné ({volume_max_autorise} ml max). "
                 "Réduisez les quantités d'essences ou choisissez un flacon de plus grande contenance."
             )
-            # Fournir le message à la fois comme erreur non-field et attachée au champ 'lignes'
             raise ValidationError({
                 '__all__': msg,
                 'lignes': msg,
@@ -134,6 +129,10 @@ class ParfumPersonnalise(models.Model):
             if not self.prix_flacon_snapshot:
                 self.prix_flacon_snapshot = self.flacon.prix_unitaire if self.flacon else Decimal('0')
 
+        is_new = not self.pk
+        if not self.nom:
+            self.nom = "Parfum personnalisé"
+
         # Recalculer les prix avant sauvegarde si les lignes existent
         if self.pk and self.lignes.exists():
             total_essences = sum(ligne.prix_ligne for ligne in self.lignes.all())
@@ -149,12 +148,17 @@ class ParfumPersonnalise(models.Model):
 
         super().save(*args, **kwargs)
 
+        # Si c'était une création et qu'aucun nom n'était fourni, on met à jour avec l'ID
+        if is_new and self.nom == "Parfum personnalisé":
+            self.nom = f"Parfum personnalisé #{self.id}"
+            super().save(update_fields=['nom'])
+
 
 class ParfumPersonnaliseLigne(models.Model):
     parfum_personnalise = models.ForeignKey('laboratoire.ParfumPersonnalise', on_delete=models.CASCADE, related_name='lignes')
     
-    # L'essence utilisée peut provenir soit du catalogue (admin), soit d'une création perso du client
-    essence_catalogue = models.ForeignKey('catalogue.Essence', on_delete=models.CASCADE, related_name='utilisations_parfum', null=True, blank=True)
+    # L'essence utilisée peut provenir soit d'un lot d'essence du catalogue, soit d'une création perso du client
+    essence = models.ForeignKey('catalogue.LotEssence', on_delete=models.CASCADE, related_name='utilisations_parfum', null=True, blank=True)
     essence_personnalisee = models.ForeignKey('laboratoire.EssencePersonnalisee', on_delete=models.CASCADE, related_name='utilisations_parfum', null=True, blank=True)
     
     quantite_ml = models.DecimalField(max_digits=8, decimal_places=3, validators=[MinValueValidator(Decimal('0.1'))])
@@ -167,20 +171,33 @@ class ParfumPersonnaliseLigne(models.Model):
         verbose_name_plural = 'Lignes de parfums personnalisés'
     
     def __str__(self):
-        nom_essence = self.essence_catalogue.nom if self.essence_catalogue else (self.essence_personnalisee.nom if self.essence_personnalisee else "Inconnu")
+        nom_essence = self.essence.essence.nom if self.essence else (self.essence_personnalisee.nom if self.essence_personnalisee else "Inconnu")
         return f"{self.parfum_personnalise.nom} - {nom_essence}: {self.quantite_ml}ml"
     
+    def clean(self):
+        # Valider qu'un seul des deux champs est renseigné
+        if self.essence and self.essence_personnalisee:
+            raise ValidationError("Une ligne de parfum ne peut pas contenir à la fois un lot d'essence du catalogue et une essence personnalisée.")
+        if not self.essence and not self.essence_personnalisee:
+            raise ValidationError("Vous devez spécifier soit un lot d'essence du catalogue, soit une essence personnalisée.")
+            
+        # Valider que l'essence personnalisée appartient bien au même client
+        if self.essence_personnalisee and self.parfum_personnalise:
+            if self.essence_personnalisee.client != self.parfum_personnalise.client:
+                raise ValidationError("L'essence personnalisée choisie doit appartenir au même client que le parfum.")
+
     def save(self, *args, **kwargs):
-        # Sauvegarde atomique : on enregistre la ligne puis on recalcul et valide le parfum parent.
         if not self.prix_par_ml_snapshot:
-            if self.essence_catalogue:
-                self.prix_par_ml_snapshot = self.essence_catalogue.prix_par_ml
+            if self.essence:
+                self.prix_par_ml_snapshot = self.essence.essence.prix_par_ml
             elif self.essence_personnalisee:
                 self.prix_par_ml_snapshot = self.essence_personnalisee.prix_par_ml_calcule
             else:
                 self.prix_par_ml_snapshot = Decimal('0')
 
-        self.prix_ligne = self.prix_par_ml_snapshot * self.quantite_ml
+        self.prix_ligne = (self.prix_par_ml_snapshot * self.quantite_ml).quantize(Decimal('0.01'))
+
+        self.full_clean()
 
         with transaction.atomic():
             super().save(*args, **kwargs)
@@ -189,13 +206,11 @@ class ParfumPersonnaliseLigne(models.Model):
             parfum = self.parfum_personnalise
             try:
                 parfum.recalculer_prix()
-                # Valider la contrainte globale du parfum (peut lever ValidationError)
                 parfum.full_clean()
             except ValidationError as e:
-                # Enrichir le message avec le contexte de la ligne pour une meilleure lisibilité
                 detail = ''
                 try:
-                    essence_name = self.essence_catalogue.nom if self.essence_catalogue else (
+                    essence_name = self.essence.essence.nom if self.essence else (
                         self.essence_personnalisee.nom if self.essence_personnalisee else 'essence inconnue'
                     )
                     detail = f" (ligne: {essence_name}, quantité: {self.quantite_ml} ml)"
@@ -203,7 +218,6 @@ class ParfumPersonnaliseLigne(models.Model):
                     detail = ''
 
                 if hasattr(e, 'message_dict'):
-                    # ajouter le détail à chaque message existant
                     raise ValidationError({k: [f"{m} {detail}" for m in v] for k, v in e.message_dict.items()})
                 else:
                     raise ValidationError(f"{e} {detail}")

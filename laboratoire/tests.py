@@ -4,7 +4,7 @@ from decimal import Decimal
 
 from laboratoire.models import ParfumPersonnalise, ParfumPersonnaliseLigne
 from laboratoire.serializers import ParfumPersonnaliseSerializer
-from catalogue.models import Essence, Flacon
+from catalogue.models import Essence, Flacon, LotEssence
 from utilisateur.models import Client
 
 
@@ -40,10 +40,21 @@ class ParfumPersonnaliseSerializerTests(TestCase):
             prix_par_ml=Decimal('10.00'),
             actif=True
         )
+        self.lot1 = LotEssence.objects.create(
+            essence=self.essence1,
+            stock_ml=Decimal('100.00'),
+            actif=True
+        )
+
         self.essence2 = Essence.objects.create(
             nom='Essence 2',
             code_reference='ESS2',
             prix_par_ml=Decimal('20.00'),
+            actif=True
+        )
+        self.lot2 = LotEssence.objects.create(
+            essence=self.essence2,
+            stock_ml=Decimal('100.00'),
             actif=True
         )
 
@@ -59,7 +70,7 @@ class ParfumPersonnaliseSerializerTests(TestCase):
 
         self.ligne = ParfumPersonnaliseLigne.objects.create(
             parfum_personnalise=self.parfum,
-            essence=self.essence1,
+            essence=self.lot1,
             quantite_ml=Decimal('10.00'),
             prix_par_ml_snapshot=self.essence1.prix_par_ml
         )
@@ -71,7 +82,7 @@ class ParfumPersonnaliseSerializerTests(TestCase):
             'lignes': [
                 {
                     'id': self.ligne.id,
-                    'essence': self.essence2.id,
+                    'essence': self.lot2.id,
                     'quantite_ml': '15.00'
                 }
             ]
@@ -91,7 +102,7 @@ class ParfumPersonnaliseSerializerTests(TestCase):
         self.assertEqual(self.parfum.lignes.count(), 1)
 
         ligne = self.parfum.lignes.first()
-        self.assertEqual(ligne.essence, self.essence2)
+        self.assertEqual(ligne.essence, self.lot2)
         self.assertEqual(ligne.quantite_ml, Decimal('15.00'))
         self.assertEqual(ligne.prix_par_ml_snapshot, self.essence2.prix_par_ml)
         self.assertEqual(self.parfum.prix_essences, ligne.prix_ligne)
@@ -102,11 +113,11 @@ class ParfumPersonnaliseSerializerTests(TestCase):
             'lignes': [
                 {
                     'id': self.ligne.id,
-                    'essence': self.essence1.id,
+                    'essence': self.lot1.id,
                     'quantite_ml': '10.00'
                 },
                 {
-                    'essence': self.essence2.id,
+                    'essence': self.lot2.id,
                     'quantite_ml': '5.00'
                 }
             ]
@@ -122,8 +133,8 @@ class ParfumPersonnaliseSerializerTests(TestCase):
 
         self.parfum.refresh_from_db()
         self.assertEqual(self.parfum.lignes.count(), 2)
-        self.assertTrue(self.parfum.lignes.filter(essence=self.essence1).exists())
-        self.assertTrue(self.parfum.lignes.filter(essence=self.essence2).exists())
+        self.assertTrue(self.parfum.lignes.filter(essence=self.lot1).exists())
+        self.assertTrue(self.parfum.lignes.filter(essence=self.lot2).exists())
         self.assertEqual(self.parfum.prix_essences, sum(l.prix_ligne for l in self.parfum.lignes.all()))
 
     def test_remove_ligne_from_parfum_personnalise(self):

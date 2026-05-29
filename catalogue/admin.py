@@ -275,10 +275,18 @@ class ParfumAdmin(admin.ModelAdmin):
 
     def get_queryset(self, request):
         return super().get_queryset(request).select_related('categorie').prefetch_related('tags')
+# catalogue/admin.py (extrait modifié)
 
+# ... gardez toutes les importations et helpers existants ...
+# Ajoutez les nouveaux modèles dans les imports
+from .models import (
+    Tag, TagParfum, TagEssence,
+    CategorieParfum, Parfum, Essence, LotEssence, ProduitFiniEssence,
+    TypeAccessoire, Accessoire, TypeFlacon, Flacon
+)
 
 # ============================================================
-# ESSENCES
+# ESSENCES (catalogue uniquement)
 # ============================================================
 @admin.register(Ingredient)
 class IngredientAdmin(admin.ModelAdmin):
@@ -304,44 +312,45 @@ class IngredientAdmin(admin.ModelAdmin):
 @admin.register(Essence)
 class EssenceAdmin(admin.ModelAdmin):
     list_display = (
-        'id', 'nom', 'code_reference',
-        'stock_flacon', 'stock_ouvert_ml', 'stock_total_ml',
-        'prix_unitaire_fini', 'prix_par_ml', 'statut_stock',
-        'intensite', 'genre_cible', 'categorie', 'actif'
+
+        'id', 'marque', 'nom', 'code_reference', 'categorie',
+        'intensite', 'genre_cible', 'actif', 'date_creation'
     )
     list_filter = (
-        'intensite', 'genre_cible', 'categorie',
-        'vendu_comme_produit_fini', 'actif',
-        # ← Filtres par tags
+        'categorie', 'intensite', 'genre_cible', 'actif',
+        'date_creation',
+        # Filtres par tags
+
         FamilleOlfactiveEssenceFilter,
         HumeurEssenceFilter,
         SaisonEssenceFilter,
         OccasionEssenceFilter,
         SigneAstroEssenceFilter,
         MomentJourneeEssenceFilter,
-        'date_creation',
     )
-    search_fields   = ('nom', 'code_reference', 'fournisseur', 'origine_pays')
-    readonly_fields = ('stock_ml_total_reel', 'prix_par_ml', 'date_creation', 'date_modification')
-    list_per_page   = 50
-    inlines         = [TagEssenceInline]
+
+    search_fields = ('nom', 'code_reference', 'marque', 'fournisseur', 'origine_pays')
+    readonly_fields = ('date_creation', 'date_modification')
+    list_per_page = 50
+    inlines = [TagEssenceInline]
 
     fieldsets = (
-        ('Informations générales', {
-            'fields': ('nom', 'code_reference', 'marque', 'description', 'description_ia')
+        ('Identité', {
+            'fields': ('marque', 'nom', 'code_reference', 'categorie')
         }),
-        ('Fournisseur et technique', {
+        ('Descriptions', {
+            'fields': ('description', 'description_ia')
+        }),
+        ('Fournisseur & Technique', {
             'fields': ('fournisseur', 'origine_pays', 'concentration_max', 'couleur', 'duree')
         }),
-        ('Stock', {
-            'fields': ('stock_flacon', 'contenance_ml', 'stock_ouvert_ml', 'stock_ml_total_reel', 'seuil_alerte_stock')
+        ('Caractéristiques olfactives', {
+            'fields': ('intensite', 'genre_cible', 'notes_tete', 'notes_coeur', 'notes_fond')
+
         }),
-        ('Prix', {
-            'fields': ('prix_unitaire_fini', 'prix_par_ml')
-        }),
-        ('Caractéristiques', {
-            'fields': ('intensite', 'genre_cible', 'categorie', 'notes_tete', 'notes_coeur', 'notes_fond')
-        }),
+        # ('Tags', {
+        #     'fields': ('tags',)
+        # }),
         ('Statut', {
             'fields': ('actif', 'vendu_comme_produit_fini')
         }),
@@ -351,25 +360,76 @@ class EssenceAdmin(admin.ModelAdmin):
         }),
     )
 
-    @admin.display(description="Stock total (ml)", ordering="stock_ml_total_reel")
-    def stock_total_ml(self, obj):
-        return obj.stock_ml_total_reel
 
-    @admin.display(description="Stock (ml)")
-    def statut_stock(self, obj):
-        seuil = obj.seuil_alerte_stock or 0
-        stock_total = obj.stock_ml_total_reel
-        if stock_total <= 0:
-            return mark_safe('<span style="color:red;font-weight:bold;">⛔ Épuisé</span>')
-        elif stock_total <= seuil:
-            return format_html(
-                '<span style="color:orange;font-weight:bold;">⚠️ Faible ({} ml)</span>',
-                stock_total
-            )
-        return format_html(
-            '<span style="color:green;font-weight:bold;">✅ OK ({} ml)</span>',
-            stock_total
-        )
+
+# ============================================================
+# LOTS D'ESSENCE (stock physique)
+# ============================================================
+@admin.register(LotEssence)
+class LotEssenceAdmin(admin.ModelAdmin):
+    list_display = (
+        'id', 'essence', 'stock_ml', 'stock_precedent_ml', 'seuil_alerte_ml',
+        'date_reception', 'actif'
+    )
+    list_filter = ('actif', 'date_reception')
+    search_fields = ('essence__marque', 'essence__nom', 'reference_fournisseur')
+    list_editable = ('stock_ml', 'actif')
+    readonly_fields = ('date_reception',)
+    list_per_page = 50
+
+    fieldsets = (
+        ('Essence concernée', {
+            'fields': ('essence',)
+        }),
+        ('Caractéristiques du lot', {
+            'fields': ('stock_ml', 'stock_precedent_ml', 'seuil_alerte_ml', 'reference_fournisseur')
+        }),
+        ('Dates', {
+            'fields': ('date_reception',)
+        }),
+        ('Statut', {
+            'fields': ('actif',)
+        }),
+    )
+    readonly_fields = ('date_reception', 'stock_precedent_ml')
+
+
+# ============================================================
+# PRODUITS FINIS (essences vendues en flacon)
+# ============================================================
+@admin.register(ProduitFiniEssence)
+class ProduitFiniEssenceAdmin(admin.ModelAdmin):
+    list_display = (
+        'id', 'essence', 'taille_ml', 'prix', 'prix_promotionnel',
+        'prix_actuel', 'stock_disponible', 'stock_precedent', 'actif'
+    )
+    list_filter = ('actif', 'taille_ml', 'essence__categorie')
+    search_fields = ('essence__marque', 'essence__nom')
+    list_editable = ('prix', 'prix_promotionnel', 'stock_disponible', 'actif')
+    readonly_fields = ('prix_actuel',)
+    list_per_page = 50
+
+    fieldsets = (
+        ('Essence', {
+            'fields': ('essence', 'taille_ml')
+        }),
+        ('Prix', {
+            'fields': ('prix', 'prix_promotionnel', 'prix_actuel')
+        }),
+        ('Stock', {
+            'fields': ('stock_disponible', 'stock_precedent')
+        }),
+        ('Statut', {
+            'fields': ('actif',)
+        }),
+    )
+    readonly_fields = ('prix_actuel', 'stock_precedent')
+
+    @admin.display(description="Prix actuel", ordering='prix')
+    def prix_actuel(self, obj):
+        return obj.prix_actuel
+
+
 
 
 # ============================================================
