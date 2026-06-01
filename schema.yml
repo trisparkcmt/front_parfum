@@ -446,13 +446,13 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/PasswordChange'
+              $ref: '#/components/schemas/CustomPasswordChange'
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/PasswordChange'
+              $ref: '#/components/schemas/CustomPasswordChange'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/PasswordChange'
+              $ref: '#/components/schemas/CustomPasswordChange'
         required: true
       security:
       - jwtHeaderAuth: []
@@ -497,7 +497,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/RestAuthDetail'
+                $ref: '#/components/schemas/PasswordReset'
           description: ''
   /api/v1/auth/password/reset/confirm/:
     post:
@@ -640,13 +640,13 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Register'
+              $ref: '#/components/schemas/CustomRegister'
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/Register'
+              $ref: '#/components/schemas/CustomRegister'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/Register'
+              $ref: '#/components/schemas/CustomRegister'
         required: true
       security:
       - jwtHeaderAuth: []
@@ -658,7 +658,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/JWT'
+                $ref: '#/components/schemas/CustomRegister'
           description: ''
   /api/v1/auth/registration/resend-email/:
     post:
@@ -691,7 +691,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/RestAuthDetail'
+                $ref: '#/components/schemas/ResendEmailVerification'
           description: ''
   /api/v1/auth/registration/verify-email/:
     post:
@@ -724,7 +724,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/RestAuthDetail'
+                $ref: '#/components/schemas/VerifyEmail'
           description: ''
   /api/v1/auth/token/refresh/:
     post:
@@ -1031,13 +1031,13 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Essence'
+              $ref: '#/components/schemas/EssenceCreateFull'
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/Essence'
+              $ref: '#/components/schemas/EssenceCreateFull'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/Essence'
+              $ref: '#/components/schemas/EssenceCreateFull'
         required: true
       security:
       - jwtHeaderAuth: []
@@ -1048,7 +1048,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Essence'
+                $ref: '#/components/schemas/EssenceCreateFull'
           description: ''
   /api/v1/lab/essences-perso/:
     get:
@@ -1243,7 +1243,7 @@ paths:
       responses:
         '204':
           description: No response body
-  /api/v1/lab/essences/{id}/:
+  /api/v1/lab/essences/{slug}/:
     get:
       operationId: v1_lab_essences_retrieve
       description: "\nRécupère les informations complètes d'une essence via son **ID**.\n\nRetourne
@@ -1252,10 +1252,9 @@ paths:
       summary: Détail d'une essence
       parameters:
       - in: path
-        name: id
+        name: slug
         schema:
-          type: integer
-        description: A unique integer value identifying this Essence.
+          type: string
         required: true
       tags:
       - Essences
@@ -1274,10 +1273,9 @@ paths:
       operationId: v1_lab_essences_update
       parameters:
       - in: path
-        name: id
+        name: slug
         schema:
-          type: integer
-        description: A unique integer value identifying this Essence.
+          type: string
         required: true
       tags:
       - v1
@@ -1308,10 +1306,9 @@ paths:
       operationId: v1_lab_essences_partial_update
       parameters:
       - in: path
-        name: id
+        name: slug
         schema:
-          type: integer
-        description: A unique integer value identifying this Essence.
+          type: string
         required: true
       tags:
       - v1
@@ -1341,10 +1338,9 @@ paths:
       operationId: v1_lab_essences_destroy
       parameters:
       - in: path
-        name: id
+        name: slug
         schema:
-          type: integer
-        description: A unique integer value identifying this Essence.
+          type: string
         required: true
       tags:
       - v1
@@ -1555,6 +1551,200 @@ paths:
         schema:
           type: integer
         description: A unique integer value identifying this Ingrédient.
+        required: true
+      tags:
+      - v1
+      security:
+      - jwtHeaderAuth: []
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/lab/labo/essences/{id}/detail/:
+    get:
+      operationId: v1_lab_labo_essences_detail_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      security:
+      - jwtHeaderAuth: []
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /api/v1/lab/labo/essences/disponible/:
+    get:
+      operationId: v1_lab_labo_essences_disponible_retrieve
+      tags:
+      - v1
+      security:
+      - jwtHeaderAuth: []
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /api/v1/lab/lots-essence/:
+    get:
+      operationId: v1_lab_lots_essence_list
+      parameters:
+      - in: query
+        name: actif
+        schema:
+          type: boolean
+      - in: query
+        name: essence
+        schema:
+          type: integer
+      tags:
+      - v1
+      security:
+      - jwtHeaderAuth: []
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/LotEssence'
+          description: ''
+    post:
+      operationId: v1_lab_lots_essence_create
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LotEssence'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/LotEssence'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/LotEssence'
+        required: true
+      security:
+      - jwtHeaderAuth: []
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LotEssence'
+          description: ''
+  /api/v1/lab/lots-essence/{id}/:
+    get:
+      operationId: v1_lab_lots_essence_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Lot d'essence (labo).
+        required: true
+      tags:
+      - v1
+      security:
+      - jwtHeaderAuth: []
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LotEssence'
+          description: ''
+    put:
+      operationId: v1_lab_lots_essence_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Lot d'essence (labo).
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LotEssence'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/LotEssence'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/LotEssence'
+        required: true
+      security:
+      - jwtHeaderAuth: []
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LotEssence'
+          description: ''
+    patch:
+      operationId: v1_lab_lots_essence_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Lot d'essence (labo).
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedLotEssence'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedLotEssence'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedLotEssence'
+      security:
+      - jwtHeaderAuth: []
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LotEssence'
+          description: ''
+    delete:
+      operationId: v1_lab_lots_essence_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Lot d'essence (labo).
         required: true
       tags:
       - v1
@@ -1894,7 +2084,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PaginatedAccessoireList'
+                $ref: '#/components/schemas/PaginatedAccessoirePublicListList'
           description: ''
     post:
       operationId: v1_shop_accessoires_create
@@ -1904,13 +2094,13 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Accessoire'
+              $ref: '#/components/schemas/AccessoirePublicDetail'
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/Accessoire'
+              $ref: '#/components/schemas/AccessoirePublicDetail'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/Accessoire'
+              $ref: '#/components/schemas/AccessoirePublicDetail'
         required: true
       security:
       - jwtHeaderAuth: []
@@ -1921,7 +2111,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Accessoire'
+                $ref: '#/components/schemas/AccessoirePublicDetail'
           description: ''
   /api/v1/shop/accessoires/{slug}/:
     get:
@@ -1945,7 +2135,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Accessoire'
+                $ref: '#/components/schemas/AccessoirePublicDetail'
           description: ''
     put:
       operationId: v1_shop_accessoires_update
@@ -1961,13 +2151,13 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Accessoire'
+              $ref: '#/components/schemas/AccessoirePublicDetail'
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/Accessoire'
+              $ref: '#/components/schemas/AccessoirePublicDetail'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/Accessoire'
+              $ref: '#/components/schemas/AccessoirePublicDetail'
         required: true
       security:
       - jwtHeaderAuth: []
@@ -1978,7 +2168,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Accessoire'
+                $ref: '#/components/schemas/AccessoirePublicDetail'
           description: ''
     patch:
       operationId: v1_shop_accessoires_partial_update
@@ -1994,13 +2184,13 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/PatchedAccessoire'
+              $ref: '#/components/schemas/PatchedAccessoirePublicDetail'
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/PatchedAccessoire'
+              $ref: '#/components/schemas/PatchedAccessoirePublicDetail'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/PatchedAccessoire'
+              $ref: '#/components/schemas/PatchedAccessoirePublicDetail'
       security:
       - jwtHeaderAuth: []
       - jwtCookieAuth: []
@@ -2010,7 +2200,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Accessoire'
+                $ref: '#/components/schemas/AccessoirePublicDetail'
           description: ''
     delete:
       operationId: v1_shop_accessoires_destroy
@@ -2044,13 +2234,13 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Accessoire'
+              $ref: '#/components/schemas/AccessoirePublicDetail'
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/Accessoire'
+              $ref: '#/components/schemas/AccessoirePublicDetail'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/Accessoire'
+              $ref: '#/components/schemas/AccessoirePublicDetail'
         required: true
       security:
       - jwtHeaderAuth: []
@@ -2061,7 +2251,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Accessoire'
+                $ref: '#/components/schemas/AccessoirePublicDetail'
           description: ''
   /api/v1/shop/accessoires/bestsellers/:
     get:
@@ -2078,7 +2268,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Accessoire'
+                $ref: '#/components/schemas/AccessoirePublicDetail'
           description: ''
   /api/v1/shop/accessoires/hotsellers/:
     get:
@@ -2095,8 +2285,174 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Accessoire'
+                $ref: '#/components/schemas/AccessoirePublicDetail'
           description: ''
+  /api/v1/shop/categories-parfum/:
+    get:
+      operationId: v1_shop_categories_parfum_list
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - v1
+      security:
+      - jwtHeaderAuth: []
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CategorieParfum'
+          description: ''
+    post:
+      operationId: v1_shop_categories_parfum_create
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CategorieParfum'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CategorieParfum'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CategorieParfum'
+        required: true
+      security:
+      - jwtHeaderAuth: []
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CategorieParfum'
+          description: ''
+  /api/v1/shop/categories-parfum/{id}/:
+    get:
+      operationId: v1_shop_categories_parfum_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Catégorie de parfum.
+        required: true
+      tags:
+      - v1
+      security:
+      - jwtHeaderAuth: []
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CategorieParfum'
+          description: ''
+    put:
+      operationId: v1_shop_categories_parfum_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Catégorie de parfum.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CategorieParfum'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CategorieParfum'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CategorieParfum'
+        required: true
+      security:
+      - jwtHeaderAuth: []
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CategorieParfum'
+          description: ''
+    patch:
+      operationId: v1_shop_categories_parfum_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Catégorie de parfum.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedCategorieParfum'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedCategorieParfum'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedCategorieParfum'
+      security:
+      - jwtHeaderAuth: []
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CategorieParfum'
+          description: ''
+    delete:
+      operationId: v1_shop_categories_parfum_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Catégorie de parfum.
+        required: true
+      tags:
+      - v1
+      security:
+      - jwtHeaderAuth: []
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
   /api/v1/shop/favoris/:
     get:
       operationId: v1_shop_favoris_list
@@ -2248,7 +2604,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PaginatedFlaconList'
+                $ref: '#/components/schemas/PaginatedFlaconPublicList'
               examples:
                 FlaconsSpray50mlDisponibles:
                   value:
@@ -2288,7 +2644,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Flacon'
           description: ''
-  /api/v1/shop/flacons/{id}/:
+  /api/v1/shop/flacons/{slug}/:
     get:
       operationId: v1_shop_flacons_retrieve
       description: "\nRécupère les informations complètes d'un flacon via son **ID**.\n\nLe
@@ -2297,10 +2653,9 @@ paths:
       summary: Détail d'un flacon
       parameters:
       - in: path
-        name: id
+        name: slug
         schema:
-          type: integer
-        description: A unique integer value identifying this Flacon.
+          type: string
         required: true
       tags:
       - Flacons
@@ -2319,10 +2674,9 @@ paths:
       operationId: v1_shop_flacons_update
       parameters:
       - in: path
-        name: id
+        name: slug
         schema:
-          type: integer
-        description: A unique integer value identifying this Flacon.
+          type: string
         required: true
       tags:
       - v1
@@ -2353,10 +2707,9 @@ paths:
       operationId: v1_shop_flacons_partial_update
       parameters:
       - in: path
-        name: id
+        name: slug
         schema:
-          type: integer
-        description: A unique integer value identifying this Flacon.
+          type: string
         required: true
       tags:
       - v1
@@ -2386,10 +2739,9 @@ paths:
       operationId: v1_shop_flacons_destroy
       parameters:
       - in: path
-        name: id
+        name: slug
         schema:
-          type: integer
-        description: A unique integer value identifying this Flacon.
+          type: string
         required: true
       tags:
       - v1
@@ -2512,7 +2864,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PaginatedParfumList'
+                $ref: '#/components/schemas/PaginatedParfumPublicListList'
               examples:
                 ParfumsFlorauxFéminins:
                   value:
@@ -2541,13 +2893,13 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Parfum'
+              $ref: '#/components/schemas/ParfumPublicDetail'
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/Parfum'
+              $ref: '#/components/schemas/ParfumPublicDetail'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/Parfum'
+              $ref: '#/components/schemas/ParfumPublicDetail'
         required: true
       security:
       - jwtHeaderAuth: []
@@ -2558,7 +2910,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Parfum'
+                $ref: '#/components/schemas/ParfumPublicDetail'
           description: ''
   /api/v1/shop/parfums/{slug}/:
     get:
@@ -2585,7 +2937,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Parfum'
+                $ref: '#/components/schemas/ParfumPublicDetail'
               examples:
                 ExempleDeRéponse:
                   value:
@@ -2617,13 +2969,13 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Parfum'
+              $ref: '#/components/schemas/ParfumPublicDetail'
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/Parfum'
+              $ref: '#/components/schemas/ParfumPublicDetail'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/Parfum'
+              $ref: '#/components/schemas/ParfumPublicDetail'
         required: true
       security:
       - jwtHeaderAuth: []
@@ -2634,7 +2986,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Parfum'
+                $ref: '#/components/schemas/ParfumPublicDetail'
           description: ''
     patch:
       operationId: v1_shop_parfums_partial_update
@@ -2650,13 +3002,13 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/PatchedParfum'
+              $ref: '#/components/schemas/PatchedParfumPublicDetail'
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/PatchedParfum'
+              $ref: '#/components/schemas/PatchedParfumPublicDetail'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/PatchedParfum'
+              $ref: '#/components/schemas/PatchedParfumPublicDetail'
       security:
       - jwtHeaderAuth: []
       - jwtCookieAuth: []
@@ -2666,7 +3018,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Parfum'
+                $ref: '#/components/schemas/ParfumPublicDetail'
           description: ''
     delete:
       operationId: v1_shop_parfums_destroy
@@ -2700,13 +3052,13 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Parfum'
+              $ref: '#/components/schemas/ParfumPublicDetail'
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/Parfum'
+              $ref: '#/components/schemas/ParfumPublicDetail'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/Parfum'
+              $ref: '#/components/schemas/ParfumPublicDetail'
         required: true
       security:
       - jwtHeaderAuth: []
@@ -2717,7 +3069,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Parfum'
+                $ref: '#/components/schemas/ParfumPublicDetail'
           description: ''
   /api/v1/shop/parfums/bestsellers/:
     get:
@@ -2734,7 +3086,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Parfum'
+                $ref: '#/components/schemas/ParfumPublicDetail'
           description: ''
   /api/v1/shop/parfums/hotsellers/:
     get:
@@ -2751,11 +3103,691 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Parfum'
+                $ref: '#/components/schemas/ParfumPublicDetail'
           description: ''
+  /api/v1/shop/produits-essence/:
+    get:
+      operationId: v1_shop_produits_essence_list
+      parameters:
+      - in: query
+        name: essence
+        schema:
+          type: integer
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      - in: query
+        name: taille_ml
+        schema:
+          type: integer
+      tags:
+      - v1
+      security:
+      - jwtHeaderAuth: []
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ProduitFiniEssencePublic'
+          description: ''
+    post:
+      operationId: v1_shop_produits_essence_create
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProduitFiniEssence'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ProduitFiniEssence'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ProduitFiniEssence'
+        required: true
+      security:
+      - jwtHeaderAuth: []
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProduitFiniEssence'
+          description: ''
+  /api/v1/shop/produits-essence/{id}/:
+    get:
+      operationId: v1_shop_produits_essence_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Produit fini (essence).
+        required: true
+      tags:
+      - v1
+      security:
+      - jwtHeaderAuth: []
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProduitFiniEssencePublic'
+          description: ''
+    put:
+      operationId: v1_shop_produits_essence_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Produit fini (essence).
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProduitFiniEssence'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ProduitFiniEssence'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ProduitFiniEssence'
+        required: true
+      security:
+      - jwtHeaderAuth: []
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProduitFiniEssence'
+          description: ''
+    patch:
+      operationId: v1_shop_produits_essence_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Produit fini (essence).
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedProduitFiniEssence'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedProduitFiniEssence'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedProduitFiniEssence'
+      security:
+      - jwtHeaderAuth: []
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProduitFiniEssence'
+          description: ''
+    delete:
+      operationId: v1_shop_produits_essence_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Produit fini (essence).
+        required: true
+      tags:
+      - v1
+      security:
+      - jwtHeaderAuth: []
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/shop/tags/:
+    get:
+      operationId: v1_shop_tags_list
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - v1
+      security:
+      - jwtHeaderAuth: []
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Tag'
+          description: ''
+    post:
+      operationId: v1_shop_tags_create
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Tag'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Tag'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Tag'
+        required: true
+      security:
+      - jwtHeaderAuth: []
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tag'
+          description: ''
+  /api/v1/shop/tags/{slug}/:
+    get:
+      operationId: v1_shop_tags_retrieve
+      parameters:
+      - in: path
+        name: slug
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      security:
+      - jwtHeaderAuth: []
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tag'
+          description: ''
+    put:
+      operationId: v1_shop_tags_update
+      parameters:
+      - in: path
+        name: slug
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Tag'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Tag'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Tag'
+        required: true
+      security:
+      - jwtHeaderAuth: []
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tag'
+          description: ''
+    patch:
+      operationId: v1_shop_tags_partial_update
+      parameters:
+      - in: path
+        name: slug
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedTag'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedTag'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedTag'
+      security:
+      - jwtHeaderAuth: []
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tag'
+          description: ''
+    delete:
+      operationId: v1_shop_tags_destroy
+      parameters:
+      - in: path
+        name: slug
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      security:
+      - jwtHeaderAuth: []
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/shop/types-accessoire/:
+    get:
+      operationId: v1_shop_types_accessoire_list
+      description: API pour les types d'accessoires.
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - v1
+      security:
+      - jwtHeaderAuth: []
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TypeAccessoire'
+          description: ''
+    post:
+      operationId: v1_shop_types_accessoire_create
+      description: API pour les types d'accessoires.
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TypeAccessoire'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TypeAccessoire'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TypeAccessoire'
+        required: true
+      security:
+      - jwtHeaderAuth: []
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TypeAccessoire'
+          description: ''
+  /api/v1/shop/types-accessoire/{id}/:
+    get:
+      operationId: v1_shop_types_accessoire_retrieve
+      description: API pour les types d'accessoires.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Type d'accessoire.
+        required: true
+      tags:
+      - v1
+      security:
+      - jwtHeaderAuth: []
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TypeAccessoire'
+          description: ''
+    put:
+      operationId: v1_shop_types_accessoire_update
+      description: API pour les types d'accessoires.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Type d'accessoire.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TypeAccessoire'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TypeAccessoire'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TypeAccessoire'
+        required: true
+      security:
+      - jwtHeaderAuth: []
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TypeAccessoire'
+          description: ''
+    patch:
+      operationId: v1_shop_types_accessoire_partial_update
+      description: API pour les types d'accessoires.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Type d'accessoire.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedTypeAccessoire'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedTypeAccessoire'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedTypeAccessoire'
+      security:
+      - jwtHeaderAuth: []
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TypeAccessoire'
+          description: ''
+    delete:
+      operationId: v1_shop_types_accessoire_destroy
+      description: API pour les types d'accessoires.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Type d'accessoire.
+        required: true
+      tags:
+      - v1
+      security:
+      - jwtHeaderAuth: []
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/shop/types-flacon/:
+    get:
+      operationId: v1_shop_types_flacon_list
+      description: API pour les types de flacons.
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - v1
+      security:
+      - jwtHeaderAuth: []
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TypeFlacon'
+          description: ''
+    post:
+      operationId: v1_shop_types_flacon_create
+      description: API pour les types de flacons.
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TypeFlacon'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TypeFlacon'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TypeFlacon'
+        required: true
+      security:
+      - jwtHeaderAuth: []
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TypeFlacon'
+          description: ''
+  /api/v1/shop/types-flacon/{id}/:
+    get:
+      operationId: v1_shop_types_flacon_retrieve
+      description: API pour les types de flacons.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Type de flacon.
+        required: true
+      tags:
+      - v1
+      security:
+      - jwtHeaderAuth: []
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TypeFlacon'
+          description: ''
+    put:
+      operationId: v1_shop_types_flacon_update
+      description: API pour les types de flacons.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Type de flacon.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TypeFlacon'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TypeFlacon'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TypeFlacon'
+        required: true
+      security:
+      - jwtHeaderAuth: []
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TypeFlacon'
+          description: ''
+    patch:
+      operationId: v1_shop_types_flacon_partial_update
+      description: API pour les types de flacons.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Type de flacon.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedTypeFlacon'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedTypeFlacon'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedTypeFlacon'
+      security:
+      - jwtHeaderAuth: []
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TypeFlacon'
+          description: ''
+    delete:
+      operationId: v1_shop_types_flacon_destroy
+      description: API pour les types de flacons.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Type de flacon.
+        required: true
+      tags:
+      - v1
+      security:
+      - jwtHeaderAuth: []
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
 components:
   schemas:
-    Accessoire:
+    AccessoirePublicDetail:
       type: object
       properties:
         id:
@@ -2768,13 +3800,8 @@ components:
           type: string
           maxLength: 220
           pattern: ^[-a-zA-Z0-9_]+$
-        reference_sku:
-          type: string
-          maxLength: 100
         type_accessoire:
-          allOf:
-          - $ref: '#/components/schemas/TypeAccessoire'
-          readOnly: true
+          type: integer
         description_courte:
           type: string
           maxLength: 500
@@ -2794,18 +3821,9 @@ components:
         prix_actuel:
           type: string
           readOnly: true
-        taux_reduction:
-          type: number
-          format: float
-          readOnly: true
         en_promotion:
           type: boolean
           readOnly: true
-        stock_quantite:
-          type: integer
-          maximum: 9223372036854775807
-          minimum: -9223372036854775808
-          format: int64
         poids_grammes:
           type: string
           format: decimal
@@ -2815,7 +3833,6 @@ components:
           type: string
           format: uri
           readOnly: true
-        images_supplementaires: {}
         date_creation:
           type: string
           format: date-time
@@ -2836,9 +3853,54 @@ components:
       - prix_actuel
       - prix_unitaire
       - produits_similaires
-      - reference_sku
-      - slug
-      - taux_reduction
+      - type_accessoire
+    AccessoirePublicList:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        nom:
+          type: string
+          maxLength: 200
+        slug:
+          type: string
+          maxLength: 220
+          pattern: ^[-a-zA-Z0-9_]+$
+        type_accessoire:
+          type: integer
+        prix_unitaire:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+        prix_actuel:
+          type: string
+          readOnly: true
+        en_promotion:
+          type: boolean
+          readOnly: true
+        stock_quantite:
+          type: integer
+        image_principale:
+          type: string
+          format: uri
+          readOnly: true
+        date_creation:
+          type: string
+          format: date-time
+          readOnly: true
+        is_favori:
+          type: string
+          readOnly: true
+      required:
+      - date_creation
+      - en_promotion
+      - id
+      - image_principale
+      - is_favori
+      - nom
+      - prix_actuel
+      - prix_unitaire
       - type_accessoire
     BlankEnum:
       enum:
@@ -2853,12 +3915,86 @@ components:
         * `super_premium` - Super Premium
         * `premium` - Premium
         * `high` - High
+    CategorieParfum:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        nom:
+          type: string
+          maxLength: 100
+        slug:
+          type: string
+          maxLength: 120
+          pattern: ^[-a-zA-Z0-9_]+$
+        description:
+          type: string
+        image:
+          type: string
+          format: uri
+          nullable: true
+          description: Image de la catégorie (jpg, png, webp)
+        ordre_affichage:
+          type: integer
+        actif:
+          type: boolean
+        taux_reduction:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,3}(?:\.\d{0,2})?$
+          description: Réduction en % appliquée à tous les parfums de cette catégorie
+            (0 = pas de réduction)
+        date_creation:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - date_creation
+      - id
+      - nom
+    CustomPasswordChange:
+      type: object
+      description: Sérialiseur pour changer le mot de passe, aligné sur ApiDoc.md.
+      properties:
+        new_password:
+          type: string
+        new_password_confirm:
+          type: string
+      required:
+      - new_password
+      - new_password_confirm
+    CustomRegister:
+      type: object
+      description: |-
+        Sérialiseur d'inscription personnalisé :
+        - Rend le téléphone, prénom et nom optionnels.
+        - Utilise les noms de champs définis dans ApiDoc.md.
+        - Préserve la validation de robustesse du mot de passe de Django.
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          writeOnly: true
+        password_confirm:
+          type: string
+          writeOnly: true
+        first_name:
+          type: string
+        last_name:
+          type: string
+        telephone:
+          type: string
+      required:
+      - email
+      - password
+      - password_confirm
     EmailOrTelephoneLogin:
       type: object
       description: Connexion avec email ou téléphone sans changer l'inscription.
       properties:
-        username:
-          type: string
         email:
           type: string
         password:
@@ -2873,71 +4009,51 @@ components:
         id:
           type: integer
           readOnly: true
-        nom:
-          type: string
-          maxLength: 150
-        code_reference:
-          type: string
-          maxLength: 50
         marque:
           type: string
           maxLength: 100
+        nom:
+          type: string
+          maxLength: 150
+        slug:
+          type: string
+          nullable: true
+          maxLength: 170
+          pattern: ^[-a-zA-Z0-9_]+$
+        categorie:
+          allOf:
+          - $ref: '#/components/schemas/CategorieEnum'
+          default: premium
+        code_reference:
+          type: string
+          maxLength: 50
         description:
           type: string
         description_ia:
           type: string
-          description: Description narrative envoyée à l'IA
         fournisseur:
           type: string
           maxLength: 200
         origine_pays:
           type: string
           maxLength: 100
-        stock_flacon:
-          type: integer
-          maximum: 9223372036854775807
-          minimum: 0
-          format: int64
-          title: Nombre de flacons neufs
-        contenance_ml:
-          type: integer
-          maximum: 9223372036854775807
-          minimum: 0
-          format: int64
-          description: 'Contenance d''un flacon (ex: 10 pour 10ml)'
-        stock_ouvert_ml:
+        concentration_max:
           type: string
           format: decimal
-          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
-          title: Reliquat Labo (ml ouverts)
-        stock_ml_total_reel:
-          type: string
-          format: decimal
-          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
-          readOnly: true
-        seuil_alerte_stock:
-          type: string
-          format: decimal
-          pattern: ^-?\d{0,7}(?:\.\d{0,3})?$
+          pattern: ^-?\d{0,3}(?:\.\d{0,2})?$
           nullable: true
-        prix_unitaire_fini:
+        couleur:
           type: string
-          format: decimal
-          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
-          title: Prix du flacon
-        prix_par_ml:
+          maxLength: 50
+        duree:
           type: string
-          format: decimal
-          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
-          readOnly: true
+          maxLength: 50
         intensite:
           oneOf:
           - $ref: '#/components/schemas/IntensiteEnum'
           - $ref: '#/components/schemas/BlankEnum'
         genre_cible:
           $ref: '#/components/schemas/GenreCibleEnum'
-        categorie:
-          $ref: '#/components/schemas/CategorieEnum'
         notes_tete:
           type: string
           maxLength: 300
@@ -2982,9 +4098,12 @@ components:
           items:
             type: string
           readOnly: true
+        prix_par_ml:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          description: Prix au ml utilisé dans le laboratoire
         actif:
-          type: boolean
-        vendu_comme_produit_fini:
           type: boolean
         date_creation:
           type: string
@@ -3001,24 +4120,163 @@ components:
       - famille_olfactive
       - humeurs_compatibles
       - id
+      - marque
       - moments_journee
       - nom
       - occasions
-      - prix_par_ml
       - saisons_compatibles
       - signes_astrologiques_compatibles
-      - stock_ml_total_reel
       - tags
-    EssenceLab:
+    EssenceCreateFull:
       type: object
       properties:
         id:
           type: integer
           readOnly: true
+        marque:
+          type: string
+          maxLength: 100
         nom:
           type: string
-          readOnly: true
+          maxLength: 150
+        slug:
+          type: string
+          nullable: true
+          maxLength: 170
+          pattern: ^[-a-zA-Z0-9_]+$
+        categorie:
+          allOf:
+          - $ref: '#/components/schemas/CategorieEnum'
+          default: premium
         code_reference:
+          type: string
+          maxLength: 50
+        description:
+          type: string
+        description_ia:
+          type: string
+        fournisseur:
+          type: string
+          maxLength: 200
+        origine_pays:
+          type: string
+          maxLength: 100
+        concentration_max:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,3}(?:\.\d{0,2})?$
+          nullable: true
+        couleur:
+          type: string
+          maxLength: 50
+        duree:
+          type: string
+          maxLength: 50
+        intensite:
+          oneOf:
+          - $ref: '#/components/schemas/IntensiteEnum'
+          - $ref: '#/components/schemas/BlankEnum'
+        genre_cible:
+          $ref: '#/components/schemas/GenreCibleEnum'
+        notes_tete:
+          type: string
+          maxLength: 300
+        notes_coeur:
+          type: string
+          maxLength: 300
+        notes_fond:
+          type: string
+          maxLength: 300
+        tags:
+          type: array
+          items:
+            $ref: '#/components/schemas/Tag'
+          readOnly: true
+        famille_olfactive:
+          type: array
+          items:
+            type: string
+          readOnly: true
+        humeurs_compatibles:
+          type: array
+          items:
+            type: string
+          readOnly: true
+        occasions:
+          type: array
+          items:
+            type: string
+          readOnly: true
+        saisons_compatibles:
+          type: array
+          items:
+            type: string
+          readOnly: true
+        signes_astrologiques_compatibles:
+          type: array
+          items:
+            type: string
+          readOnly: true
+        moments_journee:
+          type: array
+          items:
+            type: string
+          readOnly: true
+        prix_par_ml:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          description: Prix au ml utilisé dans le laboratoire
+        actif:
+          type: boolean
+        date_creation:
+          type: string
+          format: date-time
+          readOnly: true
+        date_modification:
+          type: string
+          format: date-time
+          readOnly: true
+        initial_lot:
+          allOf:
+          - $ref: '#/components/schemas/_LotEssenceInput'
+          writeOnly: true
+        produits_finis:
+          type: array
+          items:
+            $ref: '#/components/schemas/_ProduitFiniInput'
+          writeOnly: true
+      required:
+      - code_reference
+      - date_creation
+      - date_modification
+      - famille_olfactive
+      - humeurs_compatibles
+      - id
+      - marque
+      - moments_journee
+      - nom
+      - occasions
+      - saisons_compatibles
+      - signes_astrologiques_compatibles
+      - tags
+    EssenceLaboList:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        marque:
+          type: string
+          maxLength: 100
+        nom:
+          type: string
+          maxLength: 150
+        categorie:
+          allOf:
+          - $ref: '#/components/schemas/CategorieEnum'
+          default: premium
+        stock_total_ml:
           type: string
           readOnly: true
         prix_par_ml:
@@ -3027,10 +4285,11 @@ components:
           pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
           readOnly: true
       required:
-      - code_reference
       - id
+      - marque
       - nom
       - prix_par_ml
+      - stock_total_ml
     EssencePersonnalisee:
       type: object
       properties:
@@ -3110,16 +4369,29 @@ components:
         type_produit:
           type: string
           readOnly: true
+        slug_produit:
+          type: string
+          readOnly: true
+        id_produit:
+          type: string
+          readOnly: true
       required:
       - date_ajout
       - id
+      - id_produit
       - image_produit
       - nom_produit
       - prix_produit
+      - slug_produit
       - type_produit
     Flacon:
       type: object
       properties:
+        slug:
+          type: string
+          nullable: true
+          maxLength: 220
+          pattern: ^[-a-zA-Z0-9_]+$
         id:
           type: integer
           readOnly: true
@@ -3130,14 +4402,9 @@ components:
           type: string
           maxLength: 100
         type_flacon:
-          allOf:
-          - $ref: '#/components/schemas/TypeFlacon'
-          readOnly: true
+          type: integer
         contenance_ml:
           type: integer
-          maximum: 9223372036854775807
-          minimum: -9223372036854775808
-          format: int64
           description: 30, 50, 75, 100, 150 ml
         matiere:
           type: string
@@ -3166,14 +4433,8 @@ components:
           pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
         stock_quantite:
           type: integer
-          maximum: 9223372036854775807
-          minimum: -9223372036854775808
-          format: int64
         seuil_alerte_stock:
           type: integer
-          maximum: 9223372036854775807
-          minimum: -9223372036854775808
-          format: int64
           description: En dessous de ce seuil la commande est bloquée
         stock_suffisant:
           type: boolean
@@ -3230,6 +4491,37 @@ components:
       - image_principale
       - nom
       - prix_unitaire
+    FlaconPublic:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        nom:
+          type: string
+          maxLength: 200
+        slug:
+          type: string
+          nullable: true
+          maxLength: 220
+          pattern: ^[-a-zA-Z0-9_]+$
+        image_principale:
+          type: string
+          format: uri
+          readOnly: true
+        prix_unitaire:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+        contenance_ml:
+          type: integer
+          description: 30, 50, 75, 100, 150 ml
+      required:
+      - contenance_ml
+      - id
+      - image_principale
+      - nom
+      - prix_unitaire
     GenreCibleEnum:
       enum:
       - homme
@@ -3252,12 +4544,6 @@ components:
         description:
           type: string
           readOnly: true
-        note_olfactive:
-          readOnly: true
-          nullable: true
-          oneOf:
-          - $ref: '#/components/schemas/NoteOlfactiveEnum'
-          - $ref: '#/components/schemas/NullEnum'
         prix_par_ml:
           type: string
           format: decimal
@@ -3267,7 +4553,6 @@ components:
       - description
       - id
       - nom
-      - note_olfactive
       - prix_par_ml
     IntensiteEnum:
       enum:
@@ -3281,34 +4566,51 @@ components:
         * `moyenne` - Moyenne
         * `forte` - Forte
         * `très forte` - Très forte
-    JWT:
+    LotEssence:
       type: object
-      description: Serializer for JWT authentication.
       properties:
-        access:
+        id:
+          type: integer
+          readOnly: true
+        essence:
+          type: integer
+        essence_details:
+          allOf:
+          - $ref: '#/components/schemas/EssenceLaboList'
+          readOnly: true
+        stock_ml:
           type: string
-        refresh:
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+          description: Quantité en ml disponible pour le laboratoire
+        stock_precedent_ml:
           type: string
-        user:
-          $ref: '#/components/schemas/UserDetails'
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+          readOnly: true
+          description: Stock total de l'essence avant cet ajout
+        seuil_alerte_ml:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+          nullable: true
+          description: Alerte si stock ≤ seuil
+        actif:
+          type: boolean
+        date_reception:
+          type: string
+          format: date-time
+          readOnly: true
+        reference_fournisseur:
+          type: string
+          maxLength: 100
       required:
-      - access
-      - refresh
-      - user
-    NoteOlfactiveEnum:
-      enum:
-      - tête
-      - coeur
-      - fond
-      type: string
-      description: |-
-        * `tête` - Tête
-        * `coeur` - Cœur
-        * `fond` - Fond
-    NullEnum:
-      enum:
-      - null
-    PaginatedAccessoireList:
+      - date_reception
+      - essence
+      - essence_details
+      - id
+      - stock_precedent_ml
+    PaginatedAccessoirePublicListList:
       type: object
       required:
       - count
@@ -3330,7 +4632,7 @@ components:
         results:
           type: array
           items:
-            $ref: '#/components/schemas/Accessoire'
+            $ref: '#/components/schemas/AccessoirePublicList'
     PaginatedEssenceList:
       type: object
       required:
@@ -3377,7 +4679,7 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/EssencePersonnalisee'
-    PaginatedFlaconList:
+    PaginatedFlaconPublicList:
       type: object
       required:
       - count
@@ -3399,7 +4701,7 @@ components:
         results:
           type: array
           items:
-            $ref: '#/components/schemas/Flacon'
+            $ref: '#/components/schemas/FlaconPublic'
     PaginatedIngredientList:
       type: object
       required:
@@ -3423,29 +4725,6 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Ingredient'
-    PaginatedParfumList:
-      type: object
-      required:
-      - count
-      - results
-      properties:
-        count:
-          type: integer
-          example: 123
-        next:
-          type: string
-          nullable: true
-          format: uri
-          example: http://api.example.org/accounts/?page=4
-        previous:
-          type: string
-          nullable: true
-          format: uri
-          example: http://api.example.org/accounts/?page=2
-        results:
-          type: array
-          items:
-            $ref: '#/components/schemas/Parfum'
     PaginatedParfumPersonnaliseList:
       type: object
       required:
@@ -3469,136 +4748,29 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/ParfumPersonnalise'
-    Parfum:
+    PaginatedParfumPublicListList:
       type: object
-      properties:
-        id:
-          type: integer
-          readOnly: true
-        nom:
-          type: string
-          maxLength: 200
-        slug:
-          type: string
-          maxLength: 220
-          pattern: ^[-a-zA-Z0-9_]+$
-        reference_sku:
-          type: string
-          maxLength: 100
-        description_courte:
-          type: string
-          maxLength: 500
-        contenance_ml:
-          type: integer
-          maximum: 9223372036854775807
-          minimum: -9223372036854775808
-          format: int64
-          description: 30, 50, 75, 100 ml
-        prix_unitaire:
-          type: string
-          format: decimal
-          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
-        prix_actuel:
-          type: string
-          description: |-
-            Retourne le prix final en str formatée '25000.00'.
-            Priorité : prix_promotionnel > prix_unitaire.
-            Le signal a déjà calculé prix_promotionnel si une réduction catégorie existe.
-          readOnly: true
-        taux_reduction:
-          type: number
-          format: float
-          description: |-
-            Calcule le taux affiché au client.
-            Retourne None si aucune réduction n'est appliquée.
-          readOnly: true
-        en_promotion:
-          type: boolean
-          readOnly: true
-        genre_cible:
-          $ref: '#/components/schemas/GenreCibleEnum'
-        intensite:
-          oneOf:
-          - $ref: '#/components/schemas/IntensiteEnum'
-          - $ref: '#/components/schemas/BlankEnum'
-        notes_tete:
-          type: string
-          maxLength: 300
-        notes_coeur:
-          type: string
-          maxLength: 300
-        notes_fond:
-          type: string
-          maxLength: 300
-        tags:
-          type: array
-          items:
-            $ref: '#/components/schemas/Tag'
-          readOnly: true
-        famille_olfactive:
-          type: array
-          items:
-            type: string
-          readOnly: true
-        humeurs_compatibles:
-          type: array
-          items:
-            type: string
-          readOnly: true
-        occasions:
-          type: array
-          items:
-            type: string
-          readOnly: true
-        saisons_compatibles:
-          type: array
-          items:
-            type: string
-          readOnly: true
-        est_nouveau:
-          type: boolean
-        est_bestseller:
-          type: boolean
-        image_principale:
-          type: string
-          format: uri
-          readOnly: true
-        images_supplementaires:
-          description: URLs des images supplémentaires (géré via l'upload multiple)
-        stock_quantite:
-          type: integer
-          maximum: 9223372036854775807
-          minimum: -9223372036854775808
-          format: int64
-        date_creation:
-          type: string
-          format: date-time
-          readOnly: true
-        produits_similaires:
-          type: string
-          readOnly: true
-        is_favori:
-          type: string
-          readOnly: true
       required:
-      - contenance_ml
-      - date_creation
-      - en_promotion
-      - famille_olfactive
-      - humeurs_compatibles
-      - id
-      - image_principale
-      - is_favori
-      - nom
-      - occasions
-      - prix_actuel
-      - prix_unitaire
-      - produits_similaires
-      - reference_sku
-      - saisons_compatibles
-      - slug
-      - tags
-      - taux_reduction
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/ParfumPublicList'
     ParfumPersonnalise:
       type: object
       properties:
@@ -3617,6 +4789,7 @@ components:
           readOnly: true
         nom:
           type: string
+          nullable: true
           maxLength: 200
         description:
           type: string
@@ -3650,6 +4823,10 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/ParfumPersonnaliseLigne'
+        enregistre:
+          type: boolean
+          description: Détermine si le parfum est enregistré dans la collection du
+            client.
         date_creation:
           type: string
           format: date-time
@@ -3660,7 +4837,6 @@ components:
       - flacon_detail
       - id
       - lignes
-      - nom
       - note_laboratoire
       - prix_essences
       - prix_flacon_snapshot
@@ -3672,19 +4848,14 @@ components:
         id:
           type: integer
           readOnly: true
-        essence_catalogue:
+        essence:
           type: integer
           nullable: true
         essence_personnalisee:
           type: integer
           nullable: true
-        essence_catalogue_detail:
-          allOf:
-          - $ref: '#/components/schemas/EssenceLab'
-          readOnly: true
-        essence_personnalisee_detail:
-          allOf:
-          - $ref: '#/components/schemas/EssencePersonnalisee'
+        essence_detail:
+          type: string
           readOnly: true
         quantite_ml:
           type: string
@@ -3703,24 +4874,191 @@ components:
           readOnly: true
           description: prix_par_ml_snapshot * quantite_ml
       required:
-      - essence_catalogue_detail
-      - essence_personnalisee_detail
+      - essence_detail
       - id
       - prix_ligne
       - prix_par_ml_snapshot
       - quantite_ml
-    PasswordChange:
+    ParfumPublicDetail:
       type: object
+      description: 'Public : détail (avec produits similaires)'
       properties:
-        new_password1:
+        id:
+          type: integer
+          readOnly: true
+        nom:
           type: string
-          maxLength: 128
-        new_password2:
+          maxLength: 200
+        slug:
           type: string
-          maxLength: 128
+          maxLength: 220
+          pattern: ^[-a-zA-Z0-9_]+$
+        description_courte:
+          type: string
+          maxLength: 500
+        contenance_ml:
+          type: integer
+          description: 30, 50, 75, 100 ml
+        prix_unitaire:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+        prix_actuel:
+          type: string
+          description: |-
+            Retourne le prix final en str formatée '25000.00'.
+            Priorité : prix_promotionnel > prix_unitaire.
+            Le signal a déjà calculé prix_promotionnel si une réduction catégorie existe.
+          readOnly: true
+        en_promotion:
+          type: boolean
+          readOnly: true
+        genre_cible:
+          $ref: '#/components/schemas/GenreCibleEnum'
+        intensite:
+          oneOf:
+          - $ref: '#/components/schemas/IntensiteEnum'
+          - $ref: '#/components/schemas/BlankEnum'
+        notes_tete:
+          type: string
+          maxLength: 300
+        notes_coeur:
+          type: string
+          maxLength: 300
+        notes_fond:
+          type: string
+          maxLength: 300
+        tags:
+          type: array
+          items:
+            type: integer
+        famille_olfactive:
+          type: array
+          items:
+            type: string
+          readOnly: true
+        humeurs_compatibles:
+          type: array
+          items:
+            type: string
+          readOnly: true
+        occasions:
+          type: array
+          items:
+            type: string
+          readOnly: true
+        saisons_compatibles:
+          type: array
+          items:
+            type: string
+          readOnly: true
+        est_nouveau:
+          type: boolean
+        est_bestseller:
+          type: boolean
+        image_principale:
+          type: string
+          format: uri
+          readOnly: true
+        date_creation:
+          type: string
+          format: date-time
+          readOnly: true
+        produits_similaires:
+          type: string
+          readOnly: true
+        is_favori:
+          type: string
+          readOnly: true
+        categorie:
+          type: integer
+          nullable: true
       required:
-      - new_password1
-      - new_password2
+      - contenance_ml
+      - date_creation
+      - en_promotion
+      - famille_olfactive
+      - humeurs_compatibles
+      - id
+      - image_principale
+      - is_favori
+      - nom
+      - occasions
+      - prix_actuel
+      - prix_unitaire
+      - produits_similaires
+      - saisons_compatibles
+    ParfumPublicList:
+      type: object
+      description: 'Public : liste (sans produits similaires, champs réduits)'
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        nom:
+          type: string
+          maxLength: 200
+        slug:
+          type: string
+          maxLength: 220
+          pattern: ^[-a-zA-Z0-9_]+$
+        description_courte:
+          type: string
+          maxLength: 500
+        contenance_ml:
+          type: integer
+          description: 30, 50, 75, 100 ml
+        prix_unitaire:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+        prix_actuel:
+          type: string
+          description: |-
+            Retourne le prix final en str formatée '25000.00'.
+            Priorité : prix_promotionnel > prix_unitaire.
+            Le signal a déjà calculé prix_promotionnel si une réduction catégorie existe.
+          readOnly: true
+        en_promotion:
+          type: boolean
+          readOnly: true
+        genre_cible:
+          $ref: '#/components/schemas/GenreCibleEnum'
+        intensite:
+          oneOf:
+          - $ref: '#/components/schemas/IntensiteEnum'
+          - $ref: '#/components/schemas/BlankEnum'
+        notes_tete:
+          type: string
+          maxLength: 300
+        est_nouveau:
+          type: boolean
+        est_bestseller:
+          type: boolean
+        image_principale:
+          type: string
+          format: uri
+          readOnly: true
+        date_creation:
+          type: string
+          format: date-time
+          readOnly: true
+        is_favori:
+          type: string
+          readOnly: true
+        categorie:
+          type: integer
+          nullable: true
+      required:
+      - contenance_ml
+      - date_creation
+      - en_promotion
+      - id
+      - image_principale
+      - is_favori
+      - nom
+      - prix_actuel
+      - prix_unitaire
     PasswordReset:
       type: object
       description: Serializer for requesting a password reset e-mail.
@@ -3749,7 +5087,7 @@ components:
       - new_password2
       - token
       - uid
-    PatchedAccessoire:
+    PatchedAccessoirePublicDetail:
       type: object
       properties:
         id:
@@ -3762,13 +5100,8 @@ components:
           type: string
           maxLength: 220
           pattern: ^[-a-zA-Z0-9_]+$
-        reference_sku:
-          type: string
-          maxLength: 100
         type_accessoire:
-          allOf:
-          - $ref: '#/components/schemas/TypeAccessoire'
-          readOnly: true
+          type: integer
         description_courte:
           type: string
           maxLength: 500
@@ -3788,18 +5121,9 @@ components:
         prix_actuel:
           type: string
           readOnly: true
-        taux_reduction:
-          type: number
-          format: float
-          readOnly: true
         en_promotion:
           type: boolean
           readOnly: true
-        stock_quantite:
-          type: integer
-          maximum: 9223372036854775807
-          minimum: -9223372036854775808
-          format: int64
         poids_grammes:
           type: string
           format: decimal
@@ -3809,7 +5133,6 @@ components:
           type: string
           format: uri
           readOnly: true
-        images_supplementaires: {}
         date_creation:
           type: string
           format: date-time
@@ -3820,7 +5143,7 @@ components:
         is_favori:
           type: string
           readOnly: true
-    PatchedEssence:
+    PatchedCategorieParfum:
       type: object
       properties:
         id:
@@ -3828,69 +5151,83 @@ components:
           readOnly: true
         nom:
           type: string
-          maxLength: 150
-        code_reference:
+          maxLength: 100
+        slug:
           type: string
-          maxLength: 50
+          maxLength: 120
+          pattern: ^[-a-zA-Z0-9_]+$
+        description:
+          type: string
+        image:
+          type: string
+          format: uri
+          nullable: true
+          description: Image de la catégorie (jpg, png, webp)
+        ordre_affichage:
+          type: integer
+        actif:
+          type: boolean
+        taux_reduction:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,3}(?:\.\d{0,2})?$
+          description: Réduction en % appliquée à tous les parfums de cette catégorie
+            (0 = pas de réduction)
+        date_creation:
+          type: string
+          format: date-time
+          readOnly: true
+    PatchedEssence:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
         marque:
           type: string
           maxLength: 100
+        nom:
+          type: string
+          maxLength: 150
+        slug:
+          type: string
+          nullable: true
+          maxLength: 170
+          pattern: ^[-a-zA-Z0-9_]+$
+        categorie:
+          allOf:
+          - $ref: '#/components/schemas/CategorieEnum'
+          default: premium
+        code_reference:
+          type: string
+          maxLength: 50
         description:
           type: string
         description_ia:
           type: string
-          description: Description narrative envoyée à l'IA
         fournisseur:
           type: string
           maxLength: 200
         origine_pays:
           type: string
           maxLength: 100
-        stock_flacon:
-          type: integer
-          maximum: 9223372036854775807
-          minimum: 0
-          format: int64
-          title: Nombre de flacons neufs
-        contenance_ml:
-          type: integer
-          maximum: 9223372036854775807
-          minimum: 0
-          format: int64
-          description: 'Contenance d''un flacon (ex: 10 pour 10ml)'
-        stock_ouvert_ml:
+        concentration_max:
           type: string
           format: decimal
-          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
-          title: Reliquat Labo (ml ouverts)
-        stock_ml_total_reel:
-          type: string
-          format: decimal
-          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
-          readOnly: true
-        seuil_alerte_stock:
-          type: string
-          format: decimal
-          pattern: ^-?\d{0,7}(?:\.\d{0,3})?$
+          pattern: ^-?\d{0,3}(?:\.\d{0,2})?$
           nullable: true
-        prix_unitaire_fini:
+        couleur:
           type: string
-          format: decimal
-          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
-          title: Prix du flacon
-        prix_par_ml:
+          maxLength: 50
+        duree:
           type: string
-          format: decimal
-          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
-          readOnly: true
+          maxLength: 50
         intensite:
           oneOf:
           - $ref: '#/components/schemas/IntensiteEnum'
           - $ref: '#/components/schemas/BlankEnum'
         genre_cible:
           $ref: '#/components/schemas/GenreCibleEnum'
-        categorie:
-          $ref: '#/components/schemas/CategorieEnum'
         notes_tete:
           type: string
           maxLength: 300
@@ -3935,9 +5272,12 @@ components:
           items:
             type: string
           readOnly: true
+        prix_par_ml:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          description: Prix au ml utilisé dans le laboratoire
         actif:
-          type: boolean
-        vendu_comme_produit_fini:
           type: boolean
         date_creation:
           type: string
@@ -3974,6 +5314,11 @@ components:
     PatchedFlacon:
       type: object
       properties:
+        slug:
+          type: string
+          nullable: true
+          maxLength: 220
+          pattern: ^[-a-zA-Z0-9_]+$
         id:
           type: integer
           readOnly: true
@@ -3984,14 +5329,9 @@ components:
           type: string
           maxLength: 100
         type_flacon:
-          allOf:
-          - $ref: '#/components/schemas/TypeFlacon'
-          readOnly: true
+          type: integer
         contenance_ml:
           type: integer
-          maximum: 9223372036854775807
-          minimum: -9223372036854775808
-          format: int64
           description: 30, 50, 75, 100, 150 ml
         matiere:
           type: string
@@ -4020,14 +5360,8 @@ components:
           pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
         stock_quantite:
           type: integer
-          maximum: 9223372036854775807
-          minimum: -9223372036854775808
-          format: int64
         seuil_alerte_stock:
           type: integer
-          maximum: 9223372036854775807
-          minimum: -9223372036854775808
-          format: int64
           description: En dessous de ce seuil la commande est bloquée
         stock_suffisant:
           type: boolean
@@ -4053,6 +5387,10 @@ components:
         nom:
           type: string
           maxLength: 150
+        slug:
+          type: string
+          maxLength: 170
+          pattern: ^[-a-zA-Z0-9_]+$
         description:
           type: string
         prix_par_ml:
@@ -4069,117 +5407,44 @@ components:
           type: string
           format: date-time
           readOnly: true
-    PatchedParfum:
+    PatchedLotEssence:
       type: object
       properties:
         id:
           type: integer
           readOnly: true
-        nom:
-          type: string
-          maxLength: 200
-        slug:
-          type: string
-          maxLength: 220
-          pattern: ^[-a-zA-Z0-9_]+$
-        reference_sku:
-          type: string
-          maxLength: 100
-        description_courte:
-          type: string
-          maxLength: 500
-        contenance_ml:
+        essence:
           type: integer
-          maximum: 9223372036854775807
-          minimum: -9223372036854775808
-          format: int64
-          description: 30, 50, 75, 100 ml
-        prix_unitaire:
+        essence_details:
+          allOf:
+          - $ref: '#/components/schemas/EssenceLaboList'
+          readOnly: true
+        stock_ml:
           type: string
           format: decimal
-          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
-        prix_actuel:
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+          description: Quantité en ml disponible pour le laboratoire
+        stock_precedent_ml:
           type: string
-          description: |-
-            Retourne le prix final en str formatée '25000.00'.
-            Priorité : prix_promotionnel > prix_unitaire.
-            Le signal a déjà calculé prix_promotionnel si une réduction catégorie existe.
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
           readOnly: true
-        taux_reduction:
-          type: number
-          format: float
-          description: |-
-            Calcule le taux affiché au client.
-            Retourne None si aucune réduction n'est appliquée.
-          readOnly: true
-        en_promotion:
+          description: Stock total de l'essence avant cet ajout
+        seuil_alerte_ml:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+          nullable: true
+          description: Alerte si stock ≤ seuil
+        actif:
           type: boolean
-          readOnly: true
-        genre_cible:
-          $ref: '#/components/schemas/GenreCibleEnum'
-        intensite:
-          oneOf:
-          - $ref: '#/components/schemas/IntensiteEnum'
-          - $ref: '#/components/schemas/BlankEnum'
-        notes_tete:
-          type: string
-          maxLength: 300
-        notes_coeur:
-          type: string
-          maxLength: 300
-        notes_fond:
-          type: string
-          maxLength: 300
-        tags:
-          type: array
-          items:
-            $ref: '#/components/schemas/Tag'
-          readOnly: true
-        famille_olfactive:
-          type: array
-          items:
-            type: string
-          readOnly: true
-        humeurs_compatibles:
-          type: array
-          items:
-            type: string
-          readOnly: true
-        occasions:
-          type: array
-          items:
-            type: string
-          readOnly: true
-        saisons_compatibles:
-          type: array
-          items:
-            type: string
-          readOnly: true
-        est_nouveau:
-          type: boolean
-        est_bestseller:
-          type: boolean
-        image_principale:
-          type: string
-          format: uri
-          readOnly: true
-        images_supplementaires:
-          description: URLs des images supplémentaires (géré via l'upload multiple)
-        stock_quantite:
-          type: integer
-          maximum: 9223372036854775807
-          minimum: -9223372036854775808
-          format: int64
-        date_creation:
+        date_reception:
           type: string
           format: date-time
           readOnly: true
-        produits_similaires:
+        reference_fournisseur:
           type: string
-          readOnly: true
-        is_favori:
-          type: string
-          readOnly: true
+          maxLength: 100
     PatchedParfumPersonnalise:
       type: object
       properties:
@@ -4198,6 +5463,7 @@ components:
           readOnly: true
         nom:
           type: string
+          nullable: true
           maxLength: 200
         description:
           type: string
@@ -4231,9 +5497,204 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/ParfumPersonnaliseLigne'
+        enregistre:
+          type: boolean
+          description: Détermine si le parfum est enregistré dans la collection du
+            client.
         date_creation:
           type: string
           format: date-time
+          readOnly: true
+    PatchedParfumPublicDetail:
+      type: object
+      description: 'Public : détail (avec produits similaires)'
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        nom:
+          type: string
+          maxLength: 200
+        slug:
+          type: string
+          maxLength: 220
+          pattern: ^[-a-zA-Z0-9_]+$
+        description_courte:
+          type: string
+          maxLength: 500
+        contenance_ml:
+          type: integer
+          description: 30, 50, 75, 100 ml
+        prix_unitaire:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+        prix_actuel:
+          type: string
+          description: |-
+            Retourne le prix final en str formatée '25000.00'.
+            Priorité : prix_promotionnel > prix_unitaire.
+            Le signal a déjà calculé prix_promotionnel si une réduction catégorie existe.
+          readOnly: true
+        en_promotion:
+          type: boolean
+          readOnly: true
+        genre_cible:
+          $ref: '#/components/schemas/GenreCibleEnum'
+        intensite:
+          oneOf:
+          - $ref: '#/components/schemas/IntensiteEnum'
+          - $ref: '#/components/schemas/BlankEnum'
+        notes_tete:
+          type: string
+          maxLength: 300
+        notes_coeur:
+          type: string
+          maxLength: 300
+        notes_fond:
+          type: string
+          maxLength: 300
+        tags:
+          type: array
+          items:
+            type: integer
+        famille_olfactive:
+          type: array
+          items:
+            type: string
+          readOnly: true
+        humeurs_compatibles:
+          type: array
+          items:
+            type: string
+          readOnly: true
+        occasions:
+          type: array
+          items:
+            type: string
+          readOnly: true
+        saisons_compatibles:
+          type: array
+          items:
+            type: string
+          readOnly: true
+        est_nouveau:
+          type: boolean
+        est_bestseller:
+          type: boolean
+        image_principale:
+          type: string
+          format: uri
+          readOnly: true
+        date_creation:
+          type: string
+          format: date-time
+          readOnly: true
+        produits_similaires:
+          type: string
+          readOnly: true
+        is_favori:
+          type: string
+          readOnly: true
+        categorie:
+          type: integer
+          nullable: true
+    PatchedProduitFiniEssence:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        essence:
+          type: integer
+        essence_details:
+          allOf:
+          - $ref: '#/components/schemas/Essence'
+          readOnly: true
+        taille_ml:
+          type: integer
+          description: 'Taille du flacon vendu (ex: 10, 15, 30, 50)'
+        prix:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+        prix_promotionnel:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          nullable: true
+        prix_actuel:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          readOnly: true
+        prix_par_ml:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          readOnly: true
+        stock_disponible:
+          type: integer
+        stock_precedent:
+          type: integer
+          readOnly: true
+          description: Stock de ce format avant la mise à jour
+        actif:
+          type: boolean
+    PatchedTag:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        nom:
+          type: string
+          maxLength: 100
+        slug:
+          type: string
+          nullable: true
+          maxLength: 120
+          pattern: ^[-a-zA-Z0-9_]+$
+        type:
+          $ref: '#/components/schemas/TypeEnum'
+    PatchedTypeAccessoire:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        nom:
+          type: string
+          maxLength: 100
+        slug:
+          type: string
+          maxLength: 120
+          pattern: ^[-a-zA-Z0-9_]+$
+        description:
+          type: string
+        icone:
+          type: string
+          format: uri
+          readOnly: true
+    PatchedTypeFlacon:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        nom:
+          type: string
+          maxLength: 100
+        slug:
+          type: string
+          nullable: true
+          maxLength: 120
+          pattern: ^[-a-zA-Z0-9_]+$
+        description:
+          type: string
+        image:
+          type: string
+          format: uri
           readOnly: true
     PatchedUserDetails:
       type: object
@@ -4253,27 +5714,87 @@ components:
         last_name:
           type: string
           maxLength: 150
-    Register:
+    ProduitFiniEssence:
       type: object
       properties:
-        username:
+        id:
+          type: integer
+          readOnly: true
+        essence:
+          type: integer
+        essence_details:
+          allOf:
+          - $ref: '#/components/schemas/Essence'
+          readOnly: true
+        taille_ml:
+          type: integer
+          description: 'Taille du flacon vendu (ex: 10, 15, 30, 50)'
+        prix:
           type: string
-          maxLength: 150
-          minLength: 1
-        email:
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+        prix_promotionnel:
           type: string
-          format: email
-        password1:
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          nullable: true
+        prix_actuel:
           type: string
-          writeOnly: true
-        password2:
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          readOnly: true
+        prix_par_ml:
           type: string
-          writeOnly: true
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          readOnly: true
+        stock_disponible:
+          type: integer
+        stock_precedent:
+          type: integer
+          readOnly: true
+          description: Stock de ce format avant la mise à jour
+        actif:
+          type: boolean
       required:
-      - email
-      - password1
-      - password2
-      - username
+      - essence
+      - essence_details
+      - id
+      - prix
+      - prix_actuel
+      - prix_par_ml
+      - stock_precedent
+      - taille_ml
+    ProduitFiniEssencePublic:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        marque:
+          type: string
+          readOnly: true
+        nom:
+          type: string
+          readOnly: true
+        categorie:
+          type: string
+          readOnly: true
+        taille_ml:
+          type: integer
+          description: 'Taille du flacon vendu (ex: 10, 15, 30, 50)'
+        prix_actuel:
+          type: string
+          readOnly: true
+        stock_disponible:
+          type: integer
+      required:
+      - categorie
+      - id
+      - marque
+      - nom
+      - prix_actuel
+      - taille_ml
     ResendEmailVerification:
       type: object
       properties:
@@ -4316,6 +5837,11 @@ components:
         nom:
           type: string
           maxLength: 100
+        slug:
+          type: string
+          nullable: true
+          maxLength: 120
+          pattern: ^[-a-zA-Z0-9_]+$
         type:
           $ref: '#/components/schemas/TypeEnum'
       required:
@@ -4365,7 +5891,6 @@ components:
       - icone
       - id
       - nom
-      - slug
     TypeEnum:
       enum:
       - famille_olfactive
@@ -4391,6 +5916,11 @@ components:
         nom:
           type: string
           maxLength: 100
+        slug:
+          type: string
+          nullable: true
+          maxLength: 120
+          pattern: ^[-a-zA-Z0-9_]+$
         description:
           type: string
         image:
@@ -4430,6 +5960,43 @@ components:
           writeOnly: true
       required:
       - key
+    _LotEssenceInput:
+      type: object
+      properties:
+        stock_ml:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+          description: Quantité en ml disponible pour le laboratoire
+        seuil_alerte_ml:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+          nullable: true
+          description: Alerte si stock ≤ seuil
+        reference_fournisseur:
+          type: string
+          maxLength: 100
+    _ProduitFiniInput:
+      type: object
+      properties:
+        taille_ml:
+          type: integer
+          description: 'Taille du flacon vendu (ex: 10, 15, 30, 50)'
+        prix:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+        prix_promotionnel:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          nullable: true
+        stock_disponible:
+          type: integer
+      required:
+      - prix
+      - taille_ml
   securitySchemes:
     jwtAuth:
       type: http
