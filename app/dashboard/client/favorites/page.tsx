@@ -21,7 +21,7 @@ interface FavoriteProduct {
 export default function FavoritesPage() {
   const { t } = useTranslation();
   const router = useRouter();
-  const { favorites, removeFavorite, clearFavorites } = useFavoritesStore();
+  const { items: favorites, removeFavorite, clearFavorites } = useFavoritesStore();
   const [searchTerm, setSearchTerm] = useState('');
   const [filteredFavorites, setFilteredFavorites] = useState<FavoriteProduct[]>([]);
   const [isLoading, setIsLoading] = useState(true);
