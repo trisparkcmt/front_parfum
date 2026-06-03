@@ -16,7 +16,6 @@ export const api = axios.create({
   baseURL: getBaseURL(),
   headers: {
     'Content-Type': 'application/json',
-    'ngrok-skip-browser-warning': 'true',
   },
   withCredentials: true, // Pour que Django puisse envoyer et lire le cookie HttpOnly JWT
   xsrfCookieName: 'csrftoken',

@@ -36,7 +36,11 @@ function RegisterFormContent() {
     lastName: z.string().min(2, t('last_name_short')),
     email: z.string().email(t('invalid_email')),
     phone: z.string().min(8, t('phone_short')),
-    password: z.string().min(6, t('password_short')),
+    password: z.string().min(8, t('password_short', { defaultValue: 'Le mot de passe doit contenir au moins 8 caractères.' })),
+    passwordConfirm: z.string().min(1, t('password_confirm_required', { defaultValue: 'Veuillez confirmer le mot de passe.' })),
+  }).refine((data) => data.password === data.passwordConfirm, {
+    message: t('passwords_must_match', { defaultValue: 'Les mots de passe ne correspondent pas.' }),
+    path: ['passwordConfirm'],
   });
   
   type RegisterForm = z.infer<typeof registerSchema>;
@@ -52,7 +56,14 @@ function RegisterFormContent() {
   });
 
   const onSubmit = async (data: RegisterForm) => {
-    const success = await registerUser(data);
+    // Map passwordConfirm to password_confirm for the API call inside registerUser
+    const success = await registerUser({
+      firstName: data.firstName,
+      lastName: data.lastName,
+      email: data.email,
+      phone: data.phone,
+      password: data.password,
+    });
     if (success) {
       addToast(t('register_success'), 'success');
       router.push(redirectUrl);
@@ -115,6 +126,15 @@ function RegisterFormContent() {
           icon={<Lock size={18} />}
           error={errors.password?.message}
           {...register('password')}
+        />
+
+        <Input
+          label={t('confirm_password', { defaultValue: 'Confirmer le mot de passe' })}
+          type="password"
+          placeholder="••••••••"
+          icon={<Lock size={18} />}
+          error={errors.passwordConfirm?.message}
+          {...register('passwordConfirm')}
         />
 
         <Button type="submit" className="w-full mt-6" isLoading={isLoading} rightIcon={<UserPlus size={18} />}>

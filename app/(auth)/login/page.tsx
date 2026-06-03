@@ -102,7 +102,7 @@ function LoginFormContent() {
             {...register('password')}
           />
           <div className="flex justify-end">
-            <Link href="#" className="text-xs text-gold hover:underline">
+            <Link href="/forgot-password" className="text-xs text-gold hover:underline">
               {t('forgot_password')}
             </Link>
           </div>

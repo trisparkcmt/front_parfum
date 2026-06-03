@@ -35,8 +35,7 @@ export function formatPrice(amount: number): string {
 }
 
 /**
- * A wrapper around the native fetch API to include necessary headers for the ngrok backend.
- * This bypasses the ngrok "browser warning" page that appears on free-tier accounts.
+ * A wrapper around the native fetch API to include necessary headers for the backend.
  */
 export async function apiFetch(endpoint: string, options: RequestInit = {}) {
   // Construct the full URL if only a path is provided
@@ -45,9 +44,6 @@ export async function apiFetch(endpoint: string, options: RequestInit = {}) {
     : `${API_BASE_URL}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
 
   const headers = new Headers(options.headers);
-  
-  // Bypass the ngrok interstitial "warning" page
-  headers.set('ngrok-skip-browser-warning', 'true');
 
   // Default to JSON for most API calls if not specified and not sending binary/multipart data
   if (!headers.has('Content-Type') && !(options.body instanceof FormData)) {

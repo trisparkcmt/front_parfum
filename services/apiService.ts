@@ -29,8 +29,8 @@ export const authService = {
         : { telephone: emailOrPhone, password };
       const response = await api.post('auth/web/login/', payload);
       return response.data;
-    } catch (error) {
-      console.error('authService: webLogin failed', error);
+    } catch (error: any) {
+      console.error('authService: webLogin failed. Error details:', error.response?.data || error.message);
       throw error;
     }
   },
@@ -119,6 +119,90 @@ export const authService = {
     });
     return response.data;
   },
+
+  /**
+   * Verify email verification key
+   */
+  verifyEmail: async (key: string) => {
+    const response = await api.post('auth/registration/verify-email/', { key });
+    return response.data;
+  },
+
+  /**
+   * Resend email verification link
+   */
+  resendVerificationEmail: async (email: string) => {
+    const response = await api.post('auth/registration/resend-email/', { email });
+    return response.data;
+  },
+
+  /**
+   * Request password reset link
+   */
+  requestPasswordReset: async (email: string) => {
+    const response = await api.post('auth/password/reset/', { email });
+    return response.data;
+  },
+
+  /**
+   * Confirm password reset with token
+   */
+  confirmPasswordReset: async (data: {
+    uid: string;
+    token: string;
+    new_password: string;
+    new_password_confirm: string;
+  }) => {
+    const response = await api.post('auth/password/reset/confirm/', data);
+    return response.data;
+  },
+
+  /**
+   * Refresh JWT token
+   */
+  refreshToken: async (refresh: string) => {
+    const response = await api.post('auth/token/refresh/', { refresh });
+    return response.data;
+  },
+
+  /**
+   * Verify JWT token validity
+   */
+  verifyToken: async (token: string) => {
+    const response = await api.post('auth/token/verify/', { token });
+    return response.data;
+  },
+
+  /**
+   * Google OAuth2 Login
+   */
+  googleLogin: async (accessToken: string, code: string) => {
+    const response = await api.post('auth/google/', {
+      access_token: accessToken,
+      code,
+    });
+    return response.data;
+  },
+
+  /**
+   * Get direct user details (email, first_name, last_name)
+   */
+  getUserDetails: async () => {
+    const response = await api.get('auth/user/');
+    return response.data;
+  },
+
+  /**
+   * Update direct user details
+   */
+  updateUserDetails: async (data: {
+    first_name?: string;
+    last_name?: string;
+    email?: string;
+  }) => {
+    const response = await api.patch('auth/user/', data);
+    return response.data;
+  },
 };
 
 // ============================================================================
@@ -139,8 +223,23 @@ export const shopService = {
     est_bestseller?: boolean;
     ordering?: string;
     page?: number;
+    limit?: number;
+    contenance_ml?: number;
+    humeur?: string;
+    intensite?: string;
+    occasion?: string;
+    saison?: string;
+    tags?: string;
   }) => {
     const response = await api.get('shop/parfums/', { params });
+    return response.data;
+  },
+
+  /**
+   * Create new perfume (Admin)
+   */
+  createPerfume: async (data: any) => {
+    const response = await api.post('shop/parfums/', data);
     return response.data;
   },
 
@@ -153,10 +252,42 @@ export const shopService = {
   },
 
   /**
+   * Update perfume details (Admin)
+   */
+  updatePerfume: async (slug: string, data: any) => {
+    const response = await api.patch(`shop/parfums/${slug}/`, data);
+    return response.data;
+  },
+
+  /**
+   * Delete perfume (Admin)
+   */
+  deletePerfume: async (slug: string) => {
+    const response = await api.delete(`shop/parfums/${slug}/`);
+    return response.data;
+  },
+
+  /**
    * Add/remove perfume from favorites
    */
   togglePerfumeFavorite: async (slug: string) => {
     const response = await api.post(`shop/parfums/${slug}/favori/`);
+    return response.data;
+  },
+
+  /**
+   * Get historical bestsellers perfumes (Top 20)
+   */
+  getPerfumeBestsellers: async () => {
+    const response = await api.get('shop/parfums/bestsellers/');
+    return response.data;
+  },
+
+  /**
+   * Get hotsellers perfumes of current month (Top 10)
+   */
+  getPerfumeHotsellers: async () => {
+    const response = await api.get('shop/parfums/hotsellers/');
     return response.data;
   },
 
@@ -172,8 +303,18 @@ export const shopService = {
     prix_max?: number;
     en_stock?: boolean;
     page?: number;
+    search?: string;
+    ordering?: string;
   }) => {
     const response = await api.get('shop/accessoires/', { params });
+    return response.data;
+  },
+
+  /**
+   * Create new accessory (Admin)
+   */
+  createAccessory: async (data: any) => {
+    const response = await api.post('shop/accessoires/', data);
     return response.data;
   },
 
@@ -186,6 +327,22 @@ export const shopService = {
   },
 
   /**
+   * Update accessory details (Admin)
+   */
+  updateAccessory: async (slug: string, data: any) => {
+    const response = await api.patch(`shop/accessoires/${slug}/`, data);
+    return response.data;
+  },
+
+  /**
+   * Delete accessory (Admin)
+   */
+  deleteAccessory: async (slug: string) => {
+    const response = await api.delete(`shop/accessoires/${slug}/`);
+    return response.data;
+  },
+
+  /**
    * Add/remove accessory from favorites
    */
   toggleAccessoryFavorite: async (slug: string) => {
@@ -194,18 +351,294 @@ export const shopService = {
   },
 
   /**
-   * Get list of available bottles for DIY creation
+   * Get historical bestsellers accessories
    */
-  getBottles: async () => {
-    const response = await api.get('shop/flacons/');
+  getAccessoryBestsellers: async () => {
+    const response = await api.get('shop/accessoires/bestsellers/');
     return response.data;
   },
 
   /**
-   * Get user's favorites
+   * Get hotsellers accessories of current month
+   */
+  getAccessoryHotsellers: async () => {
+    const response = await api.get('shop/accessoires/hotsellers/');
+    return response.data;
+  },
+
+  /**
+   * Get list of available bottles for DIY creation
+   */
+  getBottles: async (params?: {
+    contenance_ml?: number;
+    couleur?: string;
+    en_stock?: boolean;
+    matiere?: string;
+    type_flacon?: number;
+    search?: string;
+    ordering?: string;
+  }) => {
+    const response = await api.get('shop/flacons/', { params });
+    return response.data;
+  },
+
+  /**
+   * Create new bottle (Admin)
+   */
+  createBottle: async (data: any) => {
+    const response = await api.post('shop/flacons/', data);
+    return response.data;
+  },
+
+  /**
+   * Get bottle details by ID
+   */
+  getBottleById: async (id: number) => {
+    const response = await api.get(`shop/flacons/${id}/`);
+    return response.data;
+  },
+
+  /**
+   * Update bottle details (Admin)
+   */
+  updateBottle: async (id: number, data: any) => {
+    const response = await api.patch(`shop/flacons/${id}/`, data);
+    return response.data;
+  },
+
+  /**
+   * Delete bottle (Admin)
+   */
+  deleteBottle: async (id: number) => {
+    const response = await api.delete(`shop/flacons/${id}/`);
+    return response.data;
+  },
+
+  /**
+   * Get user's favorites list
    */
   getFavorites: async () => {
     const response = await api.get('shop/favoris/');
+    return response.data;
+  },
+
+  /**
+   * Add a product to favorites by ID
+   */
+  addFavorite: async (data: { parfum?: number; accessoire?: number }) => {
+    const response = await api.post('shop/favoris/', data);
+    return response.data;
+  },
+
+  /**
+   * Delete a favorite by ID
+   */
+  deleteFavorite: async (id: number) => {
+    const response = await api.delete(`shop/favoris/${id}/`);
+    return response.data;
+  },
+
+  // ==========================================
+  // CLASSIFICATIONS & METADATA
+  // ==========================================
+
+  /**
+   * Get all classification tags
+   */
+  getTags: async () => {
+    const response = await api.get('shop/tags/');
+    return response.data;
+  },
+
+  /**
+   * Create new tag (Admin)
+   */
+  createTag: async (data: any) => {
+    const response = await api.post('shop/tags/', data);
+    return response.data;
+  },
+
+  /**
+   * Get tag details by slug
+   */
+  getTagBySlug: async (slug: string) => {
+    const response = await api.get(`shop/tags/${slug}/`);
+    return response.data;
+  },
+
+  /**
+   * Update tag (Admin)
+   */
+  updateTag: async (slug: string, data: any) => {
+    const response = await api.patch(`shop/tags/${slug}/`, data);
+    return response.data;
+  },
+
+  /**
+   * Delete tag (Admin)
+   */
+  deleteTag: async (slug: string) => {
+    const response = await api.delete(`shop/tags/${slug}/`);
+    return response.data;
+  },
+
+  /**
+   * Get perfume categories
+   */
+  getPerfumeCategories: async () => {
+    const response = await api.get('shop/categories-parfum/');
+    return response.data;
+  },
+
+  /**
+   * Create perfume category (Admin)
+   */
+  createPerfumeCategory: async (data: any) => {
+    const response = await api.post('shop/categories-parfum/', data);
+    return response.data;
+  },
+
+  /**
+   * Get perfume category by ID
+   */
+  getPerfumeCategoryById: async (id: number) => {
+    const response = await api.get(`shop/categories-parfum/${id}/`);
+    return response.data;
+  },
+
+  /**
+   * Update perfume category (Admin)
+   */
+  updatePerfumeCategory: async (id: number, data: any) => {
+    const response = await api.patch(`shop/categories-parfum/${id}/`, data);
+    return response.data;
+  },
+
+  /**
+   * Delete perfume category (Admin)
+   */
+  deletePerfumeCategory: async (id: number) => {
+    const response = await api.delete(`shop/categories-parfum/${id}/`);
+    return response.data;
+  },
+
+  /**
+   * Get accessory types
+   */
+  getAccessoryTypes: async () => {
+    const response = await api.get('shop/types-accessoire/');
+    return response.data;
+  },
+
+  /**
+   * Create accessory type (Admin)
+   */
+  createAccessoryType: async (data: any) => {
+    const response = await api.post('shop/types-accessoire/', data);
+    return response.data;
+  },
+
+  /**
+   * Get accessory type by ID
+   */
+  getAccessoryTypeById: async (id: number) => {
+    const response = await api.get(`shop/types-accessoire/${id}/`);
+    return response.data;
+  },
+
+  /**
+   * Update accessory type (Admin)
+   */
+  updateAccessoryType: async (id: number, data: any) => {
+    const response = await api.patch(`shop/types-accessoire/${id}/`, data);
+    return response.data;
+  },
+
+  /**
+   * Delete accessory type (Admin)
+   */
+  deleteAccessoryType: async (id: number) => {
+    const response = await api.delete(`shop/types-accessoire/${id}/`);
+    return response.data;
+  },
+
+  /**
+   * Get bottle types
+   */
+  getBottleTypes: async () => {
+    const response = await api.get('shop/types-flacon/');
+    return response.data;
+  },
+
+  /**
+   * Create bottle type (Admin)
+   */
+  createBottleType: async (data: any) => {
+    const response = await api.post('shop/types-flacon/', data);
+    return response.data;
+  },
+
+  /**
+   * Get bottle type by ID
+   */
+  getBottleTypeById: async (id: number) => {
+    const response = await api.get(`shop/types-flacon/${id}/`);
+    return response.data;
+  },
+
+  /**
+   * Update bottle type (Admin)
+   */
+  updateBottleType: async (id: number, data: any) => {
+    const response = await api.patch(`shop/types-flacon/${id}/`, data);
+    return response.data;
+  },
+
+  /**
+   * Delete bottle type (Admin)
+   */
+  deleteBottleType: async (id: number) => {
+    const response = await api.delete(`shop/types-flacon/${id}/`);
+    return response.data;
+  },
+
+  /**
+   * Get finished essences
+   */
+  getFinishedEssences: async () => {
+    const response = await api.get('shop/produits-essence/');
+    return response.data;
+  },
+
+  /**
+   * Create finished essence (Admin)
+   */
+  createFinishedEssence: async (data: any) => {
+    const response = await api.post('shop/produits-essence/', data);
+    return response.data;
+  },
+
+  /**
+   * Get finished essence by ID
+   */
+  getFinishedEssenceById: async (id: number) => {
+    const response = await api.get(`shop/produits-essence/${id}/`);
+    return response.data;
+  },
+
+  /**
+   * Update finished essence (Admin)
+   */
+  updateFinishedEssence: async (id: number, data: any) => {
+    const response = await api.patch(`shop/produits-essence/${id}/`, data);
+    return response.data;
+  },
+
+  /**
+   * Delete finished essence (Admin)
+   */
+  deleteFinishedEssence: async (id: number) => {
+    const response = await api.delete(`shop/produits-essence/${id}/`);
     return response.data;
   },
 };
