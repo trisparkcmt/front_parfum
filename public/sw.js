@@ -3,12 +3,12 @@
  * Provides offline caching and enables native PWA install prompt.
  */
 
-const CACHE_NAME = 'ae-cache-v1';
+const CACHE_NAME = 'ae-cache-v2';
 const STATIC_ASSETS = [
   '/',
   '/manifest.webmanifest',
-  '/icons/icon-192x192.png',
-  '/icons/icon-512x512.png',
+  '/icons/icon-192x192.jpeg',
+  '/icons/icon-512x512.jpeg',
 ];
 
 // Install: pre-cache essential static assets
