@@ -248,7 +248,7 @@ export interface DeliveryTask {
   items: OrderItem[];
   total: number;
   assignedAt: string;
-  status: 'delivering' | 'delivered';
+  status: 'assigned' | 'in_transit' | 'delivering' | 'delivered' | 'failed';
   deliveryAddress?: string;
 }
 

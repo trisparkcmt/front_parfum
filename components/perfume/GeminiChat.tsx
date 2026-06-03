@@ -116,7 +116,7 @@ export function GeminiChat() {
       if (response.essences_pre_faites && response.essences_pre_faites.length > 0) {
         response.essences_pre_faites.forEach(item => {
           // Match essence by id or by name/nom compatibility (some datasets use French 'nom')
-          const essence = essences.find(e => e.id === item.id || e.name === item.nom || (e as any).nom === item.nom);
+          const essence = essences.find(e => e.id === String(item.id) || e.name === item.nom || (e as any).nom === item.nom);
           if (essence) {
             compositionEssences.push({ essence, quantityMl: item.quantite_ml });
             totalPrice += Number(item.prix_total_quantite);
@@ -142,7 +142,7 @@ export function GeminiChat() {
 
       setParsedComposition({
         id: generateId(),
-        name: data.flacon ? `Création IA (${data.flacon.nom})` : "Création IA",
+        name: response.flacon ? `Création IA (${response.flacon.nom})` : "Création IA",
         essences: compositionEssences,
         totalMl,
         totalPrice,

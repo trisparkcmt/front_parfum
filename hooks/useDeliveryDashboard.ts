@@ -11,7 +11,7 @@ export interface DeliveryTask {
   clientPhone: string;
   items: any[];
   total: number;
-  status: 'delivering' | 'delivered' | 'failed';
+  status: 'assigned' | 'in_transit' | 'delivering' | 'delivered' | 'failed';
   assignedAt: string;
   deliveryAddress?: string;
 }
