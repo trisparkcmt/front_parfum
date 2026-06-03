@@ -20,7 +20,7 @@ export default function ForgotPasswordPage() {
   const [isSubmitted, setIsSubmitted] = useState(false);
 
   const schema = z.object({
-    email: z.string().email({ defaultValue: 'Veuillez saisir un e-mail valide' }),
+    email: z.string().email(t('invalid_email', { defaultValue: 'Veuillez saisir un e-mail valide' })),
   });
 
   type FormData = z.infer<typeof schema>;
