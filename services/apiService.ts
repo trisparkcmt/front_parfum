@@ -114,8 +114,8 @@ export const authService = {
   ) => {
     const response = await api.post('auth/password/change/', {
       old_password: oldPassword,
-      new_password: newPassword,
-      new_password_confirm: newPasswordConfirm,
+      new_password1: newPassword,
+      new_password2: newPasswordConfirm,
     });
     return response.data;
   },
