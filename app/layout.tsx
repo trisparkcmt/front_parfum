@@ -15,6 +15,8 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { LayoutWrapper } from "@/components/shared/LayoutWrapper";
 import { ToastProvider } from "@/components/shared/ToastProvider";
+import { ServiceWorkerRegistration } from "@/components/pwa/ServiceWorkerRegistration";
+import { InstallPrompt } from "@/components/pwa/InstallPrompt";
 
 export const metadata: Metadata = {
   title: "Accessories Exclusif | Luxe & Création de Parfums",
@@ -60,6 +62,8 @@ export default function RootLayout({
           {children}
         </LayoutWrapper>
         <ToastProvider />
+        <ServiceWorkerRegistration />
+        <InstallPrompt />
       </body>
     </html>
   );
