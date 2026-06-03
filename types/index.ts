@@ -1,3 +1,19 @@
+/**
+ * @file types/index.ts
+ * @description Global TypeScript Type Definitions & Interfaces.
+ *
+ * This file centralizes all domain models and data structures used throughout 
+ * the Accessories Exclusif platform, ensuring strong type safety and consistency.
+ * 
+ * **Core Model Groups**:
+ * - **User & Auth**: Defines `User`, `UserRole`, and login/registration payloads.
+ * - **Product & Shop**: Interfaces for `Product`, `ProductCategory`, and `OlfactiveFamily` metadata.
+ * - **Numba Atelier**: Complex structures for `Essence`, `CompositionEssence`, and `CustomComposition`.
+ * - **Order & Cart**: Definitions for `CartItem`, `Order`, `OrderStatus`, and `DeliveryTask`.
+ * - **UI & Navigation**: Types for `NavLink`, `GeminiMessage`, and component-specific interfaces.
+ * 
+ * **Benefit**: Provides a unified source for type information, reducing runtime errors and improving developer productivity.
+ */
 // ============================================================
 // Accessories Exclusif — Type Definitions
 // ============================================================
@@ -76,10 +92,16 @@ export interface Product {
     base: string[];
   };
   volume?: string; // e.g., "100ml"
+  longevity?: string; // e.g., "Longue durée (8-10h)"
+  sillage?: string; // e.g., "Modéré"
+  gender?: 'masculine' | 'feminine' | 'unisex';
+  availableColors?: string[]; // hex codes or names
   originalBrand?: string; // for dupes — the brand they imitate
   isFeatured?: boolean;
   createdAt: string;
 }
+
+export interface Accessory extends Product {}
 
 // ---- Essences & Custom Perfume ----
 

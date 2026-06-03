@@ -1,6 +1,22 @@
 'use client';
 
 import { useEffect } from 'react';
+/**
+ * @file components/ui/Modal.tsx
+ * @description Centralized Overlay & Dialog System.
+ *
+ * This component provides a specialized container for displaying content in a 
+ * focused, modal overlay. It is primarily used for the Numba save-to-profile flow 
+ * and other transactional confirmations.
+ * 
+ * **Functionalities**:
+ * - **Animated Entry**: Uses `AnimatePresence` and `motion.div` for a smooth scale-up effect upon opening.
+ * - **Backdrop Blur**: Implements a darkened, blurred background to focus user attention on the dialog.
+ * - **Accessibility**: Includes a dedicated "Close" action and handles outside-click dismissal.
+ * - **Responsive Constraints**: Adapts its width for mobile vs. desktop viewports.
+ * 
+ * **UI Implementation**: Features a semi-transparent glass aesthetic with deep-black backgrounds and gold iconography.
+ */
 import { motion, AnimatePresence } from 'framer-motion';
 import { X } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -56,7 +72,7 @@ export function Modal({ isOpen, onClose, title, children, size = 'md', className
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
             className={cn(
-              'relative w-full rounded-2xl bg-cream dark:bg-charcoal border border-white/10 shadow-2xl',
+              'relative w-full  bg-cream dark:bg-charcoal border border-white/10 shadow-2xl',
               sizes[size],
               className
             )}
@@ -64,13 +80,13 @@ export function Modal({ isOpen, onClose, title, children, size = 'md', className
             {title && (
               <div className="flex items-center justify-between px-6 py-4 border-b border-white/10">
                 <h3 className="font-display text-lg font-semibold">{title}</h3>
-                <button onClick={onClose} className="p-1 rounded-lg hover:bg-white/10 transition-colors">
+                <button onClick={onClose} className="p-1  hover:bg-white/10 transition-colors">
                   <X size={20} />
                 </button>
               </div>
             )}
             {!title && (
-              <button onClick={onClose} className="absolute top-4 right-4 p-1 rounded-lg hover:bg-white/10 transition-colors z-10">
+              <button onClick={onClose} className="absolute top-4 right-4 p-1  hover:bg-white/10 transition-colors z-10">
                 <X size={20} />
               </button>
             )}
@@ -81,3 +97,5 @@ export function Modal({ isOpen, onClose, title, children, size = 'md', className
     </AnimatePresence>
   );
 }
+
+

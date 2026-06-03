@@ -1,5 +1,21 @@
 'use client';
 
+/**
+ * @file components/ui/Badge.tsx
+ * @description Status Indicator & Categorization Badge.
+ *
+ * This component provides a visually distinct way to display statuses, 
+ * categories, or small metadata tags throughout the platform.
+ * 
+ * **Variants**:
+ * - **`default`**: Standard charcoal/gold aesthetic.
+ * - **`success` / `validated` / `delivered`**: Green shades for positive states.
+ * - **`warning` / `pending`**: Orange/Amber shades for transitional states.
+ * - **`error` / `cancelled`**: Red shades for negative states.
+ * - **`info` / `delivering`**: Blue/Cyan shades for active processes.
+ * 
+ * **Integration**: Used extensively in dashboards (order status) and the shop (product categories).
+ */
 import { cn } from '@/lib/utils';
 import type { OrderStatus } from '@/types';
 
@@ -37,3 +53,5 @@ export function StatusBadge({ status }: { status: OrderStatus }) {
   };
   return <Badge variant={status}>{labels[status]}</Badge>;
 }
+
+

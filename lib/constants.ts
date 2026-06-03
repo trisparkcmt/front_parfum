@@ -1,4 +1,26 @@
+/**
+ * @file lib/constants.ts
+ * @description Application-Wide Configuration & Static Content.
+ *
+ * This file serves as the single source of truth for fixed values, labels, 
+ * and configuration settings used throughout the Accessories Exclusif platform.
+ * 
+ * **Key Constant Groups**:
+ * - **Theme Colors**: Defines the brand's primary color palette (Gold, Charcoal, Silver) for programmatic use.
+ * - **Navigation Links**: Defines the structure for the `MAIN_NAV_LINKS` and role-specific `DASHBOARD_NAV_LINKS`.
+ * - **Olfactive Families**: A mapping of perfume family keys (e.g., 'woody') to their localized labels and emojis.
+ * - **Business Rules**: Stores core e-commerce parameters such as `MAX_COMPOSITION_ML` (100) and `ESSENCE_INCREMENT_ML` (10).
+ * - **UI Labels**: Centralizes display strings for product categories and order statuses to ensure linguistic consistency.
+ * 
+ * **Benefit**: Centralizing these values simplifies future maintenance and localization efforts.
+ */
 import type { NavLink, OlfactiveFamily } from '@/types';
+
+// ============================================================
+// API Configuration
+// ============================================================
+
+export const API_BASE_URL = 'https://integral-logically-gator.ngrok-free.app';
 
 // ============================================================
 // Theme Colors
@@ -117,22 +139,23 @@ export const PUBLIC_NAV_LINKS: NavLink[] = [
 
 export const DASHBOARD_NAV_LINKS: Record<string, NavLink[]> = {
   admin: [
-    { label: 'Vue d\'ensemble', href: '/admin', icon: 'LayoutDashboard' },
-    { label: 'Commandes', href: '/admin/orders', icon: 'ShoppingBag' },
-    { label: 'Inventaire', href: '/admin/inventory', icon: 'Package' },
-    { label: 'Prestataires', href: '/admin/partners', icon: 'Users' },
-    { label: 'Livreurs', href: '/admin/delivery', icon: 'Truck' },
+    { label: 'Dashboard', href: '/dashboard/admin/dashboard', icon: 'LayoutDashboard' },
+    { label: 'Commandes', href: '/dashboard/admin/order', icon: 'ShoppingCart' },
+    { label: 'Parfums', href: '/dashboard/admin/perfume', icon: 'Sparkles' },
+    { label: 'Accessoires', href: '/dashboard/admin/accessories', icon: 'Gem' },
+    { label: 'Prestataires', href: '/dashboard/admin/providers', icon: 'TrendingUp' },
+    { label: 'Livreurs', href: '/dashboard/admin/delivery', icon: 'Truck' },
   ],
   delivery: [
-    { label: 'Mes Livraisons', href: '/delivery', icon: 'Truck' },
+    { label: 'Mes Livraisons', href: '/dashboard/delivery', icon: 'Truck' },
   ],
   partner: [
-    { label: 'Mon Dashboard', href: '/partner', icon: 'BarChart3' },
+    { label: 'Mon Dashboard', href: '/dashboard/partner', icon: 'BarChart3' },
   ],
   client: [
-    { label: 'Mon Profil', href: '/client/profile', icon: 'User' },
-    { label: 'Mes Favoris', href: '/client/favorites', icon: 'Heart' },
-    { label: 'Mes Compositions', href: '/client/compositions', icon: 'FlaskConical' },
+    { label: 'Mon Profil', href: '/dashboard/client', icon: 'User' },
+    { label: 'Mes Favoris', href: '/dashboard/client/favorites', icon: 'Heart' },
+    { label: 'Mes Compositions', href: '/dashboard/client/compositions', icon: 'FlaskConical' },
   ],
 };
 

@@ -1,3 +1,14 @@
+/**
+ * @file app/api/perfume/ai-advisor/route.ts
+ * @description Server-Side API Route for AI Fragrance Consultation.
+ *
+ * This route serves as a proxy/bridge between the client-side Numba Atelier
+ * and the Google Gemini AI model.
+ * - **Logic**: Receives a JSON payload containing the user's fragrance preferences and personality traits.
+ * - **Processing**: Constructs a detailed prompt for the AI to ensure the response is professional and structured.
+ * - **Response**: Returns a curated list of fragrance recommendations, including top/heart/base notes and the rationale for the selection.
+ * - **Security**: Executed on the server to protect API keys and sensitive processing logic.
+ */
 import { NextResponse } from 'next/server';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { mockEssences } from '@/lib/mock-data';

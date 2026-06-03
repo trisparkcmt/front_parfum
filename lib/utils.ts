@@ -1,6 +1,23 @@
+/**
+ * @file lib/utils.ts
+ * @description General Purpose Helper Functions & Logic Utilities.
+ *
+ * This library contains pure functions and small logic wrappers used across 
+ * various components to ensure code reuse and clean implementation.
+ * 
+ * **Key Utilities**:
+ * - **`cn(...inputs)`**: A wrapper for `clsx` and `tailwind-merge` to handle conditional class merging and conflict resolution in Tailwind CSS.
+ * - **`formatPrice(amount)`**: Formats a numerical value into a localized currency string (FCFA) for consistent pricing display.
+ * - **`blendColors(colors)`**: A sophisticated algorithm that takes an array of HEX colors and weights to calculate a single average color. Used primarily for the visual perfume mixer in the Numba Atelier.
+ * - **`generateWhatsAppLink(...)`**: Orchestrates the checkout process by generating a URL that pre-fills a WhatsApp message with order details, items, and totals.
+ * - **`generateId()`**: Generates a unique, timestamped ID for entities like custom compositions.
+ * - **Date Formatters**: (`formatDate`, `formatDateTime`) Provides localized French date strings for dashboards and order history.
+ * 
+ * **Benefit**: Decouples business logic from UI components, making the codebase easier to test and maintain.
+ */
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
-import { WHATSAPP_BASE_URL, WHATSAPP_NUMBER, CURRENCY } from './constants';
+import { WHATSAPP_BASE_URL, WHATSAPP_NUMBER, CURRENCY, API_BASE_URL } from './constants';
 import type { CartItem } from '@/types';
 
 /**
@@ -18,6 +35,32 @@ export function formatPrice(amount: number): string {
 }
 
 /**
+ * A wrapper around the native fetch API to include necessary headers for the ngrok backend.
+ * This bypasses the ngrok "browser warning" page that appears on free-tier accounts.
+ */
+export async function apiFetch(endpoint: string, options: RequestInit = {}) {
+  // Construct the full URL if only a path is provided
+  const url = endpoint.startsWith('http')
+    ? endpoint
+    : `${API_BASE_URL}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
+
+  const headers = new Headers(options.headers);
+  
+  // Bypass the ngrok interstitial "warning" page
+  headers.set('ngrok-skip-browser-warning', 'true');
+
+  // Default to JSON for most API calls if not specified and not sending binary/multipart data
+  if (!headers.has('Content-Type') && !(options.body instanceof FormData)) {
+    headers.set('Content-Type', 'application/json');
+  }
+
+  return fetch(url, {
+    ...options,
+    headers,
+  });
+}
+
+/**
  * Generate a WhatsApp link with a pre-filled order message
  */
 export function generateWhatsAppLink(
@@ -25,7 +68,11 @@ export function generateWhatsAppLink(
   subtotal: number,
   total: number,
   promoCode?: string | null,
-  promoDiscount?: number
+  promoDiscount?: number,
+  paymentMethod?: string,
+  mobileNetwork?: string,
+  deliveryType?: string,
+  deliveryLocation?: string
 ): string {
   let message = '🛍️ *Nouvelle Commande — Accessories Exclusif*\n\n';
 
@@ -47,6 +94,10 @@ export function generateWhatsAppLink(
   }
 
   message += `✅ *Total: ${formatPrice(total)}*\n\n`;
+
+  message += `💳 *Paiement:* ${paymentMethod === 'cash' ? 'Espèces' : `Mobile Money (${mobileNetwork?.toUpperCase()})`}\n`;
+  message += `🚚 *Mode:* ${deliveryType === 'delivery' ? `Livraison à : ${deliveryLocation}` : 'Retrait en boutique'}\n\n`;
+
   message += `Merci de confirmer cette commande 🙏`;
 
   const encodedMessage = encodeURIComponent(message);

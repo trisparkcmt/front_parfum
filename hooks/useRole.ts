@@ -1,5 +1,20 @@
 'use client';
 
+/**
+ * @file hooks/useRole.ts
+ * @description Role-Based Authorization Utility Hook.
+ *
+ * This hook provides a convenient interface for checking the current user's 
+ * role and authentication status across the application.
+ * 
+ * **Functionalities**:
+ * - **`hasRole(role)`**: Checks if the user is authenticated and possesses a specific `UserRole`.
+ * - **`isAnyOf(roles)`**: Validates if the user's role matches any in the provided array.
+ * - **Convenience Flags**: Provides pre-computed booleans like `isAdmin`, `isClient`, `isPartner`, and `isDelivery`.
+ * - **State Passthrough**: Returns `user`, `isAuthenticated`, and `isLoading` from the `useAuthStore`.
+ * 
+ * **Usage**: Used in components to conditionally render UI elements based on the logged-in user's capabilities.
+ */
 import { useAuthStore } from '@/store/useAuthStore';
 import type { UserRole } from '@/types';
 

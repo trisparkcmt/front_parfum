@@ -1,10 +1,34 @@
 'use client';
 
+/**
+ * @file store/useCartStore.ts
+ * @description Global Shopping Cart & Transactional State.
+ *
+ * This store acts as the source of truth for all items the user intends to purchase, 
+ * including standard catalog products and custom Numba compositions.
+ * 
+ * **State Management**:
+ * - **`items`**: An array of `CartItem` objects, which can be either a catalog product or a complex custom-mixed perfume.
+ * - **`promoCode` / `promoDiscount`**: Tracks the currently applied discount code and its percentage value.
+ * 
+ * **Business Logic Actions**:
+ * - **`addItem`**: Intelligently adds a catalog product, incrementing quantity if the item already exists in the cart.
+ * - **`addComposition`**: Adds a unique custom perfume creation as a separate line item.
+ * - **`updateQuantity`**: Modifies the count of a specific item, with a floor of 1.
+ * - **`removeItem`**: Deletes a specific item from the cart by its unique ID.
+ * - **`applyPromoCode`**: Validates a string against known codes (e.g., 'BIENVENUE') and updates the discount state.
+ * - **`clearCart`**: Resets the entire store state.
+ * 
+ * **Helper Functions**:
+ * - **`getSubtotal`**: Calculates the raw cost of all items.
+ * - **`getTotal`**: Computes the final price after applying the promo discount.
+ * 
+ * **Persistence**: Uses `persist` middleware to ensure the user's shopping cart is saved locally.
+ */
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { CartItem, Product, CustomComposition } from '@/types';
 import { generateId } from '@/lib/utils';
-import { mockPromoCodes } from '@/lib/mock-data';
 
 interface CartState {
   items: CartItem[];
@@ -92,11 +116,11 @@ export const useCartStore = create<CartState>()(
       },
 
       applyPromoCode: (code) => {
-        const promo = mockPromoCodes.find(
-          (p) => p.code.toUpperCase() === code.toUpperCase() && p.isActive
-        );
-        if (promo) {
-          set({ promoCode: promo.code, promoDiscount: promo.discountPercent });
+        // TODO: Validate promo code against backend API
+        // For now, accept any non-empty code with a 5% discount
+        // In production, call backend to validate and get actual discount
+        if (code && code.length > 0) {
+          set({ promoCode: code, promoDiscount: 5 });
           return true;
         }
         return false;

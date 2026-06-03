@@ -1,3 +1,19 @@
+/**
+ * @file lib/mock-data/essences.ts
+ * @description Olfactive Essence Dataset for the Numba Atelier.
+ *
+ * This file contains the complete library of fragrance ingredients (essences) 
+ * available for the custom perfume creation experience.
+ * 
+ * **Essence Data Model**:
+ * - **`id` / `name`**: Unique identifiers for each ingredient.
+ * - **`family`**: Categorization (e.g., 'Citrus', 'Woody', 'Floral').
+ * - **`description`**: A localized sensory description of the scent profile.
+ * - **`color`**: A HEX code representing the physical color of the essence, used for liquid blending.
+ * - **`pricePerMl`**: The cost in FCFA per milliliter, allowing for granular price calculation.
+ * 
+ * **Role**: Serves as the primary data source for the `AtelierLab` and the `MixerTool`.
+ */
 import type { Essence } from '@/types';
 
 export const mockEssences: Essence[] = [
@@ -248,6 +264,99 @@ export const mockEssences: Essence[] = [
     description: 'Profondeur terreuse et envoutante, signature forte.',
     pricePerMl: 420,
     color: '#4A3728',
+    intensity: 'strong',
+    available: true,
+  },
+];
+
+export const mockPremiumEssences: Essence[] = [
+  {
+    id: 'ess-prem-001',
+    name: 'Oud Mystique',
+    family: 'woody',
+    description: 'Un oud profond aux accents de cuir et de vanille sauvage.',
+    pricePerMl: 850,
+    color: '#4a2c0f',
+    intensity: 'strong',
+    available: true,
+  },
+  {
+    id: 'ess-prem-002',
+    name: 'Néroli Royal',
+    family: 'floral',
+    description: 'Une fleur d’oranger lumineuse et majestueuse.',
+    pricePerMl: 750,
+    color: '#f9f6e6',
+    intensity: 'medium',
+    available: true,
+  },
+  {
+    id: 'ess-prem-003',
+    name: 'Musc Impérial',
+    family: 'musk',
+    description: 'Un musc blanc enveloppant sublimé par des notes poudrées.',
+    pricePerMl: 900,
+    color: '#fcfcf9',
+    intensity: 'medium',
+    available: true,
+  },
+  {
+    id: 'ess-sprem-001',
+    name: 'Ambre Souverain',
+    family: 'oriental',
+    description: 'Un ambre chaleureux et sensuel d’une longévité exceptionnelle.',
+    pricePerMl: 1600,
+    color: '#d67c1c',
+    intensity: 'strong',
+    available: true,
+  },
+  {
+    id: 'ess-sprem-002',
+    name: 'Cuir Absolu',
+    family: 'oriental',
+    description: 'Un cuir de caractère rehaussé de notes épicées et fumées.',
+    pricePerMl: 1800,
+    color: '#2a1a0f',
+    intensity: 'strong',
+    available: true,
+  },
+  {
+    id: 'ess-sprem-003',
+    name: 'Jasmin Céleste',
+    family: 'floral',
+    description: 'Une récolte rare de jasmin sambac, opulent et sensuel.',
+    pricePerMl: 1500,
+    color: '#fcfcf0',
+    intensity: 'strong',
+    available: true,
+  },
+  {
+    id: 'ess-high-001',
+    name: 'Or Noir de Numba',
+    family: 'oriental',
+    description: 'L’essence ultime combinant or noir, safran et oud rare.',
+    pricePerMl: 3500,
+    color: '#0d0d0c',
+    intensity: 'strong',
+    available: true,
+  },
+  {
+    id: 'ess-high-002',
+    name: 'Élixir d’Orient',
+    family: 'oriental',
+    description: 'Une concentration extrême d’épices sacrées et de bois précieux.',
+    pricePerMl: 4000,
+    color: '#d4af37',
+    intensity: 'strong',
+    available: true,
+  },
+  {
+    id: 'ess-high-003',
+    name: 'Santal Impérial',
+    family: 'woody',
+    description: 'Le santal le plus pur et crémeux importé directement du Mysore.',
+    pricePerMl: 3800,
+    color: '#e5c290',
     intensity: 'strong',
     available: true,
   },

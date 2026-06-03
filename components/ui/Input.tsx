@@ -1,5 +1,20 @@
 'use client';
 
+/**
+ * @file components/ui/Input.tsx
+ * @description Standardized Text Input Field.
+ *
+ * This component provides a consistently styled input field for user data 
+ * entry, used primarily in authentication forms and dashboard management.
+ * 
+ * **Features**:
+ * - **Labeling**: Supports an optional `label` prop that renders a title above the input.
+ * - **Error Handling**: Displays a localized `error` message in red if validation fails.
+ * - **Icon Support**: Includes a `leftIcon` slot for visual context (e.g., Mail or Phone icons).
+ * - **Customization**: Passthrough for standard HTML input attributes (`placeholder`, `type`, etc.).
+ * 
+ * **UI Styling**: Uses a semi-transparent `glass-dark` aesthetic with gold focus rings to match the platform's luxury theme.
+ */
 import { forwardRef } from 'react';
 import { cn } from '@/lib/utils';
 
@@ -28,7 +43,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
             ref={ref}
             id={id}
             className={cn(
-              'w-full rounded-lg border bg-white/5 px-4 py-2.5 text-sm text-foreground placeholder:text-foreground/30',
+              'w-full  border bg-white/5 px-4 py-2.5 text-sm text-foreground placeholder:text-foreground/30',
               'border-white/10 focus:border-gold focus:ring-2 focus:ring-gold/20 focus:outline-none',
               'transition-all duration-200',
               icon && 'pl-10',
@@ -46,3 +61,5 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
 
 Input.displayName = 'Input';
 export { Input };
+
+

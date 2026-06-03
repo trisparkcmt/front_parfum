@@ -1,5 +1,25 @@
 'use client';
 
+/**
+ * @file components/ui/ProductCard.tsx
+ * @description Centralized Catalog Item Visualizer.
+ *
+ * This component is the primary building block of the platform's e-commerce catalogs.
+ * It is responsible for rendering an individual product's summary data.
+ * 
+ * **Key Visual Modules**:
+ * - **Image Management**: Displays the product's primary image with luxury hover animations.
+ * - **Favorites Integration**: Subscribes to `useFavoritesStore` to render a interactive "Heart" icon for wishlisting.
+ * - **Olfactive Indicators**: (For Perfumes) Shows the primary fragrance family badge.
+ * - **Brand/Collection Labeling**: Dynamically identifies if the product is a Brand Name, Dupe, or Accessory.
+ * 
+ * **Interactivity**:
+ * - **Quick Add**: Provides a one-click "Add to Cart" button that executes `addItem` in the `useCartStore`.
+ * - **Navigation**: Wraps key elements in a `Link` to direct the user to the product's dynamic detail page.
+ * 
+ * **Animation**: Employs `motion.div` to provide a subtle lift effect when hovered.
+ */
+import Link from 'next/link';
 import Image from 'next/image';
 import { Heart, ShoppingBag, Star } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -7,6 +27,8 @@ import { cn, formatPrice } from '@/lib/utils';
 import type { Product } from '@/types';
 import { Badge } from './Badge';
 import { PRODUCT_CATEGORY_LABELS } from '@/lib/constants';
+import { useTranslation } from 'react-i18next';
+import { API_ROOT } from '@/services/api';
 
 interface ProductCardProps {
   product: Product;
@@ -17,6 +39,15 @@ interface ProductCardProps {
 }
 
 export function ProductCard({ product, onAddToCart, onToggleFavorite, isFavorite, className }: ProductCardProps) {
+  const { t } = useTranslation();
+
+  // Helper to resolve image URLs from the backend
+  const getImageUrl = (url: string) => {
+    if (!url) return '';
+    if (url.startsWith('http')) return url;
+    return `${API_ROOT}${url.startsWith('/') ? '' : '/'}${url}`;
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -25,77 +56,78 @@ export function ProductCard({ product, onAddToCart, onToggleFavorite, isFavorite
       whileHover={{ y: -4 }}
       transition={{ duration: 0.3 }}
       className={cn(
-        'group relative rounded-2xl overflow-hidden bg-white dark:bg-charcoal border border-white/10',
-        'shadow-sm hover:shadow-xl hover:shadow-gold/5 transition-shadow duration-300',
+        'w-[165px] sm:w-[280px] h-auto group relative bg-gradient-to-b from-[var(--t-card-from)] to-[var(--t-card-to)] border border-[var(--t-card-border)] rounded-2xl overflow-hidden shadow-2xl transition-all duration-500 hover:border-[var(--t-card-hover-border)] hover:shadow-[0_0_30px_var(--t-card-hover-shadow)]',
         className
-      )}
+      )} 
     >
-      {/* Image */}
-      <div className="relative aspect-square overflow-hidden bg-cream-dark dark:bg-deep-black/50">
-        <div className="absolute inset-0 flex items-center justify-center text-gold/20">
-          <ShoppingBag size={64} />
-        </div>
-        {product.images[0] && (
-          <Image
-            src={product.images[0]}
-            alt={product.name}
-            fill
-            className="object-cover group-hover:scale-105 transition-transform duration-500"
-            sizes="(max-width: 768px) 50vw, 25vw"
+      {/* Favorite button */}
+      {onToggleFavorite && (
+        <button
+          onClick={(e) => { e.preventDefault(); e.stopPropagation(); onToggleFavorite(product); }}
+          className="absolute top-3 right-3 md:top-4 md:right-4 z-20 p-2 rounded-full bg-[var(--t-fav-btn-bg)] backdrop-blur-md border border-[var(--t-border)] transition-colors hover:bg-[var(--t-hover-bg)]"
+        >
+          <Heart
+            size={12}
+            className={cn('transition-all duration-300', isFavorite ? 'fill-red-500 stroke-red-500' : 'stroke-foreground/70')}
           />
-        )}
+        </button>
+      )}
 
-        {/* Overlay actions */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-        
-        {/* Favorite button */}
-        {onToggleFavorite && (
-          <button
-            onClick={(e) => { e.preventDefault(); onToggleFavorite(product); }}
-            className="absolute top-3 right-3 p-2 rounded-full bg-white/90 dark:bg-charcoal/90 shadow-md hover:scale-110 transition-transform"
-          >
-            <Heart size={16} className={cn(isFavorite ? 'fill-red-500 text-red-500' : 'text-foreground/50')} />
-          </button>
-        )}
-
-        {/* Category badge */}
-        <div className="absolute top-3 left-3">
-          <Badge variant="gold">{PRODUCT_CATEGORY_LABELS[product.category]}</Badge>
-        </div>
-
-        {/* Quick add to cart */}
-        {onAddToCart && (
-          <motion.button
-            initial={{ y: 20, opacity: 0 }}
-            whileHover={{ scale: 1.05 }}
-            onClick={(e) => { e.preventDefault(); onAddToCart(product); }}
-            className="absolute bottom-3 left-3 right-3 py-2.5 rounded-xl bg-gold text-deep-black text-sm font-semibold opacity-0 group-hover:opacity-100 group-hover:translate-y-0 translate-y-2 transition-all duration-300 flex items-center justify-center gap-2"
-          >
-            <ShoppingBag size={16} />
-            Ajouter au panier
-          </motion.button>
-        )}
-      </div>
-
-      {/* Info */}
-      <div className="p-4">
-        {product.brand && (
-          <p className="text-xs text-gold font-medium uppercase tracking-wider mb-1">{product.brand}</p>
-        )}
-        <h3 className="font-medium text-sm line-clamp-2 mb-2">{product.name}</h3>
-        <div className="flex items-center justify-between">
-          <p className="font-display text-lg font-bold text-gold">{formatPrice(product.price)}</p>
-          {product.rating && (
-            <div className="flex items-center gap-1 text-xs text-foreground/50">
-              <Star size={12} className="fill-gold text-gold" />
-              {product.rating}
-            </div>
+      <Link href={`/shop/product/${product.id}`} className="block h-full">
+        {/* Image Section */}
+        <div className="relative h-40 md:h-55 overflow-hidden bg-[var(--t-surface)]">
+          {product.images && product.images[0] && (
+            <Image 
+              src={getImageUrl(product.images[0])}
+              alt={product.name}
+              fill
+              sizes="(max-width: 640px) 165px, 280px"
+              className="object-cover"
+            />
           )}
+
+          {/* Elegant Overlay */}
+          <div className="absolute inset-0 bg-gradient-to-t from-[var(--t-card-to)] via-transparent to-transparent opacity-60" />
+
         </div>
-        {product.originalBrand && (
-          <p className="text-xs text-foreground/40 mt-1">Inspiré de {product.originalBrand}</p>
-        )}
-      </div>
+
+        {/* Product Info */}
+        <div className="p-2 md:p-3 text-start">
+          
+          <h3 className="text-md md:text-2xl truncate font-display text-foreground tracking-wide mb-1   ">
+            {product.name}
+          </h3>
+          <p className="text-[0.8rem] md:text-sm text-start text-foreground/40 font-light  md:mb-4">
+            {product.category.includes('perfume') ? `Eau de Parfum • ${product.volume || '100ml'}` : (product.volume || 'N/A')}
+          </p>
+
+          <div className="flex flex-row md:flex-col justify-between  gap-3 md:gap-4">
+            <span className="text-[1rem] md:text-xl font-light text-foreground tracking-widest">
+              {formatPrice(product.price)}
+            </span>
+
+            {onAddToCart && (
+              <button
+                onClick={(e) => { e.preventDefault(); e.stopPropagation(); onAddToCart(product); }}
+                className="hidden md:flex items-center justify-center gap-2 w-full  md:py-3 bg-[var(--t-btn-add-bg)] text-[var(--t-btn-add-text)] text-[10px] md:text-xs font-bold uppercase tracking-[0.15em] transition-all duration-300 hover:bg-[var(--t-btn-add-hover-bg)] hover:text-[var(--t-btn-add-hover-text)] pb-50"
+              >
+                <ShoppingBag size={16} />
+                {t('add_to_cart')}
+              </button>
+            )}
+            {onAddToCart && (
+              <button
+                onClick={(e) => { e.preventDefault(); e.stopPropagation(); onAddToCart(product); }}
+                className="block md:hidden items-center justify-center "
+              >
+                {/* <ShoppingBag size={16} /> */}
+                <img src="/addCircle.svg" alt={t('add_to_cart')}
+                className=' ' />
+              </button>
+            )}
+          </div>
+        </div>
+      </Link>
     </motion.div>
   );
 }
