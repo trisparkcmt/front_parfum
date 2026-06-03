@@ -12,22 +12,13 @@
  * - Handling client-side hydration issues with `suppressHydrationWarning`.
  */
 import type { Metadata, Viewport } from "next";
-import { Lora } from "next/font/google";
 import "./globals.css";
 import { LayoutWrapper } from "@/components/shared/LayoutWrapper";
 import { ToastProvider } from "@/components/shared/ToastProvider";
 
-const lora = Lora({ 
-  subsets: ["latin"], 
-  variable: "--font-lora",
-  display: "swap",
-  style: ['normal', 'italic'],
-});
-
 export const metadata: Metadata = {
   title: "Accessories Exclusif | Luxe & Création de Parfums",
   description: "Plateforme e-commerce de luxe intégrant une boutique d'accessoires, de parfumerie de marque, et un atelier de création olfactive assisté par IA.",
-  manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
@@ -51,7 +42,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="fr" className={`${lora.variable} h-full antialiased`} suppressHydrationWarning>
+    <html lang="fr" className="h-full antialiased" suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{
           __html: `

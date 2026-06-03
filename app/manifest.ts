@@ -2,18 +2,24 @@ import { MetadataRoute } from 'next'
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: 'Numba Atelier',
-    short_name: 'Numba',
-    description: 'An exclusive fragrance creation experience.',
+    name: 'Accessories Exclusif',
+    short_name: 'Accessoires Exclusif',
+    description: 'Luxe & Création de Parfums',
     start_url: '/',
     display: 'standalone',
-    background_color: '#000000',
-    theme_color: '#000000',
+    background_color: '#050505',
+    theme_color: '#C5A059',
     icons: [
       {
-        src: '/logo3.jpg',
-        sizes: 'any',
-        type: 'image/jpeg',
+        src: '/icons/icon-192x192.png',
+        sizes: '192x192',
+        type: 'image/png',
+        purpose: 'maskable',
+      },
+      {
+        src: '/icons/icon-512x512.png',
+        sizes: '512x512',
+        type: 'image/png',
       },
     ],
   }
