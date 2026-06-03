@@ -45,9 +45,10 @@ export const useAuthStore = create<AuthState>()(
           // Use mobileLogin which returns tokens directly in the response body
           const loginData = await authService.mobileLogin(loginInput, password);
           
-          // Save JWT token in localStorage for header authorization interceptor
+          // Save JWT tokens in localStorage for header authorization and refresh interceptor
           if (typeof window !== 'undefined') {
             localStorage.setItem('auth_token', loginData.access);
+            localStorage.setItem('refresh_token', loginData.refresh);
           }
           
           // Fetch full detailed me profile
@@ -155,6 +156,7 @@ export const useAuthStore = create<AuthState>()(
         }
         if (typeof window !== 'undefined') {
           localStorage.removeItem('auth_token');
+          localStorage.removeItem('refresh_token');
         }
         useToastStore.getState().addToast('Déconnexion réussie.', 'success');
         set({ user: null, isAuthenticated: false });
