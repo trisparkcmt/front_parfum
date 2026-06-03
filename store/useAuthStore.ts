@@ -42,8 +42,13 @@ export const useAuthStore = create<AuthState>()(
         const addToast = useToastStore.getState().addToast;
         
         try {
-          // Use authService.webLogin which handles HttpOnly cookies on the backend
-          await authService.webLogin(loginInput, password);
+          // Use mobileLogin which returns tokens directly in the response body
+          const loginData = await authService.mobileLogin(loginInput, password);
+          
+          // Save JWT token in localStorage for header authorization interceptor
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('auth_token', loginData.access);
+          }
           
           // Fetch full detailed me profile
           let meUser: User | null = null;
@@ -60,9 +65,6 @@ export const useAuthStore = create<AuthState>()(
               createdAt: meData.client?.date_creation || new Date().toISOString(),
             };
           } catch (meError) {
-            // Fallback user details from login endpoint if /me/ fails
-            // If /auth/me/ fails, we can't reliably get user data for web clients
-            // as tokens aren't in JS state. This indicates a backend or session issue.
             console.error('Failed to fetch user details after login:', meError);
             addToast('Échec de la récupération des détails utilisateur après connexion.', 'error');
             set({ isLoading: false });
@@ -150,6 +152,9 @@ export const useAuthStore = create<AuthState>()(
           await api.post('/auth/logout/');
         } catch (e) {
           console.warn('Backend logout failed, clearing local session anyway.', e);
+        }
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('auth_token');
         }
         useToastStore.getState().addToast('Déconnexion réussie.', 'success');
         set({ user: null, isAuthenticated: false });
