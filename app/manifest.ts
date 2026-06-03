@@ -2,8 +2,8 @@ import { MetadataRoute } from 'next'
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: 'Accessoires Exclusive',
-    short_name: 'Accessoires Exclusive',
+    name: 'Accessoires Exclusifs',
+    short_name: 'Accessoires Exclusifs',
     description: 'Luxe & Création de Parfums — Boutique, Atelier IA et Livraison',
     start_url: '/',
     scope: '/',

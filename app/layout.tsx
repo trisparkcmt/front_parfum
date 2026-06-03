@@ -19,12 +19,17 @@ import { ServiceWorkerRegistration } from "@/components/pwa/ServiceWorkerRegistr
 import { InstallPrompt } from "@/components/pwa/InstallPrompt";
 
 export const metadata: Metadata = {
-  title: "Accessories Exclusif | Luxe & Création de Parfums",
+  title: "Accessoires Exclusifs | Luxe & Création de Parfums",
   description: "Plateforme e-commerce de luxe intégrant une boutique d'accessoires, de parfumerie de marque, et un atelier de création olfactive assisté par IA.",
+  icons: {
+    icon: '/favicon.ico',
+    shortcut: '/favicon.ico',
+    apple: '/icons/icon-192x192.jpeg',
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "Accessories Exclusif",
+    title: "Accessoires Exclusifs",
   },
   formatDetection: {
     telephone: false,

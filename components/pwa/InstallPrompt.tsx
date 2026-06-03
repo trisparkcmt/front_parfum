@@ -92,7 +92,7 @@ export function InstallPrompt() {
           <div className="w-14 h-14 rounded-xl overflow-hidden border border-gold/20 shadow-lg shadow-gold/10 shrink-0">
             <img
               src="/icons/icon-192x192.jpeg"
-              alt="Accessoires Exclusive"
+              alt="Accessoires Exclusifs"
               width={56}
               height={56}
               className="w-full h-full object-cover"
@@ -102,7 +102,7 @@ export function InstallPrompt() {
           {/* Text */}
           <div className="flex-1 min-w-0">
             <p className="font-bold text-foreground text-sm truncate">
-              Accessoires Exclusive
+              Accessoires Exclusifs
             </p>
             <p className="text-xs text-foreground/50 mt-0.5">
               {t('install_pwa_desc', { defaultValue: "Installez l'app pour une meilleure expérience" })}
