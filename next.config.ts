@@ -14,10 +14,34 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  allowedDevOrigins: ['172.20.10.2','172.20.10.5', '192.168.1.173', 'bodacious-purple-gaffe.ngrok-free.dev','0.0.0.0'],
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: '**.ngrok-free.app',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: '**.ngrok.io',
+        pathname: '/**',
+      },
+      {
+        // Allow any https origin (production CDN / S3 etc.)
+        protocol: 'https',
+        hostname: '**',
+        pathname: '/**',
+      },
+      {
+        // Allow local Django dev server
+        protocol: 'http',
+        hostname: '127.0.0.1',
+        port: '8000',
+        pathname: '/**',
+      },
+    ],
+  },
 };
-module.exports = {
-  allowedDevOrigins: ['172.20.10.2'],
-}
 
 export default nextConfig;

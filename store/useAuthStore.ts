@@ -2,94 +2,157 @@
 
 /**
  * @file store/useAuthStore.ts
- * @description Centralized Authentication & User Session Store.
- *
- * This store manages the global state of the user's authentication status and 
- * identity within the application.
- * 
- * **State Properties**:
- * - **`user`**: Stores the current user's profile data (ID, name, email, role).
- * - **`isAuthenticated`**: A boolean flag indicating if a session is active.
- * - **`isLoading`**: Tracks asynchronous authentication operations.
- * 
- * **Core Actions**:
- * - **`login`**: Simulates an authentication request, verifying credentials and updating the store with mock user data.
- * - **`register`**: Creates a new mock user account and automatically logs them in.
- * - **`logout`**: Clears the user session and resets the authentication state.
- * - **`updateProfile`**: Allows the user to modify their basic account information.
- * 
- * **Persistence**: Uses Zustand's `persist` middleware to synchronize the user session with `localStorage`, ensuring the session survives page reloads.
+ * @description Centralized Authentication & User Session Store integrated with Backend API.
  */
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { User, UserRole } from '@/types';
-import { mockUsers } from '@/lib/mock-data';
+import { authService } from '@/services/apiService';
+import { api } from '@/services/api';
+import { useToastStore } from './useToastStore';
 
 interface AuthState {
   user: User | null;
-  token: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<boolean>;
+  _hasHydrated: boolean;
+  setHasHydrated: (state: boolean) => void;
+  login: (loginInput: string, password: string) => Promise<boolean>;
   register: (data: { firstName: string; lastName: string; email: string; phone: string; password: string }) => Promise<boolean>;
-  logout: () => void;
+  logout: () => Promise<void>;
   setUser: (user: User) => void;
   hasRole: (role: UserRole) => boolean;
+  updateProfile: (data: { firstName?: string; lastName?: string; email?: string; phone?: string }) => Promise<boolean>;
 }
 
 export const useAuthStore = create<AuthState>()(
   persist(
     (set, get) => ({
       user: null,
-      token: null,
       isAuthenticated: false,
       isLoading: false,
+      _hasHydrated: false,
 
-      login: async (email, _password) => {
+      setHasHydrated: (state) => {
+        set({ _hasHydrated: state });
+      },
+
+      login: async (loginInput, password) => {
         set({ isLoading: true });
-        // Simulate API delay
-        await new Promise((r) => setTimeout(r, 800));
+        const addToast = useToastStore.getState().addToast;
         
-        // Mock: find user by email
-        const user = mockUsers.find((u) => u.email === email);
-        if (user) {
+        try {
+          // Use authService.webLogin which handles HttpOnly cookies on the backend
+          await authService.webLogin(loginInput, password);
+          
+          // Fetch full detailed me profile
+          let meUser: User | null = null;
+          try {
+            const meResponse = await api.get('/auth/me/');
+            const meData = meResponse.data;
+            meUser = {
+              id: String(meData.user.id),
+              firstName: meData.user.first_name,
+              lastName: meData.user.last_name,
+              email: meData.user.email,
+              phone: meData.user.telephone,
+              role: meData.user.role as UserRole,
+              createdAt: meData.client?.date_creation || new Date().toISOString(),
+            };
+          } catch (meError) {
+            // Fallback user details from login endpoint if /me/ fails
+            // If /auth/me/ fails, we can't reliably get user data for web clients
+            // as tokens aren't in JS state. This indicates a backend or session issue.
+            console.error('Failed to fetch user details after login:', meError);
+            addToast('Échec de la récupération des détails utilisateur après connexion.', 'error');
+            set({ isLoading: false });
+            return false;
+          }
+
           set({
-            user,
-            token: 'mock-jwt-token-' + user.id,
+            user: meUser,
             isAuthenticated: true,
             isLoading: false,
           });
+          addToast(`Bienvenue, ${meUser.firstName} !`, 'success');
           return true;
+        } catch (error: any) {
+          console.error('Login failed:', error);
+          set({ isLoading: false });
+          addToast(error.response?.data?.detail || 'Échec de la connexion', 'error');
+          return false;
         }
-        set({ isLoading: false });
-        return false;
       },
 
       register: async (data) => {
         set({ isLoading: true });
-        await new Promise((r) => setTimeout(r, 800));
-        
-        const newUser: User = {
-          id: 'user-' + Date.now(),
-          firstName: data.firstName,
-          lastName: data.lastName,
+        const addToast = useToastStore.getState().addToast;
+
+        const payload = {
           email: data.email,
-          phone: data.phone,
-          role: 'client',
-          createdAt: new Date().toISOString(),
+          telephone: data.phone,
+          password: data.password,
+          password_confirm: data.password,
+          first_name: data.firstName,
+          last_name: data.lastName,
         };
-        
-        set({
-          user: newUser,
-          token: 'mock-jwt-token-' + newUser.id,
-          isAuthenticated: true,
-          isLoading: false,
-        });
-        return true;
+
+        try {
+          // Use authService.register
+          await authService.register(payload);
+          
+          // Fetch full detailed me profile
+          let meUser: User | null = null;
+          try {
+            const meResponse = await api.get('/auth/me/');
+            const meData = meResponse.data;
+            meUser = {
+              id: String(meData.user.id),
+              firstName: meData.user.first_name,
+              lastName: meData.user.last_name,
+              email: meData.user.email,
+              phone: meData.user.telephone || meData.user.phone || data.phone,
+              role: meData.user.role as UserRole,
+              createdAt: meData.client?.date_creation || new Date().toISOString(),
+            };
+          } catch (meError) {
+            console.error('Failed to fetch user details after registration:', meError);
+            // Fallback: registration succeeded, so we can construct a partial user
+            meUser = {
+              id: 'temp',
+              firstName: data.firstName,
+              lastName: data.lastName,
+              email: data.email,
+              phone: data.phone,
+              role: 'user' as UserRole,
+              createdAt: new Date().toISOString(),
+            };
+            addToast('Compte créé, mais certains détails n\'ont pas pu être chargés.', 'info');
+          }
+
+          set({
+            user: meUser,
+            isAuthenticated: true,
+            isLoading: false,
+          });
+          addToast(`Bienvenue, ${meUser.firstName} !`, 'success');
+          return true;
+        } catch (error) {
+          console.error('Backend registration failed:', error);
+          set({ isLoading: false });
+          addToast('Échec de l\'inscription. Veuillez réessayer.', 'error');
+          return false;
+        }
       },
 
-      logout: () => {
-        set({ user: null, token: null, isAuthenticated: false });
+      logout: async () => {
+        try {
+          await api.post('/auth/logout/');
+        } catch (e) {
+          console.warn('Backend logout failed, clearing local session anyway.', e);
+        }
+        useToastStore.getState().addToast('Déconnexion réussie.', 'success');
+        set({ user: null, isAuthenticated: false });
       },
 
       setUser: (user) => {
@@ -99,9 +162,46 @@ export const useAuthStore = create<AuthState>()(
       hasRole: (role) => {
         return get().user?.role === role;
       },
+
+      updateProfile: async (data) => {
+        set({ isLoading: true });
+        const addToast = useToastStore.getState().addToast;
+        try {
+          // Match fields documented in PUT/PATCH /auth/me/
+          const response = await api.patch('/auth/me/', {
+            email: data.email,
+            telephone: data.phone,
+            first_name: data.firstName,
+            last_name: data.lastName,
+          });
+
+          const meData = response.data;
+          const updatedUser: User = {
+            id: String(meData.id),
+            firstName: meData.first_name,
+            lastName: meData.last_name,
+            email: meData.email,
+            phone: meData.telephone,
+            role: meData.role as UserRole,
+            createdAt: get().user?.createdAt || new Date().toISOString(),
+          };
+
+          set({ user: updatedUser, isLoading: false });
+          addToast('Profil mis à jour avec succès.', 'success');
+          return true;
+        } catch (error) {
+          console.error('Backend profile update failed:', error);
+          set({ isLoading: false });
+          addToast('Échec de la mise à jour du profil.', 'error');
+          return false;
+        }
+      },
     }),
     {
       name: 'ae-auth',
+      onRehydrateStorage: () => (state) => {
+        state?.setHasHydrated(true);
+      },
     }
   )
 );

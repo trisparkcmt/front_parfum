@@ -21,71 +21,129 @@
  * **Integration**:
  * - **Zustand**: Communicates with `useCartStore` for checkout, `useAuthStore` for user context, and `useToastStore` for error handling.
  */
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, Send, Loader2, Plus, ShoppingBag } from 'lucide-react';
+import { InputBar } from './InputBar';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
-import { mockEssences } from '@/lib/mock-data';
+import { useTranslation } from 'react-i18next';
+import { API_ROOT } from '@/services/api';
+import { labService } from '@/services/apiService';
 import { useCartStore } from '@/store/useCartStore';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useToastStore } from '@/store/useToastStore';
 import { formatPrice, generateId } from '@/lib/utils';
-import type { CustomComposition, CompositionEssence } from '@/types';
+import type { CustomComposition, CompositionEssence, Essence, Product, Accessory } from '@/types';
 
 interface AiResponse {
-  name: string;
-  explanation: string;
-  formula: { essenceName: string; quantityMl: number }[];
+  message: string;
+  quantite_demandee_ml?: number;
+  flacon?: {
+    id: number;
+    nom: string;
+    prix_unitaire: string;
+  };
+  parfums_existants?: Array<{
+    id: number;
+    nom: string;
+    prix_unitaire: string;
+    image_principale: string;
+  }>;
+  essences_pre_faites?: Array<{
+    id: number;
+    nom: string;
+    code_reference: string;
+    prix_par_ml: string;
+    quantite_ml: number;
+    prix_total_quantite: string;
+  }>;
+  ingredients_sur_mesure?: { essenceName: string; quantityMl: number }[];
+  accessoires?: Accessory[];
 }
 
 export function GeminiChat() {
+  const { t } = useTranslation();
+  const [mounted, setMounted] = useState(false);
   const [prompt, setPrompt] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<AiResponse | null>(null);
   const [parsedComposition, setParsedComposition] = useState<CustomComposition | null>(null);
+  const [essences, setEssences] = useState<Essence[]>([]);
+  const [loadingEssences, setLoadingEssences] = useState(true);
 
   const { addComposition } = useCartStore();
   const { user } = useAuthStore();
   const { addToast } = useToastStore();
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!prompt.trim() || isLoading) return;
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    const fetchEssences = async () => {
+      try {
+        const data = await labService.getEssences();
+        setEssences(data);
+      } catch (error) {
+        console.error('Failed to load essences:', error);
+      } finally {
+        setLoadingEssences(false);
+      }
+    };
+    fetchEssences();
+  }, []);
+
+  const handleSend = async (data: { content: string; bottleSize: string; budget: string }) => {
+    if (!data.content.trim() || isLoading) return;
 
     setIsLoading(true);
     setResult(null);
 
     try {
-      const response = await fetch('/api/perfume/ai-advisor', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt }),
-      });
-
-      if (!response.ok) throw new Error('API Error');
-
-      const data: AiResponse = await response.json();
-      setResult(data);
+      // On combine le contenu avec la taille et le budget pour l'IA
+      const fullPrompt = `${data.content} (Format: ${data.bottleSize}, Budget: ${data.budget})`;
+      const response: AiResponse = await labService.getAIRecommendation(fullPrompt);
+      setResult(response);
 
       // Parse the formula into full CompositionEssence array
       let totalPrice = 0;
       let totalMl = 0;
-      const essences: CompositionEssence[] = [];
+      const compositionEssences: CompositionEssence[] = [];
 
-      data.formula.forEach(item => {
-        const essence = mockEssences.find(e => e.name === item.essenceName);
-        if (essence) {
-          essences.push({ essence, quantityMl: item.quantityMl });
-          totalPrice += essence.pricePerMl * item.quantityMl;
-          totalMl += item.quantityMl;
-        }
-      });
+      // Handle catalog essences recommended by the AI (prioritize this over raw ingredients)
+      if (response.essences_pre_faites && response.essences_pre_faites.length > 0) {
+        response.essences_pre_faites.forEach(item => {
+          // Match essence by id or by name/nom compatibility (some datasets use French 'nom')
+          const essence = essences.find(e => e.id === item.id || e.name === item.nom || (e as any).nom === item.nom);
+          if (essence) {
+            compositionEssences.push({ essence, quantityMl: item.quantite_ml });
+            totalPrice += Number(item.prix_total_quantite);
+            totalMl += item.quantite_ml;
+          }
+        });
+      } else if (response.ingredients_sur_mesure && response.ingredients_sur_mesure.length > 0) {
+        // Fallback to raw ingredients if provided
+        response.ingredients_sur_mesure.forEach(item => {
+          const essence = essences.find(e => e.name === item.essenceName);
+          if (essence) {
+            compositionEssences.push({ essence, quantityMl: item.quantityMl });
+            totalPrice += essence.pricePerMl * item.quantityMl;
+            totalMl += item.quantityMl;
+          }
+        });
+      }
+
+      // Add bottle price to the total if returned in the response
+      if (response.flacon) {
+        totalPrice += Number(response.flacon.prix_unitaire);
+      }
 
       setParsedComposition({
         id: generateId(),
-        name: data.name,
-        essences,
+        name: data.flacon ? `Création IA (${data.flacon.nom})` : "Création IA",
+        essences: compositionEssences,
         totalMl,
         totalPrice,
         createdBy: user?.id || 'guest',
@@ -109,8 +167,10 @@ export function GeminiChat() {
     }
   };
 
+  if (!mounted) return null;
+
   return (
-    <div className="w-full max-w-2xl mx-auto">
+    <div className="w-full max-w-3xl mx-auto">
       <AnimatePresence mode="wait">
         {!result && (
           <motion.div
@@ -118,48 +178,31 @@ export function GeminiChat() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95 }}
-            className="bg-white/5 border border-white/10 rounded-3xl p-6 md:p-8 relative overflow-hidden"
+            className="w-full"
           >
-            <div className="absolute top-0 right-0 p-8 opacity-5">
-              <Sparkles size={100} />
-            </div>
+            <InputBar
+              onSend={handleSend}
+              status={isLoading ? "streaming" : "ready"}
+              placeholder="Ex: Un parfum boisé pour le printemps..."
+              className="px-0 pb-0"
+            />
 
-            <div className="flex items-center gap-4 mb-6">
-              <div className="w-12 h-12  bg-gold/20 flex items-center justify-center text-gold">
-                <Sparkles size={24} />
-              </div>
-              <div>
-                <h3 className="font-display text-xl font-bold">Sommelier IA Numba</h3>
-                <p className="text-sm text-foreground/60">Dites-moi ce que vous recherchez.</p>
-              </div>
+            <div className="mt-6 flex flex-wrap justify-center gap-3">
+              {[
+                "I want a perfume for a casual wedding",
+                "I'm looking for a fresh scent for daily office wear",
+                "Design a bold fragrance for a night out in Paris"
+              ].map((suggestion) => (
+                <button
+                  key={suggestion}
+                  type="button"
+                  onClick={() => handleSend({ content: suggestion, bottleSize: "50ml", budget: "" })}
+                  className="text-xs px-4 py-2 rounded-full bg-white/5 border border-white/10 text-foreground/60 hover:text-gold hover:border-gold/30 hover:bg-gold/5 transition-all"
+                >
+                  {suggestion}
+                </button>
+              ))}
             </div>
-
-            <form onSubmit={handleSubmit} className="relative z-10">
-              <textarea
-                value={prompt}
-                onChange={(e) => setPrompt(e.target.value)}
-                placeholder="Ex: Je cherche un parfum frais et boisé pour le printemps, avec une touche d'agrumes..."
-                className="w-full min-h-[120px] bg-black/20 border border-white/10  p-4 text-sm focus:outline-none focus:border-gold focus:ring-1 focus:ring-gold/50 resize-none mb-4"
-              />
-              <div className="flex justify-between items-center flex-wrap gap-4">
-                <div className="flex flex-wrap gap-2">
-                  {/* Suggestion chips */}
-                  {['Pour un mariage', 'Séduisant', 'Frais & Sport'].map(suggestion => (
-                    <button
-                      key={suggestion}
-                      type="button"
-                      onClick={() => setPrompt(suggestion)}
-                      className="text-xs px-3 py-1.5 rounded-full bg-white/5 hover:bg-white/10 border border-white/5 transition-colors"
-                    >
-                      {suggestion}
-                    </button>
-                  ))}
-                </div>
-                <Button type="submit" disabled={!prompt.trim() || isLoading} rightIcon={isLoading ? <Loader2 className="animate-spin" size={18} /> : <Send size={18} />}>
-                  {isLoading ? 'Analyse...' : 'Composer'}
-                </Button>
-              </div>
-            </form>
           </motion.div>
         )}
 
@@ -174,11 +217,12 @@ export function GeminiChat() {
               <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gold/20 text-gold mb-4 ring-4 ring-gold/10">
                 <Sparkles size={32} />
               </div>
-              <h2 className="font-display text-3xl font-bold mb-2">{result.name}</h2>
-              <p className="text-foreground/80 italic max-w-lg mx-auto">"{result.explanation}"</p>
+              <h2 className="font-display text-3xl font-bold mb-2">{t('ai_recommendation')}</h2>
+              <p className="text-foreground/80 italic max-w-lg mx-auto">"{result.message}"</p>
             </div>
 
-            <div className="bg-charcoal/50 border border-white/10  p-6 mb-8">
+            {parsedComposition && parsedComposition.essences.length > 0 && (
+              <div className="bg-charcoal/50 border border-white/10 p-6 mb-8">
               <h4 className="font-medium text-sm text-gold mb-4 uppercase tracking-wider">Formule ({parsedComposition.totalMl}ml)</h4>
               <div className="space-y-4">
                 {parsedComposition.essences.map(item => (
@@ -202,6 +246,33 @@ export function GeminiChat() {
                 <span className="font-display text-2xl font-bold text-gold">{formatPrice(parsedComposition.totalPrice)}</span>
               </div>
             </div>
+            )}
+
+            {/* Display existing product recommendations */}
+            {result.parfums_existants && result.parfums_existants.length > 0 && (
+              <div className="mb-8">
+                <h4 className="text-xs font-bold uppercase tracking-widest text-gold mb-4">Produits suggérés</h4>
+                <div className="grid grid-cols-2 gap-4">
+                  {result.parfums_existants.map(p => (
+                    <Link key={p.id} href={`/shop/product/${p.id}`} className="block group">
+                      <div className="bg-white/5 p-3 rounded-xl border border-white/10 hover:border-gold/50 transition-all">
+                        {p.image_principale && (
+                          <div className="relative aspect-square mb-2 overflow-hidden rounded-lg bg-black/20">
+                            <img 
+                              src={p.image_principale.startsWith('http') ? p.image_principale : `${API_ROOT}${p.image_principale}`} 
+                              alt={p.nom}
+                              className="object-cover w-full h-full group-hover:scale-105 transition-transform"
+                            />
+                          </div>
+                        )}
+                        <p className="text-sm font-bold truncate">{p.nom}</p>
+                        <p className="text-xs text-gold">{formatPrice(Number(p.prix_unitaire))}</p>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <div className="flex flex-col sm:flex-row gap-4">
               <Button

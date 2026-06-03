@@ -23,12 +23,12 @@ import type { UserRole } from '@/types';
 export function useAuthGuard(allowedRoles?: UserRole[]) {
   const router = useRouter();
   const pathname = usePathname();
-  const { user, isAuthenticated, isLoading } = useAuthStore();
+  const { user, isAuthenticated, isLoading, _hasHydrated } = useAuthStore();
   const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
 
   useEffect(() => {
-    // Avoid running on server or during initial hydration
-    if (isLoading) return;
+    // Wait for hydration and avoid running during auth operations
+    if (!_hasHydrated || isLoading) return;
 
     if (!isAuthenticated) {
       router.replace(`/login?redirect=${encodeURIComponent(pathname)}`);

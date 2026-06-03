@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Gem } from 'lucide-react';
+import { Gem, ArrowLeft } from 'lucide-react';
 
 /**
  * @file app/(auth)/layout.tsx
@@ -27,13 +27,13 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         <div className="relative z-10 w-full p-12 flex flex-col justify-between h-full">
           <Link href="/" className="flex items-center gap-2 group w-fit">
             <Gem className="h-8 w-8 text-gold group-hover:rotate-12 transition-transform duration-300" />
-            <span className="font-display text-2xl font-bold tracking-tight text-white">
+            <span className="font-display text-2xl font-bold tracking-tight text-foreground">
               <span className="text-gold">Accessories</span> Exclusif
             </span>
           </Link>
 
           <div>
-            <h2 className="font-display text-4xl text-white font-bold mb-4">L'art de l'élégance.</h2>
+            <h2 className="font-display text-4xl text-foreground font-bold mb-4">L'art de l'élégance.</h2>
             <p className="text-cream/70 text-lg max-w-md">
               Rejoignez notre espace membre exclusif pour accéder à vos créations sur mesure, sauvegarder vos envies et suivre vos commandes.
             </p>
@@ -44,9 +44,13 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
       {/* Right side - Form */}
       <div className="flex-1 flex flex-col justify-center items-center p-6 sm:p-12 relative">
         <div className="w-full max-w-md">
+          <Link href="/" className="inline-flex items-center gap-2 text-sm text-foreground/50 hover:text-gold mb-8 transition-colors">
+            <ArrowLeft size={16} /> Retour à l'accueil
+          </Link>
           {children}
         </div>
       </div>
     </div>
   );
 }
+

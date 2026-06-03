@@ -4,20 +4,25 @@ import { motion } from "framer-motion";
 import { ArrowRight, Tag } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import Link from "next/link";
+import { useTranslation } from "react-i18next";
+import { useThemeStore } from "@/store/useThemeStore";
 
 export default function PromoSection() {
+  const { t } = useTranslation();
+  const { theme } = useThemeStore();
+
   return (
     <section className="relative h-[80vh] w-full flex items-center justify-center overflow-hidden">
       {/* Background Image */}
       <div 
         className="absolute inset-0 bg-cover bg-center transition-transform duration-1000 hover:scale-105"
         style={{ 
-          backgroundImage: "url('/promo.png')",  
+          backgroundImage: `url('${theme === 'light' ? '/promo2.png' : '/promo.png'}')`,  
         }}
       />
       
       {/* Overlay */}
-      <div className="absolute inset-0 bg-gradient-to-r from-deep-black via-deep-black/60 to-transparent z-10" />
+      {/* <div className="absolute inset-0 bg-gradient-to-r from-deep-black via-deep-black/60 to-transparent z-10" /> */}
       <div className="absolute inset-0 bg-black/20 z-10" />
 
       {/* Content */}
@@ -31,22 +36,23 @@ export default function PromoSection() {
           >
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-gold/20 border border-gold/30 text-gold text-xs font-bold uppercase tracking-widest mb-6">
               <Tag size={14} />
-              Offre Exclusive
+              {t('exclusive_offer')}
             </div>
             
-            <h2 className="font-display text-5xl md:text-7xl font-bold text-white leading-tight mb-6">
-              L'Essence du <br />
-              <span className="text-gradient-gold">Privilège</span>
+            <h2 className="font-display text-5xl md:text-7xl font-bold text-foreground leading-tight mb-6">
+              {t('privilege_title').split(' ').map((word, i) => (
+                word === 'Privilège' || word === 'Privilege' ? <span key={i} className="text-gradient-gold block">{word}</span> : <span key={i}>{word} </span>
+              ))}
             </h2>
             
-            <p className="text-lg md:text-xl text-cream/80 mb-10 leading-relaxed font-light">
-              Profitez d'une remise exceptionnelle de <span className="text-gold font-bold">20%</span> sur votre première création personnalisée Numba avec le code <span className="px-2 py-1 bg-white/10 rounded font-mono text-white">LUXE20</span>.
+            <p className="text-lg md:text-xl text-foreground/80 mb-10 leading-relaxed font-light">
+              {t('privilege_subtitle')}
             </p>
 
             <div className="flex flex-wrap gap-4">
               <Link href="/numba/atelier">
                 <Button size="md" className="md:w-auto min-w-[200px]">
-                  Créer mon Parfum
+                  {t('create_my_perfume')}
                   <ArrowRight className="ml-2 size-5" />
                 </Button> 
               </Link>
@@ -57,7 +63,7 @@ export default function PromoSection() {
 
       {/* Decorative element */}
       <div className="absolute bottom-0 right-0 p-12 opacity-10 pointer-events-none hidden lg:block">
-        <Tag size={300} className="text-white -rotate-12" />
+        <Tag size={300} className="text-foreground -rotate-12" />
       </div>
     </section>
   );

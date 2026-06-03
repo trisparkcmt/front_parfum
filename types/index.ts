@@ -92,10 +92,16 @@ export interface Product {
     base: string[];
   };
   volume?: string; // e.g., "100ml"
+  longevity?: string; // e.g., "Longue durée (8-10h)"
+  sillage?: string; // e.g., "Modéré"
+  gender?: 'masculine' | 'feminine' | 'unisex';
+  availableColors?: string[]; // hex codes or names
   originalBrand?: string; // for dupes — the brand they imitate
   isFeatured?: boolean;
   createdAt: string;
 }
+
+export interface Accessory extends Product {}
 
 // ---- Essences & Custom Perfume ----
 

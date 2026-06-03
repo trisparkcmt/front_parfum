@@ -11,6 +11,6 @@
  * - **`mockAccessories` / `mockPerfumes`**: Catalog data for the Shop.
  * - **`mockUsers` / `mockOrders`**: Session and transaction data for dashboards.
  */
-export { mockEssences } from './essences';
+export { mockEssences, mockPremiumEssences } from './essences';
 export { mockAccessories, mockPerfumes, allProducts } from './products';
 export { mockUsers, mockPromoCodes, mockOrders, mockDeliveryTasks } from './orders';

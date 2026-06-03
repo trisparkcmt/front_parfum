@@ -65,13 +65,13 @@ export function MixerTool({ essences, totalMl }: MixerToolProps) {
           
           {percentage > 0 && (
             <div className="absolute inset-0 flex items-center justify-center opacity-30">
-              <Droplets size={48} className="text-white mix-blend-overlay" />
+              <Droplets size={48} className="text-foreground mix-blend-overlay" />
             </div>
           )}
         </motion.div>
 
         {/* Total ML indicator */}
-        <div className="absolute inset-0 flex flex-col items-center justify-center text-white mix-blend-difference pointer-events-none">
+        <div className="absolute inset-0 flex flex-col items-center justify-center text-foreground mix-blend-difference pointer-events-none">
           <span className="font-display text-4xl font-bold">{totalMl}</span>
           <span className="text-sm tracking-widest uppercase">/ {MAX_COMPOSITION_ML} ml</span>
         </div>
@@ -99,3 +99,5 @@ export function MixerTool({ essences, totalMl }: MixerToolProps) {
     </div>
   );
 }
+
+

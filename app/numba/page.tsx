@@ -20,24 +20,26 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, FlaskConical, ArrowRight } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 export default function NumbaLanding() {
+  const { t } = useTranslation();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  if (!mounted) return <div className="min-h-screen bg-deep-black" />;
+  if (!mounted) return <div className="min-h-screen bg-background" />;
 
   return (
-    <div className="min-h-[85vh] flex flex-col items-center justify-center relative overflow-hidden bg-deep-black pt-16 lg:pt-30">
+    <div className="min-h-screen flex flex-col items-center justify-center relative overflow-hidden bg-background py-40 lg:py-48">
       {/* Background */}
       <div
         className="absolute inset-0 bg-cover bg-center opacity-20 mix-blend-luminosity"
-        style={{ backgroundImage: "url('https://images.unsplash.com/photo-1615397323166-512089408215?q=80&w=2000&auto=format&fit=crop')" }}
+       
       />
-      <div className="absolute inset-0 bg-gradient-to-b from-deep-black via-transparent to-deep-black" />
+      <div className="absolute inset-0 bg-background" />
 
       <div className="  relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
         <motion.div
@@ -47,18 +49,18 @@ export default function NumbaLanding() {
         >
           <div className="hidden md:flex flex-col inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gold/10 border border-gold/20 text-gold mb-8">
             <Sparkles size={16} />
-            <span className="text-sm font-medium tracking-wider uppercase">Atelier Olfactif</span>
+            <span className="text-sm font-medium tracking-wider uppercase">{t('olfactory_atelier')}</span>
           </div>
 
-          <h1 className="hidden md:flex flex-col font-display text-5xl md:text-7xl font-bold text-white mb-6">
-            Bienvenue chez <span className="text-gradient-gold">Numba</span>
+          <h1 className="hidden md:flex flex-col font-display text-5xl md:text-7xl font-bold text-foreground mb-6">
+            {t('welcome_at')} <span className="text-gradient-gold">Numba</span>
           </h1>
 
-          <p className="hidden md:flex flex-col text-lg md:text-xl text-cream/70 max-w-2xl mx-auto mb-16 font-light leading-relaxed">
-            Créez une signature olfactive unique. Laissez-vous guider par notre Sommelier IA ou composez votre parfum vous-même à partir de nos essences les plus pures.
+          <p className="hidden md:flex flex-col text-lg md:text-xl text-foreground/70 max-w-2xl mx-auto mb-16 font-light leading-relaxed">
+            {t('numba_desc')}
           </p>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+          <div className="grid grid-cols-2 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
             {/* IA Option */}
             <Link href="/numba/ai-consultant">
               <motion.div
@@ -71,12 +73,12 @@ export default function NumbaLanding() {
                 <div className="w-16 h-16  bg-gold text-deep-black flex items-center justify-center mb-6 shadow-lg shadow-gold/20">
                   <Sparkles size={32} />
                 </div>
-                <h3 className="font-display text-2xl font-bold text-white mb-3">Sommelier IA</h3>
-                <p className="text-cream/70 mb-8 leading-relaxed">
-                  Décrivez votre personnalité, vos envies ou une occasion spéciale. Notre IA experte concevra la formule parfaite pour vous.
+                <h3 className="font-display text-2xl font-bold text-foreground mb-3">{t('ai_sommelier')}</h3>
+                <p className="text-foreground/70 mb-8 leading-relaxed">
+                  {t('ai_sommelier_desc')}
                 </p>
                 <div className="inline-flex items-center text-gold font-bold group-hover:gap-2 transition-all mt-auto">
-                  Consulter l'IA <ArrowRight size={18} className="ml-1" />
+                  {t('consult_ai')} <ArrowRight size={18} className="ml-1" />
                 </div>
               </motion.div>
             </Link>
@@ -85,20 +87,20 @@ export default function NumbaLanding() {
             <Link href="/numba/atelier">
               <motion.div
                 whileHover={{ y: -5, scale: 1.02 }}
-                className="h-full p-8 rounded-3xl glass-dark border border-white/10 text-left relative overflow-hidden group cursor-pointer"
+                className="h-full p-8 rounded-3xl bg-foreground/5 border border-[var(--t-border)] text-left relative overflow-hidden group cursor-pointer"
               >
-                <div className="absolute -right-4 -top-4 opacity-5 text-white transform group-hover:scale-110 transition-transform">
+                <div className="absolute -right-4 -top-4 opacity-5 text-foreground transform group-hover:scale-110 transition-transform">
                   <FlaskConical size={120} />
                 </div>
-                <div className="w-16 h-16  bg-white/10 text-white flex items-center justify-center mb-6">
+                <div className="w-16 h-16  bg-foreground/10 text-foreground flex items-center justify-center mb-6">
                   <FlaskConical size={32} />
                 </div>
-                <h3 className="font-display text-2xl font-bold text-white mb-3">Création Libre</h3>
-                <p className="text-cream/70 mb-8 leading-relaxed">
-                  Explorez notre orgue à parfums. Mélangez, ajustez et créez votre propre composition millimètre par millimètre.
+                <h3 className="font-display text-2xl font-bold text-foreground mb-3">{t('free_creation')}</h3>
+                <p className="text-foreground/70 mb-8 leading-relaxed">
+                  {t('free_creation_desc')}
                 </p>
-                <div className="inline-flex items-center text-white font-bold group-hover:gap-2 transition-all group-hover:text-gold mt-auto">
-                  Ouvrir l'Atelier <ArrowRight size={18} className="ml-1" />
+                <div className="inline-flex items-center text-foreground font-bold group-hover:gap-2 transition-all group-hover:text-gold mt-auto">
+                  {t('open_atelier')} <ArrowRight size={18} className="ml-1" />
                 </div>
               </motion.div>
             </Link>

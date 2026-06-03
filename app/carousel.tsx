@@ -1,8 +1,7 @@
-"use client";
-
 import { ArrowLeft, ArrowRight, ArrowUpRight, Star, StarHalf } from "lucide-react";
 import { useEffect, useState, useRef } from "react";
 import Autoplay from "embla-carousel-autoplay";
+import { useTranslation } from "react-i18next";
 
 import { Button } from "@/components/ui/Button";
 import {
@@ -30,57 +29,9 @@ interface Gallery6Props {
 const Gallery6 = ({
   heading = "Gallery",
   demoUrl = "https://www.shadcnblocks.com",
-  items = [
-    {
-      id: "item-1",
-      title: "Haute Parfumerie",
-      summary: "Découvrez l'art de la création olfactive avec nos essences les plus rares.",
-      url: "/shop/perfumes",
-      image: "https://images.unsplash.com/photo-1541643600914-78b084683601?q=80&w=1000&auto=format&fit=crop",
-      stars: 4,
-    },
-    {
-      id: "item-2",
-      title: "Accessoires de Luxe",
-      summary: "Une sélection rigoureuse de montres et bijoux pour sublimer votre style.",
-      url: "/shop/accessories",
-      image: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?q=80&w=1000&auto=format&fit=crop",
-      stars: 4.2,
-    },
-    {
-      id: "item-3",
-      title: "L'Atelier Numba",
-      summary: "Composez votre signature olfactive unique dans notre atelier interactif.",
-      url: "/numba/atelier",
-      image: "https://images.unsplash.com/photo-1594035910387-fea47794261f?q=80&w=1000&auto=format&fit=crop",
-      stars: 4.7,
-    },
-    {
-      id: "item-5",
-      title: "Élégance Intemporelle",
-      summary: "Le raffinement absolu, de la fragrance à l'accessoire.",
-      url: "/",
-      image: "https://images.unsplash.com/photo-1596462502278-27bfdc403348?q=80&w=1000&auto=format&fit=crop",
-      stars: 5,
-    },
-    {
-      id: "item-6",
-      title: "Haute Parfumerie",
-      summary: "Découvrez l'art de la création olfactive avec nos essences les plus rares.",
-      url: "/shop/perfumes",
-      image: "https://images.unsplash.com/photo-1541643600914-78b084683601?q=80&w=1000&auto=format&fit=crop",
-      stars: 4.3,
-    },
-    {
-      id: "item-8",
-      title: "Haute Parfumerie",
-      summary: "Découvrez l'art de la création olfactive avec nos essences les plus rares.",
-      url: "/shop/perfumes",
-      image: "/parfume1.png",
-      stars: 4.5,
-    },
-  ],
+  items: propItems,
 }: Gallery6Props) => {
+  const { t } = useTranslation();
   const [mounted, setMounted] = useState(false);
   const [carouselApi, setCarouselApi] = useState<CarouselApi>();
   const [canScrollPrev, setCanScrollPrev] = useState(false);
@@ -89,6 +40,59 @@ const Gallery6 = ({
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  const defaultItems: GalleryItem[] = [
+    {
+      id: "item-1",
+      title: t('carousel_perfume_title'),
+      summary: t('carousel_perfume_desc'),
+      url: "/shop/perfumes",
+      image: "https://images.unsplash.com/photo-1541643600914-78b084683601?q=80&w=1000&auto=format&fit=crop",
+      stars: 4,
+    },
+    {
+      id: "item-2",
+      title: t('carousel_acc_title'),
+      summary: t('carousel_acc_desc'),
+      url: "/shop/accessories",
+      image: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?q=80&w=1000&auto=format&fit=crop",
+      stars: 4.2,
+    },
+    {
+      id: "item-3",
+      title: t('carousel_numba_title'),
+      summary: t('carousel_numba_desc'),
+      url: "/numba/atelier",
+      image: "https://images.unsplash.com/photo-1594035910387-fea47794261f?q=80&w=1000&auto=format&fit=crop",
+      stars: 4.7,
+    },
+    {
+      id: "item-5",
+      title: t('carousel_elegance_title'),
+      summary: t('carousel_elegance_desc'),
+      url: "/",
+      image: "https://images.unsplash.com/photo-1596462502278-27bfdc403348?q=80&w=1000&auto=format&fit=crop",
+      stars: 5,
+    },
+    {
+      id: "item-6",
+      title: t('carousel_perfume_title'),
+      summary: t('carousel_perfume_desc'),
+      url: "/shop/perfumes",
+      image: "https://images.unsplash.com/photo-1541643600914-78b084683601?q=80&w=1000&auto=format&fit=crop",
+      stars: 4.3,
+    },
+    {
+      id: "item-8",
+      title: t('carousel_perfume_title'),
+      summary: t('carousel_perfume_desc'),
+      url: "/shop/perfumes",
+      image: "/parfume1.png",
+      stars: 4.5,
+    },
+  ];
+
+  const items = propItems || defaultItems;
 
   useEffect(() => {
     if (!carouselApi || !mounted) {

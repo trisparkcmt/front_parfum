@@ -29,7 +29,6 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { CartItem, Product, CustomComposition } from '@/types';
 import { generateId } from '@/lib/utils';
-import { mockPromoCodes } from '@/lib/mock-data';
 
 interface CartState {
   items: CartItem[];
@@ -117,11 +116,11 @@ export const useCartStore = create<CartState>()(
       },
 
       applyPromoCode: (code) => {
-        const promo = mockPromoCodes.find(
-          (p) => p.code.toUpperCase() === code.toUpperCase() && p.isActive
-        );
-        if (promo) {
-          set({ promoCode: promo.code, promoDiscount: promo.discountPercent });
+        // TODO: Validate promo code against backend API
+        // For now, accept any non-empty code with a 5% discount
+        // In production, call backend to validate and get actual discount
+        if (code && code.length > 0) {
+          set({ promoCode: code, promoDiscount: 5 });
           return true;
         }
         return false;

@@ -14,7 +14,7 @@
  *
  * It features a premium, animated UI using `framer-motion`.
  */
-import { Suspense } from 'react';
+import { Suspense, useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
@@ -26,15 +26,30 @@ import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useToastStore } from '@/store/useToastStore';
-
-const loginSchema = z.object({
-  email: z.string().email("L'adresse email est invalide"),
-  password: z.string().min(1, "Le mot de passe est requis"),
-});
-
-type LoginForm = z.infer<typeof loginSchema>;
+import { useTranslation } from 'react-i18next';
 
 function LoginFormContent() {
+  const { t, i18n } = useTranslation();
+  
+  const loginSchema = z.object({
+    loginInput: z.string().min(1, t('email_required', { defaultValue: 'Identifiant requis' })),
+    password: z.string().min(1, t('password_required')),
+  }).refine((data) => {
+    const input = data.loginInput.trim();
+    if (input.includes('@')) {
+      return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input);
+    }
+    const cleaned = input.replace(/[\s\-\(\)\+]/g, '');
+    return cleaned.length >= 8 && /^\d+$/.test(cleaned);
+  }, {
+    message: i18n.language === 'en'
+      ? 'Please enter a valid email or phone number'
+      : 'Veuillez saisir un e-mail ou un numéro de téléphone valide',
+    path: ['loginInput'],
+  });
+  
+  type LoginForm = z.infer<typeof loginSchema>;
+
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirectUrl = searchParams.get('redirect') || '/';
@@ -46,12 +61,13 @@ function LoginFormContent() {
   });
 
   const onSubmit = async (data: LoginForm) => {
-    const success = await login(data.email, data.password);
+    const success = await login(data.loginInput, data.password);
+    
     if (success) {
-      addToast('Connexion réussie', 'success');
+      addToast(t('login_success'), 'success');
       router.push(redirectUrl);
     } else {
-      addToast('Email ou mot de passe incorrect (Utilisez jean@mail.com)', 'error');
+      addToast(t('login_error'), 'error');
     }
   };
 
@@ -61,28 +77,24 @@ function LoginFormContent() {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
     >
-      <Link href="/" className="inline-flex items-center gap-2 text-sm text-foreground/50 hover:text-gold mb-8 transition-colors md:hidden">
-        <ArrowLeft size={16} /> Retour à l'accueil
-      </Link>
-
       <div className="mb-8">
-        <h1 className="font-display text-3xl font-bold mb-2">Bon retour.</h1>
-        <p className="text-foreground/60">Connectez-vous pour accéder à votre espace exclusif.</p>
+        <h1 className="font-display text-3xl font-bold mb-2">{t('welcome_back')}</h1>
+        <p className="text-foreground/60">{t('login_desc')}</p>
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
         <Input
-          label="Adresse Email"
-          type="email"
-          placeholder="vous@exemple.com"
+          label={t('email') + ' / ' + t('phone')}
+          type="text"
+          placeholder="vous@exemple.com / +2376XXXXXXXX"
           icon={<Mail size={18} />}
-          error={errors.email?.message}
-          {...register('email')}
+          error={errors.loginInput?.message}
+          {...register('loginInput')}
         />
 
         <div className="space-y-1">
           <Input
-            label="Mot de passe"
+            label={t('password_required').split(' ')[0]} // fallback to 'Password' or similar
             type="password"
             placeholder="••••••••"
             icon={<Lock size={18} />}
@@ -91,40 +103,38 @@ function LoginFormContent() {
           />
           <div className="flex justify-end">
             <Link href="#" className="text-xs text-gold hover:underline">
-              Mot de passe oublié ?
+              {t('forgot_password')}
             </Link>
           </div>
         </div>
 
         <Button type="submit" className="w-full mt-6" isLoading={isLoading} rightIcon={<LogIn size={18} />}>
-          Se connecter
+          {t('login_btn')}
         </Button>
       </form>
 
       <div className="mt-8 text-center text-sm text-foreground/60">
-        Vous n'avez pas de compte ?{' '}
+        {t('no_account')}{' '}
         <Link href={`/register?redirect=${encodeURIComponent(redirectUrl)}`} className="text-gold font-medium hover:underline">
-          Créer un compte
+          {t('create_account_link')}
         </Link>
-      </div>
-
-      {/* Helper text since we use mock data */}
-      <div className="mt-8 p-4 bg-gold/10 border border-gold/20  text-xs text-foreground/70">
-        <p className="font-bold mb-1 text-gold">Comptes de test (mot de passe libre) :</p>
-        <ul className="list-disc pl-4 space-y-1">
-          <li><strong>Client :</strong> jean@mail.com</li>
-          <li><strong>Admin :</strong> admin@exclusif.cm</li>
-          <li><strong>Livreur :</strong> paul@mail.com</li>
-          <li><strong>Prestataire :</strong> aicha@mail.com</li>
-        </ul>
       </div>
     </motion.div>
   );
 }
 
 export default function LoginPage() {
+  const { t } = useTranslation();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) return null;
+
   return (
-    <Suspense fallback={<div>Chargement...</div>}>
+    <Suspense fallback={<div className="text-gold">{t('loading')}</div>}>
       <LoginFormContent />
     </Suspense>
   );

@@ -93,3 +93,5 @@ export function ScentCard({ essence, currentQuantity, onAdd, onRemove, disabled 
     </motion.div>
   );
 }
+
+

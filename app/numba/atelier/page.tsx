@@ -1,305 +1,736 @@
 'use client';
 
-/**
- * @file app/numba/atelier/page.tsx
- * @description The Interactive Perfume Creation Lab (Atelier).
- *
- * This is the flagship interactive experience of the platform, enabling users to 
- * professionally mix and design their own custom fragrances in a virtual environment.
- * 
- * **Complex State & Logic**:
- * - **`composition` State**: Manages an array of `CompositionEssence` objects, tracking which ingredients have been added and their specific volume in milliliters.
- * - **Capacity Management**: Strictly enforces a `MAX_COMPOSITION_ML` (100ml) limit. It prevents adding more liquid than the bottle can hold while providing visual and toast feedback.
- * - **Dynamic Pricing**: Uses `useMemo` (or derived state) to calculate the `totalPrice` based on the unique `pricePerMl` of each selected essence.
- * - **Visual Blending**: Communicates with the `MixerTool` to update the bottle's fill level and liquid color dynamically as the user interacts with the lab.
- * 
- * **User Workflow**:
- * - **Filtering**: Provides an olfactive family filter (Citrus, Woody, etc.) to help users navigate the library of essences.
- * - **Naming & Saving**: Authenticated users can open a `Modal` to name their creation before it is persisted to their profile and added to the `useCartStore`.
- * - **Guest Support**: Allows unauthenticated users to add creations directly to the cart with a generic name.
- * 
- * **Integrations**:
- * - **Zustand**: Syncs with `useCartStore` for shopping integration and `useAuthStore` for session-aware saving.
- * - **Framer Motion**: Implements smooth animations for the essence cards and modal transitions.
- */
-import { useState } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Save, ShoppingBag, Settings2, Info } from 'lucide-react';
-import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
-import { Modal } from '@/components/ui/Modal';
-import { ScentCard } from '@/components/perfume/ScentCard';
-import { MixerTool } from '@/components/perfume/MixerTool';
-import { mockEssences } from '@/lib/mock-data';
-import { MAX_COMPOSITION_ML, ESSENCE_INCREMENT_ML, OLFACTIVE_FAMILIES } from '@/lib/constants';
 import { useCartStore } from '@/store/useCartStore';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useToastStore } from '@/store/useToastStore';
-import { formatPrice, generateId } from '@/lib/utils';
-import type { CompositionEssence, CustomComposition } from '@/types';
+import { generateId } from '@/lib/utils';
+import { useTranslation } from 'react-i18next';
+import { ArrowLeft, Minus, Plus, ChevronLeft, ChevronRight, RefreshCcw, Loader2 } from 'lucide-react';
+import type { CustomComposition, CompositionEssence, Essence } from '@/types';
+import { labService } from '@/services/labService';
+import './atelier.css';
 
-export default function AtelierManuel() {
-  const router = useRouter();
-  const { addComposition } = useCartStore();
-  const { isAuthenticated, user } = useAuthStore();
-  const { addToast } = useToastStore();
+/* ═══════════════════════════════════════
+   ESSENCE CONSTANTS & HELPER FUNCTIONS
+   ═══════════════════════════════════════ */
+const TETE_FAMILIES = ['citrus', 'fresh', 'fruity'];
+const COEUR_FAMILIES = ['floral', 'spicy', 'aquatic'];
+const FOND_FAMILIES = ['woody', 'oriental', 'gourmand', 'musk'];
 
-  const [composition, setComposition] = useState<CompositionEssence[]>([]);
-  const [activeFamilyFilter, setActiveFamilyFilter] = useState<string>('all');
-  const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
-  const [perfumeName, setPerfumeName] = useState('');
+const EMOJIS: Record<string, string> = {
+  citrus:'🍋', fresh:'🌿', fruity:'🍑', floral:'🌹', spicy:'🌶️',
+  aquatic:'🌊', woody:'🪵', oriental:'✨', gourmand:'🍫', musk:'🤍',
+  premium: '💎', 'super-premium': '👑', high: '🔱'
+};
 
-  const totalMl = composition.reduce((sum, item) => sum + item.quantityMl, 0);
-  const totalPrice = composition.reduce((sum, item) => sum + (item.essence.pricePerMl * item.quantityMl), 0);
-  const isFull = totalMl >= MAX_COMPOSITION_ML;
+const BOTTLE_SIZES = [
+  { ml: 30, label: '30ml', desc: 'Discovery' },
+  { ml: 50, label: '50ml', desc: 'Signature' },
+  { ml: 100, label: '100ml', desc: 'Prestige' },
+];
 
-  const handleAddEssence = (essenceId: string, amount: number) => {
-    if (totalMl + amount > MAX_COMPOSITION_ML) {
-      addToast(`Capacité maximale (${MAX_COMPOSITION_ML}ml) atteinte`, 'info');
-      return;
-    }
+const FORMAT_PRICES: Record<string, number> = { edc: 5000, edp: 8500, extrait: 12000 };
+const FORMAT_LABELS: Record<string, string> = { edc: 'Eau de Cologne', edp: 'Eau de Parfum', extrait: 'Extrait' };
 
-    setComposition(prev => {
-      const existing = prev.find(item => item.essence.id === essenceId);
-      if (existing) {
-        return prev.map(item =>
-          item.essence.id === essenceId
-            ? { ...item, quantityMl: item.quantityMl + amount }
-            : item
-        );
-      }
-      const essence = mockEssences.find(e => e.id === essenceId);
-      if (!essence) return prev;
-      return [...prev, { essence, quantityMl: amount }];
-    });
+function hexToRgb(h: string) {
+  h = h.replace('#','');
+  if (h.length===3) h = h[0]+h[0]+h[1]+h[1]+h[2]+h[2];
+  return { r:parseInt(h.substring(0,2),16), g:parseInt(h.substring(2,4),16), b:parseInt(h.substring(4,6),16) };
+}
+
+function blendColor(quantities: Record<string, number>, allItems: Essence[]) {
+  let r=0,g=0,b=0,tw=0;
+  for (const e of allItems) {
+    const q = quantities[e.id]||0;
+    if (q>0) { const c=hexToRgb(e.color); r+=c.r*q; g+=c.g*q; b+=c.b*q; tw+=q; }
+  }
+  if (tw===0) return { top:'#D4B87A', mid:'#C5A059', bot:'#A8864A' };
+  r=Math.round(r/tw); g=Math.round(g/tw); b=Math.round(b/tw);
+  return {
+    top:`rgba(${Math.min(255,r+30)},${Math.min(255,g+30)},${Math.min(255,b+20)},0.90)`,
+    mid:`rgba(${r},${g},${b},0.95)`,
+    bot:`rgba(${Math.max(0,r-25)},${Math.max(0,g-25)},${Math.max(0,b-15)},0.98)`,
   };
+}
 
-  const handleRemoveEssence = (essenceId: string, amount: number) => {
-    setComposition(prev => {
-      const existing = prev.find(item => item.essence.id === essenceId);
-      if (!existing) return prev;
+/* ═══════════════════════════════════════
+   DETAILED GLASS SHADERS
+   ═══════════════════════════════════════ */
+const GlassDefs = ({ col, id }: any) => (
+  <defs>
+    <linearGradient id={`g-glass-${id}`} x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stopColor="rgba(255,255,255,0.80)" />
+      <stop offset="12%" stopColor="rgba(255,255,255,0.18)" />
+      <stop offset="50%" stopColor="rgba(255,255,255,0.04)" />
+      <stop offset="88%" stopColor="rgba(255,255,255,0.22)" />
+      <stop offset="100%" stopColor="rgba(255,255,255,0.75)" />
+    </linearGradient>
+    <linearGradient id={`g-glass-v-${id}`} x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stopColor="rgba(255,255,255,0.30)" />
+      <stop offset="100%" stopColor="rgba(220,210,195,0.12)" />
+    </linearGradient>
+    <linearGradient id={`g-liquid-${id}`} x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stopColor={col.top} stopOpacity="0.95" />
+      <stop offset="100%" stopColor={col.bot} stopOpacity="0.98" />
+    </linearGradient>
+    <radialGradient id={`g-surface-${id}`} cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stopColor={col.top} stopOpacity="0.8" />
+      <stop offset="100%" stopColor={col.top} stopOpacity="1" />
+    </radialGradient>
+    <linearGradient id={`g-drip-${id}`} x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stopColor={col.top} stopOpacity="0.5" />
+      <stop offset="100%" stopColor={col.mid} stopOpacity="1" />
+    </linearGradient>
+    <linearGradient id={`g-chrome-${id}`} x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stopColor="#D0CECE" /><stop offset="30%" stopColor="#F8F8F8" />
+      <stop offset="60%" stopColor="#BDBDBD" /><stop offset="100%" stopColor="#E8E8E8" />
+    </linearGradient>
+    <linearGradient id={`g-chrome-v-${id}`} x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stopColor="#E0E0E0" /><stop offset="50%" stopColor="#A8A8A8" />
+      <stop offset="100%" stopColor="#C8C8C8" />
+    </linearGradient>
+  </defs>
+);
 
-      if (existing.quantityMl <= amount) {
-        return prev.filter(item => item.essence.id !== essenceId);
-      }
-
-      return prev.map(item =>
-        item.essence.id === essenceId
-          ? { ...item, quantityMl: item.quantityMl - amount }
-          : item
-      );
-    });
-  };
-
-  const createCompositionObject = (name: string): CustomComposition => {
-    return {
-      id: generateId(),
-      name,
-      essences: [...composition],
-      totalMl,
-      totalPrice,
-      createdBy: user?.id || 'guest',
-      createdAt: new Date().toISOString(),
-      isAiGenerated: false,
-    };
-  };
-
-  const handleSaveToProfile = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!perfumeName.trim()) return;
-
-    // In a real app, this would send to the backend to save in the user's profile
-    const customPerfume = createCompositionObject(perfumeName);
-
-    // We add it to cart as well for convenience
-    addComposition(customPerfume);
-
-    setIsSaveModalOpen(false);
-    setPerfumeName('');
-    addToast('Création sauvegardée et ajoutée au panier !', 'success');
-
-    // Reset composition after successful save/add
-    setComposition([]);
-  };
-
-  const handleDirectAddToCart = () => {
-    const customPerfume = createCompositionObject('Création Numba (Non nommée)');
-    addComposition(customPerfume);
-    addToast('Création ajoutée au panier !', 'success');
-    setComposition([]);
-  };
-
-  const families = ['all', ...Object.keys(OLFACTIVE_FAMILIES)];
-  const filteredEssences = activeFamilyFilter === 'all'
-    ? mockEssences
-    : mockEssences.filter(e => e.family === activeFamilyFilter);
+/* ═══════════════════════════════════════
+   BOTTLE SVG COMPONENTS (WITH DYNAMIC COLORS)
+   ═══════════════════════════════════════ */
+function Bottle100({ totalMl, maxMl, quantities, allItems }: any) {
+  const pct = Math.min(1, totalMl / maxMl);
+  const topY = Math.round(420 - pct * 300);
+  const col = blendColor(quantities, allItems);
+  const isEmpty = totalMl === 0;
 
   return (
-    <div className="min-h-screen bg-background pt-16 lg:pt-20">
-      {/* Header */}
-      <div className="sticky top-16 lg:top-20 z-40 bg-background/80 backdrop-blur-md border-b border-white/10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between">
-            <Link href="/numba" className="inline-flex items-center gap-2 text-sm text-foreground/50 hover:text-gold transition-colors">
-              <ArrowLeft size={16} /> Retour
-            </Link>
+    <svg width="260" height="480" viewBox="0 0 260 480" fill="none" className="mx-auto">
+      <GlassDefs col={col} id="100" />
+      <clipPath id="c-100"><rect x="42" y="118" width="176" height="310" rx="6" ry="6" /></clipPath>
+      <rect x="42" y="118" width="176" height="310" rx="6" fill="url(#g-glass-v-100)" stroke="rgba(180,170,155,0.50)" strokeWidth="1" />
+      {!isEmpty && (
+        <g clipPath="url(#c-100)">
+          <rect x="42" y={topY} width="176" height={Math.max(2, 430 - topY)} fill="url(#g-liquid-100)" className="liquid-body" />
+          <ellipse cx="130" cy={topY} rx={Math.round(52 + pct * 32)} ry="8" fill="url(#g-surface-100)" />
+        </g>
+      )}
+      <rect x="42" y="118" width="176" height="310" rx="6" fill="url(#g-glass-100)" opacity="0.60" />
+      <line x1="48" y1="124" x2="48" y2="422" stroke="rgba(255,255,255,0.88)" strokeWidth="2.5" strokeLinecap="round" />
+      <line x1="212" y1="124" x2="212" y2="422" stroke="rgba(255,255,255,0.40)" strokeWidth="1.5" strokeLinecap="round" />
+      <line x1="130" y1="120" x2="130" y2="428" stroke="rgba(255,255,255,0.08)" strokeWidth="0.6" />
+      <text x="130" y="310" textAnchor="middle" fontFamily="serif" fontSize="11" fill="rgba(197,160,89,0.60)" letterSpacing="5">NUMBA</text>
+      <text x="130" y="326" textAnchor="middle" fontFamily="sans-serif" fontSize="7" fill="rgba(197,160,89,0.38)" letterSpacing="7">ATELIER</text>
+      <rect x="100" y="58" width="60" height="64" rx="2" fill="url(#g-glass-v-100)" stroke="rgba(180,170,155,0.40)" strokeWidth="0.8" />
+      <rect x="95" y="48" width="70" height="16" rx="3" fill="url(#g-chrome-100)" stroke="rgba(160,160,160,0.4)" strokeWidth="0.5" />
+      <rect x="98" y="38" width="64" height="14" rx="3" fill="url(#g-chrome-100)" stroke="rgba(160,160,160,0.35)" strokeWidth="0.5" />
+      <rect x="88" y="6" width="84" height="36" rx="10" fill="url(#g-glass-v-100)" stroke="rgba(180,170,155,0.55)" strokeWidth="1" />
+      <rect x="88" y="6" width="84" height="36" rx="10" fill="url(#g-glass-100)" opacity="0.70" />
+      <text x="130" y="29" textAnchor="middle" fontFamily="serif" fontSize="8" fontStyle="italic" fill="rgba(197,160,89,0.80)" letterSpacing="2">N</text>
+      <g className="drip-group">
+        <line x1="130" y1="0" x2="130" y2="46" stroke="url(#g-drip-100)" strokeWidth="3.5" strokeLinecap="round" />
+        {!isEmpty && <ellipse cx="130" cy={50} rx={4.5} ry={6} fill={col.mid} opacity="0.90" />}
+      </g>
+    </svg>
+  );
+}
 
-            <div className="flex items-center gap-4">
-              <div className="text-right hidden sm:block mr-4">
-                <p className="text-xs text-foreground/50 uppercase tracking-wider">Prix Total</p>
-                <p className="font-display font-bold text-xl text-gold">{formatPrice(totalPrice)}</p>
-              </div>
+function Bottle50({ totalMl, maxMl, quantities, allItems }: any) {
+  const pct = Math.min(1, totalMl / maxMl);
+  const col = blendColor(quantities, allItems);
+  const topY = Math.round(380 - pct * 240);
+  const isEmpty = totalMl === 0;
 
-              {isAuthenticated ? (
-                <Button
-                  onClick={() => setIsSaveModalOpen(true)}
-                  disabled={totalMl === 0}
-                  rightIcon={<Save size={18} />}
-                >
-                  Sauvegarder
-                </Button>
-              ) : (
-                <Button
-                  onClick={handleDirectAddToCart}
-                  disabled={totalMl === 0}
-                  rightIcon={<ShoppingBag size={18} />}
-                >
-                  Ajouter au panier
-                </Button>
-              )}
+  return (
+    <svg width="260" height="480" viewBox="0 0 260 480" fill="none" className="mx-auto">
+      <GlassDefs col={col} id="50" />
+      <clipPath id="c-50">
+        <path d="M130,120 C80,120 45,180 45,280 C45,380 85,415 130,415 C175,415 215,380 215,280 C215,180 180,120 130,120 Z" />
+      </clipPath>
+      <path d="M130,120 C80,120 45,180 45,280 C45,380 85,415 130,415 C175,415 215,380 215,280 C215,180 180,120 130,120 Z" fill="url(#g-glass-v-50)" stroke="rgba(180,170,155,0.50)" strokeWidth="1" />
+      {!isEmpty && (
+        <g clipPath="url(#c-50)">
+          <rect x="40" y={topY} width="180" height="300" fill="url(#g-liquid-50)" className="liquid-body" />
+          <ellipse cx="130" cy={topY} rx={Math.round(40 + pct * 30)} ry={7} fill="url(#g-surface-50)" />
+        </g>
+      )}
+      <path d="M130,120 C80,120 45,180 45,280 C45,380 85,415 130,415 C175,415 215,380 215,280 C215,180 180,120 130,120 Z" fill="url(#g-glass-50)" opacity="0.60" />
+      <path d="M70,160 C55,200 55,340 130,400" stroke="rgba(255,255,255,0.7)" strokeWidth="2.5" strokeLinecap="round" opacity="0.4" />
+      <rect x="118" y="80" width="24" height="45" fill="url(#g-glass-v-50)" stroke="rgba(180,170,155,0.4)" />
+      <circle cx="130" cy="45" r="35" fill="url(#g-glass-v-50)" stroke="rgba(197,160,89,0.5)" strokeWidth="1" />
+      <circle cx="130" cy="45" r="35" fill="url(#g-glass-50)" opacity="0.7" />
+      <text x="130" y="52" textAnchor="middle" fontFamily="serif" fontSize="14" fill="rgba(197,160,89,0.8)" >N</text>
+      <g className="drip-group">
+        <line x1="130" y1="0" x2="130" y2="40" stroke="url(#g-drip-50)" strokeWidth="3" strokeLinecap="round" />
+      </g>
+    </svg>
+  );
+}
+
+function Bottle30({ totalMl, maxMl, quantities, allItems }: any) {
+  const pct = Math.min(1, totalMl / maxMl);
+  const col = blendColor(quantities, allItems);
+  const topY = Math.round(400 - pct * 300);
+  const isEmpty = totalMl === 0;
+
+  return (
+    <svg width="260" height="480" viewBox="0 0 260 480" fill="none" className="mx-auto">
+      <GlassDefs col={col} id="30" />
+      <clipPath id="c-30"><rect x="90" y="100" width="80" height="320" rx="40" /></clipPath>
+      <rect x="90" y="100" width="80" height="320" rx="40" fill="url(#g-glass-v-30)" stroke="rgba(180,170,155,0.50)" strokeWidth="1" />
+      {!isEmpty && (
+        <g clipPath="url(#c-30)">
+          <rect x="90" y={topY} width="80" height="330" fill="url(#g-liquid-30)" className="liquid-body" />
+          <ellipse cx="130" cy={topY} rx={32} ry="6" fill="url(#g-surface-30)" />
+        </g>
+      )}
+      <rect x="90" y="100" width="80" height="320" rx="40" fill="url(#g-glass-30)" opacity="0.60" />
+      <rect x="98" y="140" width="4" height="200" rx="2" fill="rgba(255,255,255,0.6)" opacity="0.3" />
+      <rect x="110" y="70" width="40" height="35" rx="2" fill="url(#g-chrome-30)" />
+      <rect x="95" y="15" width="70" height="55" rx="5" fill="#111" stroke="#C5A059" strokeWidth="1.5" />
+      <text x="130" y="48" textAnchor="middle" fontFamily="serif" fontSize="12" fill="#C5A059">N</text>
+      <g className="drip-group">
+        <line x1="130" y1="0" x2="130" y2="25" stroke="url(#g-drip-30)" strokeWidth="3" strokeLinecap="round" />
+      </g>
+    </svg>
+  );
+}
+
+/* ═══════════════════════════════════════
+   MAIN COMPONENT
+   ═══════════════════════════════════════ */
+export default function AtelierPage() {
+  const { addComposition } = useCartStore();
+  const { user } = useAuthStore();
+  const { addToast } = useToastStore();
+  const { i18n } = useTranslation();
+
+  const [mounted, setMounted] = useState(false);
+  const [activeTab, setActiveTab] = useState<'ingredients' | 'essences' | 'recap'>('ingredients');
+  
+  // Sub-tabs
+  const [ingredientSubtab, setIngredientSubtab] = useState<'tete' | 'coeur' | 'fond'>('tete');
+  const [essenceSubtab, setEssenceSubtab] = useState<'premium' | 'super-premium' | 'high'>('premium');
+
+  // Datasets
+  const [ingredients, setIngredients] = useState<Essence[]>([]);
+  const [essences, setEssences] = useState<Essence[]>([]);
+  const [loadingData, setLoadingData] = useState(true);
+
+  const [format, setFormat] = useState('edp');
+  const [bottleSize, setBottleSize] = useState(100);
+  const [quantities, setQuantities] = useState<Record<string, number>>({});
+  const [ctaSuccess, setCtaSuccess] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    async function loadData() {
+      setLoadingData(true);
+      const [ingreds, esss] = await Promise.all([
+        labService.getIngredients(),
+        labService.getEssences()
+      ]);
+      setIngredients(ingreds);
+      setEssences(esss);
+      setLoadingData(false);
+    }
+    loadData();
+  }, []);
+
+  const ALL_ITEMS = useMemo(() => [...ingredients, ...essences], [ingredients, essences]);
+
+  const maxMl = bottleSize;
+  const totalMl = useMemo(() => Object.values(quantities).reduce((s, v) => s + v, 0), [quantities]);
+  const remaining = maxMl - totalMl;
+
+  const currentIngredientsFiltered = useMemo(() => {
+    return ingredients.filter(item => {
+      if (ingredientSubtab === 'tete') return TETE_FAMILIES.includes(item.family);
+      if (ingredientSubtab === 'coeur') return COEUR_FAMILIES.includes(item.family);
+      if (ingredientSubtab === 'fond') return FOND_FAMILIES.includes(item.family);
+      return false;
+    });
+  }, [ingredients, ingredientSubtab]);
+
+  const currentEssencesFiltered = useMemo(() => {
+    return essences.filter(item => {
+      const familyStr = item.family as string;
+      const cat = familyStr === 'premium' || familyStr === 'super-premium' || familyStr === 'high' 
+        ? item.family 
+        : (item.id.includes('sprem') ? 'super-premium' : item.id.includes('high') ? 'high' : 'premium');
+      return cat === essenceSubtab;
+    });
+  }, [essences, essenceSubtab]);
+
+  const updateQtySlider = useCallback((id: string, value: number) => {
+    setQuantities(prev => {
+      const newQ = { ...prev };
+      if (value <= 0) {
+        delete newQ[id];
+      } else {
+        newQ[id] = value;
+      }
+      return newQ;
+    });
+  }, []);
+
+  const handleBottleSizeChange = (size: number) => {
+    if (totalMl > size) {
+      setQuantities({});
+      addToast(
+        i18n.language === 'en'
+          ? `Bottle changed to ${size}ml — mixture reset.`
+          : `Flacon changé à ${size}ml — composition réinitialisée.`, 
+        'info'
+      );
+    }
+    setBottleSize(size);
+  };
+
+  const calcPrice = useMemo(() => {
+    const sizeMultiplier = bottleSize === 30 ? 0.4 : bottleSize === 50 ? 0.65 : 1;
+    let total = Math.round((FORMAT_PRICES[format] || 0) * sizeMultiplier);
+    for (const e of ALL_ITEMS) {
+      const q = quantities[e.id] || 0;
+      if (q > 0) total += q * e.pricePerMl;
+    }
+    return Math.round(total);
+  }, [quantities, format, bottleSize, ALL_ITEMS]);
+
+  const formulaSummary = useMemo(() => {
+    const list = [];
+    
+    // Ingredients
+    const teteMl = ingredients.filter(e => TETE_FAMILIES.includes(e.family)).reduce((acc, e) => acc + (quantities[e.id] || 0), 0);
+    if (teteMl > 0) list.push({ name: i18n.language === 'en' ? 'Top Notes' : 'Notes de Tête', ml: teteMl });
+    
+    const coeurMl = ingredients.filter(e => COEUR_FAMILIES.includes(e.family)).reduce((acc, e) => acc + (quantities[e.id] || 0), 0);
+    if (coeurMl > 0) list.push({ name: i18n.language === 'en' ? 'Heart Notes' : 'Notes de Cœur', ml: coeurMl });
+    
+    const fondMl = ingredients.filter(e => FOND_FAMILIES.includes(e.family)).reduce((acc, e) => acc + (quantities[e.id] || 0), 0);
+    if (fondMl > 0) list.push({ name: i18n.language === 'en' ? 'Base Notes' : 'Notes de Fond', ml: fondMl });
+    
+    // Essences
+    const premiumMl = essences.filter(e => {
+      const familyStr = e.family as string;
+      const cat = familyStr === 'premium' || familyStr === 'super-premium' || familyStr === 'high' ? e.family : (e.id.includes('sprem') ? 'super-premium' : e.id.includes('high') ? 'high' : 'premium');
+      return cat === 'premium';
+    }).reduce((acc, e) => acc + (quantities[e.id] || 0), 0);
+    if (premiumMl > 0) list.push({ name: i18n.language === 'en' ? 'Premium Essences' : 'Essences Premium', ml: premiumMl });
+    
+    const superPremiumMl = essences.filter(e => {
+      const familyStr = e.family as string;
+      const cat = familyStr === 'premium' || familyStr === 'super-premium' || familyStr === 'high' ? e.family : (e.id.includes('sprem') ? 'super-premium' : e.id.includes('high') ? 'high' : 'premium');
+      return cat === 'super-premium';
+    }).reduce((acc, e) => acc + (quantities[e.id] || 0), 0);
+    if (superPremiumMl > 0) list.push({ name: i18n.language === 'en' ? 'Super Premium Essences' : 'Essences Super Premium', ml: superPremiumMl });
+    
+    const highMl = essences.filter(e => {
+      const familyStr = e.family as string;
+      const cat = familyStr === 'premium' || familyStr === 'super-premium' || familyStr === 'high' ? e.family : (e.id.includes('sprem') ? 'super-premium' : e.id.includes('high') ? 'high' : 'premium');
+      return cat === 'high';
+    }).reduce((acc, e) => acc + (quantities[e.id] || 0), 0);
+    if (highMl > 0) list.push({ name: i18n.language === 'en' ? 'High Essences' : 'Essences Haute Qualité', ml: highMl });
+    
+    return list;
+  }, [quantities, ingredients, essences, i18n.language]);
+
+  const sommelierHint = useMemo(() => {
+    if (totalMl === 0) return { visible: true, text: i18n.language === 'en' 
+      ? `Explore our ingredients and premium essences. Add them by <em>1ml</em> to fill your <em>${maxMl}ml</em> bottle.`
+      : `Explorez nos ingrédients et essences d'exception. Ajoutez-les par <em>1ml</em> jusqu'à remplir vos <em>${maxMl}ml</em>.` 
+    };
+    if (remaining > 0) return { visible: true, text: i18n.language === 'en'
+      ? `There are <em>${remaining}ml</em> left to compose.`
+      : `Il reste <em>${remaining}ml</em> à composer.`
+    };
+    return { visible: true, text: i18n.language === 'en'
+      ? 'Perfect harmony! Your bottle is <em>complete</em>.'
+      : 'Harmonie parfaite ! Votre flacon est <em>complet</em>.'
+    };
+  }, [totalMl, remaining, maxMl, i18n.language]);
+
+  const handleOrder = () => {
+    if (totalMl === 0) { 
+      addToast(
+        i18n.language === 'en' ? 'Please select at least one essence/ingredient.' : 'Veuillez sélectionner au moins une essence.', 
+        'info'
+      ); 
+      return; 
+    }
+    const selectedItems: CompositionEssence[] = ALL_ITEMS
+      .filter(e => (quantities[e.id]||0) > 0)
+      .map(e => ({ essence: e, quantityMl: quantities[e.id] }));
+      
+    const comp: CustomComposition = {
+      id: generateId(), 
+      name: `Création Numba ${maxMl}ml`, 
+      essences: selectedItems, 
+      totalMl, 
+      totalPrice: calcPrice,
+      createdBy: user?.id || 'guest', 
+      createdAt: new Date().toISOString(), 
+      isAiGenerated: false,
+    };
+    
+    addComposition(comp);
+    setCtaSuccess(true);
+    addToast(i18n.language === 'en' ? 'Added to cart!' : 'Ajouté au panier !', 'success');
+    setTimeout(() => setCtaSuccess(false), 3000);
+  };
+
+  if (!mounted) return <div className="min-h-screen bg-background" />;
+
+  return (
+    <div className="atelier-layout !pt-0">
+      {/* Floating Back Button */}
+      <div className="fixed top-6 left-6 z-[60]">
+        <Link 
+          href="/numba" 
+          className="flex items-center gap-2 px-4 py-2 bg-background/40 backdrop-blur-md border border-[var(--t-border)] rounded-full text-[10px] uppercase tracking-widest text-foreground/60 hover:text-gold hover:border-gold/30 transition-all group"
+        >
+          <ArrowLeft size={14} className="group-hover:-translate-x-1 transition-transform" />
+        </Link>
+      </div>
+
+      {/* LEFT: VISUALIZER */}
+      <div className="flacon-panel">
+        <div className="flacon-panel-bg" />
+        <div className="flacon-eyebrow">Atelier Numba · {maxMl}ml</div>
+        
+        <button 
+          onClick={() => setQuantities({})}
+          className="mt-2 flex items-center gap-1.5 px-4 py-2 bg-foreground/5 hover:bg-red-500/10 border border-[var(--t-border)] rounded-full text-[10px] uppercase tracking-widest text-foreground/40 hover:text-red-400 transition-all z-20"
+        >
+          <RefreshCcw size={12} />
+          {i18n.language === 'en' ? 'Empty bottle' : 'Vider le flacon'}
+        </button>
+
+        <div className="relative w-full flex items-center justify-center mt-8">
+          <div className="size-slider-wrap">
+            <button 
+              className="size-slider-nav"
+              onClick={() => {
+                const idx = BOTTLE_SIZES.findIndex(s => s.ml === bottleSize);
+                const nextIdx = (idx - 1 + BOTTLE_SIZES.length) % BOTTLE_SIZES.length;
+                handleBottleSizeChange(BOTTLE_SIZES[nextIdx].ml);
+              }}
+            >
+              <ChevronLeft size={20} />
+            </button>
+
+            <button 
+              className="size-slider-nav"
+              onClick={() => {
+                const idx = BOTTLE_SIZES.findIndex(s => s.ml === bottleSize);
+                const nextIdx = (idx + 1) % BOTTLE_SIZES.length;
+                handleBottleSizeChange(BOTTLE_SIZES[nextIdx].ml);
+              }}
+            >
+              <ChevronRight size={20} />
+            </button>
+          </div>
+
+          <div className="flacon-stage relative transition-all duration-700">
+            <div className="bottle-glow" />
+            {bottleSize === 100 && <Bottle100 totalMl={totalMl} maxMl={maxMl} quantities={quantities} allItems={ALL_ITEMS} />}
+            {bottleSize === 50 && <Bottle50 totalMl={totalMl} maxMl={maxMl} quantities={quantities} allItems={ALL_ITEMS} />}
+            {bottleSize === 30 && <Bottle30 totalMl={totalMl} maxMl={maxMl} quantities={quantities} allItems={ALL_ITEMS} />}
+            
+            <div className="absolute -right-12 top-1/2 -translate-y-1/2 flex flex-col items-center gap-1 opacity-40">
+              <div className="w-[1px] h-20 bg-gold/50" />
+              <span className="text-[10px] tracking-widest vertical-text uppercase">{totalMl}ml</span>
+              <div className="w-[1px] h-20 bg-gold/50" />
             </div>
+          </div>
+        </div>
+
+        <div className="mt-auto pb-12 w-full max-w-xs">
+          <div className="flex justify-between items-end mb-2">
+            <span className="text-[10px] uppercase tracking-widest text-gold/60">Composition</span>
+            <span className="text-[14px] font-light text-cream">{totalMl} / {maxMl} ml</span>
+          </div>
+          <div className="h-[2px] w-full bg-foreground/5 overflow-hidden">
+            <div className="h-full bg-gold transition-all duration-700" style={{ width: `${(totalMl/maxMl)*100}%` }} />
           </div>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
+      {/* RIGHT: APOTHECARY INTERFACE */}
+      <div className="config-panel !bg-background"> 
+        <div className="mb-6">
+          <h1 className="flex text-5xl font-extralight tracking-tight text-foreground mb-2">
+            Artisanat<br /><span className="text-gold italic serif">Olfactif</span>
+          </h1>
+        </div>
 
-          {/* Left Column: Mixer Visualizer */}
-          <div className="lg:col-span-4 space-y-8 lg:sticky lg:top-40 self-start">
-            <div>
-              <h1 className="font-display text-3xl font-bold mb-2">L'Atelier</h1>
-              <p className="text-foreground/60 text-sm">
-                Composez votre parfum en ajoutant des essences. Capacité maximale de {MAX_COMPOSITION_ML}ml.
-              </p>
-            </div>
+        {/* Unified Glassmorphism Tabs */}
+        <div className="atelier-tab-row flex items-center gap-3 mb-8 overflow-x-auto pb-2">
+          {[
+            { id: 'ingredients', label: i18n.language === 'en' ? '🧪 Raw Notes' : '🧪 Notes de Base' },
+            { id: 'essences', label: i18n.language === 'en' ? '✨ Premium Bases' : '✨ Essences d’Exception' },
+            { id: 'recap', label: i18n.language === 'en' ? '📋 Formula' : '📋 Finalisation' }
+          ].map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id as any)}
+              className={`whitespace-nowrap px-3 py-1.5 text-sm font-medium transition-colors border-b-2 ${
+                activeTab === tab.id 
+                  ? 'border-gold text-gold font-semibold' 
+                  : 'border-transparent text-foreground/60 hover:border-gold/50 hover:text-foreground'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
 
-            <MixerTool essences={composition} totalMl={totalMl} />
-
-            {/* Composition Summary List */}
-            {composition.length > 0 && (
-              <div className="bg-white/5 border border-white/10  p-6">
-                <h3 className="font-medium text-sm text-foreground/70 mb-4 flex items-center gap-2">
-                  <Settings2 size={16} />
-                  Formule Actuelle
-                </h3>
-                <div className="space-y-3">
-                  {composition.map(item => (
-                    <div key={item.essence.id} className="flex items-center justify-between text-sm">
-                      <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 rounded-full" style={{ backgroundColor: item.essence.color }} />
-                        <span>{item.essence.name}</span>
-                      </div>
-                      <span className="font-medium">{item.quantityMl}ml</span>
-                    </div>
+        {/* LOADING INDICATOR */}
+        {loadingData ? (
+          <div className="flex flex-col items-center justify-center py-24 gap-4 text-foreground/40">
+            <Loader2 className="w-8 h-8 animate-spin text-gold" />
+            <span className="text-xs uppercase tracking-widest font-mono">Chargement du laboratoire...</span>
+          </div>
+        ) : (
+          <>
+            {/* SUB-TABS NAVIGATION OR PANEL VIEW */}
+            {activeTab === 'ingredients' && (
+              <div className="flex flex-col gap-6 animate-in fade-in duration-300">
+                {/* Steps within ingredients */}
+                <div className="atelier-tab-row flex items-center gap-3 overflow-x-auto pb-2">
+                  {[
+                    { id: 'tete', label: i18n.language === 'en' ? 'Top Notes' : 'Notes de Tête' },
+                    { id: 'coeur', label: i18n.language === 'en' ? 'Heart Notes' : 'Notes de Cœur' },
+                    { id: 'fond', label: i18n.language === 'en' ? 'Base Notes' : 'Notes de Fond' }
+                  ].map(sub => (
+                    <button
+                      key={sub.id}
+                      onClick={() => setIngredientSubtab(sub.id as any)}
+                      className={`whitespace-nowrap px-3 py-1 text-xs font-medium transition-colors border-b-2 ${
+                        ingredientSubtab === sub.id 
+                          ? 'border-gold text-gold font-semibold' 
+                          : 'border-transparent text-foreground/60 hover:border-gold/50 hover:text-foreground'
+                      }`}
+                    >
+                      {sub.label}
+                    </button>
                   ))}
-                  <div className="pt-3 mt-3 border-t border-white/10 flex items-center justify-between font-bold">
-                    <span>Total</span>
-                    <span className={isFull ? "text-emerald-400" : ""}>{totalMl}ml</span>
-                  </div>
+                </div>
+
+                <div className="sommelier visible !mb-0 !bg-transparent !border-white/5 !px-0">
+                  <div className="sommelier-text text-sm font-light italic text-foreground/50" dangerouslySetInnerHTML={{ __html: sommelierHint.text }} />
+                </div>
+
+                {/* List of Ingredients */}
+                <div className="grid grid-cols-1 gap-px bg-[var(--t-border)] border border-[var(--t-border)] rounded-sm overflow-hidden">
+                  {currentIngredientsFiltered.map(item => {
+                    const qty = quantities[item.id] || 0;
+                    const sel = qty > 0;
+                    return (
+                      <div key={item.id} className="group flex items-center justify-between p-6 bg-[var(--t-surface)] transition-all hover:bg-foreground/[0.02]">
+                        <div className="flex items-center gap-6">
+                          <div className="relative w-12 h-12 flex items-center justify-center">
+                            <div className="absolute inset-0 rounded-full blur-xl opacity-20" style={{ backgroundColor: item.color }} />
+                            <span className="text-2xl relative z-10">{EMOJIS[item.family] || '💧'}</span>
+                          </div>
+                          <div>
+                            <h4 className={`text-sm font-medium tracking-wide transition-colors ${sel ? 'text-gold' : 'text-cream/90 group-hover:text-gold'}`}>
+                              {item.name}
+                            </h4>
+                            <p className="text-[10px] uppercase tracking-widest text-foreground/30 mt-1">
+                              {item.pricePerMl.toLocaleString()} FCFA / ml
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Slider controls */}
+                        <div className="flex items-center gap-3">
+                          <button
+                            onClick={() => updateQtySlider(item.id, Math.max(0, qty - 1))}
+                            className="w-7 h-7 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-foreground/60 transition-colors disabled:opacity-20"
+                            disabled={qty <= 0}
+                          >
+                            <Minus size={12} />
+                          </button>
+
+                          <div className="flex flex-col gap-1 w-28 sm:w-32">
+                            <div className="flex justify-between items-center text-[9px] uppercase tracking-wider text-foreground/40 font-mono">
+                              <span className={sel ? "text-gold font-bold font-sans" : "font-sans"}>{qty} ml</span>
+                              <span className="text-foreground/30 font-sans">max {qty + remaining} ml</span>
+                            </div>
+                            <input
+                              type="range"
+                              min="0"
+                              max={qty + remaining}
+                              step="1"
+                              value={qty}
+                              onChange={(evt) => updateQtySlider(item.id, Number(evt.target.value))}
+                              className="w-full h-1 bg-white/10 rounded appearance-none cursor-pointer accent-gold outline-none"
+                            />
+                          </div>
+
+                          <button
+                            onClick={() => updateQtySlider(item.id, Math.min(qty + remaining, qty + 1))}
+                            className="w-7 h-7 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-foreground/60 transition-colors disabled:opacity-20"
+                            disabled={remaining <= 0}
+                          >
+                            <Plus size={12} />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             )}
-          </div>
 
-          {/* Right Column: Essences Library */}
-          <div className="lg:col-span-8">
-            <div className="flex items-center gap-2 mb-8 overflow-x-auto pb-2 scrollbar-hide">
-              {families.map(family => (
-                <button
-                  key={family}
-                  onClick={() => setActiveFamilyFilter(family)}
-                  className={`whitespace-nowrap px-4 py-2 rounded-full text-sm font-medium transition-colors ${activeFamilyFilter === family
-                    ? 'bg-gold text-deep-black'
-                    : 'bg-white/5 border border-white/10 hover:border-gold/50'
-                    }`}
-                >
-                  {family === 'all'
-                    ? 'Toutes les essences'
-                    : `${OLFACTIVE_FAMILIES[family as keyof typeof OLFACTIVE_FAMILIES].emoji} ${OLFACTIVE_FAMILIES[family as keyof typeof OLFACTIVE_FAMILIES].label}`
-                  }
-                </button>
-              ))}
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <AnimatePresence mode="popLayout">
-                {filteredEssences.map(essence => {
-                  const currentQuantity = composition.find(c => c.essence.id === essence.id)?.quantityMl || 0;
-                  return (
-                    <motion.div
-                      key={essence.id}
-                      layout
-                      initial={{ opacity: 0, scale: 0.9 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0.9 }}
-                      transition={{ duration: 0.2 }}
+            {activeTab === 'essences' && (
+              <div className="flex flex-col gap-6 animate-in fade-in duration-300">
+                {/* Steps within premium essences */}
+                <div className="atelier-tab-row flex items-center gap-3 overflow-x-auto pb-2">
+                  {[
+                    { id: 'premium', label: 'Premium' },
+                    { id: 'super-premium', label: 'Super Premium' },
+                    { id: 'high', label: 'High Luxury' }
+                  ].map(sub => (
+                    <button
+                      key={sub.id}
+                      onClick={() => setEssenceSubtab(sub.id as any)}
+                      className={`whitespace-nowrap px-3 py-1 text-xs font-medium transition-colors border-b-2 ${
+                        essenceSubtab === sub.id 
+                          ? 'border-gold text-gold font-semibold' 
+                          : 'border-transparent text-foreground/60 hover:border-gold/50 hover:text-foreground'
+                      }`}
                     >
-                      <ScentCard
-                        essence={essence}
-                        currentQuantity={currentQuantity}
-                        onAdd={(amount) => handleAddEssence(essence.id, amount)}
-                        onRemove={(amount) => handleRemoveEssence(essence.id, amount)}
-                        disabled={isFull}
-                      />
-                    </motion.div>
-                  );
-                })}
-              </AnimatePresence>
-            </div>
-          </div>
+                      {sub.label}
+                    </button>
+                  ))}
+                </div>
 
+                <div className="sommelier visible !mb-0 !bg-transparent !border-white/5 !px-0">
+                  <div className="sommelier-text text-sm font-light italic text-foreground/50" dangerouslySetInnerHTML={{ __html: sommelierHint.text }} />
+                </div>
+
+                {/* List of Premium Essences */}
+                <div className="grid grid-cols-1 gap-px bg-[var(--t-border)] border border-[var(--t-border)] rounded-sm overflow-hidden">
+                  {currentEssencesFiltered.map(item => {
+                    const qty = quantities[item.id] || 0;
+                    const sel = qty > 0;
+                    return (
+                      <div key={item.id} className="group flex items-center justify-between p-6 bg-[var(--t-surface)] transition-all hover:bg-foreground/[0.02]">
+                        <div className="flex items-center gap-6">
+                          <div className="relative w-12 h-12 flex items-center justify-center">
+                            <div className="absolute inset-0 rounded-full blur-xl opacity-20" style={{ backgroundColor: item.color }} />
+                            <span className="text-2xl relative z-10">{EMOJIS[essenceSubtab] || '✨'}</span>
+                          </div>
+                          <div className="max-w-[150px] sm:max-w-[200px]">
+                            <h4 className={`text-sm font-medium tracking-wide transition-colors ${sel ? 'text-gold' : 'text-cream/90 group-hover:text-gold'}`}>
+                              {item.name}
+                            </h4>
+                            <p className="text-[10px] text-foreground/40 line-clamp-1 mt-0.5">{item.description}</p>
+                            <p className="text-[10px] uppercase tracking-widest text-gold/70 mt-1">
+                              {item.pricePerMl.toLocaleString()} FCFA / ml
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Slider controls */}
+                        <div className="flex items-center gap-3">
+                          <button
+                            onClick={() => updateQtySlider(item.id, Math.max(0, qty - 1))}
+                            className="w-7 h-7 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-foreground/60 transition-colors disabled:opacity-20"
+                            disabled={qty <= 0}
+                          >
+                            <Minus size={12} />
+                          </button>
+
+                          <div className="flex flex-col gap-1 w-28 sm:w-32">
+                            <div className="flex justify-between items-center text-[9px] uppercase tracking-wider text-foreground/40 font-mono">
+                              <span className={sel ? "text-gold font-bold font-sans" : "font-sans"}>{qty} ml</span>
+                              <span className="text-foreground/30 font-sans">max {qty + remaining} ml</span>
+                            </div>
+                            <input
+                              type="range"
+                              min="0"
+                              max={qty + remaining}
+                              step="1"
+                              value={qty}
+                              onChange={(evt) => updateQtySlider(item.id, Number(evt.target.value))}
+                              className="w-full h-1 bg-white/10 rounded appearance-none cursor-pointer accent-gold outline-none"
+                            />
+                          </div>
+
+                          <button
+                            onClick={() => updateQtySlider(item.id, Math.min(qty + remaining, qty + 1))}
+                            className="w-7 h-7 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-foreground/60 transition-colors disabled:opacity-20"
+                            disabled={remaining <= 0}
+                          >
+                            <Plus size={12} />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'recap' && (
+              <div className="animate-in fade-in duration-300">
+                <h3 className="text-xs uppercase tracking-[0.2em] text-foreground/30 mb-6">Concentration & Format</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-10">
+                  {(['edc','edp','extrait'] as const).map(f => (
+                    <button 
+                      key={f} 
+                      onClick={() => setFormat(f)}
+                      className={`p-6 border text-left transition-all rounded-lg ${format === f ? 'border-gold bg-gold/5' : 'border-[var(--t-border)] hover:border-foreground/20'}`}
+                    >
+                      <p className={`text-[10px] uppercase tracking-widest mb-2 ${format === f ? 'text-gold' : 'text-foreground/40'}`}>{FORMAT_LABELS[f]}</p>
+                      <p className="text-lg font-light text-cream">{FORMAT_PRICES[f].toLocaleString()} <span className="text-[10px] text-foreground/20 uppercase tracking-tighter">FCFA</span></p>
+                    </button>
+                  ))}
+                </div>
+
+                <div className="bg-foreground/5 p-8 border border-[var(--t-border)] rounded-xl">
+                  <h4 className="text-[10px] uppercase tracking-widest text-gold mb-6">Résumé de la Formule</h4>
+                  {formulaSummary.length === 0 ? (
+                    <p className="text-xs text-foreground/30 italic uppercase tracking-wider text-center">Aucun ingrédient sélectionné</p>
+                  ) : (
+                    <div className="space-y-4">
+                      {formulaSummary.map((item, idx) => (
+                        <div key={idx} className="flex justify-between items-center text-sm">
+                          <span className="text-foreground/40">{item.name}</span>
+                          <span className="text-cream font-light">{item.ml} ml</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </>
+        )}
+
+        {/* Footer Summary */}
+        <div className="mt-auto pt-12 border-t border-[var(--t-border)] flex flex-col sm:flex-row items-center justify-between gap-8">
+          <div>
+            <p className="text-[10px] uppercase tracking-[0.3em] text-foreground/30 mb-1">Investissement Total</p>
+            <p className="text-4xl font-extralight text-gold">{calcPrice.toLocaleString()} <span className="text-xs tracking-normal">FCFA</span></p>
+            <p className="text-[10px] text-foreground/20 mt-2 uppercase tracking-widest">{bottleSize}ml · {FORMAT_LABELS[format]}</p>
+          </div>
+          
+          <div className="flex items-center gap-4 w-full sm:w-auto">
+             <button 
+               onClick={handleOrder}
+               disabled={totalMl === 0}
+               className={`flex-1 sm:flex-none px-12 py-5 text-[10px] uppercase tracking-[0.2em] font-medium rounded-lg transition-all duration-300
+                 ${ctaSuccess ? 'bg-green-600 text-foreground' : 'bg-gold text-black hover:bg-cream disabled:opacity-20'}
+               `}
+             >
+               {ctaSuccess ? 'Ajouté ✓' : 'Commander →'}
+             </button>
+          </div>
         </div>
       </div>
-
-      {/* Save Modal */}
-      <Modal
-        isOpen={isSaveModalOpen}
-        onClose={() => setIsSaveModalOpen(false)}
-        title="Sauvegarder votre création"
-      >
-        <form onSubmit={handleSaveToProfile} className="space-y-6">
-          <p className="text-sm text-foreground/70">
-            Donnez un nom à votre création unique pour l'ajouter à votre collection et passer commande.
-          </p>
-
-          <Input
-            label="Nom de votre parfum"
-            placeholder="Ex: Nuit d'Été"
-            value={perfumeName}
-            onChange={(e) => setPerfumeName(e.target.value)}
-            autoFocus
-          />
-
-          <div className="bg-gold/10 border border-gold/20 p-4  flex gap-3 text-sm">
-            <Info size={18} className="text-gold shrink-0 mt-0.5" />
-            <p>
-              Votre création (<span className="font-bold">{totalMl}ml</span>) sera sauvegardée dans votre profil et ajoutée à votre panier pour <span className="font-bold text-gold">{formatPrice(totalPrice)}</span>.
-            </p>
-          </div>
-
-          <div className="flex gap-3 justify-end pt-2">
-            <Button type="button" variant="ghost" onClick={() => setIsSaveModalOpen(false)}>
-              Annuler
-            </Button>
-            <Button type="submit" disabled={!perfumeName.trim()}>
-              Sauvegarder & Commander
-            </Button>
-          </div>
-        </form>
-      </Modal>
     </div>
   );
 }

@@ -33,9 +33,9 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
 
     const variants = {
       primary: 'bg-gold text-deep-black hover:bg-gold-light active:bg-gold-dark shadow-lg shadow-gold/20 hover:shadow-gold/40',
-      secondary: 'bg-charcoal text-cream border border-white/10 hover:bg-white/10 hover:border-gold/30',
+      secondary: 'bg-[var(--t-surface-raised)] text-foreground border border-[var(--t-border)] hover:bg-[var(--t-hover-bg)] hover:border-gold/30',
       ghost: 'bg-transparent text-foreground hover:bg-gold/10 hover:text-gold',
-      danger: 'bg-red-600 text-white hover:bg-red-700 shadow-lg shadow-red-600/20',
+      danger: 'bg-red-600 text-foreground hover:bg-red-700 shadow-lg shadow-red-600/20',
       'gold-outline': 'bg-transparent border-2 border-gold text-gold hover:bg-gold hover:text-deep-black',
     };
 
@@ -69,3 +69,5 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
 Button.displayName = 'Button';
 export { Button };
 export type { ButtonProps };
+
+

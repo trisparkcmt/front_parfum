@@ -2,29 +2,33 @@
 
 /**
  * @file store/useFavoritesStore.ts
- * @description User Wishlist & Favorites Management.
- *
- * This store allows users to bookmark luxury items they are interested in, 
- * providing a persistent wishlist across sessions.
- * 
- * **Core Functionalities**:
- * - **`favorites`**: An array of product IDs that the user has marked as favorite.
- * - **`toggleFavorite`**: A smart action that either adds or removes a product ID from the list based on its current presence.
- * - **`isFavorite`**: A helper function to check if a specific product ID is currently in the wishlist.
- * - **`clearFavorites`**: Wipes the entire wishlist.
- * 
- * **Integration**: Uses `persist` middleware to save favorites to `localStorage`. It is primarily consumed by the `ProductCard` component to render the "Heart" icon status.
+ * @description User Wishlist & Favorites Management synced with Backend API endpoints.
  */
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { Product } from '@/types';
+import { api } from '@/services/api';
+import { useAuthStore } from './useAuthStore';
 
 interface FavoritesState {
   items: Product[];
-  addFavorite: (product: Product) => void;
-  removeFavorite: (productId: string) => void;
+  addFavorite: (product: Product) => Promise<void>;
+  removeFavorite: (productId: string) => Promise<void>;
   isFavorite: (productId: string) => boolean;
   clearFavorites: () => void;
+  syncWithBackend: () => Promise<void>;
+}
+
+// Helper to convert product name to slug if not present
+function getProductSlug(product: Product): string {
+  // Try using name to form slug if not directly on the model
+  const rawSlug = (product as any).slug || product.name;
+  return rawSlug
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '') // remove accents
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)+/g, '');
 }
 
 export const useFavoritesStore = create<FavoritesState>()(
@@ -32,17 +36,62 @@ export const useFavoritesStore = create<FavoritesState>()(
     (set, get) => ({
       items: [],
 
-      addFavorite: (product) => {
+      addFavorite: async (product) => {
+        // Optimistically add to state
         set((state) => {
           if (state.items.some((p) => p.id === product.id)) return state;
           return { items: [...state.items, product] };
         });
+
+        // Sync with backend if authenticated
+        const isAuth = useAuthStore.getState().isAuthenticated;
+        if (isAuth) {
+          const slug = getProductSlug(product);
+          const isAccessory = product.category === 'accessory';
+          const endpoint = isAccessory
+            ? `/shop/accessoires/${slug}/favori/`
+            : `/shop/parfums/${slug}/favori/`;
+          
+          try {
+            const response = await api.post(endpoint);
+            // If API returned "retiré" but we added it, keep it in sync or respect the backend status
+            if (response.data?.status === 'retiré') {
+              // Toggle again to make sure it is "ajouté"
+              await api.post(endpoint);
+            }
+          } catch (e) {
+            console.warn('Could not sync added favorite with backend, retaining local state.', e);
+          }
+        }
       },
 
-      removeFavorite: (productId) => {
+      removeFavorite: async (productId) => {
+        const product = get().items.find((p) => p.id === productId);
+
+        // Optimistically remove from state
         set((state) => ({
           items: state.items.filter((p) => p.id !== productId),
         }));
+
+        // Sync with backend if authenticated and product is found
+        const isAuth = useAuthStore.getState().isAuthenticated;
+        if (isAuth && product) {
+          const slug = getProductSlug(product);
+          const isAccessory = product.category === 'accessory';
+          const endpoint = isAccessory
+            ? `/shop/accessoires/${slug}/favori/`
+            : `/shop/parfums/${slug}/favori/`;
+          
+          try {
+            const response = await api.post(endpoint);
+            // If API returned "ajouté" but we removed it, toggle it again to make it "retiré"
+            if (response.data?.status === 'ajouté') {
+              await api.post(endpoint);
+            }
+          } catch (e) {
+            console.warn('Could not sync removed favorite with backend, retaining local state.', e);
+          }
+        }
       },
 
       isFavorite: (productId) => {
@@ -52,6 +101,38 @@ export const useFavoritesStore = create<FavoritesState>()(
       clearFavorites: () => {
         set({ items: [] });
       },
+
+      syncWithBackend: async () => {
+        const isAuth = useAuthStore.getState().isAuthenticated;
+        if (!isAuth) return;
+
+        try {
+          // Fetch from /api/v1/shop/favoris/
+          const response = await api.get('/shop/favoris/');
+          
+          // Map backend favoris structure to Products
+          const backendFavs: any[] = response.data || [];
+          const products: Product[] = backendFavs.map((fav: any) => {
+            const isAccessory = fav.type_produit === 'accessoire' || fav.type_produit === 'accessory';
+            return {
+              id: String(fav.id),
+              name: fav.nom_produit,
+              description: '',
+              price: parseFloat(fav.prix_produit),
+              category: isAccessory ? 'accessory' : 'perfume-brand',
+              images: fav.image_produit ? [fav.image_produit] : ['/parfume1.png'],
+              inStock: true,
+              createdAt: fav.date_ajout || new Date().toISOString(),
+            };
+          });
+
+          if (products.length > 0) {
+            set({ items: products });
+          }
+        } catch (e) {
+          console.warn('Could not pull favorites from backend database, keeping local stored list.', e);
+        }
+      }
     }),
     {
       name: 'ae-favorites',

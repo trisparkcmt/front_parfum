@@ -53,3 +53,5 @@ export function StatusBadge({ status }: { status: OrderStatus }) {
   };
   return <Badge variant={status}>{labels[status]}</Badge>;
 }
+
+

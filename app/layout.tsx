@@ -5,21 +5,24 @@
  * This is the highest-level component in the Next.js App Router hierarchy.
  * It is responsible for:
  * - Defining the global HTML structure (html, body) and language settings (fr).
- * - Loading and configuring the brand's typography: 'Playfair Display' for headlines and 'Inter' for body text.
+ * - Loading and configuring the brand's typography: 'Roboto' as the primary typeface.
  * - Injecting the global CSS stylesheet (globals.css).
  * - Providing a consistent layout wrapper with the `Navbar`, `Footer`, and `ToastProvider`.
  * - Managing SEO metadata such as page titles and descriptions.
  * - Handling client-side hydration issues with `suppressHydrationWarning`.
  */
 import type { Metadata, Viewport } from "next";
-import { Roboto as roboto } from "next/font/google";
+import { Lora } from "next/font/google";
 import "./globals.css";
-import { Navbar } from "@/components/shared/Navbar";
-import { Footer } from "@/components/shared/Footer";
+import { LayoutWrapper } from "@/components/shared/LayoutWrapper";
 import { ToastProvider } from "@/components/shared/ToastProvider";
-import BottomNav from "@/components/shared/BottomNav";
 
-const robotoMono = roboto({ subsets: ["latin"], variable: "--font-roboto" });
+const lora = Lora({ 
+  subsets: ["latin"], 
+  variable: "--font-lora",
+  display: "swap",
+  style: ['normal', 'italic'],
+});
 
 export const metadata: Metadata = {
   title: "Accessories Exclusif | Luxe & Création de Parfums",
@@ -36,7 +39,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#C5A059",
+  themeColor: "#171717",
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
@@ -48,16 +51,24 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="fr" className={`${robotoMono.variable} h-full antialiased`} suppressHydrationWarning>
-      <body className="min-h-full flex flex-col bg-background text-foreground selection:bg-gold selection:text-deep-black font-mono">
-        <Navbar />
-        <main className="flex-1">
+    <html lang="fr" className={`${lora.variable} h-full antialiased`} suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{
+          __html: `
+            (function() {
+              try {
+                var theme = localStorage.getItem('ae-theme') || 'dark';
+                document.documentElement.setAttribute('data-theme', theme);
+              } catch(e) {}
+            })();
+          `
+        }} />
+      </head>
+      <body className="min-h-full flex flex-col bg-background text-foreground selection:bg-gold selection:text-deep-black font-serif" suppressHydrationWarning>
+        <LayoutWrapper>
           {children}
-        </main>
-        <BottomNav />
-        <Footer />
+        </LayoutWrapper>
         <ToastProvider />
-
       </body>
     </html>
   );

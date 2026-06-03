@@ -19,6 +19,7 @@
  * 
  * **Animation**: Employs `motion.div` to provide a subtle lift effect when hovered.
  */
+import Link from 'next/link';
 import Image from 'next/image';
 import { Heart, ShoppingBag, Star } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -26,6 +27,8 @@ import { cn, formatPrice } from '@/lib/utils';
 import type { Product } from '@/types';
 import { Badge } from './Badge';
 import { PRODUCT_CATEGORY_LABELS } from '@/lib/constants';
+import { useTranslation } from 'react-i18next';
+import { API_ROOT } from '@/services/api';
 
 interface ProductCardProps {
   product: Product;
@@ -36,6 +39,15 @@ interface ProductCardProps {
 }
 
 export function ProductCard({ product, onAddToCart, onToggleFavorite, isFavorite, className }: ProductCardProps) {
+  const { t } = useTranslation();
+
+  // Helper to resolve image URLs from the backend
+  const getImageUrl = (url: string) => {
+    if (!url) return '';
+    if (url.startsWith('http')) return url;
+    return `${API_ROOT}${url.startsWith('/') ? '' : '/'}${url}`;
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -44,76 +56,78 @@ export function ProductCard({ product, onAddToCart, onToggleFavorite, isFavorite
       whileHover={{ y: -4 }}
       transition={{ duration: 0.3 }}
       className={cn(
-        'w-47 sm:w-50 h-65 md:h-110 md:w-70 group relative bg-gradient-to-b from-[#1a1a1a] to-[#0d0d0d] border border-white/10 rounded-2xl md:rounded-2xl overflow-hidden shadow-2xl transition-all duration-500 hover:border-gold/50 hover:shadow-[0_0_30px_rgba(197,160,89,0.1)]',
+        'w-[165px] sm:w-[280px] h-auto group relative bg-gradient-to-b from-[var(--t-card-from)] to-[var(--t-card-to)] border border-[var(--t-card-border)] rounded-2xl overflow-hidden shadow-2xl transition-all duration-500 hover:border-[var(--t-card-hover-border)] hover:shadow-[0_0_30px_var(--t-card-hover-shadow)]',
         className
       )} 
     >
       {/* Favorite button */}
       {onToggleFavorite && (
         <button
-          onClick={(e) => { e.preventDefault(); onToggleFavorite(product); }}
-          className="absolute top-3 right-3 md:top-4 md:right-4 z-20 p-2 rounded-full bg-black/20 backdrop-blur-md border border-white/10 transition-colors hover:bg-black/40"
+          onClick={(e) => { e.preventDefault(); e.stopPropagation(); onToggleFavorite(product); }}
+          className="absolute top-3 right-3 md:top-4 md:right-4 z-20 p-2 rounded-full bg-[var(--t-fav-btn-bg)] backdrop-blur-md border border-[var(--t-border)] transition-colors hover:bg-[var(--t-hover-bg)]"
         >
           <Heart
             size={12}
-            className={cn('transition-all duration-300', isFavorite ? 'fill-red-500 stroke-red-500' : 'stroke-white/70')}
+            className={cn('transition-all duration-300', isFavorite ? 'fill-red-500 stroke-red-500' : 'stroke-foreground/70')}
           />
         </button>
       )}
 
-      {/* Image Section */}
-      <div className="relative h-40 md:h-55 overflow-hidden bg-deep-black/50">
-        {product.images[0] && (
-          <Image 
-            src={product.images[0]}
-            alt={product.name}
-            fill
-            className="object-cover transition-transform duration-700 group-hover:scale-110"
-            sizes="w-20 h-50 "
-          />
-        )}
-
-        {/* Elegant Overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-[#0d0d0d] via-transparent to-transparent opacity-60" />
-
-      </div>
-
-      {/* Product Info */}
-       <div className="p-2 md:p-3 text-start">
-        
-        <h3 className="text-md md:text-2xl truncate font-display text-white tracking-wide mb-1   ">
-          {product.name}
-        </h3>
-        <p className="text-[0.8rem] md:text-sm text-start text-white/40 font-light  md:mb-4">
-          {product.category.includes('perfume') ? `Eau de Parfum • ${product.volume || '100ml'}` : '100ml'}
-        </p>
-
-        <div className="flex flex-row md:flex-col justify-between  gap-3 md:gap-4">
-          <span className="text-[1rem] md:text-xl font-light text-white tracking-widest">
-            {formatPrice(product.price)}
-          </span>
-
-          {onAddToCart && (
-            <button
-              onClick={(e) => { e.preventDefault(); onAddToCart(product); }}
-              className="hidden md:flex items-center justify-center gap-2 w-full  md:py-3 bg-white text-black text-[10px] md:text-xs font-bold uppercase tracking-[0.15em] transition-all duration-300 hover:bg-gold hover:text-white pb-50"
-            >
-              <ShoppingBag size={16} />
-              Ajouter au panier
-            </button>
+      <Link href={`/shop/product/${product.id}`} className="block h-full">
+        {/* Image Section */}
+        <div className="relative h-40 md:h-55 overflow-hidden bg-[var(--t-surface)]">
+          {product.images && product.images[0] && (
+            <Image 
+              src={getImageUrl(product.images[0])}
+              alt={product.name}
+              fill
+              sizes="(max-width: 640px) 165px, 280px"
+              className="object-cover"
+            />
           )}
-          {onAddToCart && (
-            <button
-              onClick={(e) => { e.preventDefault(); onAddToCart(product); }}
-              className="block md:hidden items-center justify-center "
-            >
-              {/* <ShoppingBag size={16} /> */}
-              <img src="/addCircle.svg" alt="Ajouter au panier"
-              className=' ' />
-            </button>
-          )}
+
+          {/* Elegant Overlay */}
+          <div className="absolute inset-0 bg-gradient-to-t from-[var(--t-card-to)] via-transparent to-transparent opacity-60" />
+
         </div>
-      </div>
+
+        {/* Product Info */}
+        <div className="p-2 md:p-3 text-start">
+          
+          <h3 className="text-md md:text-2xl truncate font-display text-foreground tracking-wide mb-1   ">
+            {product.name}
+          </h3>
+          <p className="text-[0.8rem] md:text-sm text-start text-foreground/40 font-light  md:mb-4">
+            {product.category.includes('perfume') ? `Eau de Parfum • ${product.volume || '100ml'}` : (product.volume || 'N/A')}
+          </p>
+
+          <div className="flex flex-row md:flex-col justify-between  gap-3 md:gap-4">
+            <span className="text-[1rem] md:text-xl font-light text-foreground tracking-widest">
+              {formatPrice(product.price)}
+            </span>
+
+            {onAddToCart && (
+              <button
+                onClick={(e) => { e.preventDefault(); e.stopPropagation(); onAddToCart(product); }}
+                className="hidden md:flex items-center justify-center gap-2 w-full  md:py-3 bg-[var(--t-btn-add-bg)] text-[var(--t-btn-add-text)] text-[10px] md:text-xs font-bold uppercase tracking-[0.15em] transition-all duration-300 hover:bg-[var(--t-btn-add-hover-bg)] hover:text-[var(--t-btn-add-hover-text)] pb-50"
+              >
+                <ShoppingBag size={16} />
+                {t('add_to_cart')}
+              </button>
+            )}
+            {onAddToCart && (
+              <button
+                onClick={(e) => { e.preventDefault(); e.stopPropagation(); onAddToCart(product); }}
+                className="block md:hidden items-center justify-center "
+              >
+                {/* <ShoppingBag size={16} /> */}
+                <img src="/addCircle.svg" alt={t('add_to_cart')}
+                className=' ' />
+              </button>
+            )}
+          </div>
+        </div>
+      </Link>
     </motion.div>
   );
 }

@@ -4,42 +4,177 @@
    THEME TOKENS
    ============================================================ */
 
-@theme inline {
+@theme {
   --color-gold: #C5A059;
   --color-gold-light: #D4B87A;
   --color-gold-dark: #A8864A;
   --color-gold-50: #FBF6ED;
   --color-gold-100: #F5E9D1;
   --color-gold-200: #EBCFA0;
-  --color-cream: #FAF7F2;
-  --color-cream-dark: #F0EBE3;
-  --color-charcoal: #1A1A1A;
-  --color-deep-black: #050505;
+  --color-cream: var(--t-cream);
+  --color-cream-dark: var(--t-cream-dark);
+  --color-charcoal: var(--t-charcoal);
+  --color-deep-black: var(--t-deep-black);
+  --color-onyx: var(--t-onyx);
+  --color-soft-stone: var(--t-soft-stone);
+  --color-champagne: var(--t-champagne);
 
-  --color-status-pending: #F59E0B;
-  --color-status-validated: #3B82F6;
+  --color-status-pending: var(--t-status-pending);
+  --color-status-validated: var(--t-status-validated);
   --color-status-delivering: #8B5CF6;
-  --color-status-delivered: #10B981;
-  --color-status-cancelled: #EF4444;
+  --color-status-delivered: var(--t-status-delivered);
+  --color-status-cancelled: var(--t-status-cancelled);
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);
 
-  --font-sans: var(--font-roboto), ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-  --font-serif: var(--font-roboto), ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-  --font-mono: var(--font-roboto);
+  --font-sans: var(--font-lora), ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  --font-serif: var(--font-lora), ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
+  --font-mono: var(--font-lora), ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 }
 
-:root {
-  --background: #FAF7F2;
-  --foreground: #151515 ;
+/* ============================================================
+   DARK THEME (Default)
+   ============================================================ */
+:root,
+[data-theme="dark"] {
+  --background: #171717;
+  --foreground: #F5F4F2;
+
+  --t-cream: #F5F4F2;
+  --t-cream-dark: #f5f4f2;
+  --t-charcoal: #1A1A1A;
+  --t-deep-black: #050505;
+  --t-onyx: #1A1A1A;
+  --t-soft-stone: #171717;
+  --t-champagne: #1A1A1A;
+
+  --t-status-pending: #F59E0B;
+  --t-status-validated: #3B82F6;
+  --t-status-delivered: #10B981;
+  --t-status-cancelled: #EF4444;
+
+  /* Surface tokens */
+  --t-surface: #050505;
+  --t-surface-raised: #1A1A1A;
+  --t-surface-overlay: rgba(5, 5, 5, 0.6);
+
+  /* Border tokens */
+  --t-border: rgba(255, 255, 255, 0.1);
+  --t-border-subtle: rgba(255, 255, 255, 0.05);
+
+  /* Text tokens */
+  --t-text-primary: #FAF7F2;
+  --t-text-secondary: rgba(250, 247, 242, 0.7);
+  --t-text-muted: rgba(250, 247, 242, 0.4);
+
+  /* Component tokens */
+  --t-nav-bg: rgba(23, 23, 23, 0.95);
+  --t-nav-border: rgba(255, 255, 255, 0.05);
+  --t-card-from: #1a1a1a;
+  --t-card-to: #0d0d0d;
+  --t-card-border: rgba(255, 255, 255, 0.1);
+  --t-card-hover-border: rgba(197, 160, 89, 0.5);
+  --t-card-hover-shadow: rgba(197, 160, 89, 0.1);
+  --t-card-overlay: rgba(13, 13, 13, 0.6);
+  --t-input-bg: rgba(255, 255, 255, 0.05);
+  --t-hover-bg: rgba(255, 255, 255, 0.05);
+  --t-btn-add-bg: #FFFFFF;
+  --t-btn-add-text: #000000;
+  --t-btn-add-hover-bg: #C5A059;
+  --t-btn-add-hover-text: #FFFFFF;
+  --t-fav-btn-bg: rgba(0, 0, 0, 0.2);
+  --t-footer-bg: #050505;
+  --t-glass-bg: rgba(255, 255, 255, 0.08);
+  --t-glass-border: rgba(255, 255, 255, 0.1);
+  --t-glass-gold-bg: rgba(197, 160, 89, 0.08);
+  --t-glass-gold-border: rgba(197, 160, 89, 0.2);
+  --t-glass-dark-bg: rgba(5, 5, 5, 0.6);
+  --t-glass-dark-border: rgba(255, 255, 255, 0.06);
+
+  /* Scrollbar */
+  --t-scrollbar-thumb: #C5A059;
+  --t-scrollbar-hover: #D4B87A;
+
+  /* Skeleton */
+  --t-skeleton-from: #262626;
+  --t-skeleton-via: #333;
+
+  /* Selection */
+  --t-selection-bg: #C5A059;
+  --t-selection-text: #050505;
 }
- 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #151515;
-    --foreground: #FAF7F2;
-  }
+
+/* ============================================================
+   LIGHT THEME — Warm Perfumerie Aesthetic
+   Inspired by: Le Bar à Parfum reference
+   ============================================================ */
+[data-theme="light"] {
+  --background: #f2f0ed;
+  --foreground: #2E2316;
+
+  --t-cream: #2E2316;
+  --t-cream-dark: #f2f0ed;
+  --t-charcoal: #EDE5D5;
+  --t-deep-black: #f2f0ed;
+  --t-onyx: #2E2316;
+  --t-soft-stone: #EDE5D5;
+  --t-champagne: #E0D5C0;
+
+  --t-status-pending: #D97706;
+  --t-status-validated: #2563EB;
+  --t-status-delivered: #059669;
+  --t-status-cancelled: #DC2626;
+
+  /* Surface tokens */
+  --t-surface: #FEFBF3;
+  --t-surface-raised: #F5EFE0;
+  --t-surface-overlay: rgba(254, 251, 243, 0.85);
+
+  /* Border tokens */
+  --t-border: rgba(180, 165, 135, 0.3);
+  --t-border-subtle: rgba(180, 165, 135, 0.15);
+
+  /* Text tokens */
+  --t-text-primary: #2E2316;
+  --t-text-secondary: #0b0b0b;
+  --t-text-muted: #9A8D7F;
+
+  /* Component tokens */
+  --t-nav-bg: rgba(250, 245, 237, 0.92);
+  --t-nav-border: rgba(180, 165, 135, 0.2);
+  --t-card-from: #FEFBF3;
+  --t-card-to: #F5EFE0;
+  --t-card-border: rgba(180, 165, 135, 0.25);
+  --t-card-hover-border: rgba(139, 122, 62, 0.5);
+  --t-card-hover-shadow: rgba(139, 122, 62, 0.15);
+  --t-card-overlay: rgba(254, 251, 243, 0.4);
+  --t-input-bg: rgba(254, 251, 243, 0.8);
+  --t-hover-bg: rgba(180, 165, 135, 0.12);
+  --t-btn-add-bg: #8B7A3E;
+  --t-btn-add-text: #FFFFFF;
+  --t-btn-add-hover-bg: #7A6A2E;
+  --t-btn-add-hover-text: #FFFFFF;
+  --t-fav-btn-bg: rgba(254, 251, 243, 0.85);
+  --t-footer-bg: #2E2316;
+  --t-glass-bg: rgba(254, 251, 243, 0.6);
+  --t-glass-border: rgba(180, 165, 135, 0.25);
+  --t-glass-gold-bg: rgba(197, 160, 89, 0.1);
+  --t-glass-gold-border: rgba(197, 160, 89, 0.25);
+  --t-glass-dark-bg: rgba(237, 229, 213, 0.9);
+  --t-glass-dark-border: rgba(180, 165, 135, 0.2);
+
+  /* Scrollbar */
+  --t-scrollbar-thumb: #B4A587;
+  --t-scrollbar-hover: #8B7A3E;
+
+  /* Skeleton */
+  --t-skeleton-from: #E0D5C0;
+  --t-skeleton-via: #F0E8D8;
+
+  /* Selection */
+  --t-selection-bg: #8B7A3E;
+  --t-selection-text: #FFFFFF;
 }
 
 /* ============================================================
@@ -48,7 +183,7 @@
 
 * {
   scrollbar-width: thin;
-  scrollbar-color: #C5A059 transparent;
+  scrollbar-color: var(--t-scrollbar-thumb) transparent;
 }
 
 html {
@@ -58,14 +193,15 @@ html {
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-sans);
+  font-family: var(--font-serif);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 ::selection {
-  background: #C5A059;
-  color: #050505;
+  background: var(--t-selection-bg);
+  color: var(--t-selection-text);
 }
 
 /* ============================================================
@@ -88,24 +224,24 @@ body {
    ============================================================ */
 
 .glass {
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--t-glass-bg);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--t-glass-border);
 }
 
 .glass-gold {
-  background: rgba(197, 160, 89, 0.08);
+  background: var(--t-glass-gold-bg);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(197, 160, 89, 0.2);
+  border: 1px solid var(--t-glass-gold-border);
 }
 
 .glass-dark {
-  background: rgba(5, 5, 5, 0.6);
+  background: var(--t-glass-dark-bg);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--t-glass-dark-border);
 }
 
 /* ============================================================
@@ -189,12 +325,12 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #C5A059;
+  background: var(--t-scrollbar-thumb);
   border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #D4B87A;
+  background: var(--t-scrollbar-hover);
 }
 
 /* ============================================================
@@ -202,15 +338,23 @@ body {
    ============================================================ */
 
 .skeleton {
-  background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
+  background: linear-gradient(90deg, var(--t-skeleton-from) 25%, var(--t-skeleton-via) 50%, var(--t-skeleton-from) 75%);
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
   border-radius: 8px;
 }
 
-@media (prefers-color-scheme: dark) {
-  .skeleton {
-    background: linear-gradient(90deg, #262626 25%, #333 50%, #262626 75%);
-    background-size: 200% 100%;
-  }
+/* ============================================================
+   INPUT UTILITIES
+   ============================================================ */
+
+/* Remove arrows/spinners from number inputs */
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type=number] {
+  -moz-appearance: textfield;
 }
