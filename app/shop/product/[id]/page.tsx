@@ -16,7 +16,6 @@ import {
   Truck,
   RotateCcw
 } from 'lucide-react';
-import { allProducts } from '@/lib/mock-data';
 import { productService } from '@/services/productService';
 import { cn, formatPrice } from '@/lib/utils';
 import { ProductCard } from '@/components/ui/ProductCard';

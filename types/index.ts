@@ -97,7 +97,7 @@ export interface Product {
   gender?: 'masculine' | 'feminine' | 'unisex';
   availableColors?: string[]; // hex codes or names
   originalBrand?: string; // for dupes — the brand they imitate
-  slug: string;
+  slug?: string;
   isFeatured?: boolean;
   createdAt: string;
 }

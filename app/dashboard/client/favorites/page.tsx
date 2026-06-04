@@ -13,7 +13,7 @@ interface FavoriteProduct {
   id: string;
   name: string;
   price: number;
-  slug: string;
+  slug?: string;
   category?: string;
   image?: string;
   type?: 'perfume' | 'accessory';
