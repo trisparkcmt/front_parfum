@@ -65,8 +65,8 @@ function RegisterFormContent() {
       password: data.password,
     });
     if (success) {
-      addToast(t('register_success'), 'success');
-      router.push(redirectUrl);
+      addToast(t('registration_success_check_email', { defaultValue: 'Inscription réussie! Veuillez vérifier votre email pour confirmer votre compte.' }), 'success');
+      router.push('/verify-email');
     } else {
       addToast(t('register_error'), 'error');
     }

@@ -4,31 +4,44 @@ import { ThemeToggle } from './ThemeToggle';
 
 const BottomNav = () => {
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-[var(--t-nav-bg)]/5 backdrop-blur-lg border-t border-[var(--t-nav-border)] z-[100] md:hidden shadow-[0_-4px_20px_rgba(0,0,0,0.3)]"
-      style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
-     {/* <nav className="sticky bottom-0 bg-white/5 backdrop-blur-md border-white/10 shadow-2xl backdrop-saturate-150"> */}
-       <div className="flex justify-around items-center h-20">
+    <nav
+      className="fixed bottom-6 left-4 right-4 bg-[var(--t-nav-bg)]/95 backdrop-blur-xl border border-[var(--t-nav-border)]/50 z-[100] md:hidden shadow-2xl rounded-3xl"
+      style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 8px)' }}
+    >
+      <div className="flex justify-around items-center h-20 px-3">
         {/* Accueil */}
-        <Link href="/" className='flex flex-col items-center gap-1 transition-colors text-foreground/70 active:text-gold'>
-          <Home size={20} />
+        <Link
+          href="/"
+          className="flex flex-col items-center gap-1 transition-all text-foreground/70 hover:text-gold active:text-gold hover:scale-110 duration-200"
+        >
+          <Home size={22} />
           <span className="text-[10px] font-medium uppercase tracking-wider">Accueil</span>
         </Link>
 
         {/* Accessoires */}
-        <Link href="/shop/accessories" className='flex flex-col items-center gap-1 transition-colors text-foreground/70 active:text-gold'>
-          <Watch size={20} />
+        <Link
+          href="/shop/accessories"
+          className="flex flex-col items-center gap-1 transition-all text-foreground/70 hover:text-gold active:text-gold hover:scale-110 duration-200"
+        >
+          <Watch size={22} />
           <span className="text-[10px] font-medium uppercase tracking-wider">Accessoires</span>
         </Link>
 
         {/* Parfumerie */}
-        <Link href="/shop/perfumes" className='flex flex-col items-center gap-1 transition-colors text-foreground/70 active:text-gold'>
-          <Droplets size={20} />
+        <Link
+          href="/shop/perfumes"
+          className="flex flex-col items-center gap-1 transition-all text-foreground/70 hover:text-gold active:text-gold hover:scale-110 duration-200"
+        >
+          <Droplets size={22} />
           <span className="text-[10px] font-medium uppercase tracking-wider">Parfum</span>
         </Link>
 
         {/* Atelier */}
-        <Link href="/numba" className='flex flex-col items-center gap-1 transition-colors text-foreground/70 active:text-gold'>
-          <Sparkles size={20} />
+        <Link
+          href="/numba"
+          className="flex flex-col items-center gap-1 transition-all text-foreground/70 hover:text-gold active:text-gold hover:scale-110 duration-200"
+        >
+          <Sparkles size={22} />
           <span className="text-[10px] font-medium uppercase tracking-wider">Atelier</span>
         </Link>
       </div>

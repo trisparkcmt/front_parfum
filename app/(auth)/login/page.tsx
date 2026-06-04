@@ -65,7 +65,7 @@ function LoginFormContent() {
     
     if (success) {
       addToast(t('login_success'), 'success');
-      router.push(redirectUrl);
+      router.push('/');
     } else {
       addToast(t('login_error'), 'error');
     }

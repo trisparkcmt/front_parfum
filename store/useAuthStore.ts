@@ -104,41 +104,9 @@ export const useAuthStore = create<AuthState>()(
           // Use authService.register
           await authService.register(payload);
           
-          // Fetch full detailed me profile
-          let meUser: User | null = null;
-          try {
-            const meResponse = await api.get('/auth/me/');
-            const meData = meResponse.data;
-            meUser = {
-              id: String(meData.user.id),
-              firstName: meData.user.first_name,
-              lastName: meData.user.last_name,
-              email: meData.user.email,
-              phone: meData.user.telephone || meData.user.phone || data.phone,
-              role: meData.user.role as UserRole,
-              createdAt: meData.client?.date_creation || new Date().toISOString(),
-            };
-          } catch (meError) {
-            console.error('Failed to fetch user details after registration:', meError);
-            // Fallback: registration succeeded, so we can construct a partial user
-            meUser = {
-              id: 'temp',
-              firstName: data.firstName,
-              lastName: data.lastName,
-              email: data.email,
-              phone: data.phone,
-              role: 'user' as UserRole,
-              createdAt: new Date().toISOString(),
-            };
-            addToast('Compte créé, mais certains détails n\'ont pas pu être chargés.', 'info');
-          }
-
-          set({
-            user: meUser,
-            isAuthenticated: true,
-            isLoading: false,
-          });
-          addToast(`Bienvenue, ${meUser.firstName} !`, 'success');
+          // Registration successful - user needs to verify email
+          // DO NOT auto-login - user must verify email first
+          set({ isLoading: false });
           return true;
         } catch (error) {
           console.error('Backend registration failed:', error);

@@ -2,10 +2,12 @@
 
 /**
  * @file store/useThemeStore.ts
- * @description Global Theme Management Store.
+ * @description Global Theme Management Store with System Theme Detection.
  *
- * This store manages the application's visual theme (dark/light mode) and
- * persists the user's preference to localStorage.
+ * This store manages the application's visual theme (dark/light mode) and:
+ * - Persists the user's preference to localStorage
+ * - Detects system theme preference on app load
+ * - Listens to system theme changes in real-time
  *
  * **State Management**:
  * - **`theme`**: The current active theme ('dark' | 'light').
@@ -13,7 +15,7 @@
  * **Core Actions**:
  * - **`setTheme`**: Directly sets the theme.
  * - **`toggleTheme`**: Switches between dark and light modes.
- * - **`initTheme`**: Reads the persisted preference from localStorage on mount.
+ * - **`initTheme`**: Reads saved preference or detects system theme.
  */
 import { create } from 'zustand';
 
@@ -24,6 +26,12 @@ interface ThemeState {
   setTheme: (theme: Theme) => void;
   toggleTheme: () => void;
   initTheme: () => void;
+}
+
+// Helper to detect system theme preference
+function getSystemTheme(): Theme {
+  if (typeof window === 'undefined') return 'dark';
+  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
 }
 
 export const useThemeStore = create<ThemeState>((set, get) => ({
@@ -44,10 +52,41 @@ export const useThemeStore = create<ThemeState>((set, get) => ({
 
   initTheme: () => {
     if (typeof window !== 'undefined') {
+      // Check if user has a saved preference
       const saved = localStorage.getItem('ae-theme') as Theme | null;
-      const theme = saved || 'dark';
+      
+      // If no saved preference, detect system theme
+      const theme = saved || getSystemTheme();
+      
       set({ theme });
       document.documentElement.setAttribute('data-theme', theme);
+
+      // Listen to system theme changes
+      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+      const handleChange = (e: MediaQueryListEvent) => {
+        // Only apply system theme if user hasn't set a preference
+        if (!localStorage.getItem('ae-theme')) {
+          const newTheme = e.matches ? 'dark' : 'light';
+          set({ theme: newTheme });
+          document.documentElement.setAttribute('data-theme', newTheme);
+        }
+      };
+
+      // Support both old and new browser API
+      if (mediaQuery.addEventListener) {
+        mediaQuery.addEventListener('change', handleChange);
+      } else if (mediaQuery.addListener) {
+        mediaQuery.addListener(handleChange);
+      }
+
+      // Cleanup listener
+      return () => {
+        if (mediaQuery.removeEventListener) {
+          mediaQuery.removeEventListener('change', handleChange);
+        } else if (mediaQuery.removeListener) {
+          mediaQuery.removeListener(handleChange);
+        }
+      };
     }
   },
 }));

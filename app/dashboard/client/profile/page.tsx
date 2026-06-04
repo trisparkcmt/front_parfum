@@ -1,11 +1,12 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/useAuthStore';
 import { 
   User, Mail, Phone, MapPin, 
   Languages, Banknote, Palette, 
-  ChevronRight, Edit2, Shield, Bell 
+  ChevronRight, Edit2, Shield, Bell, Loader2 
 } from 'lucide-react';
 import { BackButton } from '@/components/ui/BackButton';
 import { useTranslation } from 'react-i18next';
@@ -16,14 +17,18 @@ import { useToastStore } from '@/store/useToastStore';
 import { api } from '@/services/api';
 import PasswordChangeModal from '@/components/shared/PasswordChangeModal';
 import ProfileEditModal from '@/components/shared/ProfileEditModal';
+import ConfirmDialog from '@/components/shared/ConfirmDialog';
 
 export default function ClientProfilePage() {
   const { user, logout } = useAuthStore();
   const { theme, toggleTheme } = useThemeStore();
   const { t } = useTranslation();
   const { addToast } = useToastStore();
+  const router = useRouter();
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   const handleLanguageChange = () => {
     const newLang = i18n.language === 'fr' ? 'en' : 'fr';
@@ -66,6 +71,18 @@ export default function ClientProfilePage() {
     }
   };
 
+  const handleLogout = async () => {
+    setIsLoggingOut(true);
+    try {
+      await logout();
+      router.push('/');
+    } catch (error) {
+      console.error('Logout error:', error);
+      addToast(t('logout_error', { defaultValue: 'Erreur lors de la déconnexion' }), 'error');
+      setIsLoggingOut(false);
+    }
+  };
+
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       <BackButton />
@@ -78,12 +95,6 @@ export default function ClientProfilePage() {
             className="bg-emerald-500 text-foreground px-4 py-2 rounded-xl text-xs font-bold hover:bg-emerald-600 transition-all shadow-lg shadow-emerald-500/20"
           >
             {t('become_partner')}
-          </button>
-          <button 
-            onClick={() => logout()}
-            className="bg-red-500/10 text-red-400 px-4 py-2 rounded-xl text-xs font-bold hover:bg-red-500/20 transition-all border border-red-500/20"
-          >
-            {t('logout')}
           </button>
         </div>
       </div>
@@ -245,10 +256,18 @@ export default function ClientProfilePage() {
 
       <div className="pt-4">
         <button 
-          onClick={() => logout()}
-          className="w-full py-4 text-sm font-bold text-red-400 hover:text-red-300 transition-colors border border-red-400/20 rounded-2xl hover:bg-red-400/5"
+          onClick={() => setShowLogoutConfirm(true)}
+          disabled={isLoggingOut}
+          className="w-full py-4 text-sm font-bold text-red-400 hover:text-red-300 transition-colors border border-red-400/20 rounded-2xl hover:bg-red-400/5 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
         >
-          {t('logout')}
+          {isLoggingOut ? (
+            <>
+              <Loader2 size={16} className="animate-spin" />
+              {t('logging_out', { defaultValue: 'Déconnexion...' })}
+            </>
+          ) : (
+            t('logout')
+          )}
         </button>
       </div>
 
@@ -259,6 +278,18 @@ export default function ClientProfilePage() {
       <ProfileEditModal
         isOpen={showEditModal}
         onClose={() => setShowEditModal(false)}
+      />
+
+      <ConfirmDialog
+        isOpen={showLogoutConfirm}
+        title={t('confirm_logout_title', { defaultValue: 'Confirmation' })}
+        message={t('confirm_logout', { defaultValue: 'Êtes-vous sûr de vouloir vous déconnecter ?' })}
+        confirmText={t('logout_btn', { defaultValue: 'Déconnexion' })}
+        cancelText={t('cancel', { defaultValue: 'Annuler' })}
+        variant="danger"
+        isLoading={isLoggingOut}
+        onConfirm={handleLogout}
+        onCancel={() => setShowLogoutConfirm(false)}
       />
     </div>
   );
