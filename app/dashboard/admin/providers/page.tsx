@@ -32,11 +32,13 @@ export default function ProviderDashboardPage({ params }: { params: Promise<{ id
   const [isSaving, setIsSaving] = useState(false);
 
   const fetchDashboard = useCallback(async () => {
-    if (!id) return;
+    if (!id) {
+      setLoading(false);
+      return;
+    }
     try {
       setLoading(true);
       // Consomme GET /api/v1/auth/prestataire/dashboard/?prestataire_id={id}
-      // @ts-ignore
       const res = await adminService.getProviderDashboard(id);
       setData(res);
       setUpdateComm(String(res.taux_commission || '0'));
@@ -56,8 +58,7 @@ export default function ProviderDashboardPage({ params }: { params: Promise<{ id
   const handleUpdate = async () => {
     try {
       setIsSaving(true);
-      // @ts-ignore
-      await adminService.updateProvider(id, {
+      await adminService.updateProvider(Number(id), {
         taux_commission: parseFloat(updateComm),
         reduction_client_pourcentage: parseFloat(updateDisc),
         statut: updateStatut,

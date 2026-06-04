@@ -830,6 +830,16 @@ export const adminService = {
   },
 
   /**
+   * Get specific provider dashboard stats (Admin view)
+   */
+  getProviderDashboard: async (providerId: string) => {
+    const response = await api.get('auth/prestataire/dashboard/', {
+      params: { prestataire_id: providerId }
+    });
+    return response.data;
+  },
+
+  /**
    * Validate provider application
    */
   validateProvider: async (
@@ -973,4 +983,3 @@ export const orderService = {
     return response.data;
   },
 };
-
