@@ -1,284 +1,247 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-import { Plus, Check, TrendingUp, DollarSign, Award, Loader2, CreditCard } from 'lucide-react';
+
+import React, { useState, useEffect, useCallback, use } from 'react';
+import {
+  TrendingUp,
+  DollarSign,
+  Loader2,
+  ArrowLeft,
+  Calendar,
+  Target,
+  ShieldCheck,
+  History,
+  Save,
+  ArrowUpRight,
+  ArrowDownLeft
+} from 'lucide-react';
 import { adminService } from '@/services/apiService';
 import { useToastStore } from '@/store/useToastStore';
-import { BackButton } from '@/components/ui/BackButton';
+import Link from 'next/link';
 
-export default function ProvidersPage() {
-  const [providers, setProviders] = useState<any[]>([]);
+export default function ProviderDashboardPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
+  const [data, setData] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
-  const [showValidateModal, setShowValidateModal] = useState<any | null>(null);
-  const [showPayoutModal, setShowPayoutModal] = useState<any | null>(null);
-  
-  // Form states
-  const [commissionVal, setCommissionVal] = useState('10');
-  const [discountVal, setDiscountVal] = useState('10');
-  const [payoutAmount, setPayoutAmount] = useState('');
-  
   const { addToast } = useToastStore();
 
-  const fetchProviders = useCallback(async () => {
+  // Form states for financial rules adjustment
+  const [updateComm, setUpdateComm] = useState('');
+  const [updateDisc, setUpdateDisc] = useState('');
+  const [updateStatut, setUpdateStatut] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+
+  const fetchDashboard = useCallback(async () => {
+    if (!id) return;
     try {
       setLoading(true);
-      const data = await adminService.getProviders();
-      const list = data.resultats || data.results || (Array.isArray(data) ? data : []);
-      setProviders(list);
+      // Consomme GET /api/v1/auth/prestataire/dashboard/?prestataire_id={id}
+      // @ts-ignore
+      const res = await adminService.getProviderDashboard(id);
+      setData(res);
+      setUpdateComm(String(res.taux_commission || '0'));
+      setUpdateDisc(String(res.reduction_client_pourcentage || '0'));
+      setUpdateStatut(String(res.statut || 'actif'));
     } catch (error) {
-      addToast('Erreur lors du chargement des prestataires', 'error');
+      addToast('Erreur lors de la récupération des statistiques', 'error');
     } finally {
       setLoading(false);
     }
-  }, [addToast]);
+  }, [id, addToast]);
 
   useEffect(() => {
-    fetchProviders();
-  }, [fetchProviders]);
+    fetchDashboard();
+  }, [fetchDashboard]);
 
-  const handleValidate = async () => {
-    if (!showValidateModal) return;
+  const handleUpdate = async () => {
     try {
-      await adminService.validateProvider(showValidateModal.id, {
-        taux_commission: parseFloat(commissionVal),
-        reduction_client_pourcentage: parseFloat(discountVal),
+      setIsSaving(true);
+      // @ts-ignore
+      await adminService.updateProvider(id, {
+        taux_commission: parseFloat(updateComm),
+        reduction_client_pourcentage: parseFloat(updateDisc),
+        statut: updateStatut,
       });
-      addToast('Prestataire validé avec succès', 'success');
-      setShowValidateModal(null);
-      fetchProviders();
+      addToast('Paramètres mis à jour avec succès', 'success');
+      fetchDashboard();
     } catch (error: any) {
-      addToast(error.response?.data?.detail || 'Erreur lors de la validation', 'error');
-    }
-  };
-
-  const handlePayout = async () => {
-    if (!showPayoutModal) return;
-    try {
-      await adminService.initiateProviderPayout(showPayoutModal.id, parseFloat(payoutAmount));
-      addToast('Virement exécuté avec succès', 'success');
-      setShowPayoutModal(null);
-      setPayoutAmount('');
-      fetchProviders();
-    } catch (error: any) {
-      addToast(error.response?.data?.detail || 'Erreur lors du virement', 'error');
-    }
-  };
-
-  const handleUpdateStatus = async (userId: number) => {
-    try {
-      await adminService.toggleUserStatus(userId);
-      addToast('Statut mis à jour', 'success');
-      fetchProviders();
-    } catch (error) {
       addToast('Erreur lors de la mise à jour', 'error');
+    } finally {
+      setIsSaving(false);
     }
   };
+
+  // Calcul dynamique : Revenus des 30 derniers jours à partir de l'historique
+  const calculateLast30DaysRevenue = () => {
+    if (!data?.historique_recent) return 0;
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    return data.historique_recent
+      .filter((op: any) => op.type_operation === 'credit' && new Date(op.date_operation) >= thirtyDaysAgo)
+      .reduce((sum: number, op: any) => sum + parseFloat(String(op.montant || 0)), 0);
+  };
+
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] text-gold">
+        <Loader2 className="animate-spin" size={40} />
+        <p className="mt-4 font-medium">Chargement du dashboard partenaire...</p>
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
+      {/* Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Prestataires</h1>
-          <p className="text-sm text-foreground/40 mt-0.5">Codes promo, ventes et commissions</p>
+        <div className="flex items-center gap-4">
+          <Link href="/dashboard/admin/providers" className="p-2 rounded-xl bg-white/5 hover:bg-white/10 transition-colors">
+            <ArrowLeft size={20} className="text-foreground/60" />
+          </Link>
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">Dashboard Partenaire</h1>
+            <p className="text-sm text-foreground/40 font-mono">CODE: {data?.code_promo}</p>
+          </div>
+        </div>
+        <div className={`px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider ${data?.statut === 'actif' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'}`}>
+          {data?.statut}
         </div>
       </div>
 
-      {/* KPIs */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {[
-          { label: 'Prestataires actifs', value: providers.filter(p => p.statut === 'actif' || p.is_active).length, color: 'text-emerald-400 bg-emerald-500/10' },
-          { label: 'Demandes en attente', value: providers.filter(p => p.statut === 'attente' || p.status === 'attente').length, color: 'text-gold bg-gold/10' },
-          { label: 'Solde disponible total', value: `${providers.reduce((s, p) => s + (p.solde || p.solde_disponible || 0), 0).toLocaleString()} FCFA`, color: 'text-amber-400 bg-amber-500/10' },
-          { label: 'Gains historiques', value: `${providers.reduce((s, p) => s + (p.gains_historiques || p.total_gains || 0), 0).toLocaleString()} FCFA`, color: 'text-purple-400 bg-purple-500/10' },
-        ].map(k => (
-          <div key={k.label} className="bg-white/5 rounded-2xl border border-white/10 p-5 shadow-2xl">
-            <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-3 ${k.color}`}>
-              <TrendingUp size={18} />
+      {/* Key Metrics */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <MetricCard
+          icon={<TrendingUp className="text-emerald-400" />}
+          label="Total Gains Historiques"
+          value={`${parseFloat(String(data?.total_gains || 0)).toLocaleString()} FCFA`}
+          sub="Depuis le début"
+        />
+        <MetricCard
+          icon={<Calendar className="text-gold" />}
+          label="Revenus (30j)"
+          value={`${calculateLast30DaysRevenue().toLocaleString()} FCFA`}
+          sub="Calcul dynamique"
+        />
+        <MetricCard
+          icon={<DollarSign className="text-amber-400" />}
+          label="Solde Disponible"
+          value={`${parseFloat(String(data?.solde_commission || 0)).toLocaleString()} FCFA`}
+          sub="Prêt au retrait"
+        />
+        <MetricCard
+          icon={<ShieldCheck className="text-purple-400" />}
+          label="Solde Bloqué"
+          value={`${parseFloat(String(data?.solde_bloque || 0)).toLocaleString()} FCFA`}
+          sub="Transactions en cours"
+        />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Main Content: Logs & History */}
+        <div className="lg:col-span-2 space-y-6">
+          <div className="bg-white/5 rounded-3xl border border-white/10 p-6">
+            <div className="flex items-center gap-3 mb-6">
+              <History className="text-gold" size={20} />
+              <h3 className="font-bold text-lg">Opérations Récentes</h3>
             </div>
-            <p className="text-2xl font-bold text-foreground">{k.value}</p>
-            <p className="text-xs text-foreground/40 mt-0.5">{k.label}</p>
-          </div>
-        ))}
-      </div>
-
-      {/* Table */}
-      <div className="bg-white/5 rounded-2xl border border-white/10 shadow-2xl overflow-hidden min-h-[400px]">
-        {loading ? (
-          <div className="flex flex-col items-center justify-center py-20 text-gold gap-3">
-            <Loader2 className="animate-spin" size={32} />
-            <p className="text-sm font-medium">Chargement des données...</p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-white/5 border-b border-white/10">
-                <tr>
-                  {['Prestataire', 'Code Promo', 'Réduction', 'Commission', 'Solde', 'Historique', 'Statut', 'Actions'].map(h => (
-                    <th key={h} className="text-left text-xs font-semibold text-foreground/40 uppercase tracking-wider px-5 py-3.5">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/5">
-                {providers.map(p => {
-                  const name = p.name || p.user_details?.first_name || p.first_name || 'Partenaire';
-                  const email = p.email || p.user_details?.email || '';
-                  const status = p.statut || (p.is_active ? 'actif' : 'inactif');
-                  const isPending = status === 'attente' || status === 'pending';
-
-                  return (
-                    <tr key={p.id} className="hover:bg-white/5 transition-colors">
-                      <td className="px-5 py-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-gold to-gold-dark flex items-center justify-center text-black text-xs font-bold">
-                            {name.charAt(0).toUpperCase()}
-                          </div>
-                          <div>
-                            <p className="font-medium text-foreground">{name}</p>
-                            <p className="text-[11px] text-foreground/40">{email}</p>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-5 py-4">
-                        {p.code_promo || p.promoCode ? (
-                          <span className="font-mono text-xs bg-gold/10 text-gold px-2.5 py-1 rounded-lg font-semibold">
-                            {p.code_promo || p.promoCode}
-                          </span>
-                        ) : (
-                          <span className="text-foreground/40">—</span>
-                        )}
-                      </td>
-                      <td className="px-5 py-4 font-semibold text-foreground">
-                        {p.reduction_client_pourcentage || p.discount || 0}%
-                      </td>
-                      <td className="px-5 py-4 font-semibold text-foreground">
-                        {p.taux_commission || p.commission || 0}%
-                      </td>
-                      <td className="px-5 py-4 font-semibold text-emerald-400">
-                        {(p.solde || p.solde_disponible || 0).toLocaleString()} FCFA
-                      </td>
-                      <td className="px-5 py-4 font-semibold text-amber-400">
-                        {(p.gains_historiques || p.total_gains || 0).toLocaleString()} FCFA
-                      </td>
-                      <td className="px-5 py-4">
-                        <button
-                          onClick={() => handleUpdateStatus(p.user_id || p.id)}
-                          className={`text-[11px] font-semibold px-2.5 py-1 rounded-full transition-all
-                          ${status === 'actif' ? 'text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20' : 
-                            isPending ? 'text-gold bg-gold/10 hover:bg-gold/20' : 'text-foreground/40 bg-white/5 hover:bg-white/10'}`}
-                        >
-                          {status}
-                        </button>
-                      </td>
-                      <td className="px-5 py-4">
-                        <div className="flex items-center gap-2">
-                          {isPending && (
-                            <button
-                              onClick={() => {
-                                setShowValidateModal(p);
-                                setCommissionVal('10');
-                                setDiscountVal('10');
-                              }}
-                              className="p-1.5 rounded-lg bg-gold/10 text-gold hover:bg-gold hover:text-black transition-all"
-                              title="Valider la candidature"
-                            >
-                              <Check size={14} />
-                            </button>
-                          )}
-                          {status === 'actif' && (
-                            <button
-                              onClick={() => {
-                                setShowPayoutModal(p);
-                                setPayoutAmount('');
-                              }}
-                              className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500 hover:text-black transition-all"
-                              title="Effectuer un virement"
-                            >
-                              <CreditCard size={14} />
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-                {providers.length === 0 && (
-                  <tr>
-                    <td colSpan={8} className="text-center py-10 text-foreground/40 italic">Aucun prestataire trouvé.</td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-
-      {/* Validation Modal */}
-      {showValidateModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-background rounded-2xl p-6 w-full max-w-md shadow-2xl border border-white/10">
-            <h3 className="font-bold text-foreground mb-1">Valider le prestataire</h3>
-            <p className="text-xs text-foreground/40 mb-4">
-              Candidat: {showValidateModal.name || showValidateModal.user_details?.first_name || showValidateModal.first_name}
-            </p>
             <div className="space-y-4">
-              <div>
-                <label className="text-xs font-semibold text-foreground/40 uppercase mb-1 block">Taux de commission (%)</label>
-                <input
-                  type="number"
-                  value={commissionVal}
-                  onChange={e => setCommissionVal(e.target.value)}
-                  className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
-                  min="0"
-                  max="100"
-                />
-              </div>
-              <div>
-                <label className="text-xs font-semibold text-foreground/40 uppercase mb-1 block">Réduction client (%)</label>
-                <input
-                  type="number"
-                  value={discountVal}
-                  onChange={e => setDiscountVal(e.target.value)}
-                  className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
-                  min="0"
-                  max="100"
-                />
-              </div>
-            </div>
-            <div className="flex gap-3 mt-6">
-              <button onClick={() => setShowValidateModal(null)} className="flex-1 border border-white/10 rounded-lg py-2.5 text-sm text-foreground/60 hover:bg-white/5 transition-colors">Annuler</button>
-              <button onClick={handleValidate} className="flex-1 bg-gold text-black rounded-lg py-2.5 text-sm font-bold hover:bg-gold/80 transition-colors">Valider & Générer Code</button>
+              {data?.historique_recent?.map((log: any) => (
+                <div key={log.id} className="flex items-center justify-between p-4 rounded-2xl bg-white/5 border border-white/5">
+                  <div className="flex items-center gap-4">
+                    <div className={`p-2 rounded-lg ${log.type_operation === 'credit' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'}`}>
+                      {log.type_operation === 'credit' ? <ArrowUpRight size={18} /> : <ArrowDownLeft size={18} />}
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium">{log.description}</p>
+                      <p className="text-[10px] text-foreground/40 uppercase">{new Date(log.date_operation).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })}</p>
+                    </div>
+                  </div>
+                  <p className={`font-bold ${log.type_operation === 'credit' ? 'text-emerald-400' : 'text-red-400'}`}>
+                    {log.type_operation === 'credit' ? '+' : '-'}{parseFloat(log.montant).toLocaleString()}
+                  </p>
+                </div>
+              ))}
             </div>
           </div>
         </div>
-      )}
 
-      {/* Payout Modal */}
-      {showPayoutModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-background rounded-2xl p-6 w-full max-w-md shadow-2xl border border-white/10">
-            <h3 className="font-bold text-foreground mb-1">Exécuter un virement</h3>
-            <p className="text-xs text-foreground/40 mb-4">
-              Bénéficiaire: {showPayoutModal.name || showPayoutModal.user_details?.first_name || showPayoutModal.first_name}
-            </p>
-            <div className="space-y-4">
+        {/* Sidebar: Config Financial Rules */}
+        <div className="space-y-6">
+          <div className="bg-white/5 rounded-3xl border border-gold/20 p-6 shadow-2xl shadow-gold/5">
+            <div className="flex items-center gap-3 mb-6">
+              <Target className="text-gold" size={20} />
+              <h3 className="font-bold text-lg">Règles Financières</h3>
+            </div>
+
+            <div className="space-y-5">
               <div>
-                <label className="text-xs font-semibold text-foreground/40 uppercase mb-1 block">Montant du virement (FCFA)</label>
+                <label className="text-[10px] font-bold text-foreground/40 uppercase mb-2 block tracking-widest">Taux Commission (%)</label>
                 <input
                   type="number"
-                  placeholder="Ex: 50000"
-                  value={payoutAmount}
-                  onChange={e => setPayoutAmount(e.target.value)}
-                  className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
+                  value={updateComm}
+                  onChange={e => setUpdateComm(e.target.value)}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:border-gold outline-none transition-all"
                 />
               </div>
+              <div>
+                <label className="text-[10px] font-bold text-foreground/40 uppercase mb-2 block tracking-widest">Réduction Client (%)</label>
+                <input
+                  type="number"
+                  value={updateDisc}
+                  onChange={e => setUpdateDisc(e.target.value)}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:border-gold outline-none transition-all"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] font-bold text-foreground/40 uppercase mb-2 block tracking-widest">Statut Compte</label>
+                <select
+                  value={updateStatut}
+                  onChange={e => setUpdateStatut(e.target.value)}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:border-gold outline-none transition-all"
+                >
+                  <option value="actif" className="bg-background">Actif</option>
+                  <option value="suspendu" className="bg-background">Suspendu</option>
+                </select>
+              </div>
+
+              <button
+                onClick={handleUpdate}
+                disabled={isSaving}
+                className="w-full bg-gold text-black font-bold py-4 rounded-xl flex items-center justify-center gap-2 hover:bg-gold/80 transition-all active:scale-[0.98] disabled:opacity-50 mt-4"
+              >
+                {isSaving ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />}
+                Enregistrer les modifications
+              </button>
             </div>
-            <div className="flex gap-3 mt-6">
-              <button onClick={() => setShowPayoutModal(null)} className="flex-1 border border-white/10 rounded-lg py-2.5 text-sm text-foreground/60 hover:bg-white/5 transition-colors">Annuler</button>
-              <button onClick={handlePayout} className="flex-1 bg-emerald-500 text-black rounded-lg py-2.5 text-sm font-bold hover:bg-emerald-400 transition-colors">Transmettre à Monetbil</button>
+          </div>
+
+          {/* Promo Code Info */}
+          <div className="bg-white/5 rounded-3xl border border-white/10 p-6">
+            <p className="text-[10px] font-bold text-foreground/40 uppercase mb-4 tracking-widest">Outils de promotion</p>
+            <div className="p-4 bg-gold/5 border border-gold/10 rounded-2xl flex items-center justify-between">
+              <div>
+                <p className="text-[10px] text-gold/60 font-medium">Lien de parrainage</p>
+                <p className="text-xs font-mono truncate max-w-[150px]">exclusif.cm/?ref={data?.code_promo}</p>
+              </div>
+              <button className="text-[10px] font-bold text-gold underline">Copier</button>
             </div>
           </div>
         </div>
-      )}
+      </div>
+    </div>
+  );
+}
+
+function MetricCard({ icon, label, value, sub }: { icon: React.ReactNode, label: string, value: string, sub?: string }) {
+  return (
+    <div className="bg-white/5 rounded-3xl border border-white/10 p-5 shadow-sm">
+      <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center mb-4">
+        {icon}
+      </div>
+      <p className="text-2xl font-bold text-foreground leading-none">{value}</p>
+      <p className="text-[11px] font-semibold text-foreground/40 uppercase tracking-wider mt-2">{label}</p>
+      {sub && <p className="text-[10px] text-foreground/20 italic mt-0.5">{sub}</p>}
     </div>
   );
 }

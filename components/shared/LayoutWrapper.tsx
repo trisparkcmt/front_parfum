@@ -15,7 +15,7 @@ export function LayoutWrapper({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     initTheme();
   }, [initTheme]);
-  
+
   // Hide Navbar and Footer on dashboard and auth routes
   const isDashboard = pathname?.startsWith('/dashboard');
   const isAuth = pathname === '/login' || pathname === '/register';
@@ -23,17 +23,15 @@ export function LayoutWrapper({ children }: { children: React.ReactNode }) {
   const isAiConsultant = pathname === '/numba/ai-consultant';
   const shouldHideNav = isDashboard || isAuth || isAtelier || isAiConsultant;
   const shouldHideFooter = shouldHideNav;
-  
+
   return (
-    <>
+    <div className="flex flex-col min-h-screen">
       {!shouldHideNav && !isAtelier && <Navbar />}
       <main className="flex-1">
         {children}
       </main>
       {!shouldHideNav && <BottomNav />}
       {!shouldHideFooter && <Footer />}
-    </>
+    </div>
   );
 }
-
-
