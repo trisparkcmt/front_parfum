@@ -30,6 +30,7 @@ import { useThemeStore } from '@/store/useThemeStore';
 import { productService } from '@/services/productService';
 import { Product } from '@/types';
 import { ProductGridSkeleton } from '@/components/ui/Skeletons';
+import HomeLoadingScreen from '@/components/ui/HomeLoadingScreen';
 
 export default function Home() {
   const { t } = useTranslation();
@@ -75,8 +76,8 @@ export default function Home() {
     }
   };
 
-  if (!mounted) {
-    return <div className="min-h-screen bg-background" />; // Prevent flash of unstyled content
+  if (!mounted || loading) {
+    return <HomeLoadingScreen />;
   }
 
   return (
