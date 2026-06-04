@@ -5,10 +5,10 @@ import { ThemeToggle } from './ThemeToggle';
 const BottomNav = () => {
   return (
     <nav
-      className="fixed bottom-6 left-4 right-4 bg-[var(--t-nav-bg)]/95 backdrop-blur-xl border border-[var(--t-nav-border)]/50 z-[100] md:hidden shadow-2xl rounded-3xl"
-      style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 8px)' }}
+      className="fixed bottom-5 left-4 right-4 bg-[var(--t-nav-bg)]/95 backdrop-blur-xl border border-[var(--t-nav-border)]/50 z-[100] md:hidden shadow-2xl rounded-3xl"
+      style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 0px)' }}
     >
-      <div className="flex justify-around items-center h-20 px-3">
+      <div className="flex justify-around items-center h-15 px-1 py-2">
         {/* Accueil */}
         <Link
           href="/"

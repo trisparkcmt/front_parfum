@@ -21,6 +21,7 @@ import { InstallPrompt } from "@/components/pwa/InstallPrompt";
 export const metadata: Metadata = {
   title: "Accessoires Exclusifs | Luxe & Création de Parfums",
   description: "Plateforme e-commerce de luxe intégrant une boutique d'accessoires, de parfumerie de marque, et un atelier de création olfactive assisté par IA.",
+  manifest: '/manifest.webmanifest',
   icons: {
     icon: '/favicon.ico',
     shortcut: '/favicon.ico',
