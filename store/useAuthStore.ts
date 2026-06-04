@@ -141,22 +141,24 @@ export const useAuthStore = create<AuthState>()(
       updateProfile: async (data) => {
         set({ isLoading: true });
         const addToast = useToastStore.getState().addToast;
+        
         try {
-          // Match fields documented in PUT/PATCH /auth/me/
-          const response = await api.patch('/auth/me/', {
+          // Use authService.updateProfile which handles the API call correctly
+          const response = await authService.updateProfile({
             email: data.email,
             telephone: data.phone,
             first_name: data.firstName,
             last_name: data.lastName,
           });
 
-          const meData = response.data;
+          // Parse the response to create updated user object
+          const meData = response.user || response;
           const updatedUser: User = {
             id: String(meData.id),
             firstName: meData.first_name,
             lastName: meData.last_name,
             email: meData.email,
-            phone: meData.telephone,
+            phone: meData.telephone || meData.phone,
             role: meData.role as UserRole,
             createdAt: get().user?.createdAt || new Date().toISOString(),
           };
@@ -164,10 +166,21 @@ export const useAuthStore = create<AuthState>()(
           set({ user: updatedUser, isLoading: false });
           addToast('Profil mis à jour avec succès.', 'success');
           return true;
-        } catch (error) {
+        } catch (error: any) {
           console.error('Backend profile update failed:', error);
+          
+          // Handle specific error messages from API
+          const errorMsg = 
+            error.response?.data?.detail ||
+            error.response?.data?.email?.[0] ||
+            error.response?.data?.telephone?.[0] ||
+            error.response?.data?.first_name?.[0] ||
+            error.response?.data?.last_name?.[0] ||
+            error.response?.data?.message ||
+            'Échec de la mise à jour du profil.';
+          
           set({ isLoading: false });
-          addToast('Échec de la mise à jour du profil.', 'error');
+          addToast(errorMsg, 'error');
           return false;
         }
       },
