@@ -736,7 +736,7 @@ export const partnerService = {
    * Apply to become a partner/provider
    */
   applyAsPartner: async () => {
-    const response = await api.post('/auth/prestataire/apply/');
+    const response = await api.post('auth/prestataire/apply/');
     return response.data;
   },
 
@@ -744,7 +744,7 @@ export const partnerService = {
    * Get partner dashboard stats and earnings
    */
   getPartnerDashboard: async () => {
-    const response = await api.get('/auth/prestataire/dashboard/');
+    const response = await api.get('auth/prestataire/dashboard/');
     return response.data;
   },
 
@@ -752,7 +752,7 @@ export const partnerService = {
    * Get partner earnings history
    */
   getPartnerHistory: async (params?: { type_operation?: string }) => {
-    const response = await api.get('/auth/prestataire/historique/', { params });
+    const response = await api.get('auth/prestataire/historique/', { params });
     return response.data;
   },
 
@@ -760,7 +760,7 @@ export const partnerService = {
    * Get partner payout requests
    */
   getPartnerPayouts: async () => {
-    const response = await api.get('/auth/prestataire/payouts/');
+    const response = await api.get('auth/prestataire/payouts/');
     return response.data;
   },
 };
@@ -774,7 +774,7 @@ export const deliveryService = {
    * Get delivery driver dashboard
    */
   getDeliveryDashboard: async () => {
-    const response = await api.get('/auth/livreur/dashboard/');
+    const response = await api.get('auth/livreur/dashboard/');
     return response.data;
   },
 
@@ -782,7 +782,7 @@ export const deliveryService = {
    * Get assigned deliveries
    */
   getDeliveries: async (params?: { statut_livraison?: string }) => {
-    const response = await api.get('/auth/livreur/livraisons/', { params });
+    const response = await api.get('auth/livreur/livraisons/', { params });
     return response.data;
   },
 
@@ -793,7 +793,7 @@ export const deliveryService = {
     id: number,
     data: { action: 'livrer' | 'echouer'; motif?: string }
   ) => {
-    const response = await api.post(`/auth/livreur/livraisons/${id}/statut/`, data);
+    const response = await api.post(`auth/livreur/livraisons/${id}/statut/`, data);
     return response.data;
   },
 };
@@ -807,7 +807,7 @@ export const adminService = {
    * Get paginated list of all users
    */
   getUsers: async (params?: { search?: string; page?: number }) => {
-    const response = await api.get('/auth/admin/users/', { params });
+    const response = await api.get('auth/admin/users/', { params });
     return response.data;
   },
 
@@ -816,7 +816,7 @@ export const adminService = {
    */
   toggleUserStatus: async (userId: number) => {
     const response = await api.patch(
-      `/auth/admin/users/${userId}/toggle-status/`
+      `auth/admin/users/${userId}/toggle-status/`
     );
     return response.data;
   },
@@ -825,7 +825,7 @@ export const adminService = {
    * Get all providers
    */
   getProviders: async (params?: { statut?: string; page?: number }) => {
-    const response = await api.get('/auth/admin/prestataires/', { params });
+    const response = await api.get('auth/admin/prestataires/', { params });
     return response.data;
   },
 
@@ -840,7 +840,7 @@ export const adminService = {
     }
   ) => {
     const response = await api.patch(
-      `/auth/admin/prestataires/validate/${providerId}/`,
+      `auth/admin/prestataires/validate/${providerId}/`,
       data
     );
     return response.data;
@@ -851,7 +851,7 @@ export const adminService = {
    */
   updateProvider: async (providerId: number, data: any) => {
     const response = await api.patch(
-      `/auth/admin/prestataires/${providerId}/update/`,
+      `auth/admin/prestataires/${providerId}/update/`,
       data
     );
     return response.data;
@@ -862,7 +862,7 @@ export const adminService = {
    */
   initiateProviderPayout: async (providerId: number, montant: number) => {
     const response = await api.post(
-      `/auth/admin/prestataires/${providerId}/payout/`,
+      `auth/admin/prestataires/${providerId}/payout/`,
       { montant }
     );
     return response.data;
@@ -872,7 +872,7 @@ export const adminService = {
    * Get all delivery drivers
    */
   getDeliveryDrivers: async () => {
-    const response = await api.get('/auth/admin/livreurs/');
+    const response = await api.get('auth/admin/livreurs/');
     return response.data;
   },
 
@@ -880,7 +880,7 @@ export const adminService = {
    * Promote user to delivery driver
    */
   promoteToDriver: async (userId: number) => {
-    const response = await api.post('/auth/admin/livreurs/promote/', {
+    const response = await api.post('auth/admin/livreurs/promote/', {
       user_id: userId,
     });
     return response.data;
@@ -891,7 +891,7 @@ export const adminService = {
    */
   assignDriverToOrder: async (orderId: number, driverId: number) => {
     const response = await api.post(
-      `/auth/admin/commandes/${orderId}/affecter-livreur/`,
+      `auth/admin/commandes/${orderId}/affecter-livreur/`,
       { livreur_id: driverId }
     );
     return response.data;
@@ -907,7 +907,7 @@ export const notificationService = {
    * Get admin notifications
    */
   getNotifications: async () => {
-    const response = await api.get('/utilisateur/notifications/');
+    const response = await api.get('utilisateur/notifications/');
     return response.data;
   },
 
@@ -915,19 +915,62 @@ export const notificationService = {
    * Get pending provider requests
    */
   getProviderRequests: async () => {
-    const response = await api.get('/utilisateur/prestataire-requests/');
+    const response = await api.get('utilisateur/prestataire-requests/');
     return response.data;
   },
 };
 
 // ============================================================================
-// ORDERS & CART (Currently disabled but endpoints defined)
+// ORDERS & CART
 // ============================================================================
 
 export const orderService = {
   /**
-   * Note: Order endpoints are currently disabled in the backend.
-   * This is a placeholder for when they are re-enabled.
+   * Get paginated list of orders (Admin)
    */
-  note: 'Order endpoints are defined in api/v1/urls/order_urls.py but currently disabled',
+  getOrders: async (params?: {
+    search?: string;
+    statut?: string;
+    page?: number;
+    ordering?: string;
+  }) => {
+    const response = await api.get('shop/commandes/', { params });
+    return response.data;
+  },
+
+  /**
+   * Get order details by ID
+   */
+  getOrderById: async (id: number) => {
+    const response = await api.get(`shop/commandes/${id}/`);
+    return response.data;
+  },
+
+  /**
+   * Validate a pending order
+   */
+  validateOrder: async (id: number) => {
+    const response = await api.post(`shop/commandes/${id}/valider/`);
+    return response.data;
+  },
+
+  /**
+   * Cancel an order
+   */
+  cancelOrder: async (id: number) => {
+    const response = await api.post(`shop/commandes/${id}/annuler/`);
+    return response.data;
+  },
+
+  /**
+   * Assign a delivery driver to an order (Admin)
+   */
+  assignDriver: async (orderId: number, driverId: number) => {
+    const response = await api.post(
+      `auth/admin/commandes/${orderId}/affecter-livreur/`,
+      { livreur_id: driverId }
+    );
+    return response.data;
+  },
 };
+

@@ -20,8 +20,8 @@ export const useClientDashboard = () => {
         // Note: Order endpoints are currently disabled in the backend
         // This placeholder will work once they're re-enabled
         try {
-          const response = await api.get('/orders/my-orders/');
-          setOrders(response.data.results || response.data || []);
+          const response = await api.get('shop/commandes/');
+          setOrders(response.data.results || response.data.resultats || response.data || []);
         } catch (err: any) {
           // Order endpoints not available yet
           console.log('Order endpoints not available yet:', err.response?.status);

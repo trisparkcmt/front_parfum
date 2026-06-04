@@ -19,6 +19,7 @@ import { ServiceWorkerRegistration } from "@/components/pwa/ServiceWorkerRegistr
 import { InstallPrompt } from "@/components/pwa/InstallPrompt";
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://accessoires-exclusifs.vercel.app'),
   title: "Accessoires Exclusifs | Luxe & Création de Parfums",
   description: "Plateforme e-commerce de luxe intégrant une boutique d'accessoires, de parfumerie de marque, et un atelier de création olfactive assisté par IA.",
   manifest: '/manifest.webmanifest',
@@ -34,6 +35,9 @@ export const metadata: Metadata = {
   },
   formatDetection: {
     telephone: false,
+  },
+  alternates: {
+    canonical: '/',
   },
 };
 

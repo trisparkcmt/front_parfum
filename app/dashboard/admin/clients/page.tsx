@@ -1,26 +1,51 @@
 'use client';
 
-import { useState } from 'react';
-import { Search, Eye, Users, Heart, FlaskConical } from 'lucide-react';
-
-const clients = [
-  { id: 'CLT001', name: 'Marie Dupont', email: 'marie@email.com', phone: '+33 6 12 34 56 78', orders: 7, favorites: 12, compositions: 3, joined: '12 Jan 2025', status: 'actif' },
-  { id: 'CLT002', name: 'Jean Mvondo', email: 'jean@email.com', phone: '+237 691 234 567', orders: 3, favorites: 5, compositions: 8, joined: '03 Mar 2025', status: 'actif' },
-  { id: 'CLT003', name: 'Amina Bello', email: 'amina@email.com', phone: '+237 677 890 123', orders: 1, favorites: 2, compositions: 1, joined: '20 Avr 2026', status: 'actif' },
-  { id: 'CLT004', name: 'Chris Tong', email: 'chris@email.com', phone: '+1 415 555 0123', orders: 12, favorites: 28, compositions: 0, joined: '05 Jun 2024', status: 'actif' },
-  { id: 'CLT005', name: 'Sophie Lam', email: 'sophie@email.com', phone: '+33 7 98 76 54 32', orders: 0, favorites: 4, compositions: 2, joined: '01 Mai 2026', status: 'inactif' },
-];
-
+import { useState, useEffect, useCallback } from 'react';
+import { Search, Eye, Users, Heart, FlaskConical, Loader2, Power } from 'lucide-react';
+import { adminService } from '@/services/apiService';
+import { useToastStore } from '@/store/useToastStore';
 import { BackButton } from '@/components/ui/BackButton';
 
 export default function ClientsPage() {
+  const [clients, setClients] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [selected, setSelected] = useState<typeof clients[0] | null>(null);
+  const [selected, setSelected] = useState<any | null>(null);
+  const { addToast } = useToastStore();
 
-  const filtered = clients.filter(c =>
-    c.name.toLowerCase().includes(search.toLowerCase()) ||
-    c.email.toLowerCase().includes(search.toLowerCase())
-  );
+  const fetchClients = useCallback(async () => {
+    try {
+      setLoading(true);
+      const data = await adminService.getUsers({ search });
+      const list = data.results || data.resultats || (Array.isArray(data) ? data : []);
+      setClients(list);
+    } catch (error) {
+      console.error(error);
+      addToast('Erreur lors du chargement des clients', 'error');
+    } finally {
+      setLoading(false);
+    }
+  }, [search, addToast]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      fetchClients();
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [fetchClients]);
+
+  const handleToggleStatus = async (userId: number) => {
+    try {
+      await adminService.toggleUserStatus(userId);
+      addToast('Statut de l\'utilisateur mis à jour', 'success');
+      fetchClients();
+      if (selected && selected.id === userId) {
+        setSelected((prev: any) => ({ ...prev, is_active: !prev.is_active }));
+      }
+    } catch (error) {
+      addToast('Erreur lors de la modification du statut', 'error');
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -35,9 +60,9 @@ export default function ClientsPage() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
           { label: 'Total Clients', value: clients.length, icon: <Users size={18} />, color: 'text-gold bg-gold/10' },
-          { label: 'Actifs', value: clients.filter(c => c.status === 'actif').length, icon: <Users size={18} />, color: 'text-emerald-400 bg-emerald-500/10' },
-          { label: 'Favoris enregistrés', value: clients.reduce((s, c) => s + c.favorites, 0), icon: <Heart size={18} />, color: 'text-red-400 bg-red-500/10' },
-          { label: 'Compositions créées', value: clients.reduce((s, c) => s + c.compositions, 0), icon: <FlaskConical size={18} />, color: 'text-purple-400 bg-purple-500/10' },
+          { label: 'Actifs', value: clients.filter(c => c.is_active).length, icon: <Users size={18} />, color: 'text-emerald-400 bg-emerald-500/10' },
+          { label: 'Favoris enregistrés', value: clients.reduce((s, c) => s + (c.favorites?.length || 0), 0), icon: <Heart size={18} />, color: 'text-red-400 bg-red-500/10' },
+          { label: 'Compositions créées', value: clients.reduce((s, c) => s + (c.custom_perfumes?.length || 0), 0), icon: <FlaskConical size={18} />, color: 'text-purple-400 bg-purple-500/10' },
         ].map(k => (
           <div key={k.label} className="bg-white/5 rounded-2xl border border-white/10 p-5 shadow-2xl">
             <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-3 ${k.color}`}>
@@ -63,54 +88,67 @@ export default function ClientsPage() {
       </div>
 
       {/* Table */}
-      <div className="bg-white/5 rounded-2xl border border-white/10 shadow-2xl overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-white/5 border-b border-white/10">
-              <tr>
-                {['Client', 'Contact', 'Commandes', 'Favoris', 'Compositions', 'Inscrit le', 'Statut', 'Action'].map(h => (
-                  <th key={h} className="text-left text-xs font-semibold text-foreground/40 uppercase tracking-wider px-5 py-3.5">{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-white/5">
-              {filtered.map(c => (
-                <tr key={c.id} className="hover:bg-white/5 transition-colors">
-                  <td className="px-5 py-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-gold to-gold-dark flex items-center justify-center text-black text-xs font-bold">
-                        {c.name.charAt(0)}
-                      </div>
-                      <div>
-                        <p className="font-medium text-foreground">{c.name}</p>
-                        <p className="text-[11px] text-foreground/40">{c.id}</p>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-5 py-4">
-                    <p className="text-xs text-foreground">{c.email}</p>
-                    <p className="text-[11px] text-foreground/40">{c.phone}</p>
-                  </td>
-                  <td className="px-5 py-4 text-center font-semibold text-foreground">{c.orders}</td>
-                  <td className="px-5 py-4 text-center text-foreground/60">{c.favorites}</td>
-                  <td className="px-5 py-4 text-center text-foreground/60">{c.compositions}</td>
-                  <td className="px-5 py-4 text-xs text-foreground/40">{c.joined}</td>
-                  <td className="px-5 py-4">
-                    <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-full
-                      ${c.status === 'actif' ? 'text-emerald-400 bg-emerald-500/10' : 'text-foreground/40 bg-white/5'}`}>
-                      {c.status}
-                    </span>
-                  </td>
-                  <td className="px-5 py-4">
-                    <button onClick={() => setSelected(c)} className="p-1.5 rounded-lg hover:bg-white/5 text-foreground/40 hover:text-gold transition-colors">
-                      <Eye size={14} />
-                    </button>
-                  </td>
+      <div className="bg-white/5 rounded-2xl border border-white/10 shadow-2xl overflow-hidden min-h-[300px]">
+        {loading ? (
+          <div className="flex flex-col items-center justify-center py-20 text-gold gap-3">
+            <Loader2 className="animate-spin" size={32} />
+            <p className="text-sm font-medium">Chargement des données...</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-white/5 border-b border-white/10">
+                <tr>
+                  {['Client', 'Contact', 'Téléphone', 'Favoris', 'Compositions', 'Statut', 'Actions'].map(h => (
+                    <th key={h} className="text-left text-xs font-semibold text-foreground/40 uppercase tracking-wider px-5 py-3.5">{h}</th>
+                  ))}
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody className="divide-y divide-white/5">
+                {clients.map(c => (
+                  <tr key={c.id} className="hover:bg-white/5 transition-colors">
+                    <td className="px-5 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-gold to-gold-dark flex items-center justify-center text-black text-xs font-bold">
+                          {(c.first_name || c.email || 'U').charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                          <p className="font-medium text-foreground">{c.first_name || ''} {c.last_name || ''}</p>
+                          <p className="text-[11px] text-foreground/40">ID: {c.id}</p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-5 py-4 text-xs text-foreground">{c.email}</td>
+                    <td className="px-5 py-4 text-xs text-foreground">{c.telephone || '—'}</td>
+                    <td className="px-5 py-4 text-center text-foreground/60">{c.favorites?.length || 0}</td>
+                    <td className="px-5 py-4 text-center text-foreground/60">{c.custom_perfumes?.length || 0}</td>
+                    <td className="px-5 py-4">
+                      <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-full
+                        ${c.is_active ? 'text-emerald-400 bg-emerald-500/10' : 'text-red-400 bg-red-500/10'}`}>
+                        {c.is_active ? 'Actif' : 'Inactif'}
+                      </span>
+                    </td>
+                    <td className="px-5 py-4">
+                      <div className="flex items-center gap-2">
+                        <button onClick={() => setSelected(c)} className="p-1.5 rounded-lg hover:bg-white/5 text-foreground/40 hover:text-gold transition-colors" title="Détails">
+                          <Eye size={14} />
+                        </button>
+                        <button onClick={() => handleToggleStatus(c.id)} className="p-1.5 rounded-lg hover:bg-white/5 text-foreground/40 hover:text-red-400 transition-colors" title={c.is_active ? "Désactiver" : "Activer"}>
+                          <Power size={14} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+                {clients.length === 0 && (
+                  <tr>
+                    <td colSpan={7} className="text-center py-10 text-foreground/40 italic">Aucun client trouvé.</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
       {/* Client detail modal */}
@@ -119,18 +157,17 @@ export default function ClientsPage() {
           <div className="bg-background rounded-2xl p-6 w-full max-w-sm shadow-2xl border border-white/10">
             <div className="flex items-center gap-4 mb-5">
               <div className="w-14 h-14 rounded-full bg-gradient-to-br from-gold to-gold-dark flex items-center justify-center text-black text-xl font-bold">
-                {selected.name.charAt(0)}
+                {(selected.first_name || 'U').charAt(0).toUpperCase()}
               </div>
               <div>
-                <h3 className="font-bold text-foreground">{selected.name}</h3>
+                <h3 className="font-bold text-foreground">{selected.first_name || ''} {selected.last_name || ''}</h3>
                 <p className="text-xs text-foreground/40">{selected.email}</p>
               </div>
             </div>
-            <div className="grid grid-cols-3 gap-3 mb-5">
+            <div className="grid grid-cols-2 gap-3 mb-5">
               {[
-                { label: 'Commandes', value: selected.orders },
-                { label: 'Favoris', value: selected.favorites },
-                { label: 'Compositions', value: selected.compositions },
+                { label: 'Favoris', value: selected.favorites?.length || 0 },
+                { label: 'Compositions', value: selected.custom_perfumes?.length || 0 },
               ].map(s => (
                 <div key={s.label} className="bg-white/5 rounded-xl p-3 text-center">
                   <p className="text-xl font-bold text-foreground">{s.value}</p>
@@ -138,7 +175,7 @@ export default function ClientsPage() {
                 </div>
               ))}
             </div>
-            <p className="text-xs text-foreground/40 mb-4">Inscrit le {selected.joined} · {selected.phone}</p>
+            <p className="text-xs text-foreground/40 mb-4">Téléphone: {selected.telephone || '—'} · Statut: {selected.is_active ? 'Actif' : 'Inactif'}</p>
             <button onClick={() => setSelected(null)} className="w-full border border-white/10 rounded-lg py-2.5 text-sm text-foreground/60 hover:bg-white/5 transition-colors">
               Fermer
             </button>
