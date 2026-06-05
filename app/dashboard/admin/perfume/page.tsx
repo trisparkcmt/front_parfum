@@ -1,158 +1,198 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Loader2, CheckCircle, UserCheck, Percent, Gift, Search, User, Mail, Phone, Calendar, Info } from 'lucide-react';
+import { Loader2, CheckCircle, Edit2, Trash2, Plus, Search, RefreshCw, AlertTriangle } from 'lucide-react';
 import { shopService } from '@/services/apiService';
+import { adminService } from '@/services/apiService';
 import { useToastStore } from '@/store/useToastStore';
+import ImageUploader from '@/components/admin/ImageUploader';
 
-/**
- * Note: Ensure you have the following methods in your shopService (or adminService):
- * getPrestataireRequests: () => axios.get('/api/v1/utilisateur/prestataire-requests/'),
- * validatePrestataire: (id, data) => axios.patch(`/api/v1/auth/admin/prestataires/validate/${id}/`, data),
- */
-
-export default function PrestataireManagementPage() {
-  const [requests, setRequests] = useState<any[]>([]);
+// Perfume management admin page
+export default function PerfumeAdminPage() {
+  // Data states
+  const [perfumes, setPerfumes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [showModal, setShowModal] = useState(false);
-  const [selectedRequest, setSelectedRequest] = useState<any | null>(null);
-  const [showDetailsModal, setShowDetailsModal] = useState(false);
-  const [viewingRequest, setViewingRequest] = useState<any | null>(null);
+  const [editingPerfume, setEditingPerfume] = useState<any | null>(null);
 
-  // Validation form states (Payload data)
-  const [commission, setCommission] = useState('15.00');
-  const [reduction, setReduction] = useState('5.0');
+  // Form fields
+  const [name, setName] = useState('');
+  const [slug, setSlug] = useState('');
+  const [sku, setSku] = useState('');
+  const [shortDesc, setShortDesc] = useState('');
+  const [longDesc, setLongDesc] = useState('');
+  const [iaDesc, setIaDesc] = useState('');
+  const [volume, setVolume] = useState('');
+  const [price, setPrice] = useState('');
+  const [imageFile, setImageFile] = useState<File | null>(null);
 
   const { addToast } = useToastStore();
 
-  const fetchRequests = useCallback(async () => {
+  // Fetch perfumes
+  const fetchPerfumes = useCallback(async () => {
     try {
       setLoading(true);
-      // Endpoint 3.6: GET /api/v1/utilisateur/prestataire-requests/
-      // @ts-ignore - Assuming implementation in your apiService
-      const data = await shopService.getPrestataireRequests();
-      setRequests(Array.isArray(data) ? data : []);
+      const data = await shopService.getPerfumes({ search });
+      const list = data.results || data.resultats || (Array.isArray(data) ? data : []);
+      setPerfumes(list);
     } catch (error) {
-      addToast('Erreur lors du chargement des demandes', 'error');
+      addToast('Erreur lors du chargement des parfums', 'error');
     } finally {
       setLoading(false);
     }
-  }, [addToast]);
+  }, [search, addToast]);
 
   useEffect(() => {
-    fetchRequests();
-  }, [fetchRequests]);
+    const timer = setTimeout(fetchPerfumes, 300);
+    return () => clearTimeout(timer);
+  }, [fetchPerfumes]);
 
-  const handleOpenValidate = (request: any) => {
-    setSelectedRequest(request);
-    setCommission('15.00'); // Default suggested value
-    setReduction('5.0');   // Default suggested value
+  // Open modal for add / edit
+  const handleOpenAdd = () => {
+    setEditingPerfume(null);
+    setName('');
+    setSlug('');
+    setSku('');
+    setShortDesc('');
+    setLongDesc('');
+    setIaDesc('');
+    setVolume('');
+    setPrice('');
+    setImageFile(null);
     setShowModal(true);
   };
 
-  const handleOpenDetails = (request: any) => {
-    setViewingRequest(request);
-    setShowDetailsModal(true);
+  const handleOpenEdit = (perf: any) => {
+    setEditingPerfume(perf);
+    setName(perf.nom || perf.name || '');
+    setSlug(perf.slug || '');
+    setSku(perf.reference_sku || '');
+    setShortDesc(perf.description_courte || '');
+    setLongDesc(perf.description_longue || '');
+    setIaDesc(perf.description_ia || '');
+    setVolume(String(perf.contenance_ml || ''));
+    setPrice(String(perf.prix_unitaire || ''));
+    setImageFile(null);
+    setShowModal(true);
   };
 
-  const handleValidate = async () => {
-    if (!selectedRequest) return;
-
+  // Save (create or update)
+  const handleSave = async () => {
+    if (!name || !volume || !price) {
+      addToast('Nom, contenance et prix sont obligatoires', 'error');
+      return;
+    }
+    const formData = new FormData();
+    formData.append('nom', name);
+    if (slug) formData.append('slug', slug);
+    if (sku) formData.append('reference_sku', sku);
+    if (shortDesc) formData.append('description_courte', shortDesc);
+    if (longDesc) formData.append('description_longue', longDesc);
+    if (iaDesc) formData.append('description_ia', iaDesc);
+    formData.append('contenance_ml', volume);
+    formData.append('prix_unitaire', price);
+    if (imageFile) formData.append('image', imageFile);
     try {
-      const payload = {
-        taux_commission: parseFloat(commission),
-        reduction_client_pourcentage: parseFloat(reduction),
-      };
-
-      // Endpoint 3.8: PATCH /api/v1/auth/admin/prestataires/validate/{id}/
-      // @ts-ignore - Assuming implementation in your apiService
-      await shopService.validatePrestataire(selectedRequest.id, payload);
-
-      addToast('Prestataire validé avec succès. Un code promo a été généré.', 'success');
+      if (editingPerfume) {
+        await adminService.postFormData(`shop/parfums/${editingPerfume.slug}/`, formData);
+        addToast('Parfum mis à jour avec succès', 'success');
+      } else {
+        await adminService.postFormData('shop/parfums/', formData);
+        addToast('Parfum créé avec succès', 'success');
+      }
       setShowModal(false);
-      fetchRequests();
+      fetchPerfumes();
     } catch (error: any) {
-      addToast(error.response?.data?.detail || 'Erreur lors de la validation', 'error');
+      addToast(error.response?.data?.detail || 'Erreur lors de la sauvegarde', 'error');
     }
   };
 
-  const filtered = requests.filter(r =>
-    String(r.id).includes(search) ||
-    String(r.client).includes(search)
-  );
+  const handleDelete = async (slug: string) => {
+    if (!confirm('Êtes‑vous sûr de vouloir supprimer ce parfum ?')) return;
+    try {
+      await shopService.deletePerfume(slug);
+      addToast('Parfum supprimé', 'success');
+      fetchPerfumes();
+    } catch (error) {
+      addToast('Erreur lors de la suppression', 'error');
+    }
+  };
+
+  const filtered = perfumes.filter(p => {
+    const term = search.toLowerCase();
+    return (
+      p.nom?.toLowerCase().includes(term) ||
+      p.reference_sku?.toLowerCase().includes(term) ||
+      p.slug?.toLowerCase().includes(term)
+    );
+  });
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">Demandes de Partenariat</h1>
-        <p className="text-sm text-foreground/40 mt-0.5">Gérez les demandes d'adhésion au programme prestataire</p>
-      </div>
-
-      {/* Search Header */}
-      <div className="bg-white/5 rounded-2xl border border-white/10 p-4 shadow-2xl">
-        <div className="flex items-center gap-2 border border-white/10 rounded-lg px-3 py-2 w-full max-w-md">
-          <Search size={15} className="text-foreground/40" />
-          <input
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            placeholder="Rechercher par ID demande ou client..."
-            className="text-sm bg-transparent outline-none flex-1 text-foreground placeholder:text-foreground/40"
-          />
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Parfums</h1>
+          <p className="text-sm text-foreground/40 mt-0.5">Gestion du catalogue de parfums</p>
         </div>
+        <button onClick={handleOpenAdd} className="flex items-center gap-2 bg-gold text-black px-4 py-2.5 rounded-xl text-sm font-medium hover:bg-gold/80 transition-all shadow-lg">
+          <Plus size={16} /> Ajouter
+        </button>
       </div>
 
-      {/* Requests Table */}
+      {/* Search */}
+      <div className="bg-white/5 rounded-2xl border border-white/10 p-4 shadow-2xl flex items-center gap-2 w-full max-w-md">
+        <Search size={15} className="text-foreground/40" />
+        <input
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          placeholder="Rechercher un parfum..."
+          className="text-sm bg-transparent outline-none flex-1 text-foreground placeholder:text-foreground/40"
+        />
+      </div>
+
+      {/* Table */}
       <div className="bg-white/5 rounded-2xl border border-white/10 shadow-2xl overflow-hidden min-h-[300px]">
         {loading ? (
           <div className="flex flex-col items-center justify-center py-20 text-gold gap-3">
             <Loader2 className="animate-spin" size={32} />
-            <p className="text-sm font-medium">Chargement des demandes...</p>
+            <p className="text-sm font-medium">Chargement des parfums…</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="border-b border-white/10 bg-white/5">
-                  <th className="px-6 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider">ID Demande</th>
-                  <th className="px-6 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider">ID Client</th>
-                  <th className="px-6 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider">Date de création</th>
-                  <th className="px-6 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider">Statut</th>
+                  <th className="px-6 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider">Nom</th>
+                  <th className="px-6 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider">SKU</th>
+                  <th className="px-6 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider">Contenance (ml)</th>
+                  <th className="px-6 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider">Prix</th>
                   <th className="px-6 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
-                {filtered.map(r => (
-                  <tr key={r.id} className="hover:bg-white/5 transition-colors group">
-                    <td className="px-6 py-4 font-mono text-xs text-gold">#{r.id}</td>
-                    <td
-                      className="px-6 py-4 text-sm text-foreground font-medium cursor-pointer hover:text-gold transition-colors flex items-center gap-2"
-                      onClick={() => handleOpenDetails(r)}
-                      title="Voir les détails personnels"
-                    >
-                      <User size={14} className="text-foreground/20" />
-                      Client {r.client}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-foreground/60">{new Date(r.date_creation).toLocaleDateString()}</td>
-                    <td className="px-6 py-4">
-                      <span className="text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-tight bg-amber-500/10 text-amber-400">
-                        {r.statut}
-                      </span>
-                    </td>
+                {filtered.map(p => (
+                  <tr key={p.id} className="hover:bg-white/5 transition-colors group">
+                    <td className="px-6 py-4 font-medium text-foreground">{p.nom || p.name}</td>
+                    <td className="px-6 py-4 text-sm text-foreground/60">{p.reference_sku || ''}</td>
+                    <td className="px-6 py-4 text-sm text-foreground/60">{p.contenance_ml}</td>
+                    <td className="px-6 py-4 text-sm text-gold font-bold">{p.prix_unitaire ? `${p.prix_unitaire} FCFA` : ''}</td>
                     <td className="px-6 py-4 text-right">
-                      <button
-                        onClick={() => handleOpenValidate(r)}
-                        className="bg-gold text-black px-4 py-2 rounded-lg text-xs font-bold hover:bg-gold/80 transition-all inline-flex items-center gap-2 shadow-lg active:scale-95"
-                      >
-                        <UserCheck size={14} />
-                        Approuver
-                      </button>
+                      <div className="flex items-center justify-end gap-2">
+                        <button onClick={() => handleOpenEdit(p)} className="p-2 rounded-lg hover:bg-white/5 text-foreground/40 hover:text-gold transition-colors">
+                          <Edit2 size={16} />
+                        </button>
+                        <button onClick={() => handleDelete(p.slug)} className="p-2 rounded-lg hover:bg-red-500/10 text-foreground/40 hover:text-red-400 transition-colors">
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
                 {filtered.length === 0 && (
                   <tr>
-                    <td colSpan={5} className="text-center py-20 text-foreground/40 italic">Aucune demande trouvée.</td>
+                    <td colSpan={5} className="text-center py-20 text-foreground/40 italic">Aucun parfum trouvé.</td>
                   </tr>
                 )}
               </tbody>
@@ -161,117 +201,29 @@ export default function PrestataireManagementPage() {
         )}
       </div>
 
-      {/* Validation Modal (The Popup requested) */}
+      {/* Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-[#1a1a1a] rounded-3xl p-8 w-full max-w-md shadow-2xl border border-white/10 animate-in fade-in zoom-in duration-200">
-            <div className="flex items-center gap-4 mb-6 text-gold">
-              <div className="w-12 h-12 rounded-2xl bg-gold/10 flex items-center justify-center">
-                <CheckCircle size={28} />
+          <div className="bg-background rounded-2xl p-6 w-full max-w-md shadow-2xl border border-white/10">
+            <h3 className="font-bold text-foreground mb-4">{editingPerfume ? 'Modifier le parfum' : 'Ajouter un parfum'}</h3>
+            <div className="space-y-4">
+              <input placeholder="Nom" value={name} onChange={e => setName(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold" />
+              <input placeholder="Slug (optionnel)" value={slug} onChange={e => setSlug(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold" />
+              <input placeholder="Référence SKU (optionnel)" value={sku} onChange={e => setSku(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold" />
+              <textarea placeholder="Description courte" value={shortDesc} onChange={e => setShortDesc(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold" rows={2} />
+              <textarea placeholder="Description longue" value={longDesc} onChange={e => setLongDesc(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold" rows={3} />
+              <textarea placeholder="Description IA" value={iaDesc} onChange={e => setIaDesc(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold" rows={2} />
+              <div className="grid grid-cols-2 gap-3">
+                <input placeholder="Contenance (ml)" type="number" value={volume} onChange={e => setVolume(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold" />
+                <input placeholder="Prix (FCFA)" type="number" value={price} onChange={e => setPrice(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold" />
               </div>
-              <h3 className="text-xl font-bold text-foreground">Valider le partenaire</h3>
+              {/* Image uploader */}
+              <ImageUploader onFileSelect={setImageFile} />
             </div>
-
-            <p className="text-sm text-foreground/60 mb-8 leading-relaxed">
-              Veuillez définir les paramètres financiers pour ce prestataire. Une fois validé, il recevra automatiquement son code promo unique par e-mail.
-            </p>
-
-            <div className="space-y-5">
-              <div>
-                <label className="text-xs font-semibold text-foreground/40 mb-2 block uppercase tracking-wider flex items-center gap-2">
-                  <Percent size={14} className="text-gold" /> Taux de Commission (%)
-                </label>
-                <input
-                  type="number"
-                  value={commission}
-                  onChange={e => setCommission(e.target.value)}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-foreground outline-none focus:border-gold focus:ring-1 focus:ring-gold transition-all"
-                  placeholder="15.00"
-                />
-              </div>
-
-              <div>
-                <label className="text-xs font-semibold text-foreground/40 mb-2 block uppercase tracking-wider flex items-center gap-2">
-                  <Gift size={14} className="text-gold" /> Réduction Client (%)
-                </label>
-                <input
-                  type="number"
-                  value={reduction}
-                  onChange={e => setReduction(e.target.value)}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-foreground outline-none focus:border-gold focus:ring-1 focus:ring-gold transition-all"
-                  placeholder="5.0"
-                />
-              </div>
+            <div className="flex gap-3 mt-6">
+              <button onClick={() => setShowModal(false)} className="flex-1 border border-white/10 rounded-lg py-2.5 text-sm text-foreground/60 hover:bg-white/5 transition-colors">Annuler</button>
+              <button onClick={handleSave} className="flex-1 bg-gold text-black rounded-lg py-2.5 text-sm font-bold hover:bg-gold/80 transition-colors">Enregistrer</button>
             </div>
-
-            <div className="flex gap-4 mt-10">
-              <button onClick={() => setShowModal(false)} className="flex-1 border border-white/10 rounded-xl py-3.5 text-sm font-medium text-foreground/60 hover:bg-white/5 transition-colors">
-                Annuler
-              </button>
-              <button onClick={handleValidate} className="flex-1 bg-gold text-black rounded-xl py-3.5 text-sm font-bold hover:bg-gold/90 transition-all shadow-lg shadow-gold/10 active:scale-95">
-                Valider la demande
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Details Modal */}
-      {showDetailsModal && viewingRequest && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-[#1a1a1a] rounded-3xl p-8 w-full max-w-md shadow-2xl border border-white/10 animate-in fade-in zoom-in duration-200">
-            <div className="flex items-center gap-4 mb-8 text-gold border-b border-white/5 pb-6">
-              <div className="w-12 h-12 rounded-2xl bg-gold/10 flex items-center justify-center">
-                <Info size={28} />
-              </div>
-              <div>
-                <h3 className="text-xl font-bold text-foreground">Détails du Candidat</h3>
-                <p className="text-xs text-foreground/40 font-mono">Demande #{viewingRequest.id}</p>
-              </div>
-            </div>
-
-            <div className="space-y-6">
-              <div className="flex items-start gap-4">
-                <div className="p-2 rounded-lg bg-white/5 text-gold">
-                  <User size={18} />
-                </div>
-                <div>
-                  <p className="text-[10px] text-foreground/40 uppercase font-bold tracking-widest mb-0.5">Identifiant Client</p>
-                  <p className="text-sm font-medium text-foreground">{viewingRequest.client_name || `Client #${viewingRequest.client}`}</p>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-4">
-                <div className="p-2 rounded-lg bg-white/5 text-gold">
-                  <Mail size={18} />
-                </div>
-                <div>
-                  <p className="text-[10px] text-foreground/40 uppercase font-bold tracking-widest mb-0.5">Email</p>
-                  <p className="text-sm font-medium text-foreground">{viewingRequest.client_email || 'Non spécifié'}</p>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-4">
-                <div className="p-2 rounded-lg bg-white/5 text-gold">
-                  <Calendar size={18} />
-                </div>
-                <div>
-                  <p className="text-[10px] text-foreground/40 uppercase font-bold tracking-widest mb-0.5">Date de la demande</p>
-                  <p className="text-sm font-medium text-foreground">
-                    {new Date(viewingRequest.date_creation).toLocaleDateString('fr-FR', {
-                      day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit'
-                    })}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <button
-              onClick={() => setShowDetailsModal(false)}
-              className="w-full mt-10 border border-white/10 rounded-xl py-3.5 text-sm font-bold text-foreground hover:bg-white/5 transition-all active:scale-95"
-            >
-              Fermer
-            </button>
           </div>
         </div>
       )}

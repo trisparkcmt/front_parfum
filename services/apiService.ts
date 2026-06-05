@@ -1,4 +1,4 @@
-/**
+﻿/**
  * @file services/apiService.ts
  * @description Centralized API Service Layer for all Django backend endpoints.
  * Implements all endpoints from the API documentation.
@@ -804,6 +804,18 @@ export const deliveryService = {
 
 export const adminService = {
   /**
+   * Post FormData to the given endpoint with proper headers (for image uploads).
+   */
+  postFormData: async (url: string, data: FormData) => {
+    const response = await api.post(url, data, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  },
+
+  /**
    * Get paginated list of all users
    */
   getUsers: async (params?: { search?: string; page?: number }) => {
@@ -815,9 +827,7 @@ export const adminService = {
    * Toggle user active status
    */
   toggleUserStatus: async (userId: number) => {
-    const response = await api.patch(
-      `auth/admin/users/${userId}/toggle-status/`
-    );
+    const response = await api.patch(`auth/admin/users/${userId}/toggle-status/`);
     return response.data;
   },
 
@@ -834,7 +844,7 @@ export const adminService = {
    */
   getProviderDashboard: async (providerId: string) => {
     const response = await api.get('auth/prestataire/dashboard/', {
-      params: { prestataire_id: providerId }
+      params: { prestataire_id: providerId },
     });
     return response.data;
   },
@@ -983,3 +993,5 @@ export const orderService = {
     return response.data;
   },
 };
+
+export { api };

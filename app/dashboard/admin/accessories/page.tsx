@@ -2,9 +2,10 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { Search, Plus, Edit2, Trash2, Loader2 } from 'lucide-react';
-import { shopService } from '@/services/apiService';
+import { shopService, adminService } from '@/services/apiService';
 import { useToastStore } from '@/store/useToastStore';
 import { BackButton } from '@/components/ui/BackButton';
+import ImageUploader from '@/components/admin/ImageUploader';
 
 const categoryConfig: Record<string, { label: string; color: string }> = {
   'bijoux': { label: 'Bijoux', color: 'text-amber-400 bg-amber-500/10' },
@@ -26,6 +27,14 @@ export default function AccessoriesPage() {
   const [category, setCategory] = useState('autre');
   const [price, setPrice] = useState('');
   const [stock, setStock] = useState('');
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  // New fields
+  const [slug, setSlug] = useState('');
+  const [sku, setSku] = useState('');
+  const [shortDesc, setShortDesc] = useState('');
+  const [longDesc, setLongDesc] = useState('');
+  const [iaDesc, setIaDesc] = useState('');
+  const [volume, setVolume] = useState('');
 
   const { addToast } = useToastStore();
 
@@ -55,6 +64,13 @@ export default function AccessoriesPage() {
     setCategory('autre');
     setPrice('');
     setStock('');
+    setSlug('');
+    setSku('');
+    setShortDesc('');
+    setLongDesc('');
+    setIaDesc('');
+    setVolume('');
+    setImageFile(null);
     setShowModal(true);
   };
 
@@ -64,6 +80,13 @@ export default function AccessoriesPage() {
     setCategory(acc.categorie || acc.category || 'autre');
     setPrice(String(acc.prix || acc.price || ''));
     setStock(String(acc.stock || acc.quantite_stock || ''));
+    setSlug(acc.slug || '');
+    setSku(acc.reference_sku || '');
+    setShortDesc(acc.description_courte || '');
+    setLongDesc(acc.description_longue || '');
+    setIaDesc(acc.description_ia || '');
+    setVolume(String(acc.contenance_ml || ''));
+    setImageFile(null);
     setShowModal(true);
   };
 
@@ -72,23 +95,26 @@ export default function AccessoriesPage() {
       addToast('Le nom et le prix sont requis', 'error');
       return;
     }
-    const payload = {
-      nom: name,
-      name: name,
-      categorie: category,
-      category: category,
-      prix: parseFloat(price),
-      price: parseFloat(price),
-      stock: parseInt(stock) || 0,
-      quantite_stock: parseInt(stock) || 0,
-    };
-
+    const formData = new FormData();
+    formData.append('nom', name);
+    if (slug) formData.append('slug', slug);
+    if (sku) formData.append('reference_sku', sku);
+    if (shortDesc) formData.append('description_courte', shortDesc);
+    if (longDesc) formData.append('description_longue', longDesc);
+    if (iaDesc) formData.append('description_ia', iaDesc);
+    if (volume) formData.append('contenance_ml', volume);
+    formData.append('prix_unitaire', price);
+    formData.append('categorie', category);
+    formData.append('stock', stock);
+    if (imageFile) {
+      formData.append('image', imageFile);
+    }
     try {
       if (editingAccessory) {
-        await shopService.updateAccessory(editingAccessory.slug, payload);
+        await adminService.postFormData(`shop/accessoires/${editingAccessory.slug}/`, formData);
         addToast('Accessoire mis à jour avec succès', 'success');
       } else {
-        await shopService.createAccessory(payload);
+        await adminService.postFormData('shop/accessoires/', formData);
         addToast('Accessoire créé avec succès', 'success');
       }
       setShowModal(false);
@@ -130,7 +156,6 @@ export default function AccessoriesPage() {
         </button>
       </div>
 
-      {/* Filters */}
       <div className="bg-white/5 rounded-2xl border border-white/10 p-4 shadow-2xl flex flex-wrap items-center gap-3">
         <div className="flex items-center gap-2 border border-white/10 rounded-lg px-3 py-2 flex-1 min-w-48">
           <Search size={15} className="text-foreground/40" />
@@ -155,7 +180,6 @@ export default function AccessoriesPage() {
         </div>
       </div>
 
-      {/* List */}
       <div className="bg-white/5 rounded-2xl border border-white/10 shadow-2xl overflow-hidden min-h-[300px]">
         {loading ? (
           <div className="flex flex-col items-center justify-center py-20 text-gold gap-3">
@@ -229,7 +253,6 @@ export default function AccessoriesPage() {
         )}
       </div>
 
-      {/* Add Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-background rounded-2xl p-6 w-full max-w-md shadow-2xl border border-white/10">
@@ -244,17 +267,47 @@ export default function AccessoriesPage() {
                   onChange={e => setName(e.target.value)}
                   className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
                 />
-                <select
-                  value={category}
-                  onChange={e => setCategory(e.target.value)}
-                  className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm outline-none focus:border-gold text-foreground/60"
-                >
-                  <option value="bijoux" className="bg-background">Bijoux</option>
-                  <option value="montre" className="bg-background">Montres</option>
-                  <option value="sac" className="bg-background">Sacs</option>
-                  <option value="autre" className="bg-background">Autres</option>
-                </select>
+                <input
+                  placeholder="Slug (optionnel)"
+                  value={slug}
+                  onChange={e => setSlug(e.target.value)}
+                  className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
+                />
+                <input
+                  placeholder="Référence SKU (optionnel)"
+                  value={sku}
+                  onChange={e => setSku(e.target.value)}
+                  className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
+                />
+                <textarea
+                  placeholder="Description courte"
+                  value={shortDesc}
+                  onChange={e => setShortDesc(e.target.value)}
+                  className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
+                  rows={2}
+                />
+                <textarea
+                  placeholder="Description longue"
+                  value={longDesc}
+                  onChange={e => setLongDesc(e.target.value)}
+                  className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
+                  rows={3}
+                />
+                <textarea
+                  placeholder="Description IA"
+                  value={iaDesc}
+                  onChange={e => setIaDesc(e.target.value)}
+                  className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
+                  rows={2}
+                />
                 <div className="grid grid-cols-2 gap-3">
+                  <input
+                    placeholder="Contenance (ml)"
+                    type="number"
+                    value={volume}
+                    onChange={e => setVolume(e.target.value)}
+                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
+                  />
                   <input
                     placeholder="Prix (FCFA)"
                     type="number"
@@ -262,14 +315,8 @@ export default function AccessoriesPage() {
                     onChange={e => setPrice(e.target.value)}
                     className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
                   />
-                  <input
-                    placeholder="Stock"
-                    type="number"
-                    value={stock}
-                    onChange={e => setStock(e.target.value)}
-                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
-                  />
                 </div>
+                <ImageUploader onFileSelect={setImageFile} />
               </div>
             </div>
             <div className="flex gap-3 mt-6">
