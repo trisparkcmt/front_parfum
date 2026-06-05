@@ -5,10 +5,11 @@
  * @description Redesigned AI Fragrance Sommelier — full chat experience.
  *
  * - User prompts appear as right-aligned chat bubbles.
- * - While awaiting the AI, a series of rotating search status messages animate on the left.
- * - AI response arrives as a left-aligned bubble.
- * - Recommended products (parfums, essences) render in a horizontally scrollable card row
- *   beneath the AI bubble, each with an individual "Add to cart" action plus a "Add all" CTA.
+ * - While awaiting the AI, a series of rotating status messages animate on the left.
+ * - AI response arrives as a left-aligned bubble with a progressive typing effect.
+ * - If the request encounters a 503 error, a descriptive message is shown with a retry action.
+ * - The request can be cancelled/aborted at any time.
+ * - Scrollbars in scrollable zones are hidden.
  */
 
 import { useEffect, useRef, useState, useCallback } from 'react';
@@ -21,10 +22,12 @@ import {
   Package,
   Beaker,
   RefreshCw,
+  Droplets,
+  AlertTriangle,
 } from 'lucide-react';
 import { InputBar } from './InputBar';
 import { API_ROOT } from '@/services/api';
-import { labService } from '@/services/apiService';
+import { api, labService } from '@/services/apiService';
 import { useCartStore } from '@/store/useCartStore';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useToastStore } from '@/store/useToastStore';
@@ -68,6 +71,8 @@ interface ChatMessage {
   text: string;
   aiData?: AiResponse;
   composition?: CustomComposition;
+  isError503?: boolean;
+  retryPayload?: { content: string; bottleSize: string; budget: string };
 }
 
 // ── Loading search texts ────────────────────────────────────────────────────
@@ -82,6 +87,29 @@ const LOADING_TEXTS = [
   'Calcul des prix et des compositions optimales...',
   'Derniers ajustements olfactifs en cours...',
 ];
+
+// ── Blending color helper specifically for visual bottle representation ──────
+
+function blendHexColors(colors: { hex: string; weight: number }[]): string {
+  if (colors.length === 0) return '#C5A059'; // fallback gold
+  let r = 0, g = 0, b = 0, totalWeight = 0;
+  colors.forEach(c => {
+    let hex = c.hex.replace('#', '');
+    if (hex.length === 3) {
+      hex = hex.split('').map(char => char + char).join('');
+    }
+    const weight = c.weight || 1;
+    r += parseInt(hex.substring(0, 2), 16) * weight;
+    g += parseInt(hex.substring(2, 4), 16) * weight;
+    b += parseInt(hex.substring(4, 6), 16) * weight;
+    totalWeight += weight;
+  });
+  if (totalWeight === 0) return '#C5A059';
+  const finalR = Math.round(r / totalWeight).toString(16).padStart(2, '0');
+  const finalG = Math.round(g / totalWeight).toString(16).padStart(2, '0');
+  const finalB = Math.round(b / totalWeight).toString(16).padStart(2, '0');
+  return `#${finalR}${finalG}${finalB}`;
+}
 
 // ── Sub-components ──────────────────────────────────────────────────────────
 
@@ -102,14 +130,12 @@ function LoadingBubble() {
 
   return (
     <div className="flex items-end gap-3 justify-start">
-      {/* Avatar */}
       <div className="w-9 h-9 rounded-full bg-gradient-to-br from-gold/30 to-gold/10 border border-gold/30 flex items-center justify-center flex-shrink-0 shadow-sm">
         <Sparkles size={15} className="text-gold" />
       </div>
 
       <div className="max-w-xs md:max-w-md bg-white/5 border border-white/10 rounded-3xl rounded-bl-md px-5 py-4 shadow-xl backdrop-blur-md">
         <div className="flex items-center gap-3">
-          {/* Animated dots */}
           <div className="flex items-center gap-1">
             {[0, 1, 2].map(i => (
               <motion.span
@@ -121,7 +147,6 @@ function LoadingBubble() {
             ))}
           </div>
 
-          {/* Rotating text */}
           <AnimatePresence mode="wait">
             {visible && (
               <motion.p
@@ -173,7 +198,6 @@ function ProductCard({
 
   return (
     <div className="flex-shrink-0 w-44 bg-white/5 border border-white/10 rounded-2xl overflow-hidden hover:border-gold/30 transition-all group">
-      {/* Image */}
       <div className="relative w-full h-36 bg-black/20 overflow-hidden">
         {image ? (
           <img
@@ -188,13 +212,11 @@ function ProductCard({
         )}
       </div>
 
-      {/* Info */}
       <div className="p-3">
         <p className="text-xs font-bold text-foreground/80 line-clamp-2 leading-tight mb-1">{name}</p>
         <p className="text-xs text-gold font-semibold">{typeof price === 'number' ? formatPrice(price) : formatPrice(Number(price))}</p>
       </div>
 
-      {/* Add to Cart */}
       <button
         onClick={handleAdd}
         className={`w-full py-2.5 text-[10px] font-bold uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all border-t border-white/5
@@ -203,42 +225,99 @@ function ProductCard({
             : 'bg-white/5 hover:bg-gold hover:text-black text-foreground/60'
           }`}
       >
-        {added ? (
-          <>
-            <span>Ajouté ✓</span>
-          </>
-        ) : (
-          <>
-            <Plus size={11} />
-            <span>Ajouter</span>
-          </>
-        )}
+        {added ? <span>Ajouté ✓</span> : <><Plus size={11} /><span>Ajouter</span></>}
       </button>
     </div>
   );
 }
 
+function MiniBottleVisual({ composition }: { composition: CustomComposition }) {
+  const totalMl = composition.totalMl || 100;
+  const percentage = Math.min(100, Math.round((totalMl / 100) * 100));
+
+  const colors = composition.essences.map(e => ({
+    hex: e.essence.color || '#C5A059',
+    weight: e.quantityMl || 10,
+  }));
+  const blendedColor = blendHexColors(colors);
+
+  return (
+    <div className="relative flex flex-col items-center justify-center p-4 bg-charcoal/40 rounded-2xl border border-white/5 w-44 flex-shrink-0">
+      <div
+        className="absolute inset-0 rounded-2xl opacity-10 blur-xl transition-colors duration-1000"
+        style={{ backgroundColor: blendedColor }}
+      />
+      <div className="relative z-10 w-24 h-36 border-2 border-white/20 rounded-b-2xl rounded-t-lg bg-deep-black overflow-hidden flex flex-col justify-end">
+        <div className="absolute -top-6 left-1/2 -translate-x-1/2 w-8 h-6 border-2 border-white/20 rounded-t-sm bg-deep-black" />
+        <motion.div
+          className="w-full relative"
+          initial={{ height: 5 }}
+          animate={{ height: `${percentage}%` }}
+          transition={{ type: 'spring', bounce: 0.1, duration: 1 }}
+          style={{ backgroundColor: blendedColor }}
+        >
+          <div className="absolute top-0 inset-x-0 h-2 bg-white/20 mix-blend-overlay" />
+          {percentage > 0 && (
+            <div className="absolute inset-0 flex items-center justify-center opacity-20">
+              <Droplets size={24} className="text-foreground mix-blend-overlay" />
+            </div>
+          )}
+        </motion.div>
+        <div className="absolute inset-0 flex flex-col items-center justify-center text-foreground mix-blend-difference pointer-events-none">
+          <span className="font-display text-lg font-bold">{totalMl}ml</span>
+        </div>
+      </div>
+      <p className="text-[10px] text-foreground/50 mt-3 uppercase tracking-wider truncate max-w-full font-bold">
+        {composition.name}
+      </p>
+    </div>
+  );
+}
+
+// Progressive Typing Text bubble
+function TypingBubble({ text }: { text: string }) {
+  const [displayedText, setDisplayedText] = useState('');
+
+  useEffect(() => {
+    let index = 0;
+    const interval = setInterval(() => {
+      setDisplayedText((prev) => prev + text.charAt(index));
+      index++;
+      if (index >= text.length) {
+        clearInterval(interval);
+      }
+    }, 15); // Progressive speed
+    return () => clearInterval(interval);
+  }, [text]);
+
+  return (
+    <div className="inline-block max-w-xs md:max-w-lg bg-white/5 border border-white/10 rounded-3xl rounded-tl-md px-5 py-4 shadow-xl backdrop-blur-md">
+      <p className="text-sm text-foreground/85 leading-relaxed italic">&ldquo;{displayedText}&rdquo;</p>
+    </div>
+  );
+}
+
 function AiBubble({
-  text,
-  aiData,
-  composition,
+  messageObj,
   onAddAllToCart,
+  onRetry,
 }: {
-  text: string;
-  aiData?: AiResponse;
-  composition?: CustomComposition;
+  messageObj: ChatMessage;
   onAddAllToCart: (aiData: AiResponse, composition?: CustomComposition) => void;
+  onRetry: (payload: { content: string; bottleSize: string; budget: string }) => void;
 }) {
   const { addProduct, addComposition } = useCartStore();
   const { addToast } = useToastStore();
 
+  const { text, aiData, composition, isError503, retryPayload } = messageObj;
+
   const hasProducts = (aiData?.parfums_existants?.length ?? 0) > 0;
   const hasEssences = (aiData?.essences_pre_faites?.length ?? 0) > 0;
+  const hasAccessories = (aiData?.accessoires?.length ?? 0) > 0;
   const hasComposition = composition && composition.essences.length > 0;
-  const hasAnyItems = hasProducts || hasEssences || hasComposition;
+  const hasAnyItems = hasProducts || hasEssences || hasComposition || hasAccessories;
 
   const handleAddProduct = (p: AiProduct) => {
-    // Map to Product type minimal shape
     const product: Product = {
       id: String(p.id),
       name: p.nom,
@@ -254,54 +333,92 @@ function AiBubble({
     addToast(`"${p.nom}" ajouté au panier`, 'success');
   };
 
+  const handleAddAccessory = (a: Accessory) => {
+    const rawAcc = a as unknown as Record<string, unknown>;
+    const product: Product = {
+      ...a,
+      id: String(a.id),
+      name: a.name || String(rawAcc.nom || ''),
+      price: Number(a.price || rawAcc.prix_unitaire || 0),
+      category: 'accessory',
+      images: a.images || (rawAcc.image_principale ? [String(rawAcc.image_principale)] : []),
+    };
+    addProduct(product);
+    addToast(`"${product.name}" ajouté au panier`, 'success');
+  };
+
   return (
     <div className="flex items-start gap-3 justify-start">
-      {/* Avatar */}
       <div className="w-9 h-9 rounded-full bg-gradient-to-br from-gold/30 to-gold/10 border border-gold/30 flex items-center justify-center flex-shrink-0 shadow-sm mt-1">
         <Sparkles size={15} className="text-gold" />
       </div>
 
       <div className="flex-1 min-w-0 space-y-4">
-        {/* Message bubble */}
-        <div className="inline-block max-w-xs md:max-w-lg bg-white/5 border border-white/10 rounded-3xl rounded-tl-md px-5 py-4 shadow-xl backdrop-blur-md">
-          <p className="text-sm text-foreground/85 leading-relaxed italic">&ldquo;{text}&rdquo;</p>
-        </div>
+        {/* Error state wrapper */}
+        {isError503 ? (
+          <div className="bg-red-500/10 border border-red-500/35 rounded-3xl p-5 max-w-md space-y-4">
+            <div className="flex items-center gap-2 text-red-400">
+              <AlertTriangle size={18} />
+              <p className="text-sm font-bold">Erreur du serveur (503)</p>
+            </div>
+            <p className="text-xs text-foreground/80 leading-relaxed">
+              Désolé, nous recevons actuellement un trop grand nombre de requêtes. Veuillez réessayer dans un instant.
+            </p>
+            {retryPayload && (
+              <button
+                onClick={() => onRetry(retryPayload)}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-red-500/20 hover:bg-red-500/30 text-red-200 border border-red-500/30 text-xs font-bold transition-all"
+              >
+                <RefreshCw size={12} />
+                Réessayer la demande
+              </button>
+            )}
+          </div>
+        ) : (
+          <TypingBubble text={text} />
+        )}
 
-        {/* Composition formula card */}
-        {hasComposition && (
-          <div className="bg-white/5 border border-gold/15 rounded-2xl p-4 max-w-md">
-            <div className="flex items-center gap-2 mb-3">
-              <Beaker size={14} className="text-gold" />
-              <p className="text-[10px] font-bold uppercase tracking-widest text-gold">
-                Formule IA ({composition!.totalMl}ml)
-              </p>
-            </div>
-            <div className="space-y-2">
-              {composition!.essences.map(item => (
-                <div key={item.essence.id} className="flex items-center justify-between text-xs">
-                  <div className="flex items-center gap-2">
-                    <div
-                      className="w-2.5 h-2.5 rounded-full flex-shrink-0"
-                      style={{ backgroundColor: item.essence.color || '#C5A059' }}
-                    />
-                    <span className="text-foreground/70">{item.essence.name}</span>
-                  </div>
-                  <span className="font-bold font-mono text-foreground/50">{item.quantityMl}ml</span>
+        {/* Composition recipe details */}
+        {!isError503 && hasComposition && (
+          <div className="flex flex-col sm:flex-row gap-4 max-w-lg">
+            <MiniBottleVisual composition={composition!} />
+            <div className="flex-1 bg-white/5 border border-gold/15 rounded-2xl p-4 flex flex-col justify-between">
+              <div>
+                <div className="flex items-center gap-2 mb-3">
+                  <Beaker size={14} className="text-gold" />
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-gold">
+                    Formule IA ({composition!.totalMl}ml)
+                  </p>
                 </div>
-              ))}
-            </div>
-            <div className="mt-3 pt-3 border-t border-white/10 flex justify-between items-center">
-              <span className="text-[10px] text-foreground/40 uppercase font-semibold">Prix composition</span>
-              <span className="text-sm font-bold text-gold">{formatPrice(composition!.totalPrice)}</span>
+                <div className="space-y-2">
+                  {composition!.essences.map(item => (
+                    <div key={item.essence.id} className="flex items-center justify-between text-xs">
+                      <div className="flex items-center gap-2">
+                        <div
+                          className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                          style={{ backgroundColor: item.essence.color || '#C5A059' }}
+                        />
+                        <span className="text-foreground/70">{item.essence.name}</span>
+                      </div>
+                      <span className="font-bold font-mono text-foreground/50">{item.quantityMl}ml</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="mt-3 pt-3 border-t border-white/10 flex justify-between items-center">
+                <span className="text-[10px] text-foreground/40 uppercase font-semibold">Prix composition</span>
+                <span className="text-sm font-bold text-gold">{formatPrice(composition!.totalPrice)}</span>
+              </div>
             </div>
           </div>
         )}
 
-        {/* Horizontal product cards */}
-        {hasProducts && (
+        {/* Suggested perfumes */}
+        {!isError503 && hasProducts && (
           <div>
             <p className="text-[10px] text-foreground/40 uppercase tracking-widest font-bold mb-2 ml-1">Parfums suggérés</p>
-            <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-thin">
+            <div className="flex gap-3 overflow-x-auto pb-2" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+              <style dangerouslySetInnerHTML={{ __html: `::-webkit-scrollbar { display: none; }` }} />
               {aiData!.parfums_existants!.map(p => (
                 <ProductCard
                   key={p.id}
@@ -315,11 +432,11 @@ function AiBubble({
           </div>
         )}
 
-        {/* Essence cards */}
-        {hasEssences && (
+        {/* Recommended essences */}
+        {!isError503 && hasEssences && (
           <div>
             <p className="text-[10px] text-foreground/40 uppercase tracking-widest font-bold mb-2 ml-1">Essences recommandées</p>
-            <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-thin">
+            <div className="flex gap-3 overflow-x-auto pb-2" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
               {aiData!.essences_pre_faites!.map(e => (
                 <div
                   key={e.id}
@@ -337,8 +454,31 @@ function AiBubble({
           </div>
         )}
 
-        {/* Add all + add composition CTAs */}
-        {hasAnyItems && (
+        {/* Recommended accessories */}
+        {!isError503 && hasAccessories && (
+          <div>
+            <p className="text-[10px] text-foreground/40 uppercase tracking-widest font-bold mb-2 ml-1">Accessoires proposés</p>
+            <div className="flex gap-3 overflow-x-auto pb-2" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+              {aiData!.accessoires!.map(a => {
+                const image = a.images?.[0] || (a as any).image_principale;
+                const name = a.name || (a as any).nom;
+                const price = a.price || (a as any).prix_unitaire;
+                return (
+                  <ProductCard
+                    key={a.id}
+                    image={image}
+                    name={name}
+                    price={price}
+                    onAdd={() => handleAddAccessory(a)}
+                  />
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Global CTAs */}
+        {!isError503 && hasAnyItems && (
           <div className="flex flex-wrap gap-2">
             {hasComposition && (
               <button
@@ -352,7 +492,7 @@ function AiBubble({
                 Ajouter la composition
               </button>
             )}
-            {hasProducts && (
+            {(hasProducts || hasAccessories) && (
               <button
                 onClick={() => onAddAllToCart(aiData!, composition)}
                 className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 hover:border-gold/30 hover:text-gold text-foreground/60 font-bold text-xs uppercase tracking-wider transition-all active:scale-95"
@@ -370,11 +510,17 @@ function AiBubble({
 
 // ── Main Component ──────────────────────────────────────────────────────────
 
-export function GeminiChat() {
+export interface GeminiChatProps {
+  onChatStarted?: (started: boolean) => void;
+}
+
+export function GeminiChat({ onChatStarted }: GeminiChatProps) {
   const [mounted, setMounted] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [essences, setEssences] = useState<Essence[]>([]);
+
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const { addProduct, addComposition } = useCartStore();
   const { user } = useAuthStore();
@@ -400,9 +546,31 @@ export function GeminiChat() {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isLoading]);
 
+  // Cleanup abort controller on unmount
+  useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, []);
+
+  // Abort ongoing backend recommendation request
+  const handleAbort = useCallback(() => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+      setIsLoading(false);
+      addToast('Demande IA annulée.', 'info');
+    }
+  }, [addToast]);
+
   // ── Handle user prompt submission ──
   const handleSend = useCallback(async (data: { content: string; bottleSize: string; budget: string }) => {
     if (!data.content.trim() || isLoading) return;
+
+    // Create a new AbortController for this request
+    abortControllerRef.current = new AbortController();
 
     const userMsg: ChatMessage = {
       id: generateId(),
@@ -412,10 +580,19 @@ export function GeminiChat() {
 
     setMessages(prev => [...prev, userMsg]);
     setIsLoading(true);
+    onChatStarted?.(true);
 
     try {
       const fullPrompt = `${data.content} (Format: ${data.bottleSize}, Budget: ${data.budget})`;
-      const response: AiResponse = await labService.getAIRecommendation(fullPrompt);
+      
+      // Perform direct API request with abort signal
+      const apiResponse = await api.post(
+        'lab/ia-recommandation/',
+        { prompt: fullPrompt },
+        { signal: abortControllerRef.current.signal }
+      );
+      
+      const response: AiResponse = apiResponse.data;
 
       // Parse essences into a composition object
       let totalPrice = 0;
@@ -468,20 +645,40 @@ export function GeminiChat() {
       };
 
       setMessages(prev => [...prev, aiMsg]);
-    } catch {
-      addToast('Une erreur est survenue avec le Sommelier IA', 'error');
-      setMessages(prev => [
-        ...prev,
-        {
-          id: generateId(),
-          role: 'ai',
-          text: 'Désolé, je rencontre une difficulté technique. Veuillez réessayer dans quelques instants.',
-        },
-      ]);
+    } catch (error: any) {
+      if (error.name === 'CanceledError' || error.name === 'AbortError' || axios.isCancel(error)) {
+        // Ignored, manually aborted
+        return;
+      }
+      
+      const status = error.response?.status;
+      if (status === 503) {
+        setMessages(prev => [
+          ...prev,
+          {
+            id: generateId(),
+            role: 'ai',
+            text: '',
+            isError503: true,
+            retryPayload: data,
+          },
+        ]);
+      } else {
+        addToast('Une erreur est survenue avec le Sommelier IA', 'error');
+        setMessages(prev => [
+          ...prev,
+          {
+            id: generateId(),
+            role: 'ai',
+            text: 'Désolé, je rencontre une difficulté technique. Veuillez réessayer dans quelques instants.',
+          },
+        ]);
+      }
     } finally {
       setIsLoading(false);
+      abortControllerRef.current = null;
     }
-  }, [isLoading, essences, user, addToast]);
+  }, [isLoading, essences, user, addToast, onChatStarted]);
 
   // ── Add all recommended products to cart ──
   const handleAddAll = useCallback((aiData: AiResponse, composition?: CustomComposition) => {
@@ -508,6 +705,19 @@ export function GeminiChat() {
       count++;
     });
 
+    aiData.accessoires?.forEach(a => {
+      const product: Product = {
+        ...a,
+        id: String(a.id),
+        name: a.name || (a as any).nom,
+        price: Number(a.price || (a as any).prix_unitaire),
+        category: 'accessory',
+        images: a.images || ((a as any).image_principale ? [(a as any).image_principale] : []),
+      };
+      addProduct(product);
+      count++;
+    });
+
     if (count > 0) addToast(`${count} article(s) ajouté(s) au panier !`, 'success');
   }, [addProduct, addComposition, addToast]);
 
@@ -516,13 +726,15 @@ export function GeminiChat() {
   const isEmpty = messages.length === 0;
 
   return (
-    <div className="w-full max-w-3xl mx-auto flex flex-col" style={{ height: 'calc(100vh - 260px)', minHeight: 480 }}>
+    <div className="w-full max-w-3xl mx-auto flex flex-col h-screen">
       {/* ── Chat area ── */}
       <div
         ref={chatAreaRef}
         className="flex-1 overflow-y-auto pr-1 space-y-6 scroll-smooth"
-        style={{ scrollbarWidth: 'thin' }}
+        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
       >
+        <style dangerouslySetInnerHTML={{ __html: `div::-webkit-scrollbar { display: none !important; }` }} />
+        
         {/* Empty state */}
         {isEmpty && !isLoading && (
           <motion.div
@@ -534,10 +746,7 @@ export function GeminiChat() {
               <Sparkles size={36} className="text-gold" />
             </div>
             <div>
-              <h2 className="text-xl font-bold text-foreground mb-2">Votre Sommelier IA</h2>
-              <p className="text-sm text-foreground/50 max-w-sm leading-relaxed">
-                Décrivez votre personnalité, une occasion spéciale ou une envie. Nous composerons la formule parfaite.
-              </p>
+  
             </div>
 
             {/* Suggestion chips */}
@@ -572,10 +781,9 @@ export function GeminiChat() {
                 <UserBubble text={msg.text} />
               ) : (
                 <AiBubble
-                  text={msg.text}
-                  aiData={msg.aiData}
-                  composition={msg.composition}
+                  messageObj={msg}
                   onAddAllToCart={handleAddAll}
+                  onRetry={handleSend}
                 />
               )}
             </motion.div>
@@ -605,7 +813,10 @@ export function GeminiChat() {
         <div className="flex items-center gap-3 py-3">
           <div className="flex-1 h-px bg-white/5" />
           <button
-            onClick={() => setMessages([])}
+            onClick={() => {
+              setMessages([]);
+              onChatStarted?.(false);
+            }}
             className="flex items-center gap-1.5 text-[10px] uppercase tracking-widest text-foreground/30 hover:text-gold transition-colors font-bold"
           >
             <RefreshCw size={10} />
@@ -619,6 +830,7 @@ export function GeminiChat() {
       <div className="flex-shrink-0 pt-2">
         <InputBar
           onSend={handleSend}
+          onStop={handleAbort}
           status={isLoading ? 'streaming' : 'ready'}
           placeholder="Ex: Un parfum boisé pour le printemps..."
           className="px-0 pb-0"
@@ -627,3 +839,4 @@ export function GeminiChat() {
     </div>
   );
 }
+import axios from 'axios';

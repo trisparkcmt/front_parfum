@@ -1,12 +1,15 @@
 'use client';
 
+import { useState } from "react";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { GeminiChat } from "@/components/perfume/GeminiChat";
 
 export default function AiConsultantPage() {
+  const [chatStarted, setChatStarted] = useState(false);
+
   return (
-    <div className="flex flex-col items-center w-full max-w-4xl mx-auto p-4 space-y-8 pt-24 lg:pt-32 min-h-screen relative">
+    <div className="flex flex-col items-center w-full max-w-4xl mx-auto p-4 relative h-screen overflow-hidden pt-24 lg:pt-32">
       {/* Back Button */}
       <div className="absolute top-8 left-4 lg:left-0 z-20">
         <Link 
@@ -17,18 +20,22 @@ export default function AiConsultantPage() {
           Retour
         </Link>
       </div>
-      <h1 className="font-display text-4xl md:text-6xl font-bold text-foreground text-center">
-        Votre Sommelier <span className="text-gradient-gold">IA</span>
-      </h1>
-      <p className="text-lg md:text-xl text-foreground/70 max-w-2xl mx-auto mb-16 font-light leading-relaxed text-center">
-        Décrivez votre personnalité, vos envies ou une occasion spéciale. Notre IA experte concevra la formule parfaite pour vous.
-      </p>
 
-      <div className="w-full">
-        <GeminiChat />
+      {/* {!chatStarted && (
+        <div className="text-center mb-8 flex-shrink-0">
+          <h1 className="font-display text-4xl md:text-6xl font-bold text-foreground mb-4">
+            Votre Sommelier <span className="text-gradient-gold">IA</span>
+          </h1>
+          <p className="text-sm md:text-base text-foreground/70 max-w-2xl mx-auto font-light leading-relaxed">
+            Décrivez votre personnalité, vos envies ou une occasion spéciale. Notre IA experte concevra la formule parfaite pour vous.
+          </p>
+        </div>
+      )} */}
+
+      {/* Chat container expands to full height when chat starts */}
+      <div className="w-full flex-1 min-h-0">
+        <GeminiChat onChatStarted={setChatStarted} />
       </div>
     </div>
   );
 }
-
-
