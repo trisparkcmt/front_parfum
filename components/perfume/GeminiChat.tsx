@@ -275,7 +275,7 @@ function MiniBottleVisual({ composition }: { composition: CustomComposition }) {
 }
 
 // Progressive Typing Text bubble
-function TypingBubble({ text }: { text: string }) {
+function TypingBubble({ text, onComplete }: { text: string; onComplete?: () => void }) {
   const [displayedText, setDisplayedText] = useState('');
 
   useEffect(() => {
@@ -285,6 +285,7 @@ function TypingBubble({ text }: { text: string }) {
       index++;
       if (index >= text.length) {
         clearInterval(interval);
+        onComplete?.();
       }
     }, 15); // Progressive speed
     return () => clearInterval(interval);
@@ -306,6 +307,7 @@ function AiBubble({
   onAddAllToCart: (aiData: AiResponse, composition?: CustomComposition) => void;
   onRetry: (payload: { content: string; bottleSize: string; budget: string }) => void;
 }) {
+  const [isTypingComplete, setIsTypingComplete] = useState(false);
   const { addProduct, addComposition } = useCartStore();
   const { addToast } = useToastStore();
 
@@ -375,11 +377,11 @@ function AiBubble({
             )}
           </div>
         ) : (
-          <TypingBubble text={text} />
+          <TypingBubble text={text} onComplete={() => setIsTypingComplete(true)} />
         )}
 
         {/* Composition recipe details */}
-        {!isError503 && hasComposition && (
+        {!isError503 && isTypingComplete && hasComposition && (
           <div className="flex flex-col sm:flex-row gap-4 max-w-lg">
             <MiniBottleVisual composition={composition!} />
             <div className="flex-1 bg-white/5 border border-gold/15 rounded-2xl p-4 flex flex-col justify-between">
@@ -414,7 +416,7 @@ function AiBubble({
         )}
 
         {/* Suggested perfumes */}
-        {!isError503 && hasProducts && (
+        {!isError503 && isTypingComplete && hasProducts && (
           <div>
             <p className="text-[10px] text-foreground/40 uppercase tracking-widest font-bold mb-2 ml-1">Parfums suggérés</p>
             <div className="flex gap-3 overflow-x-auto pb-2" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
@@ -433,7 +435,7 @@ function AiBubble({
         )}
 
         {/* Recommended essences */}
-        {!isError503 && hasEssences && (
+        {!isError503 && isTypingComplete && hasEssences && (
           <div>
             <p className="text-[10px] text-foreground/40 uppercase tracking-widest font-bold mb-2 ml-1">Essences recommandées</p>
             <div className="flex gap-3 overflow-x-auto pb-2" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
@@ -455,7 +457,7 @@ function AiBubble({
         )}
 
         {/* Recommended accessories */}
-        {!isError503 && hasAccessories && (
+        {!isError503 && isTypingComplete && hasAccessories && (
           <div>
             <p className="text-[10px] text-foreground/40 uppercase tracking-widest font-bold mb-2 ml-1">Accessoires proposés</p>
             <div className="flex gap-3 overflow-x-auto pb-2" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
@@ -478,7 +480,7 @@ function AiBubble({
         )}
 
         {/* Global CTAs */}
-        {!isError503 && hasAnyItems && (
+        {!isError503 && isTypingComplete && hasAnyItems && (
           <div className="flex flex-wrap gap-2">
             {hasComposition && (
               <button
@@ -584,14 +586,14 @@ export function GeminiChat({ onChatStarted }: GeminiChatProps) {
 
     try {
       const fullPrompt = `${data.content} (Format: ${data.bottleSize}, Budget: ${data.budget})`;
-      
+
       // Perform direct API request with abort signal
       const apiResponse = await api.post(
         'lab/ia-recommandation/',
         { prompt: fullPrompt },
         { signal: abortControllerRef.current.signal }
       );
-      
+
       const response: AiResponse = apiResponse.data;
 
       // Parse essences into a composition object
@@ -625,15 +627,15 @@ export function GeminiChat({ onChatStarted }: GeminiChatProps) {
 
       const composition: CustomComposition | undefined = compositionEssences.length > 0
         ? {
-            id: generateId(),
-            name: response.flacon ? `Création IA (${response.flacon.nom})` : 'Création IA',
-            essences: compositionEssences,
-            totalMl,
-            totalPrice,
-            createdBy: user?.id || 'guest',
-            createdAt: new Date().toISOString(),
-            isAiGenerated: true,
-          }
+          id: generateId(),
+          name: response.flacon ? `Création IA (${response.flacon.nom})` : 'Création IA',
+          essences: compositionEssences,
+          totalMl,
+          totalPrice,
+          createdBy: user?.id || 'guest',
+          createdAt: new Date().toISOString(),
+          isAiGenerated: true,
+        }
         : undefined;
 
       const aiMsg: ChatMessage = {
@@ -650,7 +652,7 @@ export function GeminiChat({ onChatStarted }: GeminiChatProps) {
         // Ignored, manually aborted
         return;
       }
-      
+
       const status = error.response?.status;
       if (status === 503) {
         setMessages(prev => [
@@ -726,7 +728,7 @@ export function GeminiChat({ onChatStarted }: GeminiChatProps) {
   const isEmpty = messages.length === 0;
 
   return (
-    <div className="w-full max-w-3xl mx-auto flex flex-col h-screen">
+    <div className="w-full max-w-3xl mx-auto flex flex-col h-full">
       {/* ── Chat area ── */}
       <div
         ref={chatAreaRef}
@@ -734,39 +736,48 @@ export function GeminiChat({ onChatStarted }: GeminiChatProps) {
         style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
       >
         <style dangerouslySetInnerHTML={{ __html: `div::-webkit-scrollbar { display: none !important; }` }} />
-        
-        {/* Empty state */}
-        {isEmpty && !isLoading && (
-          <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="flex flex-col items-center justify-center h-full text-center py-12 gap-6"
-          >
-            <div className="w-20 h-20 rounded-3xl bg-gold/10 border border-gold/20 flex items-center justify-center shadow-xl shadow-gold/10">
-              <Sparkles size={36} className="text-gold" />
-            </div>
-            <div>
-  
-            </div>
 
-            {/* Suggestion chips */}
-            <div className="flex flex-wrap justify-center gap-2 max-w-md">
-              {[
-                'Un parfum boisé pour une soirée romantique',
-                'Quelque chose de frais pour le bureau',
-                'Un parfum audacieux pour une sortie nocturne',
-              ].map(s => (
-                <button
-                  key={s}
-                  onClick={() => handleSend({ content: s, bottleSize: '50ml', budget: '' })}
-                  className="text-xs px-4 py-2 rounded-full bg-white/5 border border-white/10 text-foreground/60 hover:text-gold hover:border-gold/30 hover:bg-gold/5 transition-all"
-                >
-                  {s}
-                </button>
-              ))}
-            </div>
-          </motion.div>
-        )}
+        {/* Empty state */}
+        <AnimatePresence>
+          {isEmpty && (
+            <motion.div
+              key="empty-state"
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20, transition: { duration: 0.2 } }}
+              className="flex flex-col items-center justify-center h-full text-center py-12 gap-6"
+            >
+              <div className="w-20 h-20 rounded-3xl bg-gold/10 border border-gold/20 flex items-center justify-center shadow-xl shadow-gold/10">
+                <Sparkles size={36} className="text-gold" />
+              </div>
+              <div>
+                <h1 className="font-display text-3xl md:text-5xl font-bold text-foreground mb-3">
+                  Votre Sommelier <span className="text-gradient-gold">IA</span>
+                </h1>
+                <p className="text-sm text-foreground/70 max-w-md mx-auto font-light leading-relaxed">
+                  Décrivez votre personnalité, vos envies ou une occasion spéciale. Notre IA experte concevra la formule parfaite pour vous.
+                </p>
+              </div>
+
+              {/* Suggestion chips */}
+              <div className="flex flex-wrap justify-center gap-2 max-w-md">
+                {[
+                  'Un parfum boisé pour une soirée romantique',
+                  'Quelque chose de frais pour le bureau',
+                  'Un parfum audacieux pour une sortie nocturne',
+                ].map(s => (
+                  <button
+                    key={s}
+                    onClick={() => handleSend({ content: s, bottleSize: '50ml', budget: '' })}
+                    className="text-xs px-4 py-2 rounded-full bg-white/5 border border-white/10 text-foreground/60 hover:text-gold hover:border-gold/30 hover:bg-gold/5 transition-all"
+                  >
+                    {s}
+                  </button>
+                ))}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Messages */}
         <AnimatePresence initial={false}>
