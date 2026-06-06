@@ -1,4 +1,4 @@
-﻿/**
+/**
  * @file services/apiService.ts
  * @description Centralized API Service Layer for all Django backend endpoints.
  * Implements all endpoints from the API documentation.
@@ -725,7 +725,120 @@ export const labService = {
     const response = await api.post('lab/ia-recommandation/', { prompt });
     return response.data;
   },
+
+  /**
+   * Create a new essence (Admin)
+   */
+  createEssence: async (data: any) => {
+    const response = await api.post('lab/essences/', data);
+    return response.data;
+  },
+
+  /**
+   * Update an essence (Admin)
+   */
+  updateEssence: async (id: number, data: any) => {
+    const response = await api.patch(`lab/essences/${id}/`, data);
+    return response.data;
+  },
+
+  /**
+   * Delete an essence (Admin)
+   */
+  deleteEssence: async (id: number) => {
+    const response = await api.delete(`lab/essences/${id}/`);
+    return response.data;
+  },
+
+  /**
+   * Create base ingredient (Admin)
+   */
+  createIngredient: async (data: any) => {
+    const response = await api.post('lab/ingredients/', data);
+    return response.data;
+  },
+
+  /**
+   * Update base ingredient (Admin)
+   */
+  updateIngredient: async (id: number, data: any) => {
+    const response = await api.patch(`lab/ingredients/${id}/`, data);
+    return response.data;
+  },
+
+  /**
+   * Delete base ingredient (Admin)
+   */
+  deleteIngredient: async (id: number) => {
+    const response = await api.delete(`lab/ingredients/${id}/`);
+    return response.data;
+  },
+
+  /**
+   * Get all essence lots (Admin / Laborantin)
+   */
+  getLotsEssence: async () => {
+    const response = await api.get('lab/lots-essence/');
+    return response.data;
+  },
+
+  /**
+   * Create an essence lot (Admin / Laborantin)
+   */
+  createLotEssence: async (data: any) => {
+    const response = await api.post('lab/lots-essence/', data);
+    return response.data;
+  },
+
+  /**
+   * Update an essence lot (Admin / Laborantin)
+   */
+  updateLotEssence: async (id: number, data: any) => {
+    const response = await api.patch(`lab/lots-essence/${id}/`, data);
+    return response.data;
+  },
+
+  /**
+   * Delete an essence lot (Admin / Laborantin)
+   */
+  deleteLotEssence: async (id: number) => {
+    const response = await api.delete(`lab/lots-essence/${id}/`);
+    return response.data;
+  },
+
+  /**
+   * Get labo inventory list (Admin / Laborantin)
+   */
+  getLaboInventory: async () => {
+    const response = await api.get('lab/labo/essences/');
+    return response.data;
+  },
+
+  /**
+   * Get labo inventory item detail (Admin / Laborantin)
+   */
+  getLaboInventoryById: async (id: number) => {
+    const response = await api.get(`lab/labo/essences/${id}/`);
+    return response.data;
+  },
+
+  /**
+   * Update labo inventory item (Admin / Laborantin)
+   */
+  updateLaboInventory: async (id: number, data: any) => {
+    const response = await api.patch(`lab/labo/essences/${id}/`, data);
+    return response.data;
+  },
+
+  /**
+   * Delete labo inventory item (Admin / Laborantin)
+   */
+  deleteLaboInventory: async (id: number) => {
+    const response = await api.delete(`lab/labo/essences/${id}/`);
+    return response.data;
+  },
 };
+
 
 // ============================================================================
 // PARTNER & PROVIDER SPACE
@@ -807,11 +920,15 @@ export const adminService = {
    * Post FormData to the given endpoint with proper headers (for image uploads).
    */
   postFormData: async (url: string, data: FormData) => {
-    const response = await api.post(url, data, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
+    const response = await api.post(url, data);
+    return response.data;
+  },
+
+  /**
+   * Patch FormData to the given endpoint (for image uploads in updates).
+   */
+  patchFormData: async (url: string, data: FormData) => {
+    const response = await api.patch(url, data);
     return response.data;
   },
 
@@ -916,6 +1033,38 @@ export const adminService = {
     );
     return response.data;
   },
+
+  /**
+   * Get all payout transactions (Admin)
+   */
+  getPayouts: async () => {
+    const response = await api.get('auth/admin/payouts/');
+    return response.data;
+  },
+
+  /**
+   * Get global platform statistics (Admin)
+   */
+  getGlobalStats: async () => {
+    const response = await api.get('auth/admin/stats/global/');
+    return response.data;
+  },
+
+  /**
+   * Update delivery driver status (Admin)
+   */
+  updateDeliveryDriver: async (id: number, data: { statut: string }) => {
+    const response = await api.patch(`auth/admin/livreurs/${id}/`, data);
+    return response.data;
+  },
+
+  /**
+   * Get tracking for all deliveries (Admin)
+   */
+  getDeliveries: async () => {
+    const response = await api.get('auth/admin/livraisons/');
+    return response.data;
+  },
 };
 
 // ============================================================================
@@ -936,6 +1085,14 @@ export const notificationService = {
    */
   getProviderRequests: async () => {
     const response = await api.get('utilisateur/prestataire-requests/');
+    return response.data;
+  },
+
+  /**
+   * Get details of a specific provider request (Admin)
+   */
+  getProviderRequestById: async (id: number) => {
+    const response = await api.get(`utilisateur/prestataire-requests/${id}/`);
     return response.data;
   },
 };

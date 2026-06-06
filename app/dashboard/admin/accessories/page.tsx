@@ -7,13 +7,6 @@ import { useToastStore } from '@/store/useToastStore';
 import { BackButton } from '@/components/ui/BackButton';
 import ImageUploader from '@/components/admin/ImageUploader';
 
-const categoryConfig: Record<string, { label: string; color: string }> = {
-  'bijoux': { label: 'Bijoux', color: 'text-amber-400 bg-amber-500/10' },
-  'montre': { label: 'Montres', color: 'text-blue-400 bg-blue-500/10' },
-  'sac': { label: 'Sacs', color: 'text-purple-400 bg-purple-500/10' },
-  'autre': { label: 'Autres', color: 'text-slate-400 bg-slate-500/10' },
-};
-
 export default function AccessoriesPage() {
   const [accessories, setAccessories] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -21,27 +14,38 @@ export default function AccessoriesPage() {
   const [filter, setFilter] = useState<string>('all');
   const [showModal, setShowModal] = useState(false);
   const [editingAccessory, setEditingAccessory] = useState<any | null>(null);
-
-  // Form states
-  const [name, setName] = useState('');
-  const [category, setCategory] = useState('autre');
-  const [price, setPrice] = useState('');
-  const [stock, setStock] = useState('');
   const [imageFile, setImageFile] = useState<File | null>(null);
-  // New fields
-  const [slug, setSlug] = useState('');
-  const [sku, setSku] = useState('');
-  const [shortDesc, setShortDesc] = useState('');
-  const [longDesc, setLongDesc] = useState('');
-  const [iaDesc, setIaDesc] = useState('');
-  const [volume, setVolume] = useState('');
+  const [accessoryTypes, setAccessoryTypes] = useState<any[]>([]);
+
+  // Consolidate form state into a single object based on requested schema
+  const [form, setForm] = useState({
+    nom: '',
+    slug: '',
+    reference_sku: '',
+    type_accessoire: '',
+    description_courte: '',
+    description_longue: '',
+    description_ia: '',
+    matiere: '',
+    couleur: '',
+    taille: '',
+    prix_unitaire: '',
+    prix_promotionnel: '',
+    stock_quantite: '',
+    seuil_alerte_stock: '3',
+    poids_grammes: '',
+    actif: true,
+  });
 
   const { addToast } = useToastStore();
 
   const fetchAccessories = useCallback(async () => {
     try {
       setLoading(true);
-      const data = await shopService.getAccessories({ search });
+      const data = await shopService.getAccessories({
+        search,
+        type_accessoire: filter !== 'all' ? Number(filter) : undefined
+      });
       const list = data.results || data.resultats || (Array.isArray(data) ? data : []);
       setAccessories(list);
     } catch (error) {
@@ -49,7 +53,7 @@ export default function AccessoriesPage() {
     } finally {
       setLoading(false);
     }
-  }, [search, addToast]);
+  }, [search, filter, addToast]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -58,60 +62,88 @@ export default function AccessoriesPage() {
     return () => clearTimeout(timer);
   }, [fetchAccessories]);
 
+  // Load accessory types for dropdowns and filtering
+  useEffect(() => {
+    shopService.getAccessoryTypes()
+      .then(data => {
+        const list = data.results || data.resultats || (Array.isArray(data) ? data : []);
+        setAccessoryTypes(list);
+      })
+      .catch(() => addToast('Erreur lors du chargement des types d\'accessoires', 'error'));
+  }, [addToast]);
+
   const handleOpenAdd = () => {
     setEditingAccessory(null);
-    setName('');
-    setCategory('autre');
-    setPrice('');
-    setStock('');
-    setSlug('');
-    setSku('');
-    setShortDesc('');
-    setLongDesc('');
-    setIaDesc('');
-    setVolume('');
+    setForm({
+      nom: '',
+      slug: '',
+      reference_sku: '',
+      type_accessoire: accessoryTypes[0]?.id ? String(accessoryTypes[0].id) : '',
+      description_courte: '',
+      description_longue: '',
+      description_ia: '',
+      matiere: '',
+      couleur: '',
+      taille: '',
+      prix_unitaire: '',
+      prix_promotionnel: '',
+      stock_quantite: '',
+      seuil_alerte_stock: '3',
+      poids_grammes: '',
+      actif: true,
+    });
     setImageFile(null);
     setShowModal(true);
   };
 
   const handleOpenEdit = (acc: any) => {
     setEditingAccessory(acc);
-    setName(acc.nom || acc.name || '');
-    setCategory(acc.categorie || acc.category || 'autre');
-    setPrice(String(acc.prix || acc.price || ''));
-    setStock(String(acc.stock || acc.quantite_stock || ''));
-    setSlug(acc.slug || '');
-    setSku(acc.reference_sku || '');
-    setShortDesc(acc.description_courte || '');
-    setLongDesc(acc.description_longue || '');
-    setIaDesc(acc.description_ia || '');
-    setVolume(String(acc.contenance_ml || ''));
+    setForm({
+      nom: acc.nom || '',
+      slug: acc.slug || '',
+      reference_sku: acc.reference_sku || '',
+      type_accessoire: String(acc.type_accessoire?.id || acc.type_accessoire || ''),
+      description_courte: acc.description_courte || '',
+      description_longue: acc.description_longue || '',
+      description_ia: acc.description_ia || '',
+      matiere: acc.matiere || '',
+      couleur: acc.couleur || '',
+      taille: acc.taille || '',
+      prix_unitaire: String(acc.prix_unitaire || ''),
+      prix_promotionnel: acc.prix_promotionnel ? String(acc.prix_promotionnel) : '',
+      stock_quantite: String(acc.stock_quantite || ''),
+      seuil_alerte_stock: String(acc.seuil_alerte_stock || '3'),
+      poids_grammes: String(acc.poids_grammes || ''),
+      actif: acc.actif !== undefined ? acc.actif : true,
+    });
     setImageFile(null);
     setShowModal(true);
   };
 
+  const updateForm = (field: keyof typeof form, value: string) => {
+    setForm(prev => ({ ...prev, [field]: value }));
+  };
+
   const handleSave = async () => {
-    if (!name || !price) {
-      addToast('Le nom et le prix sont requis', 'error');
+    if (!form.nom || !form.prix_unitaire || !form.type_accessoire || !form.stock_quantite) {
+      addToast('Champs requis manquants: Nom, Prix, Type, Stock', 'error');
       return;
     }
+
     const formData = new FormData();
-    formData.append('nom', name);
-    if (slug) formData.append('slug', slug);
-    if (sku) formData.append('reference_sku', sku);
-    if (shortDesc) formData.append('description_courte', shortDesc);
-    if (longDesc) formData.append('description_longue', longDesc);
-    if (iaDesc) formData.append('description_ia', iaDesc);
-    if (volume) formData.append('contenance_ml', volume);
-    formData.append('prix_unitaire', price);
-    formData.append('categorie', category);
-    formData.append('stock', stock);
-    if (imageFile) {
-      formData.append('image', imageFile);
-    }
+    Object.entries(form).forEach(([key, val]) => {
+      // On s'assure d'envoyer les valeurs, y compris les booleans (actif)
+      if (val !== undefined && val !== null && (val !== '' || typeof val === 'boolean')) {
+        formData.append(key, String(val));
+      }
+    });
+
+    if (imageFile) formData.append('image_principale', imageFile);
+
     try {
       if (editingAccessory) {
-        await adminService.postFormData(`shop/accessoires/${editingAccessory.slug}/`, formData);
+        // Utilisation de PATCH pour la mise à jour
+        await adminService.patchFormData(`shop/accessoires/${editingAccessory.slug}/`, formData);
         addToast('Accessoire mis à jour avec succès', 'success');
       } else {
         await adminService.postFormData('shop/accessoires/', formData);
@@ -135,11 +167,6 @@ export default function AccessoriesPage() {
     }
   };
 
-  const filtered = accessories.filter(a => {
-    const aCat = a.categorie || a.category || 'autre';
-    return filter === 'all' || aCat === filter;
-  });
-
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -162,19 +189,26 @@ export default function AccessoriesPage() {
           <input
             value={search}
             onChange={e => setSearch(e.target.value)}
-            placeholder="Rechercher un accessoire..."
+            placeholder="Rechercher par nom..."
             className="text-sm bg-transparent outline-none flex-1 text-foreground placeholder:text-foreground/40"
           />
         </div>
         <div className="flex gap-2 flex-wrap">
-          {['all', 'bijoux', 'montre', 'sac', 'autre'].map(s => (
+          <button
+            onClick={() => setFilter('all')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors
+              ${filter === 'all' ? 'bg-gold text-black' : 'border border-white/10 text-foreground/40 hover:bg-white/5'}`}
+          >
+            Tous
+          </button>
+          {accessoryTypes.map(t => (
             <button
-              key={s}
-              onClick={() => setFilter(s)}
+              key={t.id}
+              onClick={() => setFilter(String(t.id))}
               className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors
-                ${filter === s ? 'bg-gold text-black' : 'border border-white/10 text-foreground/40 hover:bg-white/5'}`}
+                ${filter === String(t.id) ? 'bg-gold text-black' : 'border border-white/10 text-foreground/40 hover:bg-white/5'}`}
             >
-              {s === 'all' ? 'Tous' : categoryConfig[s]?.label || s}
+              {t.nom}
             </button>
           ))}
         </div>
@@ -192,39 +226,45 @@ export default function AccessoriesPage() {
               <thead>
                 <tr className="border-b border-white/10 bg-white/5">
                   <th className="px-6 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider">Accessoire</th>
-                  <th className="px-6 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider">Catégorie</th>
+                  <th className="px-6 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider">Type</th>
                   <th className="px-6 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider">Prix</th>
                   <th className="px-6 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider">Stock</th>
                   <th className="px-6 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
-                {filtered.map(a => {
-                  const aName = a.nom || a.name || 'Accessoire';
-                  const aPrice = a.prix || a.price || 0;
-                  const aStock = a.stock !== undefined ? a.stock : (a.quantite_stock || 0);
-                  const aCat = a.categorie || a.category || 'autre';
+                {accessories.map(a => {
+                  const aName = a.nom || 'Accessoire';
+                  const aPrice = a.prix_unitaire || 0;
+                  const aStock = a.stock_quantite || 0;
+                  const typeName = typeof a.type_accessoire === 'object'
+                    ? a.type_accessoire?.nom
+                    : (accessoryTypes.find(t => t.id === a.type_accessoire)?.nom || '—');
 
                   return (
                     <tr key={a.slug || a.id} className="hover:bg-white/5 transition-colors group">
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-4">
-                          <div className="w-12 h-12 rounded-xl bg-white/5 flex items-center justify-center text-2xl group-hover:scale-105 transition-transform">
-                            👜
+                          <div className="w-12 h-12 rounded-xl bg-white/5 flex items-center justify-center text-2xl group-hover:scale-105 transition-transform overflow-hidden border border-white/5">
+                            {a.image_principale ? (
+                              <img src={a.image_principale} alt={aName} className="w-full h-full object-cover" />
+                            ) : (
+                              '👜'
+                            )}
                           </div>
                           <div>
                             <p className="font-semibold text-foreground text-sm">{aName}</p>
-                            <p className="text-xs text-foreground/40">SLUG: {a.slug}</p>
+                            <p className="text-[10px] text-foreground/30 font-mono mt-1 uppercase">{a.reference_sku || a.slug}</p>
                           </div>
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        <span className={`text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-tight ${categoryConfig[aCat]?.color || 'text-slate-400 bg-slate-500/10'}`}>
-                          {categoryConfig[aCat]?.label || aCat}
+                        <span className="text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-tight text-slate-400 bg-slate-500/10">
+                          {typeName}
                         </span>
                       </td>
                       <td className="px-6 py-4">
-                        <p className="font-bold text-foreground text-sm">{aPrice.toLocaleString()} FCFA</p>
+                        <p className="font-bold text-foreground text-sm">{Number(aPrice).toLocaleString()} FCFA</p>
                       </td>
                       <td className="px-6 py-4">
                         <p className="text-sm text-foreground/60">{aStock} unités</p>
@@ -242,7 +282,7 @@ export default function AccessoriesPage() {
                     </tr>
                   );
                 })}
-                {filtered.length === 0 && (
+                {accessories.length === 0 && (
                   <tr>
                     <td colSpan={5} className="text-center py-20 text-foreground/40 italic">Aucun accessoire trouvé.</td>
                   </tr>
@@ -263,58 +303,123 @@ export default function AccessoriesPage() {
               <div className="space-y-3">
                 <input
                   placeholder="Nom de l'accessoire"
-                  value={name}
-                  onChange={e => setName(e.target.value)}
+                  value={form.nom}
+                  onChange={e => updateForm('nom', e.target.value)}
                   className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
                 />
+                <select
+                  value={form.type_accessoire}
+                  onChange={e => updateForm('type_accessoire', e.target.value)}
+                  className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
+                >
+                  <option value="" disabled className="bg-neutral-900">Type d'accessoire</option>
+                  {accessoryTypes.map(t => (
+                    <option key={t.id} value={t.id} className="bg-neutral-900">{t.nom}</option>
+                  ))}
+                </select>
                 <input
                   placeholder="Slug (optionnel)"
-                  value={slug}
-                  onChange={e => setSlug(e.target.value)}
+                  value={form.slug}
+                  onChange={e => updateForm('slug', e.target.value)}
                   className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
                 />
                 <input
                   placeholder="Référence SKU (optionnel)"
-                  value={sku}
-                  onChange={e => setSku(e.target.value)}
+                  value={form.reference_sku}
+                  onChange={e => updateForm('reference_sku', e.target.value)}
                   className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
                 />
+                {/* Descriptions */}
                 <textarea
                   placeholder="Description courte"
-                  value={shortDesc}
-                  onChange={e => setShortDesc(e.target.value)}
+                  value={form.description_courte}
+                  onChange={e => updateForm('description_courte', e.target.value)}
                   className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
                   rows={2}
                 />
                 <textarea
                   placeholder="Description longue"
-                  value={longDesc}
-                  onChange={e => setLongDesc(e.target.value)}
+                  value={form.description_longue}
+                  onChange={e => updateForm('description_longue', e.target.value)}
                   className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
                   rows={3}
                 />
                 <textarea
                   placeholder="Description IA"
-                  value={iaDesc}
-                  onChange={e => setIaDesc(e.target.value)}
+                  value={form.description_ia}
+                  onChange={e => updateForm('description_ia', e.target.value)}
                   className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
                   rows={2}
                 />
+
+                {/* Matière, Couleur, Taille */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <input
+                    placeholder="Matière"
+                    value={form.matiere}
+                    onChange={e => updateForm('matiere', e.target.value)}
+                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
+                  />
+                  <input
+                    placeholder="Couleur"
+                    value={form.couleur}
+                    onChange={e => updateForm('couleur', e.target.value)}
+                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
+                  />
+                  <input
+                    placeholder="Taille (ex: S, M, L ou Unique)"
+                    value={form.taille}
+                    onChange={e => updateForm('taille', e.target.value)}
+                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
+                  />
+                </div>
+
+                {/* Prix, Stock, Seuil, Poids */}
                 <div className="grid grid-cols-2 gap-3">
                   <input
-                    placeholder="Contenance (ml)"
+                    placeholder="Prix unitaire (FCFA)"
                     type="number"
-                    value={volume}
-                    onChange={e => setVolume(e.target.value)}
+                    value={form.prix_unitaire}
+                    onChange={e => updateForm('prix_unitaire', e.target.value)}
                     className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
                   />
                   <input
-                    placeholder="Prix (FCFA)"
+                    placeholder="Prix promo (optionnel)"
                     type="number"
-                    value={price}
-                    onChange={e => setPrice(e.target.value)}
+                    value={form.prix_promotionnel}
+                    onChange={e => updateForm('prix_promotionnel', e.target.value)}
                     className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
                   />
+                  <input
+                    placeholder="Quantité en stock"
+                    type="number"
+                    value={form.stock_quantite}
+                    onChange={e => updateForm('stock_quantite', e.target.value)}
+                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
+                  />
+                  <input
+                    placeholder="Seuil d'alerte stock"
+                    type="number"
+                    value={form.seuil_alerte_stock}
+                    onChange={e => updateForm('seuil_alerte_stock', e.target.value)}
+                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
+                  />
+                  <input
+                    placeholder="Poids (grammes)"
+                    type="number"
+                    value={form.poids_grammes}
+                    onChange={e => updateForm('poids_grammes', e.target.value)}
+                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={form.actif}
+                    onChange={e => setForm(prev => ({ ...prev, actif: e.target.checked }))}
+                    className="h-4 w-4 text-gold focus:ring-gold border-white/20 rounded bg-white/5"
+                  />
+                  <label htmlFor="actif" className="text-sm text-foreground/80">Actif</label>
                 </div>
                 <ImageUploader onFileSelect={setImageFile} />
               </div>

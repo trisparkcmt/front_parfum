@@ -15,16 +15,31 @@ export default function PerfumeAdminPage() {
   const [search, setSearch] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [editingPerfume, setEditingPerfume] = useState<any | null>(null);
+  const [categories, setCategories] = useState<any[]>([]);
 
-  // Form fields
-  const [name, setName] = useState('');
-  const [slug, setSlug] = useState('');
-  const [sku, setSku] = useState('');
-  const [shortDesc, setShortDesc] = useState('');
-  const [longDesc, setLongDesc] = useState('');
-  const [iaDesc, setIaDesc] = useState('');
-  const [volume, setVolume] = useState('');
-  const [price, setPrice] = useState('');
+  const [form, setForm] = useState({
+    nom: '',
+    slug: '',
+    reference_sku: '',
+    description_courte: '',
+    description_longue: '',
+    description_ia: '',
+    contenance_ml: '',
+    prix_unitaire: '',
+    prix_promotionnel: '',
+    genre_cible: 'mixte',
+    intensite: 'moyenne',
+    notes_tete: '',
+    notes_coeur: '',
+    notes_fond: '',
+    est_nouveau: false,
+    est_bestseller: false,
+    stock_quantite: '',
+    seuil_alerte_stock: '5',
+    categorie: '',
+    actif: true,
+  });
+
   const [imageFile, setImageFile] = useState<File | null>(null);
 
   const { addToast } = useToastStore();
@@ -48,54 +63,96 @@ export default function PerfumeAdminPage() {
     return () => clearTimeout(timer);
   }, [fetchPerfumes]);
 
+  // Load categories
+  useEffect(() => {
+    shopService.getPerfumeCategories()
+      .then(data => {
+        const list = data.results || data.resultats || (Array.isArray(data) ? data : []);
+        setCategories(list);
+      })
+      .catch(() => addToast('Erreur chargement catégories', 'error'));
+  }, [addToast]);
+
+  const updateForm = (field: keyof typeof form, value: any) => {
+    setForm(prev => ({ ...prev, [field]: value }));
+  };
+
   // Open modal for add / edit
   const handleOpenAdd = () => {
     setEditingPerfume(null);
-    setName('');
-    setSlug('');
-    setSku('');
-    setShortDesc('');
-    setLongDesc('');
-    setIaDesc('');
-    setVolume('');
-    setPrice('');
+    setForm({
+      nom: '',
+      slug: '',
+      reference_sku: '',
+      description_courte: '',
+      description_longue: '',
+      description_ia: '',
+      contenance_ml: '',
+      prix_unitaire: '',
+      prix_promotionnel: '',
+      genre_cible: 'mixte',
+      intensite: 'moyenne',
+      notes_tete: '',
+      notes_coeur: '',
+      notes_fond: '',
+      est_nouveau: false,
+      est_bestseller: false,
+      stock_quantite: '',
+      seuil_alerte_stock: '5',
+      categorie: categories[0]?.id ? String(categories[0].id) : '',
+      actif: true,
+    });
     setImageFile(null);
     setShowModal(true);
   };
 
   const handleOpenEdit = (perf: any) => {
     setEditingPerfume(perf);
-    setName(perf.nom || perf.name || '');
-    setSlug(perf.slug || '');
-    setSku(perf.reference_sku || '');
-    setShortDesc(perf.description_courte || '');
-    setLongDesc(perf.description_longue || '');
-    setIaDesc(perf.description_ia || '');
-    setVolume(String(perf.contenance_ml || ''));
-    setPrice(String(perf.prix_unitaire || ''));
+    setForm({
+      nom: perf.nom || perf.name || '',
+      slug: perf.slug || '',
+      reference_sku: perf.reference_sku || '',
+      description_courte: perf.description_courte || '',
+      description_longue: perf.description_longue || '',
+      description_ia: perf.description_ia || '',
+      contenance_ml: String(perf.contenance_ml || ''),
+      prix_unitaire: String(perf.prix_unitaire || ''),
+      prix_promotionnel: perf.prix_promotionnel ? String(perf.prix_promotionnel) : '',
+      genre_cible: perf.genre_cible || 'mixte',
+      intensite: perf.intensite || 'moyenne',
+      notes_tete: perf.notes_tete || '',
+      notes_coeur: perf.notes_coeur || '',
+      notes_fond: perf.notes_fond || '',
+      est_nouveau: !!perf.est_nouveau,
+      est_bestseller: !!perf.est_bestseller,
+      stock_quantite: String(perf.stock_quantite || ''),
+      seuil_alerte_stock: String(perf.seuil_alerte_stock || '5'),
+      categorie: String(perf.categorie?.id || perf.categorie || ''),
+      actif: perf.actif !== undefined ? perf.actif : true,
+    });
     setImageFile(null);
     setShowModal(true);
   };
 
   // Save (create or update)
   const handleSave = async () => {
-    if (!name || !volume || !price) {
-      addToast('Nom, contenance et prix sont obligatoires', 'error');
+    if (!form.nom || !form.contenance_ml || !form.prix_unitaire || !form.categorie || !form.stock_quantite) {
+      addToast('Champs requis : Nom, Contenance, Prix, Catégorie, Stock', 'error');
       return;
     }
+
     const formData = new FormData();
-    formData.append('nom', name);
-    if (slug) formData.append('slug', slug);
-    if (sku) formData.append('reference_sku', sku);
-    if (shortDesc) formData.append('description_courte', shortDesc);
-    if (longDesc) formData.append('description_longue', longDesc);
-    if (iaDesc) formData.append('description_ia', iaDesc);
-    formData.append('contenance_ml', volume);
-    formData.append('prix_unitaire', price);
-    if (imageFile) formData.append('image', imageFile);
+    Object.entries(form).forEach(([key, val]) => {
+      if (val !== undefined && val !== null && (val !== '' || typeof val === 'boolean')) {
+        formData.append(key, String(val));
+      }
+    });
+
+    if (imageFile) formData.append('image_principale', imageFile);
+
     try {
       if (editingPerfume) {
-        await adminService.postFormData(`shop/parfums/${editingPerfume.slug}/`, formData);
+        await adminService.patchFormData(`shop/parfums/${editingPerfume.slug}/`, formData);
         addToast('Parfum mis à jour avec succès', 'success');
       } else {
         await adminService.postFormData('shop/parfums/', formData);
@@ -204,22 +261,89 @@ export default function PerfumeAdminPage() {
       {/* Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-background rounded-2xl p-6 w-full max-w-md shadow-2xl border border-white/10">
+          <div className="bg-background rounded-2xl p-6 w-full max-w-2xl shadow-2xl border border-white/10 max-h-[90vh] overflow-y-auto">
             <h3 className="font-bold text-foreground mb-4">{editingPerfume ? 'Modifier le parfum' : 'Ajouter un parfum'}</h3>
-            <div className="space-y-4">
-              <input placeholder="Nom" value={name} onChange={e => setName(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold" />
-              <input placeholder="Slug (optionnel)" value={slug} onChange={e => setSlug(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold" />
-              <input placeholder="Référence SKU (optionnel)" value={sku} onChange={e => setSku(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold" />
-              <textarea placeholder="Description courte" value={shortDesc} onChange={e => setShortDesc(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold" rows={2} />
-              <textarea placeholder="Description longue" value={longDesc} onChange={e => setLongDesc(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold" rows={3} />
-              <textarea placeholder="Description IA" value={iaDesc} onChange={e => setIaDesc(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold" rows={2} />
-              <div className="grid grid-cols-2 gap-3">
-                <input placeholder="Contenance (ml)" type="number" value={volume} onChange={e => setVolume(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold" />
-                <input placeholder="Prix (FCFA)" type="number" value={price} onChange={e => setPrice(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold" />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-4">
+                <input placeholder="Nom" value={form.nom} onChange={e => updateForm('nom', e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold" />
+                <input placeholder="Slug (optionnel)" value={form.slug} onChange={e => updateForm('slug', e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold" />
+                <input placeholder="Référence SKU (optionnel)" value={form.reference_sku} onChange={e => updateForm('reference_sku', e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold" />
+                <select value={form.categorie} onChange={e => updateForm('categorie', e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold">
+                  <option value="" disabled className="bg-neutral-900">Catégorie</option>
+                  {categories.map(c => <option key={c.id} value={c.id} className="bg-neutral-900">{c.nom}</option>)}
+                </select>
+                <div className="grid grid-cols-2 gap-3">
+                  <select value={form.genre_cible} onChange={e => updateForm('genre_cible', e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold">
+                    <option value="homme">Homme</option>
+                    <option value="femme">Femme</option>
+                    <option value="mixte">Mixte</option>
+                  </select>
+                  <select value={form.intensite} onChange={e => updateForm('intensite', e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold">
+                    <option value="légère">Légère</option>
+                    <option value="moyenne">Moyenne</option>
+                    <option value="forte">Forte</option>
+                    <option value="très forte">Très forte</option>
+                  </select>
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  <input placeholder="Notes tête" value={form.notes_tete} onChange={e => updateForm('notes_tete', e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-foreground outline-none focus:border-gold" />
+                  <input placeholder="Notes cœur" value={form.notes_coeur} onChange={e => updateForm('notes_coeur', e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-foreground outline-none focus:border-gold" />
+                  <input placeholder="Notes fond" value={form.notes_fond} onChange={e => updateForm('notes_fond', e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-foreground outline-none focus:border-gold" />
+                </div>
               </div>
-              {/* Image uploader */}
+
+              <div className="space-y-4">
+                <textarea placeholder="Description courte" value={form.description_courte} onChange={e => updateForm('description_courte', e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold" rows={2} />
+                <textarea placeholder="Description longue" value={form.description_longue} onChange={e => updateForm('description_longue', e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold" rows={2} />
+                <textarea placeholder="Description IA" value={form.description_ia} onChange={e => updateForm('description_ia', e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold" rows={2} />
+
+                <div className="grid grid-cols-2 gap-3">
+                  <input placeholder="Contenance (ml)" type="number" value={form.contenance_ml} onChange={e => updateForm('contenance_ml', e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold" />
+                  <input placeholder="Prix (FCFA)" type="number" value={form.prix_unitaire} onChange={e => updateForm('prix_unitaire', e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold" />
+                </div>
+
+                <div className="grid grid-cols-3 gap-3">
+                  <input placeholder="Stock" type="number" value={form.stock_quantite} onChange={e => updateForm('stock_quantite', e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-foreground outline-none focus:border-gold" />
+                  <input placeholder="Seuil" type="number" value={form.seuil_alerte_stock} onChange={e => updateForm('seuil_alerte_stock', e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-foreground outline-none focus:border-gold" />
+                  <input placeholder="Prix Promo" type="number" value={form.prix_promotionnel} onChange={e => updateForm('prix_promotionnel', e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-foreground outline-none focus:border-gold" />
+                </div>
+
+                <div className="flex flex-wrap gap-4 pt-2">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={form.est_nouveau}
+                      onChange={e => updateForm('est_nouveau', e.target.checked)}
+                      className="rounded border-white/10 bg-white/5 text-gold focus:ring-gold"
+                    />
+                    <span className="text-xs text-foreground/60">Nouveau</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={form.est_bestseller}
+                      onChange={e => updateForm('est_bestseller', e.target.checked)}
+                      className="rounded border-white/10 bg-white/5 text-gold focus:ring-gold"
+                    />
+                    <span className="text-xs text-foreground/60">Bestseller</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={form.actif}
+                      onChange={e => updateForm('actif', e.target.checked)}
+                      className="rounded border-white/10 bg-white/5 text-gold focus:ring-gold"
+                    />
+                    <span className="text-xs text-foreground/60">Actif</span>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-4 pt-4 border-t border-white/10">
               <ImageUploader onFileSelect={setImageFile} />
             </div>
+
             <div className="flex gap-3 mt-6">
               <button onClick={() => setShowModal(false)} className="flex-1 border border-white/10 rounded-lg py-2.5 text-sm text-foreground/60 hover:bg-white/5 transition-colors">Annuler</button>
               <button onClick={handleSave} className="flex-1 bg-gold text-black rounded-lg py-2.5 text-sm font-bold hover:bg-gold/80 transition-colors">Enregistrer</button>

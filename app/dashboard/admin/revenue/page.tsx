@@ -1,5 +1,5 @@
 'use client';
-
+import { useState, useEffect } from 'react';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell
@@ -38,6 +38,13 @@ function CustomTooltip({ active, payload, label }: any) {
 }
 
 export default function RevenuePage() {
+  const [isMounted, setIsMounted] = useState(false);
+
+  // Force le rendu uniquement côté client pour éviter les erreurs d'hydratation de Recharts
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
   return (
     <div className="space-y-6">
       <div>
@@ -76,40 +83,48 @@ export default function RevenuePage() {
               <span className="flex items-center gap-1.5 text-foreground/60"><span className="w-2.5 h-2.5 rounded-sm bg-purple-500" /> Accessoires</span>
             </div>
           </div>
-          <ResponsiveContainer width="100%" height={250}>
-            <AreaChart data={monthly} margin={{ top: 5, right: 5, left: -10, bottom: 0 }}>
-              <defs>
-                <linearGradient id="gParfums" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#C5A059" stopOpacity={0.15} />
-                  <stop offset="95%" stopColor="#C5A059" stopOpacity={0} />
-                </linearGradient>
-                <linearGradient id="gAccessoires" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#A855F7" stopOpacity={0.15} />
-                  <stop offset="95%" stopColor="#A855F7" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
-              <XAxis dataKey="month" tick={{ fontSize: 12, fill: 'rgba(255,255,255,0.4)' }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fontSize: 11, fill: 'rgba(255,255,255,0.4)' }} axisLine={false} tickLine={false} tickFormatter={(v) => `${(v/1000000).toFixed(0)}M`} />
-              <Tooltip content={<CustomTooltip />} />
-              <Area type="monotone" dataKey="parfums" name="Parfums" stroke="#C5A059" strokeWidth={2} fill="url(#gParfums)" />
-              <Area type="monotone" dataKey="accessoires" name="Accessoires" stroke="#A855F7" strokeWidth={2} fill="url(#gAccessoires)" />
-            </AreaChart>
-          </ResponsiveContainer>
+          <div className="h-[250px] w-full">
+            {isMounted && (
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={monthly} margin={{ top: 5, right: 5, left: -10, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="gParfums" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#C5A059" stopOpacity={0.15} />
+                      <stop offset="95%" stopColor="#C5A059" stopOpacity={0} />
+                    </linearGradient>
+                    <linearGradient id="gAccessoires" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#A855F7" stopOpacity={0.15} />
+                      <stop offset="95%" stopColor="#A855F7" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                  <XAxis dataKey="month" tick={{ fontSize: 12, fill: 'rgba(255,255,255,0.4)' }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize: 11, fill: 'rgba(255,255,255,0.4)' }} axisLine={false} tickLine={false} tickFormatter={(v) => `${(v / 1000000).toFixed(0)}M`} />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Area type="monotone" dataKey="parfums" name="Parfums" stroke="#C5A059" strokeWidth={2} fill="url(#gParfums)" />
+                  <Area type="monotone" dataKey="accessoires" name="Accessoires" stroke="#A855F7" strokeWidth={2} fill="url(#gAccessoires)" />
+                </AreaChart>
+              </ResponsiveContainer>
+            )}
+          </div>
         </div>
 
         <div className="bg-white/5 rounded-2xl border border-white/10 p-6 shadow-2xl">
           <h3 className="font-semibold text-foreground mb-5">Répartition des ventes</h3>
-          <ResponsiveContainer width="100%" height={200}>
-            <PieChart>
-              <Pie data={pieData} cx="50%" cy="50%" innerRadius={55} outerRadius={85} dataKey="value" paddingAngle={3}>
-                {pieData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={entry.color} />
-                ))}
-              </Pie>
-              <Tooltip formatter={(value) => [`${value}%`, '']} contentStyle={{ background: '#171717', border: 'rgba(255,255,255,0.1) 1px solid', borderRadius: '12px', color: '#fff', fontSize: '12px' }} />
-            </PieChart>
-          </ResponsiveContainer>
+          <div className="h-[200px] w-full">
+            {isMounted && (
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie data={pieData} cx="50%" cy="50%" innerRadius={55} outerRadius={85} dataKey="value" paddingAngle={3}>
+                    {pieData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip formatter={(value) => [`${value}%`, '']} contentStyle={{ background: '#171717', border: 'rgba(255,255,255,0.1) 1px solid', borderRadius: '12px', color: '#fff', fontSize: '12px' }} />
+                </PieChart>
+              </ResponsiveContainer>
+            )}
+          </div>
           <div className="space-y-2 mt-2">
             {pieData.map(d => (
               <div key={d.name} className="flex items-center justify-between text-xs">
@@ -126,4 +141,3 @@ export default function RevenuePage() {
     </div>
   );
 }
-
