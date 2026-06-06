@@ -6,6 +6,8 @@ import { shopService, labService } from '@/services/apiService';
 import { useToastStore } from '@/store/useToastStore';
 import { formatPrice } from '@/lib/utils';
 
+const STATIC_CATEGORIES = ['super_premium', 'premium', 'high'];
+
 export default function EssencesPage() {
   const [essences, setEssences] = useState<any[]>([]);
   const [finishedProducts, setFinishedProducts] = useState<any[]>([]);
@@ -18,10 +20,11 @@ export default function EssencesPage() {
   const [nom, setNom] = useState('');
   const [marque, setMarque] = useState('Exclusif');
   const [codeReference, setCodeReference] = useState('');
-  const [categorie, setCategorie] = useState('');
+  const [categorie, setCategorie] = useState('premium');
   const [description, setDescription] = useState('');
   const [intensite, setIntensite] = useState('moyenne');
   const [genreCible, setGenreCible] = useState('mixte');
+  const [prixParMl, setPrixParMl] = useState('0.00');
   const [venduFini, setVenduFini] = useState(false);
 
   // New Form Fields matching the complete payload spec
@@ -36,29 +39,30 @@ export default function EssencesPage() {
   const [notesCoeur, setNotesCoeur] = useState('');
   const [notesFond, setNotesFond] = useState('');
 
+  // Lot State
+  const [lotStock, setLotStock] = useState('1000.00');
+  const [lotSeuil, setLotSeuil] = useState('100.00');
+  const [lotRef, setLotRef] = useState('');
+
   // Form State (Shop / Finished Product)
   const [shopPrice, setShopPrice] = useState('');
   const [shopSize, setShopSize] = useState('30');
   const [shopStock, setShopStock] = useState('50');
 
-  const [categories, setCategories] = useState<any[]>([]);
   const { addToast } = useToastStore();
 
   const fetchEssences = useCallback(async () => {
     try {
       setLoading(true);
-      const [essencesData, shopProductsData, categoriesData] = await Promise.all([
+      const [essencesData, shopProductsData] = await Promise.all([
         labService.getEssences(),
-        shopService.getFinishedEssences(),
-        shopService.getPerfumeCategories()
+        shopService.getFinishedEssences()
       ]);
       const essencesDataAny = essencesData as any;
       const essencesList = essencesDataAny?.results || essencesDataAny?.resultats || (Array.isArray(essencesData) ? essencesData : []);
       const shopProductsList = shopProductsData?.results || shopProductsData?.resultats || (Array.isArray(shopProductsData) ? shopProductsData : []);
-      const categoriesList = categoriesData?.results || categoriesData?.resultats || (Array.isArray(categoriesData) ? categoriesData : []);
       setEssences(essencesList);
       setFinishedProducts(shopProductsList);
-      setCategories(categoriesList);
     } catch (error) {
       addToast('Erreur lors du chargement des essences', 'error');
     } finally {
@@ -75,11 +79,12 @@ export default function EssencesPage() {
       setNom(editingEssence.nom || '');
       setMarque(editingEssence.marque || 'Exclusif');
       setCodeReference(editingEssence.code_reference || '');
-      setCategorie(editingEssence.categorie?.toString() || '1');
+      setCategorie(editingEssence.categorie || 'premium');
       setDescription(editingEssence.description || '');
       setIntensite(editingEssence.intensite || 'moyenne');
       setGenreCible(editingEssence.genre_cible || 'mixte');
-      
+      setPrixParMl(editingEssence.prix_par_ml || '0.00');
+
       setSlug(editingEssence.slug || '');
       setDescriptionIa(editingEssence.description_ia || '');
       setFournisseur(editingEssence.fournisseur || '');
@@ -108,15 +113,16 @@ export default function EssencesPage() {
       setNom('');
       setMarque('Exclusif');
       setCodeReference('');
-      setCategorie(categories[0]?.id ? String(categories[0].id) : '');
+      setCategorie('premium');
       setDescription('');
       setIntensite('moyenne');
       setGenreCible('mixte');
+      setPrixParMl('0.00');
       setVenduFini(false);
       setShopPrice('');
       setShopSize('30');
       setShopStock('50');
-      
+
       setSlug('');
       setDescriptionIa('');
       setFournisseur('');
@@ -127,8 +133,11 @@ export default function EssencesPage() {
       setNotesTete('');
       setNotesCoeur('');
       setNotesFond('');
+      setLotStock('1000.00');
+      setLotSeuil('100.00');
+      setLotRef('');
     }
-  }, [editingEssence, finishedProducts, categories]);
+  }, [editingEssence, finishedProducts]);
 
   const resetForm = () => {
     setEditingEssence(null);
@@ -151,18 +160,19 @@ export default function EssencesPage() {
       return;
     }
 
-    const labPayload = {
+    const payload: any = {
       nom,
       marque,
       code_reference: codeReference,
-      categorie: parseInt(categorie),
+      categorie,
       description,
       intensite,
       genre_cible: genreCible,
-      vendu_comme_produit_fini: venduFini,
+      prix_par_ml: prixParMl,
       actif: true,
-      
-      slug,
+      tag_ids: [],
+
+      slug: slug || null,
       description_ia: descriptionIa,
       fournisseur,
       origine_pays: originePays,
@@ -171,44 +181,35 @@ export default function EssencesPage() {
       duree,
       notes_tete: notesTete,
       notes_coeur: notesCoeur,
-      notes_fond: notesFond
+      notes_fond: notesFond,
     };
 
+    if (!editingEssence) {
+      payload.initial_lot = {
+        stock_ml: lotStock,
+        seuil_alerte_ml: lotSeuil,
+        reference_fournisseur: lotRef
+      };
+    }
+
+    if (venduFini) {
+      payload.produits_finis = [
+        {
+          taille_ml: parseInt(shopSize),
+          prix: shopPrice,
+          prix_promotionnel: null,
+          stock_disponible: parseInt(shopStock)
+        }
+      ];
+    }
+
     try {
-      let rawEssence;
       if (editingEssence) {
-        rawEssence = await labService.updateEssence(editingEssence.id, labPayload);
+        await labService.updateEssence(editingEssence.id, payload);
         addToast('Essence mise à jour', 'success');
       } else {
-        rawEssence = await labService.createEssence(labPayload);
-        addToast('Essence créée dans le laboratoire', 'success');
-      }
-
-      const essenceId = editingEssence ? editingEssence.id : rawEssence?.id;
-
-      if (essenceId) {
-        const relatedProduct = finishedProducts.find(p => p.essence === essenceId);
-        
-        if (venduFini) {
-          const shopPayload = {
-            essence: essenceId,
-            taille_ml: parseInt(shopSize),
-            prix: shopPrice,
-            stock_disponible: parseInt(shopStock),
-            actif: true
-          };
-
-          if (relatedProduct) {
-            await shopService.updateFinishedEssence(relatedProduct.id, shopPayload);
-            addToast('Produit boutique mis à jour', 'success');
-          } else {
-            await shopService.createFinishedEssence(shopPayload);
-            addToast('Produit ajouté à la boutique', 'success');
-          }
-        } else if (relatedProduct) {
-          await shopService.deleteFinishedEssence(relatedProduct.id);
-          addToast('Produit retiré de la boutique', 'success');
-        }
+        await labService.createEssence(payload);
+        addToast('Essence et composants créés avec succès', 'success');
       }
 
       setShowModal(false);
@@ -230,8 +231,8 @@ export default function EssencesPage() {
     }
   };
 
-  const filtered = (Array.isArray(essences) ? essences : []).filter(e => 
-    (e?.nom || '').toLowerCase().includes(search.toLowerCase()) || 
+  const filtered = (Array.isArray(essences) ? essences : []).filter(e =>
+    (e?.nom || '').toLowerCase().includes(search.toLowerCase()) ||
     (e?.code_reference || '').toLowerCase().includes(search.toLowerCase())
   );
 
@@ -247,7 +248,7 @@ export default function EssencesPage() {
       <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
         <div className="relative w-full md:w-96">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-foreground/40" size={18} />
-          <input 
+          <input
             type="text"
             placeholder="Rechercher une essence..."
             className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-4 py-2 text-sm outline-none focus:border-gold"
@@ -255,7 +256,7 @@ export default function EssencesPage() {
             onChange={e => setSearch(e.target.value)}
           />
         </div>
-        <button 
+        <button
           onClick={() => { resetForm(); setShowModal(true); }}
           className="w-full md:w-auto bg-gold text-black px-6 py-2 rounded-xl flex items-center justify-center gap-2 font-bold hover:scale-105 transition-transform"
         >
@@ -277,7 +278,7 @@ export default function EssencesPage() {
             </div>
             <h3 className="font-bold text-lg mb-1">{essence.nom}</h3>
             <p className="text-xs text-foreground/40 font-mono mb-4">{essence.code_reference} • {essence.marque}</p>
-            
+
             <div className="flex flex-wrap gap-2 mb-4">
               <span className="text-[10px] uppercase font-bold px-2 py-1 bg-white/5 rounded-md text-foreground/60">{essence.genre_cible}</span>
               <span className="text-[10px] uppercase font-bold px-2 py-1 bg-white/5 rounded-md text-foreground/60">{essence.intensite}</span>
@@ -304,7 +305,7 @@ export default function EssencesPage() {
           <div className="bg-background border border-white/10 rounded-3xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl">
             <div className="p-8">
               <h2 className="text-2xl font-bold mb-6 flex items-center gap-3">
-                <Droplets className="text-gold" /> 
+                <Droplets className="text-gold" />
                 {editingEssence ? 'Modifier l\'essence' : 'Nouvelle Essence Brute'}
               </h2>
 
@@ -313,8 +314,8 @@ export default function EssencesPage() {
                 <div className="space-y-4">
                   <div>
                     <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Nom de l'essence *</label>
-                    <input 
-                      value={nom} 
+                    <input
+                      value={nom}
                       onChange={e => setNom(e.target.value)}
                       placeholder="Ex: Essence de Patchouli"
                       className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-gold"
@@ -322,8 +323,8 @@ export default function EssencesPage() {
                   </div>
                   <div>
                     <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Slug</label>
-                    <input 
-                      value={slug} 
+                    <input
+                      value={slug}
                       onChange={e => setSlug(e.target.value)}
                       placeholder="essence-patchouli"
                       className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-gold"
@@ -332,26 +333,25 @@ export default function EssencesPage() {
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Code Référence *</label>
-                      <input 
-                        value={codeReference} 
+                      <input
+                        value={codeReference}
                         onChange={e => setCodeReference(e.target.value)}
                         placeholder="ESS-PAT-001"
                         className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-gold"
                       />
                     </div>
-                     <div>
-                       <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Catégorie *</label>
-                       <select 
-                         value={categorie} 
-                         onChange={e => setCategorie(e.target.value)}
-                         className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-gold"
-                       >
-                         <option value="" className="text-black bg-white">Choisir une catégorie</option>
-                         {categories.map((c: any) => (
-                           <option key={c.id} value={c.id} className="text-black bg-white">{c.nom}</option>
-                         ))}
-                       </select>
-                     </div>
+                    <div>
+                      <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Catégorie *</label>
+                      <select
+                        value={categorie}
+                        onChange={e => setCategorie(e.target.value)}
+                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-gold"
+                      >
+                        {STATIC_CATEGORIES.map(cat => (
+                          <option key={cat} value={cat} className="text-black bg-white">{cat.replace('_', ' ')}</option>
+                        ))}
+                      </select>
+                    </div>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
@@ -383,10 +383,19 @@ export default function EssencesPage() {
                     </div>
                     <div>
                       <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Concentration Max (%)</label>
-                      <input 
-                        value={concentrationMax} 
+                      <input
+                        value={concentrationMax}
                         onChange={e => setConcentrationMax(e.target.value)}
                         placeholder="15.00"
+                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-gold"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Prix par ml (FCFA)</label>
+                      <input
+                        value={prixParMl}
+                        onChange={e => setPrixParMl(e.target.value)}
+                        placeholder="500.00"
                         className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-gold"
                       />
                     </div>
@@ -397,8 +406,8 @@ export default function EssencesPage() {
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Marque</label>
-                      <input 
-                        value={marque} 
+                      <input
+                        value={marque}
                         onChange={e => setMarque(e.target.value)}
                         placeholder="Exclusif"
                         className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-gold"
@@ -406,8 +415,8 @@ export default function EssencesPage() {
                     </div>
                     <div>
                       <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Fournisseur</label>
-                      <input 
-                        value={fournisseur} 
+                      <input
+                        value={fournisseur}
                         onChange={e => setFournisseur(e.target.value)}
                         placeholder="Hervé S.A."
                         className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-gold"
@@ -417,8 +426,8 @@ export default function EssencesPage() {
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Couleur</label>
-                      <input 
-                        value={couleur} 
+                      <input
+                        value={couleur}
                         onChange={e => setCouleur(e.target.value)}
                         placeholder="Marron"
                         className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-gold"
@@ -426,8 +435,8 @@ export default function EssencesPage() {
                     </div>
                     <div>
                       <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Origine Pays</label>
-                      <input 
-                        value={originePays} 
+                      <input
+                        value={originePays}
                         onChange={e => setOriginePays(e.target.value)}
                         placeholder="Cameroun"
                         className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-gold"
@@ -437,8 +446,8 @@ export default function EssencesPage() {
                   <div className="grid grid-cols-3 gap-2">
                     <div>
                       <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Notes de Tête</label>
-                      <input 
-                        value={notesTete} 
+                      <input
+                        value={notesTete}
                         onChange={e => setNotesTete(e.target.value)}
                         placeholder="Citron"
                         className="w-full bg-white/5 border border-white/10 rounded-xl px-2 py-3 text-xs outline-none focus:border-gold"
@@ -446,8 +455,8 @@ export default function EssencesPage() {
                     </div>
                     <div>
                       <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Notes de Coeur</label>
-                      <input 
-                        value={notesCoeur} 
+                      <input
+                        value={notesCoeur}
                         onChange={e => setNotesCoeur(e.target.value)}
                         placeholder="Patchouli"
                         className="w-full bg-white/5 border border-white/10 rounded-xl px-2 py-3 text-xs outline-none focus:border-gold"
@@ -455,8 +464,8 @@ export default function EssencesPage() {
                     </div>
                     <div>
                       <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Notes de Fond</label>
-                      <input 
-                        value={notesFond} 
+                      <input
+                        value={notesFond}
                         onChange={e => setNotesFond(e.target.value)}
                         placeholder="Santal"
                         className="w-full bg-white/5 border border-white/10 rounded-xl px-2 py-3 text-xs outline-none focus:border-gold"
@@ -465,8 +474,8 @@ export default function EssencesPage() {
                   </div>
                   <div>
                     <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Description</label>
-                    <textarea 
-                      value={description} 
+                    <textarea
+                      value={description}
                       onChange={e => setDescription(e.target.value)}
                       rows={2}
                       className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 outline-none focus:border-gold resize-none"
@@ -474,8 +483,8 @@ export default function EssencesPage() {
                   </div>
                   <div>
                     <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Description IA</label>
-                    <textarea 
-                      value={descriptionIa} 
+                    <textarea
+                      value={descriptionIa}
                       onChange={e => setDescriptionIa(e.target.value)}
                       rows={2}
                       className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 outline-none focus:border-gold resize-none"
@@ -483,13 +492,50 @@ export default function EssencesPage() {
                   </div>
                 </div>
 
+                {/* Initial Lot Fields (Only on creation) */}
+                {!editingEssence && (
+                  <div className="col-span-1 md:col-span-2 grid grid-cols-1 md:grid-cols-3 gap-6 p-6 bg-emerald-500/5 border border-emerald-500/20 rounded-2xl">
+                    <div className="col-span-full flex items-center gap-2 text-emerald-400 mb-2">
+                      <Info size={14} />
+                      <p className="text-[10px] font-bold uppercase">Premier Lot de Laboratoire</p>
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Stock Initial (ml)</label>
+                      <input
+                        type="number"
+                        value={lotStock}
+                        onChange={e => setLotStock(e.target.value)}
+                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-gold"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Seuil Alerte (ml)</label>
+                      <input
+                        type="number"
+                        value={lotSeuil}
+                        onChange={e => setLotSeuil(e.target.value)}
+                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-gold"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Réf. Lot Fournisseur</label>
+                      <input
+                        value={lotRef}
+                        onChange={e => setLotRef(e.target.value)}
+                        placeholder="LOT-001"
+                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-gold"
+                      />
+                    </div>
+                  </div>
+                )}
+
                 {/* Split Logic Toggle */}
                 <div className="col-span-1 md:col-span-2 py-4 border-y border-white/5">
                   <label className="flex items-center gap-3 cursor-pointer group">
                     <div className={`w-12 h-6 rounded-full relative transition-colors ${venduFini ? 'bg-gold' : 'bg-white/10'}`}>
-                      <input 
-                        type="checkbox" 
-                        className="sr-only" 
+                      <input
+                        type="checkbox"
+                        className="sr-only"
                         checked={venduFini}
                         onChange={e => setVenduFini(e.target.checked)}
                       />
@@ -511,9 +557,9 @@ export default function EssencesPage() {
                     </div>
                     <div>
                       <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Prix de vente (FCFA)</label>
-                      <input 
+                      <input
                         type="number"
-                        value={shopPrice} 
+                        value={shopPrice}
                         onChange={e => setShopPrice(e.target.value)}
                         placeholder="15000"
                         className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-gold text-gold"
@@ -530,9 +576,9 @@ export default function EssencesPage() {
                     </div>
                     <div>
                       <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Stock Initial</label>
-                      <input 
+                      <input
                         type="number"
-                        value={shopStock} 
+                        value={shopStock}
                         onChange={e => setShopStock(e.target.value)}
                         className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-gold"
                       />
@@ -542,13 +588,13 @@ export default function EssencesPage() {
               </div>
 
               <div className="flex gap-4 mt-8">
-                <button 
+                <button
                   onClick={() => setShowModal(false)}
                   className="flex-1 px-6 py-4 rounded-xl border border-white/10 text-foreground/60 font-bold hover:bg-white/5 transition-colors"
                 >
                   Annuler
                 </button>
-                <button 
+                <button
                   onClick={handleSave}
                   className="flex-1 px-6 py-4 rounded-xl bg-gold text-black font-bold hover:bg-gold/80 transition-transform active:scale-95"
                 >
