@@ -53,7 +53,7 @@ function IngredientsTab() {
     nom: '',
     code_reference: '',
     unite: 'ml',
-    prix_unitaire: '',
+    prix_par_ml: '',
     stock_disponible: '',
     description: '',
   });
@@ -75,7 +75,7 @@ function IngredientsTab() {
 
   const openAdd = () => {
     setEditing(null);
-    setForm({ nom: '', code_reference: '', unite: 'ml', prix_unitaire: '', stock_disponible: '', description: '' });
+    setForm({ nom: '', code_reference: '', unite: 'ml', prix_par_ml: '', stock_disponible: '', description: '' });
     setShowModal(true);
   };
 
@@ -85,7 +85,7 @@ function IngredientsTab() {
       nom: item.nom || '',
       code_reference: item.code_reference || '',
       unite: item.unite || 'ml',
-      prix_unitaire: String(item.prix_unitaire || ''),
+      prix_par_ml: String(item.prix_par_ml || ''),
       stock_disponible: String(item.stock_disponible || ''),
       description: item.description || '',
     });
@@ -93,12 +93,12 @@ function IngredientsTab() {
   };
 
   const handleSave = async () => {
-    if (!form.nom || !form.prix_unitaire) {
+    if (!form.nom || !form.prix_par_ml) {
       addToast('Nom et Prix requis', 'error'); return;
     }
     try {
       setSaving(true);
-      const payload = { ...form, prix_unitaire: Number(form.prix_unitaire), stock_disponible: Number(form.stock_disponible) };
+      const payload = { ...form, prix_par_ml: Number(form.prix_par_ml), stock_disponible: Number(form.stock_disponible) };
       if (editing) {
         await labService.updateIngredient(editing.id, payload);
         addToast('Ingrédient mis à jour', 'success');
@@ -178,15 +178,14 @@ function IngredientsTab() {
                     </td>
                     <td className="px-5 py-3 font-mono text-xs text-foreground/60">{item.code_reference || '—'}</td>
                     <td className="px-5 py-3 text-sm text-foreground/60">{item.unite}</td>
-                    <td className="px-5 py-3 font-semibold text-foreground text-sm">{Number(item.prix_unitaire || 0).toLocaleString()} FCFA</td>
+                    <td className="px-5 py-3 font-semibold text-foreground text-sm">{Number(item.prix_par_ml || 0).toLocaleString()} FCFA</td>
                     <td className="px-5 py-3">
-                      <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${
-                        Number(item.stock_disponible) > 50
+                      <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${Number(item.stock_disponible) > 50
                           ? 'bg-emerald-500/10 text-emerald-400'
                           : Number(item.stock_disponible) > 10
-                          ? 'bg-amber-500/10 text-amber-400'
-                          : 'bg-red-500/10 text-red-400'
-                      }`}>
+                            ? 'bg-amber-500/10 text-amber-400'
+                            : 'bg-red-500/10 text-red-400'
+                        }`}>
                         {item.stock_disponible ?? '—'} {item.unite}
                       </span>
                     </td>
@@ -236,7 +235,7 @@ function IngredientsTab() {
               <div className="grid grid-cols-3 gap-3">
                 {[
                   { label: 'Unité', field: 'unite', placeholder: 'ml, g, kg' },
-                  { label: 'Prix (FCFA)', field: 'prix_unitaire', placeholder: '500', type: 'number' },
+                  { label: 'Prix (FCFA)', field: 'prix_par_ml', placeholder: '500', type: 'number' },
                   { label: 'Stock Disponible', field: 'stock_disponible', placeholder: '100', type: 'number' },
                 ].map(f => (
                   <div key={f.field}>
@@ -630,9 +629,8 @@ function InventoryTab() {
                       </td>
                       <td className="px-5 py-3 text-sm text-foreground/60">{threshold.toLocaleString()} ml</td>
                       <td className="px-5 py-3">
-                        <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${
-                          isLow ? 'bg-red-500/10 text-red-400' : 'bg-emerald-500/10 text-emerald-400'
-                        }`}>
+                        <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${isLow ? 'bg-red-500/10 text-red-400' : 'bg-emerald-500/10 text-emerald-400'
+                          }`}>
                           {isLow ? '⚠ Critique' : '✓ OK'}
                         </span>
                       </td>
