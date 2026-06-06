@@ -145,7 +145,6 @@ export const useAuthStore = create<AuthState>()(
         try {
           // Use authService.updateProfile which handles the API call correctly
           const response = await authService.updateProfile({
-            email: data.email,
             telephone: data.phone,
             first_name: data.firstName,
             last_name: data.lastName,
