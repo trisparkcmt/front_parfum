@@ -48,6 +48,7 @@ interface AiResponse {
   parfums_existants?: Array<{
     id: number;
     nom: string;
+    slug: string;
     prix_unitaire: string;
     image_principale: string;
   }>;
@@ -254,7 +255,7 @@ export function GeminiChat() {
                 <h4 className="text-xs font-bold uppercase tracking-widest text-gold mb-4">Produits suggérés</h4>
                 <div className="grid grid-cols-2 gap-4">
                   {result.parfums_existants.map(p => (
-                    <Link key={p.id} href={`/shop/product/${p.id}`} className="block group">
+                    <Link key={p.id} href={`/shop/product/${p.slug || p.id}`} className="block group">
                       <div className="bg-white/5 p-3 rounded-xl border border-white/10 hover:border-gold/50 transition-all">
                         {p.image_principale && (
                           <div className="relative aspect-square mb-2 overflow-hidden rounded-lg bg-black/20">

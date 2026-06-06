@@ -52,6 +52,7 @@ export function mapBackendPerfumeToProduct(p: any): Product {
     longevity: p.longevite || 'Longue durée (8-10h)',
     sillage: p.sillage || 'Modéré',
     gender: p.genre_cible === 'homme' ? 'masculine' : p.genre_cible === 'femme' ? 'feminine' : 'unisex',
+    slug: p.slug || '',
     isFeatured: p.est_bestseller || p.est_nouveau || false,
     createdAt: p.date_creation || new Date().toISOString(),
   };
@@ -105,6 +106,7 @@ export function mapBackendAccessoryToProduct(p: any): Product {
     reviews: p.reviews || 8,
     volume: p.taille ? `Taille ${p.taille}` : undefined,
     availableColors: p.couleur ? [p.couleur] : [],
+    slug: p.slug || '',
     isFeatured: p.est_bestseller || false,
     createdAt: p.date_creation || new Date().toISOString(),
   };

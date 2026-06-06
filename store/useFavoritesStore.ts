@@ -115,13 +115,14 @@ export const useFavoritesStore = create<FavoritesState>()(
           const products: Product[] = backendFavs.map((fav: any) => {
             const isAccessory = fav.type_produit === 'accessoire' || fav.type_produit === 'accessory';
             return {
-              id: String(fav.id),
+              id: String(fav.id_produit || fav.id),
               name: fav.nom_produit,
               description: '',
               price: parseFloat(fav.prix_produit),
               category: isAccessory ? 'accessory' : 'perfume-brand',
               images: fav.image_produit ? [fav.image_produit] : ['/parfume1.png'],
               inStock: true,
+              slug: fav.slug_produit || '',
               createdAt: fav.date_ajout || new Date().toISOString(),
             };
           });

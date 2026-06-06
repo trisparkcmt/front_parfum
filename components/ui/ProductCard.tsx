@@ -73,7 +73,7 @@ export function ProductCard({ product, onAddToCart, onToggleFavorite, isFavorite
         </button>
       )}
 
-      <Link href={`/shop/product/${product.id}`} className="block h-full">
+      <Link href={`/shop/product/${product.slug || product.id}`} className="block h-full">
         {/* Image Section */}
         <div className="relative h-40 md:h-55 overflow-hidden bg-[var(--t-surface)]">
           {product.images && product.images[0] && (

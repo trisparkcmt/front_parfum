@@ -13,6 +13,7 @@ interface FavoriteProduct {
   id: string;
   name: string;
   price: number;
+  slug: string;
   category?: string;
   image?: string;
   type?: 'perfume' | 'accessory';
@@ -43,8 +44,8 @@ export default function FavoritesPage() {
     console.log('Added to cart:', product);
   };
 
-  const handleViewProduct = (productId: string) => {
-    router.push(`/shop/product/${productId}`);
+  const handleViewProduct = (slug: string) => {
+    router.push(`/shop/product/${slug}`);
   };
 
   return (
@@ -134,7 +135,7 @@ export default function FavoritesPage() {
 
                   <div className="flex gap-2 pt-2">
                     <button
-                      onClick={() => handleViewProduct(product.id)}
+                      onClick={() => handleViewProduct(product.slug || product.id)}
                       className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-gold/10 text-gold hover:bg-gold/20 transition-colors text-xs font-medium"
                     >
                       <Eye size={14} />

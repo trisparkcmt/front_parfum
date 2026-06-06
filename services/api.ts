@@ -62,7 +62,7 @@ api.interceptors.response.use(
       if (typeof window !== 'undefined') {
         const refreshToken = localStorage.getItem('refresh_token');
 
-        if (refreshToken) {
+        if (refreshToken || document.cookie.includes('refresh_token')) {
           if (isRefreshing) {
             // Wait in queue for token refresh to finish
             return new Promise((resolve, reject) => {
@@ -82,18 +82,22 @@ api.interceptors.response.use(
           try {
             // Request fresh access token using refresh token
             // We use standard axios instead of api to avoid infinite interceptor loops
-            const response = await axios.post(`${getBaseURL()}auth/token/refresh/`, {
-              refresh: refreshToken,
-            });
+            const response = await axios.post(
+              `${getBaseURL()}auth/token/refresh/`,
+              refreshToken ? { refresh: refreshToken } : {},
+              { withCredentials: true }
+            );
 
             const newAccessToken = response.data.access;
 
-            // Save new token
-            localStorage.setItem('auth_token', newAccessToken);
+            if (newAccessToken) {
+              // Save new token
+              localStorage.setItem('auth_token', newAccessToken);
 
-            // Update auth header for api instance & original request
-            api.defaults.headers.common['Authorization'] = `Bearer ${newAccessToken}`;
-            originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+              // Update auth header for api instance & original request
+              api.defaults.headers.common['Authorization'] = `Bearer ${newAccessToken}`;
+              originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+            }
 
             processQueue(null, newAccessToken);
             isRefreshing = false;
