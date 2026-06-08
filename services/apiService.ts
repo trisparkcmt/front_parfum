@@ -1,4 +1,4 @@
-/**
+﻿/**
  * @file services/apiService.ts
  * @description Centralized API Service Layer for all Django backend endpoints.
  * Implements all endpoints from the API documentation.
@@ -920,18 +920,25 @@ export const adminService = {
    * Post FormData to the given endpoint with proper headers (for image uploads).
    */
   postFormData: async (url: string, data: FormData) => {
-    const response = await api.post(url, data);
+    const response = await api.post(url, data, {
+      headers: {
+        'Content-Type': 'multipart/form-data', // ✅ overrides the default JSON header
+      },
+    });
     return response.data;
   },
 
   /**
    * Patch FormData to the given endpoint (for image uploads in updates).
    */
-  patchFormData: async (url: string, data: FormData) => {
-    const response = await api.patch(url, data);
+   patchFormData: async (url: string, data: FormData) => {
+    const response = await api.patch(url, data, {
+      headers: {
+        'Content-Type': 'multipart/form-data', // ✅ overrides the default JSON header
+      },
+    });
     return response.data;
   },
-
   /**
    * Get paginated list of all users
    */

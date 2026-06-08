@@ -2,12 +2,13 @@
 
 /**
  * @file store/useThemeStore.ts
- * @description Global Theme Management Store with System Theme Detection.
+ * @description Global Theme Management Store with System Theme Detection and Viewport Syncing.
  *
  * This store manages the application's visual theme (dark/light mode) and:
  * - Persists the user's preference to localStorage
  * - Detects system theme preference on app load
  * - Listens to system theme changes in real-time
+ * - Synchronizes the browser window/notch theme-color with the active UI state
  *
  * **State Management**:
  * - **`theme`**: The current active theme ('dark' | 'light').
@@ -28,6 +29,24 @@ interface ThemeState {
   initTheme: () => void;
 }
 
+// Helper to keep the mobile browser's toolbar synchronized with the interface
+function updateViewportThemeColor(theme: Theme) {
+  if (typeof window === 'undefined') return;
+  
+  const colors: Record<Theme, string> = {
+    dark: '#171717',  // Adjust this hex to match your layout's deep background color
+    light: '#ffffff', // Adjust this hex to match your layout's light background color
+  };
+
+  let metaTag = document.querySelector('meta[name="theme-color"]');
+  if (!metaTag) {
+    metaTag = document.createElement('meta');
+    metaTag.setAttribute('name', 'theme-color');
+    document.head.appendChild(metaTag);
+  }
+  metaTag.setAttribute('content', colors[theme]);
+}
+
 // Helper to detect system theme preference
 function getSystemTheme(): Theme {
   if (typeof window === 'undefined') return 'dark';
@@ -42,6 +61,7 @@ export const useThemeStore = create<ThemeState>((set, get) => ({
     if (typeof window !== 'undefined') {
       localStorage.setItem('ae-theme', theme);
       document.documentElement.setAttribute('data-theme', theme);
+      updateViewportThemeColor(theme);
     }
   },
 
@@ -60,15 +80,17 @@ export const useThemeStore = create<ThemeState>((set, get) => ({
       
       set({ theme });
       document.documentElement.setAttribute('data-theme', theme);
+      updateViewportThemeColor(theme);
 
       // Listen to system theme changes
       const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
       const handleChange = (e: MediaQueryListEvent) => {
-        // Only apply system theme if user hasn't set a preference
+        // Only apply system theme if user hasn't set an explicit preference
         if (!localStorage.getItem('ae-theme')) {
           const newTheme = e.matches ? 'dark' : 'light';
           set({ theme: newTheme });
           document.documentElement.setAttribute('data-theme', newTheme);
+          updateViewportThemeColor(newTheme);
         }
       };
 

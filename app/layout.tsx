@@ -41,8 +41,8 @@ export const metadata: Metadata = {
   },
 };
 
+// Removed the static themeColor from here so it can be handled dynamically
 export const viewport: Viewport = {
-  themeColor: "#171717",
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
@@ -60,8 +60,20 @@ export default function RootLayout({
           __html: `
             (function() {
               try {
+                // Read saved preference or default to dark
                 var theme = localStorage.getItem('ae-theme') || 'dark';
                 document.documentElement.setAttribute('data-theme', theme);
+                
+                // Match the browser UI color immediately to prevent flash
+                var metaColor = theme === 'dark' ? '#171717' : '#ffffff'; 
+                
+                var metaTag = document.querySelector('meta[name="theme-color"]');
+                if (!metaTag) {
+                  metaTag = document.createElement('meta');
+                  metaTag.setAttribute('name', 'theme-color');
+                  document.head.appendChild(metaTag);
+                }
+                metaTag.setAttribute('content', metaColor);
               } catch(e) {}
             })();
           `

@@ -1,9 +1,11 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Loader2, Edit2, Trash2, Plus, Search, Layers, Sparkles, Gem, FlaskConical } from 'lucide-react';
+import { Loader2, Edit2, Trash2, Plus, Search, Sparkles, Gem, FlaskConical } from 'lucide-react';
 import { shopService } from '@/services/apiService';
+import { adminService } from '@/services/apiService';
 import { useToastStore } from '@/store/useToastStore';
+import ImageUploader from '@/components/admin/ImageUploader';
 
 type TabKey = 'perfume_categories' | 'accessory_categories' | 'bottle_types';
 
@@ -33,15 +35,15 @@ export default function CategoriesAdminPage() {
   const [search, setSearch] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [editingItem, setEditingItem] = useState<any | null>(null);
+  const [iconFile, setIconFile] = useState<File | null>(null);
 
-  // General Form States
   const [form, setForm] = useState({
     nom: '',
     slug: '',
     description: '',
     ordre_affichage: 0,
     actif: true,
-    taux_reduction: '0.00'
+    taux_reduction: '0.00',
   });
 
   const { addToast } = useToastStore();
@@ -59,7 +61,7 @@ export default function CategoriesAdminPage() {
       }
       const list = data?.results || data?.resultats || (Array.isArray(data) ? data : []);
       setItems(list);
-    } catch (error) {
+    } catch {
       addToast('Erreur lors du chargement des données', 'error');
     } finally {
       setLoading(false);
@@ -74,16 +76,14 @@ export default function CategoriesAdminPage() {
     setForm(prev => ({ ...prev, [field]: value }));
   };
 
+  const resetForm = () => {
+    setForm({ nom: '', slug: '', description: '', ordre_affichage: 0, actif: true, taux_reduction: '0.00' });
+    setIconFile(null);
+  };
+
   const handleOpenAdd = () => {
     setEditingItem(null);
-    setForm({
-      nom: '',
-      slug: '',
-      description: '',
-      ordre_affichage: 0,
-      actif: true,
-      taux_reduction: '0.00'
-    });
+    resetForm();
     setShowModal(true);
   };
 
@@ -95,8 +95,9 @@ export default function CategoriesAdminPage() {
       description: item.description || '',
       ordre_affichage: item.ordre_affichage || 0,
       actif: item.actif !== undefined ? item.actif : true,
-      taux_reduction: item.taux_reduction || '0.00'
+      taux_reduction: item.taux_reduction || '0.00',
     });
+    setIconFile(null);
     setShowModal(true);
   };
 
@@ -108,10 +109,7 @@ export default function CategoriesAdminPage() {
 
     try {
       if (activeTab === 'perfume_categories') {
-        const payload = {
-          ...form,
-          ordre_affichage: Number(form.ordre_affichage)
-        };
+        const payload = { ...form, ordre_affichage: Number(form.ordre_affichage) };
         if (editingItem) {
           await shopService.updatePerfumeCategory(editingItem.id, payload);
           addToast('Catégorie parfum mise à jour', 'success');
@@ -119,23 +117,27 @@ export default function CategoriesAdminPage() {
           await shopService.createPerfumeCategory(payload);
           addToast('Catégorie parfum créée', 'success');
         }
+
       } else if (activeTab === 'accessory_categories') {
-        const payload = {
-          nom: form.nom,
-          description: form.description
-        };
+        // Use FormData to support icon upload
+        const formData = new FormData();
+        formData.append('nom', form.nom);
+        formData.append('description', form.description);
+        formData.append('taux_reduction', form.taux_reduction);
+        formData.append('actif', String(form.actif));
+        if (iconFile instanceof File) {
+          formData.append('icone', iconFile);
+        }
         if (editingItem) {
-          await shopService.updateAccessoryType(editingItem.id, payload);
+          await adminService.patchFormData(`shop/types-accessoire/${editingItem.id}/`, formData);
           addToast('Type accessoire mis à jour', 'success');
         } else {
-          await shopService.createAccessoryType(payload);
+          await adminService.postFormData('shop/types-accessoire/', formData);
           addToast('Type accessoire créé', 'success');
         }
+
       } else if (activeTab === 'bottle_types') {
-        const payload = {
-          nom: form.nom,
-          description: form.description
-        };
+        const payload = { nom: form.nom, description: form.description };
         if (editingItem) {
           await shopService.updateBottleType(editingItem.id, payload);
           addToast('Type flacon mis à jour', 'success');
@@ -144,6 +146,7 @@ export default function CategoriesAdminPage() {
           addToast('Type flacon créé', 'success');
         }
       }
+
       setShowModal(false);
       fetchItems();
     } catch (error: any) {
@@ -163,7 +166,7 @@ export default function CategoriesAdminPage() {
       }
       addToast('Élément supprimé', 'success');
       fetchItems();
-    } catch (error) {
+    } catch {
       addToast('Erreur lors de la suppression', 'error');
     }
   };
@@ -172,6 +175,9 @@ export default function CategoriesAdminPage() {
     (c.nom || '').toLowerCase().includes(search.toLowerCase()) ||
     (c.slug || '').toLowerCase().includes(search.toLowerCase())
   );
+
+  // Shared column count for empty state colspan
+  const colSpan = activeTab === 'perfume_categories' ? 5 : activeTab === 'accessory_categories' ? 5 : 3;
 
   return (
     <div className="space-y-6">
@@ -185,27 +191,11 @@ export default function CategoriesAdminPage() {
         </button>
       </div>
 
-      {/* Tab Selectors */}
       <div className="bg-white/5 rounded-2xl border border-white/10 overflow-hidden shadow-xl">
         <div className="flex border-b border-white/10 overflow-x-auto">
-          <TabButton
-            active={activeTab === 'perfume_categories'}
-            onClick={() => setActiveTab('perfume_categories')}
-            icon={<Sparkles size={14} />}
-            label="Catégories Parfums"
-          />
-          <TabButton
-            active={activeTab === 'accessory_categories'}
-            onClick={() => setActiveTab('accessory_categories')}
-            icon={<Gem size={14} />}
-            label="Catégories Accessoires"
-          />
-          <TabButton
-            active={activeTab === 'bottle_types'}
-            onClick={() => setActiveTab('bottle_types')}
-            icon={<FlaskConical size={14} />}
-            label="Types Flacons"
-          />
+          <TabButton active={activeTab === 'perfume_categories'} onClick={() => setActiveTab('perfume_categories')} icon={<Sparkles size={14} />} label="Catégories Parfums" />
+          <TabButton active={activeTab === 'accessory_categories'} onClick={() => setActiveTab('accessory_categories')} icon={<Gem size={14} />} label="Catégories Accessoires" />
+          <TabButton active={activeTab === 'bottle_types'} onClick={() => setActiveTab('bottle_types')} icon={<FlaskConical size={14} />} label="Types Flacons" />
         </div>
 
         <div className="p-6">
@@ -230,16 +220,30 @@ export default function CategoriesAdminPage() {
                 <table className="w-full text-left border-collapse">
                   <thead>
                     <tr className="border-b border-white/10 bg-white/5">
-                      <th className="px-6 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider">Nom</th>
+                      {/* Perfume categories columns */}
                       {activeTab === 'perfume_categories' && (
                         <>
+                          <th className="px-6 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider">Nom</th>
                           <th className="px-6 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider">Slug</th>
                           <th className="px-6 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider">Ordre</th>
                           <th className="px-6 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider">Taux Réduction</th>
                         </>
                       )}
-                      {activeTab !== 'perfume_categories' && (
-                        <th className="px-6 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider">Description</th>
+                      {/* Accessory categories columns */}
+                      {activeTab === 'accessory_categories' && (
+                        <>
+                          <th className="px-6 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider w-16">Icône</th>
+                          <th className="px-6 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider">Nom</th>
+                          <th className="px-6 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider">Description</th>
+                          <th className="px-6 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider">Taux Réduction</th>
+                        </>
+                      )}
+                      {/* Bottle types columns */}
+                      {activeTab === 'bottle_types' && (
+                        <>
+                          <th className="px-6 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider">Nom</th>
+                          <th className="px-6 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider">Description</th>
+                        </>
                       )}
                       <th className="px-6 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider text-right">Actions</th>
                     </tr>
@@ -247,16 +251,47 @@ export default function CategoriesAdminPage() {
                   <tbody className="divide-y divide-white/5">
                     {filtered.map(c => (
                       <tr key={c.id} className="hover:bg-white/5 transition-colors group">
-                        <td className="px-6 py-4 font-medium text-foreground">{c.nom}</td>
                         {activeTab === 'perfume_categories' && (
                           <>
+                            <td className="px-6 py-4 font-medium text-foreground">{c.nom}</td>
                             <td className="px-6 py-4 text-sm text-foreground/60">{c.slug}</td>
                             <td className="px-6 py-4 text-sm text-foreground/60">{c.ordre_affichage}</td>
-                            <td className="px-6 py-4 text-sm text-gold font-bold">{c.taux_reduction}%</td>
+                            <td className="px-6 py-4 text-sm">
+                              {c.taux_reduction && parseFloat(c.taux_reduction) > 0 ? (
+                                <span className="bg-gold/10 text-gold px-2 py-0.5 rounded-md text-xs font-bold">-{c.taux_reduction}%</span>
+                              ) : (
+                                <span className="text-foreground/30 text-xs">—</span>
+                              )}
+                            </td>
                           </>
                         )}
-                        {activeTab !== 'perfume_categories' && (
-                          <td className="px-6 py-4 text-sm text-foreground/60">{c.description || '—'}</td>
+                        {activeTab === 'accessory_categories' && (
+                          <>
+                            <td className="px-6 py-3 whitespace-nowrap">
+                              <div className="w-12 h-12 rounded-xl bg-white/5 border border-white/10 overflow-hidden flex items-center justify-center">
+                                {c.icone ? (
+                                  <img src={c.icone} alt={c.nom} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" loading="lazy" />
+                                ) : (
+                                  <Gem size={18} className="text-foreground/20" />
+                                )}
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 font-medium text-foreground">{c.nom}</td>
+                            <td className="px-6 py-4 text-sm text-foreground/60 max-w-[200px] truncate">{c.description || '—'}</td>
+                            <td className="px-6 py-4 text-sm">
+                              {c.taux_reduction && parseFloat(c.taux_reduction) > 0 ? (
+                                <span className="bg-gold/10 text-gold px-2 py-0.5 rounded-md text-xs font-bold">-{c.taux_reduction}%</span>
+                              ) : (
+                                <span className="text-foreground/30 text-xs">—</span>
+                              )}
+                            </td>
+                          </>
+                        )}
+                        {activeTab === 'bottle_types' && (
+                          <>
+                            <td className="px-6 py-4 font-medium text-foreground">{c.nom}</td>
+                            <td className="px-6 py-4 text-sm text-foreground/60">{c.description || '—'}</td>
+                          </>
                         )}
                         <td className="px-6 py-4 text-right">
                           <div className="flex items-center justify-end gap-2">
@@ -272,7 +307,7 @@ export default function CategoriesAdminPage() {
                     ))}
                     {filtered.length === 0 && (
                       <tr>
-                        <td colSpan={5} className="text-center py-20 text-foreground/40 italic">Aucun élément trouvé.</td>
+                        <td colSpan={colSpan} className="text-center py-20 text-foreground/40 italic">Aucun élément trouvé.</td>
                       </tr>
                     )}
                   </tbody>
@@ -283,15 +318,22 @@ export default function CategoriesAdminPage() {
         </div>
       </div>
 
+      {/* Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-background rounded-2xl p-6 w-full max-w-md shadow-2xl border border-white/10 max-h-[90vh] overflow-y-auto">
-            <h3 className="font-bold text-foreground mb-4">{editingItem ? 'Modifier l\'élément' : 'Ajouter un élément'}</h3>
+          <div
+            key={editingItem?.id ?? 'new'}
+            className="bg-background rounded-2xl p-6 w-full max-w-md shadow-2xl border border-white/10 max-h-[90vh] overflow-y-auto"
+          >
+            <h3 className="font-bold text-foreground mb-4">{editingItem ? "Modifier l'élément" : 'Ajouter un élément'}</h3>
             <div className="space-y-4">
+
               <div>
                 <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Nom *</label>
                 <input placeholder="Nom" value={form.nom} onChange={e => updateForm('nom', e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold" />
               </div>
+
+              {/* Perfume category fields */}
               {activeTab === 'perfume_categories' && (
                 <>
                   <div>
@@ -308,20 +350,40 @@ export default function CategoriesAdminPage() {
                       <input placeholder="15.00" value={form.taux_reduction} onChange={e => updateForm('taux_reduction', e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold" />
                     </div>
                   </div>
+                  <label className="flex items-center gap-2 cursor-pointer pt-1">
+                    <input type="checkbox" checked={form.actif} onChange={e => updateForm('actif', e.target.checked)} className="rounded border-white/10 bg-white/5 text-gold focus:ring-gold" />
+                    <span className="text-xs text-foreground/60 font-medium">Actif</span>
+                  </label>
+                </>
+              )}
+
+              {/* Accessory category fields */}
+              {activeTab === 'accessory_categories' && (
+                <>
                   <div>
-                    <label className="flex items-center gap-2 cursor-pointer pt-2">
-                      <input
-                        type="checkbox"
-                        checked={form.actif}
-                        onChange={e => updateForm('actif', e.target.checked)}
-                        className="rounded border-white/10 bg-white/5 text-gold focus:ring-gold"
-                      />
-                      <span className="text-xs text-foreground/60 font-medium">Actif</span>
-                    </label>
+                    <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Description</label>
+                    <textarea placeholder="Description..." value={form.description} onChange={e => updateForm('description', e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold" rows={3} />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Taux Réduction (%)</label>
+                    <input placeholder="0.00" value={form.taux_reduction} onChange={e => updateForm('taux_reduction', e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold" />
+                  </div>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" checked={form.actif} onChange={e => updateForm('actif', e.target.checked)} className="rounded border-white/10 bg-white/5 text-gold focus:ring-gold" />
+                    <span className="text-xs text-foreground/60 font-medium">Actif</span>
+                  </label>
+                  {/* Icon uploader */}
+                  <div className="pt-2 border-t border-white/10">
+                    <ImageUploader
+                      onFileSelect={(file) => setIconFile(file)}
+                      initialImage={editingItem?.icone || null}
+                    />
                   </div>
                 </>
               )}
-              {activeTab !== 'perfume_categories' && (
+
+              {/* Bottle type fields */}
+              {activeTab === 'bottle_types' && (
                 <div>
                   <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Description</label>
                   <textarea placeholder="Description..." value={form.description} onChange={e => updateForm('description', e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold" rows={3} />

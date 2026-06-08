@@ -4,29 +4,20 @@
  * @file components/ui/ProductCard.tsx
  * @description Centralized Catalog Item Visualizer.
  *
- * This component is the primary building block of the platform's e-commerce catalogs.
- * It is responsible for rendering an individual product's summary data.
- * 
- * **Key Visual Modules**:
- * - **Image Management**: Displays the product's primary image with luxury hover animations.
- * - **Favorites Integration**: Subscribes to `useFavoritesStore` to render a interactive "Heart" icon for wishlisting.
- * - **Olfactive Indicators**: (For Perfumes) Shows the primary fragrance family badge.
- * - **Brand/Collection Labeling**: Dynamically identifies if the product is a Brand Name, Dupe, or Accessory.
- * 
- * **Interactivity**:
- * - **Quick Add**: Provides a one-click "Add to Cart" button that executes `addItem` in the `useCartStore`.
- * - **Navigation**: Wraps key elements in a `Link` to direct the user to the product's dynamic detail page.
- * 
- * **Animation**: Employs `motion.div` to provide a subtle lift effect when hovered.
+ * Redesigned to match editorial product card style:
+ * - Full-bleed image with "Sold out" badge overlay
+ * - Star rating display
+ * - Clean typographic product name + price
+ * - Ghost/outline "Add to Cart" button (transparent, border only)
+ * - Light & dark theme aware via CSS variables
  */
+
 import Link from 'next/link';
 import Image from 'next/image';
-import { Heart, ShoppingBag, Star } from 'lucide-react';
+import { Heart, Star, ShoppingBag, BellRing } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { cn, formatPrice } from '@/lib/utils';
 import type { Product } from '@/types';
-import { Badge } from './Badge';
-import { PRODUCT_CATEGORY_LABELS } from '@/lib/constants';
 import { useTranslation } from 'react-i18next';
 import { API_ROOT } from '@/services/api';
 
@@ -36,19 +27,62 @@ interface ProductCardProps {
   onToggleFavorite?: (product: Product) => void;
   isFavorite?: boolean;
   className?: string;
+  /** If true, renders a "Notify me" button instead of "Add to Cart" */
+  soldOut?: boolean;
+  /** Star rating 0–5 */
+  rating?: number;
+  /** Number of reviews */
+  reviewCount?: number;
 }
 
-export function ProductCard({ product, onAddToCart, onToggleFavorite, isFavorite, className }: ProductCardProps) {
+export function ProductCard({
+  product,
+  onAddToCart,
+  onToggleFavorite,
+  isFavorite,
+  className,
+  soldOut = false,
+  rating = 0,
+  reviewCount = 0,
+}: ProductCardProps) {
   const { t } = useTranslation();
 
-  // Helper to resolve image URLs from the backend
   const getImageUrl = (url: string) => {
     if (!url) return '';
     if (url.startsWith('http')) return url;
     return `${API_ROOT}${url.startsWith('/') ? '' : '/'}${url}`;
   };
 
+  const renderStars = (score: number) =>
+    Array.from({ length: 5 }, (_, i) => (
+      <Star
+        key={i}
+        size={14}
+        className={cn(
+          'transition-colors',
+          i < Math.round(score)
+            ? 'fill-[var(--t-star-fill)] stroke-[var(--t-star-fill)]'
+            : 'fill-transparent stroke-[var(--t-star-empty)]'
+        )}
+      />
+    ));
+
   return (
+    // <motion.div
+    //   //initial={{ opacity: 0, y: 20 }}
+    //   whileInView={{ opacity: 1, y: 0 }}
+    //   viewport={{ once: true }}
+    //   whileHover={{ y: -3 }}
+    //   transition={{ duration: 0.3 }}
+    //   className={cn(
+    //     /* ── Layout ── */
+    //     'w-[45vw] sm:w-[280px] flex flex-col bg-gray-500 rounded-lg',
+    //     /* ── Theming: no card bg, no border, no shadow — just content ── */
+    //     'text-[var(--t-card-text)]',
+    //     className
+    //   )}
+    // >
+    
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       whileInView={{ opacity: 1, y: 0 }}
@@ -56,25 +90,14 @@ export function ProductCard({ product, onAddToCart, onToggleFavorite, isFavorite
       whileHover={{ y: -4 }}
       transition={{ duration: 0.3 }}
       className={cn(
-        'w-[165px] sm:w-[280px] h-auto group relative bg-gradient-to-b from-[var(--t-card-from)] to-[var(--t-card-to)] border border-[var(--t-card-border)] rounded-2xl overflow-hidden shadow-2xl transition-all duration-500 hover:border-[var(--t-card-hover-border)] hover:shadow-[0_0_30px_var(--t-card-hover-shadow)]',
+        'w-[45vw] sm:w-[280px] h-auto group relative    overflow-hidden transition-all duration-500 ',
         className
       )} 
     >
-      {/* Favorite button */}
-      {onToggleFavorite && (
-        <button
-          onClick={(e) => { e.preventDefault(); e.stopPropagation(); onToggleFavorite(product); }}
-          className="absolute top-3 right-3 md:top-4 md:right-4 z-20 p-2 rounded-full bg-[var(--t-fav-btn-bg)] backdrop-blur-md border border-[var(--t-border)] transition-colors hover:bg-[var(--t-hover-bg)]"
-        >
-          <Heart
-            size={12}
-            className={cn('transition-all duration-300', isFavorite ? 'fill-red-500 stroke-red-500' : 'stroke-foreground/70')}
-          />
-        </button>
-      )}
 
-      <Link href={`/shop/product/${product.slug || product.id}`} className="block h-full">
-        {/* Image Section */}
+      {/* ─── Image Block ─────────────────────────────────────── */}
+      <Link href={`/shop/product/${product.slug || product.id}`} className="block relative">
+        {/* Image Section */} 
         <div className="relative h-40 md:h-55 overflow-hidden bg-[var(--t-surface)]">
           {product.images && product.images[0] && (
             <Image 
@@ -85,49 +108,101 @@ export function ProductCard({ product, onAddToCart, onToggleFavorite, isFavorite
               className="object-cover"
             />
           )}
-
-          {/* Elegant Overlay */}
-          <div className="absolute inset-0 bg-gradient-to-t from-[var(--t-card-to)] via-transparent to-transparent opacity-60" />
-
         </div>
+        {/* Favorite button */}
+        {onToggleFavorite && (
+          <button
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onToggleFavorite(product);
+            }}
+            aria-label="Toggle favourite"
+            className="absolute top-3 right-3 z-20 p-1.5 rounded-full bg-[var(--t-fav-btn-bg)] backdrop-blur-md border border-[var(--t-border)] hover:bg-[var(--t-hover-bg)] transition-colors"
+          >
+            <Heart
+              size={13}
+              className={cn(
+                'transition-all duration-300',
+                isFavorite ? 'fill-red-500 stroke-red-500' : 'stroke-foreground/60'
+              )}
+            />
+          </button>
+        )}
+      </Link>
 
-        {/* Product Info */}
-        <div className="p-2 md:p-3 text-start">
+      {/* ─── Info Block ──────────────────────────────────────── */}
+      <div className="flex flex-col  flex-1">
+        {/* Product name */}
+        <Link
+          href={`/shop/product/${product.slug || product.id}`}
+          className=" capitalize text-base sm:text-lg font-medium text-foreground/90 hover:underline underline-offset-2 leading-snug line-clamp-2"
+        >
+          {product.name}
+        </Link>
+
+        
+
+        
+        {product.volume && (
+          <p className="text-[0.8rem] md:text-sm text-start text-foreground/40 font-light  md:mb-4"
           
-          <h3 className="text-md md:text-2xl truncate font-display text-foreground tracking-wide mb-1   ">
-            {product.name}
-          </h3>
-          <p className="text-[0.8rem] md:text-sm text-start text-foreground/40 font-light  md:mb-4">
+          >
             {product.category.includes('perfume') ? `Eau de Parfum • ${product.volume || '100ml'}` : (product.volume || 'N/A')}
           </p>
+        )}
 
-          <div className="flex flex-row md:flex-col justify-between  gap-3 md:gap-4">
-            <span className="text-[1rem] md:text-xl font-light text-foreground tracking-widest">
-              {formatPrice(product.price)}
-            </span>
+        {/* Price */}
+        <p className="text-sm sm:text-lg font-semibold   tracking-wide"
+        style={{ color: '#C5A059' }}
+        >
+          {formatPrice(product.price)}
+        </p>
+        
 
-            {onAddToCart && (
+        {/* CTA button */}
+        <div className=" mt-auto pt-1">
+          {soldOut ? (
+            /* ── Notify Me (ghost style) ── */
+            <button
+              className={cn(
+                'w-full flex items-center justify-center gap-2 ',
+                'py-2.5 sm:py-3 px-4',
+                'text-xs sm:text-sm font-semibold uppercase tracking-widest',
+                'rounded-none', // flat/square style matching reference
+                /* Ghost: transparent bg, only border + text */
+                'bg-transparent border border-[var(--t-btn-ghost-border)] text-[var(--t-btn-ghost-text)]',
+                'hover:bg-[var(--t-btn-ghost-hover-bg)] hover:text-[var(--t-btn-ghost-hover-text)]',
+                'transition-colors duration-200',
+                'bg-[var(--t-btn-solid-bg)] text-[var(--t-btn-solid-text)]' // fallback solid for sold-out
+              )}
+            >
+              <BellRing size={14} />
+              {t('notify_when_available') ?? 'Notify me when available'}
+            </button>
+          ) : (
+            /* ── Add to Cart (ghost / outline) ── */
+            onAddToCart && (
               <button
-                onClick={(e) => { e.preventDefault(); e.stopPropagation(); onAddToCart(product); }}
-                className="hidden md:flex items-center justify-center gap-2 w-full  md:py-3 bg-[var(--t-btn-add-bg)] text-[var(--t-btn-add-text)] text-[10px] md:text-xs font-bold uppercase tracking-[0.15em] transition-all duration-300 hover:bg-[var(--t-btn-add-hover-bg)] hover:text-[var(--t-btn-add-hover-text)] pb-50"
+                onClick={() => onAddToCart(product)}
+                className={cn(
+                  'w-full flex items-center justify-center gap-2 rounded-sm',
+                  'py-2.5 sm:py-3 px-4',
+                  'text-xs sm:text-sm font-semibold uppercase tracking-widest',
+                  'rounded-none',
+                  /* Ghost: transparent bg, only border + text */
+                  'bg-transparent border border-[var(--t-btn-ghost-border)] text-[var(--t-btn-ghost-text)]',
+                  'hover:bg-[var(--t-btn-ghost-hover-bg)] hover:text-[var(--t-btn-ghost-hover-text)]',
+                  'transition-colors duration-200'
+                )}
               >
-                <ShoppingBag size={16} />
-                {t('add_to_cart')}
+                <ShoppingBag size={14} />
+                {t('add_to_cart') ?? 'Add to cart'}
               </button>
-            )}
-            {onAddToCart && (
-              <button
-                onClick={(e) => { e.preventDefault(); e.stopPropagation(); onAddToCart(product); }}
-                className="block md:hidden items-center justify-center "
-              >
-                {/* <ShoppingBag size={16} /> */}
-                <img src="/addCircle.svg" alt={t('add_to_cart')}
-                className=' ' />
-              </button>
-            )}
-          </div>
+            )
+          )}
         </div>
-      </Link>
+      </div>
     </motion.div>
   );
 }

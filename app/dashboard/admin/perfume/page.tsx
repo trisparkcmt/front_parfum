@@ -1,15 +1,13 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Loader2, CheckCircle, Edit2, Trash2, Plus, Search, RefreshCw, AlertTriangle } from 'lucide-react';
+import { Loader2, Edit2, Trash2, Plus, Search, Image as ImageIcon } from 'lucide-react';
 import { shopService } from '@/services/apiService';
 import { adminService } from '@/services/apiService';
 import { useToastStore } from '@/store/useToastStore';
 import ImageUploader from '@/components/admin/ImageUploader';
 
-// Perfume management admin page
 export default function PerfumeAdminPage() {
-  // Data states
   const [perfumes, setPerfumes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -27,6 +25,7 @@ export default function PerfumeAdminPage() {
     contenance_ml: '',
     prix_unitaire: '',
     prix_promotionnel: '',
+    taux_reduction: '',
     genre_cible: 'mixte',
     intensite: 'moyenne',
     notes_tete: '',
@@ -41,17 +40,15 @@ export default function PerfumeAdminPage() {
   });
 
   const [imageFile, setImageFile] = useState<File | null>(null);
-
   const { addToast } = useToastStore();
 
-  // Fetch perfumes
   const fetchPerfumes = useCallback(async () => {
     try {
       setLoading(true);
       const data = await shopService.getPerfumes({ search });
       const list = data.results || data.resultats || (Array.isArray(data) ? data : []);
       setPerfumes(list);
-    } catch (error) {
+    } catch {
       addToast('Erreur lors du chargement des parfums', 'error');
     } finally {
       setLoading(false);
@@ -63,7 +60,6 @@ export default function PerfumeAdminPage() {
     return () => clearTimeout(timer);
   }, [fetchPerfumes]);
 
-  // Load categories
   useEffect(() => {
     shopService.getPerfumeCategories()
       .then(data => {
@@ -77,7 +73,6 @@ export default function PerfumeAdminPage() {
     setForm(prev => ({ ...prev, [field]: value }));
   };
 
-  // Open modal for add / edit
   const handleOpenAdd = () => {
     setEditingPerfume(null);
     setForm({
@@ -90,6 +85,7 @@ export default function PerfumeAdminPage() {
       contenance_ml: '',
       prix_unitaire: '',
       prix_promotionnel: '',
+      taux_reduction: '',
       genre_cible: 'mixte',
       intensite: 'moyenne',
       notes_tete: '',
@@ -118,6 +114,7 @@ export default function PerfumeAdminPage() {
       contenance_ml: String(perf.contenance_ml || ''),
       prix_unitaire: String(perf.prix_unitaire || ''),
       prix_promotionnel: perf.prix_promotionnel ? String(perf.prix_promotionnel) : '',
+      taux_reduction: perf.taux_reduction ? String(perf.taux_reduction) : '',
       genre_cible: perf.genre_cible || 'mixte',
       intensite: perf.intensite || 'moyenne',
       notes_tete: perf.notes_tete || '',
@@ -134,7 +131,6 @@ export default function PerfumeAdminPage() {
     setShowModal(true);
   };
 
-  // Save (create or update)
   const handleSave = async () => {
     if (!form.nom || !form.contenance_ml || !form.prix_unitaire || !form.categorie || !form.stock_quantite) {
       addToast('Champs requis : Nom, Contenance, Prix, Catégorie, Stock', 'error');
@@ -148,7 +144,9 @@ export default function PerfumeAdminPage() {
       }
     });
 
-    if (imageFile) formData.append('image_principale', imageFile);
+    if (imageFile instanceof File) {
+      formData.append('image_principale', imageFile);
+    }
 
     try {
       if (editingPerfume) {
@@ -171,8 +169,8 @@ export default function PerfumeAdminPage() {
       await shopService.deletePerfume(slug);
       addToast('Parfum supprimé', 'success');
       fetchPerfumes();
-    } catch (error) {
-      addToast('Erreur lors de la suppression', 'error');
+    } catch {
+      addToast('Erreur lors du suppression', 'error');
     }
   };
 
@@ -221,6 +219,7 @@ export default function PerfumeAdminPage() {
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="border-b border-white/10 bg-white/5">
+                  <th className="px-6 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider w-16">Image</th>
                   <th className="px-6 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider">Nom</th>
                   <th className="px-6 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider">SKU</th>
                   <th className="px-6 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider">Contenance (ml)</th>
@@ -229,27 +228,56 @@ export default function PerfumeAdminPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
-                {filtered.map(p => (
-                  <tr key={p.id} className="hover:bg-white/5 transition-colors group">
-                    <td className="px-6 py-4 font-medium text-foreground">{p.nom || p.name}</td>
-                    <td className="px-6 py-4 text-sm text-foreground/60">{p.reference_sku || ''}</td>
-                    <td className="px-6 py-4 text-sm text-foreground/60">{p.contenance_ml}</td>
-                    <td className="px-6 py-4 text-sm text-gold font-bold">{p.prix_unitaire ? `${p.prix_unitaire} FCFA` : ''}</td>
-                    <td className="px-6 py-4 text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <button onClick={() => handleOpenEdit(p)} className="p-2 rounded-lg hover:bg-white/5 text-foreground/40 hover:text-gold transition-colors">
-                          <Edit2 size={16} />
-                        </button>
-                        <button onClick={() => handleDelete(p.slug)} className="p-2 rounded-lg hover:bg-red-500/10 text-foreground/40 hover:text-red-400 transition-colors">
-                          <Trash2 size={16} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                {filtered.map(p => {
+                  const productImg = p.image_principale || p.image;
+                  return (
+                    <tr key={p.id} className="hover:bg-white/5 transition-colors group">
+                      <td className="px-6 py-3 whitespace-nowrap">
+                        <div className="w-12 h-12 rounded-xl bg-white/5 border border-white/10 overflow-hidden flex items-center justify-center">
+                          {productImg ? (
+                            <img
+                              src={productImg}
+                              alt={p.nom || 'Parfum'}
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                              loading="lazy"
+                            />
+                          ) : (
+                            <ImageIcon size={18} className="text-foreground/20" />
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 font-medium text-foreground">{p.nom || p.name}</td>
+                      <td className="px-6 py-4 text-sm text-foreground/60">{p.reference_sku || ''}</td>
+                      <td className="px-6 py-4 text-sm text-foreground/60">{p.contenance_ml}</td>
+                      <td className="px-6 py-4 text-sm font-bold">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          {p.taux_reduction ? (
+                            <>
+                              <span className="text-foreground/40 line-through text-xs">{p.prix_unitaire} FCFA</span>
+                              <span className="text-gold">{p.prix_actuel} FCFA</span>
+                              <span className="text-xs bg-gold/10 text-gold px-1.5 py-0.5 rounded-md">-{p.taux_reduction}%</span>
+                            </>
+                          ) : (
+                            <span className="text-gold">{p.prix_unitaire ? `${p.prix_unitaire} FCFA` : ''}</span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <button onClick={() => handleOpenEdit(p)} className="p-2 rounded-lg hover:bg-white/5 text-foreground/40 hover:text-gold transition-colors">
+                            <Edit2 size={16} />
+                          </button>
+                          <button onClick={() => handleDelete(p.slug)} className="p-2 rounded-lg hover:bg-red-500/10 text-foreground/40 hover:text-red-400 transition-colors">
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
                 {filtered.length === 0 && (
                   <tr>
-                    <td colSpan={5} className="text-center py-20 text-foreground/40 italic">Aucun parfum trouvé.</td>
+                    <td colSpan={6} className="text-center py-20 text-foreground/40 italic">Aucun parfum trouvé.</td>
                   </tr>
                 )}
               </tbody>
@@ -261,9 +289,14 @@ export default function PerfumeAdminPage() {
       {/* Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-background rounded-2xl p-6 w-full max-w-2xl shadow-2xl border border-white/10 max-h-[90vh] overflow-y-auto">
+          <div
+            key={editingPerfume?.slug ?? 'new'}
+            className="bg-background rounded-2xl p-6 w-full max-w-2xl shadow-2xl border border-white/10 max-h-[90vh] overflow-y-auto"
+          >
             <h3 className="font-bold text-foreground mb-4">{editingPerfume ? 'Modifier le parfum' : 'Ajouter un parfum'}</h3>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Left column */}
               <div className="space-y-4">
                 <input placeholder="Nom" value={form.nom} onChange={e => updateForm('nom', e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold" />
                 <input placeholder="Slug (optionnel)" value={form.slug} onChange={e => updateForm('slug', e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold" />
@@ -292,56 +325,89 @@ export default function PerfumeAdminPage() {
                 </div>
               </div>
 
+              {/* Right column */}
               <div className="space-y-4">
                 <textarea placeholder="Description courte" value={form.description_courte} onChange={e => updateForm('description_courte', e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold" rows={2} />
                 <textarea placeholder="Description longue" value={form.description_longue} onChange={e => updateForm('description_longue', e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold" rows={2} />
                 <textarea placeholder="Description IA" value={form.description_ia} onChange={e => updateForm('description_ia', e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold" rows={2} />
 
+                {/* Prix & Contenance */}
                 <div className="grid grid-cols-2 gap-3">
                   <input placeholder="Contenance (ml)" type="number" value={form.contenance_ml} onChange={e => updateForm('contenance_ml', e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold" />
                   <input placeholder="Prix (FCFA)" type="number" value={form.prix_unitaire} onChange={e => updateForm('prix_unitaire', e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold" />
                 </div>
 
-                <div className="grid grid-cols-3 gap-3">
+                {/* Stock */}
+                <div className="grid grid-cols-2 gap-3">
                   <input placeholder="Stock" type="number" value={form.stock_quantite} onChange={e => updateForm('stock_quantite', e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-foreground outline-none focus:border-gold" />
-                  <input placeholder="Seuil" type="number" value={form.seuil_alerte_stock} onChange={e => updateForm('seuil_alerte_stock', e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-foreground outline-none focus:border-gold" />
-                  <input placeholder="Prix Promo" type="number" value={form.prix_promotionnel} onChange={e => updateForm('prix_promotionnel', e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-foreground outline-none focus:border-gold" />
+                  <input placeholder="Seuil alerte" type="number" value={form.seuil_alerte_stock} onChange={e => updateForm('seuil_alerte_stock', e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-foreground outline-none focus:border-gold" />
                 </div>
 
-                <div className="flex flex-wrap gap-4 pt-2">
+                {/* Promotion block */}
+                <div className="rounded-lg border border-white/10 bg-white/[0.03] px-3 py-3 space-y-3">
+                  <p className="text-xs font-semibold text-foreground/40 uppercase tracking-wider">Promotion</p>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <label className="text-xs text-foreground/40">Prix promo (FCFA)</label>
+                      <input
+                        placeholder="ex: 19000"
+                        type="number"
+                        value={form.prix_promotionnel}
+                        onChange={e => updateForm('prix_promotionnel', e.target.value)}
+                        className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-foreground outline-none focus:border-gold"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs text-foreground/40">Taux réduction (%)</label>
+                      <input
+                        placeholder="ex: 20"
+                        type="number"
+                        min="0"
+                        max="100"
+                        value={form.taux_reduction}
+                        onChange={e => updateForm('taux_reduction', e.target.value)}
+                        className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-foreground outline-none focus:border-gold"
+                      />
+                    </div>
+                  </div>
+                  {/* Live preview */}
+                  {(form.prix_promotionnel || form.taux_reduction) && form.prix_unitaire && (
+                    <div className="flex items-center gap-2 pt-1 flex-wrap">
+                      <span className="text-xs text-foreground/40 line-through">{form.prix_unitaire} FCFA</span>
+                      {form.prix_promotionnel && (
+                        <span className="text-xs text-gold font-bold">{form.prix_promotionnel} FCFA</span>
+                      )}
+                      {form.taux_reduction && (
+                        <span className="text-xs bg-gold/10 text-gold px-1.5 py-0.5 rounded-md font-medium">-{form.taux_reduction}%</span>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Checkboxes */}
+                <div className="flex flex-wrap gap-4 pt-1">
                   <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={form.est_nouveau}
-                      onChange={e => updateForm('est_nouveau', e.target.checked)}
-                      className="rounded border-white/10 bg-white/5 text-gold focus:ring-gold"
-                    />
+                    <input type="checkbox" checked={form.est_nouveau} onChange={e => updateForm('est_nouveau', e.target.checked)} className="rounded border-white/10 bg-white/5 text-gold focus:ring-gold" />
                     <span className="text-xs text-foreground/60">Nouveau</span>
                   </label>
                   <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={form.est_bestseller}
-                      onChange={e => updateForm('est_bestseller', e.target.checked)}
-                      className="rounded border-white/10 bg-white/5 text-gold focus:ring-gold"
-                    />
+                    <input type="checkbox" checked={form.est_bestseller} onChange={e => updateForm('est_bestseller', e.target.checked)} className="rounded border-white/10 bg-white/5 text-gold focus:ring-gold" />
                     <span className="text-xs text-foreground/60">Bestseller</span>
                   </label>
                   <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={form.actif}
-                      onChange={e => updateForm('actif', e.target.checked)}
-                      className="rounded border-white/10 bg-white/5 text-gold focus:ring-gold"
-                    />
+                    <input type="checkbox" checked={form.actif} onChange={e => updateForm('actif', e.target.checked)} className="rounded border-white/10 bg-white/5 text-gold focus:ring-gold" />
                     <span className="text-xs text-foreground/60">Actif</span>
                   </label>
                 </div>
               </div>
             </div>
 
+            {/* Image Uploader */}
             <div className="mt-4 pt-4 border-t border-white/10">
-              <ImageUploader onFileSelect={setImageFile} />
+              <ImageUploader
+                onFileSelect={(file) => setImageFile(file)}
+                initialImage={editingPerfume?.image_principale || editingPerfume?.image || null}
+              />
             </div>
 
             <div className="flex gap-3 mt-6">

@@ -353,7 +353,7 @@ export default function PerfumesShop() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.3 }}
-            className="flex flex-row flex-wrap justify-center sm:justify-start gap-3 md:gap-6"
+            className="flex flex-row flex-wrap justify-center sm:justify-start -mx-2 gap-3 md:gap-6"
           >
             {filteredPerfumes.map((product, index) => (
               <motion.div

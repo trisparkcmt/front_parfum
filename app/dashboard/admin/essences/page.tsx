@@ -1,20 +1,27 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Search, Plus, Edit2, Trash2, Droplets, Loader2, Info, ShoppingBag } from 'lucide-react';
-import { shopService, labService } from '@/services/apiService';
+import { 
+  Search, Plus, Edit2, Trash2, Droplets, Loader2, 
+  ShoppingBag, RefreshCw, ChevronLeft, ChevronRight 
+} from 'lucide-react';
+import { labService } from '@/services/apiService';
 import { useToastStore } from '@/store/useToastStore';
-import { formatPrice } from '@/lib/utils';
 
 const STATIC_CATEGORIES = ['super_premium', 'premium', 'high'];
 
 export default function EssencesPage() {
   const [essences, setEssences] = useState<any[]>([]);
-  const [finishedProducts, setFinishedProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [editingEssence, setEditingEssence] = useState<any | null>(null);
+  const [saving, setSaving] = useState(false);
+  const { addToast } = useToastStore();
+
+  // Pagination locale (Max 20 éléments par page)
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 20;
 
   // Form State (Lab / Raw Essence)
   const [nom, setNom] = useState('');
@@ -27,43 +34,18 @@ export default function EssencesPage() {
   const [prixParMl, setPrixParMl] = useState('0.00');
   const [venduFini, setVenduFini] = useState(false);
 
-  // New Form Fields matching the complete payload spec
-  const [slug, setSlug] = useState('');
-  const [descriptionIa, setDescriptionIa] = useState('');
-  const [fournisseur, setFournisseur] = useState('');
-  const [originePays, setOriginePays] = useState('');
-  const [concentrationMax, setConcentrationMax] = useState('15.00');
-  const [couleur, setCouleur] = useState('');
-  const [duree, setDuree] = useState('moyenne');
-  const [notesTete, setNotesTete] = useState('');
-  const [notesCoeur, setNotesCoeur] = useState('');
-  const [notesFond, setNotesFond] = useState('');
+  // Form State pour liaison Boutique / Produit Fini
+  const [contenanceShop, setContenanceShop] = useState('100');
+  const [shopStock, setShopStock] = useState('0');
 
-  // Lot State
-  const [lotStock, setLotStock] = useState('1000.00');
-  const [lotSeuil, setLotSeuil] = useState('100.00');
-  const [lotRef, setLotRef] = useState('');
-
-  // Form State (Shop / Finished Product)
-  const [shopPrice, setShopPrice] = useState('');
-  const [shopSize, setShopSize] = useState('30');
-  const [shopStock, setShopStock] = useState('50');
-
-  const { addToast } = useToastStore();
-
-  const fetchEssences = useCallback(async () => {
+  const fetchData = useCallback(async () => {
     try {
       setLoading(true);
-      const [essencesData, shopProductsData] = await Promise.all([
-        labService.getEssences(),
-        shopService.getFinishedEssences()
-      ]);
-      const essencesDataAny = essencesData as any;
-      const essencesList = essencesDataAny?.results || essencesDataAny?.resultats || (Array.isArray(essencesData) ? essencesData : []);
-      const shopProductsList = shopProductsData?.results || shopProductsData?.resultats || (Array.isArray(shopProductsData) ? shopProductsData : []);
-      setEssences(essencesList);
-      setFinishedProducts(shopProductsList);
-    } catch (error) {
+      // Suppression de l'appel à shopService pour éviter l'erreur de définition
+      const essencesData = await labService.getEssences();
+      const essList = Array.isArray(essencesData) ? essencesData : (essencesData as any)?.results || (essencesData as any)?.resultats || [];
+      setEssences(essList);
+    } catch {
       addToast('Erreur lors du chargement des essences', 'error');
     } finally {
       setLoading(false);
@@ -71,533 +53,414 @@ export default function EssencesPage() {
   }, [addToast]);
 
   useEffect(() => {
-    fetchEssences();
-  }, [fetchEssences]);
+    fetchData();
+  }, [fetchData]);
 
+  // Réinitialiser la page quand la recherche change
   useEffect(() => {
-    if (editingEssence) {
-      setNom(editingEssence.nom || '');
-      setMarque(editingEssence.marque || 'Exclusif');
-      setCodeReference(editingEssence.code_reference || '');
-      setCategorie(editingEssence.categorie || 'premium');
-      setDescription(editingEssence.description || '');
-      setIntensite(editingEssence.intensite || 'moyenne');
-      setGenreCible(editingEssence.genre_cible || 'mixte');
-      setPrixParMl(editingEssence.prix_par_ml || '0.00');
+    setCurrentPage(1);
+  }, [search]);
 
-      setSlug(editingEssence.slug || '');
-      setDescriptionIa(editingEssence.description_ia || '');
-      setFournisseur(editingEssence.fournisseur || '');
-      setOriginePays(editingEssence.origine_pays || '');
-      setConcentrationMax(editingEssence.concentration_max || '15.00');
-      setCouleur(editingEssence.couleur || '');
-      setDuree(editingEssence.duree || 'moyenne');
-      setNotesTete(editingEssence.notes_tete || '');
-      setNotesCoeur(editingEssence.notes_coeur || '');
-      setNotesFond(editingEssence.notes_fond || '');
-
-      const hasFinished = !!editingEssence.vendu_comme_produit_fini;
-      setVenduFini(hasFinished);
-
-      const relatedProduct = finishedProducts.find(p => p.essence === editingEssence.id);
-      if (relatedProduct) {
-        setShopPrice(relatedProduct.prix || '');
-        setShopSize(relatedProduct.taille_ml?.toString() || '30');
-        setShopStock(relatedProduct.stock_disponible?.toString() || '50');
-      } else {
-        setShopPrice('');
-        setShopSize('30');
-        setShopStock('50');
-      }
-    } else {
-      setNom('');
-      setMarque('Exclusif');
-      setCodeReference('');
-      setCategorie('premium');
-      setDescription('');
-      setIntensite('moyenne');
-      setGenreCible('mixte');
-      setPrixParMl('0.00');
-      setVenduFini(false);
-      setShopPrice('');
-      setShopSize('30');
-      setShopStock('50');
-
-      setSlug('');
-      setDescriptionIa('');
-      setFournisseur('');
-      setOriginePays('');
-      setConcentrationMax('15.00');
-      setCouleur('');
-      setDuree('moyenne');
-      setNotesTete('');
-      setNotesCoeur('');
-      setNotesFond('');
-      setLotStock('1000.00');
-      setLotSeuil('100.00');
-      setLotRef('');
-    }
-  }, [editingEssence, finishedProducts]);
-
-  const resetForm = () => {
+  const openAdd = () => {
     setEditingEssence(null);
+    setNom('');
+    setMarque('Exclusif');
+    setCodeReference('');
+    setCategorie('premium');
+    setDescription('');
+    setIntensite('moyenne');
+    setGenreCible('mixte');
+    setPrixParMl('0.00');
+    setVenduFini(false);
+    setContenanceShop('100');
+    setShopStock('0');
+    setShowModal(true);
   };
 
-  const handleDelete = async (id: number) => {
-    if (!confirm('Êtes-vous sûr de vouloir supprimer cette essence ?')) return;
-    try {
-      await labService.deleteEssence(id);
-      addToast('Essence supprimée avec succès', 'success');
-      fetchEssences();
-    } catch (error: any) {
-      addToast(error.message || 'Erreur lors de la suppression', 'error');
-    }
+  const openEdit = (item: any) => {
+    setEditingEssence(item);
+    setNom(item.nom || '');
+    setMarque(item.marque || 'Exclusif');
+    setCodeReference(item.code_reference || '');
+    setCategorie(item.categorie || 'premium');
+    setDescription(item.description || '');
+    setIntensite(item.intensite || 'moyenne');
+    setGenreCible(item.genre_cible || 'mixte');
+    setPrixParMl(String(item.prix_par_ml || '0.00'));
+    setVenduFini(item.vendu_comme_produit_fini || false);
+    setContenanceShop('100');
+    setShopStock('0');
+    setShowModal(true);
   };
 
   const handleSave = async () => {
     if (!nom || !codeReference) {
-      addToast('Veuillez remplir les champs obligatoires', 'error');
+      addToast('Le nom et le code de référence sont requis', 'error');
       return;
     }
 
-    const payload: any = {
-      nom,
-      marque,
-      code_reference: codeReference,
-      categorie,
-      description,
-      intensite,
-      genre_cible: genreCible,
-      prix_par_ml: prixParMl,
-      actif: true,
-      tag_ids: [],
-
-      slug: slug || null,
-      description_ia: descriptionIa,
-      fournisseur,
-      origine_pays: originePays,
-      concentration_max: concentrationMax,
-      couleur,
-      duree,
-      notes_tete: notesTete,
-      notes_coeur: notesCoeur,
-      notes_fond: notesFond,
-    };
-
-    if (!editingEssence) {
-      payload.initial_lot = {
-        stock_ml: lotStock,
-        seuil_alerte_ml: lotSeuil,
-        reference_fournisseur: lotRef
-      };
-    }
-
-    if (venduFini) {
-      payload.produits_finis = [
-        {
-          taille_ml: parseInt(shopSize),
-          prix: shopPrice,
-          prix_promotionnel: null,
-          stock_disponible: parseInt(shopStock)
-        }
-      ];
-    }
-
     try {
+      setSaving(true);
+      const payload: any = {
+        nom,
+        marque,
+        code_reference: codeReference,
+        categorie,
+        description,
+        intensite,
+        genre_cible: genreCible,
+        prix_par_ml: Number(prixParMl),
+        vendu_comme_produit_fini: venduFini
+      };
+
+      if (venduFini) {
+        payload.contenance_shop = Number(contenanceShop);
+        payload.stock_initial_shop = Number(shopStock);
+      }
+
       if (editingEssence) {
         await labService.updateEssence(editingEssence.id, payload);
-        addToast('Essence mise à jour', 'success');
+        addToast('Essence mise à jour avec succès', 'success');
       } else {
         await labService.createEssence(payload);
-        addToast('Essence et composants créés avec succès', 'success');
+        addToast('Essence créée avec succès', 'success');
       }
 
       setShowModal(false);
-      resetForm();
-      fetchEssences();
-    } catch (error: any) {
-      const apiErr = error.response?.data;
-      let msg = error.message || "Erreur lors de l'enregistrement";
-      if (apiErr) {
-        if (typeof apiErr === 'object') {
-          msg = Object.entries(apiErr)
-            .map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(', ') : JSON.stringify(v)}`)
-            .join(' | ');
-        } else {
-          msg = String(apiErr);
-        }
-      }
-      addToast(msg, 'error');
+      fetchData();
+    } catch (e: any) {
+      addToast(e.response?.data?.detail || 'Erreur lors de la sauvegarde', 'error');
+    } finally {
+      setSaving(false);
     }
   };
 
-  const filtered = (Array.isArray(essences) ? essences : []).filter(e =>
-    (e?.nom || '').toLowerCase().includes(search.toLowerCase()) ||
-    (e?.code_reference || '').toLowerCase().includes(search.toLowerCase())
+  const handleDelete = async (id: number) => {
+    if (!confirm('Supprimer cette essence ? Cela affectera l\'inventaire et les lots associés.')) return;
+    try {
+      await labService.deleteEssence(id);
+      addToast('Essence supprimée', 'success');
+      fetchData();
+    } catch {
+      addToast('Erreur lors du suppression', 'error');
+    }
+  };
+
+  const filtered = essences.filter(e =>
+    (e.nom || '').toLowerCase().includes(search.toLowerCase()) ||
+    (e.code_reference || '').toLowerCase().includes(search.toLowerCase()) ||
+    (e.marque || '').toLowerCase().includes(search.toLowerCase())
   );
 
-  if (loading) return (
-    <div className="flex flex-col items-center justify-center h-96 text-gold">
-      <Loader2 className="animate-spin mb-4" size={40} />
-      <p className="animate-pulse">Chargement de l'inventaire des essences...</p>
-    </div>
-  );
+  // Logique de pagination synchrone (Max 20 items par page)
+  const totalPages = Math.ceil(filtered.length / itemsPerPage) || 1;
+  const currentItems = filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
-        <div className="relative w-full md:w-96">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-foreground/40" size={18} />
-          <input
-            type="text"
-            placeholder="Rechercher une essence..."
-            className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-4 py-2 text-sm outline-none focus:border-gold"
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-          />
+    <div className="space-y-6 animate-fade-in-up">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Essences de Base</h1>
+          <p className="text-sm text-foreground/40 mt-0.5">
+            Catalogue des essences de parfums brutes pour le laboratoire et la boutique
+          </p>
         </div>
-        <button
-          onClick={() => { resetForm(); setShowModal(true); }}
-          className="w-full md:w-auto bg-gold text-black px-6 py-2 rounded-xl flex items-center justify-center gap-2 font-bold hover:scale-105 transition-transform"
-        >
-          <Plus size={18} /> Ajouter une Essence
-        </button>
+        <div className="flex items-center gap-2">
+          <button 
+            onClick={fetchData} 
+            className="p-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 text-foreground/60 hover:text-foreground transition-all"
+          >
+            <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
+          </button>
+          <button
+            onClick={openAdd}
+            className="flex items-center gap-2 bg-gold text-black px-4 py-2.5 rounded-xl text-sm font-bold hover:bg-gold/80 transition-all shadow-lg shadow-gold/10"
+          >
+            <Plus size={16} /> Ajouter une essence
+          </button>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filtered.map(essence => (
-          <div key={essence.id} className="bg-white/5 border border-white/10 rounded-2xl p-5 hover:bg-white/10 transition-colors group relative overflow-hidden">
-            <div className="flex items-start justify-between mb-4">
-              <div className="bg-gold/10 p-3 rounded-xl text-gold">
-                <Droplets size={24} />
-              </div>
-              <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                <button onClick={() => { setEditingEssence(essence); setShowModal(true); }} className="p-2 bg-white/10 rounded-lg hover:text-gold"><Edit2 size={16} /></button>
-                <button onClick={() => handleDelete(essence.id)} className="p-2 bg-white/10 rounded-lg hover:text-red-400"><Trash2 size={16} /></button>
-              </div>
-            </div>
-            <h3 className="font-bold text-lg mb-1">{essence.nom}</h3>
-            <p className="text-xs text-foreground/40 font-mono mb-4">{essence.code_reference} • {essence.marque}</p>
+      {/* Recherche */}
+      <div className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 max-w-sm">
+        <Search size={15} className="text-foreground/40" />
+        <input
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          placeholder="Rechercher par nom, code, marque..."
+          className="text-sm bg-transparent outline-none flex-1 text-foreground placeholder:text-foreground/40"
+        />
+      </div>
 
-            <div className="flex flex-wrap gap-2 mb-4">
-              <span className="text-[10px] uppercase font-bold px-2 py-1 bg-white/5 rounded-md text-foreground/60">{essence.genre_cible}</span>
-              <span className="text-[10px] uppercase font-bold px-2 py-1 bg-white/5 rounded-md text-foreground/60">{essence.intensite}</span>
-              {essence.vendu_comme_produit_fini && (
-                <span className="text-[10px] uppercase font-bold px-2 py-1 bg-gold/20 rounded-md text-gold flex items-center gap-1">
-                  <ShoppingBag size={10} /> Boutique
-                </span>
-              )}
-            </div>
-
-            <div className="pt-4 border-t border-white/5 flex items-center justify-between">
-              <span className="text-xs text-foreground/40">Statut</span>
-              <span className={`text-[10px] font-bold uppercase ${essence.actif ? 'text-green-400' : 'text-red-400'}`}>
-                {essence.actif ? 'Actif' : 'Inactif'}
-              </span>
-            </div>
+      {/* Tableau des Essences */}
+      <div className="bg-white/5 rounded-2xl border border-white/10 overflow-hidden min-h-[200px]">
+        {loading ? (
+          <div className="flex items-center justify-center py-16 text-gold gap-2">
+            <Loader2 className="animate-spin" size={24} />
+            <span className="text-sm">Chargement du catalogue...</span>
           </div>
-        ))}
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="border-b border-white/10 bg-white/5">
+                  {['Détails Essence', 'Code Réf.', 'Catégorie', 'Caractéristiques', 'Prix / ml', 'Canal', 'Actions'].map(h => (
+                    <th key={h} className="px-5 py-3.5 text-xs font-semibold text-foreground/40 uppercase tracking-wider">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/5">
+                {currentItems.map(essence => (
+                  <tr key={essence.id} className="hover:bg-white/5 transition-colors">
+                    <td className="px-5 py-3.5">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 rounded-xl bg-gold/10 text-gold hidden sm:block">
+                          <Droplets size={16} />
+                        </div>
+                        <div>
+                          <p className="font-semibold text-foreground text-sm">{essence.nom}</p>
+                          <p className="text-[11px] text-foreground/40 mt-0.5">{essence.marque || 'Maison'}</p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-5 py-3.5 font-mono text-xs text-foreground/60">{essence.code_reference}</td>
+                    <td className="px-5 py-3.5">
+                      <span className="text-[11px] px-2 py-0.5 rounded font-medium bg-white/5 border border-white/10 text-foreground/70 capitalize">
+                        {essence.categorie?.replace('_', ' ')}
+                      </span>
+                    </td>
+                    <td className="px-5 py-3.5">
+                      <div className="flex flex-col gap-0.5 text-xs text-foreground/60">
+                        <span>Intensité : <b className="text-foreground/80 capitalize">{essence.intensite}</b></span>
+                        <span>Cible : <b className="text-foreground/80 capitalize">{essence.genre_cible}</b></span>
+                      </div>
+                    </td>
+                    <td className="px-5 py-3.5 font-semibold text-gold text-sm">
+                      {Number(essence.prix_par_ml || 0).toLocaleString()} FCFA
+                    </td>
+                    <td className="px-5 py-3.5">
+                      {essence.vendu_comme_produit_fini ? (
+                        <span className="inline-flex items-center gap-1 text-[10px] bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded font-bold uppercase border border-emerald-500/10">
+                          <ShoppingBag size={10} /> + Boutique
+                        </span>
+                      ) : (
+                        <span className="text-[10px] bg-white/5 text-foreground/40 px-2 py-0.5 rounded font-bold uppercase">
+                          Labo Seul
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-5 py-3.5">
+                      <div className="flex gap-1">
+                        <button 
+                          onClick={() => openEdit(essence)} 
+                          className="p-1.5 rounded-lg hover:bg-white/5 text-foreground/40 hover:text-gold transition-colors"
+                        >
+                          <Edit2 size={14} />
+                        </button>
+                        <button 
+                          onClick={() => handleDelete(essence.id)} 
+                          className="p-1.5 rounded-lg hover:bg-red-500/10 text-foreground/40 hover:text-red-400 transition-colors"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+                {currentItems.length === 0 && (
+                  <tr>
+                    <td colSpan={7} className="text-center py-16 text-foreground/40 italic text-sm">
+                      Aucune essence enregistrée dans le catalogue.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
-      {/* Creation Modal */}
+      {/* Pagination (Max 20 items par page) */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between pt-2">
+          <span className="text-xs text-foreground/40">Page {currentPage} sur {totalPages}</span>
+          <div className="flex items-center gap-2">
+            <button 
+              disabled={currentPage === 1} 
+              onClick={() => setCurrentPage(p => p - 1)} 
+              className="p-2 rounded-xl bg-white/5 border border-white/10 text-white disabled:opacity-20 transition-opacity"
+            >
+              <ChevronLeft size={16} />
+            </button>
+            <button 
+              disabled={currentPage === totalPages} 
+              onClick={() => setCurrentPage(p => p + 1)} 
+              className="p-2 rounded-xl bg-white/5 border border-white/10 text-white disabled:opacity-20 transition-opacity"
+            >
+              <ChevronRight size={16} />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Modale d'Ajout / Modification */}
       {showModal && (
-        <div className="fixed inset-0 bg-black/90 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
-          <div className="bg-background border border-white/10 rounded-3xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl">
-            <div className="p-8">
-              <h2 className="text-2xl font-bold mb-6 flex items-center gap-3">
-                <Droplets className="text-gold" />
-                {editingEssence ? 'Modifier l\'essence' : 'Nouvelle Essence Brute'}
-              </h2>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Standard Lab Fields */}
-                <div className="space-y-4">
-                  <div>
-                    <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Nom de l'essence *</label>
-                    <input
-                      value={nom}
-                      onChange={e => setNom(e.target.value)}
-                      placeholder="Ex: Essence de Patchouli"
-                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-gold"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Slug</label>
-                    <input
-                      value={slug}
-                      onChange={e => setSlug(e.target.value)}
-                      placeholder="essence-patchouli"
-                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-gold"
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Code Référence *</label>
-                      <input
-                        value={codeReference}
-                        onChange={e => setCodeReference(e.target.value)}
-                        placeholder="ESS-PAT-001"
-                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-gold"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Catégorie *</label>
-                      <select
-                        value={categorie}
-                        onChange={e => setCategorie(e.target.value)}
-                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-gold"
-                      >
-                        {STATIC_CATEGORIES.map(cat => (
-                          <option key={cat} value={cat} className="text-black bg-white">{cat.replace('_', ' ')}</option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Intensité</label>
-                      <select value={intensite} onChange={e => setIntensite(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-gold">
-                        <option value="légère">Légère</option>
-                        <option value="moyenne">Moyenne</option>
-                        <option value="forte">Forte</option>
-                        <option value="très forte">Très forte</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Genre Cible</label>
-                      <select value={genreCible} onChange={e => setGenreCible(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-gold">
-                        <option value="mixte">Mixte</option>
-                        <option value="homme">Homme</option>
-                        <option value="femme">Femme</option>
-                      </select>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Durée</label>
-                      <select value={duree} onChange={e => setDuree(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-gold">
-                        <option value="courte">Courte</option>
-                        <option value="moyenne">Moyenne</option>
-                        <option value="longue">Longue</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Concentration Max (%)</label>
-                      <input
-                        value={concentrationMax}
-                        onChange={e => setConcentrationMax(e.target.value)}
-                        placeholder="15.00"
-                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-gold"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Prix par ml (FCFA)</label>
-                      <input
-                        value={prixParMl}
-                        onChange={e => setPrixParMl(e.target.value)}
-                        placeholder="500.00"
-                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-gold"
-                      />
-                    </div>
-                  </div>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-background rounded-2xl p-6 w-full max-w-lg shadow-2xl border border-white/10 overflow-y-auto max-h-[90vh]">
+            <h3 className="font-bold text-foreground text-lg mb-4">
+              {editingEssence ? 'Modifier l\'essence' : 'Ajouter une nouvelle essence'}
+            </h3>
+            
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Nom de l'essence *</label>
+                  <input
+                    value={nom}
+                    onChange={e => setNom(e.target.value)}
+                    placeholder="Ex: Royal Oud"
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
+                  />
                 </div>
-
-                <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Marque</label>
-                      <input
-                        value={marque}
-                        onChange={e => setMarque(e.target.value)}
-                        placeholder="Exclusif"
-                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-gold"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Fournisseur</label>
-                      <input
-                        value={fournisseur}
-                        onChange={e => setFournisseur(e.target.value)}
-                        placeholder="Hervé S.A."
-                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-gold"
-                      />
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Couleur</label>
-                      <input
-                        value={couleur}
-                        onChange={e => setCouleur(e.target.value)}
-                        placeholder="Marron"
-                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-gold"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Origine Pays</label>
-                      <input
-                        value={originePays}
-                        onChange={e => setOriginePays(e.target.value)}
-                        placeholder="Cameroun"
-                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-gold"
-                      />
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-3 gap-2">
-                    <div>
-                      <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Notes de Tête</label>
-                      <input
-                        value={notesTete}
-                        onChange={e => setNotesTete(e.target.value)}
-                        placeholder="Citron"
-                        className="w-full bg-white/5 border border-white/10 rounded-xl px-2 py-3 text-xs outline-none focus:border-gold"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Notes de Coeur</label>
-                      <input
-                        value={notesCoeur}
-                        onChange={e => setNotesCoeur(e.target.value)}
-                        placeholder="Patchouli"
-                        className="w-full bg-white/5 border border-white/10 rounded-xl px-2 py-3 text-xs outline-none focus:border-gold"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Notes de Fond</label>
-                      <input
-                        value={notesFond}
-                        onChange={e => setNotesFond(e.target.value)}
-                        placeholder="Santal"
-                        className="w-full bg-white/5 border border-white/10 rounded-xl px-2 py-3 text-xs outline-none focus:border-gold"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Description</label>
-                    <textarea
-                      value={description}
-                      onChange={e => setDescription(e.target.value)}
-                      rows={2}
-                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 outline-none focus:border-gold resize-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Description IA</label>
-                    <textarea
-                      value={descriptionIa}
-                      onChange={e => setDescriptionIa(e.target.value)}
-                      rows={2}
-                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 outline-none focus:border-gold resize-none"
-                    />
-                  </div>
+                <div>
+                  <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Code Référence *</label>
+                  <input
+                    value={codeReference}
+                    onChange={e => setCodeReference(e.target.value)}
+                    placeholder="Ex: ESS-OUD-01"
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-foreground outline-none focus:border-gold font-mono"
+                  />
                 </div>
+              </div>
 
-                {/* Initial Lot Fields (Only on creation) */}
-                {!editingEssence && (
-                  <div className="col-span-1 md:col-span-2 grid grid-cols-1 md:grid-cols-3 gap-6 p-6 bg-emerald-500/5 border border-emerald-500/20 rounded-2xl">
-                    <div className="col-span-full flex items-center gap-2 text-emerald-400 mb-2">
-                      <Info size={14} />
-                      <p className="text-[10px] font-bold uppercase">Premier Lot de Laboratoire</p>
-                    </div>
-                    <div>
-                      <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Stock Initial (ml)</label>
-                      <input
-                        type="number"
-                        value={lotStock}
-                        onChange={e => setLotStock(e.target.value)}
-                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-gold"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Seuil Alerte (ml)</label>
-                      <input
-                        type="number"
-                        value={lotSeuil}
-                        onChange={e => setLotSeuil(e.target.value)}
-                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-gold"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Réf. Lot Fournisseur</label>
-                      <input
-                        value={lotRef}
-                        onChange={e => setLotRef(e.target.value)}
-                        placeholder="LOT-001"
-                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-gold"
-                      />
-                    </div>
-                  </div>
-                )}
-
-                {/* Split Logic Toggle */}
-                <div className="col-span-1 md:col-span-2 py-4 border-y border-white/5">
-                  <label className="flex items-center gap-3 cursor-pointer group">
-                    <div className={`w-12 h-6 rounded-full relative transition-colors ${venduFini ? 'bg-gold' : 'bg-white/10'}`}>
-                      <input
-                        type="checkbox"
-                        className="sr-only"
-                        checked={venduFini}
-                        onChange={e => setVenduFini(e.target.checked)}
-                      />
-                      <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all ${venduFini ? 'left-7' : 'left-1'}`} />
-                    </div>
-                    <div>
-                      <span className="font-bold text-foreground group-hover:text-gold transition-colors">Vendre comme produit fini en boutique</span>
-                      <p className="text-[10px] text-foreground/40">Si activé, l'essence apparaîtra dans le catalogue public de la boutique.</p>
-                    </div>
-                  </label>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Marque / Fournisseur</label>
+                  <input
+                    value={marque}
+                    onChange={e => setMarque(e.target.value)}
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
+                  />
                 </div>
+                <div>
+                  <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Catégorie</label>
+                  <select
+                    value={categorie}
+                    onChange={e => setCategorie(e.target.value)}
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white outline-none focus:border-gold bg-neutral-900 capitalize"
+                  >
+                    {STATIC_CATEGORIES.map(cat => (
+                      <option key={cat} value={cat}>{cat.replace('_', ' ')}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
 
-                {/* Shop Fields (Visible only if toggle is true) */}
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Intensité</label>
+                  <select
+                    value={intensite}
+                    onChange={e => setIntensite(e.target.value)}
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white outline-none focus:border-gold bg-neutral-900"
+                  >
+                    <option value="legere">Légère</option>
+                    <option value="moyenne">Moyenne</option>
+                    <option value="forte">Forte</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Genre Cible</label>
+                  <select
+                    value={genreCible}
+                    onChange={e => setGenreCible(e.target.value)}
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white outline-none focus:border-gold bg-neutral-900"
+                  >
+                    <option value="mixte">Mixte</option>
+                    <option value="homme">Homme</option>
+                    <option value="femme">Femme</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Prix de base / ml</label>
+                  <input
+                    type="number"
+                    value={prixParMl}
+                    onChange={e => setPrixParMl(e.target.value)}
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-gold font-bold outline-none focus:border-gold"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Description / Notes Olfactives</label>
+                <textarea
+                  value={description}
+                  onChange={e => setDescription(e.target.value)}
+                  placeholder="Notes de tête, cœur, fond..."
+                  rows={2}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-foreground outline-none focus:border-gold resize-none"
+                />
+              </div>
+
+              {/* Canal Vente direct Boutique */}
+              <div className="bg-white/5 border border-white/10 rounded-xl p-4 space-y-3">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={venduFini}
+                    onChange={e => setVenduFini(e.target.checked)}
+                    className="rounded border-white/10 bg-white/5 text-gold focus:ring-gold"
+                  />
+                  <div className="text-xs">
+                    <p className="font-semibold text-foreground">Rendre disponible comme Produit Fini direct</p>
+                    <p className="text-foreground/40">Génère automatiquement une référence en boutique lors de la création</p>
+                  </div>
+                </label>
+
                 {venduFini && (
-                  <div className="col-span-1 md:col-span-2 grid grid-cols-1 md:grid-cols-3 gap-6 p-6 bg-gold/5 border border-gold/20 rounded-2xl animate-in fade-in slide-in-from-top-4 duration-300">
-                    <div className="col-span-full flex items-center gap-2 text-gold mb-2">
-                      <Info size={14} />
-                      <p className="text-[10px] font-bold uppercase">Paramètres de la Boutique</p>
-                    </div>
+                  <div className="grid grid-cols-2 gap-3 pt-2 border-t border-white/5 animate-fade-in">
                     <div>
-                      <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Prix de vente (FCFA)</label>
-                      <input
-                        type="number"
-                        value={shopPrice}
-                        onChange={e => setShopPrice(e.target.value)}
-                        placeholder="15000"
-                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-gold text-gold"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Taille par défaut (ml)</label>
-                      <select value={shopSize} onChange={e => setShopSize(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-gold">
-                        <option value="10">10 ml</option>
-                        <option value="30">30 ml</option>
+                      <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Contenance par défaut</label>
+                      <select
+                        value={contenanceShop}
+                        onChange={e => setContenanceShop(e.target.value)}
+                        className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white outline-none focus:border-gold bg-neutral-900"
+                      >
                         <option value="50">50 ml</option>
                         <option value="100">100 ml</option>
                       </select>
                     </div>
                     <div>
-                      <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Stock Initial</label>
+                      <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Stock Initial Boutique</label>
                       <input
                         type="number"
                         value={shopStock}
                         onChange={e => setShopStock(e.target.value)}
-                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-gold"
+                        className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
                       />
                     </div>
                   </div>
                 )}
               </div>
 
-              <div className="flex gap-4 mt-8">
+              {/* Actions de validation */}
+              <div className="flex gap-3 pt-2">
                 <button
+                  type="button"
                   onClick={() => setShowModal(false)}
-                  className="flex-1 px-6 py-4 rounded-xl border border-white/10 text-foreground/60 font-bold hover:bg-white/5 transition-colors"
+                  className="flex-1 px-4 py-2.5 rounded-xl border border-white/10 text-foreground/60 font-bold text-sm hover:bg-white/5 transition-colors"
                 >
                   Annuler
                 </button>
                 <button
+                  type="button"
                   onClick={handleSave}
-                  className="flex-1 px-6 py-4 rounded-xl bg-gold text-black font-bold hover:bg-gold/80 transition-transform active:scale-95"
+                  disabled={saving}
+                  className="flex-1 px-4 py-2.5 rounded-xl bg-gold text-black font-bold text-sm hover:bg-gold/80 transition-all flex items-center justify-center gap-2"
                 >
+                  {saving && <Loader2 size={14} className="animate-spin" />}
                   {editingEssence ? 'Mettre à jour' : 'Enregistrer l\'essence'}
                 </button>
               </div>

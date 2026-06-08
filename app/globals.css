@@ -92,7 +92,7 @@
   --t-glass-gold-border: rgba(197, 160, 89, 0.2);
   --t-glass-dark-bg: rgba(5, 5, 5, 0.6);
   --t-glass-dark-border: rgba(255, 255, 255, 0.06);
-
+  --t-nav-dark-bg:#171717;
   /* Scrollbar */
   --t-scrollbar-thumb: #C5A059;
   --t-scrollbar-hover: #D4B87A;
@@ -104,6 +104,14 @@
   /* Selection */
   --t-selection-bg: #C5A059;
   --t-selection-text: #050505;
+
+   /* Ghost / outline CTA button */
+  --t-btn-ghost-border:     #C5A059;
+  --t-btn-ghost-text:       #C5A059;
+  --t-btn-ghost-hover-bg:   #C5A059;
+  --t-btn-ghost-hover-text: #FFFFFF;
+
+  
 }
 
 /* ============================================================
@@ -111,7 +119,7 @@
    Inspired by: Le Bar à Parfum reference
    ============================================================ */
 [data-theme="light"] {
-  --background: #f2f0ed;
+  --background: #f3f3f3;
   --foreground: #2E2316;
 
   --t-cream: #2E2316;
@@ -164,7 +172,7 @@
   --t-glass-gold-border: rgba(197, 160, 89, 0.25);
   --t-glass-dark-bg: rgba(237, 229, 213, 0.9);
   --t-glass-dark-border: rgba(180, 165, 135, 0.2);
-
+  --t-nav-dark-bg:#FFFFFF;
   /* Scrollbar */
   --t-scrollbar-thumb: #B4A587;
   --t-scrollbar-hover: #8B7A3E;
@@ -176,6 +184,13 @@
   /* Selection */
   --t-selection-bg: #8B7A3E;
   --t-selection-text: #FFFFFF;
+
+   /* Ghost / outline CTA button */
+ 
+  --t-btn-ghost-border:     #C5A059;
+  --t-btn-ghost-text:       #C5A059;
+  --t-btn-ghost-hover-bg:   #C5A059;
+  --t-btn-ghost-hover-text: #ffffff;
 }
 
 /* ============================================================
@@ -359,3 +374,9 @@ input::-webkit-inner-spin-button {
 input[type=number] {
   -moz-appearance: textfield;
 }
+
+/*
+ * ProductCard theme tokens
+ * Add these inside your existing :root and .dark (or [data-theme="dark"]) blocks.
+ */
+

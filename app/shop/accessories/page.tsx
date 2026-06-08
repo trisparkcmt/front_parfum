@@ -354,7 +354,7 @@ export default function AccessoriesShop() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.3 }}
-            className="flex flex-row flex-wrap justify-center sm:justify-start gap-2
+            className="flex flex-row flex-wrap justify-center sm:justify-start -mx-4 gap-2
              md:gap-6"
           >
             {products.map((product, index) => (
