@@ -78,6 +78,8 @@ export interface Product {
   name: string;
   description: string;
   price: number; // in FCFA
+  originalPrice?: number; // Original price if there's a promotion
+  taux_reduction?: string; // Reduction percentage as a string (e.g., "15.00")
   category: ProductCategory;
   subCategory?: AccessorySubCategory;
   images: string[];

@@ -1,16 +1,59 @@
 import { Product, ProductCategory, AccessorySubCategory } from '@/types';
 import { shopService as apiShopService } from './apiService';
 
+// Internal map to store perfume category ID to frontend category type mapping
+let _perfumeCategoriesMap: Map<number, ProductCategory> | null = null;
+let _perfumeCategoryNames: Map<number, string> = new Map();
+
+// Function to load perfume categories from the backend and populate the map
+async function _loadPerfumeCategories() {
+  if (_perfumeCategoriesMap) return; // Already loaded
+
+  try {
+    const response = await apiShopService.getPerfumeCategories();
+    const categories = Array.isArray(response) ? response : (response.results || response.resultats || []);
+    _perfumeCategoriesMap = new Map();
+    categories.forEach((cat: any) => {
+      // Assuming cat.id is the number and cat.nom is the string name from the backend
+      const frontendCategory: ProductCategory = cat.nom?.toLowerCase().includes('dupe') ? 'perfume-dupe' :
+                                                cat.nom?.toLowerCase().includes('numba') ? 'numba-creation' :
+                                                'perfume-brand'; // Default for other categories
+      _perfumeCategoriesMap?.set(cat.id, frontendCategory);
+      _perfumeCategoryNames.set(cat.id, cat.nom);
+    });
+  } catch (error) {
+    console.error('Failed to load perfume categories for mapping:', error);
+    _perfumeCategoriesMap = new Map(); // Initialize as empty map to prevent repeated attempts
+  }
+}
+
 // Helper to map backend perfume to frontend Product model
 export function mapBackendPerfumeToProduct(p: any): Product {
   // Determine frontend category mapping
-  let category: ProductCategory = 'perfume-brand';
-  if (p.categorie === 'perfume-dupe' || p.nom?.toLowerCase().includes('dupe') || p.reference_sku?.startsWith('DUPE')) {
+  let category: ProductCategory = 'perfume-brand'; // Default fallback
+
+  // Prioritize mapping from backend category ID if available and loaded
+  if (typeof p.categorie === 'number' && _perfumeCategoriesMap) {
+    const mappedCategory = _perfumeCategoriesMap.get(p.categorie);
+    if (mappedCategory) {
+      category = mappedCategory;
+    }
+  } else if (typeof p.categorie === 'string') {
+    // Fallback for cases where p.categorie might still be a string (e.g., old data or different endpoint)
+    if (p.categorie === 'perfume-dupe') {
+      category = 'perfume-dupe';
+    } else if (p.categorie === 'numba-creation') {
+      category = 'numba-creation';
+    }
+  } else if (typeof p.categorie === 'object' && p.categorie !== null) {
+    category = p.categorie.nom || 'perfume-brand';
+  }
+
+  // Apply keyword-based overrides/refinements if they are more specific
+  if (p.nom?.toLowerCase().includes('dupe') || p.reference_sku?.startsWith('DUPE') || p.tags?.some((t: any) => t.nom === 'Dupe') || p.reference_sku?.includes('DP')) {
     category = 'perfume-dupe';
-  } else if (p.categorie === 'numba-creation' || p.nom?.toLowerCase().includes('numba') || p.brand === 'Numba') {
+  } else if (p.nom?.toLowerCase().includes('numba') || p.brand === 'Numba') {
     category = 'numba-creation';
-  } else if (p.tags?.some((t: any) => t.nom === 'Dupe') || p.reference_sku?.includes('DP')) {
-    category = 'perfume-dupe';
   }
 
   // Handle images
@@ -40,8 +83,14 @@ export function mapBackendPerfumeToProduct(p: any): Product {
     id: String(p.id),
     name: p.nom,
     description: p.description_courte || p.description_longue || '',
-    price: parseFloat(p.prix_actuel || p.prix_unitaire),
-    category,
+    price: parseFloat(p.prix_actuel || p.prix_unitaire || '0'),
+    originalPrice: parseFloat(p.prix_unitaire),
+    taux_reduction: p.taux_reduction || (
+      p.prix_unitaire && p.prix_actuel && parseFloat(p.prix_unitaire) > parseFloat(p.prix_actuel)
+        ? String(Math.round((1 - parseFloat(p.prix_actuel) / parseFloat(p.prix_unitaire)) * 100))
+        : undefined
+    ),
+    category: _perfumeCategoryNames.get(p.categorie) || category,
     images,
     brand: p.marque || (category === 'numba-creation' ? 'Numba' : 'Exclusif Parfums'),
     inStock: p.stock_quantite > 0,
@@ -96,7 +145,13 @@ export function mapBackendAccessoryToProduct(p: any): Product {
     id: String(p.id),
     name: p.nom,
     description: p.description_courte || '',
-    price: parseFloat(p.prix_actuel || p.prix_unitaire),
+    price: parseFloat(p.prix_actuel || p.prix_unitaire || '0'),
+    originalPrice: parseFloat(p.prix_unitaire),
+    taux_reduction: p.taux_reduction || (
+      p.prix_unitaire && p.prix_actuel && parseFloat(p.prix_unitaire) > parseFloat(p.prix_actuel)
+        ? String(Math.round((1 - parseFloat(p.prix_actuel) / parseFloat(p.prix_unitaire)) * 100))
+        : undefined
+    ),
     category: 'accessory',
     subCategory,
     images,
@@ -145,6 +200,7 @@ export const productService = {
    * Fetch perfumes from API with optional filters - API ONLY
    */
   async getPerfumes(filters?: PerfumeFilterParams): Promise<Product[]> {
+    await _loadPerfumeCategories(); // Ensure categories are loaded before fetching products
     const params: any = {};
     if (filters) {
       if (filters.famille_olfactive && filters.famille_olfactive !== 'all') params.famille_olfactive = filters.famille_olfactive;
@@ -262,5 +318,61 @@ export const productService = {
    */
   async toggleAccessoryFavorite(slug: string) {
     return apiShopService.toggleAccessoryFavorite(slug);
+  },
+
+  /**
+   * Fetch bestseller perfumes from API
+   */
+  async getBestsellerPerfumes(): Promise<Product[]> {
+    await _loadPerfumeCategories(); // Ensure categories are loaded before fetching products
+    const response = await apiShopService.getPerfumeBestsellers();
+    
+    let results: any[] = [];
+    if (response) {
+      if (Array.isArray(response)) {
+        results = response;
+      } else if (Array.isArray(response.results)) {
+        results = response.results;
+      } else if (Array.isArray(response.resultats)) {
+        results = response.resultats;
+      }
+    }
+
+    return results.map(mapBackendPerfumeToProduct);
+  },
+
+  /**
+   * Fetch hotseller perfumes (trending) from API
+   */
+  async getHotsellerPerfumes(): Promise<Product[]> {
+    await _loadPerfumeCategories(); // Ensure categories are loaded before fetching products
+    const response = await apiShopService.getPerfumeHotsellers();
+    
+    let results: any[] = [];
+    if (response) {
+      if (Array.isArray(response)) {
+        results = response;
+      } else if (Array.isArray(response.results)) {
+        results = response.results;
+      } else if (Array.isArray(response.resultats)) {
+        results = response.resultats;
+      }
+    }
+
+    return results.map(mapBackendPerfumeToProduct);
+  },
+
+  /**
+   * Fetch all perfume categories from backend
+   */
+  async getPerfumeCategories(): Promise<{id: number, name: string, type: ProductCategory}[]> {
+    await _loadPerfumeCategories();
+    const response = await apiShopService.getPerfumeCategories();
+    const results = Array.isArray(response) ? response : (response.results || response.resultats || []);
+    return results.map((cat: any) => ({
+      id: cat.id,
+      name: cat.nom,
+      type: _perfumeCategoriesMap?.get(cat.id) || 'perfume-brand'
+    }));
   }
 };

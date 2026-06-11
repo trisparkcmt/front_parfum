@@ -98,6 +98,11 @@ export function ProductCard({
       {/* ─── Image Block ─────────────────────────────────────── */}
       <Link href={`/shop/product/${product.slug || product.id}`} className="block relative">
         {/* Image Section */} 
+        {product.taux_reduction && parseFloat(product.taux_reduction) > 0 && (
+          <div className="absolute top-3 left-3 z-20 bg-red-600 text-white text-xs font-bold px-2 py-1 rounded-full">
+            -{parseFloat(product.taux_reduction)}%
+          </div>
+        )}
         <div className="relative h-40 md:h-55 overflow-hidden bg-[var(--t-surface)]">
           {product.images && product.images[0] && (
             <Image 
@@ -153,10 +158,16 @@ export function ProductCard({
         )}
 
         {/* Price */}
-        <p className="text-sm sm:text-lg font-semibold   tracking-wide"
-        style={{ color: '#C5A059' }}
-        >
-          {formatPrice(product.price)}
+        <p className="text-sm sm:text-lg font-semibold tracking-wide" style={{ color: '#C5A059' }}>
+          {product.originalPrice && product.taux_reduction && parseFloat(product.taux_reduction) > 0 ? (
+            <>
+              <span className="line-through text-foreground/50 mr-2">{formatPrice(product.originalPrice)}</span>
+              <span>{formatPrice(product.price)}</span>
+            </>
+          ) : (
+            <span>{formatPrice(product.price)}</span>
+          )}
+          
         </p>
         
 

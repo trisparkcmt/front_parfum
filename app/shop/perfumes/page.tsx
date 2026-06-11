@@ -4,9 +4,9 @@
  * @file app/shop/perfumes/page.tsx
  * @description Main Marketplace Catalog for Brand Perfumes and Dupes with Advanced Filtering.
  */
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, SlidersHorizontal, X, RotateCcw, ChevronDown, Check } from 'lucide-react';
+import { Search, SlidersHorizontal, X, RotateCcw, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import { ProductCard } from '@/components/ui/ProductCard';
 import { ProductGridSkeleton } from '@/components/ui/Skeletons';
 import { useCartStore } from '@/store/useCartStore';
@@ -21,17 +21,27 @@ export default function PerfumesShop() {
   const [mounted, setMounted] = useState(false);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const [categories, setCategories] = useState<{id: string | number, label: string, desc?: string}[]>([]);
+
+  // Pagination state — driven by backend response
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
 
   // Filter states
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
-  const [genre, setGenre] = useState<string>('all');
+  const [genre, setGenre] = useState<'all' | 'homme' | 'femme' | 'mixte'>('all');
   const [olfactiveFamily, setOlfactiveFamily] = useState<string>('all');
   const [intensity, setIntensity] = useState<string>('all');
   const [maxPrice, setMaxPrice] = useState<number>(150000);
-  const [ordering, setOrdering] = useState<string>('-date_creation'); // default: newest
+  const [ordering, setOrdering] = useState<string>('-date_creation');
   const [showFilters, setShowFilters] = useState(false);
-  const [activeTab, setActiveTab] = useState<'perfume-brand' | 'perfume-dupe' | 'numba-creation'>('perfume-brand');
+  const [activeTab, setActiveTab] = useState<string | number>('all');
+
+  // Ref for the scrollable tab bar and individual tab buttons
+  const tabBarRef = useRef<HTMLDivElement>(null);
+  const tabRefs = useRef<Record<string | number, HTMLButtonElement | null>>({});
 
   // Debounce search input
   useEffect(() => {
@@ -41,36 +51,83 @@ export default function PerfumesShop() {
     return () => clearTimeout(handler);
   }, [search]);
 
-  // Load products when filters or tab changes
+  // Reset to page 1 whenever any filter/search/tab changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [genre, olfactiveFamily, intensity, maxPrice, debouncedSearch, ordering, activeTab]);
+
+  // Load products when filters, tab, or page changes
   useEffect(() => {
     if (!mounted) return;
 
-    async function fetchProducts() {
+    async function fetchData() {
       setLoading(true);
-      
-      // Call service
+
+      // Load dynamic categories from backend (once)
+      if (categories.length === 0) {
+        const backendCats = await productService.getPerfumeCategories();
+        const mappedTabs = [
+          { id: 'all', label: t('all_perfumes'), desc: t('all_perfumes_desc') },
+          ...backendCats.map(cat => ({
+            id: cat.name,
+            label: cat.name,
+            desc: t(`tab_${cat.type.replace('-', '_')}_desc`, { defaultValue: '' })
+          }))
+        ];
+        setCategories(mappedTabs);
+        setActiveTab('all');
+      }
+
+      // Explicitly cast to 'any' to bypass strict backend enum constraints on local component string states
       const params = {
-        genre: genre !== 'all' ? genre as any : undefined,
+        genre: genre !== 'all' ? genre : undefined,
         famille_olfactive: olfactiveFamily !== 'all' ? olfactiveFamily : undefined,
-        intensite: intensity !== 'all' ? intensity as any : undefined,
+        intensite: intensity !== 'all' ? intensity : undefined,
         prix_max: maxPrice < 150000 ? maxPrice : undefined,
         search: debouncedSearch || undefined,
         ordering: ordering || undefined,
+        page: currentPage,
       } as any;
 
-      // Use productService to get correctly mapped data and handle backend pagination
-      const mappedProducts = await productService.getPerfumes(params);
+      // Type the response to handle both array and paginated formats natively
+      const response = (await productService.getPerfumes(params)) as
+        | Product[]
+        | { results?: Product[]; resultats?: Product[]; pages?: number; count?: number };
 
-      setProducts(mappedProducts);
+      // Support both a plain array (legacy) and a paginated object
+      if (Array.isArray(response)) {
+        setProducts(response);
+        setTotalPages(1);
+        setTotalCount(response.length);
+      } else {
+        setProducts(response.results ?? response.resultats ?? []);
+        setTotalPages(response.pages ?? 1);
+        setTotalCount(response.count ?? 0);
+      }
+
       setLoading(false);
     }
 
-    fetchProducts();
-  }, [mounted, genre, olfactiveFamily, intensity, maxPrice, debouncedSearch, ordering]);
+    fetchData();
+  }, [mounted, genre, olfactiveFamily, intensity, maxPrice, debouncedSearch, ordering, currentPage, categories.length, t]);
 
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  // Scroll the active tab to centre whenever activeTab changes
+  useEffect(() => {
+    const bar = tabBarRef.current;
+    const activeBtn = tabRefs.current[activeTab];
+    if (!bar || !activeBtn) return;
+
+    const barRect = bar.getBoundingClientRect();
+    const btnRect = activeBtn.getBoundingClientRect();
+    const offset =
+      activeBtn.offsetLeft - bar.offsetLeft - barRect.width / 2 + btnRect.width / 2;
+
+    bar.scrollTo({ left: offset, behavior: 'smooth' });
+  }, [activeTab, categories]);
 
   const { addProduct } = useCartStore();
   const { addFavorite, removeFavorite, isFavorite } = useFavoritesStore();
@@ -90,14 +147,8 @@ export default function PerfumesShop() {
     }
   };
 
-  const tabs = [
-    { id: 'perfume-brand', label: t('tab_brand_names'), desc: t('tab_brand_names_desc') },
-    { id: 'perfume-dupe', label: t('tab_dupes'), desc: t('tab_dupes_desc') },
-    { id: 'numba-creation', label: t('tab_numba_creations'), desc: t('tab_numba_creations_desc') },
-  ];
-
-  // Client-side category filtering
-  const filteredPerfumes = products.filter(p => p.category === activeTab);
+  // Client-side category filtering (only needed if API doesn't filter by category)
+  const filteredPerfumes = products.filter(p => activeTab === 'all' || p.category === activeTab);
 
   const resetFilters = () => {
     setSearch('');
@@ -108,13 +159,12 @@ export default function PerfumesShop() {
     setOrdering('-date_creation');
   };
 
-  const activeFiltersCount = 
+  const activeFiltersCount =
     (genre !== 'all' ? 1 : 0) +
     (olfactiveFamily !== 'all' ? 1 : 0) +
     (intensity !== 'all' ? 1 : 0) +
     (maxPrice < 150000 ? 1 : 0);
 
-  // Localized family and intensity labels
   const families = [
     { value: 'all', label: i18n.language === 'en' ? 'All Families' : 'Toutes les familles' },
     { value: 'floral', label: i18n.language === 'en' ? 'Floral' : 'Floral' },
@@ -133,14 +183,6 @@ export default function PerfumesShop() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 pt-24 lg:pt-32 min-h-screen">
-      
-      {/* Page Header */}
-      {/* <div className="flex flex-col text-center mb-10">
-        <h1 className="font-display text-4xl md:text-5xl font-bold mb-4">{t('haute_perfumery')}</h1>
-        <p className="text-foreground/60 max-w-2xl mx-auto">
-          {t('perfume_shop_desc')}
-        </p>
-      </div> */}
 
       {/* Search and Filters Toggle Row */}
       <div className="flex flex-row gap-2 items-center justify-between mb-6">
@@ -154,7 +196,7 @@ export default function PerfumesShop() {
             className="w-full bg-foreground/5 hover:bg-foreground/10 focus:bg-foreground/10 border border-foreground/10 rounded-xl py-3 pl-12 pr-4 text-sm text-foreground placeholder-foreground/40 outline-none focus:border-gold transition-all"
           />
           {search && (
-            <button 
+            <button
               onClick={() => setSearch('')}
               className="absolute right-4 top-1/2 -translate-y-1/2 text-foreground/40 hover:text-foreground"
             >
@@ -173,9 +215,8 @@ export default function PerfumesShop() {
             }`}
           >
             <SlidersHorizontal className="w-4 h-4" />
-            
             <h1 className='hidden md:block'>
-             {i18n.language === 'en' ? 'Filters' : 'Filtres'} 
+              {i18n.language === 'en' ? 'Filters' : 'Filtres'}
             </h1>
             {activeFiltersCount > 0 && (
               <span className="bg-gold text-black rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold font-sans">
@@ -197,7 +238,7 @@ export default function PerfumesShop() {
             className="overflow-hidden mb-8"
           >
             <div className="bg-white/5 border border-white/10 rounded-2xl p-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 relative">
-              
+
               {/* Genre Filter */}
               <div className="flex flex-col gap-2">
                 <span className="text-xs font-bold uppercase tracking-widest text-gold mb-2">
@@ -212,7 +253,7 @@ export default function PerfumesShop() {
                   ].map((item) => (
                     <button
                       key={item.value}
-                      onClick={() => setGenre(item.value)}
+                      onClick={() => setGenre(item.value as any)}
                       className={`px-3 py-1.5 rounded-lg text-xs font-semibold uppercase tracking-wider transition-all ${
                         genre === item.value
                           ? 'bg-gold text-black shadow-md'
@@ -281,8 +322,8 @@ export default function PerfumesShop() {
                     {i18n.language === 'en' ? 'Max Price' : 'Prix Maximum'}
                   </span>
                   <span className="text-xs font-mono font-bold text-foreground bg-white/5 border border-white/10 px-2 py-0.5 rounded-lg">
-                    {maxPrice === 150000 
-                      ? (i18n.language === 'en' ? 'Unlimited' : 'Illimité') 
+                    {maxPrice === 150000
+                      ? (i18n.language === 'en' ? 'Unlimited' : 'Illimité')
                       : `${maxPrice.toLocaleString('fr-FR')} FCFA`}
                   </span>
                 </div>
@@ -303,7 +344,7 @@ export default function PerfumesShop() {
                 </div>
               </div>
 
-              {/* Reset Filters Section */}
+              {/* Reset Filters */}
               <div className="col-span-full border-t border-white/5 pt-4 mt-2 flex justify-end">
                 <button
                   onClick={resetFilters}
@@ -314,31 +355,51 @@ export default function PerfumesShop() {
                   {i18n.language === 'en' ? 'Reset Filters' : 'Réinitialiser'}
                 </button>
               </div>
-
             </div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Tabs */}
+      {/* ── Tabs — fixed container, horizontally scrollable, active tab auto-centred ── */}
       <div className="flex flex-col items-center mb-8">
-        <div className="w-full max-w-xl rounded-2xl flex justify-center p-1 bg-foreground/5 border border-white/5 mb-4">
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id as any)}
-              className={`rounded-xl px-4 py-2.5 flex-1 text-center text-xs font-bold uppercase tracking-wider transition-all duration-300 ${
-                activeTab === tab.id
-                  ? 'bg-gold text-black shadow-lg'
-                  : 'text-foreground/60 hover:text-foreground hover:bg-foreground/10'
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
+        {/* Sticky pill wrapper — clips overflow and fades edges */}
+        <div className="relative w-full max-w-xl mb-4">
+          {/* Left fade */}
+          <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-background to-transparent z-10 rounded-l-2xl" />
+          {/* Right fade */}
+          <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-background to-transparent z-10 rounded-r-2xl" />
+
+          {/* Scrollable track */}
+          <div
+            ref={tabBarRef}
+            className="flex items-center gap-1 overflow-x-auto scroll-smooth rounded-2xl p-1 bg-foreground/5 border border-white/5"
+            style={{
+              scrollbarWidth: 'none',          /* Firefox */
+              msOverflowStyle: 'none',          /* IE/Edge */
+            }}
+          >
+            {/* Hide webkit scrollbar via inline style to avoid purge issues */}
+            <style>{`.tab-bar::-webkit-scrollbar{display:none}`}</style>
+
+            {categories.map((tab) => (
+              <button
+                key={tab.id}
+                ref={(el) => { tabRefs.current[tab.id] = el; }}
+                onClick={() => setActiveTab(tab.id as any)}
+                className={`flex-shrink-0 rounded-xl px-5 py-2.5 text-xs font-bold uppercase tracking-wider transition-all duration-300 whitespace-nowrap ${
+                  activeTab === tab.id
+                    ? 'bg-gold text-black shadow-lg'
+                    : 'text-foreground/60 hover:text-foreground hover:bg-foreground/10'
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
         </div>
+
         <p className="text-xs text-foreground/45 tracking-wide italic">
-          {tabs.find(t => t.id === activeTab)?.desc}
+          {categories.find(tab => tab.id === activeTab)?.desc}
         </p>
       </div>
 
@@ -348,7 +409,7 @@ export default function PerfumesShop() {
       ) : (
         <AnimatePresence mode="wait">
           <motion.div
-            key={activeTab + '_' + products.length}
+            key={`${activeTab}_${currentPage}_${products.length}`}
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
@@ -370,7 +431,7 @@ export default function PerfumesShop() {
                 />
               </motion.div>
             ))}
-            
+
             {filteredPerfumes.length === 0 && (
               <div className="col-span-full w-full py-20 text-center border border-white/5 rounded-2xl bg-white/[0.02]">
                 <div className="text-foreground/30 text-3xl mb-4 font-light">∅</div>
@@ -389,6 +450,80 @@ export default function PerfumesShop() {
             )}
           </motion.div>
         </AnimatePresence>
+      )}
+
+      {/* ── Pagination ── */}
+      {!loading && totalPages > 1 && (
+        <div className="flex items-center justify-center gap-3 mt-12">
+          {/* Previous */}
+          <button
+            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+            disabled={currentPage === 1}
+            className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-foreground/10 text-xs font-bold uppercase tracking-wider text-foreground/60 hover:text-foreground hover:bg-foreground/5 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+          >
+            <ChevronLeft className="w-3.5 h-3.5" />
+            {i18n.language === 'en' ? 'Prev' : 'Préc.'}
+          </button>
+
+          {/* Page pills */}
+          <div className="flex items-center gap-1.5">
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
+              // Show first, last, current ±1, and ellipses
+              const isVisible =
+                page === 1 ||
+                page === totalPages ||
+                Math.abs(page - currentPage) <= 1;
+
+              const isEllipsisBefore =
+                page === currentPage - 2 && page > 2;
+              const isEllipsisAfter =
+                page === currentPage + 2 && page < totalPages - 1;
+
+              if (isEllipsisBefore || isEllipsisAfter) {
+                return (
+                  <span key={page} className="text-foreground/30 text-xs px-1 select-none">
+                    …
+                  </span>
+                );
+              }
+
+              if (!isVisible) return null;
+
+              return (
+                <button
+                  key={page}
+                  onClick={() => setCurrentPage(page)}
+                  className={`w-9 h-9 rounded-xl text-xs font-bold transition-all duration-200 ${
+                    page === currentPage
+                      ? 'bg-gold text-black shadow-md'
+                      : 'border border-foreground/10 text-foreground/60 hover:text-foreground hover:bg-foreground/5'
+                  }`}
+                >
+                  {page}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Next */}
+          <button
+            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+            disabled={currentPage === totalPages}
+            className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-foreground/10 text-xs font-bold uppercase tracking-wider text-foreground/60 hover:text-foreground hover:bg-foreground/5 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+          >
+            {i18n.language === 'en' ? 'Next' : 'Suiv.'}
+            <ChevronRight className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
+
+      {/* Result count hint */}
+      {!loading && totalCount > 0 && (
+        <p className="text-center text-xs text-foreground/35 mt-4 font-mono tracking-wide">
+          {i18n.language === 'en'
+            ? `${totalCount} perfume${totalCount > 1 ? 's' : ''} · page ${currentPage} of ${totalPages}`
+            : `${totalCount} parfum${totalCount > 1 ? 's' : ''} · page ${currentPage} sur ${totalPages}`}
+        </p>
       )}
     </div>
   );

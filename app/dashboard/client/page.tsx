@@ -54,7 +54,7 @@ export default function ClientDashboard() {
           { label: t('numba_creations_count'), value: compositionCount, icon: <Droplets size={18} />, color: 'text-purple-400 bg-purple-400/10' },
           { label: t('total_spent_label'), value: formatPrice(totalSpent), icon: <CreditCard size={18} />, color: 'text-amber-400 bg-amber-400/10' },
         ].map(s => (
-          <div key={s.label} className="bg-white/5 rounded-2xl border border-white/10 p-5 shadow-2xl">
+          <div key={s.label} className="bg-white/5 rounded-2xl border border-white/10 p-5 shadow-sm">
             <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-3 ${s.color}`}>{s.icon}</div>
             <p className="text-xl font-bold text-foreground">{s.value}</p>
             <p className="text-xs text-foreground/40 mt-0.5">{s.label}</p>
@@ -62,7 +62,7 @@ export default function ClientDashboard() {
         ))}
       </div>
 
-      <div className="bg-white/5 rounded-2xl border border-white/10 shadow-2xl overflow-hidden">
+      <div className="bg-white/5 rounded-2xl border border-white/10 shadow-sm overflow-hidden">
         <div className="px-6 py-4 border-b border-white/10 flex flex-wrap items-center justify-between gap-3">
           <h2 className="font-semibold text-foreground">{t('order_history')}</h2>
           <div className="flex gap-2">
@@ -118,7 +118,7 @@ export default function ClientDashboard() {
           <button
             key={a.label}
             onClick={() => a.href !== '#' && router.push(a.href)}
-            className="bg-white/5 rounded-2xl border border-white/10 p-5 shadow-2xl hover:shadow-gold/5 transition-all text-left group"
+            className="bg-white/5 rounded-2xl border border-white/10 p-5 shadow-sm hover:shadow-gold/5 transition-all text-left group"
           >
             <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${a.color} flex items-center justify-center text-foreground mb-3 group-hover:scale-110 transition-transform`}>{a.icon}</div>
             <p className="font-semibold text-sm text-foreground">{a.label}</p>

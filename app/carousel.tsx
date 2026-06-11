@@ -2,6 +2,8 @@ import { ArrowLeft, ArrowRight, ArrowUpRight, Star, StarHalf } from "lucide-reac
 import { useEffect, useState, useRef } from "react";
 import Autoplay from "embla-carousel-autoplay";
 import { useTranslation } from "react-i18next";
+import { Product } from "@/types";
+import { API_ROOT } from "@/services/api";
 
 import { Button } from "@/components/ui/Button";
 import {
@@ -23,7 +25,7 @@ interface GalleryItem {
 interface Gallery6Props {
   heading?: string;
   demoUrl?: string;
-  items?: GalleryItem[];
+  items?: Product[] | GalleryItem[];
 }
 
 const Gallery6 = ({
@@ -36,6 +38,12 @@ const Gallery6 = ({
   const [carouselApi, setCarouselApi] = useState<CarouselApi>();
   const [canScrollPrev, setCanScrollPrev] = useState(false);
   const [canScrollNext, setCanScrollNext] = useState(false);
+
+  const getImageUrl = (url: string) => {
+    if (!url) return '';
+    if (url.startsWith('http')) return url;
+    return `${API_ROOT}${url.startsWith('/') ? '' : '/'}${url}`;
+  };
 
   useEffect(() => {
     setMounted(true);
@@ -92,7 +100,19 @@ const Gallery6 = ({
     },
   ];
 
-  const items = propItems || defaultItems;
+  // Map Product to GalleryItem if needed
+  const items = propItems && propItems.length > 0
+    ? (typeof (propItems[0] as any).price !== 'undefined'
+      ? (propItems as Product[]).map(p => ({
+          id: p.id,
+          title: p.name,
+          summary: p.description,
+          url: `/shop/product/${p.slug || p.id}`,
+          image: getImageUrl(p.images[0]),
+          stars: p.rating || 4.5
+        }))
+      : propItems as GalleryItem[])
+    : [];
 
   useEffect(() => {
     if (!carouselApi || !mounted) {
@@ -125,7 +145,7 @@ const Gallery6 = ({
     });
   };
 
-  if (!mounted) return null;
+  if (!mounted || items.length === 0) return null;
 
   return (
     <section className="py-10">

@@ -92,7 +92,7 @@ export default function ClientProfilePage() {
         <div className="flex items-center gap-3">
           <button 
             onClick={handleBecomePartner}
-            className="bg-emerald-500 text-foreground px-4 py-2 rounded-xl text-xs font-bold hover:bg-emerald-600 transition-all shadow-lg shadow-emerald-500/20"
+            className="bg-emerald-500 text-foreground px-4 py-2 rounded-xl text-xs font-bold hover:bg-emerald-600 transition-all  shadow-emerald-500/20"
           >
             {t('become_partner')}
           </button>
@@ -100,8 +100,8 @@ export default function ClientProfilePage() {
       </div>
 
       {/* Profile Card */}
-      <div className="bg-white/5 rounded-2xl border border-white/10 p-6 shadow-2xl flex items-center gap-4">
-        <div className="w-16 h-16 rounded-full bg-gradient-to-br from-gold to-gold-dark flex items-center justify-center text-black text-xl font-bold shadow-lg shadow-gold/20">
+      <div className="bg-gray-800/5 rounded-2xl border border-white/10 p-6  flex items-center gap-4">
+        <div className="shadow-sm  w-16 h-16 rounded-full bg-gradient-to-br from-gold to-gold-dark flex items-center justify-center text-black text-xl font-bold  shadow-gold/20">
           {user?.firstName?.charAt(0)}{user?.lastName?.charAt(0)}
         </div>
         <div className="flex-1">
@@ -118,7 +118,7 @@ export default function ClientProfilePage() {
       {/* Information Section */}
       <div className="space-y-3">
         <h3 className="text-xs font-bold text-foreground/40 uppercase tracking-widest px-1">{t('information')}</h3>
-        <div className="bg-white/5 rounded-2xl border border-white/10 shadow-2xl overflow-hidden divide-y divide-white/5">
+        <div className="bg-gray-800/5 rounded-2xl border border-white/10 overflow-hidden divide-y divide-white/5 shadow-sm ">
         
           <Link href='/dashboard/client/'>
           <div className="flex items-center justify-between px-5 py-4">
@@ -201,12 +201,12 @@ export default function ClientProfilePage() {
       {/* Preferences Section (As requested in image) */}
       <div className="space-y-3">
         <h3 className="text-xs font-bold text-foreground/40 uppercase tracking-widest px-1">{t('settings')}</h3>
-        <div className="bg-white/5 rounded-2xl border border-white/10 shadow-2xl overflow-hidden divide-y divide-white/5">
+        <div className="shadow-sm bg-gray-800/5 rounded-2xl border border-white/10  overflow-hidden divide-y divide-white/5">
           {settingsOptions.map((opt) => (
             <button 
               key={opt.id}
               onClick={opt.action}
-              className="w-full flex items-center justify-between px-5 py-4 hover:bg-white/5 transition-all group"
+              className="w-full flex items-center justify-between px-5 py-4 hover:bg-gray-500/5 transition-all group"
             >
               <div className="flex items-center gap-3">
                 <div className={`w-9 h-9 rounded-lg ${opt.bg} flex items-center justify-center group-hover:scale-110 transition-transform`}>
@@ -226,8 +226,8 @@ export default function ClientProfilePage() {
       {/* Security Section */}
       <div className="space-y-3">
         <h3 className="text-xs font-bold text-foreground/40 uppercase tracking-widest px-1">{t('security_notifications')}</h3>
-        <div className="bg-white/5 rounded-2xl border border-white/10 shadow-2xl overflow-hidden divide-y divide-white/5">
-          <button className="w-full flex items-center justify-between px-5 py-4 hover:bg-white/5 transition-all group">
+        <div className=" shadow-sm bg-gray-800/5 rounded-2xl border border-white/10  overflow-hidden divide-y divide-white/5">
+          <button className="w-full flex items-center justify-between px-5 py-4 hover:bg-gray-800/5 transition-all group">
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-lg bg-amber-400/10 flex items-center justify-center text-amber-400">
                 <Shield size={18} />
@@ -239,7 +239,7 @@ export default function ClientProfilePage() {
             </div>
             <ChevronRight size={16} className="text-foreground/20" />
           </button>
-          <button className="w-full flex items-center justify-between px-5 py-4 hover:bg-white/5 transition-all group">
+          <button className="w-full flex items-center justify-between px-5 py-4 hover:bg-gray-800/5 transition-all group">
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-lg bg-emerald-400/10 flex items-center justify-center text-emerald-400">
                 <Bell size={18} />
