@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Plus, Truck, CheckCircle, Clock, Loader2, RefreshCw } from 'lucide-react';
+import { Plus, Truck, CheckCircle, Clock, Loader2, RefreshCw, Trash2 } from 'lucide-react';
 import { adminService } from '@/services/apiService';
 import { useToastStore } from '@/store/useToastStore';
 
@@ -58,7 +58,18 @@ export default function DeliveryPage() {
       addToast('Statut du livreur mis à jour', 'success');
       fetchDriversAndDeliveries();
     } catch (error: any) {
-      addToast('Erreur lors de la modification du statut', 'error');
+      addToast('Erreur lors du modification du statut', 'error');
+    }
+  };
+
+  const handleDeleteDriver = async (id: number) => {
+    if (!confirm('Voulez-vous vraiment supprimer ce livreur ?')) return;
+    try {
+      await adminService.deleteDeliveryDriver(id);
+      addToast('Livreur supprimé de la flotte avec succès', 'success');
+      fetchDriversAndDeliveries();
+    } catch (error: any) {
+      addToast(error.response?.data?.detail || 'Erreur lors de la suppression', 'error');
     }
   };
 
@@ -117,13 +128,22 @@ export default function DeliveryPage() {
                             <p className="text-[11px] text-foreground/40">{email}</p>
                           </div>
                         </div>
-                        <span className={`text-[9px] uppercase font-bold px-2 py-1 rounded-full ${
-                          status === 'disponible' ? 'bg-green-500/20 text-green-400' :
-                          status === 'en_livraison' ? 'bg-blue-500/20 text-blue-400' :
-                          'bg-red-500/20 text-red-400'
-                        }`}>
-                          {status}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className={`text-[9px] uppercase font-bold px-2 py-1 rounded-full ${
+                            status === 'disponible' ? 'bg-green-500/20 text-green-400' :
+                            status === 'en_livraison' ? 'bg-blue-500/20 text-blue-400' :
+                            'bg-red-500/20 text-red-400'
+                          }`}>
+                            {status}
+                          </span>
+                          <button
+                            onClick={() => handleDeleteDriver(d.id)}
+                            className="p-1 rounded-lg hover:bg-red-500/10 text-foreground/40 hover:text-red-400 transition-colors"
+                            title="Supprimer le livreur"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
                       </div>
                       <div className="space-y-1 text-xs text-foreground/60 border-t border-white/5 pt-3 mb-4">
                         <p><span className="text-foreground/40">Téléphone:</span> {phone}</p>

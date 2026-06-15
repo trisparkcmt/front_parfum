@@ -62,10 +62,19 @@ function LoginFormContent() {
 
   const onSubmit = async (data: LoginForm) => {
     const success = await login(data.loginInput, data.password);
-    
+
     if (success) {
+      const user = await useAuthStore.getState().user;
       addToast(t('login_success'), 'success');
-      router.push('/');
+
+      const dashboardPath = user?.role === 'admin' ? '/dashboard/admin/dashboard'
+        : user?.role === 'serveuse' ? '/dashboard/serveuse/dashboard'
+        : user?.role === 'client' ? '/dashboard/client'
+        : user?.role === 'partner' ? '/dashboard/partner'
+        : user?.role === 'delivery' ? '/dashboard/delivery'
+        : '/';
+
+      router.push(dashboardPath);
     } else {
       addToast(t('login_error'), 'error');
     }

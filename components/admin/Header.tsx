@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Menu, Search, Moon, Sun, Bell, ChevronDown, LogOut, Settings, User, ArrowLeft } from 'lucide-react';
+import { Menu, Search, Moon, Sun, Bell, ChevronDown, LogOut, Settings, User, ArrowLeft, Check } from 'lucide-react';
 
 interface HeaderProps {
   onMenuClick: () => void;
@@ -10,6 +10,7 @@ interface HeaderProps {
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
 import { useAuthStore } from '@/store/useAuthStore';
+import { notificationService } from '@/services/apiService';
 
 import Link from 'next/link';
 
@@ -19,7 +20,26 @@ export default function Header({ onMenuClick }: HeaderProps) {
   const [search, setSearch] = useState('');
   const [darkMode, setDarkMode] = useState(false);
   const [showNotifs, setShowNotifs] = useState(false);
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
   const notifRef = useRef<HTMLDivElement>(null);
+
+  const fetchNotifications = async () => {
+    try {
+      const data = await notificationService.getUnreadNotifications();
+      const list = data.results || data.resultats || (Array.isArray(data) ? data : []);
+      setNotifications(list.slice(0, 5));
+      setUnreadCount(list.length);
+    } catch (error) {
+      console.error('Header notifications fetch failed:', error);
+    }
+  };
+
+  useEffect(() => {
+    fetchNotifications();
+    const interval = setInterval(fetchNotifications, 30000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Close dropdowns on outside click
   useEffect(() => {
@@ -30,20 +50,21 @@ export default function Header({ onMenuClick }: HeaderProps) {
     return () => document.removeEventListener('mousedown', handleClick);
   }, []);
 
-  const notifications = [
-    { id: 1, text: 'Nouvelle commande #00126 reçue', time: 'Il y a 5 min', unread: true },
-    { id: 2, text: 'Stock bas : Dupe Sauvage (3 restants)', time: 'Il y a 1h', unread: true },
-    { id: 3, text: 'Livraison #LIV003 confirmée', time: 'Il y a 3h', unread: false },
-    { id: 4, text: 'Nouveau client inscrit : Fatou N.', time: 'Hier', unread: false },
-  ];
-
-  const unreadCount = notifications.filter(n => n.unread).length;
+  const handleMarkAsRead = async (id: number, e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      await notificationService.markAsRead(id, true);
+      fetchNotifications();
+    } catch (error) {
+      console.error('Failed to mark notification as read:', error);
+    }
+  };
 
   return (
     <header className="h-16 bg-background border-b border-white/10 flex items-center px-4 sm:px-6 gap-3 sm:gap-4 shrink-0">
       <div className="flex items-center gap-2 pr-4 border-r border-white/10">
         <button
-          onClick={() => router.push('/dashboard/admin/profile')}
+          onClick={() => router.push(`/dashboard/${user?.role || 'admin'}/profile`)}
           className="flex items-center gap-2 text-foreground/60 hover:text-gold transition-colors group"
         >
           <ArrowLeft size={18} className="group-hover:-translate-x-1 transition-transform" />
@@ -100,24 +121,60 @@ export default function Header({ onMenuClick }: HeaderProps) {
               <div className="px-4 py-3 border-b border-white/10 flex items-center justify-between">
                 <h3 className="font-semibold text-sm text-foreground">Notifications</h3>
                 <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-red-500/10 text-red-500">
-                  {unreadCount} nouveau{unreadCount > 1 ? 'x' : ''}
+                  {unreadCount} nouvelle{unreadCount > 1 ? 's' : ''}
                 </span>
               </div>
               <div className="max-h-72 overflow-y-auto">
-                {notifications.map(n => (
-                  <div
-                    key={n.id}
-                    className={`px-4 py-3 border-b border-white/5 hover:bg-white/5 transition-colors cursor-pointer ${n.unread ? 'bg-white/[0.02]' : ''}`}
-                  >
-                    <div className="flex items-start gap-3">
-                      {n.unread && <div className="w-2 h-2 bg-gold rounded-full mt-1.5 shrink-0" />}
-                      <div className={n.unread ? '' : 'ml-5'}>
-                        <p className={`text-xs ${n.unread ? 'text-foreground font-medium' : 'text-foreground/60'}`}>{n.text}</p>
-                        <p className="text-[11px] text-foreground/40 mt-0.5">{n.time}</p>
+                {notifications.map(n => {
+                  const dateObj = new Date(n.cree_le || n.date_creation || Date.now());
+                  const timeString = dateObj.toLocaleDateString('fr-FR', {
+                    day: '2-digit',
+                    month: 'short',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                  });
+
+                  return (
+                    <div
+                      key={n.id}
+                      onClick={() => {
+                        router.push('/dashboard/admin/notifications');
+                        setShowNotifs(false);
+                      }}
+                      className="px-4 py-3 border-b border-white/5 hover:bg-white/5 transition-colors cursor-pointer bg-white/[0.02]"
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className="w-2 h-2 bg-gold rounded-full mt-1.5 shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs text-foreground font-medium truncate">{n.titre || 'Alerte stock'}</p>
+                          <p className="text-[11px] text-foreground/60 line-clamp-2 mt-0.5">{n.message || n.contenu}</p>
+                          <p className="text-[10px] text-foreground/30 mt-1">{timeString}</p>
+                        </div>
+                        <button
+                          onClick={(e) => handleMarkAsRead(n.id, e)}
+                          className="p-1 rounded hover:bg-white/10 text-foreground/40 hover:text-foreground transition-colors shrink-0"
+                          title="Marquer comme lue"
+                        >
+                          <Check size={12} />
+                        </button>
                       </div>
                     </div>
+                  );
+                })}
+                {notifications.length === 0 && (
+                  <div className="px-4 py-8 text-center text-xs text-foreground/40 italic">
+                    Aucune nouvelle notification
                   </div>
-                ))}
+                )}
+              </div>
+              <div className="px-4 py-2 bg-white/5 border-t border-white/10 text-center">
+                <Link
+                  href={`/dashboard/${user?.role || 'admin'}/notifications`}
+                  onClick={() => setShowNotifs(false)}
+                  className="text-xs font-semibold text-gold hover:text-gold/80 transition-colors inline-block w-full py-1"
+                >
+                  Voir toutes les notifications
+                </Link>
               </div>
             </div>
           )}
@@ -125,7 +182,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
 
         {/* Profile Link */}
         <Link 
-          href="/dashboard/admin/profile"
+          href={`/dashboard/${user?.role || 'admin'}/profile`}
           className="flex items-center gap-2 cursor-pointer hover:bg-white/5 rounded-lg px-2 py-1.5 transition-colors group"
         >
           <div className="w-8 h-8 rounded-full bg-gradient-to-br from-gold to-gold-dark flex items-center justify-center text-black text-xs font-bold shadow-lg shadow-gold/20 group-hover:scale-105 transition-transform">

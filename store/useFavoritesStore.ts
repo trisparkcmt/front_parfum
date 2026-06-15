@@ -49,8 +49,8 @@ export const useFavoritesStore = create<FavoritesState>()(
           const slug = getProductSlug(product);
           const isAccessory = product.category === 'accessory';
           const endpoint = isAccessory
-            ? `/shop/accessoires/${slug}/favori/`
-            : `/shop/parfums/${slug}/favori/`;
+            ? `shop/accessoires/${slug}/favori/`
+            : `shop/parfums/${slug}/favori/`;
           
           try {
             const response = await api.post(endpoint);
@@ -79,8 +79,8 @@ export const useFavoritesStore = create<FavoritesState>()(
           const slug = getProductSlug(product);
           const isAccessory = product.category === 'accessory';
           const endpoint = isAccessory
-            ? `/shop/accessoires/${slug}/favori/`
-            : `/shop/parfums/${slug}/favori/`;
+            ? `shop/accessoires/${slug}/favori/`
+            : `shop/parfums/${slug}/favori/`;
           
           try {
             const response = await api.post(endpoint);
@@ -108,7 +108,7 @@ export const useFavoritesStore = create<FavoritesState>()(
 
         try {
           // Fetch from /api/v1/shop/favoris/
-          const response = await api.get('/shop/favoris/');
+          const response = await api.get('shop/favoris/');
           
           // Map backend favoris structure to Products
           const backendFavs: any[] = response.data || [];

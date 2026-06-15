@@ -54,16 +54,17 @@ export const useAuthStore = create<AuthState>()(
           // Fetch full detailed me profile
           let meUser: User | null = null;
           try {
-            const meResponse = await api.get('/auth/me/');
+            const meResponse = await api.get('auth/me/');
             const meData = meResponse.data;
+            const userObj = meData.user || meData;
             meUser = {
-              id: String(meData.user.id),
-              firstName: meData.user.first_name,
-              lastName: meData.user.last_name,
-              email: meData.user.email,
-              phone: meData.user.telephone,
-              role: meData.user.role as UserRole,
-              createdAt: meData.client?.date_creation || new Date().toISOString(),
+              id: String(userObj.id),
+              firstName: userObj.first_name || '',
+              lastName: userObj.last_name || '',
+              email: userObj.email || '',
+              phone: userObj.telephone || userObj.phone || '',
+              role: userObj.role as UserRole,
+              createdAt: meData.client?.date_creation || userObj.date_creation || new Date().toISOString(),
             };
           } catch (meError) {
             console.error('Failed to fetch user details after login:', meError);
@@ -118,7 +119,7 @@ export const useAuthStore = create<AuthState>()(
 
       logout: async () => {
         try {
-          await api.post('/auth/logout/');
+          await api.post('auth/logout/');
         } catch (e) {
           console.warn('Backend logout failed, clearing local session anyway.', e);
         }

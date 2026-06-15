@@ -1,4 +1,4 @@
-﻿/**
+/**
  * @file services/apiService.ts
  * @description Centralized API Service Layer for all Django backend endpoints.
  * Implements all endpoints from the API documentation.
@@ -667,7 +667,7 @@ export const labService = {
    * Get list of base ingredients
    */
   getIngredients: async (): Promise<Essence[]> => {
-    const response = await api.get('/lab/ingredients/');
+    const response = await api.get('lab/ingredients/');
     return response.data.resultats || response.data.results || response.data;
   },
 
@@ -675,7 +675,7 @@ export const labService = {
    * Get user's custom perfume compositions
    */
   getCustomPerfumes: async () => {
-    const response = await api.get('/lab/parfums-perso/');
+    const response = await api.get('lab/parfums-perso/');
     return response.data;
   },
 
@@ -803,6 +803,22 @@ export const labService = {
    */
   deleteLotEssence: async (id: number) => {
     const response = await api.delete(`lab/lots-essence/${id}/`);
+    return response.data;
+  },
+
+  /**
+   * Get available labo inventory list (Admin / Laborantin / Serveuse)
+   */
+  getLaboInventoryAvailable: async () => {
+    const response = await api.get('lab/labo/essences/disponible/');
+    return response.data;
+  },
+
+  /**
+   * Get labo inventory item detail by slug (Admin / Laborantin / Serveuse)
+   */
+  getLaboInventoryDetail: async (slug: string) => {
+    const response = await api.get(`lab/labo/essences/${slug}/detail/`);
     return response.data;
   },
 
@@ -1031,6 +1047,48 @@ export const adminService = {
   },
 
   /**
+   * Delete delivery driver
+   */
+  deleteDeliveryDriver: async (id: number) => {
+    const response = await api.delete(`auth/admin/livreurs/${id}/delete/`);
+    return response.data;
+  },
+
+  /**
+   * Get all serveuses
+   */
+  getServeuses: async (params?: { page?: number }) => {
+    const response = await api.get('auth/admin/serveuses/', { params });
+    return response.data;
+  },
+
+  /**
+   * Promote user to serveuse
+   */
+  promoteToServeuse: async (userId: number) => {
+    const response = await api.post('auth/admin/serveuses/promote/', {
+      user_id: userId,
+    });
+    return response.data;
+  },
+
+  /**
+   * Update serveuse status
+   */
+  updateServeuse: async (id: number, data: { actif: boolean }) => {
+    const response = await api.patch(`auth/admin/serveuses/${id}/`, data);
+    return response.data;
+  },
+
+  /**
+   * Delete serveuse
+   */
+  deleteServeuse: async (id: number) => {
+    const response = await api.delete(`auth/admin/serveuses/${id}/delete/`);
+    return response.data;
+  },
+
+  /**
    * Assign delivery driver to order
    */
   assignDriverToOrder: async (orderId: number, driverId: number) => {
@@ -1080,10 +1138,55 @@ export const adminService = {
 
 export const notificationService = {
   /**
-   * Get admin notifications
+   * Get shop notifications (with optional filters: type_produit, est_lu, search, page)
    */
-  getNotifications: async () => {
-    const response = await api.get('utilisateur/notifications/');
+  getNotifications: async (params?: {
+    type_produit?: string;
+    est_lu?: boolean | string;
+    search?: string;
+    page?: number;
+  }) => {
+    const response = await api.get('shop/notifications/', { params });
+    return response.data;
+  },
+
+  /**
+   * Get details of a specific notification
+   */
+  getNotificationById: async (id: number) => {
+    const response = await api.get(`shop/notifications/${id}/`);
+    return response.data;
+  },
+
+  /**
+   * Mark a notification as read (or unread)
+   */
+  markAsRead: async (id: number, estLu: boolean = true) => {
+    const response = await api.patch(`shop/notifications/${id}/`, { est_lu: estLu });
+    return response.data;
+  },
+
+  /**
+   * Mark all unread notifications as read
+   */
+  markAllAsRead: async () => {
+    const response = await api.patch('shop/notifications/marquer_tous_comme_lus/');
+    return response.data;
+  },
+
+  /**
+   * Get only unread notifications
+   */
+  getUnreadNotifications: async () => {
+    const response = await api.get('shop/notifications/non_lues/');
+    return response.data;
+  },
+
+  /**
+   * Get notification statistics
+   */
+  getStats: async () => {
+    const response = await api.get('shop/notifications/stats/');
     return response.data;
   },
 

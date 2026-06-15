@@ -20,7 +20,7 @@
 
 // ---- User & Auth ----
 
-export type UserRole = 'client' | 'admin' | 'delivery' | 'partner';
+export type UserRole = 'client' | 'admin' | 'delivery' | 'partner' | 'serveuse';
 
 export interface User {
   id: string;

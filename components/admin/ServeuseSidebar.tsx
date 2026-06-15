@@ -4,12 +4,9 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
-  LayoutDashboard, ShoppingCart, BarChart2, Users2,
-  TrendingUp, Package, Cpu, DollarSign, Truck,
-  UserCircle, Sparkles, Gem, X, ChevronDown, ChevronRight, Droplets,
-  Bell
+  LayoutDashboard, ShoppingCart, BarChart2,
+  Package, Cpu, Gem, X, ChevronDown, Sparkles, Droplets, Bell
 } from 'lucide-react';
-
 
 interface SidebarProps {
   open: boolean;
@@ -25,42 +22,23 @@ interface NavItem {
 }
 
 const menuItems: NavItem[] = [
-  {
-    label: 'Dashboard', icon: <LayoutDashboard size={18} />,
-    children: [
-      { label: 'Ecommerce', href: '/dashboard/admin/dashboard' },
-      { label: 'Revenus', href: '/dashboard/admin/revenue' },
-    ]
-  },
-  {
-    label: 'Notifications', icon: <Bell size={18} />, href: '/dashboard/admin/notifications'
-  }
+  { label: 'Tableau de Bord', icon: <LayoutDashboard size={18} />, href: '/dashboard/serveuse/dashboard' },
+  { label: 'Notifications', icon: <Bell size={18} />, href: '/dashboard/serveuse/notifications' }
 ];
 
 const boutiqueItems: NavItem[] = [
-  { label: 'Commandes', icon: <ShoppingCart size={18} />, href: '/dashboard/admin/order' },
-  { label: 'Parfums', icon: <Sparkles size={18} />, href: '/dashboard/admin/perfume' },
-  { label: 'Catégories', icon: <Package size={18} />, href: '/dashboard/admin/categories' },
-  { label: 'Essences', icon: <Droplets size={18} />, href: '/dashboard/admin/essences' },
-  { label: 'Laboratoire', icon: <Cpu size={18} />, href: '/dashboard/admin/lab' },
-  { label: 'Flacons', icon: <Package size={18} />, href: '/dashboard/admin/flacons' },
-  { label: 'Accessoires', icon: <Gem size={18} />, href: '/dashboard/admin/accessories' },
-  { label: 'Compositions', icon: <Cpu size={18} />, href: '/dashboard/admin/compositions' },
+  { label: 'Commandes', icon: <ShoppingCart size={18} />, href: '/dashboard/serveuse/order' },
+  { label: 'Parfums', icon: <Sparkles size={18} />, href: '/dashboard/serveuse/perfume' },
+  { label: 'Catégories', icon: <Package size={18} />, href: '/dashboard/serveuse/categories' },
+  { label: 'Flacons', icon: <Package size={18} />, href: '/dashboard/serveuse/flacons' },
+  { label: 'Accessoires', icon: <Gem size={18} />, href: '/dashboard/serveuse/accessories' },
+  { label: 'Compositions', icon: <Cpu size={18} />, href: '/dashboard/serveuse/compositions' },
 ];
-
-const gestionItems: NavItem[] = [
-  { label: 'Clients', icon: <Users2 size={18} />, href: '/dashboard/admin/clients' },
-  { label: 'Prestataires', icon: <TrendingUp size={18} />, href: '/dashboard/admin/providers' },
-  { label: 'Livreurs', icon: <Truck size={18} />, href: '/dashboard/admin/delivery' },
-  { label: 'Serveuses', icon: <Users2 size={18} />, href: '/dashboard/admin/serveuses' },
-];
-
-const profilItems: NavItem[] = [];
 
 function NavItemComponent({ item }: { item: NavItem }) {
   const pathname = usePathname();
   const [expanded, setExpanded] = useState(
-    item.children?.some(c => pathname.startsWith(c.href)) || item.label === 'Dashboard'
+    item.children?.some(c => pathname.startsWith(c.href)) || false
   );
 
   const hasChildren = item.children && item.children.length > 0;
@@ -142,7 +120,7 @@ function SectionLabel({ label }: { label: string }) {
   );
 }
 
-export default function Sidebar({ open, setOpen }: SidebarProps) {
+export default function ServeuseSidebar({ open, setOpen }: SidebarProps) {
   return (
     <>
       {/* Mobile overlay */}
@@ -163,11 +141,11 @@ export default function Sidebar({ open, setOpen }: SidebarProps) {
       >
         {/* Logo */}
         <div className="flex items-center justify-between px-5 py-5 border-b border-white/10">
-          <Link href="/dashboard/admin/dashboard" className="flex items-center gap-3 group">
+          <Link href="/dashboard/serveuse/dashboard" className="flex items-center gap-3 group">
             <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-gold to-gold-dark flex items-center justify-center shadow-lg shadow-gold/20 group-hover:shadow-gold/40 transition-shadow">
               <BarChart2 size={18} className="text-black" />
             </div>
-            <span className="font-bold text-foreground text-lg tracking-tight">Accessoire Exclusif admin</span>
+            <span className="font-bold text-foreground text-lg tracking-tight">Boutique Serveuse</span>
           </Link> 
           <button className="xl:hidden text-foreground/40 hover:text-foreground transition-colors" onClick={() => setOpen(false)}>
             <X size={18} />
@@ -176,18 +154,13 @@ export default function Sidebar({ open, setOpen }: SidebarProps) {
 
         {/* Nav */}
         <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1 scrollbar-thin">
-          <SectionLabel label="MENU" />
+          <SectionLabel label="ESPACE" />
           {menuItems.map(item => (
             <NavItemComponent key={item.label} item={item} />
           ))}
 
           <SectionLabel label="BOUTIQUE" />
           {boutiqueItems.map(item => (
-            <NavItemComponent key={item.label} item={item} />
-          ))}
-
-          <SectionLabel label="GESTION" />
-          {gestionItems.map(item => (
             <NavItemComponent key={item.label} item={item} />
           ))}
         </nav>
@@ -200,7 +173,7 @@ export default function Sidebar({ open, setOpen }: SidebarProps) {
             </div>
             <div>
               <p className="text-xs font-semibold text-foreground">Accessories Exclusif</p>
-              <p className="text-[10px] text-foreground/40">v1.0 · Panel Admin</p>
+              <p className="text-[10px] text-foreground/40">v1.0 · Panel Serveuse</p>
             </div>
           </div>
         </div>
@@ -208,5 +181,3 @@ export default function Sidebar({ open, setOpen }: SidebarProps) {
     </>
   );
 }
-
-

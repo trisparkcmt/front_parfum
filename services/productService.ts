@@ -90,7 +90,7 @@ export function mapBackendPerfumeToProduct(p: any): Product {
         ? String(Math.round((1 - parseFloat(p.prix_actuel) / parseFloat(p.prix_unitaire)) * 100))
         : undefined
     ),
-    category: _perfumeCategoryNames.get(p.categorie) || category,
+    category: category,
     images,
     brand: p.marque || (category === 'numba-creation' ? 'Numba' : 'Exclusif Parfums'),
     inStock: p.stock_quantite > 0,
