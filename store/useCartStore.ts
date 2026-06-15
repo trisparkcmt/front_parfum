@@ -2,157 +2,411 @@
 
 /**
  * @file store/useCartStore.ts
- * @description Global Shopping Cart & Transactional State.
+ * @description Global Shopping Cart State synchronized with Backend API.
  *
- * This store acts as the source of truth for all items the user intends to purchase, 
- * including standard catalog products and custom Numba compositions.
- * 
+ * This store acts as the client-side mirror of the server-side cart,
+ * supporting both authenticated users and anonymous guests.
+ *
  * **State Management**:
- * - **`items`**: An array of `CartItem` objects, which can be either a catalog product or a complex custom-mixed perfume.
- * - **`promoCode` / `promoDiscount`**: Tracks the currently applied discount code and its percentage value.
- * 
+ * - **`panierId`**: Server-side cart ID (for anonymous carts or persistence)
+ * - **`cart`**: Full cart data from backend
+ * - **`isLoading`**: Loading state for async operations
+ * - **`error`**: Error message if operation fails
+ *
  * **Business Logic Actions**:
- * - **`addItem`**: Intelligently adds a catalog product, incrementing quantity if the item already exists in the cart.
- * - **`addComposition`**: Adds a unique custom perfume creation as a separate line item.
- * - **`updateQuantity`**: Modifies the count of a specific item, with a floor of 1.
- * - **`removeItem`**: Deletes a specific item from the cart by its unique ID.
- * - **`applyPromoCode`**: Validates a string against known codes (e.g., 'BIENVENUE') and updates the discount state.
- * - **`clearCart`**: Resets the entire store state.
- * 
- * **Helper Functions**:
- * - **`getSubtotal`**: Calculates the raw cost of all items.
- * - **`getTotal`**: Computes the final price after applying the promo discount.
- * 
- * **Persistence**: Uses `persist` middleware to ensure the user's shopping cart is saved locally.
+ * - **`addPerfume`**: Add perfume to cart via backend
+ * - **`addAccessory`**: Add accessory to cart via backend
+ * - **`addFinishedEssence`**: Add essence product to cart
+ * - **`addCustomPerfume`**: Add custom DIY perfume (auth required)
+ * - **`addCustomEssence`**: Add custom DIY essence (auth required)
+ * - **`updateQuantity`**: Modify item quantity via backend
+ * - **`removeItem`**: Delete item from cart via backend
+ * - **`applyPromoCode`**: Apply promo code via backend
+ * - **`removePromoCode`**: Remove promo code via backend
+ * - **`syncCart`**: Fetch latest cart state from backend
  */
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { CartItem, Product, CustomComposition } from '@/types';
-import { generateId } from '@/lib/utils';
+import { cartService } from '@/services/apiService';
+import { useToastStore } from './useToastStore';
+
+export interface CartLine {
+  id: number;
+  type: 'parfum' | 'accessoire' | 'produit-fini-essence' | 'parfum-personnalise' | 'essence-personnalisee';
+  nom: string;
+  image?: string;
+  quantite: number;
+  prix_unitaire_snapshot: number;
+  sous_total: number;
+  // Type-specific fields
+  parfum?: number;
+  accessoire?: number;
+  produit_fini_essence?: number;
+  parfum_personnalise?: number;
+  essence_personnalisee?: number;
+}
+
+export interface CartData {
+  id: number;
+  client?: number;
+  code_promo_applique: string;
+  remise_montant: string;
+  remise_pourcentage: string;
+  sous_total: string;
+  frais_livraison: string;
+  total: string;
+  statut: string;
+  lignes_parfums: CartLine[];
+  lignes_accessoires: CartLine[];
+  lignes_produit_fini_essence: CartLine[];
+  lignes_parfums_perso: CartLine[];
+  lignes_essence_personnalisee: CartLine[];
+  date_creation: string;
+  date_modification: string;
+}
 
 interface CartState {
-  items: CartItem[];
-  promoCode: string | null;
-  promoDiscount: number;
-  addProduct: (product: Product, quantity?: number) => void;
-  addComposition: (composition: CustomComposition) => void;
-  removeItem: (itemId: string) => void;
-  updateQuantity: (itemId: string, quantity: number) => void;
-  applyPromoCode: (code: string) => boolean;
-  clearPromoCode: () => void;
-  clearCart: () => void;
-  getSubtotal: () => number;
-  getTotal: () => number;
+  panierId: number | null;
+  cart: CartData | null;
+  isLoading: boolean;
+  error: string | null;
+
+  // Data fetching
+  syncCart: (panierIdOptional?: number) => Promise<void>;
+
+  // Product additions
+  addPerfume: (parfumId: number, quantite?: number) => Promise<void>;
+  addAccessory: (accessoireId: number, quantite?: number) => Promise<void>;
+  addFinishedEssence: (produitId: number, quantite?: number) => Promise<void>;
+  addCustomPerfume: (parfumPersoId: number, quantite?: number, noteClient?: string) => Promise<void>;
+  addCustomEssence: (essencePersoId: number, quantite?: number) => Promise<void>;
+
+  // Cart management
+  updateQuantity: (
+    type: CartLine['type'],
+    ligneId: number,
+    quantite: number
+  ) => Promise<void>;
+  removeItem: (type: CartLine['type'], ligneId: number) => Promise<void>;
+
+  // Promo codes
+  applyPromoCode: (code: string) => Promise<void>;
+  removePromoCode: () => Promise<void>;
+
+  // Helpers
   getItemCount: () => number;
+  getTotalPrice: () => number;
+  getSubtotal: () => number;
+  getDiscount: () => number;
+  getShipping: () => number;
+  getAllLines: () => CartLine[];
+  clearCart: () => void;
 }
 
 export const useCartStore = create<CartState>()(
   persist(
     (set, get) => ({
-      items: [],
-      promoCode: null,
-      promoDiscount: 0,
+      panierId: null,
+      cart: null,
+      isLoading: false,
+      error: null,
 
-      addProduct: (product, quantity = 1) => {
-        set((state) => {
-          const existing = state.items.find(
-            (item) => item.type === 'product' && item.product?.id === product.id
-          );
-          if (existing) {
-            return {
-              items: state.items.map((item) =>
-                item.id === existing.id
-                  ? { ...item, quantity: item.quantity + quantity }
-                  : item
-              ),
-            };
-          }
-          return {
-            items: [
-              ...state.items,
-              {
-                id: generateId(),
-                type: 'product',
-                product,
-                quantity,
-                unitPrice: product.price,
-              },
-            ],
-          };
-        });
+      syncCart: async (panierIdOptional?: number) => {
+        set({ isLoading: true, error: null });
+        const addToast = useToastStore.getState().addToast;
+        try {
+          const cartData = await cartService.getCart(panierIdOptional);
+          set({
+            panierId: cartData.id,
+            cart: cartData,
+            isLoading: false,
+          });
+        } catch (error: any) {
+          const errorMsg =
+            error.response?.data?.detail || 'Erreur lors de la synchronisation du panier';
+          set({ error: errorMsg, isLoading: false });
+          addToast(errorMsg, 'error');
+        }
       },
 
-      addComposition: (composition) => {
-        set((state) => ({
-          items: [
-            ...state.items,
+      addPerfume: async (parfumId, quantite = 1) => {
+        set({ isLoading: true, error: null });
+        const addToast = useToastStore.getState().addToast;
+        const state = get();
+        try {
+          const cartData = await cartService.addPerfume({
+            parfum_id: parfumId,
+            quantite,
+            panier_id: state.panierId || undefined,
+          });
+          set({
+            panierId: cartData.id,
+            cart: cartData,
+            isLoading: false,
+          });
+          addToast('Parfum ajouté au panier', 'success');
+        } catch (error: any) {
+          const errorMsg =
+            error.response?.data?.detail || 'Erreur lors de l\'ajout du parfum';
+          set({ error: errorMsg, isLoading: false });
+          addToast(errorMsg, 'error');
+        }
+      },
+
+      addAccessory: async (accessoireId, quantite = 1) => {
+        set({ isLoading: true, error: null });
+        const addToast = useToastStore.getState().addToast;
+        const state = get();
+        try {
+          const cartData = await cartService.addAccessory({
+            accessoire_id: accessoireId,
+            quantite,
+            panier_id: state.panierId || undefined,
+          });
+          set({
+            panierId: cartData.id,
+            cart: cartData,
+            isLoading: false,
+          });
+          addToast('Accessoire ajouté au panier', 'success');
+        } catch (error: any) {
+          const errorMsg =
+            error.response?.data?.detail || 'Erreur lors de l\'ajout de l\'accessoire';
+          set({ error: errorMsg, isLoading: false });
+          addToast(errorMsg, 'error');
+        }
+      },
+
+      addFinishedEssence: async (produitId, quantite = 1) => {
+        set({ isLoading: true, error: null });
+        const addToast = useToastStore.getState().addToast;
+        const state = get();
+        try {
+          const cartData = await cartService.addFinishedEssence({
+            produit_fini_essence_id: produitId,
+            quantite,
+            panier_id: state.panierId || undefined,
+          });
+          set({
+            panierId: cartData.id,
+            cart: cartData,
+            isLoading: false,
+          });
+          addToast('Essence ajoutée au panier', 'success');
+        } catch (error: any) {
+          const errorMsg =
+            error.response?.data?.detail || 'Erreur lors de l\'ajout de l\'essence';
+          set({ error: errorMsg, isLoading: false });
+          addToast(errorMsg, 'error');
+        }
+      },
+
+      addCustomPerfume: async (parfumPersoId, quantite = 1, noteClient) => {
+        set({ isLoading: true, error: null });
+        const addToast = useToastStore.getState().addToast;
+        const state = get();
+        try {
+          const cartData = await cartService.addCustomPerfume({
+            parfum_personnalise_id: parfumPersoId,
+            quantite,
+            panier_id: state.panierId || undefined,
+            note_client: noteClient,
+          });
+          set({
+            panierId: cartData.id,
+            cart: cartData,
+            isLoading: false,
+          });
+          addToast('Parfum personnalisé ajouté au panier', 'success');
+        } catch (error: any) {
+          const errorMsg =
+            error.response?.data?.detail || 'Erreur lors de l\'ajout du parfum personnalisé';
+          set({ error: errorMsg, isLoading: false });
+          addToast(errorMsg, 'error');
+        }
+      },
+
+      addCustomEssence: async (essencePersoId, quantite = 1) => {
+        set({ isLoading: true, error: null });
+        const addToast = useToastStore.getState().addToast;
+        const state = get();
+        try {
+          const cartData = await cartService.addCustomEssence({
+            essence_personnalisee_id: essencePersoId,
+            quantite,
+            panier_id: state.panierId || undefined,
+          });
+          set({
+            panierId: cartData.id,
+            cart: cartData,
+            isLoading: false,
+          });
+          addToast('Essence personnalisée ajoutée au panier', 'success');
+        } catch (error: any) {
+          const errorMsg =
+            error.response?.data?.detail || 'Erreur lors de l\'ajout de l\'essence personnalisée';
+          set({ error: errorMsg, isLoading: false });
+          addToast(errorMsg, 'error');
+        }
+      },
+
+      updateQuantity: async (type, ligneId, quantite) => {
+        set({ isLoading: true, error: null });
+        const addToast = useToastStore.getState().addToast;
+        const state = get();
+        try {
+          const cartData = await cartService.updateCartLine(
+            type,
+            ligneId,
             {
-              id: generateId(),
-              type: 'custom-composition',
-              composition,
-              quantity: 1,
-              unitPrice: composition.totalPrice,
-            },
-          ],
-        }));
-      },
-
-      removeItem: (itemId) => {
-        set((state) => ({
-          items: state.items.filter((item) => item.id !== itemId),
-        }));
-      },
-
-      updateQuantity: (itemId, quantity) => {
-        if (quantity <= 0) {
-          get().removeItem(itemId);
-          return;
+              quantite,
+              panier_id: state.panierId || undefined,
+            }
+          );
+          set({
+            panierId: cartData.id,
+            cart: cartData,
+            isLoading: false,
+          });
+        } catch (error: any) {
+          const errorMsg =
+            error.response?.data?.detail || 'Erreur lors de la mise à jour de la quantité';
+          set({ error: errorMsg, isLoading: false });
+          addToast(errorMsg, 'error');
         }
-        set((state) => ({
-          items: state.items.map((item) =>
-            item.id === itemId ? { ...item, quantity } : item
-          ),
-        }));
       },
 
-      applyPromoCode: (code) => {
-        // TODO: Validate promo code against backend API
-        // For now, accept any non-empty code with a 5% discount
-        // In production, call backend to validate and get actual discount
-        if (code && code.length > 0) {
-          set({ promoCode: code, promoDiscount: 5 });
-          return true;
+      removeItem: async (type, ligneId) => {
+        set({ isLoading: true, error: null });
+        const addToast = useToastStore.getState().addToast;
+        const state = get();
+        try {
+          const cartData = await cartService.removeCartLine(
+            type,
+            ligneId,
+            state.panierId || undefined
+          );
+          set({
+            panierId: cartData.id,
+            cart: cartData,
+            isLoading: false,
+          });
+          addToast('Produit supprimé du panier', 'success');
+        } catch (error: any) {
+          const errorMsg =
+            error.response?.data?.detail || 'Erreur lors de la suppression du produit';
+          set({ error: errorMsg, isLoading: false });
+          addToast(errorMsg, 'error');
         }
-        return false;
       },
 
-      clearPromoCode: () => {
-        set({ promoCode: null, promoDiscount: 0 });
+      applyPromoCode: async (code) => {
+        set({ isLoading: true, error: null });
+        const addToast = useToastStore.getState().addToast;
+        const state = get();
+        try {
+          const cartData = await cartService.applyPromoCode({
+            code_promo: code,
+            panier_id: state.panierId || undefined,
+          });
+          set({
+            panierId: cartData.id,
+            cart: cartData,
+            isLoading: false,
+          });
+          addToast(
+            `Code promo appliqué: ${cartData.remise_pourcentage}% de réduction`,
+            'success'
+          );
+        } catch (error: any) {
+          const errorMsg =
+            error.response?.data?.detail || 'Code promo invalide';
+          set({ error: errorMsg, isLoading: false });
+          addToast(errorMsg, 'error');
+        }
       },
 
-      clearCart: () => {
-        set({ items: [], promoCode: null, promoDiscount: 0 });
-      },
-
-      getSubtotal: () => {
-        return get().items.reduce(
-          (sum, item) => sum + item.unitPrice * item.quantity,
-          0
-        );
-      },
-
-      getTotal: () => {
-        const subtotal = get().getSubtotal();
-        const discount = get().promoDiscount;
-        return subtotal - subtotal * (discount / 100);
+      removePromoCode: async () => {
+        set({ isLoading: true, error: null });
+        const addToast = useToastStore.getState().addToast;
+        const state = get();
+        try {
+          const cartData = await cartService.removePromoCode(
+            state.panierId || undefined
+          );
+          set({
+            panierId: cartData.id,
+            cart: cartData,
+            isLoading: false,
+          });
+          addToast('Code promo retiré', 'success');
+        } catch (error: any) {
+          const errorMsg =
+            error.response?.data?.detail || 'Erreur lors du retrait du code promo';
+          set({ error: errorMsg, isLoading: false });
+          addToast(errorMsg, 'error');
+        }
       },
 
       getItemCount: () => {
-        return get().items.reduce((sum, item) => sum + item.quantity, 0);
+        const cart = get().cart;
+        if (!cart) return 0;
+        return (
+          cart.lignes_parfums.reduce((sum, line) => sum + line.quantite, 0) +
+          cart.lignes_accessoires.reduce((sum, line) => sum + line.quantite, 0) +
+          cart.lignes_produit_fini_essence.reduce(
+            (sum, line) => sum + line.quantite,
+            0
+          ) +
+          cart.lignes_parfums_perso.reduce((sum, line) => sum + line.quantite, 0) +
+          cart.lignes_essence_personnalisee.reduce(
+            (sum, line) => sum + line.quantite,
+            0
+          )
+        );
+      },
+
+      getTotalPrice: () => {
+        const cart = get().cart;
+        return cart ? parseFloat(cart.total) : 0;
+      },
+
+      getSubtotal: () => {
+        const cart = get().cart;
+        return cart ? parseFloat(cart.sous_total) : 0;
+      },
+
+      getDiscount: () => {
+        const cart = get().cart;
+        return cart ? parseFloat(cart.remise_montant) : 0;
+      },
+
+      getShipping: () => {
+        const cart = get().cart;
+        return cart ? parseFloat(cart.frais_livraison) : 0;
+      },
+
+      getAllLines: () => {
+        const cart = get().cart;
+        if (!cart) return [];
+        return [
+          ...cart.lignes_parfums,
+          ...cart.lignes_accessoires,
+          ...cart.lignes_produit_fini_essence,
+          ...cart.lignes_parfums_perso,
+          ...cart.lignes_essence_personnalisee,
+        ];
+      },
+
+      clearCart: () => {
+        set({ panierId: null, cart: null, error: null });
       },
     }),
     {
       name: 'ae-cart',
+      partialize: (state) => ({
+        panierId: state.panierId,
+      }),
     }
   )
 );

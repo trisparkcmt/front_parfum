@@ -1261,4 +1261,140 @@ export const orderService = {
   },
 };
 
+// ============================================================================
+// CART MANAGEMENT
+// ============================================================================
+
+export const cartService = {
+  /**
+   * Get current cart
+   */
+  getCart: async (panierIdOptional?: number) => {
+    const params = panierIdOptional ? { panier_id: panierIdOptional } : {};
+    const response = await api.get('orders/panier/', { params });
+    return response.data;
+  },
+
+  /**
+   * Add perfume to cart
+   */
+  addPerfume: async (data: {
+    parfum_id: number;
+    quantite?: number;
+    panier_id?: number;
+  }) => {
+    const response = await api.post('orders/panier/ajouter/parfum/', data);
+    return response.data;
+  },
+
+  /**
+   * Add accessory to cart
+   */
+  addAccessory: async (data: {
+    accessoire_id: number;
+    quantite?: number;
+    panier_id?: number;
+  }) => {
+    const response = await api.post('orders/panier/ajouter/accessoire/', data);
+    return response.data;
+  },
+
+  /**
+   * Add finished essence product to cart
+   */
+  addFinishedEssence: async (data: {
+    produit_fini_essence_id: number;
+    quantite?: number;
+    panier_id?: number;
+  }) => {
+    const response = await api.post(
+      'orders/panier/ajouter/produit-fini-essence/',
+      data
+    );
+    return response.data;
+  },
+
+  /**
+   * Add custom perfume to cart (requires authentication)
+   */
+  addCustomPerfume: async (data: {
+    parfum_personnalise_id: number;
+    quantite?: number;
+    panier_id?: number;
+    note_client?: string;
+  }) => {
+    const response = await api.post(
+      'orders/panier/ajouter/parfum-personnalise/',
+      data
+    );
+    return response.data;
+  },
+
+  /**
+   * Add custom essence to cart (requires authentication)
+   */
+  addCustomEssence: async (data: {
+    essence_personnalisee_id: number;
+    quantite?: number;
+    panier_id?: number;
+  }) => {
+    const response = await api.post(
+      'orders/panier/ajouter/essence-personnalisee/',
+      data
+    );
+    return response.data;
+  },
+
+  /**
+   * Update cart line quantity
+   */
+  updateCartLine: async (
+    typeLigne: 'parfum' | 'accessoire' | 'produit-fini-essence' | 'parfum-personnalise' | 'essence-personnalisee',
+    ligneId: number,
+    data: { quantite: number; panier_id?: number }
+  ) => {
+    const response = await api.patch(
+      `orders/panier/ligne/${typeLigne}/${ligneId}/`,
+      data
+    );
+    return response.data;
+  },
+
+  /**
+   * Remove cart line
+   */
+  removeCartLine: async (
+    typeLigne: 'parfum' | 'accessoire' | 'produit-fini-essence' | 'parfum-personnalise' | 'essence-personnalisee',
+    ligneId: number,
+    panierIdOptional?: number
+  ) => {
+    const data = panierIdOptional ? { panier_id: panierIdOptional } : {};
+    const response = await api.delete(
+      `orders/panier/ligne/${typeLigne}/${ligneId}/`,
+      { data }
+    );
+    return response.data;
+  },
+
+  /**
+   * Apply promo code to cart
+   */
+  applyPromoCode: async (data: {
+    code_promo: string;
+    panier_id?: number;
+  }) => {
+    const response = await api.post('orders/panier/appliquer-promo/', data);
+    return response.data;
+  },
+
+  /**
+   * Remove promo code from cart
+   */
+  removePromoCode: async (panierIdOptional?: number) => {
+    const data = panierIdOptional ? { panier_id: panierIdOptional } : {};
+    const response = await api.post('orders/panier/retirer-promo/', data);
+    return response.data;
+  },
+};
+
 export { api };

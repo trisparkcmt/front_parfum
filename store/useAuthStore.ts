@@ -10,6 +10,7 @@ import type { User, UserRole } from '@/types';
 import { authService } from '@/services/apiService';
 import { api } from '@/services/api';
 import { useToastStore } from './useToastStore';
+import { useCartStore } from './useCartStore';
 
 interface AuthState {
   user: User | null;
@@ -79,6 +80,14 @@ export const useAuthStore = create<AuthState>()(
             isLoading: false,
           });
           addToast(`Bienvenue, ${meUser.firstName} !`, 'success');
+
+          // Sync cart after successful login
+          try {
+            await useCartStore.getState().syncCart();
+          } catch (cartError) {
+            console.warn('Failed to sync cart after login:', cartError);
+          }
+
           return true;
         } catch (error: any) {
           console.error('Login failed:', error);

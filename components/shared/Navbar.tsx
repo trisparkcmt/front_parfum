@@ -80,7 +80,7 @@ export function Navbar() {
                 )}
               </Link>
 
-              {isAuthenticated && user ? (
+              {isAuthenticated && user && user.role ? (
                 <Link
                   href={`/dashboard/${user.role}/profile`}
                   className="p-1.5 hover:bg-[var(--t-hover-bg)] transition-colors"
@@ -161,7 +161,7 @@ export function Navbar() {
               
               <LanguageSelector />
 
-              {isAuthenticated && user ? (
+              {isAuthenticated && user && user.role ? (
                 <Link
                   href={user.role === 'admin' ? '/dashboard/admin/profile' : `/dashboard/${user.role}/profile`}
                   className="flex items-center gap-2 p-2 hover:bg-[var(--t-hover-bg)] transition-colors group"
