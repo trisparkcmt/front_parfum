@@ -41,11 +41,9 @@ export default function PerfumeAdminPage() {
     notes_coeur: '',
     notes_fond: '',
     est_nouveau: false,
-    est_bestseller: false,
     stock_quantite: '',
     seuil_alerte_stock: '5',
     categorie: '',
-    actif: true,
   });
 
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -121,11 +119,9 @@ export default function PerfumeAdminPage() {
       notes_coeur: '',
       notes_fond: '',
       est_nouveau: false,
-      est_bestseller: false,
       stock_quantite: '',
       seuil_alerte_stock: '5',
       categorie: categories[0]?.id ? String(categories[0].id) : '',
-      actif: true,
     });
     setImageFile(null);
     setImageFiles({
@@ -158,11 +154,9 @@ export default function PerfumeAdminPage() {
       notes_coeur: perf.notes_coeur || '',
       notes_fond: perf.notes_fond || '',
       est_nouveau: !!perf.est_nouveau,
-      est_bestseller: !!perf.est_bestseller,
       stock_quantite: String(perf.stock_quantite || ''),
       seuil_alerte_stock: String(perf.seuil_alerte_stock || '5'),
       categorie: String(perf.categorie?.id || perf.categorie || ''),
-      actif: perf.actif !== undefined ? perf.actif : true,
     });
     setImageFile(null);
     setImageFiles({
@@ -479,14 +473,6 @@ export default function PerfumeAdminPage() {
                   <label className="flex items-center gap-2 cursor-pointer">
                     <input type="checkbox" checked={form.est_nouveau} onChange={e => updateForm('est_nouveau', e.target.checked)} className="rounded border-white/10 bg-white/5 text-gold focus:ring-gold" />
                     <span className="text-xs text-foreground/60">Nouveau</span>
-                  </label>
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input type="checkbox" checked={form.est_bestseller} onChange={e => updateForm('est_bestseller', e.target.checked)} className="rounded border-white/10 bg-white/5 text-gold focus:ring-gold" />
-                    <span className="text-xs text-foreground/60">Bestseller</span>
-                  </label>
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input type="checkbox" checked={form.actif} onChange={e => updateForm('actif', e.target.checked)} className="rounded border-white/10 bg-white/5 text-gold focus:ring-gold" />
-                    <span className="text-xs text-foreground/60">Actif</span>
                   </label>
                 </div>
               </div>

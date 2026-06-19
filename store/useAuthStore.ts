@@ -9,7 +9,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { User, UserRole } from '@/types';
 import { authService } from '@/services/apiService';
-import { api, rawApi } from '@/services/api';
+import { api, rawApi, initializeTokenRefresh } from '@/services/api';
 import { useToastStore } from './useToastStore';
 import { useCartStore } from './useCartStore';
 import { normalizeRoles, resolvePrimaryRole } from '@/lib/roleUtils';
@@ -182,6 +182,9 @@ export const useAuthStore = create<AuthState>()(
           });
           addToast(`Bienvenue, ${meUser.firstName} !`, 'success');
 
+          // Initialize proactive token refresh
+          initializeTokenRefresh();
+
           // Clear stale cart and sync fresh cart from backend after login
           // NOTE: Cart sync disabled until backend orders/panier endpoints are implemented
           const cartStore = useCartStore.getState();
@@ -271,6 +274,10 @@ export const useAuthStore = create<AuthState>()(
             isLoading: false,
           });
           addToast(`Bienvenue, ${meUser.firstName} !`, 'success');
+
+          // Initialize proactive token refresh
+          initializeTokenRefresh();
+
           useCartStore.getState().clearCart();
           return true;
         } catch (error: any) {
@@ -518,6 +525,8 @@ export const useAuthStore = create<AuthState>()(
             if (hasToken) {
               // refreshUser uses rawApi (no interceptors) — safe to call in background
               state.refreshUser().catch(() => {});
+              // Initialize proactive token refresh on hydration
+              initializeTokenRefresh();
             } else {
               // No token in storage → clear persisted auth state immediately
               state.user = null;

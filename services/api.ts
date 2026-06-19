@@ -57,6 +57,8 @@ api.interceptors.request.use((config) => {
 let isRefreshing = false;
 // Queue to hold requests that are waiting for the new access token
 let failedQueue: any[] = [];
+// Proactive refresh timer
+let refreshTimer: NodeJS.Timeout | null = null;
 
 const processQueue = (error: any, token: string | null = null) => {
   failedQueue.forEach((prom) => {
@@ -67,6 +69,99 @@ const processQueue = (error: any, token: string | null = null) => {
     }
   });
   failedQueue = [];
+};
+
+// Proactively refresh token before expiration
+const scheduleTokenRefresh = () => {
+  if (typeof window === 'undefined') return;
+  
+  // Clear any existing timer
+  if (refreshTimer) {
+    clearTimeout(refreshTimer);
+    refreshTimer = null;
+  }
+
+  const token = localStorage.getItem('auth_token');
+  if (!token) return;
+
+  try {
+    // Decode token to get expiration
+    const base64Url = token.split('.')[1];
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = decodeURIComponent(
+      atob(base64)
+        .split('')
+        .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+        .join('')
+    );
+    const decoded = JSON.parse(jsonPayload);
+    const expiresAt = decoded.exp * 1000; // Convert to milliseconds
+    const now = Date.now();
+    const timeUntilExpiry = expiresAt - now;
+
+    // Refresh 30 seconds before actual expiration (or if expires in less than 1 minute)
+    const refreshBeforeExpiry = 30 * 1000; // 30 seconds
+    const timeUntilRefresh = Math.max(timeUntilExpiry - refreshBeforeExpiry, 5000); // At least 5 seconds
+
+    if (timeUntilRefresh > 0) {
+      refreshTimer = setTimeout(() => {
+        performProactiveRefresh();
+      }, timeUntilRefresh);
+    } else {
+      // Token expires very soon, try to refresh immediately
+      performProactiveRefresh();
+    }
+  } catch (error) {
+    console.error('Failed to schedule token refresh:', error);
+  }
+};
+
+const performProactiveRefresh = async () => {
+  if (typeof window === 'undefined') return;
+  if (isRefreshing) return;
+
+  try {
+    const refreshToken = localStorage.getItem('refresh_token');
+    const hasStoredAccess = !!localStorage.getItem('auth_token');
+
+    // Only attempt refresh if we have a way to do it
+    if (!refreshToken && hasStoredAccess) {
+      // Web login with HttpOnly cookies
+      const response = await axios.post(
+        `${getBaseURL()}auth/token/refresh/`,
+        {},
+        { withCredentials: true }
+      );
+
+      if (response.data.access) {
+        localStorage.setItem('auth_token', response.data.access);
+        api.defaults.headers.common['Authorization'] = `Bearer ${response.data.access}`;
+        // Schedule next refresh
+        scheduleTokenRefresh();
+      }
+    } else if (refreshToken) {
+      // Mobile login with refresh token
+      const response = await axios.post(
+        `${getBaseURL()}auth/token/refresh/`,
+        { refresh: refreshToken },
+        { withCredentials: false }
+      );
+
+      if (response.data.access) {
+        localStorage.setItem('auth_token', response.data.access);
+        // Update refresh token if provided
+        if (response.data.refresh) {
+          localStorage.setItem('refresh_token', response.data.refresh);
+        }
+        api.defaults.headers.common['Authorization'] = `Bearer ${response.data.access}`;
+        // Schedule next refresh
+        scheduleTokenRefresh();
+      }
+    }
+  } catch (error) {
+    console.error('Proactive token refresh failed:', error);
+    // Don't clear auth on refresh failure - let the reactive interceptor handle it
+  }
 };
 
 // Intercepteur pour gérer globalement les erreurs et rafraîchir le token automatiquement
@@ -130,6 +225,10 @@ api.interceptors.response.use(
 
             if (newAccessToken) {
               localStorage.setItem('auth_token', newAccessToken);
+              // Update refresh token if provided
+              if (response.data.refresh) {
+                localStorage.setItem('refresh_token', response.data.refresh);
+              }
               api.defaults.headers.common['Authorization'] = `Bearer ${newAccessToken}`;
               originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
               originalRequest.withCredentials = false;
@@ -137,6 +236,9 @@ api.interceptors.response.use(
 
             processQueue(null, newAccessToken);
             isRefreshing = false;
+
+            // Schedule next proactive refresh after successful refresh
+            scheduleTokenRefresh();
 
             return api(originalRequest);
           } catch (refreshError) {
@@ -171,3 +273,10 @@ api.interceptors.response.use(
     return Promise.reject(error);
   }
 );
+
+// Export function to initialize token refresh on login
+export const initializeTokenRefresh = () => {
+  if (typeof window !== 'undefined') {
+    scheduleTokenRefresh();
+  }
+};

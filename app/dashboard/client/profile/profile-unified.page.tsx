@@ -168,10 +168,13 @@ export default function ProfilePage() {
   };
 
   const getAccessibleDashboards = () => {
-    if (!user || !user.roles) return [];
+    if (!user) return [];
+
+    // Fallback to 'client' role if roles array is empty or not available
+    const userRoles = user.roles && user.roles.length > 0 ? user.roles : ['client'];
 
     return DASHBOARD_OPTIONS.filter((dashboard) =>
-      dashboard.roles.some((role) => user.roles.includes(role))
+      dashboard.roles.some((role) => userRoles.includes(role))
     );
   };
 

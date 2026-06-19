@@ -59,7 +59,7 @@ const gestionItems: NavItem[] = [
 
 const profilItems: NavItem[] = [];
 
-function NavItemComponent({ item }: { item: NavItem }) {
+function NavItemComponent({ item, onNavigate }: { item: NavItem; onNavigate: () => void }) {
   const pathname = usePathname();
   const [expanded, setExpanded] = useState(
     item.children?.some(c => pathname.startsWith(c.href)) || item.label === 'Dashboard'
@@ -92,6 +92,7 @@ function NavItemComponent({ item }: { item: NavItem }) {
               <Link
                 key={child.href}
                 href={child.href}
+                onClick={onNavigate}
                 className={`flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-all duration-200
                   ${pathname === child.href
                     ? 'bg-gold/10 text-gold font-medium'
@@ -115,6 +116,7 @@ function NavItemComponent({ item }: { item: NavItem }) {
   return (
     <Link
       href={item.href || '#'}
+      onClick={onNavigate}
       className={`flex items-center justify-between px-4 py-2.5 rounded-lg text-sm transition-all duration-200 group
         ${isActive
           ? 'bg-gold/10 text-gold font-medium'
@@ -180,17 +182,17 @@ export default function Sidebar({ open, setOpen }: SidebarProps) {
         <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1 scrollbar-thin">
           <SectionLabel label="MENU" />
           {menuItems.map(item => (
-            <NavItemComponent key={item.label} item={item} />
+            <NavItemComponent key={item.label} item={item} onNavigate={() => setOpen(false)} />
           ))}
 
           <SectionLabel label="BOUTIQUE" />
           {boutiqueItems.map(item => (
-            <NavItemComponent key={item.label} item={item} />
+            <NavItemComponent key={item.label} item={item} onNavigate={() => setOpen(false)} />
           ))}
 
           <SectionLabel label="GESTION" />
           {gestionItems.map(item => (
-            <NavItemComponent key={item.label} item={item} />
+            <NavItemComponent key={item.label} item={item} onNavigate={() => setOpen(false)} />
           ))}
         </nav>
 

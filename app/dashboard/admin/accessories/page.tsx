@@ -50,9 +50,6 @@ export default function AccessoriesPage() {
     stock_quantite: '',
     seuil_alerte_stock: '3',
     poids_grammes: '',
-    actif: true,
-    est_bestseller: false,
-    est_hotseller: false,
   });
 
   const { addToast } = useToastStore();
@@ -115,9 +112,6 @@ export default function AccessoriesPage() {
       stock_quantite: '',
       seuil_alerte_stock: '3',
       poids_grammes: '',
-      actif: true,
-      est_bestseller: false,
-      est_hotseller: false,
     });
     setImageFiles({
       image_principale: null,
@@ -149,9 +143,6 @@ export default function AccessoriesPage() {
       stock_quantite: String(acc.stock_quantite || ''),
       seuil_alerte_stock: String(acc.seuil_alerte_stock || '3'),
       poids_grammes: String(acc.poids_grammes || ''),
-      actif: acc.actif !== undefined ? acc.actif : true,
-      est_bestseller: !!acc.est_bestseller,
-      est_hotseller: !!acc.est_hotseller,
     });
     setImageFiles({
       image_principale: null,
@@ -394,12 +385,13 @@ export default function AccessoriesPage() {
 
       {showModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-background rounded-2xl p-6 w-full max-w-md shadow-2xl border border-white/10">
+          <div className="bg-background rounded-2xl p-6 w-full max-w-4xl shadow-2xl border border-white/10 max-h-[90vh] overflow-y-auto">
             <h3 className="font-bold text-foreground mb-4">
               {editingAccessory ? 'Modifier l\'accessoire' : 'Ajouter un accessoire'}
             </h3>
-            <div className="space-y-4">
-              <div className="space-y-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Left column */}
+              <div className="space-y-4">
                 <input
                   placeholder="Marque *"
                   value={form.marque}
@@ -439,7 +431,6 @@ export default function AccessoriesPage() {
                   onChange={e => updateForm('reference_sku', e.target.value)}
                   className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
                 />
-                {/* Descriptions */}
                 <textarea
                   placeholder="Description courte"
                   value={form.description_courte}
@@ -447,6 +438,10 @@ export default function AccessoriesPage() {
                   className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
                   rows={2}
                 />
+              </div>
+
+              {/* Right column */}
+              <div className="space-y-4">
                 <textarea
                   placeholder="Description longue"
                   value={form.description_longue}
@@ -461,30 +456,26 @@ export default function AccessoriesPage() {
                   className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
                   rows={2}
                 />
-
-                {/* Matière, Couleur, Taille */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="grid grid-cols-3 gap-2">
                   <input
                     placeholder="Matière"
                     value={form.matiere}
                     onChange={e => updateForm('matiere', e.target.value)}
-                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
+                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-foreground outline-none focus:border-gold"
                   />
                   <input
                     placeholder="Couleur"
                     value={form.couleur}
                     onChange={e => updateForm('couleur', e.target.value)}
-                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
+                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-foreground outline-none focus:border-gold"
                   />
                   <input
-                    placeholder="Taille (ex: S, M, L ou Unique)"
+                    placeholder="Taille"
                     value={form.taille}
                     onChange={e => updateForm('taille', e.target.value)}
-                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
+                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-foreground outline-none focus:border-gold"
                   />
                 </div>
-
-                {/* Prix, Stock, Seuil, Poids */}
                 <div className="grid grid-cols-2 gap-3">
                   <input
                     placeholder="Prix unitaire (FCFA)"
@@ -500,6 +491,8 @@ export default function AccessoriesPage() {
                     onChange={e => updateForm('prix_promotionnel', e.target.value)}
                     className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
                   />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
                   <input
                     placeholder="Quantité en stock"
                     type="number"
@@ -508,51 +501,24 @@ export default function AccessoriesPage() {
                     className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
                   />
                   <input
-                    placeholder="Seuil d'alerte stock"
+                    placeholder="Seuil d'alerte"
                     type="number"
                     value={form.seuil_alerte_stock}
                     onChange={e => updateForm('seuil_alerte_stock', e.target.value)}
                     className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
                   />
-                  <input
-                    placeholder="Poids (grammes)"
-                    type="number"
-                    value={form.poids_grammes}
-                    onChange={e => updateForm('poids_grammes', e.target.value)}
-                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
-                  />
                 </div>
-                <div className="flex flex-wrap items-center gap-4">
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={form.actif}
-                      onChange={e => setForm(prev => ({ ...prev, actif: e.target.checked }))}
-                      className="h-4 w-4 text-gold focus:ring-gold border-white/20 rounded bg-white/5"
-                    />
-                    <span className="text-sm text-foreground/80">Actif</span>
-                  </label>
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={form.est_bestseller}
-                      onChange={e => setForm(prev => ({ ...prev, est_bestseller: e.target.checked }))}
-                      className="h-4 w-4 text-gold focus:ring-gold border-white/20 rounded bg-white/5"
-                    />
-                    <span className="text-sm text-foreground/80">Bestseller</span>
-                  </label>
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={form.est_hotseller}
-                      onChange={e => setForm(prev => ({ ...prev, est_hotseller: e.target.checked }))}
-                      className="h-4 w-4 text-gold focus:ring-gold border-white/20 rounded bg-white/5"
-                    />
-                    <span className="text-sm text-foreground/80">Hotseller</span>
-                  </label>
-                </div>
-                <MultiImageUpload onImagesChange={(images) => setImageFiles(images)} />
+                <input
+                  placeholder="Poids (grammes)"
+                  type="number"
+                  value={form.poids_grammes}
+                  onChange={e => updateForm('poids_grammes', e.target.value)}
+                  className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
+                />
               </div>
+            </div>
+            <div className="mt-4 pt-4 border-t border-white/10">
+              <MultiImageUpload onImagesChange={(images) => setImageFiles(images)} />
             </div>
             <div className="flex gap-3 mt-6">
               <button onClick={() => setShowModal(false)} className="flex-1 border border-white/10 rounded-lg py-2.5 text-sm text-foreground/60 hover:bg-white/5 transition-colors">Annuler</button>

@@ -54,28 +54,37 @@ export default function GoogleAuthButton({
     if (!clientId) return;
 
     const initializeClient = () => {
-      if (!window.google?.accounts?.oauth2) return;
-      tokenClientRef.current = window.google.accounts.oauth2.initTokenClient({
-        client_id: clientId,
-        scope: 'openid email profile',
-        callback: async (response) => {
-          if (!response?.access_token) {
+      if (!window.google?.accounts?.oauth2) {
+        console.warn('Google OAuth2 SDK not available');
+        return;
+      }
+      try {
+        tokenClientRef.current = window.google.accounts.oauth2.initTokenClient({
+          client_id: clientId,
+          scope: 'openid email profile',
+          callback: async (response) => {
+            if (!response?.access_token) {
+              setIsGoogleLoading(false);
+              return;
+            }
+            try {
+              await onTokenReceived(response.access_token);
+            } finally {
+              setIsGoogleLoading(false);
+            }
+          },
+          error_callback: () => {
             setIsGoogleLoading(false);
-            return;
-          }
-          try {
-            await onTokenReceived(response.access_token);
-          } finally {
-            setIsGoogleLoading(false);
-          }
-        },
-        error_callback: () => {
-          setIsGoogleLoading(false);
-        },
-      });
-      setSdkReady(true);
+            console.error('Google OAuth2 error');
+          },
+        });
+        setSdkReady(true);
+      } catch (error) {
+        console.error('Failed to initialize Google OAuth2 client:', error);
+      }
     };
 
+    // Check if SDK is already loaded (cached)
     if (window.google?.accounts?.oauth2) {
       initializeClient();
       return;
@@ -88,12 +97,30 @@ export default function GoogleAuthButton({
       script.src = 'https://accounts.google.com/gsi/client';
       script.async = true;
       script.defer = true;
+      
+      const onLoad = () => initializeClient();
+      const onError = () => {
+        console.error('Failed to load Google OAuth2 SDK');
+        setIsGoogleLoading(false);
+      };
+      
+      script.addEventListener('load', onLoad);
+      script.addEventListener('error', onError);
       document.head.appendChild(script);
+      
+      return () => {
+        script?.removeEventListener('load', onLoad);
+        script?.removeEventListener('error', onError);
+      };
+    } else if ((script as any).readyState === 'complete' || (script as any).readyState === 'loaded') {
+      // Script already exists and has loaded (for cached scenarios)
+      initializeClient();
+    } else {
+      // Script exists but hasn't finished loading yet
+      const onLoad = () => initializeClient();
+      script.addEventListener('load', onLoad);
+      return () => script?.removeEventListener('load', onLoad);
     }
-
-    const onLoad = () => initializeClient();
-    script.addEventListener('load', onLoad);
-    return () => script?.removeEventListener('load', onLoad);
   }, [clientId, onTokenReceived]);
 
   const handleGoogleAuth = () => {
