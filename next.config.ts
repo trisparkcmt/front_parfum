@@ -14,10 +14,17 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  experimental: {
-    turbopack: false,
-  },
-  allowedDevOrigins: ['172.20.10.2','172.20.10.5', '192.168.1.173', 'bodacious-purple-gaffe.ngrok-free.dev','accessoires-exclusifs-api.onrender.com','0.0.0.0'],
+  // 1. Allowed dev origins for local network testing and Ngrok tunnels
+  allowedDevOrigins: [
+    '172.20.10.2',
+    '172.20.10.5', 
+    '192.168.1.173', 
+    'bodacious-purple-gaffe.ngrok-free.dev',
+    'accessoires-exclusifs-api.onrender.com',
+    '0.0.0.0'
+  ],
+  
+  // 2. Image optimization rules for your Django backend and CDNs
   images: {
     remotePatterns: [
       {

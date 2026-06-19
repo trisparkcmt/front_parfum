@@ -254,10 +254,10 @@ export default function ClientOrdersPage() {
                         {DELIVERY_STATUS_CONFIG[selectedOrder.statut_livraison] || selectedOrder.statut_livraison}
                       </p>
                     </div>
-                    {selectedOrder.livreur_name && (
+                    {selectedOrder.livreur_nom && (
                       <div>
                         <p className="text-sm text-gray-600">Livreur</p>
-                        <p className="font-semibold text-gray-900">{selectedOrder.livreur_name}</p>
+                        <p className="font-semibold text-gray-900">{selectedOrder.livreur_nom}</p>
                       </div>
                     )}
                     {selectedOrder.date_livraison_estimee && (
