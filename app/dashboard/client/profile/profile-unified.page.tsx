@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { authService } from '@/services/apiService';
-import { User } from '@/types';
+import { User, UserRole } from '@/types';
 import { LogOut, Edit2, Loader, AlertCircle, Grid } from 'lucide-react';
 
 interface DashboardOption {
@@ -12,7 +12,7 @@ interface DashboardOption {
   description: string;
   href: string;
   icon: string;
-  roles: string[];
+  roles: UserRole[];
 }
 
 const DASHBOARD_OPTIONS: DashboardOption[] = [

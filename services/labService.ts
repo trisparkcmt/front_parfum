@@ -1,8 +1,8 @@
-import type { Essence } from '@/types';
+import type { EssenceClient } from '@/types';
 import { labService as apiLabService } from './apiService';
 
 // Helper to map backend ingredient/essence to frontend model
-export function mapBackendLabItemToEssence(item: any, type: 'ingredient' | 'essence'): Essence {
+export function mapBackendLabItemToEssence(item: any, type: 'ingredient' | 'essence'): EssenceClient {
   let category = item.categorie || item.family || 'premium';
   // Determine family
   const family = type === 'essence' ? category : (item.famille_olfactive || item.family || 'fresh');
@@ -20,12 +20,12 @@ export function mapBackendLabItemToEssence(item: any, type: 'ingredient' | 'esse
 }
 
 export const labServiceWrapper = {
-  async getIngredients(): Promise<Essence[]> {
+  async getIngredients(): Promise<EssenceClient[]> {
     const essences = await apiLabService.getIngredients();
     return essences.map((item: any) => mapBackendLabItemToEssence(item, 'ingredient'));
   },
 
-  async getEssences(): Promise<Essence[]> {
+  async getEssences(): Promise<EssenceClient[]> {
     const essences = await apiLabService.getEssences();
     return essences.map((item: any) => mapBackendLabItemToEssence(item, 'essence'));
   }

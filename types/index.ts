@@ -123,7 +123,7 @@ export type OlfactiveFamily =
   | 'gourmand'
   | 'musk';
 
-export interface Essence {
+export interface EssenceClient {
   id: string;
   name: string;
   family: OlfactiveFamily;
@@ -136,7 +136,7 @@ export interface Essence {
 }
 
 export interface CompositionEssence {
-  essence: Essence;
+  essence: EssenceClient;
   quantityMl: number; // in increments of 10ml
 }
 

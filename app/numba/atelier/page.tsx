@@ -8,7 +8,7 @@ import { useToastStore } from '@/store/useToastStore';
 import { generateId } from '@/lib/utils';
 import { useTranslation } from 'react-i18next';
 import { ArrowLeft, Minus, Plus, ChevronLeft, ChevronRight, RefreshCcw, Loader2 } from 'lucide-react';
-import type { CustomComposition, CompositionEssence, Essence } from '@/types';
+import type { CustomComposition, CompositionEssence, EssenceClient } from '@/types';
 import { labService } from '@/services/labService';
 import './atelier.css';
 
@@ -40,7 +40,7 @@ function hexToRgb(h: string) {
   return { r:parseInt(h.substring(0,2),16), g:parseInt(h.substring(2,4),16), b:parseInt(h.substring(4,6),16) };
 }
 
-function blendColor(quantities: Record<string, number>, allItems: Essence[]) {
+function blendColor(quantities: Record<string, number>, allItems: EssenceClient[]) {
   let r=0,g=0,b=0,tw=0;
   for (const e of allItems) {
     const q = quantities[e.id]||0;
@@ -212,8 +212,8 @@ export default function AtelierPage() {
   const [essenceSubtab, setEssenceSubtab] = useState<'premium' | 'super-premium' | 'high'>('premium');
 
   // Datasets
-  const [ingredients, setIngredients] = useState<Essence[]>([]);
-  const [essences, setEssences] = useState<Essence[]>([]);
+  const [ingredients, setIngredients] = useState<EssenceClient[]>([]);
+  const [essences, setEssences] = useState<EssenceClient[]>([]);
   const [loadingData, setLoadingData] = useState(true);
 
   const [format, setFormat] = useState('edp');

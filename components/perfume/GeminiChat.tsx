@@ -20,12 +20,13 @@ import {
 } from 'lucide-react';
 import { InputBar } from './InputBar';
 import { API_ROOT } from '@/services/api';
-import { api, labService } from '@/services/apiService';
+import { api } from '@/services/apiService';
+import { labService } from '@/services/labService';
 import { useCartStore } from '@/store/useCartStore';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useToastStore } from '@/store/useToastStore';
 import { formatPrice, generateId } from '@/lib/utils';
-import type { CustomComposition, CompositionEssence, Essence, Accessory, Product } from '@/types';
+import type { CustomComposition, CompositionEssence, EssenceClient, Accessory, Product } from '@/types';
 import axios from 'axios';
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -464,7 +465,7 @@ export function GeminiChat({ onChatStarted }: GeminiChatProps) {
   const [mounted, setMounted] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [essences, setEssences] = useState<Essence[]>([]);
+  const [essences, setEssences] = useState<EssenceClient[]>([]);
 
   const abortControllerRef = useRef<AbortController | null>(null);
   const { addProduct, addComposition } = useCartStore();

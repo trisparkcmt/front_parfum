@@ -25,11 +25,11 @@ import { motion } from 'framer-motion';
  */
 import { Plus, Minus, Info } from 'lucide-react';
 import { cn, formatPrice } from '@/lib/utils';
-import type { Essence } from '@/types';
+import type { EssenceClient } from '@/types';
 import { ESSENCE_INCREMENT_ML } from '@/lib/constants';
 
 interface ScentCardProps {
-  essence: Essence;
+  essence: EssenceClient;
   currentQuantity: number;
   onAdd: (amount: number) => void;
   onRemove: (amount: number) => void;

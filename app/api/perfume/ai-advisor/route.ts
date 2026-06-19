@@ -11,13 +11,37 @@
  */
 import { NextResponse } from 'next/server';
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { mockEssences } from '@/lib/mock-data';
 
 // Initialize the API with a fallback so it doesn't crash if the key isn't set yet
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || 'MOCK_KEY');
 
-// We format our essences catalog so the AI knows what's available
-const essencesCatalog = mockEssences.map(e => `- ${e.name} (${e.family}, intensité: ${e.intensity}, prix: ${e.pricePerMl} FCFA/ml)`).join('\n');
+// Essence catalog list for the AI to use
+const essencesCatalog = `
+- Bergamote de Calabre (citrus, intensité: light, prix: 350 FCFA/ml)
+- Citron de Menton (citrus, intensité: light, prix: 300 FCFA/ml)
+- Orange Sanguine (citrus, intensité: medium, prix: 320 FCFA/ml)
+- Rose de Damas (floral, intensité: strong, prix: 500 FCFA/ml)
+- Jasmin Sambac (floral, intensité: strong, prix: 550 FCFA/ml)
+- Ylang-Ylang (floral, intensité: medium, prix: 400 FCFA/ml)
+- Bois de Santal (woody, intensité: medium, prix: 600 FCFA/ml)
+- Cèdre de l'Atlas (woody, intensité: medium, prix: 380 FCFA/ml)
+- Vétiver d'Haïti (woody, intensité: strong, prix: 450 FCFA/ml)
+- Ambre Gris (oriental, intensité: strong, prix: 700 FCFA/ml)
+- Vanille de Madagascar (oriental, intensité: medium, prix: 480 FCFA/ml)
+- Encens d'Oman (oriental, intensité: strong, prix: 520 FCFA/ml)
+- Menthe Poivrée (fresh, intensité: light, prix: 280 FCFA/ml)
+- Thé Vert (fresh, intensité: light, prix: 350 FCFA/ml)
+- Poivre Noir (spicy, intensité: strong, prix: 400 FCFA/ml)
+- Cardamome du Guatemala (spicy, intensité: medium, prix: 420 FCFA/ml)
+- Pêche Velours (fruity, intensité: light, prix: 320 FCFA/ml)
+- Cassis Sauvage (fruity, intensité: medium, prix: 380 FCFA/ml)
+- Brise Marine (aquatic, intensité: light, prix: 350 FCFA/ml)
+- Cacao Absolu (gourmand, intensité: strong, prix: 450 FCFA/ml)
+- Caramel Beurre Salé (gourmand, intensité: medium, prix: 380 FCFA/ml)
+- Musc Blanc (musk, intensité: light, prix: 400 FCFA/ml)
+- Musc d'Orient (musk, intensité: medium, prix: 500 FCFA/ml)
+- Patchouli Intense (woody, intensité: strong, prix: 420 FCFA/ml)
+`.trim();
 
 const SYSTEM_PROMPT = `
 Tu es "Numba", le Sommelier IA de la maison de haute parfumerie Accessories Exclusif.

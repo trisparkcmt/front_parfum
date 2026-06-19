@@ -215,7 +215,7 @@ export default function ClientOrdersPage() {
                   </div>
                   <div className="flex items-center gap-3">
                     <p className="text-lg font-bold text-foreground">
-                      {Number(order.total_ttc ?? order.montant_total ?? 0).toLocaleString('fr-FR')} FCFA
+                      {Number(order.total_ttc ?? 0).toLocaleString('fr-FR')} FCFA
                     </p>
                     <span className={`inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full border ${cfg.color}`}>
                       {cfg.icon}{cfg.label}
@@ -351,7 +351,7 @@ export default function ClientOrdersPage() {
               {/* Order info */}
               <div className="grid grid-cols-2 gap-3">
                 {[
-                  { icon: <Tag size={13} />,      label: 'Montant total',    value: `${Number(selected.total_ttc ?? selected.montant_total ?? 0).toLocaleString('fr-FR')} FCFA` },
+                  { icon: <Tag size={13} />,      label: 'Montant total',    value: `${Number(selected.total_ttc ?? 0).toLocaleString('fr-FR')} FCFA` },
                   { icon: <Calendar size={13} />, label: 'Date de commande', value: fmtDate(selected.date_creation) },
                   { icon: <Truck size={13} />,    label: 'Livreur',          value: selected.livreur_nom ?? '—' },
                   { icon: <Phone size={13} />,    label: 'Téléphone livraison', value: selected.livraison_telephone ?? '—' },
