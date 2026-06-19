@@ -86,7 +86,7 @@ export default function ClientDashboard() {
             <tbody className="divide-y divide-white/5">
               {filteredOrders.map(order => (
                 <tr key={order.id} className="hover:bg-white/5 transition-colors">
-                  <td className="px-5 py-4 font-mono text-xs text-gold font-semibold">#{order.id.split('-')[0]}</td>
+                  <td className="px-5 py-4 font-mono text-xs text-gold font-semibold">{order.id}</td>
                   <td className="px-5 py-4 text-xs text-foreground/40">{new Date(order.createdAt).toLocaleDateString('fr-FR')}</td>
                   <td className="px-5 py-4 text-xs text-foreground/60">{order.items.length} article{order.items.length > 1 ? 's' : ''}</td>
                   <td className="px-5 py-4">
@@ -110,6 +110,7 @@ export default function ClientDashboard() {
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {[
+          { label: 'Mes Commandes', desc: 'Voir toutes mes commandes', icon: <Package size={20} />, color: 'from-blue-500 to-blue-700', href: '/dashboard/client/orders' },
           { label: t('create_perfume_action'), desc: 'Atelier Numba', icon: <Droplets size={20} />, color: 'from-purple-500 to-purple-700', href: '/numba' },
           { label: t('my_favorites_action'), desc: 'Produits sauvegardés', icon: <Heart size={20} />, color: 'from-red-400 to-red-600', href: '/dashboard/client/favorites' },
           { label: t('loyalty_program_action'), desc: 'Vos récompenses', icon: <Star size={20} />, color: 'from-amber-400 to-amber-600', href: '#' },

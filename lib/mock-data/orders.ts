@@ -16,13 +16,13 @@
 import type { Order, User, PromoCode, DeliveryTask } from '@/types';
 
 export const mockUsers: User[] = [
-  { id: 'user-001', firstName: 'Jean', lastName: 'Kamga', email: 'jean@mail.com', phone: '+237670000001', role: 'client', createdAt: '2026-01-01' },
-  { id: 'user-002', firstName: 'Marie', lastName: 'Fotso', email: 'marie@mail.com', phone: '+237670000002', role: 'client', createdAt: '2026-01-05' },
-  { id: 'admin-001', firstName: 'Admin', lastName: 'Exclusif', email: 'admin@exclusif.cm', phone: '+237680254243', role: 'admin', createdAt: '2025-12-01' },
-  { id: 'deliv-001', firstName: 'Paul', lastName: 'Mbarga', email: 'paul@mail.com', phone: '+237670000003', role: 'delivery', createdAt: '2026-02-01' },
-  { id: 'deliv-002', firstName: 'Samuel', lastName: 'Nkoulou', email: 'samuel@mail.com', phone: '+237670000004', role: 'delivery', createdAt: '2026-02-10' },
-  { id: 'partner-001', firstName: 'Aïcha', lastName: 'Bello', email: 'aicha@mail.com', phone: '+237670000005', role: 'partner', createdAt: '2026-01-15' },
-  { id: 'partner-002', firstName: 'Kevin', lastName: 'Talla', email: 'kevin@mail.com', phone: '+237670000006', role: 'partner', createdAt: '2026-02-20' },
+  { id: 'user-001', firstName: 'Jean', lastName: 'Kamga', email: 'jean@mail.com', phone: '+237670000001', role: 'client', roles: ['client'], createdAt: '2026-01-01' },
+  { id: 'user-002', firstName: 'Marie', lastName: 'Fotso', email: 'marie@mail.com', phone: '+237670000002', role: 'client', roles: ['client'], createdAt: '2026-01-05' },
+  { id: 'admin-001', firstName: 'Admin', lastName: 'Exclusif', email: 'admin@exclusif.cm', phone: '+237680254243', role: 'superadmin', roles: ['superadmin', 'client'], createdAt: '2025-12-01' },
+  { id: 'deliv-001', firstName: 'Paul', lastName: 'Mbarga', email: 'paul@mail.com', phone: '+237670000003', role: 'delivery', roles: ['delivery', 'client'], createdAt: '2026-02-01' },
+  { id: 'deliv-002', firstName: 'Samuel', lastName: 'Nkoulou', email: 'samuel@mail.com', phone: '+237670000004', role: 'delivery', roles: ['delivery', 'client'], createdAt: '2026-02-10' },
+  { id: 'partner-001', firstName: 'Aïcha', lastName: 'Bello', email: 'aicha@mail.com', phone: '+237670000005', role: 'partner', roles: ['partner', 'client'], createdAt: '2026-01-15' },
+  { id: 'partner-002', firstName: 'Kevin', lastName: 'Talla', email: 'kevin@mail.com', phone: '+237670000006', role: 'partner', roles: ['partner', 'client'], createdAt: '2026-02-20' },
 ];
 
 export const mockPromoCodes: PromoCode[] = [

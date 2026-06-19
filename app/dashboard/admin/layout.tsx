@@ -3,18 +3,17 @@
 import { useState } from 'react';
 import Sidebar from '@/components/admin/Sidebar';
 import Header from '@/components/admin/Header';
-import { usePathname } from 'next/navigation';
+import { useAuthGuard } from '@/hooks/useAuthGuard';
+import { Loader2 } from 'lucide-react';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
-  const [sidebarOpen, setSidebarOpen] = useState(true);
-  const pathname = usePathname();
-  
-  const isProfilePage = pathname === '/dashboard/admin/profile';
+  const { isAuthorized, isLoading } = useAuthGuard(['superadmin']);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  if (isProfilePage) {
+  if (isLoading || !isAuthorized) {
     return (
-      <div className="min-h-screen bg-background p-6 overflow-y-auto">
-        {children}
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="animate-spin text-gold" size={32} />
       </div>
     );
   }
@@ -23,7 +22,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     <div className="flex h-screen bg-background font-[family-name:var(--font-geist-sans)]">
       <Sidebar open={sidebarOpen} setOpen={setSidebarOpen} />
       <div className="flex flex-col flex-1 overflow-hidden">
-        <Header onMenuClick={() => setSidebarOpen(!sidebarOpen)} />
+        <Header onMenuClick={() => setSidebarOpen(true)} />
         <main className="flex-1 overflow-y-auto p-6">
           {children}
         </main>
@@ -31,4 +30,3 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     </div>
   );
 }
-

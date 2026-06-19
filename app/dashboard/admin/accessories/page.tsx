@@ -4,21 +4,37 @@ import { useState, useEffect, useCallback } from 'react';
 import { Search, Plus, Edit2, Trash2, Loader2 } from 'lucide-react';
 import { shopService, adminService } from '@/services/apiService';
 import { useToastStore } from '@/store/useToastStore';
-import { BackButton } from '@/components/ui/BackButton';
-import ImageUploader from '@/components/admin/ImageUploader';
+import { useCatalogPermissions } from '@/hooks/useCatalogPermissions';
+import CatalogAccessNotice from '@/components/catalog/CatalogAccessNotice';
+import { extractCatalogList } from '@/lib/catalogUtils';
+import { MultiImageUpload } from '@/components/MultiImageUpload';
+import { CreateCategoryModal } from '@/components/CreateCategoryModal';
 
 export default function AccessoriesPage() {
+  const permissions = useCatalogPermissions('accessoires');
   const [accessories, setAccessories] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<string>('all');
+  const [marqueFilter, setMarqueFilter] = useState('');
+  const [matiereFilter, setMatiereFilter] = useState('');
+  const [couleurFilter, setCouleurFilter] = useState('');
+  const [enStockFilter, setEnStockFilter] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [editingAccessory, setEditingAccessory] = useState<any | null>(null);
-  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imageFiles, setImageFiles] = useState<{ [key: string]: File | null }>({
+    image_principale: null,
+    image_supp_1: null,
+    image_supp_2: null,
+    image_supp_3: null,
+    image_supp_4: null,
+  });
   const [accessoryTypes, setAccessoryTypes] = useState<any[]>([]);
+  const [isTypeModalOpen, setIsTypeModalOpen] = useState(false);
 
   // Consolidate form state into a single object based on requested schema
   const [form, setForm] = useState({
+    marque: 'Accessoire Exclusif',
     nom: '',
     slug: '',
     reference_sku: '',
@@ -35,25 +51,32 @@ export default function AccessoriesPage() {
     seuil_alerte_stock: '3',
     poids_grammes: '',
     actif: true,
+    est_bestseller: false,
+    est_hotseller: false,
   });
 
   const { addToast } = useToastStore();
 
   const fetchAccessories = useCallback(async () => {
+    if (!permissions.canRead) return;
     try {
       setLoading(true);
-      const data = await shopService.getAccessories({
-        search,
-        type_accessoire: filter !== 'all' ? Number(filter) : undefined
-      });
-      const list = data.results || data.resultats || (Array.isArray(data) ? data : []);
-      setAccessories(list);
-    } catch (error) {
+      const params: Record<string, unknown> = {};
+      if (search) params.search = search;
+      if (filter !== 'all') params.type_accessoire = Number(filter);
+      if (marqueFilter) params.marque = marqueFilter;
+      if (matiereFilter) params.matiere = matiereFilter;
+      if (couleurFilter) params.couleur = couleurFilter;
+      if (enStockFilter === 'true') params.en_stock = true;
+      if (enStockFilter === 'false') params.en_stock = false;
+      const data = await shopService.getAccessories(params);
+      setAccessories(extractCatalogList(data));
+    } catch {
       addToast('Erreur lors du chargement des accessoires', 'error');
     } finally {
       setLoading(false);
     }
-  }, [search, filter, addToast]);
+  }, [search, filter, marqueFilter, matiereFilter, couleurFilter, enStockFilter, addToast, permissions.canRead]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -73,8 +96,10 @@ export default function AccessoriesPage() {
   }, [addToast]);
 
   const handleOpenAdd = () => {
+    if (!permissions.canCreate) return;
     setEditingAccessory(null);
     setForm({
+      marque: 'Accessoire Exclusif',
       nom: '',
       slug: '',
       reference_sku: '',
@@ -91,14 +116,24 @@ export default function AccessoriesPage() {
       seuil_alerte_stock: '3',
       poids_grammes: '',
       actif: true,
+      est_bestseller: false,
+      est_hotseller: false,
     });
-    setImageFile(null);
+    setImageFiles({
+      image_principale: null,
+      image_supp_1: null,
+      image_supp_2: null,
+      image_supp_3: null,
+      image_supp_4: null,
+    });
     setShowModal(true);
   };
 
   const handleOpenEdit = (acc: any) => {
+    if (!permissions.canUpdate) return;
     setEditingAccessory(acc);
     setForm({
+      marque: acc.marque || 'Accessoire Exclusif',
       nom: acc.nom || '',
       slug: acc.slug || '',
       reference_sku: acc.reference_sku || '',
@@ -115,8 +150,16 @@ export default function AccessoriesPage() {
       seuil_alerte_stock: String(acc.seuil_alerte_stock || '3'),
       poids_grammes: String(acc.poids_grammes || ''),
       actif: acc.actif !== undefined ? acc.actif : true,
+      est_bestseller: !!acc.est_bestseller,
+      est_hotseller: !!acc.est_hotseller,
     });
-    setImageFile(null);
+    setImageFiles({
+      image_principale: null,
+      image_supp_1: null,
+      image_supp_2: null,
+      image_supp_3: null,
+      image_supp_4: null,
+    });
     setShowModal(true);
   };
 
@@ -124,8 +167,16 @@ export default function AccessoriesPage() {
     setForm(prev => ({ ...prev, [field]: value }));
   };
 
+  const handleAddType = async (name: string) => {
+    const newType = await shopService.createAccessoryType({ nom: name });
+    setAccessoryTypes(prev => [...prev, newType]);
+    updateForm('type_accessoire', String(newType.id));
+    addToast('Type d\'accessoire ajouté avec succès', 'success');
+  };
+
   const handleSave = async () => {
-    if (!form.nom || !form.prix_unitaire || !form.type_accessoire || !form.stock_quantite) {
+    if (!permissions.canCreate && !permissions.canUpdate) return;
+    if (!form.marque || !form.nom || !form.prix_unitaire || !form.type_accessoire || !form.stock_quantite) {
       addToast('Champs requis manquants: Nom, Prix, Type, Stock', 'error');
       return;
     }
@@ -138,7 +189,11 @@ export default function AccessoriesPage() {
       }
     });
 
-    if (imageFile) formData.append('image_principale', imageFile);
+    Object.entries(imageFiles).forEach(([key, file]) => {
+      if (file instanceof File) {
+        formData.append(key, file);
+      }
+    });
 
     try {
       if (editingAccessory) {
@@ -157,6 +212,7 @@ export default function AccessoriesPage() {
   };
 
   const handleDelete = async (slug: string) => {
+    if (!permissions.canDelete) return;
     if (!confirm('Voulez-vous vraiment supprimer cet accessoire ?')) return;
     try {
       await shopService.deleteAccessory(slug);
@@ -167,6 +223,14 @@ export default function AccessoriesPage() {
     }
   };
 
+  if (!permissions.canRead) {
+    return (
+      <div className="space-y-6">
+        <CatalogAccessNotice permissions={permissions} resourceLabel="les accessoires" />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -174,14 +238,18 @@ export default function AccessoriesPage() {
           <h1 className="text-2xl font-bold text-foreground">Accessoires</h1>
           <p className="text-sm text-foreground/40 mt-0.5">Bijoux, montres et autres accessoires</p>
         </div>
-        <button
-          onClick={handleOpenAdd}
-          className="flex items-center gap-2 bg-gold text-black px-4 py-2.5 rounded-xl text-sm font-medium hover:bg-gold/80 transition-all shadow-lg"
-        >
-          <Plus size={16} />
-          Ajouter
-        </button>
+        {permissions.canCreate && (
+          <button
+            onClick={handleOpenAdd}
+            className="flex items-center gap-2 bg-gold text-black px-4 py-2.5 rounded-xl text-sm font-medium hover:bg-gold/80 transition-all shadow-lg"
+          >
+            <Plus size={16} />
+            Ajouter
+          </button>
+        )}
       </div>
+
+      <CatalogAccessNotice permissions={permissions} resourceLabel="les accessoires" />
 
       <div className="bg-white/5 rounded-2xl border border-white/10 p-4 shadow-2xl flex flex-wrap items-center gap-3">
         <div className="flex items-center gap-2 border border-white/10 rounded-lg px-3 py-2 flex-1 min-w-48">
@@ -212,6 +280,33 @@ export default function AccessoriesPage() {
             </button>
           ))}
         </div>
+        <input
+          value={marqueFilter}
+          onChange={e => setMarqueFilter(e.target.value)}
+          placeholder="Marque"
+          className="text-sm bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-foreground placeholder:text-foreground/40 outline-none focus:border-gold"
+        />
+        <input
+          value={matiereFilter}
+          onChange={e => setMatiereFilter(e.target.value)}
+          placeholder="Matière"
+          className="text-sm bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-foreground placeholder:text-foreground/40 outline-none focus:border-gold"
+        />
+        <input
+          value={couleurFilter}
+          onChange={e => setCouleurFilter(e.target.value)}
+          placeholder="Couleur"
+          className="text-sm bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-foreground placeholder:text-foreground/40 outline-none focus:border-gold"
+        />
+        <select
+          value={enStockFilter}
+          onChange={e => setEnStockFilter(e.target.value)}
+          className="text-sm bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-foreground outline-none focus:border-gold"
+        >
+          <option value="">Stock (tous)</option>
+          <option value="true">En stock</option>
+          <option value="false">Stock faible</option>
+        </select>
       </div>
 
       <div className="bg-white/5 rounded-2xl border border-white/10 shadow-2xl overflow-hidden min-h-[300px]">
@@ -271,12 +366,16 @@ export default function AccessoriesPage() {
                       </td>
                       <td className="px-6 py-4 text-right">
                         <div className="flex items-center justify-end gap-2">
-                          <button onClick={() => handleOpenEdit(a)} className="p-2 rounded-lg hover:bg-white/5 text-foreground/40 hover:text-gold transition-colors">
-                            <Edit2 size={16} />
-                          </button>
-                          <button onClick={() => handleDelete(a.slug)} className="p-2 rounded-lg hover:bg-red-500/10 text-foreground/40 hover:text-red-400 transition-colors">
-                            <Trash2 size={16} />
-                          </button>
+                          {permissions.canUpdate && (
+                            <button onClick={() => handleOpenEdit(a)} className="p-2 rounded-lg hover:bg-white/5 text-foreground/40 hover:text-gold transition-colors">
+                              <Edit2 size={16} />
+                            </button>
+                          )}
+                          {permissions.canDelete && (
+                            <button onClick={() => handleDelete(a.slug)} className="p-2 rounded-lg hover:bg-red-500/10 text-foreground/40 hover:text-red-400 transition-colors">
+                              <Trash2 size={16} />
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -302,21 +401,32 @@ export default function AccessoriesPage() {
             <div className="space-y-4">
               <div className="space-y-3">
                 <input
+                  placeholder="Marque *"
+                  value={form.marque}
+                  onChange={e => updateForm('marque', e.target.value)}
+                  className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
+                />
+                <input
                   placeholder="Nom de l'accessoire"
                   value={form.nom}
                   onChange={e => updateForm('nom', e.target.value)}
                   className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
                 />
-                <select
-                  value={form.type_accessoire}
-                  onChange={e => updateForm('type_accessoire', e.target.value)}
-                  className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
-                >
-                  <option value="" disabled className="bg-neutral-900">Type d'accessoire</option>
-                  {accessoryTypes.map(t => (
-                    <option key={t.id} value={t.id} className="bg-neutral-900">{t.nom}</option>
-                  ))}
-                </select>
+                <div className="flex gap-2">
+                  <select
+                    value={form.type_accessoire}
+                    onChange={e => updateForm('type_accessoire', e.target.value)}
+                    className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
+                  >
+                    <option value="" disabled className="bg-neutral-900">Type d'accessoire</option>
+                    {accessoryTypes.map(t => (
+                      <option key={t.id} value={t.id} className="bg-neutral-900">{t.nom}</option>
+                    ))}
+                  </select>
+                  <button type="button" onClick={() => setIsTypeModalOpen(true)} className="px-3 py-2 bg-gold text-neutral-900 rounded-lg hover:bg-gold/80 font-medium">
+                    +
+                  </button>
+                </div>
                 <input
                   placeholder="Slug (optionnel)"
                   value={form.slug}
@@ -412,16 +522,36 @@ export default function AccessoriesPage() {
                     className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
                   />
                 </div>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={form.actif}
-                    onChange={e => setForm(prev => ({ ...prev, actif: e.target.checked }))}
-                    className="h-4 w-4 text-gold focus:ring-gold border-white/20 rounded bg-white/5"
-                  />
-                  <label htmlFor="actif" className="text-sm text-foreground/80">Actif</label>
+                <div className="flex flex-wrap items-center gap-4">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={form.actif}
+                      onChange={e => setForm(prev => ({ ...prev, actif: e.target.checked }))}
+                      className="h-4 w-4 text-gold focus:ring-gold border-white/20 rounded bg-white/5"
+                    />
+                    <span className="text-sm text-foreground/80">Actif</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={form.est_bestseller}
+                      onChange={e => setForm(prev => ({ ...prev, est_bestseller: e.target.checked }))}
+                      className="h-4 w-4 text-gold focus:ring-gold border-white/20 rounded bg-white/5"
+                    />
+                    <span className="text-sm text-foreground/80">Bestseller</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={form.est_hotseller}
+                      onChange={e => setForm(prev => ({ ...prev, est_hotseller: e.target.checked }))}
+                      className="h-4 w-4 text-gold focus:ring-gold border-white/20 rounded bg-white/5"
+                    />
+                    <span className="text-sm text-foreground/80">Hotseller</span>
+                  </label>
                 </div>
-                <ImageUploader onFileSelect={setImageFile} />
+                <MultiImageUpload onImagesChange={(images) => setImageFiles(images)} />
               </div>
             </div>
             <div className="flex gap-3 mt-6">
@@ -431,6 +561,14 @@ export default function AccessoriesPage() {
           </div>
         </div>
       )}
+
+      <CreateCategoryModal
+        isOpen={isTypeModalOpen}
+        onClose={() => setIsTypeModalOpen(false)}
+        onSubmit={handleAddType}
+        title="Nouveau type d'accessoire"
+        categoryType="Type"
+      />
     </div>
   );
 }

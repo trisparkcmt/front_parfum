@@ -14,33 +14,30 @@ import { useFavoritesStore } from '@/store/useFavoritesStore';
 import { useToastStore } from '@/store/useToastStore';
 import { useTranslation } from 'react-i18next';
 import { productService } from '@/services/productService';
-import type { Product } from '@/types';
+import type { Product, AccessorySubCategory } from '@/types';
 
-// Mapping for accessory types to match backend IDs
-const accessoryTypeMap: Record<string, number> = {
-  'watches': 1,
-  'jewelry': 2,
-  'bags': 3,
-  'sunglasses': 4,
-  'belts': 5,
-  'other': 6
-};
+interface AccessoryType {
+  id: number;
+  name: string;
+  subcategory: AccessorySubCategory;
+}
 
 export default function AccessoriesShop() {
   const { t, i18n } = useTranslation();
   const [mounted, setMounted] = useState(false);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const [accessoryTypes, setAccessoryTypes] = useState<AccessoryType[]>([]);
 
   // Filter states
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
-  const [activeSubcat, setActiveSubcat] = useState<string>('all');
+  const [activeTypeId, setActiveTypeId] = useState<number | 'all'>('all');
   const [maxPrice, setMaxPrice] = useState<number>(200000);
   const [color, setColor] = useState<string>('all');
   const [material, setMaterial] = useState<string>('all');
   const [inStockOnly, setInStockOnly] = useState<boolean>(false);
-  const [ordering, setOrdering] = useState<string>('-date_creation'); // default: newest
+  const [ordering, setOrdering] = useState<string>('-date_creation');
   const [showFilters, setShowFilters] = useState(false);
 
   // Debounce search input
@@ -51,7 +48,23 @@ export default function AccessoriesShop() {
     return () => clearTimeout(handler);
   }, [search]);
 
-  // Load products when filters or subcategory changes
+  // Load accessory types once on mount
+  useEffect(() => {
+    if (!mounted) return;
+
+    async function loadTypes() {
+      try {
+        const types = await productService.getAccessoryTypes();
+        setAccessoryTypes(types);
+      } catch (error) {
+        console.error('Failed to load accessory types:', error);
+      }
+    }
+
+    loadTypes();
+  }, [mounted]);
+
+  // Load products when filters or type changes
   useEffect(() => {
     if (!mounted) return;
 
@@ -59,9 +72,8 @@ export default function AccessoriesShop() {
       try {
         setLoading(true);
 
-        // Use productService to get correctly mapped data and handle backend pagination
         const mappedProducts = await productService.getAccessories({
-          type_accessoire: activeSubcat !== 'all' ? String(accessoryTypeMap[activeSubcat]) : undefined,
+          type_accessoire: activeTypeId !== 'all' ? String(activeTypeId) : undefined,
           prix_max: maxPrice < 200000 ? maxPrice : undefined,
           couleur: color !== 'all' ? color : undefined,
           matiere: material !== 'all' ? material : undefined,
@@ -80,7 +92,7 @@ export default function AccessoriesShop() {
     }
 
     fetchProducts();
-  }, [mounted, activeSubcat, maxPrice, color, material, inStockOnly, debouncedSearch, ordering]);
+  }, [mounted, activeTypeId, maxPrice, color, material, inStockOnly, debouncedSearch, ordering]);
 
   useEffect(() => {
     setMounted(true);
@@ -104,10 +116,9 @@ export default function AccessoriesShop() {
     }
   };
 
-  const subCategories = ['all', 'watches', 'jewelry', 'bags', 'sunglasses', 'belts', 'other'];
-
   const resetFilters = () => {
     setSearch('');
+    setActiveTypeId('all');
     setMaxPrice(200000);
     setColor('all');
     setMaterial('all');
@@ -156,20 +167,38 @@ export default function AccessoriesShop() {
       {/* Subcategory Scrollable Ribbon */}
       <div className="w-full border-b border-white/5 mb-8">
         <div className="flex items-center gap-8 overflow-x-auto pb-4 scrollbar-hide px-4 sm:px-0">
-          {subCategories.map((subcat) => (
+          <button
+            onClick={() => setActiveTypeId('all')}
+            className={`relative whitespace-nowrap text-[0.6rem] font-bold uppercase tracking-[0.2em] transition-all pb-2 ${
+              activeTypeId === 'all'
+                ? 'text-gold font-extrabold'
+                : 'text-foreground/40 hover:text-foreground'
+            }`}
+          >
+            {t('see_all')}
+            {activeTypeId === 'all' && (
+              <motion.div
+                layoutId="activeTypeUnderline"
+                className="absolute bottom-0 left-0 right-0 h-0.5 bg-gold"
+                transition={{ type: 'spring', stiffness: 380, damping: 30 }}
+              />
+            )}
+          </button>
+
+          {accessoryTypes.map((type) => (
             <button
-              key={subcat}
-              onClick={() => setActiveSubcat(subcat)}
+              key={type.id}
+              onClick={() => setActiveTypeId(type.id)}
               className={`relative whitespace-nowrap text-[0.6rem] font-bold uppercase tracking-[0.2em] transition-all pb-2 ${
-                activeSubcat === subcat
+                activeTypeId === type.id
                   ? 'text-gold font-extrabold'
                   : 'text-foreground/40 hover:text-foreground'
               }`}
             >
-              {subcat === 'all' ? t('see_all') : t(`subcat_${subcat}`)}
-              {activeSubcat === subcat && (
+              {type.name}
+              {activeTypeId === type.id && (
                 <motion.div
-                  layoutId="activeSubcatUnderline"
+                  layoutId="activeTypeUnderline"
                   className="absolute bottom-0 left-0 right-0 h-0.5 bg-gold"
                   transition={{ type: 'spring', stiffness: 380, damping: 30 }}
                 />
@@ -349,7 +378,7 @@ export default function AccessoriesShop() {
       ) : (
         <AnimatePresence mode="wait">
           <motion.div
-            key={activeSubcat + '_' + products.length}
+            key={activeTypeId + '_' + products.length}
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}

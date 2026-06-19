@@ -5,7 +5,7 @@ import { Loader2, Edit2, Trash2, Plus, Search, Sparkles, Gem, FlaskConical } fro
 import { shopService } from '@/services/apiService';
 import { adminService } from '@/services/apiService';
 import { useToastStore } from '@/store/useToastStore';
-import ImageUploader from '@/components/admin/ImageUploader';
+import CompactIconUpload from '@/components/admin/CompactIconUpload';
 
 type TabKey = 'perfume_categories' | 'accessory_categories' | 'bottle_types';
 
@@ -179,225 +179,261 @@ export default function CategoriesAdminPage() {
   // Shared column count for empty state colspan
   const colSpan = activeTab === 'perfume_categories' ? 5 : activeTab === 'accessory_categories' ? 5 : 3;
 
+  const modalTitle = editingItem
+    ? (activeTab === 'perfume_categories' ? 'Modifier la catégorie' : activeTab === 'accessory_categories' ? 'Modifier le type' : 'Modifier le flacon')
+    : (activeTab === 'perfume_categories' ? 'Nouvelle catégorie parfum' : activeTab === 'accessory_categories' ? 'Nouveau type accessoire' : 'Nouveau type flacon');
+
   return (
+    <>
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Classifications & Catégories</h1>
-          <p className="text-sm text-foreground/40 mt-0.5">Gérer les types d'accessoires, flacons et catégories de parfums</p>
-        </div>
-        <button onClick={handleOpenAdd} className="flex items-center gap-2 bg-gold text-black px-4 py-2.5 rounded-xl text-sm font-medium hover:bg-gold/80 transition-all shadow-lg">
-          <Plus size={16} /> Ajouter
-        </button>
-      </div>
-
-      <div className="bg-white/5 rounded-2xl border border-white/10 overflow-hidden shadow-xl">
-        <div className="flex border-b border-white/10 overflow-x-auto">
-          <TabButton active={activeTab === 'perfume_categories'} onClick={() => setActiveTab('perfume_categories')} icon={<Sparkles size={14} />} label="Catégories Parfums" />
-          <TabButton active={activeTab === 'accessory_categories'} onClick={() => setActiveTab('accessory_categories')} icon={<Gem size={14} />} label="Catégories Accessoires" />
-          <TabButton active={activeTab === 'bottle_types'} onClick={() => setActiveTab('bottle_types')} icon={<FlaskConical size={14} />} label="Types Flacons" />
-        </div>
-
-        <div className="p-6">
-          <div className="bg-white/5 rounded-2xl border border-white/10 p-4 shadow-2xl flex items-center gap-2 w-full max-w-md mb-6">
-            <Search size={15} className="text-foreground/40" />
-            <input
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              placeholder="Rechercher..."
-              className="text-sm bg-transparent outline-none flex-1 text-foreground placeholder:text-foreground/40"
-            />
-          </div>
-
-          <div className="bg-white/5 rounded-2xl border border-white/10 shadow-2xl overflow-hidden min-h-[300px]">
-            {loading ? (
-              <div className="flex flex-col items-center justify-center py-20 text-gold gap-3">
-                <Loader2 className="animate-spin" size={32} />
-                <p className="text-sm font-medium">Chargement des éléments...</p>
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className="border-b border-white/10 bg-white/5">
-                      {/* Perfume categories columns */}
-                      {activeTab === 'perfume_categories' && (
-                        <>
-                          <th className="px-6 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider">Nom</th>
-                          <th className="px-6 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider">Slug</th>
-                          <th className="px-6 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider">Ordre</th>
-                          <th className="px-6 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider">Taux Réduction</th>
-                        </>
-                      )}
-                      {/* Accessory categories columns */}
-                      {activeTab === 'accessory_categories' && (
-                        <>
-                          <th className="px-6 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider w-16">Icône</th>
-                          <th className="px-6 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider">Nom</th>
-                          <th className="px-6 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider">Description</th>
-                          <th className="px-6 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider">Taux Réduction</th>
-                        </>
-                      )}
-                      {/* Bottle types columns */}
-                      {activeTab === 'bottle_types' && (
-                        <>
-                          <th className="px-6 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider">Nom</th>
-                          <th className="px-6 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider">Description</th>
-                        </>
-                      )}
-                      <th className="px-6 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-white/5">
-                    {filtered.map(c => (
-                      <tr key={c.id} className="hover:bg-white/5 transition-colors group">
-                        {activeTab === 'perfume_categories' && (
-                          <>
-                            <td className="px-6 py-4 font-medium text-foreground">{c.nom}</td>
-                            <td className="px-6 py-4 text-sm text-foreground/60">{c.slug}</td>
-                            <td className="px-6 py-4 text-sm text-foreground/60">{c.ordre_affichage}</td>
-                            <td className="px-6 py-4 text-sm">
-                              {c.taux_reduction && parseFloat(c.taux_reduction) > 0 ? (
-                                <span className="bg-gold/10 text-gold px-2 py-0.5 rounded-md text-xs font-bold">-{c.taux_reduction}%</span>
-                              ) : (
-                                <span className="text-foreground/30 text-xs">—</span>
-                              )}
-                            </td>
-                          </>
-                        )}
-                        {activeTab === 'accessory_categories' && (
-                          <>
-                            <td className="px-6 py-3 whitespace-nowrap">
-                              <div className="w-12 h-12 rounded-xl bg-white/5 border border-white/10 overflow-hidden flex items-center justify-center">
-                                {c.icone ? (
-                                  <img src={c.icone} alt={c.nom} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" loading="lazy" />
-                                ) : (
-                                  <Gem size={18} className="text-foreground/20" />
-                                )}
-                              </div>
-                            </td>
-                            <td className="px-6 py-4 font-medium text-foreground">{c.nom}</td>
-                            <td className="px-6 py-4 text-sm text-foreground/60 max-w-[200px] truncate">{c.description || '—'}</td>
-                            <td className="px-6 py-4 text-sm">
-                              {c.taux_reduction && parseFloat(c.taux_reduction) > 0 ? (
-                                <span className="bg-gold/10 text-gold px-2 py-0.5 rounded-md text-xs font-bold">-{c.taux_reduction}%</span>
-                              ) : (
-                                <span className="text-foreground/30 text-xs">—</span>
-                              )}
-                            </td>
-                          </>
-                        )}
-                        {activeTab === 'bottle_types' && (
-                          <>
-                            <td className="px-6 py-4 font-medium text-foreground">{c.nom}</td>
-                            <td className="px-6 py-4 text-sm text-foreground/60">{c.description || '—'}</td>
-                          </>
-                        )}
-                        <td className="px-6 py-4 text-right">
-                          <div className="flex items-center justify-end gap-2">
-                            <button onClick={() => handleOpenEdit(c)} className="p-2 rounded-lg hover:bg-white/5 text-foreground/40 hover:text-gold transition-colors">
-                              <Edit2 size={16} />
-                            </button>
-                            <button onClick={() => handleDelete(c.id)} className="p-2 rounded-lg hover:bg-red-500/10 text-foreground/40 hover:text-red-400 transition-colors">
-                              <Trash2 size={16} />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                    {filtered.length === 0 && (
-                      <tr>
-                        <td colSpan={colSpan} className="text-center py-20 text-foreground/40 italic">Aucun élément trouvé.</td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Modal */}
-      {showModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div
-            key={editingItem?.id ?? 'new'}
-            className="bg-background rounded-2xl p-6 w-full max-w-md shadow-2xl border border-white/10 max-h-[90vh] overflow-y-auto"
-          >
-            <h3 className="font-bold text-foreground mb-4">{editingItem ? "Modifier l'élément" : 'Ajouter un élément'}</h3>
-            <div className="space-y-4">
-
-              <div>
-                <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Nom *</label>
-                <input placeholder="Nom" value={form.nom} onChange={e => updateForm('nom', e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold" />
+              <div className="flex items-center justify-between">
+                <div>
+                  <h1 className="text-2xl font-bold text-foreground">Classifications & Catégories</h1>
+                  <p className="text-sm text-foreground/40 mt-0.5">Gérer les types d'accessoires, flacons et catégories de parfums</p>
+                </div>
+                <button onClick={handleOpenAdd} className="flex items-center gap-2 bg-gold text-black px-4 py-2.5 rounded-xl text-sm font-medium hover:bg-gold/80 transition-all shadow-lg">
+                  <Plus size={16} /> Ajouter
+                </button>
               </div>
 
-              {/* Perfume category fields */}
-              {activeTab === 'perfume_categories' && (
-                <>
-                  <div>
-                    <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Slug</label>
-                    <input placeholder="Ex: collection-prestige" value={form.slug} onChange={e => updateForm('slug', e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold" />
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Ordre d'affichage</label>
-                      <input type="number" placeholder="0" value={form.ordre_affichage} onChange={e => updateForm('ordre_affichage', e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold" />
-                    </div>
-                    <div>
-                      <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Taux Réduction (%)</label>
-                      <input placeholder="15.00" value={form.taux_reduction} onChange={e => updateForm('taux_reduction', e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold" />
-                    </div>
-                  </div>
-                  <label className="flex items-center gap-2 cursor-pointer pt-1">
-                    <input type="checkbox" checked={form.actif} onChange={e => updateForm('actif', e.target.checked)} className="rounded border-white/10 bg-white/5 text-gold focus:ring-gold" />
-                    <span className="text-xs text-foreground/60 font-medium">Actif</span>
-                  </label>
-                </>
-              )}
+              <div className="bg-white/5 rounded-2xl border border-white/10 overflow-hidden shadow-xl">
+                <div className="flex border-b border-white/10 overflow-x-auto">
+                  <TabButton active={activeTab === 'perfume_categories'} onClick={() => setActiveTab('perfume_categories')} icon={<Sparkles size={14} />} label="Catégories Parfums" />
+                  <TabButton active={activeTab === 'accessory_categories'} onClick={() => setActiveTab('accessory_categories')} icon={<Gem size={14} />} label="Catégories Accessoires" />
+                  <TabButton active={activeTab === 'bottle_types'} onClick={() => setActiveTab('bottle_types')} icon={<FlaskConical size={14} />} label="Types Flacons" />
+                </div>
 
-              {/* Accessory category fields */}
-              {activeTab === 'accessory_categories' && (
-                <>
-                  <div>
-                    <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Description</label>
-                    <textarea placeholder="Description..." value={form.description} onChange={e => updateForm('description', e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold" rows={3} />
-                  </div>
-                  <div>
-                    <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Taux Réduction (%)</label>
-                    <input placeholder="0.00" value={form.taux_reduction} onChange={e => updateForm('taux_reduction', e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold" />
-                  </div>
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input type="checkbox" checked={form.actif} onChange={e => updateForm('actif', e.target.checked)} className="rounded border-white/10 bg-white/5 text-gold focus:ring-gold" />
-                    <span className="text-xs text-foreground/60 font-medium">Actif</span>
-                  </label>
-                  {/* Icon uploader */}
-                  <div className="pt-2 border-t border-white/10">
-                    <ImageUploader
-                      onFileSelect={(file) => setIconFile(file)}
-                      initialImage={editingItem?.icone || null}
+                <div className="p-6">
+                  <div className="bg-white/5 rounded-2xl border border-white/10 p-4 shadow-2xl flex items-center gap-2 w-full max-w-md mb-6">
+                    <Search size={15} className="text-foreground/40" />
+                    <input
+                      value={search}
+                      onChange={e => setSearch(e.target.value)}
+                      placeholder="Rechercher..."
+                      className="text-sm bg-transparent outline-none flex-1 text-foreground placeholder:text-foreground/40"
                     />
                   </div>
+
+                  {loading ? (
+                    <div className="flex items-center justify-center py-16 text-gold gap-2">
+                      <Loader2 className="animate-spin" size={24} />
+                      <span className="text-sm">Chargement...</span>
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left border-collapse">
+                        <thead>
+                          <tr className="border-b border-white/10 bg-white/5">
+                            {activeTab === 'perfume_categories' && (
+                              <>
+                                <th className="px-6 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider">Nom</th>
+                                <th className="px-6 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider">Slug</th>
+                                <th className="px-6 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider">Ordre</th>
+                                <th className="px-6 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider">Taux Réduction</th>
+                              </>
+                            )}
+                            {activeTab === 'accessory_categories' && (
+                              <>
+                                <th className="px-6 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider w-16">Icône</th>
+                                <th className="px-6 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider">Nom</th>
+                                <th className="px-6 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider">Description</th>
+                                <th className="px-6 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider">Taux Réduction</th>
+                              </>
+                            )}
+                            {activeTab === 'bottle_types' && (
+                              <>
+                                <th className="px-6 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider">Nom</th>
+                                <th className="px-6 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider">Description</th>
+                              </>
+                            )}
+                            <th className="px-6 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider text-right">Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-white/5">
+                          {filtered.map(c => (
+                            <tr key={c.id} className="hover:bg-white/5 transition-colors group">
+                              {activeTab === 'perfume_categories' && (
+                                <>
+                                  <td className="px-6 py-4 font-medium text-foreground">{c.nom}</td>
+                                  <td className="px-6 py-4 text-sm text-foreground/60">{c.slug}</td>
+                                  <td className="px-6 py-4 text-sm text-foreground/60">{c.ordre_affichage}</td>
+                                  <td className="px-6 py-4 text-sm">
+                                    {c.taux_reduction && parseFloat(c.taux_reduction) > 0 ? (
+                                      <span className="bg-gold/10 text-gold px-2 py-0.5 rounded-md text-xs font-bold">-{c.taux_reduction}%</span>
+                                    ) : (
+                                      <span className="text-foreground/30 text-xs">—</span>
+                                    )}
+                                  </td>
+                                </>
+                              )}
+                              {activeTab === 'accessory_categories' && (
+                                <>
+                                  <td className="px-6 py-3 whitespace-nowrap">
+                                    <div className="w-12 h-12 rounded-xl bg-white/5 border border-white/10 overflow-hidden flex items-center justify-center">
+                                      {c.icone ? (
+                                        <img src={c.icone} alt={c.nom} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" loading="lazy" />
+                                      ) : (
+                                        <Gem size={18} className="text-foreground/20" />
+                                      )}
+                                    </div>
+                                  </td>
+                                  <td className="px-6 py-4 font-medium text-foreground">{c.nom}</td>
+                                  <td className="px-6 py-4 text-sm text-foreground/60 max-w-[200px] truncate">{c.description || '—'}</td>
+                                  <td className="px-6 py-4 text-sm">
+                                    {c.taux_reduction && parseFloat(c.taux_reduction) > 0 ? (
+                                      <span className="bg-gold/10 text-gold px-2 py-0.5 rounded-md text-xs font-bold">-{c.taux_reduction}%</span>
+                                    ) : (
+                                      <span className="text-foreground/30 text-xs">—</span>
+                                    )}
+                                  </td>
+                                </>
+                              )}
+                              {activeTab === 'bottle_types' && (
+                                <>
+                                  <td className="px-6 py-4 font-medium text-foreground">{c.nom}</td>
+                                  <td className="px-6 py-4 text-sm text-foreground/60">{c.description || '—'}</td>
+                                </>
+                              )}
+                              <td className="px-6 py-4 text-right">
+                                <div className="flex items-center justify-end gap-2">
+                                  <button onClick={() => handleOpenEdit(c)} className="p-1.5 rounded-lg hover:bg-white/5 text-foreground/40 hover:text-gold transition-colors">
+                                    <Edit2 size={14} />
+                                  </button>
+                                  <button onClick={() => handleDelete(c.id)} className="p-1.5 rounded-lg hover:bg-red-500/10 text-foreground/40 hover:text-red-400 transition-colors">
+                                    <Trash2 size={14} />
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                          {filtered.length === 0 && (
+                            <tr>
+                              <td colSpan={colSpan} className="text-center py-16 text-foreground/40 italic text-sm">
+                                Aucun résultat
+                              </td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              </div>
+    </div>
+
+      {/* Add/Edit Modal */}
+      {showModal && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-background rounded-2xl p-6 w-full max-w-md shadow-2xl border border-white/10 max-h-[90vh] overflow-y-auto">
+            <h3 className="font-bold text-foreground mb-5">{modalTitle}</h3>
+
+            <div className="space-y-4">
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-foreground/50 uppercase tracking-wider">Nom *</label>
+                <input
+                  value={form.nom}
+                  onChange={e => updateForm('nom', e.target.value)}
+                  placeholder="Nom"
+                  className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-sm text-foreground outline-none focus:border-gold"
+                />
+              </div>
+
+              {activeTab === 'perfume_categories' && (
+                <>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-foreground/50 uppercase tracking-wider">Slug</label>
+                    <input
+                      value={form.slug}
+                      onChange={e => updateForm('slug', e.target.value)}
+                      placeholder="slug-auto (optionnel)"
+                      className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-sm text-foreground outline-none focus:border-gold"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-semibold text-foreground/50 uppercase tracking-wider">Ordre</label>
+                      <input
+                        type="number"
+                        value={form.ordre_affichage}
+                        onChange={e => updateForm('ordre_affichage', Number(e.target.value))}
+                        className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-sm text-foreground outline-none focus:border-gold"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-semibold text-foreground/50 uppercase tracking-wider">Réduction (%)</label>
+                      <input
+                        value={form.taux_reduction}
+                        onChange={e => updateForm('taux_reduction', e.target.value)}
+                        placeholder="0.00"
+                        className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-sm text-foreground outline-none focus:border-gold"
+                      />
+                    </div>
+                  </div>
                 </>
               )}
 
-              {/* Bottle type fields */}
-              {activeTab === 'bottle_types' && (
-                <div>
-                  <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Description</label>
-                  <textarea placeholder="Description..." value={form.description} onChange={e => updateForm('description', e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold" rows={3} />
+              {(activeTab === 'accessory_categories' || activeTab === 'bottle_types') && (
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-foreground/50 uppercase tracking-wider">Description</label>
+                  <textarea
+                    value={form.description}
+                    onChange={e => updateForm('description', e.target.value)}
+                    placeholder="Description (optionnel)"
+                    rows={2}
+                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-sm text-foreground outline-none focus:border-gold resize-none"
+                  />
                 </div>
+              )}
+
+              {activeTab === 'accessory_categories' && (
+                <>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-foreground/50 uppercase tracking-wider">Taux réduction (%)</label>
+                    <input
+                      value={form.taux_reduction}
+                      onChange={e => updateForm('taux_reduction', e.target.value)}
+                      placeholder="0.00"
+                      className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-sm text-foreground outline-none focus:border-gold"
+                    />
+                  </div>
+                  <CompactIconUpload
+                    onFileSelect={setIconFile}
+                    initialImage={editingItem?.icone}
+                    label="Icône du type"
+                  />
+                </>
+              )}
+
+              {activeTab !== 'bottle_types' && (
+                <label className="flex items-center gap-2 cursor-pointer pt-1">
+                  <input
+                    type="checkbox"
+                    checked={form.actif}
+                    onChange={e => updateForm('actif', e.target.checked)}
+                    className="rounded border-white/10 bg-white/5 text-gold focus:ring-gold"
+                  />
+                  <span className="text-sm text-foreground/60">Actif</span>
+                </label>
               )}
             </div>
 
             <div className="flex gap-3 mt-6">
-              <button onClick={() => setShowModal(false)} className="flex-1 border border-white/10 rounded-lg py-2.5 text-sm text-foreground/60 hover:bg-white/5 transition-colors">Annuler</button>
-              <button onClick={handleSave} className="flex-1 bg-gold text-black rounded-lg py-2.5 text-sm font-bold hover:bg-gold/80 transition-colors">Enregistrer</button>
+              <button
+                onClick={() => setShowModal(false)}
+                className="flex-1 border border-white/10 rounded-lg py-2.5 text-sm text-foreground/60 hover:bg-white/5 transition-colors"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={handleSave}
+                className="flex-1 bg-gold text-black rounded-lg py-2.5 text-sm font-bold hover:bg-gold/80 transition-colors"
+              >
+                Enregistrer
+              </button>
             </div>
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 }

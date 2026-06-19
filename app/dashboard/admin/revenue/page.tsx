@@ -1,10 +1,47 @@
 'use client';
-import { useState, useEffect } from 'react';
+
+import React, { useState, useEffect, useCallback } from 'react';
 import {
-  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  PieChart, Pie, Cell
+  TrendingUp,
+  TrendingDown,
+  DollarSign,
+  Loader2,
+  ArrowLeft,
+  Calendar,
+  Target,
+  ShieldCheck,
+  History,
+  Save,
+  ArrowUpRight,
+  ArrowDownLeft,
+  Search,
+  Filter,
+  Eye,
+  User,
+  CreditCard,
+  Copy,
+  Check,
+  CheckCircle2,
+  XCircle,
+  AlertCircle,
+  Coins,
+  Award,
+  Send,
+  Percent,
+  CheckCircle,
+} from 'lucide-react';
+import {
+  ResponsiveContainer,
+  AreaChart,
+  Area,
+  CartesianGrid,
+  XAxis,
+  YAxis,
+  Tooltip,
+  PieChart,
+  Pie,
+  Cell,
 } from 'recharts';
-import { TrendingUp, TrendingDown } from 'lucide-react';
 
 const monthly = [
   { month: 'Jan', parfums: 3200000, accessoires: 1800000, total: 5000000 },

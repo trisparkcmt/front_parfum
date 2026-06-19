@@ -7,6 +7,9 @@ import {
 } from 'lucide-react';
 import { labService } from '@/services/apiService';
 import { useToastStore } from '@/store/useToastStore';
+import { useCatalogPermissions } from '@/hooks/useCatalogPermissions';
+import CatalogAccessNotice from '@/components/catalog/CatalogAccessNotice';
+import { extractCatalogList } from '@/lib/catalogUtils';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -41,6 +44,7 @@ function TabButton({ active, onClick, icon, label, count }: {
 // ─── Ingredients Tab ─────────────────────────────────────────────────────────
 
 function IngredientsTab() {
+  const permissions = useCatalogPermissions('ingredients');
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -51,54 +55,67 @@ function IngredientsTab() {
 
   const [form, setForm] = useState({
     nom: '',
-    code_reference: '',
-    unite: 'ml',
-    prix_par_ml: '',
-    stock_disponible: '',
     description: '',
+    prix_par_ml: '',
+    stock_ml: '',
+    seuil_alerte_ml: '0',
+    actif: true,
   });
 
   const fetchItems = useCallback(async () => {
+    if (!permissions.canRead) return;
     try {
       setLoading(true);
-      const data = await labService.getIngredients();
-      const list = Array.isArray(data) ? data : (data as any)?.results || (data as any)?.resultats || [];
-      setItems(list);
+      const data = await labService.getIngredients(search ? { search } : undefined);
+      setItems(extractCatalogList(data));
     } catch {
       addToast('Erreur lors du chargement des ingrédients', 'error');
     } finally {
       setLoading(false);
     }
-  }, [addToast]);
+  }, [addToast, permissions.canRead, search]);
 
-  useEffect(() => { fetchItems(); }, [fetchItems]);
+  useEffect(() => {
+    const timer = setTimeout(() => fetchItems(), 300);
+    return () => clearTimeout(timer);
+  }, [fetchItems]);
 
   const openAdd = () => {
+    if (!permissions.canCreate) return;
     setEditing(null);
-    setForm({ nom: '', code_reference: '', unite: 'ml', prix_par_ml: '', stock_disponible: '', description: '' });
+    setForm({ nom: '', description: '', prix_par_ml: '', stock_ml: '', seuil_alerte_ml: '0', actif: true });
     setShowModal(true);
   };
 
   const openEdit = (item: any) => {
+    if (!permissions.canUpdate) return;
     setEditing(item);
     setForm({
       nom: item.nom || '',
-      code_reference: item.code_reference || '',
-      unite: item.unite || 'ml',
-      prix_par_ml: String(item.prix_par_ml || ''),
-      stock_disponible: String(item.stock_disponible || ''),
       description: item.description || '',
+      prix_par_ml: String(item.prix_par_ml || ''),
+      stock_ml: String(item.stock_ml ?? item.stock_disponible ?? ''),
+      seuil_alerte_ml: String(item.seuil_alerte_ml ?? '0'),
+      actif: item.actif !== undefined ? item.actif : true,
     });
     setShowModal(true);
   };
 
   const handleSave = async () => {
-    if (!form.nom || !form.prix_par_ml) {
-      addToast('Nom et Prix requis', 'error'); return;
+    if (!permissions.canCreate && !permissions.canUpdate) return;
+    if (!form.nom || !form.prix_par_ml || !form.stock_ml) {
+      addToast('Nom, prix par ml et stock requis', 'error'); return;
     }
     try {
       setSaving(true);
-      const payload = { ...form, prix_par_ml: Number(form.prix_par_ml), stock_disponible: Number(form.stock_disponible) };
+      const payload = {
+        nom: form.nom,
+        description: form.description || undefined,
+        prix_par_ml: form.prix_par_ml,
+        stock_ml: form.stock_ml,
+        seuil_alerte_ml: form.seuil_alerte_ml || '0',
+        actif: form.actif,
+      };
       if (editing) {
         await labService.updateIngredient(editing.id, payload);
         addToast('Ingrédient mis à jour', 'success');
@@ -116,6 +133,7 @@ function IngredientsTab() {
   };
 
   const handleDelete = async (id: number) => {
+    if (!permissions.canDelete) return;
     if (!confirm('Supprimer cet ingrédient ?')) return;
     try {
       await labService.deleteIngredient(id);
@@ -126,13 +144,15 @@ function IngredientsTab() {
     }
   };
 
-  const filtered = items.filter(i =>
-    (i.nom || '').toLowerCase().includes(search.toLowerCase()) ||
-    (i.code_reference || '').toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = items;
+
+  if (!permissions.canRead) {
+    return <CatalogAccessNotice permissions={permissions} resourceLabel="les ingrédients" />;
+  }
 
   return (
     <div className="space-y-5">
+      <CatalogAccessNotice permissions={permissions} resourceLabel="les ingrédients" />
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 max-w-sm flex-1">
           <Search size={15} className="text-foreground/40" />
@@ -147,9 +167,11 @@ function IngredientsTab() {
           <button onClick={fetchItems} className="p-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 text-foreground/60 hover:text-foreground transition-all">
             <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
           </button>
-          <button onClick={openAdd} className="flex items-center gap-2 bg-gold text-black px-4 py-2.5 rounded-xl text-sm font-bold hover:bg-gold/80 transition-all shadow-lg shadow-gold/10">
-            <Plus size={15} /> Ajouter
-          </button>
+          {permissions.canCreate && (
+            <button onClick={openAdd} className="flex items-center gap-2 bg-gold text-black px-4 py-2.5 rounded-xl text-sm font-bold hover:bg-gold/80 transition-all shadow-lg shadow-gold/10">
+              <Plus size={15} /> Ajouter
+            </button>
+          )}
         </div>
       </div>
 
@@ -164,7 +186,7 @@ function IngredientsTab() {
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="border-b border-white/10 bg-white/5">
-                  {['Ingrédient', 'Code Réf.', 'Unité', 'Prix Unitaire', 'Stock', 'Actions'].map(h => (
+                  {['Ingrédient', 'Prix / ml', 'Stock (ml)', 'Seuil alerte', 'Actif', 'Actions'].map(h => (
                     <th key={h} className="px-5 py-3.5 text-xs font-semibold text-foreground/40 uppercase tracking-wider">{h}</th>
                   ))}
                 </tr>
@@ -176,27 +198,36 @@ function IngredientsTab() {
                       <p className="font-semibold text-foreground text-sm">{item.nom}</p>
                       {item.description && <p className="text-[11px] text-foreground/40 mt-0.5 truncate max-w-[200px]">{item.description}</p>}
                     </td>
-                    <td className="px-5 py-3 font-mono text-xs text-foreground/60">{item.code_reference || '—'}</td>
-                    <td className="px-5 py-3 text-sm text-foreground/60">{item.unite}</td>
-                    <td className="px-5 py-3 font-semibold text-foreground text-sm">{Number(item.prix_par_ml || 0).toLocaleString()} FCFA</td>
+                    <td className="px-5 py-3 font-mono text-xs text-foreground/60">{Number(item.prix_par_ml || 0).toLocaleString()} FCFA</td>
                     <td className="px-5 py-3">
-                      <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${Number(item.stock_disponible) > 50
+                      <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${Number(item.stock_ml ?? item.stock_disponible) > 50
                           ? 'bg-emerald-500/10 text-emerald-400'
-                          : Number(item.stock_disponible) > 10
+                          : Number(item.stock_ml ?? item.stock_disponible) > 10
                             ? 'bg-amber-500/10 text-amber-400'
                             : 'bg-red-500/10 text-red-400'
                         }`}>
-                        {item.stock_disponible ?? '—'} {item.unite}
+                        {item.stock_ml ?? item.stock_disponible ?? '—'} ml
                       </span>
+                    </td>
+                    <td className="px-5 py-3 text-sm text-foreground/60">{item.seuil_alerte_ml ?? '—'} ml</td>
+                    <td className="px-5 py-3">
+                      {item.actif
+                        ? <CheckCircle2 size={15} className="text-emerald-400" />
+                        : <AlertTriangle size={15} className="text-red-400" />
+                      }
                     </td>
                     <td className="px-5 py-3">
                       <div className="flex gap-1.5">
-                        <button onClick={() => openEdit(item)} className="p-1.5 rounded-lg hover:bg-white/5 text-foreground/40 hover:text-gold transition-colors">
-                          <Edit2 size={14} />
-                        </button>
-                        <button onClick={() => handleDelete(item.id)} className="p-1.5 rounded-lg hover:bg-red-500/10 text-foreground/40 hover:text-red-400 transition-colors">
-                          <Trash2 size={14} />
-                        </button>
+                        {permissions.canUpdate && (
+                          <button onClick={() => openEdit(item)} className="p-1.5 rounded-lg hover:bg-white/5 text-foreground/40 hover:text-gold transition-colors">
+                            <Edit2 size={14} />
+                          </button>
+                        )}
+                        {permissions.canDelete && (
+                          <button onClick={() => handleDelete(item.id)} className="p-1.5 rounded-lg hover:bg-red-500/10 text-foreground/40 hover:text-red-400 transition-colors">
+                            <Trash2 size={14} />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -219,7 +250,6 @@ function IngredientsTab() {
             <div className="space-y-3">
               {[
                 { label: 'Nom *', field: 'nom', placeholder: 'Ex: Huile de Rose' },
-                { label: 'Code Référence', field: 'code_reference', placeholder: 'Ex: ING-ROSE-001' },
                 { label: 'Description', field: 'description', placeholder: 'Description de l\'ingrédient' },
               ].map(f => (
                 <div key={f.field}>
@@ -234,14 +264,13 @@ function IngredientsTab() {
               ))}
               <div className="grid grid-cols-3 gap-3">
                 {[
-                  { label: 'Unité', field: 'unite', placeholder: 'ml, g, kg' },
-                  { label: 'Prix (FCFA)', field: 'prix_par_ml', placeholder: '500', type: 'number' },
-                  { label: 'Stock Disponible', field: 'stock_disponible', placeholder: '100', type: 'number' },
+                  { label: 'Prix / ml (FCFA) *', field: 'prix_par_ml', placeholder: '500' },
+                  { label: 'Stock (ml) *', field: 'stock_ml', placeholder: '100' },
+                  { label: 'Seuil alerte (ml)', field: 'seuil_alerte_ml', placeholder: '0' },
                 ].map(f => (
                   <div key={f.field}>
                     <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">{f.label}</label>
                     <input
-                      type={f.type || 'text'}
                       value={(form as any)[f.field]}
                       onChange={e => setForm(p => ({ ...p, [f.field]: e.target.value }))}
                       placeholder={f.placeholder}
@@ -250,6 +279,15 @@ function IngredientsTab() {
                   </div>
                 ))}
               </div>
+              <label className="flex items-center gap-2 cursor-pointer pt-1">
+                <input
+                  type="checkbox"
+                  checked={form.actif}
+                  onChange={e => setForm(p => ({ ...p, actif: e.target.checked }))}
+                  className="rounded border-white/10 bg-white/5 text-gold focus:ring-gold"
+                />
+                <span className="text-sm text-foreground/60">Ingrédient actif</span>
+              </label>
             </div>
             <div className="flex gap-3 mt-5">
               <button onClick={() => setShowModal(false)} className="flex-1 border border-white/10 rounded-lg py-2.5 text-sm text-foreground/60 hover:bg-white/5 transition-colors">
@@ -270,8 +308,12 @@ function IngredientsTab() {
 // ─── Lots Tab ─────────────────────────────────────────────────────────────────
 
 function LotsTab() {
+  const permissions = useCatalogPermissions('lots_essence');
   const [items, setItems] = useState<any[]>([]);
+  const [essences, setEssences] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [essenceFilter, setEssenceFilter] = useState('');
+  const [actifFilter, setActifFilter] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState<any | null>(null);
   const [saving, setSaving] = useState(false);
@@ -279,58 +321,73 @@ function LotsTab() {
 
   const [form, setForm] = useState({
     essence: '',
-    numero_lot: '',
-    quantite_ml: '',
-    date_fabrication: '',
-    date_expiration: '',
+    stock_ml: '',
+    seuil_alerte_ml: '',
+    reference_fournisseur: '',
     actif: true,
   });
 
   const fetchItems = useCallback(async () => {
+    if (!permissions.canRead) return;
     try {
       setLoading(true);
-      const data = await labService.getLotsEssence();
-      const list = Array.isArray(data) ? data : (data as any)?.results || (data as any)?.resultats || [];
-      setItems(list);
+      const params: Record<string, unknown> = {};
+      if (essenceFilter) params.essence = Number(essenceFilter);
+      if (actifFilter === 'true') params.actif = true;
+      if (actifFilter === 'false') params.actif = false;
+      const data = await labService.getLotsEssence(params);
+      setItems(extractCatalogList(data));
     } catch {
       addToast('Erreur lors du chargement des lots', 'error');
     } finally {
       setLoading(false);
     }
-  }, [addToast]);
+  }, [addToast, permissions.canRead, essenceFilter, actifFilter]);
 
-  useEffect(() => { fetchItems(); }, [fetchItems]);
+  useEffect(() => {
+    fetchItems();
+  }, [fetchItems]);
+
+  useEffect(() => {
+    labService.getEssences()
+      .then((data) => setEssences(extractCatalogList(data)))
+      .catch(() => {});
+  }, []);
 
   const openAdd = () => {
+    if (!permissions.canCreate) return;
     setEditing(null);
-    setForm({ essence: '', numero_lot: '', quantite_ml: '', date_fabrication: '', date_expiration: '', actif: true });
+    setForm({ essence: essences[0]?.id ? String(essences[0].id) : '', stock_ml: '', seuil_alerte_ml: '', reference_fournisseur: '', actif: true });
     setShowModal(true);
   };
 
   const openEdit = (item: any) => {
+    if (!permissions.canUpdate) return;
     setEditing(item);
     setForm({
       essence: String(item.essence || item.essence_id || ''),
-      numero_lot: item.numero_lot || '',
-      quantite_ml: String(item.quantite_ml || ''),
-      date_fabrication: item.date_fabrication?.split('T')[0] || '',
-      date_expiration: item.date_expiration?.split('T')[0] || '',
+      stock_ml: String(item.stock_ml ?? item.quantite_ml ?? ''),
+      seuil_alerte_ml: String(item.seuil_alerte_ml ?? ''),
+      reference_fournisseur: item.reference_fournisseur || '',
       actif: item.actif !== undefined ? item.actif : true,
     });
     setShowModal(true);
   };
 
   const handleSave = async () => {
-    if (!form.essence || !form.numero_lot || !form.quantite_ml) {
-      addToast('Essence, Numéro de lot et Quantité requis', 'error'); return;
+    if (!permissions.canCreate && !permissions.canUpdate) return;
+    if (!form.essence || !form.stock_ml) {
+      addToast('Essence et stock (ml) requis', 'error'); return;
     }
     try {
       setSaving(true);
-      const payload = {
-        ...form,
+      const payload: Record<string, unknown> = {
         essence: Number(form.essence),
-        quantite_ml: Number(form.quantite_ml),
+        stock_ml: form.stock_ml,
+        actif: form.actif,
       };
+      if (form.seuil_alerte_ml) payload.seuil_alerte_ml = form.seuil_alerte_ml;
+      if (form.reference_fournisseur) payload.reference_fournisseur = form.reference_fournisseur;
       if (editing) {
         await labService.updateLotEssence(editing.id, payload);
         addToast('Lot mis à jour', 'success');
@@ -348,6 +405,7 @@ function LotsTab() {
   };
 
   const handleDelete = async (id: number) => {
+    if (!permissions.canDelete) return;
     if (!confirm('Supprimer ce lot ?')) return;
     try {
       await labService.deleteLotEssence(id);
@@ -358,17 +416,44 @@ function LotsTab() {
     }
   };
 
+  if (!permissions.canRead) {
+    return <CatalogAccessNotice permissions={permissions} resourceLabel="les lots d'essence" />;
+  }
+
   return (
     <div className="space-y-5">
-      <div className="flex justify-between items-center">
-        <p className="text-sm text-foreground/40">{items.length} lot(s) enregistré(s)</p>
+      <CatalogAccessNotice permissions={permissions} resourceLabel="les lots d'essence" />
+      <div className="flex flex-wrap justify-between items-center gap-3">
+        <div className="flex flex-wrap gap-2">
+          <select
+            value={essenceFilter}
+            onChange={e => setEssenceFilter(e.target.value)}
+            className="text-sm bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-foreground outline-none focus:border-gold"
+          >
+            <option value="">Toutes les essences</option>
+            {essences.map(e => (
+              <option key={e.id} value={e.id}>{e.nom}</option>
+            ))}
+          </select>
+          <select
+            value={actifFilter}
+            onChange={e => setActifFilter(e.target.value)}
+            className="text-sm bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-foreground outline-none focus:border-gold"
+          >
+            <option value="">Tous les statuts</option>
+            <option value="true">Actifs</option>
+            <option value="false">Inactifs</option>
+          </select>
+        </div>
         <div className="flex gap-2">
           <button onClick={fetchItems} className="p-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 text-foreground/60 hover:text-foreground transition-all">
             <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
           </button>
-          <button onClick={openAdd} className="flex items-center gap-2 bg-gold text-black px-4 py-2.5 rounded-xl text-sm font-bold hover:bg-gold/80 transition-all shadow-lg shadow-gold/10">
-            <Plus size={15} /> Nouveau lot
-          </button>
+          {permissions.canCreate && (
+            <button onClick={openAdd} className="flex items-center gap-2 bg-gold text-black px-4 py-2.5 rounded-xl text-sm font-bold hover:bg-gold/80 transition-all shadow-lg shadow-gold/10">
+              <Plus size={15} /> Nouveau lot
+            </button>
+          )}
         </div>
       </div>
 
@@ -382,52 +467,45 @@ function LotsTab() {
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="border-b border-white/10 bg-white/5">
-                  {['Numéro Lot', 'Essence ID', 'Quantité (ml)', 'Fabrication', 'Expiration', 'Actif', 'Actions'].map(h => (
+                  {['Réf. fournisseur', 'Essence', 'Stock (ml)', 'Seuil alerte', 'Réception', 'Actif', 'Actions'].map(h => (
                     <th key={h} className="px-5 py-3.5 text-xs font-semibold text-foreground/40 uppercase tracking-wider">{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
-                {items.map(item => {
-                  const expDate = item.date_expiration ? new Date(item.date_expiration) : null;
-                  const isExpired = expDate ? expDate < new Date() : false;
-                  return (
-                    <tr key={item.id} className="hover:bg-white/5 transition-colors">
-                      <td className="px-5 py-3 font-mono text-sm text-gold font-bold">{item.numero_lot}</td>
-                      <td className="px-5 py-3 text-sm text-foreground/60">
-                        {item.essence_details?.nom || `ID: ${item.essence || item.essence_id || '—'}`}
-                      </td>
-                      <td className="px-5 py-3 font-semibold text-foreground text-sm">{Number(item.quantite_ml || 0).toLocaleString()} ml</td>
-                      <td className="px-5 py-3 text-xs text-foreground/40">
-                        {item.date_fabrication ? new Date(item.date_fabrication).toLocaleDateString('fr-FR') : '—'}
-                      </td>
-                      <td className="px-5 py-3 text-xs">
-                        {expDate ? (
-                          <span className={isExpired ? 'text-red-400' : 'text-foreground/40'}>
-                            {expDate.toLocaleDateString('fr-FR')}
-                            {isExpired && ' ⚠️'}
-                          </span>
-                        ) : '—'}
-                      </td>
-                      <td className="px-5 py-3">
-                        {item.actif
-                          ? <CheckCircle2 size={15} className="text-emerald-400" />
-                          : <AlertTriangle size={15} className="text-red-400" />
-                        }
-                      </td>
-                      <td className="px-5 py-3">
-                        <div className="flex gap-1.5">
+                {items.map(item => (
+                  <tr key={item.id} className="hover:bg-white/5 transition-colors">
+                    <td className="px-5 py-3 font-mono text-sm text-gold font-bold">{item.reference_fournisseur || item.numero_lot || '—'}</td>
+                    <td className="px-5 py-3 text-sm text-foreground/60">
+                      {item.essence_details?.nom || `ID: ${item.essence || '—'}`}
+                    </td>
+                    <td className="px-5 py-3 font-semibold text-foreground text-sm">{Number(item.stock_ml ?? item.quantite_ml ?? 0).toLocaleString()} ml</td>
+                    <td className="px-5 py-3 text-sm text-foreground/60">{item.seuil_alerte_ml ? `${item.seuil_alerte_ml} ml` : '—'}</td>
+                    <td className="px-5 py-3 text-xs text-foreground/40">
+                      {item.date_reception ? new Date(item.date_reception).toLocaleDateString('fr-FR') : '—'}
+                    </td>
+                    <td className="px-5 py-3">
+                      {item.actif
+                        ? <CheckCircle2 size={15} className="text-emerald-400" />
+                        : <AlertTriangle size={15} className="text-red-400" />
+                      }
+                    </td>
+                    <td className="px-5 py-3">
+                      <div className="flex gap-1.5">
+                        {permissions.canUpdate && (
                           <button onClick={() => openEdit(item)} className="p-1.5 rounded-lg hover:bg-white/5 text-foreground/40 hover:text-gold transition-colors">
                             <Edit2 size={14} />
                           </button>
+                        )}
+                        {permissions.canDelete && (
                           <button onClick={() => handleDelete(item.id)} className="p-1.5 rounded-lg hover:bg-red-500/10 text-foreground/40 hover:text-red-400 transition-colors">
                             <Trash2 size={14} />
                           </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
                 {items.length === 0 && (
                   <tr>
                     <td colSpan={7} className="text-center py-16 text-foreground/40 italic text-sm">Aucun lot enregistré.</td>
@@ -444,39 +522,49 @@ function LotsTab() {
           <div className="bg-background rounded-2xl p-6 w-full max-w-md shadow-2xl border border-white/10">
             <h3 className="font-bold text-foreground mb-4">{editing ? 'Modifier le lot' : 'Créer un lot'}</h3>
             <div className="space-y-3">
-              <div className="grid grid-cols-2 gap-3">
-                {[
-                  { label: 'ID Essence *', field: 'essence', placeholder: '1', type: 'number' },
-                  { label: 'Numéro de Lot *', field: 'numero_lot', placeholder: 'LOT-2026-001' },
-                  { label: 'Quantité (ml) *', field: 'quantite_ml', placeholder: '5000', type: 'number' },
-                ].map(f => (
-                  <div key={f.field} className={f.field === 'numero_lot' ? 'col-span-2' : ''}>
-                    <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">{f.label}</label>
-                    <input
-                      type={f.type || 'text'}
-                      value={(form as any)[f.field]}
-                      onChange={e => setForm(p => ({ ...p, [f.field]: e.target.value }))}
-                      placeholder={f.placeholder}
-                      className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
-                    />
-                  </div>
-                ))}
+              <div>
+                <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Essence *</label>
+                <select
+                  value={form.essence}
+                  onChange={e => setForm(p => ({ ...p, essence: e.target.value }))}
+                  className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
+                >
+                  <option value="" disabled>Sélectionner une essence</option>
+                  {essences.map(e => (
+                    <option key={e.id} value={e.id}>{e.nom} ({e.code_reference})</option>
+                  ))}
+                </select>
               </div>
               <div className="grid grid-cols-2 gap-3">
-                {[
-                  { label: 'Date Fabrication', field: 'date_fabrication', type: 'date' },
-                  { label: 'Date Expiration', field: 'date_expiration', type: 'date' },
-                ].map(f => (
-                  <div key={f.field}>
-                    <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">{f.label}</label>
-                    <input
-                      type={f.type}
-                      value={(form as any)[f.field]}
-                      onChange={e => setForm(p => ({ ...p, [f.field]: e.target.value }))}
-                      className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
-                    />
-                  </div>
-                ))}
+                <div>
+                  <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Stock reçu (ml) *</label>
+                  <input
+                    type="number"
+                    value={form.stock_ml}
+                    onChange={e => setForm(p => ({ ...p, stock_ml: e.target.value }))}
+                    placeholder="500"
+                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Seuil alerte (ml)</label>
+                  <input
+                    type="number"
+                    value={form.seuil_alerte_ml}
+                    onChange={e => setForm(p => ({ ...p, seuil_alerte_ml: e.target.value }))}
+                    placeholder="50"
+                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Référence fournisseur</label>
+                <input
+                  value={form.reference_fournisseur}
+                  onChange={e => setForm(p => ({ ...p, reference_fournisseur: e.target.value }))}
+                  placeholder="LOT-GRASSET-PATCH-09"
+                  className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
+                />
               </div>
               <label className="flex items-center gap-2 cursor-pointer pt-1">
                 <input
@@ -702,43 +790,43 @@ export default function LabPage() {
 
   return (
     <div className="space-y-6 animate-fade-in-up">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">Laboratoire</h1>
-        <p className="text-sm text-foreground/40 mt-0.5">
-          Gestion des ingrédients, des lots de production et de l'inventaire labo
-        </p>
-      </div>
+            {/* Header */}
+            <div>
+              <h1 className="text-2xl font-bold text-foreground">Laboratoire</h1>
+              <p className="text-sm text-foreground/40 mt-0.5">
+                Gestion des ingrédients, des lots de production et de l'inventaire labo
+              </p>
+            </div>
 
-      {/* Tabs */}
-      <div className="bg-white/5 rounded-2xl border border-white/10 overflow-hidden shadow-xl">
-        <div className="flex border-b border-white/10 overflow-x-auto">
-          <TabButton
-            active={activeTab === 'ingredients'}
-            onClick={() => setActiveTab('ingredients')}
-            icon={<FlaskConical size={14} />}
-            label="Ingrédients"
-          />
-          <TabButton
-            active={activeTab === 'lots'}
-            onClick={() => setActiveTab('lots')}
-            icon={<Layers size={14} />}
-            label="Lots de Production"
-          />
-          <TabButton
-            active={activeTab === 'inventory'}
-            onClick={() => setActiveTab('inventory')}
-            icon={<Package size={14} />}
-            label="Inventaire Labo"
-          />
-        </div>
+            {/* Tabs */}
+            <div className="bg-white/5 rounded-2xl border border-white/10 overflow-hidden shadow-xl">
+              <div className="flex border-b border-white/10 overflow-x-auto">
+                <TabButton
+                  active={activeTab === 'ingredients'}
+                  onClick={() => setActiveTab('ingredients')}
+                  icon={<FlaskConical size={14} />}
+                  label="Ingrédients"
+                />
+                <TabButton
+                  active={activeTab === 'lots'}
+                  onClick={() => setActiveTab('lots')}
+                  icon={<Layers size={14} />}
+                  label="Lots de Production"
+                />
+                <TabButton
+                  active={activeTab === 'inventory'}
+                  onClick={() => setActiveTab('inventory')}
+                  icon={<Package size={14} />}
+                  label="Inventaire Labo"
+                />
+              </div>
 
-        <div className="p-6">
-          {activeTab === 'ingredients' && <IngredientsTab />}
-          {activeTab === 'lots' && <LotsTab />}
-          {activeTab === 'inventory' && <InventoryTab />}
-        </div>
-      </div>
+              <div className="p-6">
+                {activeTab === 'ingredients' && <IngredientsTab />}
+                {activeTab === 'lots' && <LotsTab />}
+                {activeTab === 'inventory' && <InventoryTab />}
+              </div>
+            </div>
     </div>
   );
 }

@@ -4,12 +4,18 @@ import { useState, useEffect, useCallback } from 'react';
 import { Loader2, Edit2, Trash2, Plus, Search } from 'lucide-react';
 import { shopService } from '@/services/apiService';
 import { useToastStore } from '@/store/useToastStore';
+import { useCatalogPermissions } from '@/hooks/useCatalogPermissions';
+import CatalogAccessNotice from '@/components/catalog/CatalogAccessNotice';
+import { extractCatalogList } from '@/lib/catalogUtils';
 
 export default function FlaconsAdminPage() {
+  const permissions = useCatalogPermissions('flacons');
   const [bottles, setBottles] = useState<any[]>([]);
   const [bottleTypes, setBottleTypes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [typeFilter, setTypeFilter] = useState('');
+  const [enStockFilter, setEnStockFilter] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [editingBottle, setEditingBottle] = useState<any | null>(null);
 
@@ -32,27 +38,30 @@ export default function FlaconsAdminPage() {
   const { addToast } = useToastStore();
 
   const fetchBottlesAndTypes = useCallback(async () => {
+    if (!permissions.canRead) return;
     try {
       setLoading(true);
+      const params: Record<string, unknown> = {};
+      if (search) params.search = search;
+      if (typeFilter) params.type_flacon = Number(typeFilter);
+      if (enStockFilter === 'true') params.en_stock = true;
+      if (enStockFilter === 'false') params.en_stock = false;
       const [bottlesData, typesData] = await Promise.all([
-        shopService.getBottles(),
+        shopService.getBottles(params),
         shopService.getBottleTypes()
       ]);
-      
-      const bottlesList = bottlesData.results || bottlesData.resultats || (Array.isArray(bottlesData) ? bottlesData : []);
-      const typesList = typesData.results || typesData.resultats || (Array.isArray(typesData) ? typesData : []);
-      
-      setBottles(bottlesList);
-      setBottleTypes(typesList);
-    } catch (error) {
+      setBottles(extractCatalogList(bottlesData));
+      setBottleTypes(extractCatalogList(typesData));
+    } catch {
       addToast('Erreur lors du chargement des flacons', 'error');
     } finally {
       setLoading(false);
     }
-  }, [addToast]);
+  }, [addToast, permissions.canRead, search, typeFilter, enStockFilter]);
 
   useEffect(() => {
-    fetchBottlesAndTypes();
+    const timer = setTimeout(fetchBottlesAndTypes, 300);
+    return () => clearTimeout(timer);
   }, [fetchBottlesAndTypes]);
 
   const updateForm = (field: keyof typeof form, value: any) => {
@@ -60,6 +69,7 @@ export default function FlaconsAdminPage() {
   };
 
   const handleOpenAdd = () => {
+    if (!permissions.canCreate) return;
     setEditingBottle(null);
     setForm({
       nom: '',
@@ -80,6 +90,7 @@ export default function FlaconsAdminPage() {
   };
 
   const handleOpenEdit = (bot: any) => {
+    if (!permissions.canUpdate) return;
     setEditingBottle(bot);
     setForm({
       nom: bot.nom || '',
@@ -100,8 +111,9 @@ export default function FlaconsAdminPage() {
   };
 
   const handleSave = async () => {
-    if (!form.nom || !form.reference_sku || !form.type_flacon) {
-      addToast('Champs requis : Nom, SKU, Type Flacon', 'error');
+    if (!permissions.canCreate && !permissions.canUpdate) return;
+    if (!form.nom || !form.type_flacon) {
+      addToast('Champs requis : Nom, Type Flacon', 'error');
       return;
     }
 
@@ -130,6 +142,7 @@ export default function FlaconsAdminPage() {
   };
 
   const handleDelete = async (id: number) => {
+    if (!permissions.canDelete) return;
     if (!confirm('Êtes-vous sûr de vouloir supprimer ce flacon ?')) return;
     try {
       await shopService.deleteBottle(id);
@@ -140,10 +153,13 @@ export default function FlaconsAdminPage() {
     }
   };
 
-  const filtered = bottles.filter(b => 
-    b.nom?.toLowerCase().includes(search.toLowerCase()) || 
-    b.reference_sku?.toLowerCase().includes(search.toLowerCase())
-  );
+  if (!permissions.canRead) {
+    return (
+      <div className="space-y-6">
+        <CatalogAccessNotice permissions={permissions} resourceLabel="les flacons" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -152,19 +168,44 @@ export default function FlaconsAdminPage() {
           <h1 className="text-2xl font-bold text-foreground">Catalogue Flacons</h1>
           <p className="text-sm text-foreground/40 mt-0.5">Gestion des types et volumes de flacons</p>
         </div>
-        <button onClick={handleOpenAdd} className="flex items-center gap-2 bg-gold text-black px-4 py-2.5 rounded-xl text-sm font-medium hover:bg-gold/80 transition-all shadow-lg">
-          <Plus size={16} /> Ajouter
-        </button>
+        {permissions.canCreate && (
+          <button onClick={handleOpenAdd} className="flex items-center gap-2 bg-gold text-black px-4 py-2.5 rounded-xl text-sm font-medium hover:bg-gold/80 transition-all shadow-lg">
+            <Plus size={16} /> Ajouter
+          </button>
+        )}
       </div>
 
-      <div className="bg-white/5 rounded-2xl border border-white/10 p-4 shadow-2xl flex items-center gap-2 w-full max-w-md">
-        <Search size={15} className="text-foreground/40" />
-        <input
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          placeholder="Rechercher un flacon..."
-          className="text-sm bg-transparent outline-none flex-1 text-foreground placeholder:text-foreground/40"
-        />
+      <CatalogAccessNotice permissions={permissions} resourceLabel="les flacons" />
+
+      <div className="bg-white/5 rounded-2xl border border-white/10 p-4 shadow-2xl flex flex-wrap items-center gap-3">
+        <div className="flex items-center gap-2 flex-1 min-w-48">
+          <Search size={15} className="text-foreground/40" />
+          <input
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Rechercher un flacon..."
+            className="text-sm bg-transparent outline-none flex-1 text-foreground placeholder:text-foreground/40"
+          />
+        </div>
+        <select
+          value={typeFilter}
+          onChange={e => setTypeFilter(e.target.value)}
+          className="text-sm bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-foreground outline-none focus:border-gold"
+        >
+          <option value="">Tous les types</option>
+          {bottleTypes.map(t => (
+            <option key={t.id} value={t.id}>{t.nom}</option>
+          ))}
+        </select>
+        <select
+          value={enStockFilter}
+          onChange={e => setEnStockFilter(e.target.value)}
+          className="text-sm bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-foreground outline-none focus:border-gold"
+        >
+          <option value="">Stock (tous)</option>
+          <option value="true">En stock</option>
+          <option value="false">Stock faible</option>
+        </select>
       </div>
 
       <div className="bg-white/5 rounded-2xl border border-white/10 shadow-2xl overflow-hidden min-h-[300px]">
@@ -187,7 +228,7 @@ export default function FlaconsAdminPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
-                {filtered.map(b => (
+                {bottles.map(b => (
                   <tr key={b.id} className="hover:bg-white/5 transition-colors group">
                     <td className="px-6 py-4 font-medium text-foreground">{b.nom}</td>
                     <td className="px-6 py-4 text-sm text-foreground/60">{b.reference_sku}</td>
@@ -196,17 +237,21 @@ export default function FlaconsAdminPage() {
                     <td className="px-6 py-4 text-sm text-gold font-bold">{b.prix_unitaire} FCFA</td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end gap-2">
-                        <button onClick={() => handleOpenEdit(b)} className="p-2 rounded-lg hover:bg-white/5 text-foreground/40 hover:text-gold transition-colors">
-                          <Edit2 size={16} />
-                        </button>
-                        <button onClick={() => handleDelete(b.id)} className="p-2 rounded-lg hover:bg-red-500/10 text-foreground/40 hover:text-red-400 transition-colors">
-                          <Trash2 size={16} />
-                        </button>
+                        {permissions.canUpdate && (
+                          <button onClick={() => handleOpenEdit(b)} className="p-2 rounded-lg hover:bg-white/5 text-foreground/40 hover:text-gold transition-colors">
+                            <Edit2 size={16} />
+                          </button>
+                        )}
+                        {permissions.canDelete && (
+                          <button onClick={() => handleDelete(b.id)} className="p-2 rounded-lg hover:bg-red-500/10 text-foreground/40 hover:text-red-400 transition-colors">
+                            <Trash2 size={16} />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
                 ))}
-                {filtered.length === 0 && (
+                {bottles.length === 0 && (
                   <tr>
                     <td colSpan={6} className="text-center py-20 text-foreground/40 italic">Aucun flacon trouvé.</td>
                   </tr>

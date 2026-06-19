@@ -219,7 +219,7 @@ export default function Home() {
   const [mounted, setMounted] = useState(false);
   const [bestsellers, setBestsellers] = useState<Product[]>([]);
   const [hotsellers, setHotsellers] = useState<Product[]>([]);
-  const [categories, setCategories] = useState<{id: number, name: string, type: string}[]>([]);
+  const [categories, setCategories] = useState<{ id: number; name: string; type: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState<string | number>('all');
 
@@ -235,7 +235,13 @@ export default function Home() {
         ]);
         setBestsellers(fetchedBestsellers);
         setHotsellers(fetchedHotsellers.slice(0, 4)); // Display first 4 hotsellers
-        setCategories(fetchedCategories);
+        setCategories(
+          (fetchedCategories ?? []).map((c: any, idx: number) => ({
+            id: typeof c?.id === 'number' ? c.id : idx + 1,
+            name: String(c?.name ?? c?.type ?? ''),
+            type: String(c?.type ?? c?.name ?? ''),
+          }))
+        );
       } catch (error) {
         console.error('Failed to fetch products for home page:', error);
       } finally {

@@ -20,7 +20,7 @@
 
 // ---- User & Auth ----
 
-export type UserRole = 'client' | 'admin' | 'delivery' | 'partner' | 'serveuse';
+export type UserRole = 'client' | 'superadmin' | 'delivery' | 'partner' | 'serveuse';
 
 export interface User {
   id: string;
@@ -29,6 +29,7 @@ export interface User {
   email: string;
   phone: string;
   role: UserRole;
+  roles: UserRole[];
   avatarUrl?: string;
   createdAt: string;
 }
@@ -102,6 +103,8 @@ export interface Product {
   slug?: string;
   isFeatured?: boolean;
   createdAt: string;
+  image_principale?: string;
+  image_supp_1?: string;
 }
 
 export interface Accessory extends Product {}
@@ -219,6 +222,66 @@ export interface Order {
   deliveredAt?: string;
 }
 
+// ---- Backend Order (API response format) ----
+
+export interface BackendOrderLine {
+  id: number;
+  parfum?: number;
+  accessoire?: number;
+  produit_fini_essence?: number;
+  parfum_personnalise?: number;
+  essence_personnalisee?: number;
+  nom_snapshot: string;
+  quantite: number;
+  prix_unitaire_snapshot: string;
+  remise_ligne: string;
+  sous_total: string;
+}
+
+export interface BackendOrder {
+  id: number;
+  numero_commande: string;
+  client: number;
+  client_email: string;
+  prestataire: number | null;
+  prestataire_code: string | null;
+  livreur: number | null;
+  livreur_nom: string | null;
+  statut: 'en_attente' | 'validé' | 'annulée' | 'remboursée';
+  statut_livraison: 'en_attente_affectation' | 'assignée' | 'livrée' | 'échouée';
+  statut_paiement: 'en_attente' | 'payé' | 'échoué';
+  sous_total: string;
+  remise_code_promo: string;
+  code_promo_utilise: string | null;
+  frais_livraison: string;
+  total_ttc: string;
+  commission_montant: string;
+  commission_statut: string;
+  livraison_nom_complet: string;
+  livraison_quartier: string | null;
+  livraison_ville: string | null;
+  livraison_telephone: string;
+  date_livraison_estimee: string | null;
+  date_livraison_reelle: string | null;
+  note_client: string;
+  note_interne: string;
+  motif_echec_livraison: string | null;
+  date_creation: string;
+  date_modification: string;
+  lignes_parfums: BackendOrderLine[];
+  lignes_accessoires: BackendOrderLine[];
+  lignes_produit_fini_essence: BackendOrderLine[];
+  lignes_parfums_perso: BackendOrderLine[];
+  lignes_essence_personnalisee: BackendOrderLine[];
+}
+
+export interface BackendOrdersPage {
+  count: number;
+  next: string | null;
+  previous: string | null;
+  results: BackendOrder[];
+}
+
 // ---- Promo / Partner ----
 
 export interface PromoCode {
@@ -244,6 +307,9 @@ export interface PartnerStats {
 
 // ---- Delivery ----
 
+export type DeliveryMethod = 'delivery' | 'pickup';
+export type DeliveryStatus = 'en_attente_affectation' | 'assignée' | 'en_cours' | 'livrée' | 'échouée';
+
 export interface DeliveryTask {
   orderId: string;
   clientName: string;
@@ -253,6 +319,40 @@ export interface DeliveryTask {
   assignedAt: string;
   status: 'assigned' | 'in_transit' | 'delivering' | 'delivered' | 'failed';
   deliveryAddress?: string;
+}
+
+export interface OrderDeliveryDetails {
+  method: DeliveryMethod;
+  status: DeliveryStatus;
+  livreurId?: number;
+  livreurNom?: string;
+  livreurTelephone?: string;
+  adressePickup?: string;
+  adresseDelivery: string;
+  dateEstimee?: string;
+  dateReelle?: string;
+  motifEchec?: string;
+}
+
+export interface OrderDetailsResponse extends BackendOrder {
+  deliveryDetails?: OrderDeliveryDetails;
+}
+
+export interface AdminOrderValidation {
+  deliveryMethod: DeliveryMethod;
+  livreurId?: number;
+  dateEstimee?: string;
+  notes?: string;
+}
+
+export interface AdminOrderCancellation {
+  reason?: string;
+}
+
+export interface OrderStatusUpdate {
+  status: OrderStatus;
+  motif?: string;
+  livreurId?: number;
 }
 
 // ---- AI / Gemini ----
@@ -281,4 +381,255 @@ export interface NavLink {
   href: string;
   icon?: string;
   roles?: UserRole[]; // which roles can see this link
+}
+
+// ---- Catalog: Shop ----
+
+export type GenreCible = 'homme' | 'femme' | 'mixte';
+export type Intensite = 'légère' | 'moyenne' | 'forte' | 'très forte';
+export type TagType = 'famille_olfactive' | 'humeur' | 'saison' | 'occasion' | 'signe_astrologique' | 'moment_journee';
+
+export interface TagEssence {
+  id: number;
+  nom: string;
+  slug: string;
+  type: TagType;
+}
+
+export interface CategorieAccessoire {
+  id: number;
+  nom: string;
+  slug: string;
+  description?: string;
+}
+
+export interface TypeFlacon {
+  id: number;
+  nom: string;
+  slug: string;
+  description?: string;
+}
+
+export interface Parfum {
+  id: number;
+  marque: string;
+  nom: string;
+  slug: string;
+  reference_sku?: string;
+  description_courte?: string;
+  contenance_ml: number;
+  prix_unitaire: string;
+  prix_actuel: string;
+  prix_promotionnel?: string;
+  taux_reduction?: string;
+  en_promotion: boolean;
+  genre_cible: GenreCible;
+  intensite?: Intensite;
+  notes_tete?: string;
+  notes_coeur?: string;
+  notes_fond?: string;
+  tags: TagEssence[];
+  famille_olfactive?: string[];
+  humeurs_compatibles?: string[];
+  occasions?: string[];
+  saisons_compatibles?: string[];
+  est_nouveau: boolean;
+  est_bestseller: boolean;
+  image_principale: string;
+  image_supp_1?: string;
+  image_supp_2?: string;
+  image_supp_3?: string;
+  image_supp_4?: string;
+  stock_quantite: number;
+  date_creation: string;
+  date_modification?: string;
+  produits_similaires?: Parfum[];
+  is_favori: boolean;
+  categorie: number;
+}
+
+export interface Accessoire {
+  id: number;
+  marque: string;
+  nom: string;
+  slug: string;
+  reference_sku?: string;
+  type_accessoire: CategorieAccessoire | number;
+  description_courte?: string;
+  description_longue?: string;
+  matiere?: string;
+  couleur?: string;
+  taille?: string;
+  prix_unitaire: string;
+  prix_actuel: string;
+  prix_promotionnel?: string;
+  taux_reduction?: string;
+  en_promotion: boolean;
+  stock_quantite: number;
+  seuil_alerte_stock: number;
+  poids_grammes?: string;
+  image_principale: string;
+  image_supp_1?: string;
+  image_supp_2?: string;
+  image_supp_3?: string;
+  image_supp_4?: string;
+  actif: boolean;
+  est_bestseller: boolean;
+  est_hotseller: boolean;
+  date_creation: string;
+  date_modification: string;
+  produits_similaires?: Accessoire[];
+  is_favori: boolean;
+}
+
+export interface Flacon {
+  id: number;
+  nom: string;
+  type_flacon: TypeFlacon | number;
+  contenance_ml: number;
+  matiere?: string;
+  couleur?: string;
+  hauteur_cm?: string;
+  largeur_cm?: string;
+  poids_grammes?: string;
+  prix_unitaire: string;
+  stock_quantite: number;
+  seuil_alerte_stock: number;
+  image_principale?: string;
+  actif: boolean;
+  date_creation: string;
+}
+
+export interface EssenceDetails {
+  id: number;
+  marque: string;
+  nom: string;
+  slug: string;
+  categorie: string;
+  code_reference: string;
+  description?: string;
+  prix_par_ml: string;
+  actif: boolean;
+  stock_total_ml: string;
+}
+
+export interface ProduitFiniEssence {
+  id: number;
+  essence: number | EssenceDetails;
+  essence_details?: EssenceDetails;
+  taille_ml: number;
+  prix: string;
+  prix_actuel: string;
+  prix_promotionnel?: string;
+  prix_par_ml: string;
+  stock_disponible: number;
+  stock_precedent?: number;
+  actif: boolean;
+  image_principale?: string;
+  image_supp_1?: string;
+  image_supp_2?: string;
+  image_supp_3?: string;
+  image_supp_4?: string;
+}
+
+// ---- Catalog: Lab ----
+
+export interface Essence {
+  id: number;
+  marque: string;
+  nom: string;
+  slug: string;
+  categorie: string;
+  code_reference: string;
+  description?: string;
+  prix_par_ml: string;
+  actif: boolean;
+  tags: TagEssence[];
+  famille_olfactive?: string[];
+  stock_total_ml: string;
+  date_creation: string;
+  date_modification?: string;
+}
+
+export interface LotEssence {
+  id: number;
+  essence: number | EssenceDetails;
+  essence_details?: EssenceDetails;
+  stock_ml: string;
+  stock_precedent_ml?: string;
+  seuil_alerte_ml?: string;
+  actif: boolean;
+  date_reception: string;
+  reference_fournisseur?: string;
+}
+
+export interface Ingredient {
+  id: number;
+  nom: string;
+  slug: string;
+  description?: string;
+  prix_par_ml: string;
+  stock_ml: string;
+  seuil_alerte_ml: string;
+  actif: boolean;
+  date_creation: string;
+  date_modification?: string;
+}
+
+// ---- Pagination ----
+
+export interface PaginatedResponse<T> {
+  count: number;
+  next: string | null;
+  previous: string | null;
+  results: T[];
+}
+
+// ---- Filter Parameters ----
+
+export interface PerfumeFilterParams {
+  search?: string;
+  ordering?: string;
+  marque?: string;
+  genre?: GenreCible;
+  intensite?: Intensite;
+  contenance_ml?: number;
+  prix_min?: number;
+  prix_max?: number;
+  est_nouveau?: boolean;
+  est_bestseller?: boolean;
+  famille_olfactive?: string;
+  humeur?: string;
+  saison?: string;
+  occasion?: string;
+  tags?: string; // comma-separated IDs
+  page?: number;
+}
+
+export interface AccessoireFilterParams {
+  search?: string;
+  ordering?: string;
+  marque?: string;
+  type_accessoire?: number;
+  type_nom?: string;
+  prix_min?: number;
+  prix_max?: number;
+  couleur?: string;
+  matiere?: string;
+  taille?: string;
+  en_stock?: boolean;
+  page?: number;
+}
+
+export interface EssenceFilterParams {
+  genre?: GenreCible;
+  intensite?: Intensite;
+  prix_min?: number;
+  prix_max?: number;
+  stock_min?: number;
+  famille_olfactive?: string;
+  humeur?: string;
+  saison?: string;
+  occasion?: string;
+  page?: number;
 }

@@ -20,25 +20,29 @@ import type { UserRole } from '@/types';
 
 export function useRole() {
   const { user, isAuthenticated, isLoading } = useAuthStore();
+  const roles = user?.roles || (user?.role ? [user.role] : []);
 
   const hasRole = (role: UserRole) => {
-    return isAuthenticated && user?.role === role;
+    return isAuthenticated && roles.includes(role);
   };
 
   const isAnyOf = (roles: UserRole[]) => {
-    return isAuthenticated && !!user && roles.includes(user.role);
+    return isAuthenticated && !!user && roles.some((role) => hasRole(role));
   };
 
   return {
     user,
     role: user?.role,
+    roles,
     isAuthenticated,
     isLoading,
     hasRole,
     isAnyOf,
-    isAdmin: hasRole('admin'),
+    isAdmin: hasRole('superadmin'),
+    isServeuse: hasRole('serveuse'),
     isClient: hasRole('client'),
     isPartner: hasRole('partner'),
     isDelivery: hasRole('delivery'),
+    isStaff: isAuthenticated && (hasRole('superadmin') || hasRole('serveuse')),
   };
 }

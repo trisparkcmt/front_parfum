@@ -14,10 +14,11 @@ async function _loadPerfumeCategories() {
     const categories = Array.isArray(response) ? response : (response.results || response.resultats || []);
     _perfumeCategoriesMap = new Map();
     categories.forEach((cat: any) => {
-      // Assuming cat.id is the number and cat.nom is the string name from the backend
-      const frontendCategory: ProductCategory = cat.nom?.toLowerCase().includes('dupe') ? 'perfume-dupe' :
-                                                cat.nom?.toLowerCase().includes('numba') ? 'numba-creation' :
-                                                'perfume-brand'; // Default for other categories
+      const nomLower = cat.nom?.toLowerCase() || '';
+      const frontendCategory: ProductCategory = 
+        nomLower.includes('dupe') || nomLower.includes('inspiration') ? 'perfume-dupe' :
+        nomLower.includes('numba') ? 'numba-creation' :
+        'perfume-brand';
       _perfumeCategoriesMap?.set(cat.id, frontendCategory);
       _perfumeCategoryNames.set(cat.id, cat.nom);
     });
@@ -56,23 +57,7 @@ export function mapBackendPerfumeToProduct(p: any): Product {
     category = 'numba-creation';
   }
 
-  // Handle images
-  const images = [];
-  if (p.image_principale) {
-    images.push(p.image_principale);
-  }
-  if (Array.isArray(p.images_supplementaires)) {
-    p.images_supplementaires.forEach((img: any) => {
-      if (img.image) {
-        images.push(img.image);
-      } else if (typeof img === 'string') {
-        images.push(img);
-      }
-    });
-  }
-  if (images.length === 0) {
-    images.push('/parfume1.png');
-  }
+  const images = collectProductImages(p);
 
   // Parse notes
   const top = p.notes_tete ? p.notes_tete.split(',').map((s: string) => s.trim()) : [];
@@ -104,14 +89,20 @@ export function mapBackendPerfumeToProduct(p: any): Product {
     slug: p.slug || '',
     isFeatured: p.est_bestseller || p.est_nouveau || false,
     createdAt: p.date_creation || new Date().toISOString(),
+    image_principale: p.image_principale || images[0],
+    image_supp_1: p.image_supp_1 || images[1],
   };
 }
 
-// Helper to map backend accessory to frontend Product model
-export function mapBackendAccessoryToProduct(p: any): Product {
-  const images = [];
+function collectProductImages(p: any): string[] {
+  const images: string[] = [];
   if (p.image_principale) {
     images.push(p.image_principale);
+  }
+  for (const key of ['image_supp_1', 'image_supp_2', 'image_supp_3', 'image_supp_4'] as const) {
+    if (p[key]) {
+      images.push(p[key]);
+    }
   }
   if (Array.isArray(p.images_supplementaires)) {
     p.images_supplementaires.forEach((img: any) => {
@@ -125,6 +116,12 @@ export function mapBackendAccessoryToProduct(p: any): Product {
   if (images.length === 0) {
     images.push('/parfume1.png');
   }
+  return images;
+}
+
+// Helper to map backend accessory to frontend Product model
+export function mapBackendAccessoryToProduct(p: any): Product {
+  const images = collectProductImages(p);
 
   // Determine subCategory
   let subCategory: AccessorySubCategory = 'other';
@@ -164,6 +161,8 @@ export function mapBackendAccessoryToProduct(p: any): Product {
     slug: p.slug || '',
     isFeatured: p.est_bestseller || false,
     createdAt: p.date_creation || new Date().toISOString(),
+    image_principale: p.image_principale || images[0],
+    image_supp_1: p.image_supp_1 || images[1],
   };
 }
 
@@ -363,16 +362,60 @@ export const productService = {
   },
 
   /**
-   * Fetch all perfume categories from backend
+   * Fetch all accessory types from backend
    */
-  async getPerfumeCategories(): Promise<{id: number, name: string, type: ProductCategory}[]> {
-    await _loadPerfumeCategories();
+  async getAccessoryTypes(): Promise<{id: number, name: string, subcategory: AccessorySubCategory}[]> {
+    const response = await apiShopService.getAccessoryTypes();
+    const results = Array.isArray(response) ? response : (response.results || response.resultats || []);
+
+    return results.map((type: any) => {
+      const nom = type.nom?.toLowerCase() || '';
+      let subcategory: AccessorySubCategory = 'other';
+
+      if (nom.includes('montre') || nom.includes('watch')) {
+        subcategory = 'watches';
+      } else if (nom.includes('bijou') || nom.includes('jewelry') || nom.includes('collier') || nom.includes('bracelet') || nom.includes('bague')) {
+        subcategory = 'jewelry';
+      } else if (nom.includes('sac') || nom.includes('bag')) {
+        subcategory = 'bags';
+      } else if (nom.includes('lunette') || nom.includes('glass')) {
+        subcategory = 'sunglasses';
+      } else if (nom.includes('ceinture') || nom.includes('belt')) {
+        subcategory = 'belts';
+      }
+
+      return {
+        id: type.id,
+        name: type.nom,
+        subcategory
+      };
+    });
+  },
+
+  async getPerfumeCategories(): Promise<{ name: string; type: string }[]> {
     const response = await apiShopService.getPerfumeCategories();
     const results = Array.isArray(response) ? response : (response.results || response.resultats || []);
-    return results.map((cat: any) => ({
-      id: cat.id,
-      name: cat.nom,
-      type: _perfumeCategoriesMap?.get(cat.id) || 'perfume-brand'
-    }));
+    
+    const categoriesMap = new Map<string, { name: string; type: string }>();
+    
+    results.forEach((cat: any) => {
+      const nomLower = cat.nom?.toLowerCase() || '';
+      let type = 'perfume-brand';
+      
+      if (nomLower.includes('dupe') || nomLower.includes('inspiration')) {
+        type = 'perfume-dupe';
+      } else if (nomLower.includes('numba')) {
+        type = 'numba-creation';
+      }
+      
+      categoriesMap.set(type, { name: type, type });
+    });
+    
+    // Always guarantee that 'numba-creation' is present in the tabs
+    if (!categoriesMap.has('numba-creation')) {
+      categoriesMap.set('numba-creation', { name: 'numba-creation', type: 'numba-creation' });
+    }
+    
+    return Array.from(categoriesMap.values());
   }
-};
+}

@@ -38,10 +38,12 @@ const menuItems: NavItem[] = [
 ];
 
 const boutiqueItems: NavItem[] = [
-  { label: 'Commandes', icon: <ShoppingCart size={18} />, href: '/dashboard/admin/order' },
+  { label: 'Gestion des Commandes', icon: <ShoppingCart size={18} />, href: '/dashboard/admin/orders' },
+  { label: 'Commandes (Legacy)', icon: <ShoppingCart size={18} />, href: '/dashboard/admin/order' },
   { label: 'Parfums', icon: <Sparkles size={18} />, href: '/dashboard/admin/perfume' },
   { label: 'Catégories', icon: <Package size={18} />, href: '/dashboard/admin/categories' },
   { label: 'Essences', icon: <Droplets size={18} />, href: '/dashboard/admin/essences' },
+  { label: 'Produits Essence', icon: <Droplets size={18} />, href: '/dashboard/admin/produits-essence' },
   { label: 'Laboratoire', icon: <Cpu size={18} />, href: '/dashboard/admin/lab' },
   { label: 'Flacons', icon: <Package size={18} />, href: '/dashboard/admin/flacons' },
   { label: 'Accessoires', icon: <Gem size={18} />, href: '/dashboard/admin/accessories' },

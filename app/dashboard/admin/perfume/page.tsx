@@ -5,17 +5,26 @@ import { Loader2, Edit2, Trash2, Plus, Search, Image as ImageIcon } from 'lucide
 import { shopService } from '@/services/apiService';
 import { adminService } from '@/services/apiService';
 import { useToastStore } from '@/store/useToastStore';
-import ImageUploader from '@/components/admin/ImageUploader';
+import { useCatalogPermissions } from '@/hooks/useCatalogPermissions';
+import CatalogAccessNotice from '@/components/catalog/CatalogAccessNotice';
+import { extractCatalogList } from '@/lib/catalogUtils';
+import { MultiImageUpload } from '@/components/MultiImageUpload';
+import { CreateCategoryModal } from '@/components/CreateCategoryModal';
 
 export default function PerfumeAdminPage() {
+  const permissions = useCatalogPermissions('parfums');
   const [perfumes, setPerfumes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [genreFilter, setGenreFilter] = useState('');
+  const [estBestsellerFilter, setEstBestsellerFilter] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [editingPerfume, setEditingPerfume] = useState<any | null>(null);
   const [categories, setCategories] = useState<any[]>([]);
+  const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
 
   const [form, setForm] = useState({
+    marque: 'Accessoire Exclusif',
     nom: '',
     slug: '',
     reference_sku: '',
@@ -40,20 +49,32 @@ export default function PerfumeAdminPage() {
   });
 
   const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imageFiles, setImageFiles] = useState<{ [key: string]: File | null }>({
+    image_principale: null,
+    image_supp_1: null,
+    image_supp_2: null,
+    image_supp_3: null,
+    image_supp_4: null,
+  });
   const { addToast } = useToastStore();
 
   const fetchPerfumes = useCallback(async () => {
+    if (!permissions.canRead) return;
     try {
       setLoading(true);
-      const data = await shopService.getPerfumes({ search });
-      const list = data.results || data.resultats || (Array.isArray(data) ? data : []);
-      setPerfumes(list);
+      const params: Record<string, unknown> = {};
+      if (search) params.search = search;
+      if (genreFilter) params.genre = genreFilter;
+      if (estBestsellerFilter === 'true') params.est_bestseller = true;
+      if (estBestsellerFilter === 'false') params.est_bestseller = false;
+      const data = await shopService.getPerfumes(params);
+      setPerfumes(extractCatalogList(data));
     } catch {
       addToast('Erreur lors du chargement des parfums', 'error');
     } finally {
       setLoading(false);
     }
-  }, [search, addToast]);
+  }, [search, genreFilter, estBestsellerFilter, addToast, permissions.canRead]);
 
   useEffect(() => {
     const timer = setTimeout(fetchPerfumes, 300);
@@ -73,9 +94,17 @@ export default function PerfumeAdminPage() {
     setForm(prev => ({ ...prev, [field]: value }));
   };
 
+  const handleAddCategory = async (name: string) => {
+    const newCategory = await shopService.createPerfumeCategory({ nom: name, actif: true, ordre_affichage: 0, taux_reduction: '0.00' });
+    setCategories(prev => [...prev, newCategory]);
+    updateForm('categorie', String(newCategory.id));
+    addToast('Catégorie créée avec succès', 'success');
+  };
+
   const handleOpenAdd = () => {
     setEditingPerfume(null);
     setForm({
+      marque: 'Accessoire Exclusif',
       nom: '',
       slug: '',
       reference_sku: '',
@@ -99,12 +128,20 @@ export default function PerfumeAdminPage() {
       actif: true,
     });
     setImageFile(null);
+    setImageFiles({
+      image_principale: null,
+      image_supp_1: null,
+      image_supp_2: null,
+      image_supp_3: null,
+      image_supp_4: null,
+    });
     setShowModal(true);
   };
 
   const handleOpenEdit = (perf: any) => {
     setEditingPerfume(perf);
     setForm({
+      marque: perf.marque || 'Accessoire Exclusif',
       nom: perf.nom || perf.name || '',
       slug: perf.slug || '',
       reference_sku: perf.reference_sku || '',
@@ -128,12 +165,20 @@ export default function PerfumeAdminPage() {
       actif: perf.actif !== undefined ? perf.actif : true,
     });
     setImageFile(null);
+    setImageFiles({
+      image_principale: null,
+      image_supp_1: null,
+      image_supp_2: null,
+      image_supp_3: null,
+      image_supp_4: null,
+    });
     setShowModal(true);
   };
 
   const handleSave = async () => {
-    if (!form.nom || !form.contenance_ml || !form.prix_unitaire || !form.categorie || !form.stock_quantite) {
-      addToast('Champs requis : Nom, Contenance, Prix, Catégorie, Stock', 'error');
+    if (!permissions.canCreate && !permissions.canUpdate) return;
+    if (!form.marque || !form.nom || !form.contenance_ml || !form.prix_unitaire || !form.categorie || !form.stock_quantite) {
+      addToast('Champs requis : Marque, Nom, Contenance, Prix, Catégorie, Stock', 'error');
       return;
     }
 
@@ -144,9 +189,12 @@ export default function PerfumeAdminPage() {
       }
     });
 
-    if (imageFile instanceof File) {
-      formData.append('image_principale', imageFile);
-    }
+    // Append all image files that were uploaded
+    Object.entries(imageFiles).forEach(([key, file]) => {
+      if (file instanceof File) {
+        formData.append(key, file);
+      }
+    });
 
     try {
       if (editingPerfume) {
@@ -164,6 +212,7 @@ export default function PerfumeAdminPage() {
   };
 
   const handleDelete = async (slug: string) => {
+    if (!permissions.canDelete) return;
     if (!confirm('Êtes‑vous sûr de vouloir supprimer ce parfum ?')) return;
     try {
       await shopService.deletePerfume(slug);
@@ -174,14 +223,15 @@ export default function PerfumeAdminPage() {
     }
   };
 
-  const filtered = perfumes.filter(p => {
-    const term = search.toLowerCase();
+  const filtered = perfumes;
+
+  if (!permissions.canRead) {
     return (
-      p.nom?.toLowerCase().includes(term) ||
-      p.reference_sku?.toLowerCase().includes(term) ||
-      p.slug?.toLowerCase().includes(term)
+      <div className="space-y-6">
+        <CatalogAccessNotice permissions={permissions} resourceLabel="les parfums" />
+      </div>
     );
-  });
+  }
 
   return (
     <div className="space-y-6">
@@ -191,20 +241,45 @@ export default function PerfumeAdminPage() {
           <h1 className="text-2xl font-bold text-foreground">Parfums</h1>
           <p className="text-sm text-foreground/40 mt-0.5">Gestion du catalogue de parfums</p>
         </div>
-        <button onClick={handleOpenAdd} className="flex items-center gap-2 bg-gold text-black px-4 py-2.5 rounded-xl text-sm font-medium hover:bg-gold/80 transition-all shadow-lg">
-          <Plus size={16} /> Ajouter
-        </button>
+        {permissions.canCreate && (
+          <button onClick={handleOpenAdd} className="flex items-center gap-2 bg-gold text-black px-4 py-2.5 rounded-xl text-sm font-medium hover:bg-gold/80 transition-all shadow-lg">
+            <Plus size={16} /> Ajouter
+          </button>
+        )}
       </div>
 
-      {/* Search */}
-      <div className="bg-white/5 rounded-2xl border border-white/10 p-4 shadow-2xl flex items-center gap-2 w-full max-w-md">
-        <Search size={15} className="text-foreground/40" />
-        <input
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          placeholder="Rechercher un parfum..."
-          className="text-sm bg-transparent outline-none flex-1 text-foreground placeholder:text-foreground/40"
-        />
+      <CatalogAccessNotice permissions={permissions} resourceLabel="les parfums" />
+
+      {/* Filters */}
+      <div className="flex flex-wrap gap-3">
+        <div className="bg-white/5 rounded-2xl border border-white/10 p-4 shadow-2xl flex items-center gap-2 w-full max-w-md">
+          <Search size={15} className="text-foreground/40" />
+          <input
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Rechercher un parfum..."
+            className="text-sm bg-transparent outline-none flex-1 text-foreground placeholder:text-foreground/40"
+          />
+        </div>
+        <select
+          value={genreFilter}
+          onChange={(e) => setGenreFilter(e.target.value)}
+          className="bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-foreground outline-none"
+        >
+          <option value="">Tous genres</option>
+          <option value="homme">Homme</option>
+          <option value="femme">Femme</option>
+          <option value="mixte">Mixte</option>
+        </select>
+        <select
+          value={estBestsellerFilter}
+          onChange={(e) => setEstBestsellerFilter(e.target.value)}
+          className="bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-foreground outline-none"
+        >
+          <option value="">Tous</option>
+          <option value="true">Bestsellers</option>
+          <option value="false">Non bestsellers</option>
+        </select>
       </div>
 
       {/* Table */}
@@ -264,12 +339,16 @@ export default function PerfumeAdminPage() {
                       </td>
                       <td className="px-6 py-4 text-right">
                         <div className="flex items-center justify-end gap-2">
-                          <button onClick={() => handleOpenEdit(p)} className="p-2 rounded-lg hover:bg-white/5 text-foreground/40 hover:text-gold transition-colors">
-                            <Edit2 size={16} />
-                          </button>
-                          <button onClick={() => handleDelete(p.slug)} className="p-2 rounded-lg hover:bg-red-500/10 text-foreground/40 hover:text-red-400 transition-colors">
-                            <Trash2 size={16} />
-                          </button>
+                          {permissions.canUpdate && (
+                            <button onClick={() => handleOpenEdit(p)} className="p-2 rounded-lg hover:bg-white/5 text-foreground/40 hover:text-gold transition-colors">
+                              <Edit2 size={16} />
+                            </button>
+                          )}
+                          {permissions.canDelete && (
+                            <button onClick={() => handleDelete(p.slug)} className="p-2 rounded-lg hover:bg-red-500/10 text-foreground/40 hover:text-red-400 transition-colors">
+                              <Trash2 size={16} />
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -287,7 +366,7 @@ export default function PerfumeAdminPage() {
       </div>
 
       {/* Modal */}
-      {showModal && (
+      {showModal && (permissions.canCreate || permissions.canUpdate) && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div
             key={editingPerfume?.slug ?? 'new'}
@@ -298,13 +377,24 @@ export default function PerfumeAdminPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Left column */}
               <div className="space-y-4">
+                <input placeholder="Marque" value={form.marque} onChange={e => updateForm('marque', e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold" />
                 <input placeholder="Nom" value={form.nom} onChange={e => updateForm('nom', e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold" />
                 <input placeholder="Slug (optionnel)" value={form.slug} onChange={e => updateForm('slug', e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold" />
                 <input placeholder="Référence SKU (optionnel)" value={form.reference_sku} onChange={e => updateForm('reference_sku', e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold" />
-                <select value={form.categorie} onChange={e => updateForm('categorie', e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold">
-                  <option value="" disabled className="bg-neutral-900">Catégorie</option>
-                  {categories.map(c => <option key={c.id} value={c.id} className="bg-neutral-900">{c.nom}</option>)}
-                </select>
+                <div className="flex gap-2">
+                  <select value={form.categorie} onChange={e => updateForm('categorie', e.target.value)} className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold">
+                    <option value="" disabled className="bg-neutral-900">Catégorie</option>
+                    {categories.map(c => <option key={c.id} value={c.id} className="bg-neutral-900">{c.nom}</option>)}
+                  </select>
+                  <button
+                    type="button"
+                    onClick={() => setIsCategoryModalOpen(true)}
+                    className="px-3 py-2 bg-gold text-neutral-900 rounded-lg hover:bg-gold/80 font-medium"
+                    title="Créer une nouvelle catégorie"
+                  >
+                    +
+                  </button>
+                </div>
                 <div className="grid grid-cols-2 gap-3">
                   <select value={form.genre_cible} onChange={e => updateForm('genre_cible', e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold">
                     <option value="homme">Homme</option>
@@ -402,11 +492,10 @@ export default function PerfumeAdminPage() {
               </div>
             </div>
 
-            {/* Image Uploader */}
+            {/* Image Uploader - Multiple Images */}
             <div className="mt-4 pt-4 border-t border-white/10">
-              <ImageUploader
-                onFileSelect={(file) => setImageFile(file)}
-                initialImage={editingPerfume?.image_principale || editingPerfume?.image || null}
+              <MultiImageUpload
+                onImagesChange={(images) => setImageFiles(images)}
               />
             </div>
 
@@ -417,6 +506,14 @@ export default function PerfumeAdminPage() {
           </div>
         </div>
       )}
+
+      <CreateCategoryModal
+        isOpen={isCategoryModalOpen}
+        onClose={() => setIsCategoryModalOpen(false)}
+        onSubmit={handleAddCategory}
+        title="Nouvelle catégorie parfum"
+        categoryType="Catégorie"
+      />
     </div>
   );
 }

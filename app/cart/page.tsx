@@ -28,15 +28,33 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { useCartStore } from '@/store/useCartStore';
 import { useToastStore } from '@/store/useToastStore';
-import { formatPrice, generateWhatsAppLink } from '@/lib/utils';
+import { formatPrice } from '@/lib/utils';
 import { PRODUCT_CATEGORY_LABELS } from '@/lib/constants';
 import { useTranslation } from 'react-i18next';
 
 import { BackButton } from '@/components/ui/BackButton';
+import { useAuthStore } from '@/store/useAuthStore';
+import { useRouter } from 'next/navigation';
+import { orderService } from '@/services/apiService';
 
 export default function CartPage() {
   const { t } = useTranslation();
-  const { items, removeItem, updateQuantity, applyPromoCode, clearPromoCode, promoCode, promoDiscount, getSubtotal, getTotal, clearCart } = useCartStore();
+  const router = useRouter();
+  const { isAuthenticated, user } = useAuthStore();
+  const {
+    panierId,
+    cart,
+    isLoading,
+    removeItem,
+    updateQuantity,
+    applyPromoCode,
+    removePromoCode,
+    getTotalPrice,
+    getSubtotal,
+    clearCart,
+    syncCart,
+  } = useCartStore();
+
   const { addToast } = useToastStore();
   const [promoInput, setPromoInput] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
@@ -45,56 +63,123 @@ export default function CartPage() {
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'mobile_money'>('cash');
   const [mobileNetwork, setMobileNetwork] = useState<'mtn' | 'orange' | null>(null);
   const [deliveryType, setDeliveryType] = useState<'delivery' | 'pickup'>('delivery');
-  const [deliveryLocation, setDeliveryLocation] = useState('');
+  const [deliveryLocation, setDeliveryLocation] = useState(''); // quartier (free text)
+  const [deliveryCity, setDeliveryCity] = useState('');
+  const [recipientName, setRecipientName] = useState('');
+  const [recipientPhone, setRecipientPhone] = useState('');
+  const [noteClient, setNoteClient] = useState('');
 
   const subtotal = getSubtotal();
-  const total = getTotal();
+  const total = getTotalPrice();
+  const allItems = cart
+    ? [
+        ...cart.lignes_parfums.map((line) => ({ ...line, type: 'parfum' as const })),
+        ...cart.lignes_accessoires.map((line) => ({ ...line, type: 'accessoire' as const })),
+        ...cart.lignes_produit_fini_essence.map((line) => ({
+          ...line,
+          type: 'produit-fini-essence' as const,
+        })),
+        ...cart.lignes_parfums_perso.map((line) => ({
+          ...line,
+          type: 'parfum-personnalise' as const,
+        })),
+        ...cart.lignes_essence_personnalisee.map((line) => ({
+          ...line,
+          type: 'essence-personnalisee' as const,
+        })),
+      ]
+    : [];
 
-  const handleApplyPromo = (e: React.FormEvent) => {
+  const handleApplyPromo = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!promoInput.trim()) return;
 
-    const success = applyPromoCode(promoInput);
-    if (success) {
-      addToast(`${t('apply_code')} ${promoInput} -${promoDiscount}%`, 'success');
+    try {
+      await applyPromoCode(promoInput);
       setPromoInput('');
-    } else {
+    } catch (error) {
       addToast(t('invalid_promo'), 'error');
     }
   };
 
-  const handleCheckout = () => {
-    if (items.length === 0) return;
-    if (deliveryType === 'delivery' && !deliveryLocation.trim()) {
-      addToast(t('specify_location'), 'error');
+  const handleRemoveItem = async (type: any, lineId: number) => {
+    try {
+      await removeItem(type, lineId);
+    } catch (error) {
+      addToast(t('error_removing_item'), 'error');
+    }
+  };
+
+  const handleUpdateQuantity = async (type: any, lineId: number, newQty: number) => {
+    if (newQty < 1) {
+      await handleRemoveItem(type, lineId);
       return;
     }
+    try {
+      await updateQuantity(type, lineId, newQty);
+    } catch (error) {
+      addToast(t('error_updating_quantity'), 'error');
+    }
+  };
+
+  const handleCheckout = async () => {
+    if (!cart || allItems.length === 0) return;
+
+    if (!isAuthenticated) {
+      addToast(t('login_required', { defaultValue: 'Veuillez vous connecter pour passer commande.' }), 'error');
+      router.push('/login?redirect=/cart');
+      return;
+    }
+
+    const nameToSend = recipientName.trim() || `${user?.firstName ?? ''} ${user?.lastName ?? ''}`.trim();
+    if (!nameToSend) {
+      addToast(t('recipient_required', { defaultValue: 'Nom du destinataire requis.' }), 'error');
+      return;
+    }
+    if (!recipientPhone.trim()) {
+      addToast(t('phone_required', { defaultValue: 'Téléphone requis.' }), 'error');
+      return;
+    }
+    if (deliveryType === 'delivery' && !deliveryCity.trim()) {
+      addToast(t('city_required', { defaultValue: 'Ville de livraison requise.' }), 'error');
+      return;
+    }
+
+    // Keep existing payment UI, but backend order placement is independent for now.
     if (paymentMethod === 'mobile_money' && !mobileNetwork) {
       addToast(t('choose_network'), 'error');
       return;
     }
 
     setIsProcessing(true);
+    try {
+      await orderService.placeOrder({
+        panier_id: panierId ?? undefined,
+        livraison_nom_complet: nameToSend,
+        livraison_telephone: recipientPhone.trim(),
+        livraison_quartier: deliveryType === 'delivery' ? deliveryLocation.trim() || undefined : undefined,
+        livraison_ville: deliveryType === 'delivery' ? deliveryCity.trim() : 'Retrait magasin',
+        note_client: noteClient.trim() || undefined,
+      });
 
-    // Simulate slight delay for UX
-    setTimeout(() => {
-      const link = generateWhatsAppLink(
-        items, 
-        subtotal, 
-        total, 
-        promoCode, 
-        promoDiscount,
-        paymentMethod,
-        mobileNetwork || undefined,
-        deliveryType,
-        deliveryLocation
-      );
-      window.open(link, '_blank');
+      addToast(t('order_success', { defaultValue: 'Commande passée avec succès.' }), 'success');
+
+      // The backend will convert the cart -> order and create a new active cart.
+      clearCart();
+      await syncCart();
+      router.push('/dashboard/client');
+    } catch (err: any) {
+      const msg =
+        err?.response?.data?.detail ||
+        err?.response?.data?.message ||
+        t('order_error', { defaultValue: 'Erreur lors du passage de la commande.' });
+      addToast(msg, 'error');
+    } finally {
       setIsProcessing(false);
-    }, 500);
+    }
   };
 
-  if (items.length === 0) {
+  if (!cart || allItems.length === 0) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 pt-32 lg:pt-40 text-center">
         <BackButton className="mx-auto" />
@@ -132,9 +217,9 @@ export default function CartPage() {
         {/* Cart Items */}
         <div className="lg:col-span-2 space-y-6">
           <AnimatePresence>
-            {items.map((item) => (
+            {allItems.map((item) => (
               <motion.div
-                key={item.id}
+                key={`${item.type}-${item.id}`}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95 }}
@@ -142,15 +227,12 @@ export default function CartPage() {
               >
                 {/* Image placeholder based on type */}
                 <div className="w-24 h-24 shrink-0  bg-white/10 overflow-hidden relative border border-white/5">
-                  {item.type === 'product' && item.product?.images[0] && (
-                    <Image src={item.product.images[0]} alt={item.product.name} fill className="object-cover" />
+                  {item.image && (
+                    <Image src={item.image} alt={item.nom} fill className="object-cover" />
                   )}
-                  {item.type === 'custom-composition' && (
-                    <div className="w-full h-full flex flex-col items-center justify-center p-2 text-center bg-charcoal">
-                      <div className="w-6 h-10 rounded-t-lg rounded-b-md mb-1 relative" style={{ backgroundColor: item.composition?.essences[0]?.essence.color || '#C5A059' }}>
-                        <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-3 h-2 bg-silver rounded-sm" />
-                      </div>
-                      <span className="text-[10px] text-gold font-medium leading-tight">Numba<br />Custom</span>
+                  {!item.image && (
+                    <div className="w-full h-full flex items-center justify-center bg-charcoal">
+                      <span className="text-[10px] text-gold font-medium text-center">{item.type}</span>
                     </div>
                   )}
                 </div>
@@ -160,48 +242,44 @@ export default function CartPage() {
                   <div className="flex justify-between items-start mb-2">
                     <div>
                       <p className="text-xs text-gold font-medium mb-1 uppercase tracking-wide">
-                        {item.type === 'product' ? t(`cat_${item.product!.category.replace('-', '_')}`) : t('custom_creation')}
+                        {item.type}
                       </p>
-                      <Link
-                        href={item.type === 'product' ? `/shop/${item.product!.category.includes('perfume') ? 'perfumes' : 'accessories'}/${item.product!.id}` : '#'}
-                        className="font-display text-sm md:text-lg font-bold hover:text-gold transition-colors"
-                      >
-                        {item.type === 'product' ? item.product!.name : item.composition!.name}
-                      </Link>
+                      <h3 className="font-display text-sm md:text-lg font-bold hover:text-gold transition-colors">
+                        {item.nom}
+                      </h3>
                     </div>
                     <button
-                      onClick={() => removeItem(item.id)}
-                      className="p-2 text-foreground/40 hover:text-red-500 hover:bg-red-500/10  transition-colors"
+                      onClick={() => handleRemoveItem(item.type, item.id)}
+                      disabled={isLoading}
+                      className="p-2 text-foreground/40 hover:text-red-500 hover:bg-red-500/10 disabled:opacity-50 transition-colors"
                     >
                       <Trash2 size={18} />
                     </button>
                   </div>
 
-                  {item.type === 'custom-composition' && (
-                    <p className="text-xs text-foreground/60 mb-4 line-clamp-1">
-                      {item.composition?.essences.map(e => e.essence.name).join(', ')}
-                    </p>
-                  )}
-
                   <div className="mt-auto flex items-center justify-between">
                     {/* Quantity controls */}
                     <div className="flex items-center gap-3 bg-black/20  p-1 border border-white/5">
                       <button
-                        onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                        className="p-1 hover:bg-white/10 rounded transition-colors"
+                        onClick={() => handleUpdateQuantity(item.type, item.id, item.quantite - 1)}
+                        disabled={isLoading}
+                        className="p-1 hover:bg-white/10 disabled:opacity-50 rounded transition-colors"
                       >
                         <Minus size={14} />
                       </button>
-                      <span className="text-sm font-medium w-4 text-center">{item.quantity}</span>
+                      <span className="text-sm font-medium w-4 text-center">{item.quantite}</span>
                       <button
-                        onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                        className="p-1 hover:bg-white/10 rounded transition-colors"
+                        onClick={() => handleUpdateQuantity(item.type, item.id, item.quantite + 1)}
+                        disabled={isLoading}
+                        className="p-1 hover:bg-white/10 disabled:opacity-50 rounded transition-colors"
                       >
                         <Plus size={14} />
                       </button>
                     </div>
 
-                    <p className="font-bold text-sm md:text-lg">{formatPrice(item.unitPrice * item.quantity)}</p>
+                    <p className="font-bold text-sm md:text-lg">
+                      {formatPrice(item.prix_unitaire_snapshot * item.quantite)}
+                    </p>
                   </div>
                 </div>
               </motion.div>
@@ -218,6 +296,27 @@ export default function CartPage() {
               <div className="flex justify-between text-foreground/70">
                 <span>{t('subtotal')}</span>
                 <span>{formatPrice(subtotal)}</span>
+              </div>
+
+              {/* Recipient */}
+              <div className="space-y-2 pt-2">
+                <p className="text-xs font-bold text-foreground/40 uppercase tracking-wider">
+                  {t('delivery_details', { defaultValue: 'Détails de livraison' })}
+                </p>
+                <Input
+                  placeholder={t('recipient_name', { defaultValue: 'Nom complet du destinataire' })}
+                  value={recipientName}
+                  onChange={(e) => setRecipientName(e.target.value)}
+                  disabled={isLoading || isProcessing}
+                  className="bg-black/20"
+                />
+                <Input
+                  placeholder={t('phone', { defaultValue: 'Téléphone' })}
+                  value={recipientPhone}
+                  onChange={(e) => setRecipientPhone(e.target.value)}
+                  disabled={isLoading || isProcessing}
+                  className="bg-black/20"
+                />
               </div>
 
               {/* Delivery Mode Selection */}
@@ -243,15 +342,25 @@ export default function CartPage() {
                 </div>
 
                 {deliveryType === 'delivery' && (
-                  <div className="relative mt-2">
-                    <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-foreground/40" size={14} />
-                    <input
-                      type="text"
-                      placeholder={t('delivery_location_placeholder')}
-                      value={deliveryLocation}
-                      onChange={(e) => setDeliveryLocation(e.target.value)}
-                      className="w-full bg-white/5 border border-white/10 rounded-xl pl-9 pr-4 py-2.5 text-xs text-foreground outline-none focus:border-gold/50 transition-all"
+                  <div className="space-y-2 mt-2">
+                    <Input
+                      placeholder={t('city', { defaultValue: 'Ville (ex: Yaoundé)' })}
+                      value={deliveryCity}
+                      onChange={(e) => setDeliveryCity(e.target.value)}
+                      disabled={isLoading || isProcessing}
+                      className="bg-black/20"
                     />
+                    <div className="relative">
+                      <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-foreground/40" size={14} />
+                      <input
+                        type="text"
+                        placeholder={t('delivery_location_placeholder')}
+                        value={deliveryLocation}
+                        onChange={(e) => setDeliveryLocation(e.target.value)}
+                        className="w-full bg-white/5 border border-white/10 rounded-xl pl-9 pr-4 py-2.5 text-xs text-foreground outline-none focus:border-gold/50 transition-all"
+                        disabled={isLoading || isProcessing}
+                      />
+                    </div>
                   </div>
                 )}
               </div>
@@ -316,20 +425,32 @@ export default function CartPage() {
                 )}
               </div>
 
-              {promoCode && (
+              {/* Promo Code Section */}
+              {cart?.code_promo_applique ? (
                 <div className="flex justify-between text-emerald-400 font-medium">
                   <span className="flex items-center gap-2">
                     <Tag size={14} />
-                    {t('promo_code')} ({promoCode})
+                    {t('promo_code')} ({cart.code_promo_applique})
                   </span>
-                  <span>-{promoDiscount}%</span>
+                  <span>-{cart.remise_pourcentage}%</span>
                 </div>
-              )}
+              ) : null}
 
               <div className="flex justify-between text-foreground/70">
                 <span>{t('delivery')}</span>
                 <span>{deliveryType === 'delivery' ? t('to_be_defined') : t('free')}</span>
               </div>
+            </div>
+
+            <div className="mb-6">
+              <textarea
+                value={noteClient}
+                onChange={(e) => setNoteClient(e.target.value)}
+                rows={2}
+                placeholder={t('order_note', { defaultValue: 'Note (optionnel) — ex: appeler avant de livrer…' })}
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-xs text-foreground outline-none focus:border-gold/50 transition-all resize-none"
+                disabled={isLoading || isProcessing}
+              />
             </div>
 
             <div className="border-t border-white/10 pt-4 mb-8">
@@ -340,25 +461,29 @@ export default function CartPage() {
               <p className="text-xs text-foreground/40 mt-1 text-right">{t('taxes_included')}</p>
             </div>
 
-            {!promoCode ? (
+            {!cart?.code_promo_applique ? (
               <form onSubmit={handleApplyPromo} className="flex gap-2 mb-8">
                 <Input
                   placeholder={t('promo_code')}
                   value={promoInput}
                   onChange={(e) => setPromoInput(e.target.value)}
+                  disabled={isLoading}
                   className="bg-black/20"
                 />
-                <Button type="submit" variant="secondary" className="px-4">{t('apply_code')}</Button>
+                <Button type="submit" variant="secondary" className="px-4" isLoading={isLoading}>
+                  {t('apply_code')}
+                </Button>
               </form>
             ) : (
               <div className="flex items-center justify-between p-3  bg-emerald-500/10 border border-emerald-500/20 mb-8">
                 <div className="flex items-center gap-2 text-emerald-400 text-sm font-medium">
                   <Tag size={16} />
-                  {t('promo_code')} {promoCode} {t('active')}
+                  {t('promo_code')} {cart.code_promo_applique} {t('active')}
                 </div>
                 <button
-                  onClick={clearPromoCode}
-                  className="text-xs text-foreground/50 hover:text-red-400 transition-colors"
+                  onClick={() => removePromoCode()}
+                  disabled={isLoading}
+                  className="text-xs text-foreground/50 hover:text-red-400 disabled:opacity-50 transition-colors"
                 >
                   {t('remove_code')}
                 </button>
@@ -367,16 +492,16 @@ export default function CartPage() {
 
             <Button
               size="lg"
-              className="w-full bg-[#25D366] hover:bg-[#128C7E] text-foreground hover:text-foreground border-none shadow-lg shadow-[#25D366]/20"
+              className="w-full"
               onClick={handleCheckout}
               isLoading={isProcessing}
               rightIcon={<Send size={18} />}
             >
-              {t('order_via_whatsapp')}
+              {t('place_order', { defaultValue: 'Passer la commande' })}
             </Button>
 
             <p className="text-xs text-center text-foreground/50 mt-4 leading-relaxed">
-              {t('order_redirect_notice')}
+              {t('order_backend_notice', { defaultValue: 'Votre commande sera visible dans votre tableau de bord après validation.' })}
             </p>
           </div>
         </div>

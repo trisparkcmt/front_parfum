@@ -70,7 +70,10 @@ export default function PerfumesShop() {
           { id: 'all', label: t('all_perfumes'), desc: t('all_perfumes_desc') },
           ...backendCats.map(cat => ({
             id: cat.name,
-            label: cat.name,
+            label: cat.name === 'perfume-brand' ? t('perfume_brand', { defaultValue: 'Parfums de Marque' }) :
+                   cat.name === 'perfume-dupe' ? t('perfume_dupe', { defaultValue: 'Dupes de Parfums' }) :
+                   cat.name === 'numba-creation' ? t('numba_creation', { defaultValue: 'Créations Numba' }) :
+                   cat.name,
             desc: t(`tab_${cat.type.replace('-', '_')}_desc`, { defaultValue: '' })
           }))
         ];

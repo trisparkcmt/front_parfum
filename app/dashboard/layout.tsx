@@ -23,7 +23,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }
 
   // Admin and Serveuse have their own layouts with sidebars, so just pass through
-  if (user?.role === 'admin' || user?.role === 'serveuse') {
+  const userRoles = user?.roles || (user?.role ? [user.role] : []);
+  if (userRoles.includes('superadmin') || userRoles.includes('serveuse')) {
     return <>{children}</>;
   }
 

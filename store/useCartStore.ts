@@ -81,6 +81,10 @@ interface CartState {
   addCustomPerfume: (parfumPersoId: number, quantite?: number, noteClient?: string) => Promise<void>;
   addCustomEssence: (essencePersoId: number, quantite?: number) => Promise<void>;
 
+  // Legacy API compatibility
+  addProduct: (product: any, quantite?: number) => Promise<void>;
+  addComposition: (composition: any) => Promise<void>;
+
   // Cart management
   updateQuantity: (
     type: CartLine['type'],
@@ -400,6 +404,26 @@ export const useCartStore = create<CartState>()(
 
       clearCart: () => {
         set({ panierId: null, cart: null, error: null });
+      },
+
+      // Legacy API compatibility - routes Product objects to appropriate endpoints
+      addProduct: async (product: any, quantite = 1) => {
+        const category = product.category;
+        // Route to appropriate endpoint based on product category
+        if (category?.includes('perfume')) {
+          return get().addPerfume(product.id, quantite);
+        } else if (category === 'accessory') {
+          return get().addAccessory(product.id, quantite);
+        } else {
+          // Default to accessory if category unclear
+          return get().addAccessory(product.id, quantite);
+        }
+      },
+
+      // Legacy API compatibility - routes Composition objects
+      addComposition: async (composition: any) => {
+        // Assume compositions are custom perfumes (parfum-personnalise)
+        return get().addCustomPerfume(composition.id, 1);
       },
     }),
     {

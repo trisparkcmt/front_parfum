@@ -24,6 +24,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
+import GoogleAuthButton from '@/components/auth/GoogleAuthButton';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useToastStore } from '@/store/useToastStore';
 import { useTranslation } from 'react-i18next';
@@ -48,7 +49,7 @@ function RegisterFormContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirectUrl = searchParams.get('redirect') || '/';
-  const { register: registerUser, isLoading } = useAuthStore();
+  const { register: registerUser, loginWithGoogle, isLoading } = useAuthStore();
   const { addToast } = useToastStore();
 
   const { register, handleSubmit, formState: { errors } } = useForm<RegisterForm>({
@@ -67,6 +68,14 @@ function RegisterFormContent() {
     if (success) {
       addToast(t('registration_success_check_email', { defaultValue: 'Inscription réussie! Veuillez vérifier votre email pour confirmer votre compte.' }), 'success');
       router.push('/verify-email');
+    }
+  };
+
+  const handleGoogleRegister = async (googleAccessToken: string) => {
+    const success = await loginWithGoogle(googleAccessToken);
+    // Store already fires the success toast — just redirect
+    if (success) {
+      router.push('/');
     } else {
       addToast(t('register_error'), 'error');
     }
@@ -141,6 +150,18 @@ function RegisterFormContent() {
           {t('register_btn')}
         </Button>
       </form>
+
+      <div className="my-5 flex items-center gap-3">
+        <div className="h-px flex-1 bg-foreground/10" />
+        <span className="text-xs text-foreground/40 uppercase tracking-wider">ou</span>
+        <div className="h-px flex-1 bg-foreground/10" />
+      </div>
+
+      <GoogleAuthButton
+        onTokenReceived={handleGoogleRegister}
+        disabled={isLoading}
+        label="S'inscrire avec Google"
+      />
 
       <div className="mt-8 text-center text-sm text-foreground/60">
         {t('already_have_account')}{' '}

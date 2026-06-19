@@ -18,12 +18,13 @@ import { Suspense, useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { Mail, Lock, LogIn, ArrowLeft } from 'lucide-react';
+import { Mail, Lock, LogIn } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
+import GoogleAuthButton from '@/components/auth/GoogleAuthButton';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useToastStore } from '@/store/useToastStore';
 import { useTranslation } from 'react-i18next';
@@ -53,7 +54,7 @@ function LoginFormContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirectUrl = searchParams.get('redirect') || '/';
-  const { login, isLoading } = useAuthStore();
+  const { login, loginWithGoogle, isLoading } = useAuthStore();
   const { addToast } = useToastStore();
 
   const { register, handleSubmit, formState: { errors } } = useForm<LoginForm>({
@@ -62,19 +63,18 @@ function LoginFormContent() {
 
   const onSubmit = async (data: LoginForm) => {
     const success = await login(data.loginInput, data.password);
-
+    // The store already fires the success toast — just redirect
     if (success) {
-      const user = await useAuthStore.getState().user;
-      addToast(t('login_success'), 'success');
+      router.push('/');
+    } else {
+      addToast(t('login_error'), 'error');
+    }
+  };
 
-      const dashboardPath = user?.role === 'admin' ? '/dashboard/admin/dashboard'
-        : user?.role === 'serveuse' ? '/dashboard/serveuse/dashboard'
-        : user?.role === 'client' ? '/dashboard/client'
-        : user?.role === 'partner' ? '/dashboard/partner'
-        : user?.role === 'delivery' ? '/dashboard/delivery'
-        : '/';
-
-      router.push(dashboardPath);
+  const handleGoogleLogin = async (googleAccessToken: string) => {
+    const success = await loginWithGoogle(googleAccessToken);
+    if (success) {
+      router.push('/');
     } else {
       addToast(t('login_error'), 'error');
     }
@@ -121,6 +121,18 @@ function LoginFormContent() {
           {t('login_btn')}
         </Button>
       </form>
+
+      <div className="my-5 flex items-center gap-3">
+        <div className="h-px flex-1 bg-foreground/10" />
+        <span className="text-xs text-foreground/40 uppercase tracking-wider">ou</span>
+        <div className="h-px flex-1 bg-foreground/10" />
+      </div>
+
+      <GoogleAuthButton
+        onTokenReceived={handleGoogleLogin}
+        disabled={isLoading}
+        label="Continuer avec Google"
+      />
 
       <div className="mt-8 text-center text-sm text-foreground/60">
         {t('no_account')}{' '}

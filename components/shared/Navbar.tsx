@@ -27,8 +27,11 @@ export function Navbar() {
   const [mounted, setMounted] = useState(false);
   const pathname = usePathname();
   const [scrolled, setScrolled] = useState(false);
+
+  // Use proper selectors for auth state to ensure re-renders
+  const user = useAuthStore((s) => s.user);
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const itemCount = useCartStore((s) => s.getItemCount());
-  const { user, isAuthenticated } = useAuthStore();
 
   useEffect(() => {
     setMounted(true);
@@ -38,6 +41,11 @@ export function Navbar() {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  // Debug logging for auth state
+  useEffect(() => {
+    console.log('Navbar auth state:', { user, isAuthenticated });
+  }, [user, isAuthenticated]);
 
   const isDashboard = pathname.startsWith('/dashboard') || pathname.startsWith('/admin') || pathname.startsWith('/delivery') || pathname.startsWith('/partner') || pathname.startsWith('/client');
   if (isDashboard || !mounted) return null;
@@ -80,9 +88,9 @@ export function Navbar() {
                 )}
               </Link>
 
-              {isAuthenticated && user && user.role ? (
+              {isAuthenticated && user ? (
                 <Link
-                  href={`/dashboard/${user.role}/profile`}
+                  href="/dashboard/profile"
                   className="p-1.5 hover:bg-[var(--t-hover-bg)] transition-colors"
                 >
                   <div className="h-7 w-7 rounded-full bg-gold/20 border border-gold/30 flex items-center justify-center text-gold text-[10px] font-bold">
@@ -161,9 +169,9 @@ export function Navbar() {
               
               <LanguageSelector />
 
-              {isAuthenticated && user && user.role ? (
+              {isAuthenticated && user ? (
                 <Link
-                  href={user.role === 'admin' ? '/dashboard/admin/profile' : `/dashboard/${user.role}/profile`}
+                  href="/dashboard/profile"
                   className="flex items-center gap-2 p-2 hover:bg-[var(--t-hover-bg)] transition-colors group"
                 >
                   <div className="h-8 w-8 rounded-full bg-gold/20 border border-gold/30 flex items-center justify-center text-gold text-xs font-bold group-hover:scale-105 transition-transform">

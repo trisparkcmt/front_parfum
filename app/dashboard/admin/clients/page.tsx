@@ -1,16 +1,21 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Search, Eye, Users, Heart, FlaskConical, Loader2, Power } from 'lucide-react';
+import { Search, Eye, Users, Heart, FlaskConical, Loader2, Power, UserCheck } from 'lucide-react';
 import { adminService } from '@/services/apiService';
 import { useToastStore } from '@/store/useToastStore';
-import { BackButton } from '@/components/ui/BackButton';
+
+function isServeuse(user: { roles?: string[]; role?: string }) {
+  const roles = user.roles || (user.role ? [user.role] : []);
+  return roles.includes('serveuse');
+}
 
 export default function ClientsPage() {
   const [clients, setClients] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState<any | null>(null);
+  const [promoting, setPromoting] = useState(false);
   const { addToast } = useToastStore();
 
   const fetchClients = useCallback(async () => {
@@ -44,6 +49,23 @@ export default function ClientsPage() {
       }
     } catch (error) {
       addToast('Erreur lors de la modification du statut', 'error');
+    }
+  };
+
+  const handlePromoteToServeuse = async () => {
+    if (!selected || isServeuse(selected)) return;
+    const name = `${selected.first_name || ''} ${selected.last_name || ''}`.trim() || selected.email;
+    if (!confirm(`Promouvoir ${name} au rang de serveuse ?`)) return;
+    try {
+      setPromoting(true);
+      await adminService.promoteToServeuse(selected.id);
+      addToast('Client promu serveuse avec succès', 'success');
+      fetchClients();
+      setSelected(null);
+    } catch (error: any) {
+      addToast(error.response?.data?.detail || 'Erreur lors de la promotion', 'error');
+    } finally {
+      setPromoting(false);
     }
   };
 
@@ -176,6 +198,18 @@ export default function ClientsPage() {
               ))}
             </div>
             <p className="text-xs text-foreground/40 mb-4">Téléphone: {selected.telephone || '—'} · Statut: {selected.is_active ? 'Actif' : 'Inactif'}</p>
+            {isServeuse(selected) ? (
+              <p className="text-xs text-emerald-400 text-center mb-4 font-medium">Déjà serveuse</p>
+            ) : (
+              <button
+                onClick={handlePromoteToServeuse}
+                disabled={promoting}
+                className="w-full mb-3 flex items-center justify-center gap-2 bg-gold text-black rounded-lg py-2.5 text-sm font-medium hover:bg-gold/80 transition-colors disabled:opacity-50"
+              >
+                {promoting ? <Loader2 size={16} className="animate-spin" /> : <UserCheck size={16} />}
+                Convertir en serveuse
+              </button>
+            )}
             <button onClick={() => setSelected(null)} className="w-full border border-white/10 rounded-lg py-2.5 text-sm text-foreground/60 hover:bg-white/5 transition-colors">
               Fermer
             </button>
@@ -184,5 +218,5 @@ export default function ClientsPage() {
       )}
     </div>
   );
-}
+}
 

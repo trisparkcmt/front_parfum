@@ -20,6 +20,7 @@ import { cn, formatPrice } from '@/lib/utils';
 import type { Product } from '@/types';
 import { useTranslation } from 'react-i18next';
 import { API_ROOT } from '@/services/api';
+import { useState } from 'react';
 
 interface ProductCardProps {
   product: Product;
@@ -46,6 +47,7 @@ export function ProductCard({
   reviewCount = 0,
 }: ProductCardProps) {
   const { t } = useTranslation();
+  const [isHovered, setIsHovered] = useState(false);
 
   const getImageUrl = (url: string) => {
     if (!url) return '';
@@ -66,6 +68,11 @@ export function ProductCard({
         )}
       />
     ));
+
+  // Get images - handle both image_principale and images array
+  const mainImage = product.image_principale || (product.images && product.images[0]) || '';
+  const secondImage = product.image_supp_1 || (product.images && product.images[1]) || '';
+  const displayImage = isHovered && secondImage ? secondImage : mainImage;
 
   return (
     // <motion.div
@@ -103,15 +110,40 @@ export function ProductCard({
             -{parseFloat(product.taux_reduction)}%
           </div>
         )}
-        <div className="relative h-40 md:h-55 overflow-hidden bg-[var(--t-surface)]">
-          {product.images && product.images[0] && (
+        <div className="relative h-40 md:h-55 overflow-hidden bg-[var(--t-surface)]"
+          onMouseEnter={() => setIsHovered(true)}
+          onMouseLeave={() => setIsHovered(false)}
+        >
+          <motion.div
+            initial={false}
+            animate={{ opacity: isHovered && secondImage ? 0 : 1 }}
+            transition={{ duration: 0.3 }}
+            className="absolute inset-0"
+          >
             <Image 
-              src={getImageUrl(product.images[0])}
+              src={getImageUrl(mainImage)}
               alt={product.name}
               fill
               sizes="(max-width: 640px) 165px, 280px"
               className="object-cover"
             />
+          </motion.div>
+          
+          {secondImage && (
+            <motion.div
+              initial={false}
+              animate={{ opacity: isHovered ? 1 : 0 }}
+              transition={{ duration: 0.3 }}
+              className="absolute inset-0"
+            >
+              <Image 
+                src={getImageUrl(secondImage)}
+                alt={`${product.name} - second view`}
+                fill
+                sizes="(max-width: 640px) 165px, 280px"
+                className="object-cover"
+              />
+            </motion.div>
           )}
         </div>
         {/* Favorite button */}

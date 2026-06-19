@@ -23,6 +23,13 @@ export default function Header({ onMenuClick }: HeaderProps) {
   const [notifications, setNotifications] = useState<any[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const notifRef = useRef<HTMLDivElement>(null);
+  
+  // Determine profile path based on user role
+  const getProfilePath = () => {
+    return '/dashboard/profile';
+  };
+  
+  const profilePath = getProfilePath();
 
   const fetchNotifications = async () => {
     try {
@@ -64,7 +71,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
     <header className="h-16 bg-background border-b border-white/10 flex items-center px-4 sm:px-6 gap-3 sm:gap-4 shrink-0">
       <div className="flex items-center gap-2 pr-4 border-r border-white/10">
         <button
-          onClick={() => router.push(`/dashboard/${user?.role || 'admin'}/profile`)}
+          onClick={() => router.push(profilePath)}
           className="flex items-center gap-2 text-foreground/60 hover:text-gold transition-colors group"
         >
           <ArrowLeft size={18} className="group-hover:-translate-x-1 transition-transform" />
@@ -169,7 +176,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
               </div>
               <div className="px-4 py-2 bg-white/5 border-t border-white/10 text-center">
                 <Link
-                  href={`/dashboard/${user?.role || 'admin'}/notifications`}
+                  href={user?.roles?.includes('serveuse') ? '/dashboard/serveuse/notifications' : '/dashboard/admin/notifications'}
                   onClick={() => setShowNotifs(false)}
                   className="text-xs font-semibold text-gold hover:text-gold/80 transition-colors inline-block w-full py-1"
                 >
@@ -182,11 +189,13 @@ export default function Header({ onMenuClick }: HeaderProps) {
 
         {/* Profile Link */}
         <Link 
-          href={`/dashboard/${user?.role || 'admin'}/profile`}
+          href={profilePath}
           className="flex items-center gap-2 cursor-pointer hover:bg-white/5 rounded-lg px-2 py-1.5 transition-colors group"
+          title="Mon Profil"
         >
+          <User size={18} className="text-foreground/60 group-hover:text-gold transition-colors" />
           <div className="w-8 h-8 rounded-full bg-gradient-to-br from-gold to-gold-dark flex items-center justify-center text-black text-xs font-bold shadow-lg shadow-gold/20 group-hover:scale-105 transition-transform">
-            {user?.firstName?.charAt(0)}
+            {user?.firstName?.charAt(0)}{user?.lastName?.charAt(0)}
           </div>
           <span className="hidden sm:block text-sm font-medium text-foreground">{user?.firstName || 'Admin'}</span>
         </Link>

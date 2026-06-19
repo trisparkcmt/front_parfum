@@ -121,18 +121,20 @@ export default function ProductDetailPage() {
               <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
             </motion.div>
             
-            <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
-              {product.images.map((img, idx) => (
-                <button
+            {/* All Images Thumbnails */}
+            <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+              {product.images && product.images.filter(img => img).map((img, idx) => (
+                <motion.button
                   key={idx}
+                  whileHover={{ scale: 1.05 }}
                   onClick={() => setActiveImage(idx)}
                   className={cn(
-                    "relative w-24 h-24 rounded-xl overflow-hidden border-2 transition-all flex-shrink-0",
-                    activeImage === idx ? "border-gold" : "border-[var(--t-border)] hover:border-foreground/30"
+                    "relative w-20 h-20 rounded-lg overflow-hidden border-2 transition-all flex-shrink-0",
+                    activeImage === idx ? "border-gold shadow-lg shadow-gold/20" : "border-[var(--t-border)] hover:border-foreground/30"
                   )}
                 >
                   <Image src={img} alt={`${product.name} view ${idx}`} fill className="object-cover" />
-                </button>
+                </motion.button>
               ))}
             </div>
           </div>

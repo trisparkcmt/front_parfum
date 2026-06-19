@@ -203,6 +203,14 @@ export const authService = {
     const response = await api.patch('auth/user/', data);
     return response.data;
   },
+
+  /**
+   * Alias for getMe() - Get current user profile
+   */
+  getCurrentUser: async () => {
+    const response = await api.get('auth/me/');
+    return response.data;
+  },
 };
 
 // ============================================================================
@@ -215,6 +223,7 @@ export const shopService = {
    */
   getPerfumes: async (params?: {
     search?: string;
+    marque?: string;
     prix_min?: number;
     prix_max?: number;
     famille_olfactive?: string;
@@ -296,6 +305,8 @@ export const shopService = {
    */
   getAccessories: async (params?: {
     type_accessoire?: number;
+    type_nom?: string;
+    marque?: string;
     couleur?: string;
     matiere?: string;
     taille?: string;
@@ -370,13 +381,19 @@ export const shopService = {
    * Get list of available bottles for DIY creation
    */
   getBottles: async (params?: {
+    type_flacon?: number;
+    type_nom?: string;
     contenance_ml?: number;
+    contenance_min?: number;
+    contenance_max?: number;
+    stock_min?: number;
+    stock_max?: number;
     couleur?: string;
     en_stock?: boolean;
     matiere?: string;
-    type_flacon?: number;
     search?: string;
     ordering?: string;
+    page?: number;
   }) => {
     const response = await api.get('shop/flacons/', { params });
     return response.data;
@@ -605,8 +622,14 @@ export const shopService = {
   /**
    * Get finished essences
    */
-  getFinishedEssences: async () => {
-    const response = await api.get('shop/produits-essence/');
+  getFinishedEssences: async (params?: {
+    essence?: number;
+    taille_ml?: number;
+    page?: number;
+    search?: string;
+    ordering?: string;
+  }) => {
+    const response = await api.get('shop/produits-essence/', { params });
     return response.data;
   },
 
@@ -652,12 +675,20 @@ export const labService = {
    * Get list of essences with filters
    */
   getEssences: async (params?: {
+    search?: string;
     famille_olfactive?: string;
+    humeur?: string;
+    saison?: string;
+    occasion?: string;
+    signe_astrologique?: string;
+    moment_journee?: string;
     genre?: string;
     intensite?: string;
-    saison?: string;
     prix_min?: number;
     prix_max?: number;
+    stock_min?: number;
+    page?: number;
+    ordering?: string;
   }): Promise<Essence[]> => {
     const response = await api.get('lab/essences/', { params });
     return response.data.resultats || response.data.results || response.data;
@@ -666,8 +697,15 @@ export const labService = {
   /**
    * Get list of base ingredients
    */
-  getIngredients: async (): Promise<Essence[]> => {
-    const response = await api.get('lab/ingredients/');
+  getIngredients: async (params?: {
+    search?: string;
+    prix_min?: number;
+    prix_max?: number;
+    stock_min?: number;
+    page?: number;
+    ordering?: string;
+  }): Promise<Essence[]> => {
+    const response = await api.get('lab/ingredients/', { params });
     return response.data.resultats || response.data.results || response.data;
   },
 
@@ -777,8 +815,8 @@ export const labService = {
   /**
    * Get all essence lots (Admin / Laborantin)
    */
-  getLotsEssence: async () => {
-    const response = await api.get('lab/lots-essence/');
+  getLotsEssence: async (params?: { essence?: number; actif?: boolean; page?: number }) => {
+    const response = await api.get('lab/lots-essence/', { params });
     return response.data;
   },
 
@@ -1130,6 +1168,28 @@ export const adminService = {
     const response = await api.get('auth/admin/livraisons/');
     return response.data;
   },
+
+  /**
+   * Get all orders for admin/serveuse management
+   */
+  getOrdersForAdmin: async (params?: {
+    statut?: string;
+    statut_livraison?: string;
+    statut_paiement?: string;
+    search?: string;
+    page?: number;
+  }) => {
+    const response = await api.get('orders/commandes/', { params });
+    return response.data;
+  },
+
+  /**
+   * Get available drivers for order assignment
+   */
+  getAvailableDrivers: async () => {
+    const response = await api.get('auth/admin/livreurs/');
+    return response.data;
+  },
 };
 
 // ============================================================================
@@ -1213,50 +1273,151 @@ export const notificationService = {
 
 export const orderService = {
   /**
-   * Get paginated list of orders (Admin)
+   * Get paginated list of orders with full filter support (100 per page).
+   * Admin/Serveuse: all orders. Livreur: assigned only. Client: own only.
    */
   getOrders: async (params?: {
-    search?: string;
     statut?: string;
+    statut_paiement?: string;
+    statut_livraison?: string;
+    nom?: string;
+    search?: string;
     page?: number;
-    ordering?: string;
   }) => {
-    const response = await api.get('shop/commandes/', { params });
+    const response = await api.get('orders/commandes/', { params });
     return response.data;
   },
 
   /**
-   * Get order details by ID
+   * Get order details by numero_commande (e.g. "CMD-A8F2K4")
+   */
+  getOrderByNumero: async (numeroCommande: string) => {
+    const response = await api.get(`orders/commandes/${numeroCommande}/`);
+    return response.data;
+  },
+
+  /**
+   * Get order details by numeric ID (legacy fallback)
    */
   getOrderById: async (id: number) => {
-    const response = await api.get(`shop/commandes/${id}/`);
+    const response = await api.get(`orders/commandes/${id}/`);
     return response.data;
   },
 
   /**
-   * Validate a pending order
+   * Place a new order from the active cart.
+   * panier_id is optional if user is already authenticated with an active cart.
    */
-  validateOrder: async (id: number) => {
-    const response = await api.post(`shop/commandes/${id}/valider/`);
+  placeOrder: async (data: {
+    panier_id?: number | null;
+    livraison_nom_complet: string;
+    livraison_telephone: string;
+    livraison_quartier?: string;
+    livraison_ville?: string;
+    note_client?: string;
+  }) => {
+    const response = await api.post('orders/commandes/passer/', data);
     return response.data;
   },
 
   /**
-   * Cancel an order
+   * Update order fields — used by Admin/Serveuse to validate, assign driver, change statuses.
+   * PATCH /api/v1/orders/commandes/{numero_commande}/
    */
-  cancelOrder: async (id: number) => {
-    const response = await api.post(`shop/commandes/${id}/annuler/`);
+  updateOrder: async (
+    numeroCommande: string,
+    data: {
+      statut?: string;
+      statut_livraison?: string;
+      statut_paiement?: string;
+      livreur?: number | null;
+      date_livraison_estimee?: string | null;
+      note_interne?: string;
+      frais_livraison?: number;
+    }
+  ) => {
+    const response = await api.patch(`orders/commandes/${numeroCommande}/`, data);
     return response.data;
   },
 
   /**
-   * Assign a delivery driver to an order (Admin)
+   * Livreur: update delivery status via action shortcut.
+   * PATCH /api/v1/orders/commandes/{numero_commande}/
+   */
+  updateDeliveryAction: async (
+    numeroCommande: string,
+    data: { action: 'livrer' | 'echouer'; motif?: string }
+  ) => {
+    const response = await api.patch(`orders/commandes/${numeroCommande}/`, data);
+    return response.data;
+  },
+
+  /**
+   * Cancel an order (sets statut to "annulée")
+   */
+  cancelOrder: async (numeroCommande: string) => {
+    const response = await api.patch(`orders/commandes/${numeroCommande}/`, {
+      statut: 'annulée',
+    });
+    return response.data;
+  },
+
+  /**
+   * Assign a delivery driver to an order (Admin shortcut via admin endpoint)
    */
   assignDriver: async (orderId: number, driverId: number) => {
     const response = await api.post(
       `auth/admin/commandes/${orderId}/affecter-livreur/`,
       { livreur_id: driverId }
     );
+    return response.data;
+  },
+
+  /**
+   * Admin/Serveuse: Validate an order and optionally assign delivery
+   */
+  validateOrder: async (
+    numeroCommande: string,
+    data: {
+      deliveryMethod?: 'delivery' | 'pickup';
+      livreur?: number | null;
+      date_livraison_estimee?: string;
+      notes?: string;
+    }
+  ) => {
+    const response = await api.patch(`orders/commandes/${numeroCommande}/`, {
+      statut: 'validé',
+      statut_livraison: data.deliveryMethod === 'pickup' ? 'en_attente_affectation' : 'en_attente_affectation',
+      livreur: data.livreur,
+      date_livraison_estimee: data.date_livraison_estimee,
+      note_interne: data.notes,
+    });
+    return response.data;
+  },
+
+  /**
+   * Get all drivers available for assignment
+   */
+  getAvailableDrivers: async () => {
+    const response = await api.get('auth/admin/livreurs/');
+    return response.data;
+  },
+
+  /**
+   * Livreur: Get orders assigned to them
+   */
+  getAssignedOrders: async (params?: { page?: number }) => {
+    const response = await api.get('orders/commandes/', {
+      params: { ...params, statut_livraison: 'assignée' },
+    });
+    return response.data;
+  },
+
+  /**
+   * Polling: Get single order status
+   */
+  pollOrderStatus: async (numeroCommande: string) => {
+    const response = await api.get(`orders/commandes/${numeroCommande}/`);
     return response.data;
   },
 };

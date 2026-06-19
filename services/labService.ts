@@ -19,7 +19,7 @@ export function mapBackendLabItemToEssence(item: any, type: 'ingredient' | 'esse
   };
 }
 
-export const labService = {
+export const labServiceWrapper = {
   async getIngredients(): Promise<Essence[]> {
     const essences = await apiLabService.getIngredients();
     return essences.map((item: any) => mapBackendLabItemToEssence(item, 'ingredient'));
@@ -30,3 +30,6 @@ export const labService = {
     return essences.map((item: any) => mapBackendLabItemToEssence(item, 'essence'));
   }
 };
+
+// Export as default and named export for compatibility
+export { labServiceWrapper as labService };

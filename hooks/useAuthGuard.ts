@@ -36,7 +36,8 @@ export function useAuthGuard(allowedRoles?: UserRole[]) {
       return;
     }
 
-    if (allowedRoles && user && !allowedRoles.includes(user.role)) {
+    const userRoles = user?.roles || (user?.role ? [user.role] : []);
+    if (allowedRoles && user && !allowedRoles.some((role) => userRoles.includes(role))) {
       // Rediriger vers l'accueil si le rôle n'est pas autorisé
       router.replace('/');
       setIsAuthorized(false);
@@ -44,7 +45,7 @@ export function useAuthGuard(allowedRoles?: UserRole[]) {
     }
 
     setIsAuthorized(true);
-  }, [isAuthenticated, isLoading, user, allowedRoles, router, pathname]);
+  }, [isAuthenticated, isLoading, user, allowedRoles, router, pathname, _hasHydrated]);
 
   return { isAuthorized, isLoading: isLoading || isAuthorized === null };
 }

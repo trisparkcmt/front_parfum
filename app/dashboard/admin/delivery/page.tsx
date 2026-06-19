@@ -5,15 +5,48 @@ import { Plus, Truck, CheckCircle, Clock, Loader2, RefreshCw, Trash2 } from 'luc
 import { adminService } from '@/services/apiService';
 import { useToastStore } from '@/store/useToastStore';
 
+// Define a type for a driver to improve type safety and readability
+interface Driver {
+  id: number;
+  user_details: {
+    id: number;
+    email: string;
+    telephone: string;
+    first_name: string;
+    last_name: string;
+    roles: string[];
+  };
+  photo: string;
+  statut: 'disponible' | 'indisponible' | 'en_livraison';
+  nombre_livraisons: number;
+  date_embauche: string | null;
+  date_creation: string;
+}
+
+// Define a type for a delivery to improve type safety and readability
+// (Assuming a structure for deliveries based on common patterns)
+interface Delivery {
+  id: number;
+  numero_commande: string;
+  livraison_nom_complet: string;
+  livraison_telephone: string;
+  livraison_quartier: string;
+  livraison_ville: string;
+  methode_paiement: string;
+  statut_paiement: 'payé' | 'en attente' | 'échoué'; // Example statuses
+  total_ttc: number;
+  statut_livraison: 'en attente' | 'en cours' | 'livrée' | 'échouée'; // Example statuses
+}
+
 export default function DeliveryPage() {
   const [drivers, setDrivers] = useState<any[]>([]);
   const [deliveries, setDeliveries] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
-  
+
   // Form state
   const [userIdVal, setUserIdVal] = useState('');
-  
+
   const { addToast } = useToastStore();
 
   const fetchDriversAndDeliveries = useCallback(async () => {
@@ -23,10 +56,12 @@ export default function DeliveryPage() {
         adminService.getDeliveryDrivers(),
         adminService.getDeliveries()
       ]);
-      const list = driversData.resultats || driversData.results || (Array.isArray(driversData) ? driversData : []);
-      const delList = deliveriesData.resultats || deliveriesData.results || (Array.isArray(deliveriesData) ? deliveriesData : []);
-      setDrivers(list);
-      setDeliveries(delList);
+      console.log("Raw driversData from API:", driversData); // Debugging: Check the full response from getDeliveryDrivers
+      const processedDrivers: Driver[] = driversData.resultats || driversData.results || (Array.isArray(driversData) ? driversData : []);
+      console.log("Processed drivers list:", processedDrivers); // Debugging: Check the array passed to setDrivers
+      const processedDeliveries: Delivery[] = deliveriesData.resultats || deliveriesData.results || (Array.isArray(deliveriesData) ? deliveriesData : []);
+      setDrivers(processedDrivers);
+      setDeliveries(processedDeliveries);
     } catch (error) {
       addToast('Erreur lors du chargement des données de livraison', 'error');
     } finally {
@@ -109,32 +144,42 @@ export default function DeliveryPage() {
             <h2 className="font-semibold text-foreground mb-4">Livreurs de la Flotte</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {drivers.map(d => {
-                const name = d.name || d.user_details?.first_name || d.first_name || 'Livreur';
-                const email = d.email || d.user_details?.email || '';
-                const phone = d.telephone || d.user_details?.telephone || '—';
-                const status = d.statut || 'disponible';
-                const deliveriesCount = d.nombre_livraisons || 0;
+                const firstName = d.user_details?.first_name || '';
+                const lastName = d.user_details?.last_name || '';
+                const fullName = `${firstName} ${lastName}`.trim() || 'Livreur';
+                const displayEmail = d.user_details?.email || '';
+                const displayPhone = d.user_details?.telephone || '—';
+                const displayStatus = d.statut || 'disponible';
+                const displayDeliveriesCount = d.nombre_livraisons || 0;
 
                 return (
                   <div key={d.id} className="bg-white/5 rounded-2xl border border-white/10 p-5 shadow-2xl hover:border-gold/30 transition-all flex flex-col justify-between">
                     <div>
                       <div className="flex items-start justify-between mb-4">
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-gold to-gold/60 flex items-center justify-center text-black font-bold">
-                            {name.charAt(0).toUpperCase()}
+                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-gold to-gold/60 flex items-center justify-center text-black font-bold overflow-hidden">
+                            {d.photo ? (
+                              <img src={d.photo} alt={`${fullName}'s photo`} className="w-full h-full object-cover" />
+                            ) : (
+                              <span className="text-indigo-600 font-bold text-sm">
+                                {(firstName.charAt(0) || '') + (lastName.charAt(0) || '')}
+                              </span>
+                            )}
                           </div>
                           <div>
-                            <p className="font-semibold text-foreground text-sm">{name}</p>
-                            <p className="text-[11px] text-foreground/40">{email}</p>
+                            <p className="font-semibold text-foreground text-sm">{fullName}</p>
+                            {displayEmail && <p className="text-[11px] text-foreground/40">{displayEmail}</p>}
+                            {d.user_details?.roles && d.user_details.roles.length > 0 && (
+                              <p className="text-[10px] text-foreground/30">Rôles: {d.user_details.roles.join(', ')}</p>
+                            )}
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
-                          <span className={`text-[9px] uppercase font-bold px-2 py-1 rounded-full ${
-                            status === 'disponible' ? 'bg-green-500/20 text-green-400' :
-                            status === 'en_livraison' ? 'bg-blue-500/20 text-blue-400' :
-                            'bg-red-500/20 text-red-400'
-                          }`}>
-                            {status}
+                          <span className={`text-[9px] uppercase font-bold px-2 py-1 rounded-full ${displayStatus === 'disponible' ? 'bg-green-500/20 text-green-400' :
+                            displayStatus === 'en_livraison' ? 'bg-blue-500/20 text-blue-400' :
+                              'bg-red-500/20 text-red-400'
+                            }`}>
+                            {displayStatus}
                           </span>
                           <button
                             onClick={() => handleDeleteDriver(d.id)}
@@ -146,22 +191,24 @@ export default function DeliveryPage() {
                         </div>
                       </div>
                       <div className="space-y-1 text-xs text-foreground/60 border-t border-white/5 pt-3 mb-4">
-                        <p><span className="text-foreground/40">Téléphone:</span> {phone}</p>
-                        <p><span className="text-foreground/40">Date Embauche:</span> {d.date_embauche || '—'}</p>
-                        <p><span className="text-foreground/40">Total Livraisons:</span> {deliveriesCount}</p>
+                        <p><span className="text-foreground/40">Téléphone:</span> {displayPhone}</p>
+                        <p><span className="text-foreground/40">Date Embauche:</span> {d.date_embauche ? new Date(d.date_embauche).toLocaleDateString() : '—'}</p>
+                        <p><span className="text-foreground/40">Total Livraisons:</span> {displayDeliveriesCount}</p>
+                        {d.date_creation && (
+                          <p><span className="text-foreground/40">Créé le:</span> {new Date(d.date_creation).toLocaleDateString()}</p>
+                        )}
                       </div>
                     </div>
-                    
+
                     <button
-                      onClick={() => handleToggleStatus(d.id, status)}
-                      disabled={status === 'en_livraison'}
-                      className={`w-full py-1.5 rounded-lg text-xs font-semibold border transition-all ${
-                        status === 'disponible' 
-                          ? 'border-red-500/20 hover:bg-red-500/10 text-red-400' 
-                          : 'border-green-500/20 hover:bg-green-500/10 text-green-400'
-                      } disabled:opacity-50`}
+                      onClick={() => handleToggleStatus(d.id, displayStatus)}
+                      disabled={displayStatus === 'en_livraison'}
+                      className={`w-full py-1.5 rounded-lg text-xs font-semibold border transition-all ${displayStatus === 'disponible'
+                        ? 'border-red-500/20 hover:bg-red-500/10 text-red-400'
+                        : 'border-green-500/20 hover:bg-green-500/10 text-green-400'
+                        } disabled:opacity-50`}
                     >
-                      {status === 'disponible' ? 'Rendre indisponible' : 'Rendre disponible'}
+                      {displayStatus === 'disponible' ? 'Rendre indisponible' : 'Rendre disponible'}
                     </button>
                   </div>
                 );
@@ -209,11 +256,10 @@ export default function DeliveryPage() {
                     </td>
                     <td className="py-3 px-4">{del.total_ttc} FCFA</td>
                     <td className="py-3 px-4">
-                      <span className={`text-[10px] uppercase font-bold px-2 py-1 rounded ${
-                        del.statut_livraison === 'livrée' ? 'bg-green-500/20 text-green-400' :
+                      <span className={`text-[10px] uppercase font-bold px-2 py-1 rounded ${del.statut_livraison === 'livrée' ? 'bg-green-500/20 text-green-400' :
                         del.statut_livraison === 'échouée' ? 'bg-red-500/20 text-red-400' :
-                        'bg-blue-500/20 text-blue-400'
-                      }`}>
+                          'bg-blue-500/20 text-blue-400'
+                        }`}>
                         {del.statut_livraison}
                       </span>
                     </td>
