@@ -22,6 +22,7 @@ export default function AccessoriesPage() {
   const [enStockFilter, setEnStockFilter] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [editingAccessory, setEditingAccessory] = useState<any | null>(null);
+  const [selectedAccessories, setSelectedAccessories] = useState<Set<string>>(new Set());
   const [imageFiles, setImageFiles] = useState<{ [key: string]: File | null }>({
     image_principale: null,
     image_supp_1: null,
@@ -214,6 +215,37 @@ export default function AccessoriesPage() {
     }
   };
 
+  const handleBulkDelete = async () => {
+    if (!permissions.canDelete || selectedAccessories.size === 0) return;
+    if (!confirm(`Supprimer ${selectedAccessories.size} accessoire(s) ?`)) return;
+    try {
+      for (const slug of selectedAccessories) {
+        try {
+          await shopService.deleteAccessory(slug);
+        } catch (e) {
+          console.error(`Failed to delete ${slug}:`, e);
+        }
+      }
+      addToast(`${selectedAccessories.size} accessoire(s) supprimé(s)`, 'success');
+      setSelectedAccessories(new Set());
+      fetchAccessories();
+    } catch (error) {
+      addToast('Erreur lors de la suppression en masse', 'error');
+    }
+  };
+
+  const toggleSelectAccessory = (slug: string) => {
+    setSelectedAccessories(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(slug)) {
+        newSet.delete(slug);
+      } else {
+        newSet.add(slug);
+      }
+      return newSet;
+    });
+  };
+
   if (!permissions.canRead) {
     return (
       <div className="space-y-6">
@@ -229,15 +261,26 @@ export default function AccessoriesPage() {
           <h1 className="text-2xl font-bold text-foreground">Accessoires</h1>
           <p className="text-sm text-foreground/40 mt-0.5">Bijoux, montres et autres accessoires</p>
         </div>
-        {permissions.canCreate && (
-          <button
-            onClick={handleOpenAdd}
-            className="flex items-center gap-2 bg-gold text-black px-4 py-2.5 rounded-xl text-sm font-medium hover:bg-gold/80 transition-all shadow-lg"
-          >
-            <Plus size={16} />
-            Ajouter
-          </button>
-        )}
+        <div className="flex items-center gap-2">
+          {selectedAccessories.size > 0 && permissions.canDelete && (
+            <button
+              onClick={handleBulkDelete}
+              className="flex items-center gap-2 bg-red-500 text-white px-4 py-2.5 rounded-xl text-sm font-medium hover:bg-red-600 transition-all shadow-lg"
+            >
+              <Trash2 size={16} />
+              Supprimer ({selectedAccessories.size})
+            </button>
+          )}
+          {permissions.canCreate && (
+            <button
+              onClick={handleOpenAdd}
+              className="flex items-center gap-2 bg-gold text-black px-4 py-2.5 rounded-xl text-sm font-medium hover:bg-gold/80 transition-all shadow-lg"
+            >
+              <Plus size={16} />
+              Ajouter
+            </button>
+          )}
+        </div>
       </div>
 
       <CatalogAccessNotice permissions={permissions} resourceLabel="les accessoires" />
@@ -311,6 +354,20 @@ export default function AccessoriesPage() {
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="border-b border-white/10 bg-white/5">
+                  <th className="px-6 py-4 w-12">
+                    <input
+                      type="checkbox"
+                      checked={accessories.length > 0 && selectedAccessories.size === accessories.length}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSelectedAccessories(new Set(accessories.map(a => a.slug || a.id)));
+                        } else {
+                          setSelectedAccessories(new Set());
+                        }
+                      }}
+                      className="rounded border-white/10 bg-white/5 text-gold focus:ring-gold"
+                    />
+                  </th>
                   <th className="px-6 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider">Accessoire</th>
                   <th className="px-6 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider">Type</th>
                   <th className="px-6 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider">Prix</th>
@@ -329,6 +386,14 @@ export default function AccessoriesPage() {
 
                   return (
                     <tr key={a.slug || a.id} className="hover:bg-white/5 transition-colors group">
+                      <td className="px-6 py-4 w-12">
+                        <input
+                          type="checkbox"
+                          checked={selectedAccessories.has(a.slug || a.id)}
+                          onChange={() => toggleSelectAccessory(a.slug || a.id)}
+                          className="rounded border-white/10 bg-white/5 text-gold focus:ring-gold"
+                        />
+                      </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-4">
                           <div className="w-12 h-12 rounded-xl bg-white/5 flex items-center justify-center text-2xl group-hover:scale-105 transition-transform overflow-hidden border border-white/5">
@@ -384,8 +449,14 @@ export default function AccessoriesPage() {
       </div>
 
       {showModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-background rounded-2xl p-6 w-full max-w-4xl shadow-2xl border border-white/10 max-h-[90vh] overflow-y-auto">
+        <div 
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+          onClick={() => setShowModal(false)}
+        >
+          <div 
+            className="bg-background rounded-2xl p-6 w-full max-w-6xl shadow-2xl border border-white/10 max-h-[90vh] overflow-y-auto"
+            onClick={e => e.stopPropagation()}
+          >
             <h3 className="font-bold text-foreground mb-4">
               {editingAccessory ? 'Modifier l\'accessoire' : 'Ajouter un accessoire'}
             </h3>

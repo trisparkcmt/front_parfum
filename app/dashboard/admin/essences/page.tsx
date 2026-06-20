@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect, useCallback } from 'react';
 import { 
@@ -35,7 +35,6 @@ export default function EssencesPage() {
   const [intensite, setIntensite] = useState('moyenne');
   const [genreCible, setGenreCible] = useState('mixte');
   const [prixParMl, setPrixParMl] = useState('0.00');
-  const [includeInitialLot, setIncludeInitialLot] = useState(false);
   const [lotStockMl, setLotStockMl] = useState('500');
   const [lotSeuilAlerteMl, setLotSeuilAlerteMl] = useState('50');
   const [lotReferenceFournisseur, setLotReferenceFournisseur] = useState('');
@@ -81,7 +80,6 @@ export default function EssencesPage() {
     setIntensite('moyenne');
     setGenreCible('mixte');
     setPrixParMl('0.00');
-    setIncludeInitialLot(false);
     setLotStockMl('500');
     setLotSeuilAlerteMl('50');
     setLotReferenceFournisseur('');
@@ -101,7 +99,6 @@ export default function EssencesPage() {
     setIntensite(item.intensite || 'moyenne');
     setGenreCible(item.genre_cible || 'mixte');
     setPrixParMl(String(item.prix_par_ml || '0.00'));
-    setIncludeInitialLot(false);
     setIncludeProduitsFinis(false);
     setShowModal(true);
   };
@@ -126,7 +123,7 @@ export default function EssencesPage() {
         prix_par_ml: prixParMl,
       };
 
-      if (!editingEssence && includeInitialLot && lotStockMl) {
+      if (!editingEssence && lotStockMl) {
         payload.initial_lot = {
           stock_ml: lotStockMl,
           seuil_alerte_ml: lotSeuilAlerteMl || undefined,
@@ -450,34 +447,38 @@ export default function EssencesPage() {
                       {!editingEssence && (
                         <>
                           <div className="bg-white/5 border border-white/10 rounded-xl p-4 space-y-3">
-                            <label className="flex items-center gap-2 cursor-pointer">
-                              <input
-                                type="checkbox"
-                                checked={includeInitialLot}
-                                onChange={e => setIncludeInitialLot(e.target.checked)}
-                                className="rounded border-white/10 bg-white/5 text-gold focus:ring-gold"
-                              />
-                              <div className="text-xs">
-                                <p className="font-semibold text-foreground">Créer un lot initial</p>
-                                <p className="text-foreground/40">Stock brut au laboratoire</p>
+                            <p className="text-sm font-semibold text-foreground mb-3">Lot Initial (Stock Laboratoire)</p>
+                            <div className="grid grid-cols-2 gap-3">
+                              <div>
+                                <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Stock ML</label>
+                                <input
+                                  type="number"
+                                  value={lotStockMl}
+                                  onChange={e => setLotStockMl(e.target.value)}
+                                  placeholder="500"
+                                  className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
+                                />
                               </div>
-                            </label>
-                            {includeInitialLot && (
-                              <div className="grid grid-cols-2 gap-3 pt-2 border-t border-white/5">
-                                <div>
-                                  <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Quantité initiale (ml) *</label>
-                                  <input value={lotStockMl} onChange={e => setLotStockMl(e.target.value)} placeholder="500" type="number" className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-foreground outline-none focus:border-gold" />
-                                </div>
-                                <div>
-                                  <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Seuil d'alerte (ml)</label>
-                                  <input value={lotSeuilAlerteMl} onChange={e => setLotSeuilAlerteMl(e.target.value)} placeholder="50" type="number" className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-foreground outline-none focus:border-gold" />
-                                </div>
-                                <div className="col-span-2">
-                                  <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Référence Fournisseur</label>
-                                  <input value={lotReferenceFournisseur} onChange={e => setLotReferenceFournisseur(e.target.value)} placeholder="LOT-GRASSET-001" className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-foreground outline-none focus:border-gold" />
-                                </div>
+                              <div>
+                                <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Seuil d'alerte ML</label>
+                                <input
+                                  type="number"
+                                  value={lotSeuilAlerteMl}
+                                  onChange={e => setLotSeuilAlerteMl(e.target.value)}
+                                  placeholder="50"
+                                  className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
+                                />
                               </div>
-                            )}
+                              <div className="col-span-2">
+                                <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Référence Fournisseur (optionnel)</label>
+                                <input
+                                  value={lotReferenceFournisseur}
+                                  onChange={e => setLotReferenceFournisseur(e.target.value)}
+                                  placeholder="Ref du fournisseur"
+                                  className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
+                                />
+                              </div>
+                            </div>
                           </div>
 
                           <div className="bg-white/5 border border-white/10 rounded-xl p-4 space-y-3">
@@ -488,15 +489,15 @@ export default function EssencesPage() {
                                 onChange={e => setIncludeProduitsFinis(e.target.checked)}
                                 className="rounded border-white/10 bg-white/5 text-gold focus:ring-gold"
                               />
-                              <div className="text-xs">
+                              <div>
                                 <p className="font-semibold text-foreground">Créer un format boutique (produit fini)</p>
-                                <p className="text-foreground/40">Flacon prêt à la vente dans le shop</p>
+                                <p className="text-foreground/40 text-sm">Flacon prêt à la vente dans le shop</p>
                               </div>
                             </label>
                             {includeProduitsFinis && (
                               <div className="grid grid-cols-2 gap-3 pt-2 border-t border-white/5">
                                 <div>
-                                  <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Taille (ml) *</label>
+                                  <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Taille</label>
                                   <select value={produitFini.taille_ml} onChange={e => setProduitFini(p => ({ ...p, taille_ml: e.target.value }))} className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white outline-none focus:border-gold bg-neutral-900">
                                     <option value="10">10 ml</option>
                                     <option value="30">30 ml</option>
@@ -504,15 +505,15 @@ export default function EssencesPage() {
                                   </select>
                                 </div>
                                 <div>
-                                  <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Prix (FCFA) *</label>
-                                  <input type="number" value={produitFini.prix} onChange={e => setProduitFini(p => ({ ...p, prix: e.target.value }))} className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-foreground outline-none focus:border-gold" />
+                                  <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Prix</label>
+                                  <input type="number" value={produitFini.prix} onChange={e => setProduitFini(p => ({ ...p, prix: e.target.value }))} className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-gold outline-none focus:border-gold font-bold" />
                                 </div>
                                 <div>
-                                  <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Prix promo</label>
-                                  <input type="number" value={produitFini.prix_promotionnel} onChange={e => setProduitFini(p => ({ ...p, prix_promotionnel: e.target.value }))} className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-foreground outline-none focus:border-gold" />
+                                  <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Prix Promo</label>
+                                  <input type="number" value={produitFini.prix_promotionnel} onChange={e => setProduitFini(p => ({ ...p, prix_promotionnel: e.target.value }))} className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-gold outline-none focus:border-gold font-bold" />
                                 </div>
                                 <div>
-                                  <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Stock disponible *</label>
+                                  <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Stock</label>
                                   <input type="number" value={produitFini.stock_disponible} onChange={e => setProduitFini(p => ({ ...p, stock_disponible: e.target.value }))} className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-foreground outline-none focus:border-gold" />
                                 </div>
                               </div>

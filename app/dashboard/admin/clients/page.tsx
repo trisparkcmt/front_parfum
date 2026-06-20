@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect, useCallback } from 'react';
 import { Search, Eye, Users, Heart, FlaskConical, Loader2, Power, UserCheck } from 'lucide-react';
@@ -42,7 +42,7 @@ export default function ClientsPage() {
   const handleToggleStatus = async (userId: number) => {
     try {
       await adminService.toggleUserStatus(userId);
-      addToast('Statut de l\'utilisateur mis à jour', 'success');
+      addToast('Statut de l\'utilisateur mis Ã  jour', 'success');
       fetchClients();
       if (selected && selected.id === userId) {
         setSelected((prev: any) => ({ ...prev, is_active: !prev.is_active }));
@@ -59,7 +59,7 @@ export default function ClientsPage() {
     try {
       setPromoting(true);
       await adminService.promoteToServeuse(selected.id);
-      addToast('Client promu serveuse avec succès', 'success');
+      addToast('Client promu serveuse avec succÃ¨s', 'success');
       fetchClients();
       setSelected(null);
     } catch (error: any) {
@@ -83,8 +83,8 @@ export default function ClientsPage() {
         {[
           { label: 'Total Clients', value: clients.length, icon: <Users size={18} />, color: 'text-gold bg-gold/10' },
           { label: 'Actifs', value: clients.filter(c => c.is_active).length, icon: <Users size={18} />, color: 'text-emerald-400 bg-emerald-500/10' },
-          { label: 'Favoris enregistrés', value: clients.reduce((s, c) => s + (c.favorites?.length || 0), 0), icon: <Heart size={18} />, color: 'text-red-400 bg-red-500/10' },
-          { label: 'Compositions créées', value: clients.reduce((s, c) => s + (c.custom_perfumes?.length || 0), 0), icon: <FlaskConical size={18} />, color: 'text-purple-400 bg-purple-500/10' },
+          { label: 'Favoris enregistrÃ©s', value: clients.reduce((s, c) => s + (c.favorites?.length || 0), 0), icon: <Heart size={18} />, color: 'text-red-400 bg-red-500/10' },
+          { label: 'Compositions crÃ©Ã©es', value: clients.reduce((s, c) => s + (c.custom_perfumes?.length || 0), 0), icon: <FlaskConical size={18} />, color: 'text-purple-400 bg-purple-500/10' },
         ].map(k => (
           <div key={k.label} className="bg-white/5 rounded-2xl border border-white/10 p-5 shadow-2xl">
             <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-3 ${k.color}`}>
@@ -114,14 +114,14 @@ export default function ClientsPage() {
         {loading ? (
           <div className="flex flex-col items-center justify-center py-20 text-gold gap-3">
             <Loader2 className="animate-spin" size={32} />
-            <p className="text-sm font-medium">Chargement des données...</p>
+            <p className="text-sm font-medium">Chargement des donnÃ©es...</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-white/5 border-b border-white/10">
                 <tr>
-                  {['Client', 'Contact', 'Téléphone', 'Favoris', 'Compositions', 'Statut', 'Actions'].map(h => (
+                  {['Client', 'Contact', 'TÃ©lÃ©phone', 'Statut', 'Actions'].map(h => (
                     <th key={h} className="text-left text-xs font-semibold text-foreground/40 uppercase tracking-wider px-5 py-3.5">{h}</th>
                   ))}
                 </tr>
@@ -141,9 +141,7 @@ export default function ClientsPage() {
                       </div>
                     </td>
                     <td className="px-5 py-4 text-xs text-foreground">{c.email}</td>
-                    <td className="px-5 py-4 text-xs text-foreground">{c.telephone || '—'}</td>
-                    <td className="px-5 py-4 text-center text-foreground/60">{c.favorites?.length || 0}</td>
-                    <td className="px-5 py-4 text-center text-foreground/60">{c.custom_perfumes?.length || 0}</td>
+                    <td className="px-5 py-4 text-xs text-foreground">{c.telephone || 'â€”'}</td>
                     <td className="px-5 py-4">
                       <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-full
                         ${c.is_active ? 'text-emerald-400 bg-emerald-500/10' : 'text-red-400 bg-red-500/10'}`}>
@@ -152,10 +150,10 @@ export default function ClientsPage() {
                     </td>
                     <td className="px-5 py-4">
                       <div className="flex items-center gap-2">
-                        <button onClick={() => setSelected(c)} className="p-1.5 rounded-lg hover:bg-white/5 text-foreground/40 hover:text-gold transition-colors" title="Détails">
+                        <button onClick={() => setSelected(c)} className="p-1.5 rounded-lg hover:bg-white/5 text-foreground/40 hover:text-gold transition-colors" title="DÃ©tails">
                           <Eye size={14} />
                         </button>
-                        <button onClick={() => handleToggleStatus(c.id)} className="p-1.5 rounded-lg hover:bg-white/5 text-foreground/40 hover:text-red-400 transition-colors" title={c.is_active ? "Désactiver" : "Activer"}>
+                        <button onClick={() => handleToggleStatus(c.id)} className="p-1.5 rounded-lg hover:bg-white/5 text-foreground/40 hover:text-red-400 transition-colors" title={c.is_active ? "DÃ©sactiver" : "Activer"}>
                           <Power size={14} />
                         </button>
                       </div>
@@ -164,7 +162,7 @@ export default function ClientsPage() {
                 ))}
                 {clients.length === 0 && (
                   <tr>
-                    <td colSpan={7} className="text-center py-10 text-foreground/40 italic">Aucun client trouvé.</td>
+                    <td colSpan={5} className="text-center py-10 text-foreground/40 italic">Aucun client trouvÃ©.</td>
                   </tr>
                 )}
               </tbody>
@@ -197,9 +195,9 @@ export default function ClientsPage() {
                 </div>
               ))}
             </div>
-            <p className="text-xs text-foreground/40 mb-4">Téléphone: {selected.telephone || '—'} · Statut: {selected.is_active ? 'Actif' : 'Inactif'}</p>
+            <p className="text-xs text-foreground/40 mb-4">TÃ©lÃ©phone: {selected.telephone || 'â€”'} Â· Statut: {selected.is_active ? 'Actif' : 'Inactif'}</p>
             {isServeuse(selected) ? (
-              <p className="text-xs text-emerald-400 text-center mb-4 font-medium">Déjà serveuse</p>
+              <p className="text-xs text-emerald-400 text-center mb-4 font-medium">DÃ©jÃ  serveuse</p>
             ) : (
               <button
                 onClick={handlePromoteToServeuse}
@@ -219,4 +217,7 @@ export default function ClientsPage() {
     </div>
   );
 }
+
+
+
 

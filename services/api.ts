@@ -121,42 +121,19 @@ const performProactiveRefresh = async () => {
   if (isRefreshing) return;
 
   try {
-    const refreshToken = localStorage.getItem('refresh_token');
-    const hasStoredAccess = !!localStorage.getItem('auth_token');
+    // When using HttpOnly cookies, just call the refresh endpoint
+    // The backend will use the httponly refresh token automatically
+    const response = await axios.post(
+      `${getBaseURL()}auth/token/refresh/`,
+      {},
+      { withCredentials: true } // Include cookies
+    );
 
-    // Only attempt refresh if we have a way to do it
-    if (!refreshToken && hasStoredAccess) {
-      // Web login with HttpOnly cookies
-      const response = await axios.post(
-        `${getBaseURL()}auth/token/refresh/`,
-        {},
-        { withCredentials: true }
-      );
-
-      if (response.data.access) {
-        localStorage.setItem('auth_token', response.data.access);
-        api.defaults.headers.common['Authorization'] = `Bearer ${response.data.access}`;
-        // Schedule next refresh
-        scheduleTokenRefresh();
-      }
-    } else if (refreshToken) {
-      // Mobile login with refresh token
-      const response = await axios.post(
-        `${getBaseURL()}auth/token/refresh/`,
-        { refresh: refreshToken },
-        { withCredentials: false }
-      );
-
-      if (response.data.access) {
-        localStorage.setItem('auth_token', response.data.access);
-        // Update refresh token if provided
-        if (response.data.refresh) {
-          localStorage.setItem('refresh_token', response.data.refresh);
-        }
-        api.defaults.headers.common['Authorization'] = `Bearer ${response.data.access}`;
-        // Schedule next refresh
-        scheduleTokenRefresh();
-      }
+    if (response.data.access) {
+      localStorage.setItem('auth_token', response.data.access);
+      api.defaults.headers.common['Authorization'] = `Bearer ${response.data.access}`;
+      // Schedule next refresh
+      scheduleTokenRefresh();
     }
   } catch (error) {
     console.error('Proactive token refresh failed:', error);

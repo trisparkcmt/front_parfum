@@ -17,6 +17,7 @@ export default function PerfumeAdminPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [genreFilter, setGenreFilter] = useState('');
+  const [categoryLevelFilter, setCategoryLevelFilter] = useState('');
   const [estBestsellerFilter, setEstBestsellerFilter] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [editingPerfume, setEditingPerfume] = useState<any | null>(null);
@@ -63,6 +64,7 @@ export default function PerfumeAdminPage() {
       const params: Record<string, unknown> = {};
       if (search) params.search = search;
       if (genreFilter) params.genre = genreFilter;
+      if (categoryLevelFilter) params.categorie_niveau = categoryLevelFilter;
       if (estBestsellerFilter === 'true') params.est_bestseller = true;
       if (estBestsellerFilter === 'false') params.est_bestseller = false;
       const data = await shopService.getPerfumes(params);
@@ -72,7 +74,7 @@ export default function PerfumeAdminPage() {
     } finally {
       setLoading(false);
     }
-  }, [search, genreFilter, estBestsellerFilter, addToast, permissions.canRead]);
+  }, [search, genreFilter, categoryLevelFilter, estBestsellerFilter, addToast, permissions.canRead]);
 
   useEffect(() => {
     const timer = setTimeout(fetchPerfumes, 300);
@@ -264,6 +266,16 @@ export default function PerfumeAdminPage() {
           <option value="homme">Homme</option>
           <option value="femme">Femme</option>
           <option value="mixte">Mixte</option>
+        </select>
+        <select
+          value={categoryLevelFilter}
+          onChange={(e) => setCategoryLevelFilter(e.target.value)}
+          className="bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-foreground outline-none"
+        >
+          <option value="">Toutes catégories</option>
+          <option value="super_premium">Super Premium</option>
+          <option value="premium">Premium</option>
+          <option value="high">High</option>
         </select>
         <select
           value={estBestsellerFilter}
