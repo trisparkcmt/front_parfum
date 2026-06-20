@@ -1,0 +1,6 @@
+post https://accessoires-exclusifs-api.onrender.com/api/v1/auth/registration/resend-email/
+Content-type: application/json
+
+{
+    "email": "darrenfotsing71@gmail.com" 
+}
