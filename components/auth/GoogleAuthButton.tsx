@@ -77,9 +77,9 @@ export default function GoogleAuthButton({
               setIsGoogleLoading(false);
             }
           },
-          error_callback: (error: any) => {
+          error_callback: () => {
             setIsGoogleLoading(false);
-            console.error('Google OAuth2 error:', error);
+            console.error('Google OAuth2 error occurred during client initialization.');
             console.log('Current origin:', window.location.origin);
             console.log('Client ID:', clientId);
           },
