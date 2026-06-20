@@ -45,6 +45,7 @@ export default function EssencesPage() {
     prix_promotionnel: '',
     stock_disponible: '0',
   });
+  const [selectedEssences, setSelectedEssences] = useState<Set<number>>(new Set());
 
   const fetchData = useCallback(async () => {
     try {
@@ -169,6 +170,37 @@ export default function EssencesPage() {
     }
   };
 
+  const toggleSelectEssence = (id: number) => {
+    setSelectedEssences(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(id)) {
+        newSet.delete(id);
+      } else {
+        newSet.add(id);
+      }
+      return newSet;
+    });
+  };
+
+  const handleBulkDelete = async () => {
+    if (!permissions.canDelete || selectedEssences.size === 0) return;
+    if (!confirm(`Supprimer ${selectedEssences.size} essence(s) ?`)) return;
+    try {
+      for (const id of selectedEssences) {
+        try {
+          await labService.deleteEssence(id);
+        } catch (e) {
+          console.error(`Failed to delete essence ${id}:`, e);
+        }
+      }
+      addToast(`${selectedEssences.size} essence(s) supprimée(s)`, 'success');
+      setSelectedEssences(new Set());
+      fetchData();
+    } catch (error) {
+      addToast('Erreur lors de la suppression en masse', 'error');
+    }
+  };
+
   const filtered = essences.filter(e =>
     (e.nom || '').toLowerCase().includes(search.toLowerCase()) ||
     (e.code_reference || '').toLowerCase().includes(search.toLowerCase()) ||
@@ -198,6 +230,15 @@ export default function EssencesPage() {
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
+                  {selectedEssences.size > 0 && permissions.canDelete && (
+                    <button
+                      onClick={handleBulkDelete}
+                      className="flex items-center gap-2 bg-red-500 text-white px-4 py-2.5 rounded-xl text-sm font-medium hover:bg-red-600 transition-all shadow-lg"
+                    >
+                      <Trash2 size={16} />
+                      Supprimer ({selectedEssences.size})
+                    </button>
+                  )}
                   <button 
                     onClick={fetchData} 
                     className="p-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 text-foreground/60 hover:text-foreground transition-all"
@@ -240,6 +281,20 @@ export default function EssencesPage() {
                     <table className="w-full text-left border-collapse">
                       <thead>
                         <tr className="border-b border-white/10 bg-white/5">
+                          <th className="px-5 py-3.5 w-12">
+                            <input
+                              type="checkbox"
+                              checked={currentItems.length > 0 && selectedEssences.size === essences.length && essences.length > 0}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setSelectedEssences(new Set(essences.map(e => e.id)));
+                                } else {
+                                  setSelectedEssences(new Set());
+                                }
+                              }}
+                              className="rounded border-white/10 bg-white/5 text-gold focus:ring-gold"
+                            />
+                          </th>
                           {['Détails Essence', 'Code Réf.', 'Catégorie', 'Caractéristiques', 'Prix / ml', 'Canal', 'Actions'].map(h => (
                             <th key={h} className="px-5 py-3.5 text-xs font-semibold text-foreground/40 uppercase tracking-wider">{h}</th>
                           ))}
@@ -248,6 +303,14 @@ export default function EssencesPage() {
                       <tbody className="divide-y divide-white/5">
                         {currentItems.map(essence => (
                           <tr key={essence.id} className="hover:bg-white/5 transition-colors">
+                            <td className="px-5 py-3.5 w-12">
+                              <input
+                                type="checkbox"
+                                checked={selectedEssences.has(essence.id)}
+                                onChange={() => toggleSelectEssence(essence.id)}
+                                className="rounded border-white/10 bg-white/5 text-gold focus:ring-gold"
+                              />
+                            </td>
                             <td className="px-5 py-3.5">
                               <div className="flex items-center gap-3">
                                 <div className="p-2 rounded-xl bg-gold/10 text-gold hidden sm:block">
@@ -309,7 +372,7 @@ export default function EssencesPage() {
                         ))}
                         {currentItems.length === 0 && (
                           <tr>
-                            <td colSpan={7} className="text-center py-16 text-foreground/40 italic text-sm">
+                            <td colSpan={8} className="text-center py-16 text-foreground/40 italic text-sm">
                               Aucune essence enregistrée dans le catalogue.
                             </td>
                           </tr>
@@ -345,8 +408,8 @@ export default function EssencesPage() {
 
               {/* Modale d'Ajout / Modification */}
               {showModal && (
-                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                  <div className="bg-background rounded-2xl p-6 w-full max-w-lg shadow-2xl border border-white/10 overflow-y-auto max-h-[90vh]">
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex p-4 overflow-y-auto" onClick={() => setShowModal(false)}>
+                  <div className="bg-background rounded-2xl p-6 w-full max-w-6xl shadow-2xl border border-white/10 overflow-y-auto max-h-fit my-auto mx-auto" onClick={e => e.stopPropagation()}>
                     <h3 className="font-bold text-foreground text-lg mb-4">
                       {editingEssence ? 'Modifier l\'essence' : 'Ajouter une nouvelle essence'}
                     </h3>

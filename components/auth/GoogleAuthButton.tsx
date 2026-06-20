@@ -56,6 +56,7 @@ export default function GoogleAuthButton({
     const initializeClient = () => {
       if (!window.google?.accounts?.oauth2) {
         console.warn('Google OAuth2 SDK not available');
+        setIsGoogleLoading(false);
         return;
       }
       try {
@@ -64,23 +65,29 @@ export default function GoogleAuthButton({
           scope: 'openid email profile',
           callback: async (response) => {
             if (!response?.access_token) {
+              console.warn('No access token in response', response);
               setIsGoogleLoading(false);
               return;
             }
             try {
               await onTokenReceived(response.access_token);
+            } catch (error) {
+              console.error('Token callback error:', error);
             } finally {
               setIsGoogleLoading(false);
             }
           },
-          error_callback: () => {
+          error_callback: (error: any) => {
             setIsGoogleLoading(false);
-            console.error('Google OAuth2 error');
+            console.error('Google OAuth2 error:', error);
+            console.log('Current origin:', window.location.origin);
+            console.log('Client ID:', clientId);
           },
         });
         setSdkReady(true);
       } catch (error) {
         console.error('Failed to initialize Google OAuth2 client:', error);
+        setIsGoogleLoading(false);
       }
     };
 
@@ -98,9 +105,14 @@ export default function GoogleAuthButton({
       script.async = true;
       script.defer = true;
       
-      const onLoad = () => initializeClient();
+      const onLoad = () => {
+        console.log('Google OAuth2 SDK script loaded successfully');
+        initializeClient();
+      };
       const onError = () => {
-        console.error('Failed to load Google OAuth2 SDK');
+        console.error('Failed to load Google OAuth2 SDK from accounts.google.com');
+        console.log('Current origin:', window.location.origin);
+        console.log('Deployed URL info:', window.location.href);
         setIsGoogleLoading(false);
       };
       

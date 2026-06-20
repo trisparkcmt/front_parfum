@@ -23,6 +23,7 @@ export default function PerfumeAdminPage() {
   const [editingPerfume, setEditingPerfume] = useState<any | null>(null);
   const [categories, setCategories] = useState<any[]>([]);
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
+  const [selectedPerfumes, setSelectedPerfumes] = useState<Set<string>>(new Set());
 
   const [form, setForm] = useState({
     marque: 'Accessoire Exclusif',
@@ -219,6 +220,37 @@ export default function PerfumeAdminPage() {
     }
   };
 
+  const toggleSelectPerfume = (slug: string) => {
+    setSelectedPerfumes(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(slug)) {
+        newSet.delete(slug);
+      } else {
+        newSet.add(slug);
+      }
+      return newSet;
+    });
+  };
+
+  const handleBulkDelete = async () => {
+    if (!permissions.canDelete || selectedPerfumes.size === 0) return;
+    if (!confirm(`Supprimer ${selectedPerfumes.size} parfum(s) ?`)) return;
+    try {
+      for (const slug of selectedPerfumes) {
+        try {
+          await shopService.deletePerfume(slug);
+        } catch (e) {
+          console.error(`Failed to delete ${slug}:`, e);
+        }
+      }
+      addToast(`${selectedPerfumes.size} parfum(s) supprimé(s)`, 'success');
+      setSelectedPerfumes(new Set());
+      fetchPerfumes();
+    } catch (error) {
+      addToast('Erreur lors de la suppression en masse', 'error');
+    }
+  };
+
   const filtered = perfumes;
 
   if (!permissions.canRead) {
@@ -237,11 +269,22 @@ export default function PerfumeAdminPage() {
           <h1 className="text-2xl font-bold text-foreground">Parfums</h1>
           <p className="text-sm text-foreground/40 mt-0.5">Gestion du catalogue de parfums</p>
         </div>
-        {permissions.canCreate && (
-          <button onClick={handleOpenAdd} className="flex items-center gap-2 bg-gold text-black px-4 py-2.5 rounded-xl text-sm font-medium hover:bg-gold/80 transition-all shadow-lg">
-            <Plus size={16} /> Ajouter
-          </button>
-        )}
+        <div className="flex items-center gap-2">
+          {selectedPerfumes.size > 0 && permissions.canDelete && (
+            <button
+              onClick={handleBulkDelete}
+              className="flex items-center gap-2 bg-red-500 text-white px-4 py-2.5 rounded-xl text-sm font-medium hover:bg-red-600 transition-all shadow-lg"
+            >
+              <Trash2 size={16} />
+              Supprimer ({selectedPerfumes.size})
+            </button>
+          )}
+          {permissions.canCreate && (
+            <button onClick={handleOpenAdd} className="flex items-center gap-2 bg-gold text-black px-4 py-2.5 rounded-xl text-sm font-medium hover:bg-gold/80 transition-all shadow-lg">
+              <Plus size={16} /> Ajouter
+            </button>
+          )}
+        </div>
       </div>
 
       <CatalogAccessNotice permissions={permissions} resourceLabel="les parfums" />
@@ -300,6 +343,20 @@ export default function PerfumeAdminPage() {
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="border-b border-white/10 bg-white/5">
+                  <th className="px-6 py-4 w-12">
+                    <input
+                      type="checkbox"
+                      checked={perfumes.length > 0 && selectedPerfumes.size === perfumes.length}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSelectedPerfumes(new Set(perfumes.map(p => p.slug || p.id)));
+                        } else {
+                          setSelectedPerfumes(new Set());
+                        }
+                      }}
+                      className="rounded border-white/10 bg-white/5 text-gold focus:ring-gold"
+                    />
+                  </th>
                   <th className="px-6 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider w-16">Image</th>
                   <th className="px-6 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider">Nom</th>
                   <th className="px-6 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider">SKU</th>
@@ -313,6 +370,14 @@ export default function PerfumeAdminPage() {
                   const productImg = p.image_principale || p.image;
                   return (
                     <tr key={p.id} className="hover:bg-white/5 transition-colors group">
+                      <td className="px-6 py-4 w-12">
+                        <input
+                          type="checkbox"
+                          checked={selectedPerfumes.has(p.slug || p.id)}
+                          onChange={() => toggleSelectPerfume(p.slug || p.id)}
+                          className="rounded border-white/10 bg-white/5 text-gold focus:ring-gold"
+                        />
+                      </td>
                       <td className="px-6 py-3 whitespace-nowrap">
                         <div className="w-12 h-12 rounded-xl bg-white/5 border border-white/10 overflow-hidden flex items-center justify-center">
                           {productImg ? (
@@ -362,7 +427,7 @@ export default function PerfumeAdminPage() {
                 })}
                 {filtered.length === 0 && (
                   <tr>
-                    <td colSpan={6} className="text-center py-20 text-foreground/40 italic">Aucun parfum trouvé.</td>
+                    <td colSpan={7} className="text-center py-20 text-foreground/40 italic">Aucun parfum trouvé.</td>
                   </tr>
                 )}
               </tbody>
@@ -373,10 +438,11 @@ export default function PerfumeAdminPage() {
 
       {/* Modal */}
       {showModal && (permissions.canCreate || permissions.canUpdate) && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex p-4 overflow-y-auto" onClick={() => setShowModal(false)}>
           <div
             key={editingPerfume?.slug ?? 'new'}
-            className="bg-background rounded-2xl p-6 w-full max-w-2xl shadow-2xl border border-white/10 max-h-[90vh] overflow-y-auto"
+            className="bg-background rounded-2xl p-6 w-full max-w-6xl shadow-2xl border border-white/10 overflow-y-auto max-h-fit my-auto mx-auto"
+            onClick={e => e.stopPropagation()}
           >
             <h3 className="font-bold text-foreground mb-4">{editingPerfume ? 'Modifier le parfum' : 'Ajouter un parfum'}</h3>
 

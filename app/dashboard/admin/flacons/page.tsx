@@ -18,6 +18,7 @@ export default function FlaconsAdminPage() {
   const [enStockFilter, setEnStockFilter] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [editingBottle, setEditingBottle] = useState<any | null>(null);
+  const [selectedBottles, setSelectedBottles] = useState<Set<number>>(new Set());
 
   const [form, setForm] = useState({
     nom: '',
@@ -153,6 +154,37 @@ export default function FlaconsAdminPage() {
     }
   };
 
+  const toggleSelectBottle = (id: number) => {
+    setSelectedBottles(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(id)) {
+        newSet.delete(id);
+      } else {
+        newSet.add(id);
+      }
+      return newSet;
+    });
+  };
+
+  const handleBulkDelete = async () => {
+    if (!permissions.canDelete || selectedBottles.size === 0) return;
+    if (!confirm(`Supprimer ${selectedBottles.size} flacon(s) ?`)) return;
+    try {
+      for (const id of selectedBottles) {
+        try {
+          await shopService.deleteBottle(id);
+        } catch (e) {
+          console.error(`Failed to delete bottle ${id}:`, e);
+        }
+      }
+      addToast(`${selectedBottles.size} flacon(s) supprimé(s)`, 'success');
+      setSelectedBottles(new Set());
+      fetchBottlesAndTypes();
+    } catch (error) {
+      addToast('Erreur lors de la suppression en masse', 'error');
+    }
+  };
+
   if (!permissions.canRead) {
     return (
       <div className="space-y-6">
@@ -168,11 +200,22 @@ export default function FlaconsAdminPage() {
           <h1 className="text-2xl font-bold text-foreground">Catalogue Flacons</h1>
           <p className="text-sm text-foreground/40 mt-0.5">Gestion des types et volumes de flacons</p>
         </div>
-        {permissions.canCreate && (
-          <button onClick={handleOpenAdd} className="flex items-center gap-2 bg-gold text-black px-4 py-2.5 rounded-xl text-sm font-medium hover:bg-gold/80 transition-all shadow-lg">
-            <Plus size={16} /> Ajouter
-          </button>
-        )}
+        <div className="flex items-center gap-2">
+          {selectedBottles.size > 0 && permissions.canDelete && (
+            <button
+              onClick={handleBulkDelete}
+              className="flex items-center gap-2 bg-red-500 text-white px-4 py-2.5 rounded-xl text-sm font-medium hover:bg-red-600 transition-all shadow-lg"
+            >
+              <Trash2 size={16} />
+              Supprimer ({selectedBottles.size})
+            </button>
+          )}
+          {permissions.canCreate && (
+            <button onClick={handleOpenAdd} className="flex items-center gap-2 bg-gold text-black px-4 py-2.5 rounded-xl text-sm font-medium hover:bg-gold/80 transition-all shadow-lg">
+              <Plus size={16} /> Ajouter
+            </button>
+          )}
+        </div>
       </div>
 
       <CatalogAccessNotice permissions={permissions} resourceLabel="les flacons" />
@@ -219,6 +262,20 @@ export default function FlaconsAdminPage() {
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="border-b border-white/10 bg-white/5">
+                  <th className="px-6 py-4 w-12">
+                    <input
+                      type="checkbox"
+                      checked={bottles.length > 0 && selectedBottles.size === bottles.length}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSelectedBottles(new Set(bottles.map(b => b.id)));
+                        } else {
+                          setSelectedBottles(new Set());
+                        }
+                      }}
+                      className="rounded border-white/10 bg-white/5 text-gold focus:ring-gold"
+                    />
+                  </th>
                   <th className="px-6 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider">Nom</th>
                   <th className="px-6 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider">SKU</th>
                   <th className="px-6 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider">Contenance</th>
@@ -230,6 +287,14 @@ export default function FlaconsAdminPage() {
               <tbody className="divide-y divide-white/5">
                 {bottles.map(b => (
                   <tr key={b.id} className="hover:bg-white/5 transition-colors group">
+                    <td className="px-6 py-4 w-12">
+                      <input
+                        type="checkbox"
+                        checked={selectedBottles.has(b.id)}
+                        onChange={() => toggleSelectBottle(b.id)}
+                        className="rounded border-white/10 bg-white/5 text-gold focus:ring-gold"
+                      />
+                    </td>
                     <td className="px-6 py-4 font-medium text-foreground">{b.nom}</td>
                     <td className="px-6 py-4 text-sm text-foreground/60">{b.reference_sku}</td>
                     <td className="px-6 py-4 text-sm text-foreground/60">{b.contenance_ml} ml</td>
@@ -253,7 +318,7 @@ export default function FlaconsAdminPage() {
                 ))}
                 {bottles.length === 0 && (
                   <tr>
-                    <td colSpan={6} className="text-center py-20 text-foreground/40 italic">Aucun flacon trouvé.</td>
+                    <td colSpan={7} className="text-center py-20 text-foreground/40 italic">Aucun flacon trouvé.</td>
                   </tr>
                 )}
               </tbody>
@@ -263,8 +328,8 @@ export default function FlaconsAdminPage() {
       </div>
 
       {showModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-background rounded-2xl p-6 w-full max-w-2xl shadow-2xl border border-white/10 max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex p-4 overflow-y-auto" onClick={() => setShowModal(false)}>
+          <div className="bg-background rounded-2xl p-6 w-full max-w-6xl shadow-2xl border border-white/10 overflow-y-auto max-h-fit my-auto mx-auto" onClick={e => e.stopPropagation()}>
             <h3 className="font-bold text-foreground mb-4">{editingBottle ? 'Modifier le flacon' : 'Ajouter un flacon'}</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-4">
