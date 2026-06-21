@@ -36,7 +36,17 @@ export default function Header({ onMenuClick }: HeaderProps) {
       const data = await notificationService.getUnreadNotifications();
       const list = data.results || data.resultats || (Array.isArray(data) ? data : []);
       setNotifications(list.slice(0, 5));
-      setUnreadCount(list.length);
+      const count = list.length;
+      setUnreadCount(count);
+      
+      // Update PWA badging count if supported by device
+      if (typeof navigator !== 'undefined' && 'setAppBadge' in navigator) {
+        if (count > 0) {
+          (navigator as any).setAppBadge(count).catch((err: any) => console.warn('App badge failed:', err));
+        } else {
+          (navigator as any).clearAppBadge().catch((err: any) => console.warn('App badge clear failed:', err));
+        }
+      }
     } catch (error) {
       console.error('Header notifications fetch failed:', error);
     }

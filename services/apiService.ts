@@ -1310,8 +1310,6 @@ export const orderService = {
    */
   placeOrder: async (data: {
     panier_id?: number | null;
-    livraison_nom_complet: string;
-    livraison_telephone: string;
     livraison_quartier?: string;
     livraison_ville?: string;
     note_client?: string;

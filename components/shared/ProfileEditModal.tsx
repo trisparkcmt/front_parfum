@@ -5,6 +5,7 @@ import { User, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useToastStore } from '@/store/useToastStore';
 import { useAuthStore } from '@/store/useAuthStore';
+import { FloatInput } from '@/components/ui/Input';
 
 interface ProfileEditModalProps {
   isOpen: boolean;
@@ -46,23 +47,14 @@ export default function ProfileEditModal({
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
 
-    if (!formData.firstName?.trim()) {
-      newErrors.firstName = t('required_field');
-    }
-
-    if (!formData.lastName?.trim()) {
-      newErrors.lastName = t('required_field');
-    }
-
+    if (!formData.firstName?.trim()) newErrors.firstName = t('required_field');
+    if (!formData.lastName?.trim()) newErrors.lastName = t('required_field');
     if (!formData.email?.trim()) {
       newErrors.email = t('required_field');
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
       newErrors.email = t('invalid_email', 'Invalid email address');
     }
-
-    if (!formData.phone?.trim()) {
-      newErrors.phone = t('required_field');
-    }
+    if (!formData.phone?.trim()) newErrors.phone = t('required_field');
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -70,13 +62,9 @@ export default function ProfileEditModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (!validateForm()) {
-      return;
-    }
+    if (!validateForm()) return;
 
     setLoading(true);
-
     try {
       const success = await updateProfile({
         firstName: formData.firstName,
@@ -121,86 +109,45 @@ export default function ProfileEditModal({
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          {/* First Name */}
-          <div>
-            <label className="block text-sm font-semibold text-foreground mb-2">
-              {t('first_name', 'First Name')}
-            </label>
-            <input
-              type="text"
+        <form onSubmit={handleSubmit} className="p-6 space-y-2">
+          <div className="grid grid-cols-2 gap-3">
+            <FloatInput
+              label={t('first_name', 'Prénom')}
               value={formData.firstName}
-              onChange={(e) =>
-                setFormData({ ...formData, firstName: e.target.value })
-              }
+              onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
               disabled={loading}
-              className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-lg text-foreground placeholder:text-foreground/40 focus:outline-none focus:border-gold/50 focus:ring-1 focus:ring-gold/50 disabled:opacity-50 transition-colors"
               placeholder={t('enter_first_name')}
+              error={errors.firstName}
             />
-            {errors.firstName && (
-              <p className="text-xs text-red-400 mt-1">{errors.firstName}</p>
-            )}
-          </div>
-
-          {/* Last Name */}
-          <div>
-            <label className="block text-sm font-semibold text-foreground mb-2">
-              {t('last_name', 'Last Name')}
-            </label>
-            <input
-              type="text"
+            <FloatInput
+              label={t('last_name', 'Nom')}
               value={formData.lastName}
-              onChange={(e) =>
-                setFormData({ ...formData, lastName: e.target.value })
-              }
+              onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
               disabled={loading}
-              className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-lg text-foreground placeholder:text-foreground/40 focus:outline-none focus:border-gold/50 focus:ring-1 focus:ring-gold/50 disabled:opacity-50 transition-colors"
               placeholder={t('enter_last_name')}
+              error={errors.lastName}
             />
-            {errors.lastName && (
-              <p className="text-xs text-red-400 mt-1">{errors.lastName}</p>
-            )}
           </div>
 
-          {/* Email */}
-          <div>
-            <label className="block text-sm font-semibold text-foreground mb-2">
-              {t('email')}
-            </label>
-            <input
-              type="email"
-              value={formData.email}
-              onChange={(e) =>
-                setFormData({ ...formData, email: e.target.value })
-              }
-              disabled={loading}
-              className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-lg text-foreground placeholder:text-foreground/40 focus:outline-none focus:border-gold/50 focus:ring-1 focus:ring-gold/50 disabled:opacity-50 transition-colors"
-              placeholder={t('enter_email')}
-            />
-            {errors.email && (
-              <p className="text-xs text-red-400 mt-1">{errors.email}</p>
-            )}
-          </div>
+          <FloatInput
+            label={t('email', 'Email')}
+            type="email"
+            value={formData.email}
+            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+            disabled={loading}
+            placeholder={t('enter_email')}
+            error={errors.email}
+          />
 
-          {/* Phone */}
-          <div>
-            <label className="block text-sm font-semibold text-foreground mb-2">
-              {t('phone')}
-            </label>
-            <input
-              type="tel"
-              value={formData.phone}
-              onChange={(e) =>
-                setFormData({ ...formData, phone: e.target.value })
-              }
-              disabled={loading}
-              className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-lg text-foreground placeholder:text-foreground/40 focus:outline-none focus:border-gold/50 focus:ring-1 focus:ring-gold/50 disabled:opacity-50 transition-colors"
-              placeholder={t('enter_phone')}
-            />
-            {errors.phone && (
-              <p className="text-xs text-red-400 mt-1">{errors.phone}</p>
-            )}
-          </div>
+          <FloatInput
+            label={t('phone', 'Téléphone')}
+            type="tel"
+            value={formData.phone}
+            onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+            disabled={loading}
+            placeholder={t('enter_phone')}
+            error={errors.phone}
+          />
 
           {/* Buttons */}
           <div className="flex gap-3 pt-4">
@@ -208,16 +155,16 @@ export default function ProfileEditModal({
               type="button"
               onClick={onClose}
               disabled={loading}
-              className="flex-1 px-4 py-2.5 rounded-lg border border-white/10 text-foreground text-sm font-medium hover:bg-white/5 transition-colors disabled:opacity-50"
+              className="flex-1 px-4 py-2.5 rounded-xl border border-white/10 text-foreground text-sm font-medium hover:bg-white/5 transition-colors disabled:opacity-50"
             >
               {t('cancel')}
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="flex-1 px-4 py-2.5 rounded-lg bg-gold text-black text-sm font-bold hover:bg-gold/80 transition-colors disabled:opacity-50"
+              className="flex-1 px-4 py-2.5 rounded-xl bg-gold text-black text-sm font-bold hover:bg-gold/80 transition-colors disabled:opacity-50"
             >
-              {loading ? t('loading') : t('save_changes', 'Save Changes')}
+              {loading ? t('loading') : t('save_changes', 'Enregistrer')}
             </button>
           </div>
         </form>

@@ -55,28 +55,33 @@ function LoginFormContent() {
   const searchParams = useSearchParams();
   const redirectUrl = searchParams.get('redirect') || '/';
   const { login, loginWithGoogle, isLoading } = useAuthStore();
-  const { addToast } = useToastStore();
+  const [formError, setFormError] = useState<string | null>(null);
 
   const { register, handleSubmit, formState: { errors } } = useForm<LoginForm>({
     resolver: zodResolver(loginSchema),
   });
 
   const onSubmit = async (data: LoginForm) => {
-    const success = await login(data.loginInput, data.password);
-    // The store already fires the success toast — just redirect
-    if (success) {
-      router.push('/');
-    } else {
-      addToast(t('login_error'), 'error');
+    setFormError(null);
+    try {
+      const success = await login(data.loginInput, data.password);
+      if (success) {
+        router.push('/');
+      }
+    } catch (err: any) {
+      setFormError(err.response?.data?.detail || t('login_error') || 'Identifiant ou mot de passe incorrect.');
     }
   };
 
   const handleGoogleLogin = async (googleAccessToken: string) => {
-    const success = await loginWithGoogle(googleAccessToken);
-    if (success) {
-      router.push('/');
-    } else {
-      addToast(t('login_error'), 'error');
+    setFormError(null);
+    try {
+      const success = await loginWithGoogle(googleAccessToken);
+      if (success) {
+        router.push('/');
+      }
+    } catch (err: any) {
+      setFormError(err.message || err.response?.data?.detail || t('login_error') || 'Échec de la connexion Google');
     }
   };
 
@@ -92,6 +97,12 @@ function LoginFormContent() {
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+        {formError && (
+          <div className="p-3.5 bg-red-500/10 border border-red-500/20 rounded-xl text-red-500 text-xs font-semibold text-center">
+            {formError}
+          </div>
+        )}
+
         <Input
           label={t('email') + ' / ' + t('phone')}
           type="text"

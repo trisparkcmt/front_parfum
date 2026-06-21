@@ -10,6 +10,7 @@ import { useToastStore } from '@/store/useToastStore';
 import { useCatalogPermissions } from '@/hooks/useCatalogPermissions';
 import CatalogAccessNotice from '@/components/catalog/CatalogAccessNotice';
 import { extractCatalogList } from '@/lib/catalogUtils';
+import { FloatInput } from '@/components/ui/Input';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 

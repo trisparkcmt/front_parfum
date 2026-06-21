@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useState, useEffect, useCallback } from 'react';
 import { 
@@ -9,6 +9,7 @@ import { labService } from '@/services/apiService';
 import { useToastStore } from '@/store/useToastStore';
 import { useCatalogPermissions } from '@/hooks/useCatalogPermissions';
 import CatalogAccessNotice from '@/components/catalog/CatalogAccessNotice';
+import { FloatInput } from '@/components/ui/Input';
 
 const STATIC_CATEGORIES = ['super_premium', 'premium', 'high'];
 
@@ -20,6 +21,7 @@ export default function EssencesPage() {
   const [showModal, setShowModal] = useState(false);
   const [editingEssence, setEditingEssence] = useState<any | null>(null);
   const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState('');
   const { addToast } = useToastStore();
 
   // Pagination locale (Max 20 éléments par page)
@@ -86,6 +88,7 @@ export default function EssencesPage() {
     setLotReferenceFournisseur('');
     setIncludeProduitsFinis(false);
     setProduitFini({ taille_ml: '50', prix: '', prix_promotionnel: '', stock_disponible: '0' });
+    setFormError('');
     setShowModal(true);
   };
 
@@ -101,13 +104,14 @@ export default function EssencesPage() {
     setGenreCible(item.genre_cible || 'mixte');
     setPrixParMl(String(item.prix_par_ml || '0.00'));
     setIncludeProduitsFinis(false);
+    setFormError('');
     setShowModal(true);
   };
 
   const handleSave = async () => {
     if (!permissions.canCreate && !permissions.canUpdate) return;
     if (!nom || !codeReference) {
-      addToast('Le nom et le code de référence sont requis', 'error');
+      setFormError('Le nom et le code de référence sont requis');
       return;
     }
 
@@ -141,6 +145,7 @@ export default function EssencesPage() {
         }];
       }
 
+      setFormError('');
       if (editingEssence) {
         await labService.updateEssence(editingEssence.id, payload);
         addToast('Essence mise à jour avec succès', 'success');
@@ -152,7 +157,7 @@ export default function EssencesPage() {
       setShowModal(false);
       fetchData();
     } catch (e: any) {
-      addToast(e.response?.data?.detail || 'Erreur lors de la sauvegarde', 'error');
+      setFormError(e.response?.data?.detail || 'Erreur lors de la sauvegarde');
     } finally {
       setSaving(false);
     }
@@ -416,41 +421,33 @@ export default function EssencesPage() {
                     
                     <div className="space-y-4">
                       <div className="grid grid-cols-2 gap-3">
-                        <div>
-                          <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Nom de l'essence *</label>
-                          <input
-                            value={nom}
-                            onChange={e => setNom(e.target.value)}
-                            placeholder="Ex: Royal Oud"
-                            className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
-                          />
-                        </div>
-                        <div>
-                          <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Code Référence *</label>
-                          <input
-                            value={codeReference}
-                            onChange={e => setCodeReference(e.target.value)}
-                            placeholder="Ex: ESS-OUD-01"
-                            className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-foreground outline-none focus:border-gold font-mono"
-                          />
-                        </div>
+                        <FloatInput
+                          label="Nom de l'essence *"
+                          value={nom}
+                          onChange={e => setNom(e.target.value)}
+                          placeholder="Ex: Royal Oud"
+                        />
+                        <FloatInput
+                          label="Code Référence *"
+                          value={codeReference}
+                          onChange={e => setCodeReference(e.target.value)}
+                          placeholder="Ex: ESS-OUD-01"
+                          className="font-mono"
+                        />
                       </div>
 
                       <div className="grid grid-cols-2 gap-3">
+                        <FloatInput
+                          label="Marque / Fournisseur"
+                          value={marque}
+                          onChange={e => setMarque(e.target.value)}
+                        />
                         <div>
-                          <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Marque / Fournisseur</label>
-                          <input
-                            value={marque}
-                            onChange={e => setMarque(e.target.value)}
-                            className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
-                          />
-                        </div>
-                        <div>
-                          <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Catégorie</label>
+                          <label className="text-[10px] font-bold text-gold uppercase block mb-1">Catégorie</label>
                           <select
                             value={categorie}
                             onChange={e => setCategorie(e.target.value)}
-                            className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white outline-none focus:border-gold bg-neutral-900 capitalize"
+                            className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white outline-none focus:border-gold bg-neutral-900 capitalize"
                           >
                             {STATIC_CATEGORIES.map(cat => (
                               <option key={cat} value={cat}>{cat.replace('_', ' ')}</option>
@@ -461,11 +458,11 @@ export default function EssencesPage() {
 
                       <div className="grid grid-cols-3 gap-3">
                         <div>
-                          <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Intensité</label>
+                          <label className="text-[10px] font-bold text-gold uppercase block mb-1">Intensité</label>
                           <select
                             value={intensite}
                             onChange={e => setIntensite(e.target.value)}
-                            className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white outline-none focus:border-gold bg-neutral-900"
+                            className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white outline-none focus:border-gold bg-neutral-900"
                           >
                             <option value="légère">Légère</option>
                             <option value="moyenne">Moyenne</option>
@@ -474,36 +471,34 @@ export default function EssencesPage() {
                           </select>
                         </div>
                         <div>
-                          <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Genre Cible</label>
+                          <label className="text-[10px] font-bold text-gold uppercase block mb-1">Genre Cible</label>
                           <select
                             value={genreCible}
                             onChange={e => setGenreCible(e.target.value)}
-                            className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white outline-none focus:border-gold bg-neutral-900"
+                            className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white outline-none focus:border-gold bg-neutral-900"
                           >
                             <option value="mixte">Mixte</option>
                             <option value="homme">Homme</option>
                             <option value="femme">Femme</option>
                           </select>
                         </div>
-                        <div>
-                          <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Prix de base / ml</label>
-                          <input
-                            type="number"
-                            value={prixParMl}
-                            onChange={e => setPrixParMl(e.target.value)}
-                            className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-gold font-bold outline-none focus:border-gold"
-                          />
-                        </div>
+                        <FloatInput
+                          label="Prix de base / ml"
+                          type="number"
+                          value={prixParMl}
+                          onChange={e => setPrixParMl(e.target.value)}
+                          className="text-gold font-bold"
+                        />
                       </div>
 
                       <div>
-                        <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Description / Notes Olfactives</label>
+                        <label className="text-[10px] font-bold text-gold uppercase block mb-1">Description / Notes Olfactives</label>
                         <textarea
                           value={description}
                           onChange={e => setDescription(e.target.value)}
                           placeholder="Notes de tête, cœur, fond..."
                           rows={2}
-                          className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-foreground outline-none focus:border-gold resize-none"
+                          className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-foreground outline-none focus:border-gold resize-none"
                         />
                       </div>
 
@@ -512,33 +507,26 @@ export default function EssencesPage() {
                           <div className="bg-white/5 border border-white/10 rounded-xl p-4 space-y-3">
                             <p className="text-sm font-semibold text-foreground mb-3">Lot Initial (Stock Laboratoire)</p>
                             <div className="grid grid-cols-2 gap-3">
-                              <div>
-                                <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Stock ML</label>
-                                <input
-                                  type="number"
-                                  value={lotStockMl}
-                                  onChange={e => setLotStockMl(e.target.value)}
-                                  placeholder="500"
-                                  className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
-                                />
-                              </div>
-                              <div>
-                                <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Seuil d'alerte ML</label>
-                                <input
-                                  type="number"
-                                  value={lotSeuilAlerteMl}
-                                  onChange={e => setLotSeuilAlerteMl(e.target.value)}
-                                  placeholder="50"
-                                  className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
-                                />
-                              </div>
+                              <FloatInput
+                                label="Stock ML"
+                                type="number"
+                                value={lotStockMl}
+                                onChange={e => setLotStockMl(e.target.value)}
+                                placeholder="500"
+                              />
+                              <FloatInput
+                                label="Seuil d'alerte ML"
+                                type="number"
+                                value={lotSeuilAlerteMl}
+                                onChange={e => setLotSeuilAlerteMl(e.target.value)}
+                                placeholder="50"
+                              />
                               <div className="col-span-2">
-                                <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Référence Fournisseur (optionnel)</label>
-                                <input
+                                <FloatInput
+                                  label="Référence Fournisseur (optionnel)"
                                   value={lotReferenceFournisseur}
                                   onChange={e => setLotReferenceFournisseur(e.target.value)}
                                   placeholder="Ref du fournisseur"
-                                  className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
                                 />
                               </div>
                             </div>
@@ -560,29 +548,43 @@ export default function EssencesPage() {
                             {includeProduitsFinis && (
                               <div className="grid grid-cols-2 gap-3 pt-2 border-t border-white/5">
                                 <div>
-                                  <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Taille</label>
-                                  <select value={produitFini.taille_ml} onChange={e => setProduitFini(p => ({ ...p, taille_ml: e.target.value }))} className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white outline-none focus:border-gold bg-neutral-900">
+                                  <label className="text-[10px] font-bold text-gold uppercase block mb-1">Taille</label>
+                                  <select value={produitFini.taille_ml} onChange={e => setProduitFini(p => ({ ...p, taille_ml: e.target.value }))} className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white outline-none focus:border-gold bg-neutral-900">
                                     <option value="10">10 ml</option>
                                     <option value="30">30 ml</option>
                                     <option value="50">50 ml</option>
                                   </select>
                                 </div>
-                                <div>
-                                  <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Prix</label>
-                                  <input type="number" value={produitFini.prix} onChange={e => setProduitFini(p => ({ ...p, prix: e.target.value }))} className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-gold outline-none focus:border-gold font-bold" />
-                                </div>
-                                <div>
-                                  <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Prix Promo</label>
-                                  <input type="number" value={produitFini.prix_promotionnel} onChange={e => setProduitFini(p => ({ ...p, prix_promotionnel: e.target.value }))} className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-gold outline-none focus:border-gold font-bold" />
-                                </div>
-                                <div>
-                                  <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Stock</label>
-                                  <input type="number" value={produitFini.stock_disponible} onChange={e => setProduitFini(p => ({ ...p, stock_disponible: e.target.value }))} className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-foreground outline-none focus:border-gold" />
-                                </div>
+                                <FloatInput
+                                  label="Prix"
+                                  type="number"
+                                  value={produitFini.prix}
+                                  onChange={e => setProduitFini(p => ({ ...p, prix: e.target.value }))}
+                                  className="text-gold font-bold"
+                                />
+                                <FloatInput
+                                  label="Prix Promo"
+                                  type="number"
+                                  value={produitFini.prix_promotionnel}
+                                  onChange={e => setProduitFini(p => ({ ...p, prix_promotionnel: e.target.value }))}
+                                  className="text-gold font-bold"
+                                />
+                                <FloatInput
+                                  label="Stock"
+                                  type="number"
+                                  value={produitFini.stock_disponible}
+                                  onChange={e => setProduitFini(p => ({ ...p, stock_disponible: e.target.value }))}
+                                />
                               </div>
                             )}
                           </div>
                         </>
+                      )}
+
+                      {formError && (
+                        <p className="text-sm font-semibold text-red-500 bg-red-500/10 border border-red-500/20 px-4 py-2.5 rounded-xl text-center">
+                          {formError}
+                        </p>
                       )}
 
                       <div className="flex gap-3 pt-2">

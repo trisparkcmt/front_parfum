@@ -14,7 +14,7 @@
  *
  * It utilizes a multi-field form with real-time error feedback and luxury styling.
  */
-import { Suspense } from 'react';
+import { Suspense, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
@@ -51,33 +51,40 @@ function RegisterFormContent() {
   const redirectUrl = searchParams.get('redirect') || '/';
   const { register: registerUser, loginWithGoogle, isLoading } = useAuthStore();
   const { addToast } = useToastStore();
+  const [formError, setFormError] = useState<string | null>(null);
 
   const { register, handleSubmit, formState: { errors } } = useForm<RegisterForm>({
     resolver: zodResolver(registerSchema),
   });
 
   const onSubmit = async (data: RegisterForm) => {
-    // Map passwordConfirm to password_confirm for the API call inside registerUser
-    const success = await registerUser({
-      firstName: data.firstName,
-      lastName: data.lastName,
-      email: data.email,
-      phone: data.phone,
-      password: data.password,
-    });
-    if (success) {
-      addToast(t('registration_success_check_email', { defaultValue: 'Inscription réussie! Veuillez vérifier votre email pour confirmer votre compte.' }), 'success');
-      router.push('/verify-email');
+    setFormError(null);
+    try {
+      const success = await registerUser({
+        firstName: data.firstName,
+        lastName: data.lastName,
+        email: data.email,
+        phone: data.phone,
+        password: data.password,
+      });
+      if (success) {
+        addToast(t('registration_success_check_email', { defaultValue: 'Inscription réussie! Veuillez vérifier votre email pour confirmer votre compte.' }), 'success');
+        router.push('/verify-email');
+      }
+    } catch (err: any) {
+      setFormError(err.message || 'Échec de l\'inscription. Veuillez réessayer.');
     }
   };
 
   const handleGoogleRegister = async (googleAccessToken: string) => {
-    const success = await loginWithGoogle(googleAccessToken);
-    // Store already fires the success toast — just redirect
-    if (success) {
-      router.push('/');
-    } else {
-      addToast(t('register_error'), 'error');
+    setFormError(null);
+    try {
+      const success = await loginWithGoogle(googleAccessToken);
+      if (success) {
+        router.push('/');
+      }
+    } catch (err: any) {
+      setFormError(err.message || 'Échec de la connexion Google');
     }
   };
 
@@ -93,6 +100,12 @@ function RegisterFormContent() {
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        {formError && (
+          <div className="p-3.5 bg-red-500/10 border border-red-500/20 rounded-xl text-red-500 text-xs font-semibold text-center">
+            {formError}
+          </div>
+        )}
+
         <div className="grid grid-cols-2 gap-4">
           <Input
             label={t('first_name')}

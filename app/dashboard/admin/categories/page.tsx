@@ -6,6 +6,7 @@ import { shopService } from '@/services/apiService';
 import { adminService } from '@/services/apiService';
 import { useToastStore } from '@/store/useToastStore';
 import CompactIconUpload from '@/components/admin/CompactIconUpload';
+import { FloatInput } from '@/components/ui/Input';
 
 type TabKey = 'perfume_categories' | 'accessory_categories' | 'bottle_types';
 
@@ -36,6 +37,7 @@ export default function CategoriesAdminPage() {
   const [showModal, setShowModal] = useState(false);
   const [editingItem, setEditingItem] = useState<any | null>(null);
   const [iconFile, setIconFile] = useState<File | null>(null);
+  const [formError, setFormError] = useState('');
 
   const [form, setForm] = useState({
     nom: '',
@@ -84,6 +86,7 @@ export default function CategoriesAdminPage() {
   const handleOpenAdd = () => {
     setEditingItem(null);
     resetForm();
+    setFormError('');
     setShowModal(true);
   };
 
@@ -98,16 +101,18 @@ export default function CategoriesAdminPage() {
       taux_reduction: item.taux_reduction || '0.00',
     });
     setIconFile(null);
+    setFormError('');
     setShowModal(true);
   };
 
   const handleSave = async () => {
     if (!form.nom) {
-      addToast('Le nom est requis', 'error');
+      setFormError('Le nom est requis');
       return;
     }
 
     try {
+      setFormError('');
       if (activeTab === 'perfume_categories') {
         const payload = { ...form, ordre_affichage: Number(form.ordre_affichage) };
         if (editingItem) {
@@ -150,7 +155,7 @@ export default function CategoriesAdminPage() {
       setShowModal(false);
       fetchItems();
     } catch (error: any) {
-      addToast(error.response?.data?.detail || 'Erreur lors de la sauvegarde', 'error');
+      setFormError(error.response?.data?.detail || 'Erreur lors de la sauvegarde');
     }
   };
 
@@ -328,74 +333,59 @@ export default function CategoriesAdminPage() {
             <h3 className="font-bold text-foreground mb-5">{modalTitle}</h3>
 
             <div className="space-y-4">
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-foreground/50 uppercase tracking-wider">Nom *</label>
-                <input
-                  value={form.nom}
-                  onChange={e => updateForm('nom', e.target.value)}
-                  placeholder="Nom"
-                  className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-sm text-foreground outline-none focus:border-gold"
-                />
-              </div>
+              <FloatInput
+                label="Nom *"
+                placeholder="Nom"
+                value={form.nom}
+                onChange={e => updateForm('nom', e.target.value)}
+              />
 
               {activeTab === 'perfume_categories' && (
                 <>
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-foreground/50 uppercase tracking-wider">Slug</label>
-                    <input
-                      value={form.slug}
-                      onChange={e => updateForm('slug', e.target.value)}
-                      placeholder="slug-auto (optionnel)"
-                      className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-sm text-foreground outline-none focus:border-gold"
-                    />
-                  </div>
+                  <FloatInput
+                    label="Slug"
+                    placeholder="slug-auto (optionnel)"
+                    value={form.slug}
+                    onChange={e => updateForm('slug', e.target.value)}
+                  />
                   <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-semibold text-foreground/50 uppercase tracking-wider">Ordre</label>
-                      <input
-                        type="number"
-                        value={form.ordre_affichage}
-                        onChange={e => updateForm('ordre_affichage', Number(e.target.value))}
-                        className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-sm text-foreground outline-none focus:border-gold"
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-semibold text-foreground/50 uppercase tracking-wider">Réduction (%)</label>
-                      <input
-                        value={form.taux_reduction}
-                        onChange={e => updateForm('taux_reduction', e.target.value)}
-                        placeholder="0.00"
-                        className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-sm text-foreground outline-none focus:border-gold"
-                      />
-                    </div>
+                    <FloatInput
+                      label="Ordre"
+                      type="number"
+                      value={form.ordre_affichage}
+                      onChange={e => updateForm('ordre_affichage', Number(e.target.value))}
+                    />
+                    <FloatInput
+                      label="Réduction (%)"
+                      placeholder="0.00"
+                      value={form.taux_reduction}
+                      onChange={e => updateForm('taux_reduction', e.target.value)}
+                    />
                   </div>
                 </>
               )}
 
               {(activeTab === 'accessory_categories' || activeTab === 'bottle_types') && (
                 <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-foreground/50 uppercase tracking-wider">Description</label>
+                  <label className="text-[10px] font-bold text-gold uppercase block mb-1">Description</label>
                   <textarea
                     value={form.description}
                     onChange={e => updateForm('description', e.target.value)}
                     placeholder="Description (optionnel)"
                     rows={2}
-                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-sm text-foreground outline-none focus:border-gold resize-none"
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-foreground outline-none focus:border-gold resize-none"
                   />
                 </div>
               )}
 
               {activeTab === 'accessory_categories' && (
                 <>
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-foreground/50 uppercase tracking-wider">Taux réduction (%)</label>
-                    <input
-                      value={form.taux_reduction}
-                      onChange={e => updateForm('taux_reduction', e.target.value)}
-                      placeholder="0.00"
-                      className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-sm text-foreground outline-none focus:border-gold"
-                    />
-                  </div>
+                  <FloatInput
+                    label="Taux réduction (%)"
+                    placeholder="0.00"
+                    value={form.taux_reduction}
+                    onChange={e => updateForm('taux_reduction', e.target.value)}
+                  />
                   <CompactIconUpload
                     onFileSelect={setIconFile}
                     initialImage={editingItem?.icone}
@@ -416,6 +406,12 @@ export default function CategoriesAdminPage() {
                 </label>
               )}
             </div>
+
+            {formError && (
+              <p className="text-sm font-semibold text-red-500 bg-red-500/10 border border-red-500/20 px-4 py-2.5 rounded-xl text-center mt-4">
+                {formError}
+              </p>
+            )}
 
             <div className="flex gap-3 mt-6">
               <button

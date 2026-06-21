@@ -32,7 +32,7 @@ interface Delivery {
   livraison_telephone: string;
   livraison_quartier: string;
   livraison_ville: string;
-  methode_paiement: string;
+  methode_paiement?: string;
   statut_paiement: 'payé' | 'en attente' | 'échoué'; // Example statuses
   total_ttc: number;
   statut_livraison: 'en attente' | 'en cours' | 'livrée' | 'échouée'; // Example statuses
@@ -52,16 +52,28 @@ export default function DeliveryPage() {
   const fetchDriversAndDeliveries = useCallback(async () => {
     try {
       setLoading(true);
-      const [driversData, deliveriesData] = await Promise.all([
-        adminService.getDeliveryDrivers(),
-        adminService.getDeliveries()
-      ]);
-      console.log("Raw driversData from API:", driversData); // Debugging: Check the full response from getDeliveryDrivers
-      const processedDrivers: Driver[] = driversData.resultats || driversData.results || (Array.isArray(driversData) ? driversData : []);
-      console.log("Processed drivers list:", processedDrivers); // Debugging: Check the array passed to setDrivers
-      const processedDeliveries: Delivery[] = deliveriesData.resultats || deliveriesData.results || (Array.isArray(deliveriesData) ? deliveriesData : []);
-      setDrivers(processedDrivers);
-      setDeliveries(processedDeliveries);
+      
+      // Fetch drivers independently
+      try {
+        const driversData = await adminService.getDeliveryDrivers();
+        console.log("Raw driversData from API:", driversData);
+        const processedDrivers: Driver[] = driversData.resultats || driversData.results || (Array.isArray(driversData) ? driversData : []);
+        console.log("Processed drivers list:", processedDrivers);
+        setDrivers(processedDrivers);
+      } catch (drvError) {
+        console.error("Error loading drivers:", drvError);
+        addToast('Erreur lors du chargement de la flotte de livreurs', 'error');
+      }
+
+      // Fetch deliveries independently
+      try {
+        const deliveriesData = await adminService.getDeliveries();
+        const processedDeliveries: Delivery[] = deliveriesData.resultats || deliveriesData.results || (Array.isArray(deliveriesData) ? deliveriesData : []);
+        setDeliveries(processedDeliveries);
+      } catch (delError) {
+        console.error("Error loading deliveries:", delError);
+        addToast('Le serveur de livraison a rencontré une erreur', 'error');
+      }
     } catch (error) {
       addToast('Erreur lors du chargement des données de livraison', 'error');
     } finally {
@@ -249,8 +261,8 @@ export default function DeliveryPage() {
                     </td>
                     <td className="py-3 px-4">{del.livraison_quartier}, {del.livraison_ville}</td>
                     <td className="py-3 px-4">
-                      <span className="capitalize">{del.methode_paiement}</span>
-                      <span className={`ml-2 text-[10px] px-1.5 py-0.5 rounded ${del.statut_paiement === 'payé' ? 'bg-green-500/20 text-green-400' : 'bg-yellow-500/20 text-yellow-400'}`}>
+                      {del.methode_paiement && <span className="capitalize mr-2">{del.methode_paiement}</span>}
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded ${del.statut_paiement === 'payé' ? 'bg-green-500/20 text-green-400' : 'bg-yellow-500/20 text-yellow-400'}`}>
                         {del.statut_paiement}
                       </span>
                     </td>

@@ -9,6 +9,7 @@ import {
   UserCircle, Sparkles, Gem, X, ChevronDown, ChevronRight, Droplets,
   Bell
 } from 'lucide-react';
+import { useOrderNotificationStore } from '@/store/useOrderNotificationStore';
 
 
 interface SidebarProps {
@@ -146,6 +147,15 @@ function SectionLabel({ label }: { label: string }) {
 }
 
 export default function Sidebar({ open, setOpen }: SidebarProps) {
+  const { pendingCount } = useOrderNotificationStore();
+
+  // Inject live badge count into the 'Gestion des Commandes' item
+  const boutiqueItemsWithBadge = boutiqueItems.map(item =>
+    item.label === 'Gestion des Commandes' && pendingCount > 0
+      ? { ...item, badge: String(pendingCount) }
+      : item
+  );
+
   return (
     <>
       {/* Mobile overlay */}
@@ -171,7 +181,7 @@ export default function Sidebar({ open, setOpen }: SidebarProps) {
               <BarChart2 size={18} className="text-black" />
             </div>
             <span className="font-bold text-foreground text-lg tracking-tight">Accessoire Exclusif admin</span>
-          </Link> 
+          </Link>
           <button className="xl:hidden text-foreground/40 hover:text-foreground transition-colors" onClick={() => setOpen(false)}>
             <X size={18} />
           </button>
@@ -185,7 +195,7 @@ export default function Sidebar({ open, setOpen }: SidebarProps) {
           ))}
 
           <SectionLabel label="BOUTIQUE" />
-          {boutiqueItems.map(item => (
+          {boutiqueItemsWithBadge.map(item => (
             <NavItemComponent key={item.label} item={item} onNavigate={() => setOpen(false)} />
           ))}
 

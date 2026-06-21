@@ -7,6 +7,7 @@ import { useToastStore } from '@/store/useToastStore';
 import { useCatalogPermissions } from '@/hooks/useCatalogPermissions';
 import CatalogAccessNotice from '@/components/catalog/CatalogAccessNotice';
 import { extractCatalogList } from '@/lib/catalogUtils';
+import { FloatInput } from '@/components/ui/Input';
 
 export default function FinishedEssenceAdminPage() {
   const permissions = useCatalogPermissions('produits_essence');
@@ -18,6 +19,7 @@ export default function FinishedEssenceAdminPage() {
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState<any | null>(null);
   const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState('');
   const { addToast } = useToastStore();
 
   const [form, setForm] = useState({
@@ -66,6 +68,7 @@ export default function FinishedEssenceAdminPage() {
       stock_disponible: '0',
       actif: true,
     });
+    setFormError('');
     setShowModal(true);
   };
 
@@ -79,13 +82,14 @@ export default function FinishedEssenceAdminPage() {
       stock_disponible: String(item.stock_disponible ?? '0'),
       actif: item.actif !== false,
     });
+    setFormError('');
     setShowModal(true);
   };
 
   const handleSave = async () => {
     if (!permissions.canCreate && !permissions.canUpdate) return;
     if (!form.essence || !form.taille_ml || !form.prix || form.stock_disponible === '') {
-      addToast('Essence, taille, prix et stock sont requis', 'error');
+      setFormError('Essence, taille, prix et stock sont requis');
       return;
     }
 
@@ -99,6 +103,7 @@ export default function FinishedEssenceAdminPage() {
     };
 
     try {
+      setFormError('');
       setSaving(true);
       if (editing) {
         await shopService.updateFinishedEssence(editing.id, payload);
@@ -110,7 +115,7 @@ export default function FinishedEssenceAdminPage() {
       setShowModal(false);
       fetchItems();
     } catch (err: any) {
-      addToast(err?.response?.data?.detail || 'Erreur lors de la sauvegarde', 'error');
+      setFormError(err?.response?.data?.detail || 'Erreur lors de la sauvegarde');
     } finally {
       setSaving(false);
     }
@@ -254,52 +259,63 @@ export default function FinishedEssenceAdminPage() {
         <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
           <div className="bg-background rounded-2xl w-full max-w-md border border-white/10 p-6 space-y-4">
             <h3 className="font-bold text-lg">{editing ? 'Modifier' : 'Nouveau'} produit essence</h3>
-            <select
-              value={form.essence}
-              onChange={(e) => setForm((f) => ({ ...f, essence: e.target.value }))}
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm"
-            >
-              <option value="">Choisir une essence…</option>
-              {essences.map((e) => (
-                <option key={e.id} value={e.id}>{e.marque} — {e.nom}</option>
-              ))}
-            </select>
-            <input
+            <div>
+              <label className="text-[10px] font-bold text-gold uppercase block mb-1">Essence *</label>
+              <select
+                value={form.essence}
+                onChange={(e) => setForm((f) => ({ ...f, essence: e.target.value }))}
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-gold bg-neutral-900"
+              >
+                <option value="">Choisir une essence…</option>
+                {essences.map((e) => (
+                  <option key={e.id} value={e.id}>{e.marque} — {e.nom}</option>
+                ))}
+              </select>
+            </div>
+            <FloatInput
               type="number"
+              label="Taille (ml) *"
               placeholder="Taille (ml)"
               value={form.taille_ml}
               onChange={(e) => setForm((f) => ({ ...f, taille_ml: e.target.value }))}
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm"
             />
-            <input
+            <FloatInput
               type="number"
+              label="Prix (FCFA) *"
               placeholder="Prix (FCFA)"
               value={form.prix}
               onChange={(e) => setForm((f) => ({ ...f, prix: e.target.value }))}
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm"
             />
-            <input
+            <FloatInput
               type="number"
+              label="Prix promotionnel (optionnel)"
               placeholder="Prix promotionnel (optionnel)"
               value={form.prix_promotionnel}
               onChange={(e) => setForm((f) => ({ ...f, prix_promotionnel: e.target.value }))}
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm"
             />
-            <input
+            <FloatInput
               type="number"
+              label="Stock disponible *"
               placeholder="Stock disponible"
               value={form.stock_disponible}
               onChange={(e) => setForm((f) => ({ ...f, stock_disponible: e.target.value }))}
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm"
             />
-            <label className="flex items-center gap-2 text-sm">
+            <label className="flex items-center gap-2 text-sm pt-1 cursor-pointer">
               <input
                 type="checkbox"
                 checked={form.actif}
                 onChange={(e) => setForm((f) => ({ ...f, actif: e.target.checked }))}
+                className="rounded border-white/10 bg-white/5 text-gold focus:ring-gold"
               />
               Produit actif
             </label>
+
+            {formError && (
+              <p className="text-sm font-semibold text-red-500 bg-red-500/10 border border-red-500/20 px-4 py-2.5 rounded-xl text-center">
+                {formError}
+              </p>
+            )}
+
             <div className="flex gap-3 pt-2">
               <button onClick={() => setShowModal(false)} className="flex-1 border border-white/10 rounded-xl py-2.5 text-sm">
                 Annuler

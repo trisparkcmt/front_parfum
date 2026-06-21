@@ -13,6 +13,13 @@ export function ServiceWorkerRegistration() {
         .register('/sw.js')
         .then((registration) => {
           console.log('SW registered:', registration.scope);
+          
+          // Request notification permission if default
+          if ('Notification' in window && Notification.permission === 'default') {
+            Notification.requestPermission().then((permission) => {
+              console.log('Notification permission status:', permission);
+            });
+          }
         })
         .catch((error) => {
           console.error('SW registration failed:', error);

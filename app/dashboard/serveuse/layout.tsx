@@ -1,15 +1,26 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import ServeuseSidebar from '@/components/admin/ServeuseSidebar';
 import Header from '@/components/admin/Header';
 import { usePathname } from 'next/navigation';
 import { useAuthGuard } from '@/hooks/useAuthGuard';
 import { Loader2 } from 'lucide-react';
+import { useOrderNotificationStore } from '@/store/useOrderNotificationStore';
 
 export default function ServeuseLayout({ children }: { children: React.ReactNode }) {
   const { isAuthorized, isLoading } = useAuthGuard(['superadmin', 'serveuse']);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const { fetchPendingOrders, requestNotificationPermission } = useOrderNotificationStore();
+
+  useEffect(() => {
+    if (isAuthorized && !isLoading) {
+      requestNotificationPermission();
+      fetchPendingOrders();
+      const interval = setInterval(fetchPendingOrders, 30000);
+      return () => clearInterval(interval);
+    }
+  }, [isAuthorized, isLoading, fetchPendingOrders, requestNotificationPermission]);
   const pathname = usePathname();
 
   if (isLoading || !isAuthorized) {

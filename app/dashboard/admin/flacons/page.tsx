@@ -7,6 +7,7 @@ import { useToastStore } from '@/store/useToastStore';
 import { useCatalogPermissions } from '@/hooks/useCatalogPermissions';
 import CatalogAccessNotice from '@/components/catalog/CatalogAccessNotice';
 import { extractCatalogList } from '@/lib/catalogUtils';
+import { FloatInput } from '@/components/ui/Input';
 
 export default function FlaconsAdminPage() {
   const permissions = useCatalogPermissions('flacons');
@@ -19,6 +20,7 @@ export default function FlaconsAdminPage() {
   const [showModal, setShowModal] = useState(false);
   const [editingBottle, setEditingBottle] = useState<any | null>(null);
   const [selectedBottles, setSelectedBottles] = useState<Set<number>>(new Set());
+  const [formError, setFormError] = useState('');
 
   const [form, setForm] = useState({
     nom: '',
@@ -87,6 +89,7 @@ export default function FlaconsAdminPage() {
       seuil_alerte_stock: 10,
       actif: true
     });
+    setFormError('');
     setShowModal(true);
   };
 
@@ -108,17 +111,19 @@ export default function FlaconsAdminPage() {
       seuil_alerte_stock: bot.seuil_alerte_stock || 10,
       actif: bot.actif !== undefined ? bot.actif : true
     });
+    setFormError('');
     setShowModal(true);
   };
 
   const handleSave = async () => {
     if (!permissions.canCreate && !permissions.canUpdate) return;
     if (!form.nom || !form.type_flacon) {
-      addToast('Champs requis : Nom, Type Flacon', 'error');
+      setFormError('Champs requis : Nom, Type Flacon');
       return;
     }
 
     try {
+      setFormError('');
       const payload = {
         ...form,
         type_flacon: Number(form.type_flacon),
@@ -138,7 +143,7 @@ export default function FlaconsAdminPage() {
       setShowModal(false);
       fetchBottlesAndTypes();
     } catch (error: any) {
-      addToast(error.response?.data?.detail || 'Erreur lors de la sauvegarde', 'error');
+      setFormError(error.response?.data?.detail || 'Erreur lors de la sauvegarde');
     }
   };
 
@@ -333,67 +338,84 @@ export default function FlaconsAdminPage() {
             <h3 className="font-bold text-foreground mb-4">{editingBottle ? 'Modifier le flacon' : 'Ajouter un flacon'}</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-4">
+                <FloatInput
+                  label="Nom *"
+                  placeholder="Nom du flacon"
+                  value={form.nom}
+                  onChange={e => updateForm('nom', e.target.value)}
+                />
+                <FloatInput
+                  label="Référence SKU *"
+                  placeholder="Ex: FLC-CRT-100"
+                  value={form.reference_sku}
+                  onChange={e => updateForm('reference_sku', e.target.value)}
+                />
                 <div>
-                  <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Nom *</label>
-                  <input placeholder="Nom du flacon" value={form.nom} onChange={e => updateForm('nom', e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold" />
-                </div>
-                <div>
-                  <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Référence SKU *</label>
-                  <input placeholder="Ex: FLC-CRT-100" value={form.reference_sku} onChange={e => updateForm('reference_sku', e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold" />
-                </div>
-                <div>
-                  <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Type de Flacon *</label>
-                  <select value={form.type_flacon} onChange={e => updateForm('type_flacon', e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold">
+                  <label className="text-[10px] font-bold text-gold uppercase block mb-1">Type de Flacon *</label>
+                  <select value={form.type_flacon} onChange={e => updateForm('type_flacon', e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-foreground outline-none focus:border-gold">
                     <option value="" disabled className="text-black bg-white">Type Flacon</option>
                     {bottleTypes.map(t => <option key={t.id} value={t.id} className="text-black bg-white">{t.nom}</option>)}
                   </select>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Contenance (ml)</label>
-                    <input type="number" value={form.contenance_ml} onChange={e => updateForm('contenance_ml', e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold" />
-                  </div>
-                  <div>
-                    <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Poids (g)</label>
-                    <input type="number" value={form.poids_grammes} onChange={e => updateForm('poids_grammes', e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold" />
-                  </div>
+                  <FloatInput
+                    label="Contenance (ml)"
+                    type="number"
+                    value={form.contenance_ml}
+                    onChange={e => updateForm('contenance_ml', e.target.value)}
+                  />
+                  <FloatInput
+                    label="Poids (g)"
+                    type="number"
+                    value={form.poids_grammes}
+                    onChange={e => updateForm('poids_grammes', e.target.value)}
+                  />
                 </div>
               </div>
 
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Matière</label>
-                    <input value={form.matiere} onChange={e => updateForm('matiere', e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold" />
-                  </div>
-                  <div>
-                    <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Couleur</label>
-                    <input value={form.couleur} onChange={e => updateForm('couleur', e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold" />
-                  </div>
+                  <FloatInput
+                    label="Matière"
+                    value={form.matiere}
+                    onChange={e => updateForm('matiere', e.target.value)}
+                  />
+                  <FloatInput
+                    label="Couleur"
+                    value={form.couleur}
+                    onChange={e => updateForm('couleur', e.target.value)}
+                  />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Hauteur (cm)</label>
-                    <input value={form.hauteur_cm} onChange={e => updateForm('hauteur_cm', e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold" />
-                  </div>
-                  <div>
-                    <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Largeur (cm)</label>
-                    <input value={form.largeur_cm} onChange={e => updateForm('largeur_cm', e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold" />
-                  </div>
+                  <FloatInput
+                    label="Hauteur (cm)"
+                    value={form.hauteur_cm}
+                    onChange={e => updateForm('hauteur_cm', e.target.value)}
+                  />
+                  <FloatInput
+                    label="Largeur (cm)"
+                    value={form.largeur_cm}
+                    onChange={e => updateForm('largeur_cm', e.target.value)}
+                  />
                 </div>
-                <div>
-                  <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Prix Unitaire (FCFA)</label>
-                  <input value={form.prix_unitaire} onChange={e => updateForm('prix_unitaire', e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold" />
-                </div>
+                <FloatInput
+                  label="Prix Unitaire (FCFA)"
+                  value={form.prix_unitaire}
+                  onChange={e => updateForm('prix_unitaire', e.target.value)}
+                />
                 <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Stock Initial</label>
-                    <input type="number" value={form.stock_quantite} onChange={e => updateForm('stock_quantite', e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold" />
-                  </div>
-                  <div>
-                    <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Seuil Alerte</label>
-                    <input type="number" value={form.seuil_alerte_stock} onChange={e => updateForm('seuil_alerte_stock', e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold" />
-                  </div>
+                  <FloatInput
+                    label="Stock Initial"
+                    type="number"
+                    value={form.stock_quantite}
+                    onChange={e => updateForm('stock_quantite', e.target.value)}
+                  />
+                  <FloatInput
+                    label="Seuil Alerte"
+                    type="number"
+                    value={form.seuil_alerte_stock}
+                    onChange={e => updateForm('seuil_alerte_stock', e.target.value)}
+                  />
                 </div>
                 <div>
                   <label className="flex items-center gap-2 cursor-pointer pt-2">
@@ -408,6 +430,12 @@ export default function FlaconsAdminPage() {
                 </div>
               </div>
             </div>
+
+            {formError && (
+              <p className="text-sm font-semibold text-red-500 bg-red-500/10 border border-red-500/20 px-4 py-2.5 rounded-xl text-center mt-4">
+                {formError}
+              </p>
+            )}
 
             <div className="flex gap-3 mt-6">
               <button onClick={() => setShowModal(false)} className="flex-1 border border-white/10 rounded-lg py-2.5 text-sm text-foreground/60 hover:bg-white/5 transition-colors">Annuler</button>

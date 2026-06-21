@@ -25,10 +25,17 @@ export function useAuthGuard(allowedRoles?: UserRole[]) {
   const pathname = usePathname();
   const { user, isAuthenticated, isLoading, _hasHydrated } = useAuthStore();
   const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
+  const [mounted, setMounted] = useState(false);
+
+  // Wait one render cycle before doing anything — prevents SSR/hydration mismatch
+  // that causes the mobile redirect loop
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
-    // Wait for hydration and avoid running during auth operations
-    if (!_hasHydrated || isLoading) return;
+    // Block until both mounted and Zustand has rehydrated from storage
+    if (!mounted || !_hasHydrated || isLoading) return;
 
     if (!isAuthenticated) {
       router.replace(`/login?redirect=${encodeURIComponent(pathname)}`);
@@ -45,7 +52,8 @@ export function useAuthGuard(allowedRoles?: UserRole[]) {
     }
 
     setIsAuthorized(true);
-  }, [isAuthenticated, isLoading, user, allowedRoles, router, pathname, _hasHydrated]);
+  }, [isAuthenticated, isLoading, user, allowedRoles, router, pathname, _hasHydrated, mounted]);
 
-  return { isAuthorized, isLoading: isLoading || isAuthorized === null };
+  return { isAuthorized, isLoading: !mounted || isLoading || isAuthorized === null };
 }
+

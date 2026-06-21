@@ -10,6 +10,7 @@ import CatalogAccessNotice from '@/components/catalog/CatalogAccessNotice';
 import { extractCatalogList } from '@/lib/catalogUtils';
 import { MultiImageUpload } from '@/components/MultiImageUpload';
 import { CreateCategoryModal } from '@/components/CreateCategoryModal';
+import { FloatInput } from '@/components/ui/Input';
 
 export default function PerfumeAdminPage() {
   const permissions = useCatalogPermissions('parfums');
@@ -24,6 +25,7 @@ export default function PerfumeAdminPage() {
   const [categories, setCategories] = useState<any[]>([]);
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
   const [selectedPerfumes, setSelectedPerfumes] = useState<Set<string>>(new Set());
+  const [formError, setFormError] = useState('');
 
   const [form, setForm] = useState({
     marque: 'Accessoire Exclusif',
@@ -134,6 +136,7 @@ export default function PerfumeAdminPage() {
       image_supp_3: null,
       image_supp_4: null,
     });
+    setFormError('');
     setShowModal(true);
   };
 
@@ -169,13 +172,14 @@ export default function PerfumeAdminPage() {
       image_supp_3: null,
       image_supp_4: null,
     });
+    setFormError('');
     setShowModal(true);
   };
 
   const handleSave = async () => {
     if (!permissions.canCreate && !permissions.canUpdate) return;
     if (!form.marque || !form.nom || !form.contenance_ml || !form.prix_unitaire || !form.categorie || !form.stock_quantite) {
-      addToast('Champs requis : Marque, Nom, Contenance, Prix, Catégorie, Stock', 'error');
+      setFormError('Champs requis : Marque, Nom, Contenance, Prix, Catégorie, Stock');
       return;
     }
 
@@ -194,6 +198,7 @@ export default function PerfumeAdminPage() {
     });
 
     try {
+      setFormError('');
       if (editingPerfume) {
         await adminService.patchFormData(`shop/parfums/${editingPerfume.slug}/`, formData);
         addToast('Parfum mis à jour avec succès', 'success');
@@ -204,7 +209,7 @@ export default function PerfumeAdminPage() {
       setShowModal(false);
       fetchPerfumes();
     } catch (error: any) {
-      addToast(error.response?.data?.detail || 'Erreur lors de la sauvegarde', 'error');
+      setFormError(error.response?.data?.detail || 'Erreur lors de la sauvegarde');
     }
   };
 
@@ -449,88 +454,105 @@ export default function PerfumeAdminPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Left column */}
               <div className="space-y-4">
-                <input placeholder="Marque" value={form.marque} onChange={e => updateForm('marque', e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold" />
-                <input placeholder="Nom" value={form.nom} onChange={e => updateForm('nom', e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold" />
-                <input placeholder="Slug (optionnel)" value={form.slug} onChange={e => updateForm('slug', e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold" />
-                <input placeholder="Référence SKU (optionnel)" value={form.reference_sku} onChange={e => updateForm('reference_sku', e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold" />
+                <FloatInput label="Marque" placeholder="Marque" value={form.marque} onChange={e => updateForm('marque', e.target.value)} />
+                <FloatInput label="Nom" placeholder="Nom" value={form.nom} onChange={e => updateForm('nom', e.target.value)} />
+                <FloatInput label="Slug (optionnel)" placeholder="Slug (optionnel)" value={form.slug} onChange={e => updateForm('slug', e.target.value)} />
+                <FloatInput label="Référence SKU (optionnel)" placeholder="Référence SKU (optionnel)" value={form.reference_sku} onChange={e => updateForm('reference_sku', e.target.value)} />
+                
                 <div className="flex gap-2">
-                  <select value={form.categorie} onChange={e => updateForm('categorie', e.target.value)} className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold">
-                    <option value="" disabled className="bg-neutral-900">Catégorie</option>
-                    {categories.map(c => <option key={c.id} value={c.id} className="bg-neutral-900">{c.nom}</option>)}
-                  </select>
+                  <div className="flex-1">
+                    <label className="text-[10px] font-bold text-gold uppercase block mb-1">Catégorie</label>
+                    <select value={form.categorie} onChange={e => updateForm('categorie', e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-foreground outline-none focus:border-gold">
+                      <option value="" disabled className="bg-neutral-900">Catégorie</option>
+                      {categories.map(c => <option key={c.id} value={c.id} className="bg-neutral-900">{c.nom}</option>)}
+                    </select>
+                  </div>
                   <button
                     type="button"
                     onClick={() => setIsCategoryModalOpen(true)}
-                    className="px-3 py-2 bg-gold text-neutral-900 rounded-lg hover:bg-gold/80 font-medium"
+                    className="px-3.5 mt-5 bg-gold text-neutral-900 rounded-xl hover:bg-gold/80 font-bold text-lg"
                     title="Créer une nouvelle catégorie"
                   >
                     +
                   </button>
                 </div>
+
                 <div className="grid grid-cols-2 gap-3">
-                  <select value={form.genre_cible} onChange={e => updateForm('genre_cible', e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold">
-                    <option value="homme">Homme</option>
-                    <option value="femme">Femme</option>
-                    <option value="mixte">Mixte</option>
-                  </select>
-                  <select value={form.intensite} onChange={e => updateForm('intensite', e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold">
-                    <option value="légère">Légère</option>
-                    <option value="moyenne">Moyenne</option>
-                    <option value="forte">Forte</option>
-                    <option value="très forte">Très forte</option>
-                  </select>
+                  <div>
+                    <label className="text-[10px] font-bold text-gold uppercase block mb-1">Genre Cible</label>
+                    <select value={form.genre_cible} onChange={e => updateForm('genre_cible', e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-foreground outline-none focus:border-gold">
+                      <option value="homme">Homme</option>
+                      <option value="femme">Femme</option>
+                      <option value="mixte">Mixte</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold text-gold uppercase block mb-1">Intensité</label>
+                    <select value={form.intensite} onChange={e => updateForm('intensite', e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-foreground outline-none focus:border-gold">
+                      <option value="légère">Légère</option>
+                      <option value="moyenne">Moyenne</option>
+                      <option value="forte">Forte</option>
+                      <option value="très forte">Très forte</option>
+                    </select>
+                  </div>
                 </div>
+
                 <div className="grid grid-cols-3 gap-2">
-                  <input placeholder="Notes tête" value={form.notes_tete} onChange={e => updateForm('notes_tete', e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-foreground outline-none focus:border-gold" />
-                  <input placeholder="Notes cœur" value={form.notes_coeur} onChange={e => updateForm('notes_coeur', e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-foreground outline-none focus:border-gold" />
-                  <input placeholder="Notes fond" value={form.notes_fond} onChange={e => updateForm('notes_fond', e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-foreground outline-none focus:border-gold" />
+                  <FloatInput label="Notes tête" placeholder="Notes tête" value={form.notes_tete} onChange={e => updateForm('notes_tete', e.target.value)} className="text-xs" />
+                  <FloatInput label="Notes cœur" placeholder="Notes cœur" value={form.notes_coeur} onChange={e => updateForm('notes_coeur', e.target.value)} className="text-xs" />
+                  <FloatInput label="Notes fond" placeholder="Notes fond" value={form.notes_fond} onChange={e => updateForm('notes_fond', e.target.value)} className="text-xs" />
                 </div>
               </div>
 
               {/* Right column */}
               <div className="space-y-4">
-                <textarea placeholder="Description courte" value={form.description_courte} onChange={e => updateForm('description_courte', e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold" rows={2} />
-                <textarea placeholder="Description longue" value={form.description_longue} onChange={e => updateForm('description_longue', e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold" rows={2} />
-                <textarea placeholder="Description IA" value={form.description_ia} onChange={e => updateForm('description_ia', e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold" rows={2} />
+                <div>
+                  <label className="text-[10px] font-bold text-gold uppercase block mb-1">Description courte</label>
+                  <textarea placeholder="Description courte" value={form.description_courte} onChange={e => updateForm('description_courte', e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-foreground outline-none focus:border-gold" rows={2} />
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold text-gold uppercase block mb-1">Description longue</label>
+                  <textarea placeholder="Description longue" value={form.description_longue} onChange={e => updateForm('description_longue', e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-foreground outline-none focus:border-gold" rows={2} />
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold text-gold uppercase block mb-1">Description IA</label>
+                  <textarea placeholder="Description IA" value={form.description_ia} onChange={e => updateForm('description_ia', e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-foreground outline-none focus:border-gold" rows={2} />
+                </div>
 
                 {/* Prix & Contenance */}
                 <div className="grid grid-cols-2 gap-3">
-                  <input placeholder="Contenance (ml)" type="number" value={form.contenance_ml} onChange={e => updateForm('contenance_ml', e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold" />
-                  <input placeholder="Prix (FCFA)" type="number" value={form.prix_unitaire} onChange={e => updateForm('prix_unitaire', e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold" />
+                  <FloatInput label="Contenance (ml)" type="number" value={form.contenance_ml} onChange={e => updateForm('contenance_ml', e.target.value)} />
+                  <FloatInput label="Prix (FCFA)" type="number" value={form.prix_unitaire} onChange={e => updateForm('prix_unitaire', e.target.value)} />
                 </div>
 
                 {/* Stock */}
                 <div className="grid grid-cols-2 gap-3">
-                  <input placeholder="Stock" type="number" value={form.stock_quantite} onChange={e => updateForm('stock_quantite', e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-foreground outline-none focus:border-gold" />
-                  <input placeholder="Seuil alerte" type="number" value={form.seuil_alerte_stock} onChange={e => updateForm('seuil_alerte_stock', e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-foreground outline-none focus:border-gold" />
+                  <FloatInput label="Stock" type="number" value={form.stock_quantite} onChange={e => updateForm('stock_quantite', e.target.value)} className="text-xs" />
+                  <FloatInput label="Seuil alerte" type="number" value={form.seuil_alerte_stock} onChange={e => updateForm('seuil_alerte_stock', e.target.value)} className="text-xs" />
                 </div>
 
                 {/* Promotion block */}
-                <div className="rounded-lg border border-white/10 bg-white/[0.03] px-3 py-3 space-y-3">
-                  <p className="text-xs font-semibold text-foreground/40 uppercase tracking-wider">Promotion</p>
+                <div className="rounded-xl border border-white/10 bg-white/[0.03] px-3.5 py-3.5 space-y-3">
+                  <p className="text-xs font-semibold text-gold uppercase tracking-wider">Promotion</p>
                   <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1">
-                      <label className="text-xs text-foreground/40">Prix promo (FCFA)</label>
-                      <input
-                        placeholder="ex: 19000"
-                        type="number"
-                        value={form.prix_promotionnel}
-                        onChange={e => updateForm('prix_promotionnel', e.target.value)}
-                        className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-foreground outline-none focus:border-gold"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-xs text-foreground/40">Taux réduction (%)</label>
-                      <input
-                        placeholder="ex: 20"
-                        type="number"
-                        min="0"
-                        max="100"
-                        value={form.taux_reduction}
-                        onChange={e => updateForm('taux_reduction', e.target.value)}
-                        className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-foreground outline-none focus:border-gold"
-                      />
-                    </div>
+                    <FloatInput
+                      label="Prix promo (FCFA)"
+                      placeholder="ex: 19000"
+                      type="number"
+                      value={form.prix_promotionnel}
+                      onChange={e => updateForm('prix_promotionnel', e.target.value)}
+                      className="text-xs"
+                    />
+                    <FloatInput
+                      label="Taux réduction (%)"
+                      placeholder="ex: 20"
+                      type="number"
+                      min="0"
+                      max="100"
+                      value={form.taux_reduction}
+                      onChange={e => updateForm('taux_reduction', e.target.value)}
+                      className="text-xs"
+                    />
                   </div>
                   {/* Live preview */}
                   {(form.prix_promotionnel || form.taux_reduction) && form.prix_unitaire && (
@@ -562,6 +584,12 @@ export default function PerfumeAdminPage() {
                 onImagesChange={(images) => setImageFiles(images)}
               />
             </div>
+
+            {formError && (
+              <p className="text-sm font-semibold text-red-500 bg-red-500/10 border border-red-500/20 px-4 py-2.5 rounded-xl text-center mt-4">
+                {formError}
+              </p>
+            )}
 
             <div className="flex gap-3 mt-6">
               <button onClick={() => setShowModal(false)} className="flex-1 border border-white/10 rounded-lg py-2.5 text-sm text-foreground/60 hover:bg-white/5 transition-colors">Annuler</button>

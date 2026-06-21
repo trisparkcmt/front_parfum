@@ -7,6 +7,7 @@ import {
   LayoutDashboard, ShoppingCart, BarChart2,
   Package, Cpu, Gem, X, ChevronDown, Sparkles, Droplets, Bell
 } from 'lucide-react';
+import { useOrderNotificationStore } from '@/store/useOrderNotificationStore';
 
 interface SidebarProps {
   open: boolean;
@@ -124,6 +125,15 @@ function SectionLabel({ label }: { label: string }) {
 }
 
 export default function ServeuseSidebar({ open, setOpen }: SidebarProps) {
+  const { pendingCount } = useOrderNotificationStore();
+
+  // Inject live badge count into the 'Commandes' item
+  const boutiqueItemsWithBadge = boutiqueItems.map(item =>
+    item.label === 'Commandes' && pendingCount > 0
+      ? { ...item, badge: String(pendingCount) }
+      : item
+  );
+
   return (
     <>
       {/* Mobile overlay */}
@@ -163,7 +173,7 @@ export default function ServeuseSidebar({ open, setOpen }: SidebarProps) {
           ))}
 
           <SectionLabel label="BOUTIQUE" />
-          {boutiqueItems.map(item => (
+          {boutiqueItemsWithBadge.map(item => (
             <NavItemComponent key={item.label} item={item} />
           ))}
         </nav>

@@ -28,7 +28,7 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { useCartStore } from '@/store/useCartStore';
 import { useToastStore } from '@/store/useToastStore';
-import { formatPrice } from '@/lib/utils';
+import { formatPrice, generateWhatsAppLink } from '@/lib/utils';
 import { PRODUCT_CATEGORY_LABELS } from '@/lib/constants';
 import { useTranslation } from 'react-i18next';
 
@@ -65,8 +65,6 @@ export default function CartPage() {
   const [deliveryType, setDeliveryType] = useState<'delivery' | 'pickup'>('delivery');
   const [deliveryLocation, setDeliveryLocation] = useState(''); // quartier (free text)
   const [deliveryCity, setDeliveryCity] = useState('');
-  const [recipientName, setRecipientName] = useState('');
-  const [recipientPhone, setRecipientPhone] = useState('');
   const [noteClient, setNoteClient] = useState('');
 
   const subtotal = getSubtotal();
@@ -131,15 +129,6 @@ export default function CartPage() {
       return;
     }
 
-    const nameToSend = recipientName.trim() || `${user?.firstName ?? ''} ${user?.lastName ?? ''}`.trim();
-    if (!nameToSend) {
-      addToast(t('recipient_required', { defaultValue: 'Nom du destinataire requis.' }), 'error');
-      return;
-    }
-    if (!recipientPhone.trim()) {
-      addToast(t('phone_required', { defaultValue: 'Téléphone requis.' }), 'error');
-      return;
-    }
     if (deliveryType === 'delivery' && !deliveryCity.trim()) {
       addToast(t('city_required', { defaultValue: 'Ville de livraison requise.' }), 'error');
       return;
@@ -155,19 +144,51 @@ export default function CartPage() {
     try {
       await orderService.placeOrder({
         panier_id: panierId ?? undefined,
-        livraison_nom_complet: nameToSend,
-        livraison_telephone: recipientPhone.trim(),
         livraison_quartier: deliveryType === 'delivery' ? deliveryLocation.trim() || undefined : undefined,
         livraison_ville: deliveryType === 'delivery' ? deliveryCity.trim() : 'Retrait magasin',
         note_client: noteClient.trim() || undefined,
       });
 
-      addToast(t('order_success', { defaultValue: 'Commande passée avec succès.' }), 'success');
+     // Format items to match the CartItem structure expected by generateWhatsAppLink
+      const formattedItems = allItems.map((item: any) => ({
+        id: String(item.id),
+        type: 'product' as const,
+        product: {
+          id: String(item.id),
+          name: item.nom,
+          price: item.prix_unitaire_snapshot,
+          description: '',
+          category: 'accessory' as const,
+          images: [],
+          stock: 99,
+          inStock: true,
+          isActive: true,
+          createdAt: ''
+        },
+        quantity: item.quantite,
+        unitPrice: item.prix_unitaire_snapshot,
+      }));
+
+      const waLink = generateWhatsAppLink(
+        formattedItems,
+        subtotal,
+        total,
+        cart?.code_promo_applique,
+        cart?.remise_pourcentage ? Number(cart.remise_pourcentage) : undefined,
+        paymentMethod,
+        mobileNetwork || undefined,
+        deliveryType,
+        deliveryType === 'delivery' ? `${deliveryCity.trim()} - ${deliveryLocation.trim()}` : 'Retrait magasin'
+      );
+
+      addToast(t('order_success', { defaultValue: 'Commande passée avec succès. Redirection vers WhatsApp...' }), 'success');
 
       // The backend will convert the cart -> order and create a new active cart.
       clearCart();
       await syncCart();
-      router.push('/dashboard/client');
+      
+      // Redirect client to WhatsApp
+      window.location.href = waLink;
     } catch (err: any) {
       const msg =
         err?.response?.data?.detail ||
@@ -298,26 +319,7 @@ export default function CartPage() {
                 <span>{formatPrice(subtotal)}</span>
               </div>
 
-              {/* Recipient */}
-              <div className="space-y-2 pt-2">
-                <p className="text-xs font-bold text-foreground/40 uppercase tracking-wider">
-                  {t('delivery_details', { defaultValue: 'Détails de livraison' })}
-                </p>
-                <Input
-                  placeholder={t('recipient_name', { defaultValue: 'Nom complet du destinataire' })}
-                  value={recipientName}
-                  onChange={(e) => setRecipientName(e.target.value)}
-                  disabled={isLoading || isProcessing}
-                  className="bg-black/20"
-                />
-                <Input
-                  placeholder={t('phone', { defaultValue: 'Téléphone' })}
-                  value={recipientPhone}
-                  onChange={(e) => setRecipientPhone(e.target.value)}
-                  disabled={isLoading || isProcessing}
-                  className="bg-black/20"
-                />
-              </div>
+
 
               {/* Delivery Mode Selection */}
               <div className="space-y-3 pt-2">
@@ -509,5 +511,3 @@ export default function CartPage() {
     </div>
   );
 }
-
-

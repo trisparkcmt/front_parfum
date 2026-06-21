@@ -1,14 +1,25 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Sidebar from '@/components/admin/Sidebar';
 import Header from '@/components/admin/Header';
 import { useAuthGuard } from '@/hooks/useAuthGuard';
 import { Loader2 } from 'lucide-react';
+import { useOrderNotificationStore } from '@/store/useOrderNotificationStore';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const { isAuthorized, isLoading } = useAuthGuard(['superadmin']);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { fetchPendingOrders, requestNotificationPermission } = useOrderNotificationStore();
+
+  useEffect(() => {
+    if (isAuthorized && !isLoading) {
+      requestNotificationPermission();
+      fetchPendingOrders();
+      const interval = setInterval(fetchPendingOrders, 30000);
+      return () => clearInterval(interval);
+    }
+  }, [isAuthorized, isLoading, fetchPendingOrders, requestNotificationPermission]);
 
   if (isLoading || !isAuthorized) {
     return (

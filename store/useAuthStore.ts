@@ -200,8 +200,7 @@ export const useAuthStore = create<AuthState>()(
         } catch (error: any) {
           console.error('Login failed:', error);
           set({ isLoading: false });
-          addToast(error.response?.data?.detail || 'Échec de la connexion', 'error');
-          return false;
+          throw error;
         }
       },
 
@@ -225,8 +224,7 @@ export const useAuthStore = create<AuthState>()(
 
           if (!access) {
             set({ isLoading: false });
-            addToast('Connexion Google échouée (jeton absent).', 'error');
-            return false;
+            throw new Error('Connexion Google échouée (jeton absent).');
           }
 
           if (typeof window !== 'undefined') {
@@ -283,8 +281,7 @@ export const useAuthStore = create<AuthState>()(
         } catch (error: any) {
           console.error('Google login failed:', error);
           set({ isLoading: false });
-          addToast(error.response?.data?.detail || 'Échec de la connexion Google', 'error');
-          return false;
+          throw error;
         }
       },
 
@@ -318,15 +315,13 @@ export const useAuthStore = create<AuthState>()(
 
           // Network / server unreachable
           if (!error?.response) {
-            addToast('Impossible de contacter le serveur. Vérifiez votre connexion.', 'error');
-            return false;
+            throw new Error('Impossible de contacter le serveur. Vérifiez votre connexion.');
           }
 
           // Server crash – Django returns an HTML error page
           const isHtml = typeof errData === 'string' && (errData.trimStart().startsWith('<') || errData.includes('<!DOCTYPE'));
           if (isHtml || status >= 500) {
-            addToast('Erreur serveur. Veuillez réessayer dans quelques instants.', 'error');
-            return false;
+            throw new Error('Erreur serveur. Veuillez réessayer dans quelques instants.');
           }
 
           // Extract the most helpful validation error from the backend JSON
@@ -351,8 +346,7 @@ export const useAuthStore = create<AuthState>()(
               if (allErrors) msg = allErrors;
             }
           }
-          addToast(msg, 'error');
-          return false;
+          throw new Error(msg);
         }
       },
 
