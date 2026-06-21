@@ -784,10 +784,12 @@
     min-height: 300px;
     max-height: 420px;
     padding: 3rem 1rem 1rem;
-    position: relative;
+    position: sticky;
+    top: 0;
     z-index: 10;
     background: var(--background);
     border-bottom: 0.5px solid var(--atl-glass-border);
+    overflow: hidden;
   }
   .config-panel {
     flex-grow: 1;
@@ -830,15 +832,23 @@
   .cta-wrap { align-items: stretch; }
   .cta-primary { text-align: center; }
   .price-number { font-size: 22px; }
-  .flacon-panel { height: 45vh; min-height: 280px; max-height: 400px; padding: 1rem; }
-  .flacon-stage { width: 160px; height: 280px; }
-  .flacon-stage svg { width: 160px; height: 300px; }
-  .flacon-stage.size-50 svg { transform: scale(0.72); }
-  .flacon-stage.size-30 svg { transform: scale(0.58); }
+  .flacon-panel {
+    position: sticky;
+    top: 0;
+    height: 38vh;
+    min-height: 240px;
+    max-height: 320px;
+    padding: 0.75rem 1rem 0.5rem;
+    overflow: hidden;
+    z-index: 10;
+  }
+  .flacon-stage { width: 130px; height: 220px; }
+  .flacon-stage svg { width: 130px; height: 240px; }
+  .flacon-stage.size-50 svg { transform: scale(0.6); }
+  .flacon-stage.size-30 svg { transform: scale(0.48); }
   .config-panel { padding: 1rem 1rem 6rem; min-height: 50vh; }
   .vol-indicator { display: none; }
   .bottle-size-selector { gap: 6px; }
   .bottle-size-chip { padding: 6px 12px; font-size: 9px; }
   .bottle-size-chip .chip-ml { font-size: 13px; }
 }
-

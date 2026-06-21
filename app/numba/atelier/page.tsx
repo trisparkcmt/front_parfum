@@ -31,9 +31,6 @@ const BOTTLE_SIZES = [
   { ml: 100, label: '100ml', desc: 'Prestige' },
 ];
 
-const FORMAT_PRICES: Record<string, number> = { edc: 5000, edp: 8500, extrait: 12000 };
-const FORMAT_LABELS: Record<string, string> = { edc: 'Eau de Cologne', edp: 'Eau de Parfum', extrait: 'Extrait' };
-
 function hexToRgb(h: string) {
   h = h.replace('#','');
   if (h.length===3) h = h[0]+h[0]+h[1]+h[1]+h[2]+h[2];
@@ -216,7 +213,6 @@ export default function AtelierPage() {
   const [essences, setEssences] = useState<EssenceClient[]>([]);
   const [loadingData, setLoadingData] = useState(true);
 
-  const [format, setFormat] = useState('edp');
   const [bottleSize, setBottleSize] = useState(100);
   const [quantities, setQuantities] = useState<Record<string, number>>({});
   const [ctaSuccess, setCtaSuccess] = useState(false);
@@ -287,14 +283,13 @@ export default function AtelierPage() {
   };
 
   const calcPrice = useMemo(() => {
-    const sizeMultiplier = bottleSize === 30 ? 0.4 : bottleSize === 50 ? 0.65 : 1;
-    let total = Math.round((FORMAT_PRICES[format] || 0) * sizeMultiplier);
+    let total = 0;
     for (const e of ALL_ITEMS) {
       const q = quantities[e.id] || 0;
       if (q > 0) total += q * e.pricePerMl;
     }
     return Math.round(total);
-  }, [quantities, format, bottleSize, ALL_ITEMS]);
+  }, [quantities, ALL_ITEMS]);
 
   const formulaSummary = useMemo(() => {
     const list = [];
@@ -405,7 +400,7 @@ export default function AtelierPage() {
           {i18n.language === 'en' ? 'Empty bottle' : 'Vider le flacon'}
         </button>
 
-        <div className="relative w-full flex items-center justify-center mt-8">
+        <div className="relative w-full flex items-center justify-center mt-2 sm:mt-8">
           <div className="size-slider-wrap">
             <button 
               className="size-slider-nav"
@@ -436,7 +431,7 @@ export default function AtelierPage() {
             {bottleSize === 50 && <Bottle50 totalMl={totalMl} maxMl={maxMl} quantities={quantities} allItems={ALL_ITEMS} />}
             {bottleSize === 30 && <Bottle30 totalMl={totalMl} maxMl={maxMl} quantities={quantities} allItems={ALL_ITEMS} />}
             
-            <div className="absolute -right-12 top-1/2 -translate-y-1/2 flex flex-col items-center gap-1 opacity-40">
+            <div className="hidden sm:flex absolute -right-12 top-1/2 -translate-y-1/2 flex-col items-center gap-1 opacity-40">
               <div className="w-[1px] h-20 bg-gold/50" />
               <span className="text-[10px] tracking-widest vertical-text uppercase">{totalMl}ml</span>
               <div className="w-[1px] h-20 bg-gold/50" />
@@ -444,7 +439,7 @@ export default function AtelierPage() {
           </div>
         </div>
 
-        <div className="mt-auto pb-12 w-full max-w-xs">
+        <div className="mt-auto pb-3 sm:pb-12 w-full max-w-xs">
           <div className="flex justify-between items-end mb-2">
             <span className="text-[10px] uppercase tracking-widest text-gold/60">Composition</span>
             <span className="text-[14px] font-light text-cream">{totalMl} / {maxMl} ml</span>
@@ -468,7 +463,7 @@ export default function AtelierPage() {
           {[
             { id: 'ingredients', label: i18n.language === 'en' ? '🧪 Raw Notes' : '🧪 Notes de Base' },
             { id: 'essences', label: i18n.language === 'en' ? '✨ Premium Bases' : '✨ Essences d’Exception' },
-            { id: 'recap', label: i18n.language === 'en' ? '📋 Formula' : '📋 Finalisation' }
+            { id: 'recap', label: i18n.language === 'en' ? '📋 Recap' : '📋 Récap' }
           ].map(tab => (
             <button
               key={tab.id}
@@ -676,20 +671,6 @@ export default function AtelierPage() {
 
             {activeTab === 'recap' && (
               <div className="animate-in fade-in duration-300">
-                <h3 className="text-xs uppercase tracking-[0.2em] text-foreground/30 mb-6">Concentration & Format</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-10">
-                  {(['edc','edp','extrait'] as const).map(f => (
-                    <button 
-                      key={f} 
-                      onClick={() => setFormat(f)}
-                      className={`p-6 border text-left transition-all rounded-lg ${format === f ? 'border-gold bg-gold/5' : 'border-[var(--t-border)] hover:border-foreground/20'}`}
-                    >
-                      <p className={`text-[10px] uppercase tracking-widest mb-2 ${format === f ? 'text-gold' : 'text-foreground/40'}`}>{FORMAT_LABELS[f]}</p>
-                      <p className="text-lg font-light text-cream">{FORMAT_PRICES[f].toLocaleString()} <span className="text-[10px] text-foreground/20 uppercase tracking-tighter">FCFA</span></p>
-                    </button>
-                  ))}
-                </div>
-
                 <div className="bg-foreground/5 p-8 border border-[var(--t-border)] rounded-xl">
                   <h4 className="text-[10px] uppercase tracking-widest text-gold mb-6">Résumé de la Formule</h4>
                   {formulaSummary.length === 0 ? (
@@ -715,7 +696,7 @@ export default function AtelierPage() {
           <div>
             <p className="text-[10px] uppercase tracking-[0.3em] text-foreground/30 mb-1">Investissement Total</p>
             <p className="text-4xl font-extralight text-gold">{calcPrice.toLocaleString()} <span className="text-xs tracking-normal">FCFA</span></p>
-            <p className="text-[10px] text-foreground/20 mt-2 uppercase tracking-widest">{bottleSize}ml · {FORMAT_LABELS[format]}</p>
+            <p className="text-[10px] text-foreground/20 mt-2 uppercase tracking-widest">{bottleSize}ml</p>
           </div>
           
           <div className="flex items-center gap-4 w-full sm:w-auto">

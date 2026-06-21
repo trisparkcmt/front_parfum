@@ -441,7 +441,7 @@ export default function PerfumeAdminPage() {
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex p-4 overflow-y-auto" onClick={() => setShowModal(false)}>
           <div
             key={editingPerfume?.slug ?? 'new'}
-            className="bg-background rounded-2xl p-6 w-full max-w-6xl shadow-2xl border border-white/10 overflow-y-auto max-h-fit my-auto mx-auto"
+            className="bg-background rounded-2xl p-6 w-80dvh max-w-6xl shadow-2xl border border-white/10 overflow-y-auto max-h-fit my-auto mx-auto"
             onClick={e => e.stopPropagation()}
           >
             <h3 className="font-bold text-foreground mb-4">{editingPerfume ? 'Modifier le parfum' : 'Ajouter un parfum'}</h3>
