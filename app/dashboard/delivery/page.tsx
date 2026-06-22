@@ -69,14 +69,17 @@ export default function DeliveryDashboard() {
 
       const mapped: DeliveryTask[] = rawList.map((d: any) => ({
         id:              d.id,
-        orderId:         d.commande?.numero_commande ?? d.numero_commande ?? String(d.id),
-        clientName:      d.commande?.client_email ?? d.client_nom ?? 'Client',
-        clientPhone:     d.commande?.livraison_telephone ?? d.telephone ?? '',
+        // Flat API key priority mapping
+        orderId:         d.numero_commande ?? d.commande?.numero_commande ?? String(d.id),
+        clientName:      d.client_nom ?? d.livraison_nom_complet ?? d.commande?.client_email ?? 'Client',
+        clientPhone:     d.livraison_telephone ?? d.commande?.livraison_telephone ?? d.telephone ?? '',
         items:           [],
-        total:           Number(d.commande?.total_ttc ?? d.montant ?? 0),
-        status:          mapStatus(d.statut_livraison ?? d.status),
-        assignedAt:      d.date_affectation ?? d.created_at ?? '',
-        deliveryAddress: [d.commande?.livraison_quartier, d.commande?.livraison_ville].filter(Boolean).join(', ') || d.adresse,
+        total:           Number(d.total_ttc ?? d.commande?.total_ttc ?? d.montant ?? 0),
+        status:          mapStatus(d.statut_livraison ?? d.status ?? d.statut),
+        assignedAt:      d.date_creation ?? d.date_affectation ?? d.created_at ?? '',
+        deliveryAddress: [d.livraison_quartier, d.livraison_ville].filter(Boolean).join(', ') || 
+                         [d.commande?.livraison_quartier, d.commande?.livraison_ville].filter(Boolean).join(', ') || 
+                         d.adresse || '',
         _raw:            d,
       }));
 
@@ -100,9 +103,11 @@ export default function DeliveryDashboard() {
   }, [fetchData]);
 
   function mapStatus(s: string): DeliveryTask['status'] {
-    if (s === 'livrée' || s === 'livree' || s === 'delivered') return 'delivered';
-    if (s === 'échouée' || s === 'echouee' || s === 'failed')  return 'failed';
-    if (s === 'en_transit' || s === 'in_transit')              return 'in_transit';
+    if (!s) return 'assigned';
+    const clean = s.toLowerCase().trim();
+    if (clean === 'livrée' || clean === 'livree' || clean === 'delivered') return 'delivered';
+    if (clean === 'échouée' || clean === 'echouee' || clean === 'failed')  return 'failed';
+    if (clean === 'en_transit' || clean === 'in_transit' || clean === 'assignée' || clean === 'assignee') return 'in_transit';
     return 'assigned';
   }
 
