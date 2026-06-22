@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Shield, Store, Truck, Users } from 'lucide-react';
+import { Shield, Store, Truck, Users, ShoppingCart } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useAuthGuard } from '@/hooks/useAuthGuard';
@@ -61,6 +61,20 @@ export default function DashboardSelectorPage() {
             <p className="text-sm text-foreground/60">{ROLE_DESCRIPTIONS[role]}</p>
           </Link>
         ))}
+
+        {/* POS Option - Show for serveuse only */}
+        {roles.includes('serveuse') && (
+          <Link
+            href="/dashboard/pos"
+            className="rounded-2xl border border-white/10 bg-white/5 p-5 hover:bg-white/10 transition-colors"
+          >
+            <div className="flex items-center gap-3 text-gold mb-2">
+              <ShoppingCart size={18} />
+              <span className="font-semibold">Point de Vente</span>
+            </div>
+            <p className="text-sm text-foreground/60">Interface de vente en direct (POS).</p>
+          </Link>
+        )}
       </div>
     </div>
   );

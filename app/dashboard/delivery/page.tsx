@@ -70,7 +70,7 @@ export default function DeliveryDashboard() {
       const mapped: DeliveryTask[] = rawList.map((d: any) => ({
         id:              d.id,
         orderId:         d.commande?.numero_commande ?? d.numero_commande ?? String(d.id),
-        clientName:      d.commande?.client_email ?? d.client_name ?? 'Client',
+        clientName:      d.commande?.client_email ?? d.client_nom ?? 'Client',
         clientPhone:     d.commande?.livraison_telephone ?? d.telephone ?? '',
         items:           [],
         total:           Number(d.commande?.total_ttc ?? d.montant ?? 0),

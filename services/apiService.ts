@@ -1,4 +1,4 @@
-/**
+﻿/**
  * @file services/apiService.ts
  * @description Centralized API Service Layer for all Django backend endpoints.
  * Implements all endpoints from the API documentation.
@@ -976,7 +976,7 @@ export const adminService = {
   postFormData: async (url: string, data: FormData) => {
     const response = await api.post(url, data, {
       headers: {
-        'Content-Type': 'multipart/form-data', // ✅ overrides the default JSON header
+        'Content-Type': 'multipart/form-data', // Γ£à overrides the default JSON header
       },
     });
     return response.data;
@@ -988,7 +988,7 @@ export const adminService = {
    patchFormData: async (url: string, data: FormData) => {
     const response = await api.patch(url, data, {
       headers: {
-        'Content-Type': 'multipart/form-data', // ✅ overrides the default JSON header
+        'Content-Type': 'multipart/form-data', // Γ£à overrides the default JSON header
       },
     });
     return response.data;
@@ -1319,7 +1319,7 @@ export const orderService = {
   },
 
   /**
-   * Update order fields — used by Admin/Serveuse to validate, assign driver, change statuses.
+   * Update order fields ΓÇö used by Admin/Serveuse to validate, assign driver, change statuses.
    * PATCH /api/v1/orders/commandes/{numero_commande}/
    */
   updateOrder: async (
@@ -1351,11 +1351,11 @@ export const orderService = {
   },
 
   /**
-   * Cancel an order (sets statut to "annulée")
+   * Cancel an order (sets statut to "annul├⌐e")
    */
   cancelOrder: async (numeroCommande: string) => {
     const response = await api.patch(`orders/commandes/${numeroCommande}/`, {
-      statut: 'annulée',
+      statut: 'annul├⌐e',
     });
     return response.data;
   },
@@ -1384,7 +1384,7 @@ export const orderService = {
     }
   ) => {
     const response = await api.patch(`orders/commandes/${numeroCommande}/`, {
-      statut: 'validé',
+      statut: 'valid├⌐',
       statut_livraison: data.deliveryMethod === 'pickup' ? 'en_attente_affectation' : 'en_attente_affectation',
       livreur: data.livreur,
       date_livraison_estimee: data.date_livraison_estimee,
@@ -1406,7 +1406,7 @@ export const orderService = {
    */
   getAssignedOrders: async (params?: { page?: number }) => {
     const response = await api.get('orders/commandes/', {
-      params: { ...params, statut_livraison: 'assignée' },
+      params: { ...params, statut_livraison: 'assign├⌐e' },
     });
     return response.data;
   },

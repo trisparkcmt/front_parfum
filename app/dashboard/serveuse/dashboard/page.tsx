@@ -1,9 +1,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { shopService, orderService } from '@/services/apiService';
 import { useToastStore } from '@/store/useToastStore';
-import { ShoppingBag, Gem, Droplets, Sparkles, Loader2, ArrowUpRight } from 'lucide-react';
+import { ShoppingBag, Gem, Droplets, Sparkles, Loader2, ArrowUpRight, ShoppingCart } from 'lucide-react';
 
 export default function ServeuseDashboardPage() {
   const [loading, setLoading] = useState(true);
@@ -50,9 +51,18 @@ export default function ServeuseDashboardPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">Espace Serveuse</h1>
-        <p className="text-sm text-foreground/40 mt-0.5">Vue d'ensemble des activités de la boutique</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Espace Serveuse</h1>
+          <p className="text-sm text-foreground/40 mt-0.5">Vue d'ensemble des activités de la boutique</p>
+        </div>
+        <Link
+          href="/dashboard/pos"
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-gold hover:bg-gold-light text-slate-900 font-semibold transition-all"
+        >
+          <ShoppingCart size={18} />
+          <span>Point de Vente</span>
+        </Link>
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">

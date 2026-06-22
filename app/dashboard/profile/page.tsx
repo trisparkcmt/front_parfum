@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import {  Store, Truck, ShoppingCart } from 'lucide-react';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useThemeStore } from '@/store/useThemeStore';
 import { useToastStore } from '@/store/useToastStore';
@@ -211,6 +213,19 @@ export default function UnifiedProfilePage() {
                   <ChevronRight size={16} className="text-foreground/20 group-hover:text-gold group-hover:translate-x-0.5 transition-all" />
                 </button>
               ))}
+              {/* POS Option - Show for serveuse only */}
+        {userRoles.includes('serveuse') && (
+          <Link
+            href="/dashboard/pos"
+            className="rounded-2xl border border-white/10 bg-white/5 p-5 hover:bg-white/10 transition-colors"
+          >
+            <div className="flex items-center gap-3 text-gold mb-2">
+              <ShoppingCart size={18} />
+              <span className="font-semibold">Point de Vente</span>
+            </div>
+            <p className="text-sm text-foreground/60">Interface de vente en direct (POS).</p>
+          </Link>
+        )}
             </div>
           </div>
 
