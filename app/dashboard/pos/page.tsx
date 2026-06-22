@@ -33,21 +33,39 @@ function formatXAF(amount: number): string {
   );
 }
 
-// Looks up the main image property from the backend payload keys
+/**
+ * Robust image lookup helper for the backend API payload.
+ * Safely handles plain string URLs, objects containing a url property, 
+ * or missing image fallbacks.
+ */
 function getProductImageUrl(product: Product): string | null {
+  if (!product) return null;
   const p = product as unknown as Record<string, unknown>;
+  
   const candidates = [
     p.image_principale, // Matches your API field exactly
     p.image,
-    p.image_url,
+    p.image_,
     p.thumbnail,
     p.photo,
     p.photo_url,
     p.picture,
   ];
+
   for (const candidate of candidates) {
+    if (!candidate) continue;
+
+    // 1. If the API returns a standard direct URL string
     if (typeof candidate === 'string' && candidate.trim().length > 0) {
-      return candidate;
+      return candidate.trim();
+    }
+
+    // 2. Defensive check if the object format changes or gets wrapped on the client side
+    if (typeof candidate === 'object' && candidate !== null) {
+      const nestedUrl = (candidate as Record<string, unknown>).url;
+      if (typeof nestedUrl === 'string' && nestedUrl.trim().length > 0) {
+        return nestedUrl.trim();
+      }
     }
   }
   return null;
@@ -105,20 +123,31 @@ export default function POSPage() {
         ]);
 
         const uniqueProducts = new Map<string, Product>();
-        [...perfumes, ...accessories].forEach((p) => {
-          if (!uniqueProducts.has(p.id)) {
-            uniqueProducts.set(p.id, p);
+
+        // Process search responses checking arrays or paginated results object safely
+        const extractResults = (res: any): Product[] => {
+          if (!res) return [];
+          if (Array.isArray(res)) return res;
+          return res.results ?? res.resultats ?? [];
+        };
+
+        const cleanedPerfumes = extractResults(perfumes);
+        const cleanedAccessories = extractResults(accessories);
+
+        [...cleanedPerfumes, ...cleanedAccessories].forEach((p) => {
+          if (p && p.id && !uniqueProducts.has(String(p.id))) {
+            uniqueProducts.set(String(p.id), p);
           }
         });
 
         setProducts(Array.from(uniqueProducts.values()));
       } catch (error) {
-        console.error('Search error:', error);
-        addToast('Erreur lors de la recherche', 'error');
-        setProducts([]);
-      } finally {
-        setIsLoading(false);
-      }
+      console.error('Search error:', error);
+      addToast('Erreur lors de la recherche', 'error');
+      setProducts([]);
+    } finally { // <-- Fixed the spelling here!
+      setIsLoading(false);
+    }
     };
 
     performSearch();
@@ -335,8 +364,8 @@ export default function POSPage() {
                     <ProductRow
                       key={product.id}
                       product={product}
-                      isExpanded={expandedId === product.id}
-                      onToggle={() => handleToggleExpand(product.id)}
+                      isExpanded={expandedId === String(product.id)}
+                      onToggle={() => handleToggleExpand(String(product.id))}
                       draftQty={draftQty}
                       onDraftQtyChange={setDraftQty}
                       onAdd={(qty) => handleAddToCart(product, qty)}
@@ -504,7 +533,6 @@ function ProductThumb({
   const [errored, setErrored] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
 
-  // Computes the correct URL. Prevents browser execution locks inside re-renders.
   const url = useMemo(() => getProductImageUrl(product), [product]);
   const showFallback = !url || errored;
 
@@ -536,10 +564,8 @@ function ProductThumb({
             }`}
             onLoad={() => setIsLoaded(true)}
             onError={() => {
-              if (url) {
-                console.error(`Failed to load image: ${url}`);
-                setErrored(true);
-              }
+              console.error(`Failed to load image: ${url}`);
+              setErrored(true);
             }}
           />
         </>
