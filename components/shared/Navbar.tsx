@@ -108,7 +108,7 @@ export function Navbar() {
           {/* ========================================================================= */}
           {/* DESKTOP LAYOUT: Active from 'lg' width break point and upward              */}
           {/* ========================================================================= */}
-          <div className="hidden lg:flex items-center justify-between h-20">
+          <div className="hidden lg:flex items-center justify-between h-15">
             
             {/* Left Side: Brand Logo */}
             <Link href="/" className="flex items-center gap-2 group flex-shrink-0">
@@ -130,8 +130,8 @@ export function Navbar() {
                     className={cn(
                       'px-4 py-2 text-sm font-medium transition-all duration-200',
                       pathname === link.href
-                        ? 'text-gold bg-gold/10'
-                        : 'text-zinc-600 dark:text-zinc-400 hover:text-gold hover:bg-gold/5'
+                        ? 'text-gold'
+                        : 'text-zinc-600 dark:text-zinc-400 hover:text-gold '
                     )}
                   >
                     {labelKey ? t(labelKey) : link.label}

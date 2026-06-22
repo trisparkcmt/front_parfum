@@ -217,7 +217,7 @@ export const InputBar = memo(function InputBar({
       role: "user", 
       content: trimmed,
       bottleSize: `${bottleSize}ml`,
-      budget: budget ? `${budget}€` : "Non spécifié"
+      budget: budget ? `${budget}FCFA` : "Non spécifié"
     });
     setInput("");
   }, [input, isStreaming, disabled, onSend, setInput, bottleSize, budget]);
@@ -270,13 +270,13 @@ export const InputBar = memo(function InputBar({
               {onAttach && <AttachmentButton onClick={onAttach} disabled={disabled} />}
               
               {/* Numba Specific Actions: Bottle Size & Budget */}
-              <div className="flex items-center gap-1.5 bg-neutral-50 dark:bg-neutral-800/50 p-1 rounded-full border border-neutral-100 dark:border-neutral-800">
+              <div className="h-15 w-auto  flex flex-row items-center gap-1.5 bg-neutral-50 dark:bg-neutral-800/50 p-1 rounded-full border border-neutral-100 dark:border-neutral-800">
                 <div className="relative flex items-center">
                   <select
                     value={bottleSize}
                     onChange={(e) => setBottleSize(e.target.value)}
                     disabled={disabled}
-                    className="appearance-none bg-transparent pl-2.5 pr-6 py-1 text-[11px] font-bold text-neutral-600 dark:text-neutral-300 outline-none cursor-pointer hover:text-gold transition-colors"
+                    className="appearance-none bg-transparent pl-2.5 pr-6 py-1 text-[14px] font-bold text-neutral-600 dark:text-neutral-300 outline-none cursor-pointer hover:text-gold transition-colors"
                   >
                     <option value="30">30ml</option>
                     <option value="50">50ml</option>
@@ -285,19 +285,19 @@ export const InputBar = memo(function InputBar({
                   <ChevronDown size={10} className="absolute right-2 pointer-events-none text-neutral-400" />
                 </div>
                 
-                <div className="w-[1px] h-3 bg-neutral-200 dark:border-neutral-700" />
+                <div className="w-[1px] h-3 bg-neutral-200 dark:border-neutral-700" /> 
 
-                <div className="relative flex items-center">
-                  <Coins size={10} className="ml-2 text-neutral-400" />
+                <div className="relative flex w-auto items-center">
+                  <Coins size={15} className="ml-2 text-neutral-400" />
                   <input
                     type="number"
                     placeholder="Budget"
                     value={budget}
                     onChange={(e) => setBudget(e.target.value)}
                     disabled={disabled}
-                    className="w-16 bg-transparent px-1.5 py-1 text-[11px] font-bold text-neutral-600 dark:text-neutral-300 outline-none placeholder:text-neutral-500 placeholder:font-normal"
+                    className="w-16 bg-transparent px-1.5 py-1 text-[14px] font-bold text-neutral-600 dark:text-neutral-300 outline-none placeholder:text-neutral-500 placeholder:font-normal"
                   />
-                  <span className="pr-2 text-[10px] font-bold text-neutral-400">€</span>
+                  <span className="pr-2 text-[10px] font-bold text-neutral-400">FCFA</span>
                 </div>
               </div>
 

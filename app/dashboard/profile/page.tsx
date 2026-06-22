@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useThemeStore } from '@/store/useThemeStore';
 import { useToastStore } from '@/store/useToastStore';
+import { useOrderNotificationStore } from '@/store/useOrderNotificationStore';
 import { useTranslation } from 'react-i18next';
 import i18n from '@/lib/i18n';
 import { 
@@ -270,6 +271,31 @@ export default function UnifiedProfilePage() {
                   Modifier
                 </button>
               </div>
+
+              {/* Order Notification Toggle */}
+              {userRoles.some(role => ['superadmin', 'serveuse'].includes(role)) && (
+                <div className="flex items-center justify-between p-4 bg-white/[0.02] rounded-xl border border-white/5">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-background flex items-center justify-center text-gold border border-white/5 bg-opacity-5">
+                      🔔
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-foreground">Notifications des Commandes</p>
+                      <p className="text-xs text-foreground/50">Activer les alertes sonores et push de nouvelles commandes</p>
+                    </div>
+                  </div>
+                  <button 
+                    onClick={() => useOrderNotificationStore.getState().toggleNotifications()}
+                    className={`text-xs px-3 py-1.5 rounded-lg font-medium border transition-colors ${
+                      useOrderNotificationStore(state => state.notificationsEnabled)
+                        ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20'
+                        : 'bg-white/5 text-foreground/40 border-white/10 hover:bg-white/10'
+                    }`}
+                  >
+                    {useOrderNotificationStore(state => state.notificationsEnabled) ? 'Activé' : 'Désactivé'}
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>

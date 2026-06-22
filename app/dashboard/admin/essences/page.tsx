@@ -21,7 +21,7 @@ export default function EssencesPage() {
   const [showModal, setShowModal] = useState(false);
   const [editingEssence, setEditingEssence] = useState<any | null>(null);
   const [saving, setSaving] = useState(false);
-  const [formError, setFormError] = useState('');
+  const [formError, setFormError] = useState<string | null>(null);
   const { addToast } = useToastStore();
 
   // Pagination locale (Max 20 éléments par page)
@@ -52,7 +52,6 @@ export default function EssencesPage() {
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
-      // Suppression de l'appel à shopService pour éviter l'erreur de définition
       const essencesData = await labService.getEssences();
       const essList = Array.isArray(essencesData) ? essencesData : (essencesData as any)?.results || (essencesData as any)?.resultats || [];
       setEssences(essList);
@@ -88,7 +87,7 @@ export default function EssencesPage() {
     setLotReferenceFournisseur('');
     setIncludeProduitsFinis(false);
     setProduitFini({ taille_ml: '50', prix: '', prix_promotionnel: '', stock_disponible: '0' });
-    setFormError('');
+    setFormError(null);
     setShowModal(true);
   };
 
@@ -104,12 +103,13 @@ export default function EssencesPage() {
     setGenreCible(item.genre_cible || 'mixte');
     setPrixParMl(String(item.prix_par_ml || '0.00'));
     setIncludeProduitsFinis(false);
-    setFormError('');
+    setFormError(null);
     setShowModal(true);
   };
 
   const handleSave = async () => {
     if (!permissions.canCreate && !permissions.canUpdate) return;
+    setFormError(null);
     if (!nom || !codeReference) {
       setFormError('Le nom et le code de référence sont requis');
       return;
@@ -145,7 +145,6 @@ export default function EssencesPage() {
         }];
       }
 
-      setFormError('');
       if (editingEssence) {
         await labService.updateEssence(editingEssence.id, payload);
         addToast('Essence mise à jour avec succès', 'success');
@@ -157,7 +156,7 @@ export default function EssencesPage() {
       setShowModal(false);
       fetchData();
     } catch (e: any) {
-      setFormError(e.response?.data?.detail || 'Erreur lors de la sauvegarde');
+      addToast(e.response?.data?.detail || 'Erreur lors de la sauvegarde', 'error');
     } finally {
       setSaving(false);
     }
@@ -432,7 +431,6 @@ export default function EssencesPage() {
                           value={codeReference}
                           onChange={e => setCodeReference(e.target.value)}
                           placeholder="Ex: ESS-OUD-01"
-                          className="font-mono"
                         />
                       </div>
 
@@ -443,11 +441,11 @@ export default function EssencesPage() {
                           onChange={e => setMarque(e.target.value)}
                         />
                         <div>
-                          <label className="text-[10px] font-bold text-gold uppercase block mb-1">Catégorie</label>
+                          <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Catégorie</label>
                           <select
                             value={categorie}
                             onChange={e => setCategorie(e.target.value)}
-                            className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white outline-none focus:border-gold bg-neutral-900 capitalize"
+                            className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white outline-none focus:border-gold bg-neutral-900 capitalize"
                           >
                             {STATIC_CATEGORIES.map(cat => (
                               <option key={cat} value={cat}>{cat.replace('_', ' ')}</option>
@@ -458,11 +456,11 @@ export default function EssencesPage() {
 
                       <div className="grid grid-cols-3 gap-3">
                         <div>
-                          <label className="text-[10px] font-bold text-gold uppercase block mb-1">Intensité</label>
+                          <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Intensité</label>
                           <select
                             value={intensite}
                             onChange={e => setIntensite(e.target.value)}
-                            className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white outline-none focus:border-gold bg-neutral-900"
+                            className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white outline-none focus:border-gold bg-neutral-900"
                           >
                             <option value="légère">Légère</option>
                             <option value="moyenne">Moyenne</option>
@@ -471,11 +469,11 @@ export default function EssencesPage() {
                           </select>
                         </div>
                         <div>
-                          <label className="text-[10px] font-bold text-gold uppercase block mb-1">Genre Cible</label>
+                          <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Genre Cible</label>
                           <select
                             value={genreCible}
                             onChange={e => setGenreCible(e.target.value)}
-                            className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white outline-none focus:border-gold bg-neutral-900"
+                            className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white outline-none focus:border-gold bg-neutral-900"
                           >
                             <option value="mixte">Mixte</option>
                             <option value="homme">Homme</option>
@@ -487,18 +485,17 @@ export default function EssencesPage() {
                           type="number"
                           value={prixParMl}
                           onChange={e => setPrixParMl(e.target.value)}
-                          className="text-gold font-bold"
                         />
                       </div>
 
                       <div>
-                        <label className="text-[10px] font-bold text-gold uppercase block mb-1">Description / Notes Olfactives</label>
+                        <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Description / Notes Olfactives</label>
                         <textarea
                           value={description}
                           onChange={e => setDescription(e.target.value)}
                           placeholder="Notes de tête, cœur, fond..."
                           rows={2}
-                          className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-foreground outline-none focus:border-gold resize-none"
+                          className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-foreground outline-none focus:border-gold resize-none"
                         />
                       </div>
 
@@ -548,33 +545,16 @@ export default function EssencesPage() {
                             {includeProduitsFinis && (
                               <div className="grid grid-cols-2 gap-3 pt-2 border-t border-white/5">
                                 <div>
-                                  <label className="text-[10px] font-bold text-gold uppercase block mb-1">Taille</label>
-                                  <select value={produitFini.taille_ml} onChange={e => setProduitFini(p => ({ ...p, taille_ml: e.target.value }))} className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white outline-none focus:border-gold bg-neutral-900">
+                                  <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Taille</label>
+                                  <select value={produitFini.taille_ml} onChange={e => setProduitFini(p => ({ ...p, taille_ml: e.target.value }))} className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white outline-none focus:border-gold bg-neutral-900">
                                     <option value="10">10 ml</option>
                                     <option value="30">30 ml</option>
                                     <option value="50">50 ml</option>
                                   </select>
                                 </div>
-                                <FloatInput
-                                  label="Prix"
-                                  type="number"
-                                  value={produitFini.prix}
-                                  onChange={e => setProduitFini(p => ({ ...p, prix: e.target.value }))}
-                                  className="text-gold font-bold"
-                                />
-                                <FloatInput
-                                  label="Prix Promo"
-                                  type="number"
-                                  value={produitFini.prix_promotionnel}
-                                  onChange={e => setProduitFini(p => ({ ...p, prix_promotionnel: e.target.value }))}
-                                  className="text-gold font-bold"
-                                />
-                                <FloatInput
-                                  label="Stock"
-                                  type="number"
-                                  value={produitFini.stock_disponible}
-                                  onChange={e => setProduitFini(p => ({ ...p, stock_disponible: e.target.value }))}
-                                />
+                                <FloatInput label="Prix" type="number" value={produitFini.prix} onChange={e => setProduitFini(p => ({ ...p, prix: e.target.value }))} />
+                                <FloatInput label="Prix Promo" type="number" value={produitFini.prix_promotionnel} onChange={e => setProduitFini(p => ({ ...p, prix_promotionnel: e.target.value }))} />
+                                <FloatInput label="Stock" type="number" value={produitFini.stock_disponible} onChange={e => setProduitFini(p => ({ ...p, stock_disponible: e.target.value }))} />
                               </div>
                             )}
                           </div>
@@ -582,9 +562,9 @@ export default function EssencesPage() {
                       )}
 
                       {formError && (
-                        <p className="text-sm font-semibold text-red-500 bg-red-500/10 border border-red-500/20 px-4 py-2.5 rounded-xl text-center">
+                        <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-xs font-semibold">
                           {formError}
-                        </p>
+                        </div>
                       )}
 
                       <div className="flex gap-3 pt-2">

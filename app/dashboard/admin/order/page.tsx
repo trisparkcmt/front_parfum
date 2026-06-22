@@ -506,12 +506,79 @@ export default function OrdersPage() {
                             Valider
                           </button>
                         )}
+                        {order.statut === 'validé' && (order.statut_paiement !== 'payé' || order.statut_livraison !== 'livrée') && (
+                          <button
+                            onClick={async () => {
+                              if (!confirm(`Marquer la commande ${order.numero_commande} comme Livrée et Payée ?`)) return;
+                              try {
+                                setLoading(true);
+                                await orderService.updateOrder(order.numero_commande, {
+                                  statut_livraison: 'livrée',
+                                  statut_paiement: 'payé',
+                                });
+                                addToast('Commande marquée comme livrée et payée', 'success');
+                                fetchOrders(page);
+                              } catch (err: any) {
+                                addToast(err.response?.data?.detail ?? 'Erreur', 'error');
+                              } finally {
+                                setLoading(false);
+                              }
+                            }}
+                            className="px-2 py-1 bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg text-[10px] font-bold transition-all"
+                          >
+                            Livrer
+                          </button>
+                        )}
                         {isCancellable(order) && (
                           <button
                             onClick={() => handleCancel(order)}
                             className="px-2 py-1 bg-red-500 hover:bg-red-600 text-foreground rounded-lg text-[10px] font-bold transition-all"
                           >
-                            Annuler
+                            {order.statut_paiement === 'payé' && order.statut_livraison === 'livrée' ? 'Rembourser' : 'Annuler'}
+                          </button>
+                        )}
+                        {order.statut === 'annulée' && order.statut_paiement === 'payé' && (
+                          <button
+                            onClick={async () => {
+                              if (!confirm(`Rembourser la commande ${order.numero_commande} ?`)) return;
+                              try {
+                                setLoading(true);
+                                await orderService.updateOrder(order.numero_commande, {
+                                  statut: 'remboursée',
+                                });
+                                addToast('Commande remboursée', 'success');
+                                fetchOrders(page);
+                              } catch (err: any) {
+                                addToast(err.response?.data?.detail ?? 'Erreur', 'error');
+                              } finally {
+                                setLoading(false);
+                              }
+                            }}
+                            className="px-2 py-1 bg-purple-500 hover:bg-purple-600 text-white rounded-lg text-[10px] font-bold transition-all"
+                          >
+                            Rembourser
+                          </button>
+                        )}
+                        {order.statut === 'validé' && order.statut_paiement === 'payé' && order.statut_livraison === 'livrée' && (
+                          <button
+                            onClick={async () => {
+                              if (!confirm(`Rembourser la commande ${order.numero_commande} ?`)) return;
+                              try {
+                                setLoading(true);
+                                await orderService.updateOrder(order.numero_commande, {
+                                  statut: 'remboursée',
+                                });
+                                addToast('Commande remboursée', 'success');
+                                fetchOrders(page);
+                              } catch (err: any) {
+                                addToast(err.response?.data?.detail ?? 'Erreur', 'error');
+                              } finally {
+                                setLoading(false);
+                              }
+                            }}
+                            className="px-2 py-1 bg-purple-500 hover:bg-purple-600 text-white rounded-lg text-[10px] font-bold transition-all"
+                          >
+                            Rembourser
                           </button>
                         )}
                       </div>
@@ -689,7 +756,7 @@ export default function OrdersPage() {
                     className="flex-1 min-w-[120px] bg-red-500 hover:bg-red-600 text-foreground rounded-xl py-2.5 text-xs font-bold flex items-center justify-center gap-1.5 transition-all"
                   >
                     <XCircle size={14} />
-                    Annuler
+                    {selected.statut_paiement === 'payé' && selected.statut_livraison === 'livrée' ? 'Rembourser' : 'Annuler'}
                   </button>
                 )}
                 <button

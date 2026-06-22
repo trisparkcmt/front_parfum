@@ -130,9 +130,10 @@ function LoadingBubble() {
 
   return (
     <div className="flex items-end gap-3 justify-start">
-      <div className="w-9 h-9 rounded-full bg-gradient-to-br from-gold/30 to-gold/10 border border-gold/30 flex items-center justify-center flex-shrink-0 shadow-sm">
-        <Sparkles size={15} className="text-gold" />
-      </div>
+      
+        <div className="bg-cover h-9 w-9 rounded-full "
+                style={{ backgroundImage: `url('/mascotte.png')` }}/>  
+     
       <div className="max-w-xs md:max-w-md bg-white/5 border border-white/10 rounded-3xl rounded-bl-md px-5 py-4 shadow-xl backdrop-blur-md">
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-1">
@@ -311,9 +312,8 @@ function AiBubble({
 
   return (
     <div className="flex items-start gap-3 justify-start">
-      <div className="w-9 h-9 rounded-full bg-gradient-to-br from-gold/30 to-gold/10 border border-gold/30 flex items-center justify-center flex-shrink-0 shadow-sm mt-1">
-        <Sparkles size={15} className="text-gold" />
-      </div>
+      <div className="bg-cover h-9 w-9 rounded-full "
+                style={{ backgroundImage: `url('/mascotte.png')` }}/> 
       <div className="flex-1 min-w-0 space-y-4">
         {isError503 ? (
           <div className="bg-red-500/10 border border-red-500/35 rounded-3xl p-5 max-w-md space-y-4">
@@ -628,12 +628,12 @@ export function GeminiChat({ onChatStarted }: GeminiChatProps) {
               exit={{ opacity: 0, y: -20, transition: { duration: 0.2 } }}
               className="flex flex-col items-center justify-center h-full text-center py-12 gap-6"
             >
-              <div className="w-20 h-20 rounded-3xl bg-gold/10 border border-gold/20 flex items-center justify-center shadow-xl shadow-gold/10">
-                <Sparkles size={36} className="text-gold" />
-              </div>
+              <div className="bg-cover h-20 w-20 rounded-full"
+                style={{ backgroundImage: `url('/mascotte.png')` }}/>  
               <div>
+                
                 <h1 className="font-display text-3xl md:text-5xl font-bold text-foreground mb-3">
-                  Votre Sommelier <span className="text-gradient-gold">IA</span>
+                  Votre Consiellier <span className="text-gradient-gold">IA</span>
                 </h1>
                 <p className="text-sm text-foreground/70 max-w-md mx-auto font-light leading-relaxed">
                   Décrivez votre personnalité, vos envies ou une occasion spéciale. Notre IA experte concevra la formule parfaite pour vous.

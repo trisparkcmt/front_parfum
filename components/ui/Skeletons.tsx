@@ -8,17 +8,18 @@ import { motion } from 'framer-motion';
 export const ProductCardSkeleton = () => (
   <div className="w-[165px] sm:w-[280px] flex-shrink-0 flex flex-col gap-4 group">
     {/* Image Area */}
-    <div className="aspect-[4/5] w-full bg-foreground/15 rounded-2xl animate-pulse relative overflow-hidden">
+    <div className="w-[45vw] sm:w-[280px] h-40 sm:h-55 bg-foreground/15  animate-pulse relative overflow-hidden">
       <div className="absolute inset-0 bg-gradient-to-r from-transparent via-foreground/10 to-transparent -translate-x-full animate-[shimmer_2s_infinite]" />
     </div>
     
     {/* Content Area */}
     <div className="space-y-2 px-1">
-      <div className="h-3 w-2/3 bg-foreground/25 rounded animate-pulse" />
-      <div className="h-4 w-full bg-foreground/25 rounded animate-pulse" />
+      <div className="h-3 w-full bg-foreground/25 rounded animate-pulse" />
+      <div className="h-4 w-2/3 bg-foreground/25 rounded animate-pulse" />
       <div className="flex justify-between items-center pt-1">
-        <div className="h-4 w-1/3 bg-gold/10 rounded animate-pulse" />
-        <div className="h-8 w-8 bg-foreground/15 rounded-full animate-pulse" />
+        <div className= "flex justify-center items-center h-10 w-full bg-foreground/25 border border-[var(--t-btn-ghost-border)]/25 animate-pulse" />
+       
+        
       </div>
     </div>
   </div>

@@ -328,33 +328,7 @@ export default function Home() {
         items={bestsellers} // Pass bestsellers to the carousel
       />
 
-      {/* Categories Filter Section */}
-      {categories.length > 0 && (
-        <section className="py-12 px-4 max-w-7xl mx-auto w-full text-center">
-          <h2 className="text-2xl md:text-5xl font-bold mb-8">{t('our_collections')}</h2>
-          <div className="flex flex-wrap justify-center gap-4">
-            <button
-              onClick={() => setActiveCategory('all')}
-              className={`px-6 py-2 rounded-full text-sm font-semibold transition-all border ${
-                activeCategory === 'all' ? 'bg-gold text-black border-gold' : 'border-foreground/20 hover:border-gold'
-              }`}
-            >
-              {t('all_perfumes')}
-            </button>
-            {categories.map((cat) => (
-              <button
-                key={cat.id}
-                onClick={() => setActiveCategory(cat.name)}
-                className={`px-6 py-2 rounded-full text-sm font-semibold transition-all border ${
-                  activeCategory === cat.name ? 'bg-gold text-black border-gold' : 'border-foreground/20 hover:border-gold'
-                }`}
-              >
-                {cat.name}
-              </button>
-            ))}
-          </div>
-        </section>
-      )}
+      
 
       {/* Hots seller */}
       {(loading || hotsellers.length > 0) && (
@@ -365,7 +339,7 @@ export default function Home() {
       <ProductGridSkeleton count={4} /> // Adjust skeleton count for hotsellers
     ) : (
       hotsellers
-        .filter(p => activeCategory === 'all' || p.category === activeCategory)
+        
         .slice(0, 4)
         .map((product, index) => (
           <motion.div
