@@ -1,25 +1,31 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import {  Store, Truck, ShoppingCart } from 'lucide-react';
+import {
+  User, Mail, Phone, MapPin, Shield, Calendar, Edit2, Lock,
+  Globe, Sun, Moon, Palette, ChevronRight, LogOut, Loader2,
+  LayoutGrid, ShoppingCart, Bell, Sparkles, BadgeCheck,
+} from 'lucide-react';
+
 import { useAuthStore } from '@/store/useAuthStore';
 import { useThemeStore } from '@/store/useThemeStore';
 import { useToastStore } from '@/store/useToastStore';
 import { useOrderNotificationStore } from '@/store/useOrderNotificationStore';
 import { useTranslation } from 'react-i18next';
 import i18n from '@/lib/i18n';
-import { 
-  User, Mail, Phone, Shield, Calendar, Edit2, Lock, 
-  LayoutDashboard, Globe, Sun, Palette, ChevronRight, LogOut, Loader2, Grid
-} from 'lucide-react';
+import { api } from '@/services/api';
+
 import { BackButton } from '@/components/ui/BackButton';
 import PasswordChangeModal from '@/components/shared/PasswordChangeModal';
 import ProfileEditModal from '@/components/shared/ProfileEditModal';
 import ConfirmDialog from '@/components/shared/ConfirmDialog';
-import { getRoleDashboardPath } from '@/lib/roleUtils';
 import type { UserRole } from '@/types';
+
+/* ------------------------------------------------------------------ */
+/*  Dashboards                                                         */
+/* ------------------------------------------------------------------ */
 
 interface DashboardOption {
   id: string;
@@ -31,62 +37,89 @@ interface DashboardOption {
 }
 
 const DASHBOARD_OPTIONS: DashboardOption[] = [
-  {
-    id: 'client',
-    title: 'Espace Client',
-    description: 'Suivi de vos commandes, créations et favoris.',
-    href: '/dashboard/client',
-    icon: '📦',
-    roles: ['client'],
-  },
-  {
-    id: 'delivery',
-    title: 'Espace Livreur',
-    description: 'Suivi et exécution de vos livraisons assignées.',
-    href: '/dashboard/delivery',
-    icon: '🚗',
-    roles: ['delivery'],
-  },
-  {
-    id: 'partner',
-    title: 'Espace Prestataire',
-    description: 'Suivi de vos commissions et ventes affiliées.',
-    href: '/dashboard/partner',
-    icon: '🤝',
-    roles: ['partner'],
-  },
-  {
-    id: 'serveuse',
-    title: 'Espace Boutique / Serveuse',
-    description: 'Gestion des commandes, catalogue et laboratoire.',
-    href: '/dashboard/serveuse/dashboard',
-    icon: '🛒',
-    roles: ['serveuse'],
-  },
-  {
-    id: 'admin',
-    title: 'Administration',
-    description: 'Gestion globale de la plateforme, utilisateurs et livreurs.',
-    href: '/dashboard/admin/dashboard',
-    icon: '👑',
-    roles: ['superadmin'],
-  },
+  { id: 'client',    title: 'Espace Client',             description: 'Suivi de vos commandes, créations et favoris.',          href: '/dashboard/client',            icon: '📦', roles: ['client'] },
+  { id: 'delivery',  title: 'Espace Livreur',            description: 'Suivi et exécution de vos livraisons assignées.',         href: '/dashboard/delivery',          icon: '🚗', roles: ['delivery'] },
+  { id: 'partner',   title: 'Espace Prestataire',        description: 'Suivi de vos commissions et ventes affiliées.',           href: '/dashboard/partner',           icon: '🤝', roles: ['partner'] },
+  { id: 'serveuse',  title: 'Espace Boutique / Serveuse', description: 'Gestion des commandes, catalogue et laboratoire.',       href: '/dashboard/serveuse/dashboard', icon: '🛒', roles: ['serveuse'] },
+  { id: 'admin',     title: 'Administration',            description: 'Gestion globale de la plateforme, utilisateurs et livreurs.', href: '/dashboard/admin/dashboard', icon: '👑', roles: ['superadmin'] },
 ];
 
-export default function UnifiedProfilePage() {
+/* ------------------------------------------------------------------ */
+/*  Small building blocks                                              */
+/* ------------------------------------------------------------------ */
+
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="flex items-center gap-3 px-1 mb-3">
+      <span className="text-[10px] font-bold text-foreground/40 uppercase tracking-[0.18em]">
+        {children}
+      </span>
+      <span className="h-px flex-1 bg-gradient-to-r from-white/10 to-transparent" />
+    </div>
+  );
+}
+
+function Panel({ children, className = '' }: { children: React.ReactNode; className?: string }) {
+  return (
+    <div
+      className={
+        'relative rounded-2xl border border-white/10 bg-white/[0.03] ' +
+        'backdrop-blur-md shadow-[0_8px_30px_-12px_rgba(0,0,0,0.4)] ' +
+        className
+      }
+    >
+      {children}
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Page                                                               */
+/* ------------------------------------------------------------------ */
+
+export default function ProfilePage() {
   const { user, logout } = useAuthStore();
   const { theme, toggleTheme } = useThemeStore();
   const { t } = useTranslation();
   const { addToast } = useToastStore();
   const router = useRouter();
+
+  const notificationsEnabled = useOrderNotificationStore((s) => s.notificationsEnabled);
+
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
-  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [isApplyingPartner, setIsApplyingPartner] = useState(false);
 
+  const userRoles: UserRole[] =
+    user?.roles || (user?.role ? [user.role] : (['client'] as UserRole[]));
+  const isPartner = userRoles.includes('partner');
+  const isStaff   = userRoles.some((r) => ['serveuse', 'superadmin', 'delivery'].includes(r));
+
+  const accessibleDashboards = DASHBOARD_OPTIONS.filter((d) =>
+    d.roles.some((role) => userRoles.includes(role)),
+  );
+
+  /* ----- handlers ----- */
   const handleLanguageChange = () => {
-    const newLang = i18n.language === 'fr' ? 'en' : 'fr';
-    i18n.changeLanguage(newLang);
+    i18n.changeLanguage(i18n.language === 'fr' ? 'en' : 'fr');
+  };
+
+  const handleBecomePartner = async () => {
+    setIsApplyingPartner(true);
+    try {
+      const res = await api.post('/auth/prestataire/apply/');
+      addToast(res.data.detail || t('become_partner_request_sent'), 'success');
+    } catch (err: any) {
+      addToast(
+        err.response?.data?.detail ||
+          'Une demande est déjà en cours ou vous êtes déjà prestataire.',
+        'error',
+      );
+    } finally {
+      setIsApplyingPartner(false);
+    }
   };
 
   const handleLogout = async () => {
@@ -94,235 +127,263 @@ export default function UnifiedProfilePage() {
     try {
       await logout();
       router.push('/');
-    } catch (error) {
-      console.error('Logout error:', error);
+    } catch (err) {
+      console.error(err);
       addToast(t('logout_error', { defaultValue: 'Erreur lors de la déconnexion' }), 'error');
       setIsLoggingOut(false);
     }
   };
 
-  // Get active roles for the user
-  const userRoles = user?.roles || (user?.role ? [user.role] : ['client']);
-
-  // Filter dashboard options based on user's roles
-  const accessibleDashboards = DASHBOARD_OPTIONS.filter((dashboard) =>
-    dashboard.roles.some((role) => userRoles.includes(role))
-  );
+  /* ----- derived ----- */
+  const initials =
+    `${user?.firstName?.charAt(0) ?? ''}${user?.lastName?.charAt(0) ?? ''}`.toUpperCase() || 'U';
+  const memberSince = user?.createdAt
+    ? new Date(user.createdAt).toLocaleDateString('fr-FR', { year: 'numeric', month: 'long' })
+    : null;
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8 py-6">
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4 sm:py-6 space-y-6">
       <BackButton />
-      
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">{t('profile', 'Mon Profil')}</h1>
-          <p className="text-sm text-foreground/50 mt-0.5">
-            Gérez vos informations personnelles et accédez à vos différents espaces
-          </p>
-        </div>
-      </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* Left Column: Avatar & Basic Info Card */}
-        <div className="md:col-span-1 space-y-6">
-          <div className="bg-white/5 rounded-2xl border border-white/10 p-6 text-center shadow-xl backdrop-blur-md">
-            <div className="relative inline-block mb-4">
-              <div className="w-24 h-24 rounded-full bg-gradient-to-br from-gold to-gold-dark flex items-center justify-center text-black text-3xl font-bold shadow-xl shadow-gold/20">
-                {user?.firstName?.charAt(0)}{user?.lastName?.charAt(0)}
+      {/* ============ HERO ============ */}
+      <Panel className="overflow-hidden">
+        {/* decorative cover */}
+        <div className="relative h-28 sm:h-36 bg-gradient-to-br from-gold/25 via-gold/5 to-transparent">
+          <div className="absolute inset-0 opacity-[0.07] bg-[radial-gradient(circle_at_30%_50%,white,transparent_55%)]" />
+          <div className="absolute -bottom-px left-0 right-0 h-px bg-gradient-to-r from-transparent via-gold/40 to-transparent" />
+        </div>
+
+        <div className="px-5 sm:px-8 pb-6 -mt-12 sm:-mt-14">
+          <div className="flex flex-col sm:flex-row sm:items-end gap-5">
+            {/* avatar */}
+            <div className="relative shrink-0">
+              <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl bg-gradient-to-br from-gold to-gold-dark flex items-center justify-center text-black text-3xl sm:text-4xl font-black shadow-xl shadow-gold/30 ring-4 ring-background">
+                {initials}
               </div>
-              <button 
+              <button
                 onClick={() => setShowEditModal(true)}
-                className="absolute bottom-0 right-0 p-1.5 bg-background rounded-full border border-white/10 text-foreground/40 hover:text-gold shadow-sm transition-colors"
+                className="absolute -bottom-1 -right-1 w-8 h-8 rounded-xl bg-background border border-white/15 flex items-center justify-center text-foreground/70 hover:text-gold hover:border-gold/40 transition-colors"
+                aria-label="Edit avatar"
               >
-                <Edit2 size={14} className="text-foreground/50" />
+                <Edit2 size={14} />
               </button>
             </div>
-            
-            <h2 className="text-lg font-bold text-foreground">{user?.firstName} {user?.lastName}</h2>
-            <div className="flex flex-wrap gap-1.5 justify-center mt-2">
-              {userRoles.map((role) => (
-                <span 
-                  key={role} 
-                  className="text-[10px] font-semibold text-gold bg-gold/10 px-2.5 py-1 rounded-full uppercase tracking-tight"
-                >
-                  {role === 'superadmin' ? 'Admin' : role}
-                </span>
-              ))}
-            </div>
 
-            <div className="mt-6 pt-6 border-t border-white/5 text-left space-y-4 text-sm">
-              <div className="flex items-center gap-3 text-foreground/70">
-                <Mail size={16} className="text-foreground/50 shrink-0" />
-                <span className="truncate">{user?.email}</span>
+            {/* identity */}
+            <div className="flex-1 min-w-0 sm:pb-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <h1 className="text-2xl sm:text-3xl font-bold text-foreground truncate">
+                  {user?.firstName} {user?.lastName}
+                </h1>
+                {isPartner && (
+                  <BadgeCheck size={20} className="text-gold shrink-0" />
+                )}
               </div>
-              <div className="flex items-center gap-3 text-foreground/70">
-                <Phone size={16} className="text-foreground/50 shrink-0" />
-                <span>{user?.phone || t('not_provided', 'Non fourni')}</span>
-              </div>
-              {user?.createdAt && (
-                <div className="flex items-center gap-3 text-foreground/70">
-                  <Calendar size={16} className="text-foreground/50 shrink-0" />
-                  <span>
-                    Depuis le {new Date(user.createdAt).toLocaleDateString('fr-FR', {
-                      year: 'numeric',
-                      month: 'long',
-                    })}
+              <p className="text-sm text-foreground/50 mt-1 truncate">{user?.email}</p>
+
+              <div className="flex flex-wrap gap-1.5 mt-3">
+                {userRoles.map((role) => (
+                  <span
+                    key={role}
+                    className="text-[10px] font-semibold text-gold bg-gold/10 border border-gold/20 px-2.5 py-1 rounded-full uppercase tracking-wider"
+                  >
+                    {role === 'superadmin' ? 'Admin' : role}
                   </span>
-                </div>
-              )}
+                ))}
+                {memberSince && (
+                  <span className="text-[10px] font-medium text-foreground/50 bg-white/5 border border-white/10 px-2.5 py-1 rounded-full flex items-center gap-1">
+                    <Calendar size={11} /> Depuis {memberSince}
+                  </span>
+                )}
+              </div>
             </div>
 
-            <button
-              onClick={() => setShowLogoutConfirm(true)}
-              disabled={isLoggingOut}
-              className="w-full mt-6 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-red-500/20 text-red-400 text-sm font-bold hover:bg-red-500/10 transition-all disabled:opacity-50"
-            >
-              <LogOut size={16} />
-              {t('logout', 'Déconnexion')}
-            </button>
+            {/* CTA: become partner (only if not already partner/staff) */}
+            {!isPartner && !isStaff && (
+              <button
+                onClick={handleBecomePartner}
+                disabled={isApplyingPartner}
+                className="sm:pb-2 group inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-br from-gold to-gold-dark text-black text-sm font-bold shadow-lg shadow-gold/20 hover:shadow-gold/40 hover:-translate-y-0.5 transition-all disabled:opacity-60"
+              >
+                {isApplyingPartner ? (
+                  <Loader2 size={16} className="animate-spin" />
+                ) : (
+                  <Sparkles size={16} className="group-hover:rotate-12 transition-transform" />
+                )}
+                {t('become_partner', 'Devenir Prestataire')}
+              </button>
+            )}
           </div>
         </div>
+      </Panel>
 
-        {/* Right Column: Dashboards List & Settings Details */}
-        <div className="md:col-span-2 space-y-6">
-          {/* Dashboard Spaces selection */}
-          <div className="bg-white/5 rounded-2xl border border-white/10 p-6 shadow-xl backdrop-blur-md">
-            <h3 className="font-bold text-foreground text-lg mb-4 flex items-center gap-2">
-              <Grid size={18} className="text-gold" />
-              Vos Espaces & Tableaux de Bord
-            </h3>
-            
-            <div className="grid grid-cols-1 gap-3">
-              {accessibleDashboards.map((opt) => (
-                <button
-                  key={opt.id}
-                  onClick={() => router.push(opt.href)}
-                  className="w-full flex items-center justify-between p-4 rounded-xl border border-white/5 bg-white/[0.02] hover:border-gold/30 hover:bg-white/[0.05] transition-all text-left group"
-                >
-                  <div className="flex items-center gap-4">
-                    <span className="text-2xl">{opt.icon}</span>
-                    <div>
-                      <p className="font-semibold text-sm text-foreground group-hover:text-gold transition-colors">
+      {/* ============ GRID ============ */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* ---------- LEFT: contact + actions ---------- */}
+        <div className="lg:col-span-1 space-y-6">
+          <div>
+            <SectionLabel>{t('information', 'Informations')}</SectionLabel>
+            <Panel>
+              <div className="divide-y divide-white/5">
+                <InfoRow icon={<Mail size={16} />}  label={t('email', 'Email')}   value={user?.email || '—'} />
+                <InfoRow icon={<Phone size={16} />} label={t('phone', 'Téléphone')} value={user?.phone || t('not_provided', 'Non fourni')} />
+                
+              </div>
+            </Panel>
+          </div>
+
+          <div>
+            <SectionLabel>{t('account', 'Compte')}</SectionLabel>
+            <Panel>
+              <div className="divide-y divide-white/5">
+                <ActionRow
+                  icon={<Edit2 size={16} />}
+                  label={t('edit_profile', 'Modifier le profil')}
+                  hint={t('update_information', 'Mettre à jour vos informations')}
+                  onClick={() => setShowEditModal(true)}
+                />
+                <ActionRow
+                  icon={<Lock size={16} />}
+                  label={t('change_password', 'Changer le mot de passe')}
+                  hint={t('update_security', 'Sécurité de votre compte')}
+                  onClick={() => setShowPasswordModal(true)}
+                />
+              </div>
+            </Panel>
+          </div>
+
+          <button
+            onClick={() => setShowLogoutConfirm(true)}
+            disabled={isLoggingOut}
+            className="w-full flex items-center justify-center gap-2 px-4 py-3.5 rounded-2xl border border-red-500/20 bg-red-500/5 text-red-400 text-sm font-bold hover:bg-red-500/10 hover:border-red-500/40 transition-all disabled:opacity-50"
+          >
+            {isLoggingOut ? <Loader2 size={16} className="animate-spin" /> : <LogOut size={16} />}
+            {isLoggingOut ? t('logging_out', 'Déconnexion...') : t('logout', 'Déconnexion')}
+          </button>
+        </div>
+
+        {/* ---------- RIGHT: dashboards + preferences ---------- */}
+        <div className="lg:col-span-2 space-y-6">
+          {/* dashboards */}
+          {accessibleDashboards.length > 0 && (
+            <div>
+              <SectionLabel>
+                <span className="inline-flex items-center gap-1.5">
+                  <LayoutGrid size={11} className="text-gold" />
+                  {t('your_spaces', 'Vos espaces & tableaux de bord')}
+                </span>
+              </SectionLabel>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {accessibleDashboards.map((opt) => (
+                  <button
+                    key={opt.id}
+                    onClick={() => router.push(opt.href)}
+                    className="group relative overflow-hidden flex items-center gap-4 p-4 rounded-2xl border border-white/10 bg-white/[0.03] hover:border-gold/30 hover:bg-gold/[0.04] transition-all text-left"
+                  >
+                    <span className="text-2xl shrink-0">{opt.icon}</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-sm text-foreground group-hover:text-gold transition-colors truncate">
                         {opt.title}
                       </p>
-                      <p className="text-xs text-foreground/50 mt-0.5">
+                      <p className="text-[11px] text-foreground/50 mt-0.5 line-clamp-2">
                         {opt.description}
                       </p>
                     </div>
-                  </div>
-                  <ChevronRight size={16} className="text-foreground/20 group-hover:text-gold group-hover:translate-x-0.5 transition-all" />
-                </button>
-              ))}
-              {/* POS Option - Show for serveuse only */}
-        {userRoles.includes('serveuse') && (
-          <Link
-            href="/dashboard/pos"
-            className="rounded-2xl border border-white/10 bg-white/5 p-5 hover:bg-white/10 transition-colors"
-          >
-            <div className="flex items-center gap-3 text-gold mb-2">
-              <ShoppingCart size={18} />
-              <span className="font-semibold">Point de Vente</span>
+                    <ChevronRight size={16} className="text-foreground/20 group-hover:text-gold group-hover:translate-x-1 transition-all shrink-0" />
+                  </button>
+                ))}
+
+                {userRoles.includes('serveuse') && (
+                  <Link
+                    href="/dashboard/pos"
+                    className="group relative overflow-hidden flex items-center gap-4 p-4 rounded-2xl border border-gold/20 bg-gradient-to-br from-gold/10 to-transparent hover:border-gold/40 transition-all"
+                  >
+                    <span className="w-10 h-10 rounded-xl bg-gold/15 flex items-center justify-center text-gold shrink-0">
+                      <ShoppingCart size={18} />
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-sm text-gold truncate">Point de Vente</p>
+                      <p className="text-[11px] text-foreground/60 mt-0.5">Interface de vente en direct (POS).</p>
+                    </div>
+                    <ChevronRight size={16} className="text-gold/50 group-hover:translate-x-1 transition-all shrink-0" />
+                  </Link>
+                )}
+              </div>
             </div>
-            <p className="text-sm text-foreground/60">Interface de vente en direct (POS).</p>
-          </Link>
-        )}
-            </div>
+          )}
+
+          {/* preferences */}
+          <div>
+            <SectionLabel>{t('settings', 'Préférences')}</SectionLabel>
+            <Panel>
+              <div className="divide-y divide-white/5">
+                <SettingRow
+                  icon={<Globe size={16} />}
+                  iconBg="bg-blue-400/10 text-blue-400"
+                  label={t('language', 'Langue')}
+                  hint="Choisissez votre langue / Language"
+                  control={
+                    <Pill onClick={handleLanguageChange}>
+                      {i18n.language === 'fr' ? 'Français' : 'English'}
+                    </Pill>
+                  }
+                />
+                <SettingRow
+                  icon={theme === 'dark' ? <Moon size={16} /> : <Sun size={16} />}
+                  iconBg="bg-purple-400/10 text-purple-400"
+                  label={t('appearance', 'Apparence')}
+                  hint="Mode clair ou sombre"
+                  control={
+                    <Pill onClick={toggleTheme}>
+                      {theme === 'dark' ? 'Sombre' : 'Clair'}
+                    </Pill>
+                  }
+                />
+                <SettingRow
+                  icon={<Bell size={16} />}
+                  iconBg="bg-emerald-400/10 text-emerald-400"
+                  label="Notifications des commandes"
+                  hint="Alertes sonores et push de nouvelles commandes"
+                  control={
+                    <Pill
+                      active={notificationsEnabled}
+                      onClick={() => useOrderNotificationStore.getState().toggleNotifications()}
+                    >
+                      {notificationsEnabled ? 'Activé' : 'Désactivé'}
+                    </Pill>
+                  }
+                />
+              </div>
+            </Panel>
           </div>
 
-          {/* Preferences and settings */}
-          <div className="bg-white/5 rounded-2xl border border-white/10 p-6 shadow-xl backdrop-blur-md">
-            <h3 className="font-semibold text-foreground text-lg mb-4">{t('settings', 'Préférences')}</h3>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between p-4 bg-white/[0.02] rounded-xl border border-white/5">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-background flex items-center justify-center text-gold border border-white/5">
-                    <Globe size={18} />
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold text-foreground">{t('language', 'Langue')}</p>
-                    <p className="text-xs text-foreground/50">Choisissez votre langue / Language</p>
-                  </div>
-                </div>
-                <button 
-                  onClick={handleLanguageChange}
-                  className="text-xs bg-white/5 text-foreground px-3 py-1.5 rounded-lg font-medium hover:bg-white/10 border border-white/10 transition-colors"
-                >
-                  {i18n.language === 'fr' ? 'Français' : 'English'}
-                </button>
-              </div>
-
-              <div className="flex items-center justify-between p-4 bg-white/[0.02] rounded-xl border border-white/5">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-background flex items-center justify-center text-gold border border-white/5">
-                    {theme === 'dark' ? <Sun size={18} /> : <Palette size={18} />}
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold text-foreground">{t('appearance', 'Apparence')}</p>
-                    <p className="text-xs text-foreground/50">Basculez entre le mode clair et sombre</p>
-                  </div>
-                </div>
-                <button 
-                  onClick={toggleTheme}
-                  className="text-xs bg-white/5 text-foreground px-3 py-1.5 rounded-lg font-medium hover:bg-white/10 border border-white/10 transition-colors"
-                >
-                  {theme === 'dark' ? 'Mode Sombre' : 'Mode Clair'}
-                </button>
-              </div>
-
-              <div className="flex items-center justify-between p-4 bg-white/[0.02] rounded-xl border border-white/5">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-background flex items-center justify-center text-gold border border-white/5">
-                    <Lock size={18} />
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold text-foreground">{t('change_password', 'Changer le mot de passe')}</p>
-                    <p className="text-xs text-foreground/45">Mettez à jour la sécurité de votre compte</p>
-                  </div>
-                </div>
-                <button 
+          {/* security */}
+          <div>
+            <SectionLabel>{t('security_notifications', 'Sécurité & notifications')}</SectionLabel>
+            <Panel>
+              <div className="divide-y divide-white/5">
+                <ActionRow
+                  icon={<Shield size={16} />}
+                  iconBg="bg-amber-400/10 text-amber-400"
+                  label={t('account_security', 'Sécurité du compte')}
+                  hint={t('password_2fa', 'Mot de passe et authentification à deux facteurs')}
                   onClick={() => setShowPasswordModal(true)}
-                  className="text-xs bg-white/5 text-foreground px-3 py-1.5 rounded-lg font-medium hover:bg-white/10 border border-white/10 transition-colors"
-                >
-                  Modifier
-                </button>
+                />
+                <ActionRow
+                  icon={<Bell size={16} />}
+                  iconBg="bg-sky-400/10 text-sky-400"
+                  label={t('notifications', 'Notifications')}
+                  hint={t('notification_channels', 'Canaux de notification')}
+                />
               </div>
-
-              {/* Order Notification Toggle */}
-              <div className="flex items-center justify-between p-4 bg-white/[0.02] rounded-xl border border-white/5">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-background flex items-center justify-center text-gold border border-white/5 bg-opacity-5">
-                    🔔
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold text-foreground">Notifications des Commandes</p>
-                    <p className="text-xs text-foreground/50">Activer les alertes sonores et push de nouvelles commandes</p>
-                  </div>
-                </div>
-                <button 
-                  onClick={() => useOrderNotificationStore.getState().toggleNotifications()}
-                  className={`text-xs px-3 py-1.5 rounded-lg font-medium border transition-colors ${
-                    useOrderNotificationStore(state => state.notificationsEnabled)
-                      ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20'
-                      : 'bg-white/5 text-foreground/40 border-white/10 hover:bg-white/10'
-                  }`}
-                >
-                  {useOrderNotificationStore(state => state.notificationsEnabled) ? 'Activé' : 'Désactivé'}
-                </button>
-              </div>
-            </div>
+            </Panel>
           </div>
         </div>
       </div>
 
-      <PasswordChangeModal
-        isOpen={showPasswordModal}
-        onClose={() => setShowPasswordModal(false)}
-      />
-      <ProfileEditModal
-        isOpen={showEditModal}
-        onClose={() => setShowEditModal(false)}
-      />
-
+      {/* ============ MODALS ============ */}
+      <PasswordChangeModal isOpen={showPasswordModal} onClose={() => setShowPasswordModal(false)} />
+      <ProfileEditModal    isOpen={showEditModal}     onClose={() => setShowEditModal(false)} />
       <ConfirmDialog
         isOpen={showLogoutConfirm}
         title={t('confirm_logout_title', 'Déconnexion')}
@@ -335,5 +396,94 @@ export default function UnifiedProfilePage() {
         onCancel={() => setShowLogoutConfirm(false)}
       />
     </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Sub-components                                                     */
+/* ------------------------------------------------------------------ */
+
+function InfoRow({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
+  return (
+    <div className="flex items-center gap-3 px-5 py-3.5">
+      <div className="w-9 h-9 rounded-lg bg-white/5 border border-white/5 flex items-center justify-center text-foreground/50 shrink-0">
+        {icon}
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="text-[10px] font-bold text-foreground/40 uppercase tracking-wider">{label}</p>
+        <p className="text-sm text-foreground truncate">{value}</p>
+      </div>
+    </div>
+  );
+}
+
+function ActionRow({
+  icon, iconBg = 'bg-white/5 text-foreground/60', label, hint, onClick,
+}: {
+  icon: React.ReactNode;
+  iconBg?: string;
+  label: string;
+  hint?: string;
+  onClick?: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className="w-full flex items-center gap-3 px-5 py-3.5 hover:bg-white/[0.04] transition-colors text-left group"
+    >
+      <div className={`w-9 h-9 rounded-lg border border-white/5 flex items-center justify-center shrink-0 ${iconBg}`}>
+        {icon}
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-semibold text-foreground">{label}</p>
+        {hint && <p className="text-[11px] text-foreground/45">{hint}</p>}
+      </div>
+      <ChevronRight size={16} className="text-foreground/20 group-hover:text-gold group-hover:translate-x-0.5 transition-all shrink-0" />
+    </button>
+  );
+}
+
+function SettingRow({
+  icon, iconBg, label, hint, control,
+}: {
+  icon: React.ReactNode;
+  iconBg: string;
+  label: string;
+  hint?: string;
+  control: React.ReactNode;
+}) {
+  return (
+    <div className="flex items-center gap-3 px-5 py-3.5">
+      <div className={`w-9 h-9 rounded-lg border border-white/5 flex items-center justify-center shrink-0 ${iconBg}`}>
+        {icon}
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-semibold text-foreground">{label}</p>
+        {hint && <p className="text-[11px] text-foreground/45">{hint}</p>}
+      </div>
+      <div className="shrink-0">{control}</div>
+    </div>
+  );
+}
+
+function Pill({
+  children, onClick, active,
+}: {
+  children: React.ReactNode;
+  onClick?: () => void;
+  active?: boolean;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={
+        'text-xs px-3 py-1.5 rounded-lg font-semibold border transition-colors ' +
+        (active
+          ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20'
+          : 'bg-white/5 text-foreground border-white/10 hover:bg-white/10 hover:border-gold/30')
+      }
+    >
+      {children}
+    </button>
   );
 }

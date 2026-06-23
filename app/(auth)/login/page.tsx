@@ -2,23 +2,13 @@
 
 /**
  * @file app/(auth)/login/page.tsx
- * @description User Authentication / Login Page.
- *
- * This component provides the interface for existing users to sign in.
- * Key technical features include:
- * - **Form Management**: Utilizes `react-hook-form` for efficient state handling.
- * - **Validation**: Uses `zod` schema-based validation for the email and password fields.
- * - **State Integration**: Connects to the `useAuthStore` to execute the login process.
- * - **Feedback**: Triggers success or error toasts based on the authentication result.
- * - **Navigation**: Supports post-login redirection using the `redirect` query parameter.
- *
- * It features a premium, animated UI using `framer-motion`.
+ * Refactored: outer motion + card chrome now live in the shared (auth)/layout.tsx.
+ * Adds a "Didn't receive the verification email?" link → /resend-verification.
  */
 import { Suspense, useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { motion } from 'framer-motion';
-import { Mail, Lock, LogIn } from 'lucide-react';
+import { Mail, Lock, LogIn, MailQuestion } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -26,29 +16,32 @@ import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import GoogleAuthButton from '@/components/auth/GoogleAuthButton';
 import { useAuthStore } from '@/store/useAuthStore';
-import { useToastStore } from '@/store/useToastStore';
 import { useTranslation } from 'react-i18next';
 
 function LoginFormContent() {
   const { t, i18n } = useTranslation();
-  
-  const loginSchema = z.object({
-    loginInput: z.string().min(1, t('email_required', { defaultValue: 'Identifiant requis' })),
-    password: z.string().min(1, t('password_required')),
-  }).refine((data) => {
-    const input = data.loginInput.trim();
-    if (input.includes('@')) {
-      return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input);
-    }
-    const cleaned = input.replace(/[\s\-\(\)\+]/g, '');
-    return cleaned.length >= 8 && /^\d+$/.test(cleaned);
-  }, {
-    message: i18n.language === 'en'
-      ? 'Please enter a valid email or phone number'
-      : 'Veuillez saisir un e-mail ou un numéro de téléphone valide',
-    path: ['loginInput'],
-  });
-  
+
+  const loginSchema = z
+    .object({
+      loginInput: z.string().min(1, t('email_required', { defaultValue: 'Identifiant requis' })),
+      password: z.string().min(1, t('password_required')),
+    })
+    .refine(
+      (data) => {
+        const input = data.loginInput.trim();
+        if (input.includes('@')) return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input);
+        const cleaned = input.replace(/[\s\-\(\)\+]/g, '');
+        return cleaned.length >= 8 && /^\d+$/.test(cleaned);
+      },
+      {
+        message:
+          i18n.language === 'en'
+            ? 'Please enter a valid email or phone number'
+            : 'Veuillez saisir un e-mail ou un numéro de téléphone valide',
+        path: ['loginInput'],
+      },
+    );
+
   type LoginForm = z.infer<typeof loginSchema>;
 
   const router = useRouter();
@@ -65,9 +58,7 @@ function LoginFormContent() {
     setFormError(null);
     try {
       const success = await login(data.loginInput, data.password);
-      if (success) {
-        router.push('/');
-      }
+      if (success) router.push(redirectUrl);
     } catch (err: any) {
       setFormError(err.response?.data?.detail || t('login_error') || 'Identifiant ou mot de passe incorrect.');
     }
@@ -77,23 +68,18 @@ function LoginFormContent() {
     setFormError(null);
     try {
       const success = await loginWithGoogle(googleAccessToken);
-      if (success) {
-        router.push('/');
-      }
+      if (success) router.push(redirectUrl);
     } catch (err: any) {
       setFormError(err.message || err.response?.data?.detail || t('login_error') || 'Échec de la connexion Google');
     }
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-    >
-      <div className="mb-8">
+    <div>
+      <div className="mb-7">
+        <span className="inline-block text-[10px] uppercase tracking-[0.3em] text-gold/80 mb-2">Connexion</span>
         <h1 className="font-display text-3xl font-bold mb-2">{t('welcome_back')}</h1>
-        <p className="text-foreground/60">{t('login_desc')}</p>
+        <p className="text-foreground/60 text-sm">{t('login_desc')}</p>
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
@@ -114,7 +100,7 @@ function LoginFormContent() {
 
         <div className="space-y-1">
           <Input
-            label={t('password_required').split(' ')[0]} // fallback to 'Password' or similar
+            label={t('password_required').split(' ')[0]}
             type="password"
             placeholder="••••••••"
             icon={<Lock size={18} />}
@@ -145,26 +131,36 @@ function LoginFormContent() {
         label="Continuer avec Google"
       />
 
-      <div className="mt-8 text-center text-sm text-foreground/60">
+      {/* Flow fix: resend verification reachable from login */}
+      <div className="mt-5">
+        <Link
+          href="/resend-verification"
+          className="group flex items-center justify-center gap-2 w-full rounded-xl border border-gold/15 bg-charcoal/30 px-4 py-2.5 text-xs text-foreground/70 hover:text-gold hover:border-gold/40 transition-colors"
+        >
+          <MailQuestion size={14} className="text-gold/80" />
+          Vous n'avez pas reçu l'e-mail de validation&nbsp;?
+          <span className="text-gold font-medium group-hover:underline">Renvoyer</span>
+        </Link>
+      </div>
+
+      <div className="mt-7 text-center text-sm text-foreground/60">
         {t('no_account')}{' '}
-        <Link href={`/register?redirect=${encodeURIComponent(redirectUrl)}`} className="text-gold font-medium hover:underline">
+        <Link
+          href={`/register?redirect=${encodeURIComponent(redirectUrl)}`}
+          className="text-gold font-medium hover:underline"
+        >
           {t('create_account_link')}
         </Link>
       </div>
-    </motion.div>
+    </div>
   );
 }
 
 export default function LoginPage() {
   const { t } = useTranslation();
   const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
+  useEffect(() => setMounted(true), []);
   if (!mounted) return null;
-
   return (
     <Suspense fallback={<div className="text-gold">{t('loading')}</div>}>
       <LoginFormContent />
