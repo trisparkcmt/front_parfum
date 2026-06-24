@@ -24,7 +24,7 @@ import ConfirmDialog from '@/components/shared/ConfirmDialog';
 import type { UserRole } from '@/types';
 
 /* ------------------------------------------------------------------ */
-/*  Dashboards                                                         */
+/*  Dashboards                                                        */
 /* ------------------------------------------------------------------ */
 
 interface DashboardOption {
@@ -37,8 +37,8 @@ interface DashboardOption {
 }
 
 const DASHBOARD_OPTIONS: DashboardOption[] = [
-  { id: 'client',    title: 'Espace Client',             description: 'Suivi de vos commandes, créations et favoris.',          href: '/dashboard/client',            icon: '📦', roles: ['client'] },
-  { id: 'delivery',  title: 'Espace Livreur',            description: 'Suivi et exécution de vos livraisons assignées.',         href: '/dashboard/delivery',          icon: '🚗', roles: ['delivery'] },
+  { id: 'client',    title: 'Espace Client',             description: 'Suivi de vos commandes, créations et favoris.',          href: '/dashboard/client',          icon: '📦', roles: ['client'] },
+  { id: 'delivery',  title: 'Espace Livreur',            description: 'Suivi et exécution de vos livraisons assignées.',         href: '/dashboard/delivery',         icon: '🚗', roles: ['delivery'] },
   { id: 'partner',   title: 'Espace Prestataire',        description: 'Suivi de vos commissions et ventes affiliées.',           href: '/dashboard/partner',           icon: '🤝', roles: ['partner'] },
   { id: 'serveuse',  title: 'Espace Boutique / Serveuse', description: 'Gestion des commandes, catalogue et laboratoire.',       href: '/dashboard/serveuse/dashboard', icon: '🛒', roles: ['serveuse'] },
   { id: 'admin',     title: 'Administration',            description: 'Gestion globale de la plateforme, utilisateurs et livreurs.', href: '/dashboard/admin/dashboard', icon: '👑', roles: ['superadmin'] },
@@ -74,7 +74,7 @@ function Panel({ children, className = '' }: { children: React.ReactNode; classN
 }
 
 /* ------------------------------------------------------------------ */
-/*  Page                                                               */
+/*  Page                                                              */
 /* ------------------------------------------------------------------ */
 
 export default function ProfilePage() {
@@ -142,7 +142,7 @@ export default function ProfilePage() {
     : null;
 
   return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4 sm:py-6 space-y-6">
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4 sm:py-6 space-y-6 flex flex-col">
       <BackButton />
 
       {/* ============ HERO ============ */}
@@ -219,19 +219,70 @@ export default function ProfilePage() {
 
       {/* ============ GRID ============ */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* ---------- LEFT: contact + actions ---------- */}
-        <div className="lg:col-span-1 space-y-6">
+        
+        {/* ---------- INFORMATIONS SECTION ---------- */}
+        <div className="order-1 lg:col-span-1 space-y-6">
           <div>
             <SectionLabel>{t('information', 'Informations')}</SectionLabel>
             <Panel>
               <div className="divide-y divide-white/5">
                 <InfoRow icon={<Mail size={16} />}  label={t('email', 'Email')}   value={user?.email || '—'} />
                 <InfoRow icon={<Phone size={16} />} label={t('phone', 'Téléphone')} value={user?.phone || t('not_provided', 'Non fourni')} />
-                
               </div>
             </Panel>
           </div>
+        </div>
 
+        {/* ---------- MY SPACES / DASHBOARDS (2nd section on mobile) ---------- */}
+        {accessibleDashboards.length > 0 && (
+          <div className="order-2 lg:order-none lg:col-span-2">
+            <SectionLabel>
+              <span className="inline-flex items-center gap-1.5">
+                <LayoutGrid size={11} className="text-gold" />
+                {t('your_spaces', 'Vos espaces & tableaux de bord')}
+              </span>
+            </SectionLabel>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {accessibleDashboards.map((opt) => (
+                <button
+                  key={opt.id}
+                  onClick={() => router.push(opt.href)}
+                  className="group relative overflow-hidden flex items-center gap-4 p-4 rounded-2xl border border-white/10 bg-white/[0.03] hover:border-gold/30 hover:bg-gold/[0.04] transition-all text-left"
+                >
+                  <span className="text-2xl shrink-0">{opt.icon}</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-sm text-foreground group-hover:text-gold transition-colors truncate">
+                      {opt.title}
+                    </p>
+                    <p className="text-[11px] text-foreground/50 mt-0.5 line-clamp-2">
+                      {opt.description}
+                    </p>
+                  </div>
+                  <ChevronRight size={16} className="text-foreground/20 group-hover:text-gold group-hover:translate-x-1 transition-all shrink-0" />
+                </button>
+              ))}
+
+              {userRoles.includes('serveuse') && (
+                <Link
+                  href="/dashboard/pos"
+                  className="group relative overflow-hidden flex items-center gap-4 p-4 rounded-2xl border border-gold/20 bg-gradient-to-br from-gold/10 to-transparent hover:border-gold/40 transition-all"
+                >
+                  <span className="w-10 h-10 rounded-xl bg-gold/15 flex items-center justify-center text-gold shrink-0">
+                    <ShoppingCart size={18} />
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-sm text-gold truncate">Point de Vente</p>
+                    <p className="text-[11px] text-foreground/60 mt-0.5">Interface de vente en direct (POS).</p>
+                  </div>
+                  <ChevronRight size={16} className="text-gold/50 group-hover:translate-x-1 transition-all shrink-0" />
+                </Link>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ---------- ACCOUNT OPTIONS ---------- */}
+        <div className="order-3 lg:col-span-1 space-y-6">
           <div>
             <SectionLabel>{t('account', 'Compte')}</SectionLabel>
             <Panel>
@@ -251,67 +302,10 @@ export default function ProfilePage() {
               </div>
             </Panel>
           </div>
-
-          <button
-            onClick={() => setShowLogoutConfirm(true)}
-            disabled={isLoggingOut}
-            className="w-full flex items-center justify-center gap-2 px-4 py-3.5 rounded-2xl border border-red-500/20 bg-red-500/5 text-red-400 text-sm font-bold hover:bg-red-500/10 hover:border-red-500/40 transition-all disabled:opacity-50"
-          >
-            {isLoggingOut ? <Loader2 size={16} className="animate-spin" /> : <LogOut size={16} />}
-            {isLoggingOut ? t('logging_out', 'Déconnexion...') : t('logout', 'Déconnexion')}
-          </button>
         </div>
 
-        {/* ---------- RIGHT: dashboards + preferences ---------- */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* dashboards */}
-          {accessibleDashboards.length > 0 && (
-            <div>
-              <SectionLabel>
-                <span className="inline-flex items-center gap-1.5">
-                  <LayoutGrid size={11} className="text-gold" />
-                  {t('your_spaces', 'Vos espaces & tableaux de bord')}
-                </span>
-              </SectionLabel>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {accessibleDashboards.map((opt) => (
-                  <button
-                    key={opt.id}
-                    onClick={() => router.push(opt.href)}
-                    className="group relative overflow-hidden flex items-center gap-4 p-4 rounded-2xl border border-white/10 bg-white/[0.03] hover:border-gold/30 hover:bg-gold/[0.04] transition-all text-left"
-                  >
-                    <span className="text-2xl shrink-0">{opt.icon}</span>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-sm text-foreground group-hover:text-gold transition-colors truncate">
-                        {opt.title}
-                      </p>
-                      <p className="text-[11px] text-foreground/50 mt-0.5 line-clamp-2">
-                        {opt.description}
-                      </p>
-                    </div>
-                    <ChevronRight size={16} className="text-foreground/20 group-hover:text-gold group-hover:translate-x-1 transition-all shrink-0" />
-                  </button>
-                ))}
-
-                {userRoles.includes('serveuse') && (
-                  <Link
-                    href="/dashboard/pos"
-                    className="group relative overflow-hidden flex items-center gap-4 p-4 rounded-2xl border border-gold/20 bg-gradient-to-br from-gold/10 to-transparent hover:border-gold/40 transition-all"
-                  >
-                    <span className="w-10 h-10 rounded-xl bg-gold/15 flex items-center justify-center text-gold shrink-0">
-                      <ShoppingCart size={18} />
-                    </span>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-sm text-gold truncate">Point de Vente</p>
-                      <p className="text-[11px] text-foreground/60 mt-0.5">Interface de vente en direct (POS).</p>
-                    </div>
-                    <ChevronRight size={16} className="text-gold/50 group-hover:translate-x-1 transition-all shrink-0" />
-                  </Link>
-                )}
-              </div>
-            </div>
-          )}
-
+        {/* ---------- PREFERENCES & SECURITY SETTINGS ---------- */}
+        <div className="order-4 lg:col-span-2 space-y-6">
           {/* preferences */}
           <div>
             <SectionLabel>{t('settings', 'Préférences')}</SectionLabel>
@@ -381,6 +375,18 @@ export default function ProfilePage() {
         </div>
       </div>
 
+      {/* ============ BOTTOM LOGOUT BUTTON CONTAINER ============ */}
+      <div className="mt-4">
+        <button
+          onClick={() => setShowLogoutConfirm(true)}
+          disabled={isLoggingOut}
+          className="w-full flex items-center justify-center gap-2 px-4 py-3.5 rounded-2xl border border-red-500/20 bg-red-500/5 text-red-400 text-sm font-bold hover:bg-red-500/10 hover:border-red-500/40 transition-all disabled:opacity-50"
+        >
+          {isLoggingOut ? <Loader2 size={16} className="animate-spin" /> : <LogOut size={16} />}
+          {isLoggingOut ? t('logging_out', 'Déconnexion...') : t('logout', 'Déconnexion')}
+        </button>
+      </div>
+
       {/* ============ MODALS ============ */}
       <PasswordChangeModal isOpen={showPasswordModal} onClose={() => setShowPasswordModal(false)} />
       <ProfileEditModal    isOpen={showEditModal}     onClose={() => setShowEditModal(false)} />
@@ -400,7 +406,7 @@ export default function ProfilePage() {
 }
 
 /* ------------------------------------------------------------------ */
-/*  Sub-components                                                     */
+/*  Sub-components                                                    */
 /* ------------------------------------------------------------------ */
 
 function InfoRow({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {

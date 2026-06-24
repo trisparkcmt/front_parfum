@@ -15,7 +15,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { LayoutWrapper } from "@/components/shared/LayoutWrapper";
 import { ToastProvider } from "@/components/shared/ToastProvider";
-import { ServiceWorkerRegistration } from "@/components/pwa/ServiceWorkerRegistration";
+import { FCMProvider } from "@/components/pwa/FCMProvider";
 import { InstallPrompt } from "@/components/pwa/InstallPrompt";
 
 export const metadata: Metadata = {
@@ -84,7 +84,7 @@ export default function RootLayout({
           {children}
         </LayoutWrapper>
         <ToastProvider />
-        <ServiceWorkerRegistration />
+        <FCMProvider />
         <InstallPrompt />
       </body>
     </html>

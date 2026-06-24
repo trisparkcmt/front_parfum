@@ -10,6 +10,7 @@ interface HeaderProps {
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
 import { useAuthStore } from '@/store/useAuthStore';
+import { useOrderNotificationStore } from '@/store/useOrderNotificationStore';
 import { notificationService } from '@/services/apiService';
 
 import Link from 'next/link';
@@ -33,10 +34,29 @@ export default function Header({ onMenuClick }: HeaderProps) {
 
   const fetchNotifications = async () => {
     try {
+      // 1. Fetch stock/system alert notifications
       const data = await notificationService.getUnreadNotifications();
       const list = data.results || data.resultats || (Array.isArray(data) ? data : []);
-      setNotifications(list.slice(0, 5));
-      const count = list.length;
+      
+      // 2. Fetch pending order notifications
+      const pendingOrders = useOrderNotificationStore.getState().pendingOrders;
+      
+      // Format pending orders as notifications
+      const orderNotifs = pendingOrders.map((order: any) => ({
+        id: `order-${order.id || order.numero_commande}`,
+        isOrder: true,
+        numeroCommande: order.numero_commande,
+        titre: `Nouvelle commande ${order.numero_commande}`,
+        message: `Par ${order.client_nom || 'Client'} - Total: ${order.total_ttc || order.total || 0} FCFA`,
+        cree_le: order.cree_le || order.date_creation || new Date().toISOString(),
+        est_lu: false,
+      }));
+
+      // Combine both lists
+      const combined = [...orderNotifs, ...list];
+      
+      setNotifications(combined.slice(0, 8));
+      const count = combined.length;
       setUnreadCount(count);
       
       // Update PWA badging count if supported by device
@@ -155,25 +175,39 @@ export default function Header({ onMenuClick }: HeaderProps) {
                     <div
                       key={n.id}
                       onClick={() => {
-                        router.push('/dashboard/admin/notifications');
+                        if (n.isOrder) {
+                          if (user?.roles?.includes('serveuse')) {
+                            router.push('/dashboard/serveuse/orders');
+                          } else {
+                            router.push('/dashboard/admin/order');
+                          }
+                        } else {
+                          if (user?.roles?.includes('serveuse')) {
+                            router.push('/dashboard/serveuse/notifications');
+                          } else {
+                            router.push('/dashboard/admin/notifications');
+                          }
+                        }
                         setShowNotifs(false);
                       }}
                       className="px-4 py-3 border-b border-white/5 hover:bg-white/5 transition-colors cursor-pointer bg-white/[0.02]"
                     >
                       <div className="flex items-start gap-3">
-                        <div className="w-2 h-2 bg-gold rounded-full mt-1.5 shrink-0" />
+                        <div className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${n.isOrder ? 'bg-red-500' : 'bg-gold'}`} />
                         <div className="flex-1 min-w-0">
-                          <p className="text-xs text-foreground font-medium truncate">{n.titre || 'Alerte stock'}</p>
-                          <p className="text-[11px] text-foreground/60 line-clamp-2 mt-0.5">{n.message || n.contenu}</p>
+                          <p className="text-xs text-foreground font-medium truncate">{n.titre}</p>
+                          <p className="text-[11px] text-foreground/60 line-clamp-2 mt-0.5">{n.message}</p>
                           <p className="text-[10px] text-foreground/30 mt-1">{timeString}</p>
                         </div>
-                        <button
-                          onClick={(e) => handleMarkAsRead(n.id, e)}
-                          className="p-1 rounded hover:bg-white/10 text-foreground/40 hover:text-foreground transition-colors shrink-0"
-                          title="Marquer comme lue"
-                        >
-                          <Check size={12} />
-                        </button>
+                        {!n.isOrder && (
+                          <button
+                            onClick={(e) => handleMarkAsRead(n.id, e)}
+                            className="p-1 rounded hover:bg-white/10 text-foreground/40 hover:text-foreground transition-colors shrink-0"
+                            title="Marquer comme lue"
+                          >
+                            <Check size={12} />
+                          </button>
+                        )}
                       </div>
                     </div>
                   );

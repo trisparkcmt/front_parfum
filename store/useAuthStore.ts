@@ -13,6 +13,15 @@ import { api, rawApi, initializeTokenRefresh } from '@/services/api';
 import { useToastStore } from './useToastStore';
 import { useCartStore } from './useCartStore';
 import { normalizeRoles, resolvePrimaryRole } from '@/lib/roleUtils';
+// FCM helpers — imported lazily to avoid SSR issues
+let _registerFCMDevice: (() => Promise<void>) | null = null;
+let _unregisterFCMDevice: (() => Promise<void>) | null = null;
+if (typeof window !== 'undefined') {
+  import('@/components/pwa/FCMProvider').then((mod) => {
+    _registerFCMDevice = mod.registerFCMDevice;
+    _unregisterFCMDevice = mod.unregisterFCMDevice;
+  });
+}
 
 function decodeJwt(token: string): any {
   try {
@@ -185,16 +194,17 @@ export const useAuthStore = create<AuthState>()(
           // Initialize proactive token refresh
           initializeTokenRefresh();
 
+          // Register FCM device for push notifications (non-blocking)
+          if (_registerFCMDevice) {
+            _registerFCMDevice().catch(console.warn);
+          }
+
           // Clear stale cart and sync fresh cart from backend after login
           // NOTE: Cart sync disabled until backend orders/panier endpoints are implemented
           const cartStore = useCartStore.getState();
           cartStore.clearCart();
-          // Uncomment when backend has /api/v1/orders/panier/ endpoints:
-          // try {
-          //   await cartStore.syncCart();
-          // } catch (cartError) {
-          //   console.warn('Failed to sync cart after login:', cartError);
-          // }
+          // Fetch the latest cart for the authenticated user
+          cartStore.syncCart();
 
           return true;
         } catch (error: any) {
@@ -351,6 +361,10 @@ export const useAuthStore = create<AuthState>()(
       },
 
       logout: async () => {
+        // Unregister FCM device before logout (non-blocking)
+        if (_unregisterFCMDevice) {
+          await _unregisterFCMDevice().catch(console.warn);
+        }
         try {
           await api.post('auth/logout/');
         } catch (e) {

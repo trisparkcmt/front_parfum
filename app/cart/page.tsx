@@ -147,6 +147,8 @@ export default function CartPage() {
         livraison_quartier: deliveryType === 'delivery' ? deliveryLocation.trim() || undefined : undefined,
         livraison_ville: deliveryType === 'delivery' ? deliveryCity.trim() : 'Retrait magasin',
         note_client: noteClient.trim() || undefined,
+        // Include applied promo code so the backend can attribute it to the order
+        code_promo: cart?.code_promo_applique ?? undefined,
       });
 
      // Format items to match the CartItem structure expected by generateWhatsAppLink
@@ -188,7 +190,7 @@ export default function CartPage() {
       await syncCart();
       
       // Redirect client to WhatsApp
-      window.location.href = waLink;
+      window.open(waLink, '_blank');
     } catch (err: any) {
       const msg =
         err?.response?.data?.detail ||

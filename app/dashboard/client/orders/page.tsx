@@ -4,8 +4,10 @@ import { useState, useEffect, useCallback } from 'react';
 import {
   Package, Truck, CheckCircle, Clock, XCircle, Loader2,
   RefreshCw, MapPin, Phone, Tag, Calendar, User, ChevronLeft, X,
+  Download, FileText, Mail,
 } from 'lucide-react';
 import { orderService } from '@/services/apiService';
+import { invoiceService } from '@/services/invoiceService';
 import { useToastStore } from '@/store/useToastStore';
 import { useRouter } from 'next/navigation';
 import type { BackendOrder } from '@/types';
@@ -70,6 +72,7 @@ export default function ClientOrdersPage() {
   const [loading, setLoading] = useState(true);
   const [tab, setTab]         = useState('all');
   const [selected, setSelected] = useState<BackendOrder | null>(null);
+  const [downloadingInvoice, setDownloadingInvoice] = useState(false);
 
   // ── fetch with real-time polling every 15s ───────────────────────────────
   const fetchOrders = useCallback(async () => {
@@ -90,6 +93,20 @@ export default function ClientOrdersPage() {
     const interval = setInterval(fetchOrders, 15_000);
     return () => clearInterval(interval);
   }, [fetchOrders]);
+
+  // ── invoice download ──────────────────────────────────────────────────────
+  const handleDownloadInvoice = async (order: BackendOrder) => {
+    const num = order.numero_commande ?? String(order.id);
+    setDownloadingInvoice(true);
+    try {
+      await invoiceService.downloadInvoiceFile(num, `facture-${num}.pdf`);
+      addToast('Facture téléchargée avec succès', 'success');
+    } catch {
+      addToast('Facture non disponible pour cette commande', 'error');
+    } finally {
+      setDownloadingInvoice(false);
+    }
+  };
 
   // ── helpers ──────────────────────────────────────────────────────────────
   const getStatut = (o: BackendOrder) => o.statut ?? 'en_attente';
@@ -434,6 +451,52 @@ export default function ClientOrdersPage() {
                   <p className="text-sm text-foreground">{selected.note_client}</p>
                 </div>
               )}
+
+              {/* ── Reçu / Facture PDF ───────────────────────────────── */}
+              {(selected as any).facture ? (
+                <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-2xl px-4 py-4 space-y-3">
+                  <p className="text-xs font-semibold text-emerald-400 flex items-center gap-2">
+                    <FileText size={14} /> Reçu de paiement
+                  </p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="bg-white/5 rounded-xl px-3 py-2">
+                      <p className="text-[10px] text-foreground/40 mb-0.5">N° Facture</p>
+                      <p className="text-xs font-mono font-semibold text-foreground">
+                        {(selected as any).facture.numero_facture}
+                      </p>
+                    </div>
+                    <div className="bg-white/5 rounded-xl px-3 py-2">
+                      <p className="text-[10px] text-foreground/40 mb-0.5">Date d'émission</p>
+                      <p className="text-xs font-medium text-foreground">
+                        {fmtDate((selected as any).facture.date_emission)}
+                      </p>
+                    </div>
+                  </div>
+                  {(selected as any).facture.envoye_par_email && (
+                    <div className="flex items-center gap-1.5 text-[10px] text-emerald-400/70">
+                      <Mail size={11} /> Envoyée par email
+                    </div>
+                  )}
+                  <button
+                    onClick={() => handleDownloadInvoice(selected)}
+                    disabled={downloadingInvoice}
+                    className="w-full flex items-center justify-center gap-2 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 rounded-xl py-2.5 text-sm font-semibold transition-colors disabled:opacity-50"
+                  >
+                    {downloadingInvoice ? <Loader2 size={15} className="animate-spin" /> : <Download size={15} />}
+                    Télécharger la facture PDF
+                  </button>
+                </div>
+              ) : selected.statut_paiement === 'payé' ? (
+                /* If order is paid but no facture object yet, offer direct download */
+                <button
+                  onClick={() => handleDownloadInvoice(selected)}
+                  disabled={downloadingInvoice}
+                  className="w-full flex items-center justify-center gap-2 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 rounded-xl py-2.5 text-sm font-semibold transition-colors disabled:opacity-50"
+                >
+                  {downloadingInvoice ? <Loader2 size={15} className="animate-spin" /> : <Download size={15} />}
+                  Télécharger la facture PDF
+                </button>
+              ) : null}
 
               <button
                 onClick={() => setSelected(null)}

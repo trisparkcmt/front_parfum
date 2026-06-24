@@ -1,4 +1,4 @@
-﻿/**
+/**
  * @file services/apiService.ts
  * @description Centralized API Service Layer for all Django backend endpoints.
  * Implements all endpoints from the API documentation.
@@ -1313,6 +1313,7 @@ export const orderService = {
     livraison_quartier?: string;
     livraison_ville?: string;
     note_client?: string;
+    code_promo?: string;
   }) => {
     const response = await api.post('orders/commandes/passer/', data);
     return response.data;
