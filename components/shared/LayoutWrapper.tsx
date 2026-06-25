@@ -6,6 +6,8 @@ import { Navbar } from "@/components/shared/Navbar";
 import { Footer } from "@/components/shared/Footer";
 import BottomNav from "@/components/shared/BottomNav";
 import { useThemeStore } from '@/store/useThemeStore';
+import { useCartStore } from '@/store/useCartStore';
+import { useAuthStore } from '@/store/useAuthStore';
 import "@/lib/i18n";
 
 export function LayoutWrapper({ children }: { children: React.ReactNode }) {
@@ -21,7 +23,7 @@ export function LayoutWrapper({ children }: { children: React.ReactNode }) {
   // Sync cart automatically on app/page mount/refresh if user is logged in
   useEffect(() => {
     if (_hasHydrated && isAuthenticated) {
-      syncCart().catch((e) => console.warn('Failed to auto-sync cart:', e));
+      syncCart().catch((e: unknown) => console.warn('Failed to auto-sync cart:', e));
     }
   }, [_hasHydrated, isAuthenticated, syncCart]);
 

@@ -30,6 +30,17 @@ import { persist } from 'zustand/middleware';
 import { cartService } from '@/services/apiService';
 import { useToastStore } from './useToastStore';
 
+function extractApiError(error: any, fallback: string): string {
+  const data = error?.response?.data;
+  if (!data) return fallback;
+  if (typeof data.detail === 'string') return data.detail;
+  const parts = Object.entries(data).map(([key, val]) => {
+    if (Array.isArray(val)) return `${key}: ${val.join(', ')}`;
+    return `${key}: ${String(val)}`;
+  });
+  return parts.length > 0 ? parts.join(' · ') : fallback;
+}
+
 export interface CartLine {
   id: number;
   type: 'parfum' | 'accessoire' | 'produit-fini-essence' | 'parfum-personnalise' | 'essence-personnalisee';
@@ -78,8 +89,15 @@ interface CartState {
   addPerfume: (parfumId: number, quantite?: number) => Promise<void>;
   addAccessory: (accessoireId: number, quantite?: number) => Promise<void>;
   addFinishedEssence: (produitId: number, quantite?: number) => Promise<void>;
-  addCustomPerfume: (parfumPersoId: number, quantite?: number, noteClient?: string) => Promise<void>;
+  addCustomPerfume: (parfumPersoId: number, quantite?: number, noteClient?: string, options?: { silent?: boolean }) => Promise<void>;
   addCustomEssence: (essencePersoId: number, quantite?: number) => Promise<void>;
+  addDirectComposition: (data: {
+    flacon_id: number;
+    lignes: Array<{ lot_essence_id: number; quantite_ml: number }>;
+    nom?: string;
+    note_client?: string;
+    quantite?: number;
+  }, options?: { silent?: boolean }) => Promise<void>;
 
   // Legacy API compatibility
   addProduct: (product: any, quantite?: number) => Promise<void>;
@@ -205,7 +223,7 @@ export const useCartStore = create<CartState>()(
         }
       },
 
-      addCustomPerfume: async (parfumPersoId, quantite = 1, noteClient) => {
+      addCustomPerfume: async (parfumPersoId, quantite = 1, noteClient, options) => {
         set({ isLoading: true, error: null });
         const addToast = useToastStore.getState().addToast;
         const state = get();
@@ -221,12 +239,44 @@ export const useCartStore = create<CartState>()(
             cart: cartData,
             isLoading: false,
           });
-          addToast('Parfum personnalisé ajouté au panier', 'success');
+          if (!options?.silent) {
+            addToast('Parfum personnalisé ajouté au panier', 'success', {
+              href: '/cart',
+              hrefLabel: 'Voir le panier →',
+            });
+          }
         } catch (error: any) {
-          const errorMsg =
-            error.response?.data?.detail || 'Erreur lors de l\'ajout du parfum personnalisé';
+          const errorMsg = extractApiError(error, 'Erreur lors de l\'ajout du parfum personnalisé');
           set({ error: errorMsg, isLoading: false });
           addToast(errorMsg, 'error');
+        }
+      },
+
+      addDirectComposition: async (data, options) => {
+        set({ isLoading: true, error: null });
+        const addToast = useToastStore.getState().addToast;
+        const state = get();
+        try {
+          const cartData = await cartService.addDirectComposition({
+            ...data,
+            panier_id: state.panierId ?? null,
+          });
+          set({
+            panierId: cartData.id,
+            cart: cartData,
+            isLoading: false,
+          });
+          if (!options?.silent) {
+            addToast('Composition ajoutée au panier', 'success', {
+              href: '/cart',
+              hrefLabel: 'Voir le panier →',
+            });
+          }
+        } catch (error: any) {
+          const errorMsg = extractApiError(error, 'Erreur lors de l\'ajout de la composition');
+          set({ error: errorMsg, isLoading: false });
+          addToast(errorMsg, 'error');
+          throw error;
         }
       },
 

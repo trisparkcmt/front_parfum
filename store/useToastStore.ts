@@ -22,22 +22,39 @@ interface ToastData {
   id: string;
   message: string;
   type: 'success' | 'error' | 'info';
+  href?: string;
+  hrefLabel?: string;
 }
 
 interface ToastState {
   toasts: ToastData[];
-  addToast: (message: string, type?: 'success' | 'error' | 'info') => void;
+  addToast: (
+    message: string,
+    type?: 'success' | 'error' | 'info',
+    options?: { href?: string; hrefLabel?: string }
+  ) => void;
   removeToast: (id: string) => void;
 }
 
 export const useToastStore = create<ToastState>((set) => ({
   toasts: [],
-  addToast: (message, type = 'success') => {
+  addToast: (message, type = 'success', options) => {
     const id = Date.now().toString();
-    set((state) => ({ toasts: [...state.toasts, { id, message, type }] }));
+    set((state) => ({
+      toasts: [
+        ...state.toasts,
+        {
+          id,
+          message,
+          type,
+          href: options?.href,
+          hrefLabel: options?.hrefLabel,
+        },
+      ],
+    }));
     setTimeout(() => {
       set((state) => ({ toasts: state.toasts.filter((t) => t.id !== id) }));
-    }, 3500);
+    }, 4500);
   },
   removeToast: (id) => {
     set((state) => ({ toasts: state.toasts.filter((t) => t.id !== id) }));

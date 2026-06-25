@@ -7,6 +7,8 @@ import Link from "next/link";
 import { useTranslation } from "react-i18next";
 import i18n from "@/lib/i18n";
 import { shopService } from "@/services/apiService";
+import { extractCatalogList } from "@/lib/catalogUtils";
+import type { ShopPromotion } from "@/types";
 
 interface PromoEntry {
   key: string;
@@ -21,12 +23,28 @@ interface PromoEntry {
 
 const FALLBACK_IMAGE = "/promo2.png";
 
+function mapPromotionToEntry(promo: ShopPromotion): PromoEntry {
+  const isPerfume = promo.type_article === 'parfum';
+  return {
+    key: `${promo.type_article}-${promo.id}`,
+    title: promo.marque ? `${promo.marque} — ${promo.nom}` : promo.nom,
+    discount: promo.taux_reduction ?? 0,
+    description: promo.message_promotion || undefined,
+    link: isPerfume ? `/shop/perfumes/${promo.slug}` : `/shop/accessories/${promo.slug}`,
+    image: promo.image_principale || null,
+    type: isPerfume ? 'perfume' : 'accessory',
+    rawId: String(promo.id),
+  };
+}
+
 /**
  * Generates context-aware, punchy promo messaging based on category traits
  */
 function getPromoMessage(item: PromoEntry): string {
+  if (item.description) return item.description;
+
   if (item.discount <= 0) {
-    return item.description || "";
+    return "";
   }
 
   const isEn = i18n.language === 'en';
@@ -64,7 +82,7 @@ function getPromoMessage(item: PromoEntry): string {
       : `Ne manquez pas jusqu'à -${item.discount}% de réduction immédiate sur cette sélection d'accessoires.`;
   }
 
-  return item.description || "";
+  return "";
 }
 
 export default function PromoCarousel() {
@@ -81,48 +99,13 @@ export default function PromoCarousel() {
 
     const fetchPromotions = async () => {
       try {
-        const [perfumeCategoriesRes, accessoryTypesRes] = await Promise.all([
-          shopService.getPerfumeCategories(),
-          shopService.getAccessoryTypes(),
-        ]);
+        const response = await shopService.getPromotions();
+        const list = extractCatalogList<ShopPromotion>(response);
+        const entries = list
+          .map(mapPromotionToEntry)
+          .filter((p) => p.discount > 0 || Boolean(p.description));
 
-        const unwrap = (res: any): any[] => {
-          if (Array.isArray(res)) return res;
-          if (Array.isArray(res?.results)) return res.results;
-          if (Array.isArray(res?.resultats)) return res.resultats;
-          return [];
-        };
-
-        const perfumeCategories = unwrap(perfumeCategoriesRes);
-        const accessoryTypes = unwrap(accessoryTypesRes);
-
-        const fromPerfumes: PromoEntry[] = perfumeCategories.map((c: any) => ({
-          key: `perfume-${c.id}`,
-          title: c.nom,
-          discount: parseFloat(c.taux_reduction ?? "0"),
-          description: c.description,
-          link: `/shop/perfumes?category=${c.id}`,
-          image: c.image || null,
-          type: 'perfume',
-          rawId: c.id
-        }));
-
-        const fromAccessories: PromoEntry[] = accessoryTypes.map((tp: any) => ({
-          key: `accessory-${tp.id}`,
-          title: tp.nom,
-          discount: parseFloat(tp.taux_reduction ?? "0"),
-          description: tp.description,
-          link: `/shop/accessories?type=${tp.id}`,
-          image: tp.icone || null,
-          type: 'accessory',
-          rawId: tp.id
-        }));
-
-        const discounted = [...fromPerfumes, ...fromAccessories].filter(
-          (p) => p.discount > 0
-        );
-
-        if (active) setPromos(discounted);
+        if (active) setPromos(entries);
       } catch (error) {
         console.error("[PromoCarousel] Failed to fetch promotional data:", error);
         if (active) setPromos([]);

@@ -16,6 +16,7 @@
  * **Integration**: Wrapped at the root of the application (in `layout.tsx`) to ensure site-wide accessibility.
  */
 import { motion, AnimatePresence } from 'framer-motion';
+import Link from 'next/link';
 import { CheckCircle, XCircle, Info, X } from 'lucide-react';
 import { useToastStore } from '@/store/useToastStore';
 
@@ -46,7 +47,18 @@ export function ToastProvider() {
             className={`flex items-center gap-3 px-4 py-3  glass-dark border ${bgColors[toast.type]} shadow-2xl`}
           >
             {icons[toast.type]}
-            <p className="text-sm text-cream flex-1">{toast.message}</p>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm text-cream">{toast.message}</p>
+              {toast.href && (
+                <Link
+                  href={toast.href}
+                  onClick={() => removeToast(toast.id)}
+                  className="text-xs text-gold hover:underline mt-0.5 inline-block font-medium"
+                >
+                  {toast.hrefLabel || 'Voir le panier →'}
+                </Link>
+              )}
+            </div>
             <button onClick={() => removeToast(toast.id)} className="p-1 hover:bg-white/10  transition-colors">
               <X size={14} className="text-cream/50" />
             </button>

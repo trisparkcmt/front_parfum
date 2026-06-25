@@ -664,6 +664,14 @@ export const shopService = {
     const response = await api.delete(`shop/produits-essence/${id}/`);
     return response.data;
   },
+
+  /**
+   * Get active promotions across perfumes and accessories
+   */
+  getPromotions: async (params?: { page?: number }) => {
+    const response = await api.get('shop/promotions/', { params });
+    return response.data;
+  },
 };
 
 // ============================================================================
@@ -727,6 +735,7 @@ export const labService = {
     lignes: Array<{
       essence_catalogue?: number;
       essence_personnalisee?: number;
+      ingredient?: number;
       quantite_ml: number;
     }>;
   }): Promise<CustomComposition> => {
@@ -1310,10 +1319,13 @@ export const orderService = {
    */
   placeOrder: async (data: {
     panier_id?: number | null;
+    livraison_nom_complet?: string;
+    livraison_telephone?: string;
     livraison_quartier?: string;
     livraison_ville?: string;
     note_client?: string;
     code_promo?: string;
+    client_telephone?: string;
   }) => {
     const response = await api.post('orders/commandes/passer/', data);
     return response.data;
@@ -1500,6 +1512,25 @@ export const cartService = {
   }) => {
     const response = await api.post(
       'orders/panier/ajouter/essence-personnalisee/',
+      data
+    );
+    return response.data;
+  },
+
+  /**
+   * Create custom perfume from flacon + essences and add directly to cart (no lab validation).
+   * Works without authentication — for LIA, boutique terminals, and POS.
+   */
+  addDirectComposition: async (data: {
+    panier_id?: number | null;
+    quantite?: number;
+    nom?: string;
+    note_client?: string;
+    flacon_id: number;
+    lignes: Array<{ lot_essence_id: number; quantite_ml: number }>;
+  }) => {
+    const response = await api.post(
+      'orders/panier/ajouter/composition-directe/',
       data
     );
     return response.data;

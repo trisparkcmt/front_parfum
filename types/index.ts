@@ -133,6 +133,11 @@ export interface EssenceClient {
   intensity: 'light' | 'medium' | 'strong';
   imageUrl?: string;
   available: boolean;
+  /** Numeric backend ID (essence catalogue or ingredient) */
+  backendId?: number;
+  /** Active lot ID — required for composition-directe */
+  lotEssenceId?: number;
+  itemType?: 'ingredient' | 'essence';
 }
 
 export interface CompositionEssence {
@@ -402,11 +407,38 @@ export interface TagEssence {
   type: TagType;
 }
 
+export interface PromotionSchedule {
+  taux_reduction?: string;
+  prix_promotionnel?: string;
+  date_debut?: string | null;
+  date_fin?: string | null;
+  message_promotion?: string | null;
+}
+
+export interface ShopPromotion {
+  type_article: 'parfum' | 'accessoire';
+  id: number;
+  slug: string;
+  nom: string;
+  marque: string;
+  image_principale?: string | null;
+  prix_original: string;
+  prix_promotionnel: string;
+  taux_reduction: number;
+  message_promotion?: string | null;
+  date_debut: string;
+  date_fin: string;
+}
+
 export interface CategorieAccessoire {
   id: number;
   nom: string;
   slug: string;
   description?: string;
+  taux_reduction?: string;
+  date_debut?: string | null;
+  date_fin?: string | null;
+  message_promotion?: string | null;
 }
 
 export interface TypeFlacon {
@@ -428,6 +460,8 @@ export interface Parfum {
   prix_actuel: string;
   prix_promotionnel?: string;
   taux_reduction?: string;
+  date_debut?: string | null;
+  date_fin?: string | null;
   en_promotion: boolean;
   genre_cible: GenreCible;
   intensite?: Intensite;
@@ -470,6 +504,8 @@ export interface Accessoire {
   prix_actuel: string;
   prix_promotionnel?: string;
   taux_reduction?: string;
+  date_debut?: string | null;
+  date_fin?: string | null;
   en_promotion: boolean;
   stock_quantite: number;
   seuil_alerte_stock: number;
@@ -486,6 +522,20 @@ export interface Accessoire {
   date_modification: string;
   produits_similaires?: Accessoire[];
   is_favori: boolean;
+}
+
+export interface CategorieParfum {
+  id: number;
+  nom: string;
+  slug: string;
+  description?: string;
+  ordre_affichage?: number;
+  actif?: boolean;
+  taux_reduction?: string;
+  date_debut?: string | null;
+  date_fin?: string | null;
+  message_promotion?: string | null;
+  image?: string | null;
 }
 
 export interface Flacon {

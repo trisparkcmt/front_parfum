@@ -201,7 +201,7 @@ function Bottle30({ totalMl, maxMl, quantities, allItems }: any) {
    MAIN COMPONENT
    ═══════════════════════════════════════ */
 export default function AtelierPage() {
-  const { addCustomPerfume, addComposition } = useCartStore();
+  const { addCustomPerfume, addComposition, addDirectComposition } = useCartStore();
   const { user, isAuthenticated } = useAuthStore();
   const { addToast } = useToastStore();
   const { i18n } = useTranslation();
@@ -229,6 +229,8 @@ export default function AtelierPage() {
   const [isAddingToCart, setIsAddingToCart] = useState(false);
   const [cartAdded, setCartAdded] = useState(false);
   const [ctaSuccess, setCtaSuccess] = useState(false);
+  const [showSaveModal, setShowSaveModal] = useState(false);
+  const [saveModalName, setSaveModalName] = useState('');
 
   useEffect(() => {
     setMounted(true);
@@ -363,7 +365,113 @@ export default function AtelierPage() {
     };
   }, [totalMl, remaining, maxMl, i18n.language]);
 
-  const handleOrder = () => {
+  const handleSaveComposition = async (name: string) => {
+    if (totalMl === 0) {
+      addToast(
+        i18n.language === 'en' ? 'Please select at least one essence/ingredient.' : 'Veuillez sélectionner au moins une essence.',
+        'info'
+      );
+      return;
+    }
+    if (!name.trim()) {
+      addToast(
+        i18n.language === 'en' ? 'Please enter a name for your composition.' : 'Veuillez donner un nom à votre composition.',
+        'error'
+      );
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      // Build lignes array with essence IDs
+      const lignes = Object.entries(quantities)
+        .filter(([_, qty]) => qty > 0)
+        .map(([essenceId, quantityMl]) => {
+          const item = ALL_ITEMS.find(e => e.id === essenceId);
+          return {
+            essence_catalogue: item?.backendId || undefined,
+            ingredient: item?.backendId || undefined,
+            quantite_ml: quantityMl,
+          };
+        });
+
+      const response = await apiLabService.createCustomPerfume({
+        nom: name,
+        flacon: bottleSize,
+        lignes,
+      });
+
+      setSavedParfumId(Number(response.id));
+      setShowSaveModal(false);
+      setSaveModalName('');
+      addToast(
+        i18n.language === 'en' ? `Composition saved! (ID: ${response.id})` : `Composition sauvegardée ! (ID: ${response.id})`,
+        'success'
+      );
+    } catch (error: any) {
+      const errorMsg = error?.response?.data?.detail || (i18n.language === 'en' ? 'Error saving composition.' : 'Erreur lors de la sauvegarde.');
+      addToast(errorMsg, 'error');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleAddToCart = async () => {
+    if (totalMl === 0) {
+      addToast(
+        i18n.language === 'en' ? 'Please select at least one essence/ingredient.' : 'Veuillez sélectionner au moins une essence.',
+        'info'
+      );
+      return;
+    }
+
+    setIsAddingToCart(true);
+    try {
+      if (savedParfumId) {
+        // Add saved composition to cart using the ID
+        await addCustomPerfume(savedParfumId, 1, undefined, { silent: false });
+      } else {
+        // Direct composition (guest/POS mode) — add without saving
+        const lignes = Object.entries(quantities)
+          .filter(([_, qty]) => qty > 0)
+          .map(([essenceId, quantityMl]) => {
+            const item = ALL_ITEMS.find(e => e.id === essenceId);
+            return {
+              lot_essence_id: item?.lotEssenceId || item?.backendId || 0,
+              quantite_ml: quantityMl,
+            };
+          });
+
+        // Find a flacon that matches bottleSize
+        const selectedFlacon = flacons.find(f => f.contenance_ml === bottleSize || f.capacity === bottleSize);
+        if (!selectedFlacon) {
+          addToast(
+            i18n.language === 'en' ? 'Please select a valid bottle size.' : 'Veuillez sélectionner une taille de flacon valide.',
+            'error'
+          );
+          return;
+        }
+
+        await addDirectComposition({
+          flacon_id: selectedFlacon.id,
+          lignes,
+          nom: saveModalName || `Création Numba ${bottleSize}ml`,
+          quantite: 1,
+        }, { silent: false });
+      }
+
+      setCtaSuccess(true);
+      addToast(i18n.language === 'en' ? 'Added to cart!' : 'Ajouté au panier !', 'success');
+      setTimeout(() => setCtaSuccess(false), 3000);
+    } catch (error: any) {
+      const errorMsg = error?.response?.data?.detail || (i18n.language === 'en' ? 'Error adding to cart.' : 'Erreur lors de l\'ajout au panier.');
+      addToast(errorMsg, 'error');
+    } finally {
+      setIsAddingToCart(false);
+    }
+  };
+
+  const handleOrder = async () => {
     if (totalMl === 0) { 
       addToast(
         i18n.language === 'en' ? 'Please select at least one essence/ingredient.' : 'Veuillez sélectionner au moins une essence.', 
@@ -732,19 +840,76 @@ export default function AtelierPage() {
             <p className="text-[10px] text-foreground/20 mt-2 uppercase tracking-widest">{bottleSize}ml · {FORMAT_LABELS[format]}</p>
           </div>
           
-          <div className="flex items-center gap-4 w-full sm:w-auto">
-             <button 
-               onClick={handleOrder}
-               disabled={totalMl === 0}
-               className={`flex-1 sm:flex-none px-12 py-5 text-[10px] uppercase tracking-[0.2em] font-medium rounded-lg transition-all duration-300
-                 ${ctaSuccess ? 'bg-green-600 text-foreground' : 'bg-gold text-black hover:bg-cream disabled:opacity-20'}
-               `}
-             >
-               {ctaSuccess ? 'Ajouté ✓' : 'Commander →'}
-             </button>
+          <div className="flex items-center gap-3 w-full sm:w-auto flex-wrap sm:flex-nowrap">
+            {/* Save button (authenticated only) */}
+            {isAuthenticated && (
+              <button 
+                onClick={() => setShowSaveModal(true)}
+                disabled={totalMl === 0 || isSaving}
+                className="flex-1 sm:flex-none px-8 py-5 text-[10px] uppercase tracking-[0.2em] font-medium rounded-lg transition-all duration-300 border border-gold/40 text-gold hover:bg-gold/10 disabled:opacity-20"
+              >
+                {isSaving ? <Loader2 size={14} className="inline animate-spin mr-1" /> : <Save size={14} className="inline mr-1" />}
+                {i18n.language === 'en' ? 'Save' : 'Sauvegarder'}
+              </button>
+            )}
+
+            {/* Add to cart button */}
+            <button 
+              onClick={handleAddToCart}
+              disabled={totalMl === 0 || isAddingToCart}
+              className={`flex-1 sm:flex-none px-12 py-5 text-[10px] uppercase tracking-[0.2em] font-medium rounded-lg transition-all duration-300
+                ${ctaSuccess ? 'bg-green-600 text-foreground' : 'bg-gold text-black hover:bg-cream disabled:opacity-20'}
+              `}
+            >
+              {ctaSuccess ? '✓ Ajouté' : (isAddingToCart ? <Loader2 size={14} className="inline animate-spin" /> : <>
+                <ShoppingCart size={14} className="inline mr-1" />
+                {i18n.language === 'en' ? 'Add to Cart' : 'Ajouter au Panier'}
+              </>)}
+            </button>
           </div>
         </div>
       </div>
+
+      {/* Save Modal */}
+      {showSaveModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-background rounded-2xl p-8 w-full max-w-sm shadow-2xl border border-white/10 animate-in fade-in zoom-in-95">
+            <h2 className="text-2xl font-extralight text-foreground mb-2">
+              {i18n.language === 'en' ? 'Save Your Composition' : 'Sauvegarder votre Composition'}
+            </h2>
+            <p className="text-xs text-foreground/40 uppercase tracking-widest mb-6">
+              {i18n.language === 'en' ? 'Give your creation a name' : 'Donnez un nom à votre création'}
+            </p>
+
+            <input
+              type="text"
+              placeholder={i18n.language === 'en' ? 'e.g. Rose & Oud Evening' : 'ex. Rose & Oud Soirée'}
+              value={saveModalName}
+              onChange={(e) => setSaveModalName(e.target.value)}
+              className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-foreground placeholder-foreground/30 focus:outline-none focus:border-gold/50 mb-6 text-sm"
+            />
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  setShowSaveModal(false);
+                  setSaveModalName('');
+                }}
+                className="flex-1 px-6 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-sm text-foreground/60 transition-colors"
+              >
+                {i18n.language === 'en' ? 'Cancel' : 'Annuler'}
+              </button>
+              <button
+                onClick={() => handleSaveComposition(saveModalName)}
+                disabled={isSaving || !saveModalName.trim()}
+                className="flex-1 px-6 py-3 bg-gold text-black hover:bg-cream rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+              >
+                {isSaving ? <Loader2 size={14} className="inline animate-spin" /> : (i18n.language === 'en' ? 'Save & Add to Cart' : 'Sauvegarder & Ajouter')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

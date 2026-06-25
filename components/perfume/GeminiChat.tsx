@@ -48,7 +48,7 @@ interface AiEssence {
   prix_total_quantite: string;
 }
 
-interface AiResponse {
+export interface AiResponse {
   message: string;
   quantite_demandee_ml?: number;
   flacon?: { id: number; nom: string; prix_unitaire: string };
@@ -60,7 +60,7 @@ interface AiResponse {
 
 type MessageRole = 'user' | 'ai';
 
-interface ChatMessage {
+export interface ChatMessage {
   id: string;
   role: MessageRole;
   text: string;

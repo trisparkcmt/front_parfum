@@ -7,6 +7,7 @@ import { useToastStore } from '@/store/useToastStore';
 import { useCatalogPermissions } from '@/hooks/useCatalogPermissions';
 import CatalogAccessNotice from '@/components/catalog/CatalogAccessNotice';
 import { extractCatalogList } from '@/lib/catalogUtils';
+import { extractApiError } from '@/lib/apiError';
 import { FloatInput } from '@/components/ui/Input';
 
 export default function FinishedEssenceAdminPage() {
@@ -30,6 +31,8 @@ export default function FinishedEssenceAdminPage() {
     stock_disponible: '0',
     actif: true,
   });
+  const [lotStockMl, setLotStockMl] = useState<number | null>(null);
+  const [loadingLotStock, setLoadingLotStock] = useState(false);
 
   const fetchItems = useCallback(async () => {
     if (!permissions.canRead) return;
@@ -57,6 +60,36 @@ export default function FinishedEssenceAdminPage() {
       .then((data) => setEssences(extractCatalogList(data)))
       .catch(() => {});
   }, []);
+
+  const fetchLotStockForEssence = useCallback(async (essenceId: string) => {
+    if (!essenceId) {
+      setLotStockMl(null);
+      return;
+    }
+    try {
+      setLoadingLotStock(true);
+      const data = await labService.getLotsEssence({ essence: Number(essenceId), actif: true });
+      const lots = extractCatalogList(data);
+      const total = lots.reduce((sum, lot: any) => {
+        const stock = lot.stock_ml ?? lot.quantite_ml ?? '0';
+        return Number(sum) + parseFloat(String(stock));
+      }, 0);
+      setLotStockMl(total);
+    } catch {
+      setLotStockMl(null);
+    } finally {
+      setLoadingLotStock(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (showModal && form.essence) {
+      fetchLotStockForEssence(form.essence);
+    }
+  }, [showModal, form.essence, fetchLotStockForEssence]);
+
+  const mlRequis = Number(form.taille_ml || 0) * Number(form.stock_disponible || 0);
+  const stockInsuffisant = lotStockMl !== null && mlRequis > 0 && mlRequis > lotStockMl;
 
   const openAdd = () => {
     setEditing(null);
@@ -115,7 +148,7 @@ export default function FinishedEssenceAdminPage() {
       setShowModal(false);
       fetchItems();
     } catch (err: any) {
-      setFormError(err?.response?.data?.detail || 'Erreur lors de la sauvegarde');
+      setFormError(extractApiError(err, 'Erreur lors de la sauvegarde'));
     } finally {
       setSaving(false);
     }
@@ -300,6 +333,34 @@ export default function FinishedEssenceAdminPage() {
               value={form.stock_disponible}
               onChange={(e) => setForm((f) => ({ ...f, stock_disponible: e.target.value }))}
             />
+
+            {!editing && form.essence && (
+              <div className={`rounded-xl border px-4 py-3 text-sm space-y-1 ${stockInsuffisant ? 'border-red-500/30 bg-red-500/10 text-red-300' : 'border-white/10 bg-white/5 text-foreground/70'}`}>
+                <p className="font-semibold text-xs uppercase tracking-wider text-foreground/50">Consommation lot laboratoire</p>
+                <p>
+                  ML requis : <span className="font-bold">{mlRequis.toLocaleString()} ml</span>
+                  {' '}(taille × stock)
+                </p>
+                <p>
+                  Stock lot disponible :{' '}
+                  {loadingLotStock ? (
+                    <span className="text-foreground/40">calcul…</span>
+                  ) : lotStockMl !== null ? (
+                    <span className={`font-bold ${stockInsuffisant ? 'text-red-400' : 'text-emerald-400'}`}>
+                      {lotStockMl.toLocaleString()} ml
+                    </span>
+                  ) : (
+                    <span className="text-foreground/40">—</span>
+                  )}
+                </p>
+                {stockInsuffisant && (
+                  <p className="text-xs pt-1">
+                    Stock insuffisant — créez un lot via Labo ou réduisez le stock demandé.
+                  </p>
+                )}
+              </div>
+            )}
+
             <label className="flex items-center gap-2 text-sm pt-1 cursor-pointer">
               <input
                 type="checkbox"
@@ -311,7 +372,7 @@ export default function FinishedEssenceAdminPage() {
             </label>
 
             {formError && (
-              <p className="text-sm font-semibold text-red-500 bg-red-500/10 border border-red-500/20 px-4 py-2.5 rounded-xl text-center">
+              <p className="text-sm font-semibold text-red-500 bg-red-500/10 border border-red-500/20 px-4 py-2.5 rounded-xl text-center whitespace-pre-line">
                 {formError}
               </p>
             )}

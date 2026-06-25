@@ -7,6 +7,7 @@ import { useToastStore } from '@/store/useToastStore';
 import { useCatalogPermissions } from '@/hooks/useCatalogPermissions';
 import CatalogAccessNotice from '@/components/catalog/CatalogAccessNotice';
 import { extractCatalogList } from '@/lib/catalogUtils';
+import { fromDatetimeLocalValue, toDatetimeLocalValue } from '@/lib/promotionUtils';
 import { MultiImageUpload } from '@/components/MultiImageUpload';
 import { CreateCategoryModal } from '@/components/CreateCategoryModal';
 
@@ -48,6 +49,8 @@ export default function AccessoriesPage() {
     taille: '',
     prix_unitaire: '',
     prix_promotionnel: '',
+    date_debut: '',
+    date_fin: '',
     stock_quantite: '',
     seuil_alerte_stock: '3',
     poids_grammes: '',
@@ -110,6 +113,8 @@ export default function AccessoriesPage() {
       taille: '',
       prix_unitaire: '',
       prix_promotionnel: '',
+      date_debut: '',
+      date_fin: '',
       stock_quantite: '',
       seuil_alerte_stock: '3',
       poids_grammes: '',
@@ -141,6 +146,8 @@ export default function AccessoriesPage() {
       taille: acc.taille || '',
       prix_unitaire: String(acc.prix_unitaire || ''),
       prix_promotionnel: acc.prix_promotionnel ? String(acc.prix_promotionnel) : '',
+      date_debut: toDatetimeLocalValue(acc.date_debut),
+      date_fin: toDatetimeLocalValue(acc.date_fin),
       stock_quantite: String(acc.stock_quantite || ''),
       seuil_alerte_stock: String(acc.seuil_alerte_stock || '3'),
       poids_grammes: String(acc.poids_grammes || ''),
@@ -175,11 +182,15 @@ export default function AccessoriesPage() {
 
     const formData = new FormData();
     Object.entries(form).forEach(([key, val]) => {
-      // On s'assure d'envoyer les valeurs, y compris les booleans (actif)
+      if (key === 'date_debut' || key === 'date_fin') return;
       if (val !== undefined && val !== null && (val !== '' || typeof val === 'boolean')) {
         formData.append(key, String(val));
       }
     });
+    const promoDateDebut = fromDatetimeLocalValue(form.date_debut);
+    const promoDateFin = fromDatetimeLocalValue(form.date_fin);
+    if (promoDateDebut) formData.append('date_debut', promoDateDebut);
+    if (promoDateFin) formData.append('date_fin', promoDateFin);
 
     Object.entries(imageFiles).forEach(([key, file]) => {
       if (file instanceof File) {
@@ -562,6 +573,29 @@ export default function AccessoriesPage() {
                     onChange={e => updateForm('prix_promotionnel', e.target.value)}
                     className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
                   />
+                </div>
+                <div className="rounded-lg border border-white/10 bg-white/[0.03] px-3 py-3 space-y-3">
+                  <p className="text-xs font-semibold text-foreground/40 uppercase tracking-wider">Période promotion</p>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <label className="text-xs text-foreground/40">Date début</label>
+                      <input
+                        type="datetime-local"
+                        value={form.date_debut}
+                        onChange={e => updateForm('date_debut', e.target.value)}
+                        className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-foreground outline-none focus:border-gold"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs text-foreground/40">Date fin</label>
+                      <input
+                        type="datetime-local"
+                        value={form.date_fin}
+                        onChange={e => updateForm('date_fin', e.target.value)}
+                        className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-foreground outline-none focus:border-gold"
+                      />
+                    </div>
+                  </div>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <input

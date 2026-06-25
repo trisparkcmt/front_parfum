@@ -7,6 +7,8 @@ import { adminService } from '@/services/apiService';
 import { useToastStore } from '@/store/useToastStore';
 import CompactIconUpload from '@/components/admin/CompactIconUpload';
 import { FloatInput } from '@/components/ui/Input';
+import { fromDatetimeLocalValue, formatPromotionPeriod, toDatetimeLocalValue } from '@/lib/promotionUtils';
+import { extractApiError } from '@/lib/apiError';
 
 type TabKey = 'perfume_categories' | 'accessory_categories' | 'bottle_types';
 
@@ -46,6 +48,9 @@ export default function CategoriesAdminPage() {
     ordre_affichage: 0,
     actif: true,
     taux_reduction: '0.00',
+    date_debut: '',
+    date_fin: '',
+    message_promotion: '',
   });
 
   const { addToast } = useToastStore();
@@ -79,7 +84,17 @@ export default function CategoriesAdminPage() {
   };
 
   const resetForm = () => {
-    setForm({ nom: '', slug: '', description: '', ordre_affichage: 0, actif: true, taux_reduction: '0.00' });
+    setForm({
+      nom: '',
+      slug: '',
+      description: '',
+      ordre_affichage: 0,
+      actif: true,
+      taux_reduction: '0.00',
+      date_debut: '',
+      date_fin: '',
+      message_promotion: '',
+    });
     setIconFile(null);
   };
 
@@ -99,6 +114,9 @@ export default function CategoriesAdminPage() {
       ordre_affichage: item.ordre_affichage || 0,
       actif: item.actif !== undefined ? item.actif : true,
       taux_reduction: item.taux_reduction || '0.00',
+      date_debut: toDatetimeLocalValue(item.date_debut),
+      date_fin: toDatetimeLocalValue(item.date_fin),
+      message_promotion: item.message_promotion || '',
     });
     setIconFile(null);
     setFormError('');
@@ -114,7 +132,13 @@ export default function CategoriesAdminPage() {
     try {
       setFormError('');
       if (activeTab === 'perfume_categories') {
-        const payload = { ...form, ordre_affichage: Number(form.ordre_affichage) };
+        const payload: Record<string, unknown> = {
+          ...form,
+          ordre_affichage: Number(form.ordre_affichage),
+          date_debut: fromDatetimeLocalValue(form.date_debut),
+          date_fin: fromDatetimeLocalValue(form.date_fin),
+          message_promotion: form.message_promotion || null,
+        };
         if (editingItem) {
           await shopService.updatePerfumeCategory(editingItem.id, payload);
           addToast('Catégorie parfum mise à jour', 'success');
@@ -130,6 +154,11 @@ export default function CategoriesAdminPage() {
         formData.append('description', form.description);
         formData.append('taux_reduction', form.taux_reduction);
         formData.append('actif', String(form.actif));
+        const dateDebut = fromDatetimeLocalValue(form.date_debut);
+        const dateFin = fromDatetimeLocalValue(form.date_fin);
+        if (dateDebut) formData.append('date_debut', dateDebut);
+        if (dateFin) formData.append('date_fin', dateFin);
+        if (form.message_promotion) formData.append('message_promotion', form.message_promotion);
         if (iconFile instanceof File) {
           formData.append('icone', iconFile);
         }
@@ -155,7 +184,7 @@ export default function CategoriesAdminPage() {
       setShowModal(false);
       fetchItems();
     } catch (error: any) {
-      setFormError(error.response?.data?.detail || 'Erreur lors de la sauvegarde');
+      setFormError(extractApiError(error, 'Erreur lors de la sauvegarde'));
     }
   };
 
@@ -182,7 +211,7 @@ export default function CategoriesAdminPage() {
   );
 
   // Shared column count for empty state colspan
-  const colSpan = activeTab === 'perfume_categories' ? 5 : activeTab === 'accessory_categories' ? 5 : 3;
+  const colSpan = activeTab === 'perfume_categories' ? 6 : activeTab === 'accessory_categories' ? 6 : 3;
 
   const modalTitle = editingItem
     ? (activeTab === 'perfume_categories' ? 'Modifier la catégorie' : activeTab === 'accessory_categories' ? 'Modifier le type' : 'Modifier le flacon')
@@ -235,6 +264,7 @@ export default function CategoriesAdminPage() {
                                 <th className="px-6 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider">Slug</th>
                                 <th className="px-6 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider">Ordre</th>
                                 <th className="px-6 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider">Taux Réduction</th>
+                                <th className="px-6 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider">Période promo</th>
                               </>
                             )}
                             {activeTab === 'accessory_categories' && (
@@ -243,6 +273,7 @@ export default function CategoriesAdminPage() {
                                 <th className="px-6 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider">Nom</th>
                                 <th className="px-6 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider">Description</th>
                                 <th className="px-6 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider">Taux Réduction</th>
+                                <th className="px-6 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider">Période promo</th>
                               </>
                             )}
                             {activeTab === 'bottle_types' && (
@@ -269,6 +300,9 @@ export default function CategoriesAdminPage() {
                                       <span className="text-foreground/30 text-xs">—</span>
                                     )}
                                   </td>
+                                  <td className="px-6 py-4 text-xs text-foreground/50 max-w-[180px]">
+                                    {formatPromotionPeriod(c.date_debut, c.date_fin) || '—'}
+                                  </td>
                                 </>
                               )}
                               {activeTab === 'accessory_categories' && (
@@ -290,6 +324,9 @@ export default function CategoriesAdminPage() {
                                     ) : (
                                       <span className="text-foreground/30 text-xs">—</span>
                                     )}
+                                  </td>
+                                  <td className="px-6 py-4 text-xs text-foreground/50 max-w-[180px]">
+                                    {formatPromotionPeriod(c.date_debut, c.date_fin) || '—'}
                                   </td>
                                 </>
                               )}
@@ -362,6 +399,35 @@ export default function CategoriesAdminPage() {
                       onChange={e => updateForm('taux_reduction', e.target.value)}
                     />
                   </div>
+                  <div className="rounded-xl border border-gold/20 bg-gold/5 p-4 space-y-3">
+                    <p className="text-xs font-bold text-gold uppercase tracking-wider">Promotion catégorie</p>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Date début</label>
+                        <input
+                          type="datetime-local"
+                          value={form.date_debut}
+                          onChange={e => updateForm('date_debut', e.target.value)}
+                          className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Date fin</label>
+                        <input
+                          type="datetime-local"
+                          value={form.date_fin}
+                          onChange={e => updateForm('date_fin', e.target.value)}
+                          className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
+                        />
+                      </div>
+                    </div>
+                    <FloatInput
+                      label="Message promotion"
+                      placeholder="Ex: Offre spéciale Noël"
+                      value={form.message_promotion}
+                      onChange={e => updateForm('message_promotion', e.target.value)}
+                    />
+                  </div>
                 </>
               )}
 
@@ -386,6 +452,35 @@ export default function CategoriesAdminPage() {
                     value={form.taux_reduction}
                     onChange={e => updateForm('taux_reduction', e.target.value)}
                   />
+                  <div className="rounded-xl border border-gold/20 bg-gold/5 p-4 space-y-3">
+                    <p className="text-xs font-bold text-gold uppercase tracking-wider">Promotion type accessoire</p>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Date début</label>
+                        <input
+                          type="datetime-local"
+                          value={form.date_debut}
+                          onChange={e => updateForm('date_debut', e.target.value)}
+                          className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Date fin</label>
+                        <input
+                          type="datetime-local"
+                          value={form.date_fin}
+                          onChange={e => updateForm('date_fin', e.target.value)}
+                          className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
+                        />
+                      </div>
+                    </div>
+                    <FloatInput
+                      label="Message promotion"
+                      placeholder="Ex: Semaine accessoires"
+                      value={form.message_promotion}
+                      onChange={e => updateForm('message_promotion', e.target.value)}
+                    />
+                  </div>
                   <CompactIconUpload
                     onFileSelect={setIconFile}
                     initialImage={editingItem?.icone}

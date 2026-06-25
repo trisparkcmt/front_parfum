@@ -10,6 +10,7 @@ import { useToastStore } from '@/store/useToastStore';
 import { useCatalogPermissions } from '@/hooks/useCatalogPermissions';
 import CatalogAccessNotice from '@/components/catalog/CatalogAccessNotice';
 import { FloatInput } from '@/components/ui/Input';
+import { extractApiError } from '@/lib/apiError';
 
 const STATIC_CATEGORIES = ['super_premium', 'premium', 'high'];
 
@@ -140,8 +141,9 @@ export default function EssencesPage() {
         payload.produits_finis = [{
           taille_ml: Number(produitFini.taille_ml),
           prix: produitFini.prix,
-          prix_promotionnel: produitFini.prix_promotionnel || undefined,
+          prix_promotionnel: produitFini.prix_promotionnel || null,
           stock_disponible: Number(produitFini.stock_disponible || 0),
+          actif: true,
         }];
       }
 
@@ -156,7 +158,9 @@ export default function EssencesPage() {
       setShowModal(false);
       fetchData();
     } catch (e: any) {
-      addToast(e.response?.data?.detail || 'Erreur lors de la sauvegarde', 'error');
+      const message = extractApiError(e, 'Erreur lors de la sauvegarde');
+      setFormError(message);
+      addToast(message.split('\n')[0], 'error');
     } finally {
       setSaving(false);
     }
@@ -204,6 +208,10 @@ export default function EssencesPage() {
       addToast('Erreur lors de la suppression en masse', 'error');
     }
   };
+
+  const mlRequisProduitFini = Number(produitFini.taille_ml || 0) * Number(produitFini.stock_disponible || 0);
+  const lotStockNum = parseFloat(lotStockMl || '0');
+  const stockInsuffisantProduitFini = includeProduitsFinis && mlRequisProduitFini > 0 && lotStockNum > 0 && mlRequisProduitFini > lotStockNum;
 
   const filtered = essences.filter(e =>
     (e.nom || '').toLowerCase().includes(search.toLowerCase()) ||
@@ -555,6 +563,17 @@ export default function EssencesPage() {
                                 <FloatInput label="Prix" type="number" value={produitFini.prix} onChange={e => setProduitFini(p => ({ ...p, prix: e.target.value }))} />
                                 <FloatInput label="Prix Promo" type="number" value={produitFini.prix_promotionnel} onChange={e => setProduitFini(p => ({ ...p, prix_promotionnel: e.target.value }))} />
                                 <FloatInput label="Stock" type="number" value={produitFini.stock_disponible} onChange={e => setProduitFini(p => ({ ...p, stock_disponible: e.target.value }))} />
+                                {mlRequisProduitFini > 0 && (
+                                  <div className={`col-span-2 rounded-lg border px-3 py-2 text-xs ${stockInsuffisantProduitFini ? 'border-red-500/30 bg-red-500/10 text-red-300' : 'border-white/10 bg-black/20 text-foreground/60'}`}>
+                                    Consommation lot : <strong>{mlRequisProduitFini} ml</strong> requis
+                                    {lotStockNum > 0 && (
+                                      <> — lot initial : <strong>{lotStockNum} ml</strong></>
+                                    )}
+                                    {stockInsuffisantProduitFini && (
+                                      <span className="block mt-1 text-red-400">Stock insuffisant pour ce format.</span>
+                                    )}
+                                  </div>
+                                )}
                               </div>
                             )}
                           </div>
@@ -562,7 +581,7 @@ export default function EssencesPage() {
                       )}
 
                       {formError && (
-                        <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-xs font-semibold">
+                        <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-xs font-semibold whitespace-pre-line">
                           {formError}
                         </div>
                       )}

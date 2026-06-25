@@ -10,6 +10,7 @@ import { useToastStore } from '@/store/useToastStore';
 import { useCatalogPermissions } from '@/hooks/useCatalogPermissions';
 import CatalogAccessNotice from '@/components/catalog/CatalogAccessNotice';
 import { extractCatalogList } from '@/lib/catalogUtils';
+import { extractApiError } from '@/lib/apiError';
 import Header from '@/components/admin/Header';
 import Sidebar from '@/components/admin/Sidebar';
 
@@ -398,7 +399,7 @@ function LotsTab() {
       setShowModal(false);
       fetchItems();
     } catch (e: any) {
-      addToast(e.response?.data?.detail || 'Erreur lors de la sauvegarde', 'error');
+      addToast(extractApiError(e, 'Erreur lors de la sauvegarde'), 'error');
     } finally {
       setSaving(false);
     }
