@@ -9,19 +9,10 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { User, UserRole } from '@/types';
 import { authService } from '@/services/apiService';
-import { api, rawApi, initializeTokenRefresh } from '@/services/api';
+import { api, rawApi } from '@/services/api';
 import { useToastStore } from './useToastStore';
 import { useCartStore } from './useCartStore';
 import { normalizeRoles, resolvePrimaryRole } from '@/lib/roleUtils';
-// FCM helpers — imported lazily to avoid SSR issues
-let _registerFCMDevice: (() => Promise<void>) | null = null;
-let _unregisterFCMDevice: (() => Promise<void>) | null = null;
-if (typeof window !== 'undefined') {
-  import('@/components/pwa/FCMProvider').then((mod) => {
-    _registerFCMDevice = mod.registerFCMDevice;
-    _unregisterFCMDevice = mod.unregisterFCMDevice;
-  });
-}
 
 function decodeJwt(token: string): any {
   try {
@@ -191,26 +182,23 @@ export const useAuthStore = create<AuthState>()(
           });
           addToast(`Bienvenue, ${meUser.firstName} !`, 'success');
 
-          // Initialize proactive token refresh
-          initializeTokenRefresh();
-
-          // Register FCM device for push notifications (non-blocking)
-          if (_registerFCMDevice) {
-            _registerFCMDevice().catch(console.warn);
-          }
-
           // Clear stale cart and sync fresh cart from backend after login
           // NOTE: Cart sync disabled until backend orders/panier endpoints are implemented
           const cartStore = useCartStore.getState();
           cartStore.clearCart();
-          // Fetch the latest cart for the authenticated user
-          cartStore.syncCart();
+          // Uncomment when backend has /api/v1/orders/panier/ endpoints:
+          // try {
+          //   await cartStore.syncCart();
+          // } catch (cartError) {
+          //   console.warn('Failed to sync cart after login:', cartError);
+          // }
 
           return true;
         } catch (error: any) {
           console.error('Login failed:', error);
           set({ isLoading: false });
-          throw error;
+          addToast(error.response?.data?.detail || 'Échec de la connexion', 'error');
+          return false;
         }
       },
 
@@ -234,7 +222,8 @@ export const useAuthStore = create<AuthState>()(
 
           if (!access) {
             set({ isLoading: false });
-            throw new Error('Connexion Google échouée (jeton absent).');
+            addToast('Connexion Google échouée (jeton absent).', 'error');
+            return false;
           }
 
           if (typeof window !== 'undefined') {
@@ -282,16 +271,13 @@ export const useAuthStore = create<AuthState>()(
             isLoading: false,
           });
           addToast(`Bienvenue, ${meUser.firstName} !`, 'success');
-
-          // Initialize proactive token refresh
-          initializeTokenRefresh();
-
           useCartStore.getState().clearCart();
           return true;
         } catch (error: any) {
           console.error('Google login failed:', error);
           set({ isLoading: false });
-          throw error;
+          addToast(error.response?.data?.detail || 'Échec de la connexion Google', 'error');
+          return false;
         }
       },
 
@@ -325,13 +311,15 @@ export const useAuthStore = create<AuthState>()(
 
           // Network / server unreachable
           if (!error?.response) {
-            throw new Error('Impossible de contacter le serveur. Vérifiez votre connexion.');
+            addToast('Impossible de contacter le serveur. Vérifiez votre connexion.', 'error');
+            return false;
           }
 
           // Server crash – Django returns an HTML error page
           const isHtml = typeof errData === 'string' && (errData.trimStart().startsWith('<') || errData.includes('<!DOCTYPE'));
           if (isHtml || status >= 500) {
-            throw new Error('Erreur serveur. Veuillez réessayer dans quelques instants.');
+            addToast('Erreur serveur. Veuillez réessayer dans quelques instants.', 'error');
+            return false;
           }
 
           // Extract the most helpful validation error from the backend JSON
@@ -356,15 +344,12 @@ export const useAuthStore = create<AuthState>()(
               if (allErrors) msg = allErrors;
             }
           }
-          throw new Error(msg);
+          addToast(msg, 'error');
+          return false;
         }
       },
 
       logout: async () => {
-        // Unregister FCM device before logout (non-blocking)
-        if (_unregisterFCMDevice) {
-          await _unregisterFCMDevice().catch(console.warn);
-        }
         try {
           await api.post('auth/logout/');
         } catch (e) {
@@ -533,8 +518,6 @@ export const useAuthStore = create<AuthState>()(
             if (hasToken) {
               // refreshUser uses rawApi (no interceptors) — safe to call in background
               state.refreshUser().catch(() => {});
-              // Initialize proactive token refresh on hydration
-              initializeTokenRefresh();
             } else {
               // No token in storage → clear persisted auth state immediately
               state.user = null;

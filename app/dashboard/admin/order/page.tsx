@@ -6,10 +6,14 @@ import {
   ChevronLeft, ChevronRight, X, Package, Bike, CreditCard,
   MapPin, Phone, User, Calendar, Tag, ClipboardList, AlertTriangle,
   Filter, ShoppingBag, Droplets, Save, SlidersHorizontal,
+  Download, FileText, Mail,
 } from 'lucide-react';
 import { orderService, adminService } from '@/services/apiService';
+import { invoiceService } from '@/services/invoiceService';
 import { useToastStore } from '@/store/useToastStore';
 import type { BackendOrder, BackendOrderLine } from '@/types';
+import Header from '@/components/admin/Header';
+import Sidebar from '@/components/admin/Sidebar';
 
 // ─── Status configs ───────────────────────────────────────────────────────────
 
@@ -79,6 +83,7 @@ function getDeliveryMethod(order: BackendOrder): string {
 
 export default function OrdersPage() {
   // ── sidebar state ──────────────────────────────────────────────────────────────
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   
   // ── list state ──────────────────────────────────────────────────────────────
   const [orders, setOrders]     = useState<BackendOrder[]>([]);
@@ -110,6 +115,7 @@ export default function OrdersPage() {
   const [editNote,         setEditNote]         = useState('');
   const [editFrais,        setEditFrais]        = useState('');
   const [saving,           setSaving]           = useState(false);
+  const [downloadingInvoice, setDownloadingInvoice] = useState(false);
   const [valDriverId,      setValDriverId]      = useState('');
   const [valDateEst,       setValDateEst]       = useState('');
 
@@ -193,6 +199,28 @@ export default function OrdersPage() {
       setSaving(false);
     }
   };
+
+  const handleDownloadInvoice = async (order: BackendOrder) => {
+    const num = order.numero_commande ?? String(order.id);
+    setDownloadingInvoice(true);
+    try {
+      await invoiceService.downloadInvoiceFile(num, `facture-${num}.pdf`);
+      addToast('Facture PDF téléchargée', 'success');
+    } catch (err: any) {
+      addToast(err.response?.data?.detail ?? 'Facture non disponible', 'error');
+    } finally {
+      setDownloadingInvoice(false);
+    }
+  };
+
+  const openInvoice = async (order: BackendOrder) => {
+    if (order.facture?.fichier_pdf) {
+      window.open(order.facture.fichier_pdf, '_blank');
+      return;
+    }
+    await handleDownloadInvoice(order);
+  };
+
   // ── cancel ────────────────────────────────────────────────────────────────────
   const handleCancel = async (order: BackendOrder) => {
     if (!confirm(`Annuler la commande ${order.numero_commande} ?`)) return;
@@ -269,7 +297,12 @@ export default function OrdersPage() {
 
   // ─────────────────────────────────────────────────────────────────────────────
   return (
-    <div className="space-y-6 animate-fade-in-up">
+    <div className="flex h-screen bg-background">
+      <Sidebar open={sidebarOpen} setOpen={setSidebarOpen} />
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <Header onMenuClick={() => setSidebarOpen(true)} />
+        <main className="flex-1 overflow-y-auto">
+          <div className="p-6 space-y-6 animate-fade-in-up">
 
       {/* ── Header ─────────────────────────────────────────────────────────── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -506,79 +539,12 @@ export default function OrdersPage() {
                             Valider
                           </button>
                         )}
-                        {order.statut === 'validé' && (order.statut_paiement !== 'payé' || order.statut_livraison !== 'livrée') && (
-                          <button
-                            onClick={async () => {
-                              if (!confirm(`Marquer la commande ${order.numero_commande} comme Livrée et Payée ?`)) return;
-                              try {
-                                setLoading(true);
-                                await orderService.updateOrder(order.numero_commande, {
-                                  statut_livraison: 'livrée',
-                                  statut_paiement: 'payé',
-                                });
-                                addToast('Commande marquée comme livrée et payée', 'success');
-                                fetchOrders(page);
-                              } catch (err: any) {
-                                addToast(err.response?.data?.detail ?? 'Erreur', 'error');
-                              } finally {
-                                setLoading(false);
-                              }
-                            }}
-                            className="px-2 py-1 bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg text-[10px] font-bold transition-all"
-                          >
-                            Livrer
-                          </button>
-                        )}
                         {isCancellable(order) && (
                           <button
                             onClick={() => handleCancel(order)}
                             className="px-2 py-1 bg-red-500 hover:bg-red-600 text-foreground rounded-lg text-[10px] font-bold transition-all"
                           >
-                            {order.statut_paiement === 'payé' && order.statut_livraison === 'livrée' ? 'Rembourser' : 'Annuler'}
-                          </button>
-                        )}
-                        {order.statut === 'annulée' && order.statut_paiement === 'payé' && (
-                          <button
-                            onClick={async () => {
-                              if (!confirm(`Rembourser la commande ${order.numero_commande} ?`)) return;
-                              try {
-                                setLoading(true);
-                                await orderService.updateOrder(order.numero_commande, {
-                                  statut: 'remboursée',
-                                });
-                                addToast('Commande remboursée', 'success');
-                                fetchOrders(page);
-                              } catch (err: any) {
-                                addToast(err.response?.data?.detail ?? 'Erreur', 'error');
-                              } finally {
-                                setLoading(false);
-                              }
-                            }}
-                            className="px-2 py-1 bg-purple-500 hover:bg-purple-600 text-white rounded-lg text-[10px] font-bold transition-all"
-                          >
-                            Rembourser
-                          </button>
-                        )}
-                        {order.statut === 'validé' && order.statut_paiement === 'payé' && order.statut_livraison === 'livrée' && (
-                          <button
-                            onClick={async () => {
-                              if (!confirm(`Rembourser la commande ${order.numero_commande} ?`)) return;
-                              try {
-                                setLoading(true);
-                                await orderService.updateOrder(order.numero_commande, {
-                                  statut: 'remboursée',
-                                });
-                                addToast('Commande remboursée', 'success');
-                                fetchOrders(page);
-                              } catch (err: any) {
-                                addToast(err.response?.data?.detail ?? 'Erreur', 'error');
-                              } finally {
-                                setLoading(false);
-                              }
-                            }}
-                            className="px-2 py-1 bg-purple-500 hover:bg-purple-600 text-white rounded-lg text-[10px] font-bold transition-all"
-                          >
-                            Rembourser
+                            Annuler
                           </button>
                         )}
                       </div>
@@ -739,6 +705,54 @@ export default function OrdersPage() {
                 </div>
               </div>
 
+              {/* facture / PDF */}
+              {(selected.facture || selected.statut_paiement === 'payé') && (
+                <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-2xl p-4 space-y-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2 text-emerald-400 text-xs font-semibold uppercase tracking-widest">
+                      <FileText size={14} /> Facture / Reçu PDF
+                    </div>
+                    {selected.facture?.envoye_par_email && (
+                      <span className="text-[10px] text-emerald-400/70 flex items-center gap-1">
+                        <Mail size={11} /> Envoyée par e-mail
+                      </span>
+                    )}
+                  </div>
+                  {selected.facture?.numero_facture && (
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="bg-white/5 rounded-xl px-3 py-2">
+                        <p className="text-[10px] text-foreground/40 mb-0.5">N° Facture</p>
+                        <p className="text-xs font-mono font-semibold text-foreground">{selected.facture.numero_facture}</p>
+                      </div>
+                      <div className="bg-white/5 rounded-xl px-3 py-2">
+                        <p className="text-[10px] text-foreground/40 mb-0.5">Date émission</p>
+                        <p className="text-xs font-medium text-foreground">{fmtDate(selected.facture.date_emission)}</p>
+                      </div>
+                    </div>
+                  )}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {selected.facture?.fichier_pdf && (
+                      <a
+                        href={selected.facture.fichier_pdf}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="w-full inline-flex items-center justify-center gap-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl py-2.5 text-sm font-semibold text-foreground transition-colors"
+                      >
+                        <FileText size={15} /> Ouvrir le PDF
+                      </a>
+                    )}
+                    <button
+                      onClick={() => openInvoice(selected)}
+                      disabled={downloadingInvoice}
+                      className="w-full inline-flex items-center justify-center gap-2 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 rounded-xl py-2.5 text-sm font-semibold transition-colors disabled:opacity-50"
+                    >
+                      {downloadingInvoice ? <Loader2 size={15} className="animate-spin" /> : <Download size={15} />}
+                      Télécharger la facture PDF
+                    </button>
+                  </div>
+                </div>
+              )}
+
               {/* actions */}
               <div className="flex flex-wrap gap-2 pt-2 border-t border-white/10">
                 {selected.statut === 'en_attente' && (
@@ -756,7 +770,7 @@ export default function OrdersPage() {
                     className="flex-1 min-w-[120px] bg-red-500 hover:bg-red-600 text-foreground rounded-xl py-2.5 text-xs font-bold flex items-center justify-center gap-1.5 transition-all"
                   >
                     <XCircle size={14} />
-                    {selected.statut_paiement === 'payé' && selected.statut_livraison === 'livrée' ? 'Rembourser' : 'Annuler'}
+                    Annuler
                   </button>
                 )}
                 <button
@@ -1014,6 +1028,9 @@ export default function OrdersPage() {
           </div>
         </div>
       )}
+          </div>
+        </main>
+      </div>
     </div>
   );
 }

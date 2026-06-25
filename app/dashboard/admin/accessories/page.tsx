@@ -1,6 +1,5 @@
 'use client';
 
-import { cn } from '@/lib/utils';
 import { useState, useEffect, useCallback } from 'react';
 import { Search, Plus, Edit2, Trash2, Loader2 } from 'lucide-react';
 import { shopService, adminService } from '@/services/apiService';
@@ -10,7 +9,6 @@ import CatalogAccessNotice from '@/components/catalog/CatalogAccessNotice';
 import { extractCatalogList } from '@/lib/catalogUtils';
 import { MultiImageUpload } from '@/components/MultiImageUpload';
 import { CreateCategoryModal } from '@/components/CreateCategoryModal';
-import { Input } from '@/components/ui/Input';
 
 export default function AccessoriesPage() {
   const permissions = useCatalogPermissions('accessoires');
@@ -54,7 +52,6 @@ export default function AccessoriesPage() {
     seuil_alerte_stock: '3',
     poids_grammes: '',
   });
-  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
   const { addToast } = useToastStore();
 
@@ -98,7 +95,6 @@ export default function AccessoriesPage() {
 
   const handleOpenAdd = () => {
     if (!permissions.canCreate) return;
-    setFormErrors({});
     setEditingAccessory(null);
     setForm({
       marque: 'Accessoire Exclusif',
@@ -130,7 +126,6 @@ export default function AccessoriesPage() {
 
   const handleOpenEdit = (acc: any) => {
     if (!permissions.canUpdate) return;
-    setFormErrors({});
     setEditingAccessory(acc);
     setForm({
       marque: acc.marque || 'Accessoire Exclusif',
@@ -173,19 +168,10 @@ export default function AccessoriesPage() {
 
   const handleSave = async () => {
     if (!permissions.canCreate && !permissions.canUpdate) return;
-    
-    const errors: Record<string, string> = {};
-    if (!form.marque) errors.marque = 'La marque est requise';
-    if (!form.nom) errors.nom = 'Le nom est requis';
-    if (!form.prix_unitaire) errors.prix_unitaire = 'Le prix unitaire est requis';
-    if (!form.type_accessoire) errors.type_accessoire = 'Le type d\'accessoire est requis';
-    if (!form.stock_quantite) errors.stock_quantite = 'La quantité en stock est requise';
-
-    if (Object.keys(errors).length > 0) {
-      setFormErrors(errors);
+    if (!form.marque || !form.nom || !form.prix_unitaire || !form.type_accessoire || !form.stock_quantite) {
+      addToast('Champs requis manquants: Nom, Prix, Type, Stock', 'error');
       return;
     }
-    setFormErrors({});
 
     const formData = new FormData();
     Object.entries(form).forEach(([key, val]) => {
@@ -213,7 +199,7 @@ export default function AccessoriesPage() {
       setShowModal(false);
       fetchAccessories();
     } catch (error: any) {
-      setFormErrors({ apiError: error.response?.data?.detail || 'Erreur lors de la sauvegarde' });
+      addToast(error.response?.data?.detail || 'Erreur lors de la sauvegarde', 'error');
     }
   };
 
@@ -474,143 +460,131 @@ export default function AccessoriesPage() {
             <h3 className="font-bold text-foreground mb-4">
               {editingAccessory ? 'Modifier l\'accessoire' : 'Ajouter un accessoire'}
             </h3>
-             {formErrors.apiError && (
-              <div className="p-3.5 mb-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-500 text-xs font-semibold text-center">
-                {formErrors.apiError}
-              </div>
-            )}
-
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Left column */}
               <div className="space-y-4">
-                <Input
+                <input
                   placeholder="Marque *"
                   value={form.marque}
                   onChange={e => updateForm('marque', e.target.value)}
-                  error={formErrors.marque}
+                  className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
                 />
-                <Input
-                  placeholder="Nom de l'accessoire *"
+                <input
+                  placeholder="Nom de l'accessoire"
                   value={form.nom}
                   onChange={e => updateForm('nom', e.target.value)}
-                  error={formErrors.nom}
+                  className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
                 />
-                <div className="flex gap-2 items-end">
-                  <div className="flex-1">
-                    {formErrors.type_accessoire && (
-                      <span className="text-[10px] text-red-500 block mb-1 font-bold">{formErrors.type_accessoire}</span>
-                    )}
-                    <select
-                      value={form.type_accessoire}
-                      onChange={e => updateForm('type_accessoire', e.target.value)}
-                      className={cn(
-                        "w-full bg-white/5 border rounded-xl px-3 py-2.5 text-sm text-foreground outline-none focus:border-gold",
-                        formErrors.type_accessoire ? "border-red-500 focus:border-red-500" : "border-white/10"
-                      )}
-                    >
-                      <option value="" disabled className="bg-neutral-900">Type d'accessoire *</option>
-                      {accessoryTypes.map(t => (
-                        <option key={t.id} value={t.id} className="bg-neutral-900">{t.nom}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <button type="button" onClick={() => setIsTypeModalOpen(true)} className="px-3 py-2.5 bg-gold text-neutral-900 rounded-xl hover:bg-gold/80 font-medium">
+                <div className="flex gap-2">
+                  <select
+                    value={form.type_accessoire}
+                    onChange={e => updateForm('type_accessoire', e.target.value)}
+                    className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
+                  >
+                    <option value="" disabled className="bg-neutral-900">Type d'accessoire</option>
+                    {accessoryTypes.map(t => (
+                      <option key={t.id} value={t.id} className="bg-neutral-900">{t.nom}</option>
+                    ))}
+                  </select>
+                  <button type="button" onClick={() => setIsTypeModalOpen(true)} className="px-3 py-2 bg-gold text-neutral-900 rounded-lg hover:bg-gold/80 font-medium">
                     +
                   </button>
                 </div>
-                <Input
+                <input
                   placeholder="Slug (optionnel)"
                   value={form.slug}
                   onChange={e => updateForm('slug', e.target.value)}
+                  className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
                 />
-                <Input
+                <input
                   placeholder="Référence SKU (optionnel)"
                   value={form.reference_sku}
                   onChange={e => updateForm('reference_sku', e.target.value)}
+                  className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
                 />
-                <div className="relative mt-2">
-                  <textarea
-                    placeholder="Description courte"
-                    value={form.description_courte}
-                    onChange={e => updateForm('description_courte', e.target.value)}
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-foreground outline-none focus:border-gold resize-none"
-                    rows={2}
-                  />
-                </div>
+                <textarea
+                  placeholder="Description courte"
+                  value={form.description_courte}
+                  onChange={e => updateForm('description_courte', e.target.value)}
+                  className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
+                  rows={2}
+                />
               </div>
 
               {/* Right column */}
               <div className="space-y-4">
-                <div className="relative">
-                  <textarea
-                    placeholder="Description longue"
-                    value={form.description_longue}
-                    onChange={e => updateForm('description_longue', e.target.value)}
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-foreground outline-none focus:border-gold resize-none"
-                    rows={3}
-                  />
-                </div>
-                <div className="relative">
-                  <textarea
-                    placeholder="Description IA"
-                    value={form.description_ia}
-                    onChange={e => updateForm('description_ia', e.target.value)}
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-foreground outline-none focus:border-gold resize-none"
-                    rows={2}
-                  />
-                </div>
+                <textarea
+                  placeholder="Description longue"
+                  value={form.description_longue}
+                  onChange={e => updateForm('description_longue', e.target.value)}
+                  className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
+                  rows={3}
+                />
+                <textarea
+                  placeholder="Description IA"
+                  value={form.description_ia}
+                  onChange={e => updateForm('description_ia', e.target.value)}
+                  className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
+                  rows={2}
+                />
                 <div className="grid grid-cols-3 gap-2">
-                  <Input
+                  <input
                     placeholder="Matière"
                     value={form.matiere}
                     onChange={e => updateForm('matiere', e.target.value)}
+                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-foreground outline-none focus:border-gold"
                   />
-                  <Input
+                  <input
                     placeholder="Couleur"
                     value={form.couleur}
                     onChange={e => updateForm('couleur', e.target.value)}
+                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-foreground outline-none focus:border-gold"
                   />
-                  <Input
+                  <input
                     placeholder="Taille"
                     value={form.taille}
                     onChange={e => updateForm('taille', e.target.value)}
+                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-foreground outline-none focus:border-gold"
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
-                  <Input
-                    placeholder="Prix unitaire (FCFA) *"
+                  <input
+                    placeholder="Prix unitaire (FCFA)"
                     type="number"
                     value={form.prix_unitaire}
                     onChange={e => updateForm('prix_unitaire', e.target.value)}
-                    error={formErrors.prix_unitaire}
+                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
                   />
-                  <Input
+                  <input
                     placeholder="Prix promo (optionnel)"
                     type="number"
                     value={form.prix_promotionnel}
                     onChange={e => updateForm('prix_promotionnel', e.target.value)}
+                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
-                  <Input
-                    placeholder="Quantité en stock *"
+                  <input
+                    placeholder="Quantité en stock"
                     type="number"
                     value={form.stock_quantite}
                     onChange={e => updateForm('stock_quantite', e.target.value)}
-                    error={formErrors.stock_quantite}
+                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
                   />
-                  <Input
+                  <input
                     placeholder="Seuil d'alerte"
                     type="number"
                     value={form.seuil_alerte_stock}
                     onChange={e => updateForm('seuil_alerte_stock', e.target.value)}
+                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
                   />
                 </div>
-                <Input
+                <input
                   placeholder="Poids (grammes)"
                   type="number"
                   value={form.poids_grammes}
                   onChange={e => updateForm('poids_grammes', e.target.value)}
+                  className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
                 />
               </div>
             </div>

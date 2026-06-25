@@ -7,9 +7,11 @@ import { useToastStore } from '@/store/useToastStore';
 import { useCatalogPermissions } from '@/hooks/useCatalogPermissions';
 import CatalogAccessNotice from '@/components/catalog/CatalogAccessNotice';
 import { extractCatalogList } from '@/lib/catalogUtils';
-import { FloatInput } from '@/components/ui/Input';
+import Header from '@/components/admin/Header';
+import Sidebar from '@/components/admin/Sidebar';
 
 export default function FlaconsAdminPage() {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const permissions = useCatalogPermissions('flacons');
   const [bottles, setBottles] = useState<any[]>([]);
   const [bottleTypes, setBottleTypes] = useState<any[]>([]);
@@ -19,8 +21,6 @@ export default function FlaconsAdminPage() {
   const [enStockFilter, setEnStockFilter] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [editingBottle, setEditingBottle] = useState<any | null>(null);
-  const [selectedBottles, setSelectedBottles] = useState<Set<number>>(new Set());
-  const [formError, setFormError] = useState('');
 
   const [form, setForm] = useState({
     nom: '',
@@ -89,7 +89,6 @@ export default function FlaconsAdminPage() {
       seuil_alerte_stock: 10,
       actif: true
     });
-    setFormError('');
     setShowModal(true);
   };
 
@@ -111,19 +110,17 @@ export default function FlaconsAdminPage() {
       seuil_alerte_stock: bot.seuil_alerte_stock || 10,
       actif: bot.actif !== undefined ? bot.actif : true
     });
-    setFormError('');
     setShowModal(true);
   };
 
   const handleSave = async () => {
     if (!permissions.canCreate && !permissions.canUpdate) return;
     if (!form.nom || !form.type_flacon) {
-      setFormError('Champs requis : Nom, Type Flacon');
+      addToast('Champs requis : Nom, Type Flacon', 'error');
       return;
     }
 
     try {
-      setFormError('');
       const payload = {
         ...form,
         type_flacon: Number(form.type_flacon),
@@ -143,7 +140,7 @@ export default function FlaconsAdminPage() {
       setShowModal(false);
       fetchBottlesAndTypes();
     } catch (error: any) {
-      setFormError(error.response?.data?.detail || 'Erreur lors de la sauvegarde');
+      addToast(error.response?.data?.detail || 'Erreur lors de la sauvegarde', 'error');
     }
   };
 
@@ -159,37 +156,6 @@ export default function FlaconsAdminPage() {
     }
   };
 
-  const toggleSelectBottle = (id: number) => {
-    setSelectedBottles(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(id)) {
-        newSet.delete(id);
-      } else {
-        newSet.add(id);
-      }
-      return newSet;
-    });
-  };
-
-  const handleBulkDelete = async () => {
-    if (!permissions.canDelete || selectedBottles.size === 0) return;
-    if (!confirm(`Supprimer ${selectedBottles.size} flacon(s) ?`)) return;
-    try {
-      for (const id of selectedBottles) {
-        try {
-          await shopService.deleteBottle(id);
-        } catch (e) {
-          console.error(`Failed to delete bottle ${id}:`, e);
-        }
-      }
-      addToast(`${selectedBottles.size} flacon(s) supprimé(s)`, 'success');
-      setSelectedBottles(new Set());
-      fetchBottlesAndTypes();
-    } catch (error) {
-      addToast('Erreur lors de la suppression en masse', 'error');
-    }
-  };
-
   if (!permissions.canRead) {
     return (
       <div className="space-y-6">
@@ -199,28 +165,22 @@ export default function FlaconsAdminPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="flex h-screen bg-background">
+      <Sidebar open={sidebarOpen} setOpen={setSidebarOpen} />
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <Header onMenuClick={() => setSidebarOpen(true)} />
+        <main className="flex-1 overflow-y-auto">
+          <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Catalogue Flacons</h1>
           <p className="text-sm text-foreground/40 mt-0.5">Gestion des types et volumes de flacons</p>
         </div>
-        <div className="flex items-center gap-2">
-          {selectedBottles.size > 0 && permissions.canDelete && (
-            <button
-              onClick={handleBulkDelete}
-              className="flex items-center gap-2 bg-red-500 text-white px-4 py-2.5 rounded-xl text-sm font-medium hover:bg-red-600 transition-all shadow-lg"
-            >
-              <Trash2 size={16} />
-              Supprimer ({selectedBottles.size})
-            </button>
-          )}
-          {permissions.canCreate && (
-            <button onClick={handleOpenAdd} className="flex items-center gap-2 bg-gold text-black px-4 py-2.5 rounded-xl text-sm font-medium hover:bg-gold/80 transition-all shadow-lg">
-              <Plus size={16} /> Ajouter
-            </button>
-          )}
-        </div>
+        {permissions.canCreate && (
+          <button onClick={handleOpenAdd} className="flex items-center gap-2 bg-gold text-black px-4 py-2.5 rounded-xl text-sm font-medium hover:bg-gold/80 transition-all shadow-lg">
+            <Plus size={16} /> Ajouter
+          </button>
+        )}
       </div>
 
       <CatalogAccessNotice permissions={permissions} resourceLabel="les flacons" />
@@ -267,20 +227,6 @@ export default function FlaconsAdminPage() {
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="border-b border-white/10 bg-white/5">
-                  <th className="px-6 py-4 w-12">
-                    <input
-                      type="checkbox"
-                      checked={bottles.length > 0 && selectedBottles.size === bottles.length}
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          setSelectedBottles(new Set(bottles.map(b => b.id)));
-                        } else {
-                          setSelectedBottles(new Set());
-                        }
-                      }}
-                      className="rounded border-white/10 bg-white/5 text-gold focus:ring-gold"
-                    />
-                  </th>
                   <th className="px-6 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider">Nom</th>
                   <th className="px-6 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider">SKU</th>
                   <th className="px-6 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider">Contenance</th>
@@ -292,14 +238,6 @@ export default function FlaconsAdminPage() {
               <tbody className="divide-y divide-white/5">
                 {bottles.map(b => (
                   <tr key={b.id} className="hover:bg-white/5 transition-colors group">
-                    <td className="px-6 py-4 w-12">
-                      <input
-                        type="checkbox"
-                        checked={selectedBottles.has(b.id)}
-                        onChange={() => toggleSelectBottle(b.id)}
-                        className="rounded border-white/10 bg-white/5 text-gold focus:ring-gold"
-                      />
-                    </td>
                     <td className="px-6 py-4 font-medium text-foreground">{b.nom}</td>
                     <td className="px-6 py-4 text-sm text-foreground/60">{b.reference_sku}</td>
                     <td className="px-6 py-4 text-sm text-foreground/60">{b.contenance_ml} ml</td>
@@ -323,7 +261,7 @@ export default function FlaconsAdminPage() {
                 ))}
                 {bottles.length === 0 && (
                   <tr>
-                    <td colSpan={7} className="text-center py-20 text-foreground/40 italic">Aucun flacon trouvé.</td>
+                    <td colSpan={6} className="text-center py-20 text-foreground/40 italic">Aucun flacon trouvé.</td>
                   </tr>
                 )}
               </tbody>
@@ -333,89 +271,72 @@ export default function FlaconsAdminPage() {
       </div>
 
       {showModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex p-4 overflow-y-auto" onClick={() => setShowModal(false)}>
-          <div className="bg-background rounded-2xl p-6 w-full max-w-6xl shadow-2xl border border-white/10 overflow-y-auto max-h-fit my-auto mx-auto" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-background rounded-2xl p-6 w-full max-w-2xl shadow-2xl border border-white/10 max-h-[90vh] overflow-y-auto">
             <h3 className="font-bold text-foreground mb-4">{editingBottle ? 'Modifier le flacon' : 'Ajouter un flacon'}</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-4">
-                <FloatInput
-                  label="Nom *"
-                  placeholder="Nom du flacon"
-                  value={form.nom}
-                  onChange={e => updateForm('nom', e.target.value)}
-                />
-                <FloatInput
-                  label="Référence SKU *"
-                  placeholder="Ex: FLC-CRT-100"
-                  value={form.reference_sku}
-                  onChange={e => updateForm('reference_sku', e.target.value)}
-                />
                 <div>
-                  <label className="text-[10px] font-bold text-gold uppercase block mb-1">Type de Flacon *</label>
-                  <select value={form.type_flacon} onChange={e => updateForm('type_flacon', e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-foreground outline-none focus:border-gold">
+                  <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Nom *</label>
+                  <input placeholder="Nom du flacon" value={form.nom} onChange={e => updateForm('nom', e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold" />
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Référence SKU *</label>
+                  <input placeholder="Ex: FLC-CRT-100" value={form.reference_sku} onChange={e => updateForm('reference_sku', e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold" />
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Type de Flacon *</label>
+                  <select value={form.type_flacon} onChange={e => updateForm('type_flacon', e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold">
                     <option value="" disabled className="text-black bg-white">Type Flacon</option>
                     {bottleTypes.map(t => <option key={t.id} value={t.id} className="text-black bg-white">{t.nom}</option>)}
                   </select>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
-                  <FloatInput
-                    label="Contenance (ml)"
-                    type="number"
-                    value={form.contenance_ml}
-                    onChange={e => updateForm('contenance_ml', e.target.value)}
-                  />
-                  <FloatInput
-                    label="Poids (g)"
-                    type="number"
-                    value={form.poids_grammes}
-                    onChange={e => updateForm('poids_grammes', e.target.value)}
-                  />
+                  <div>
+                    <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Contenance (ml)</label>
+                    <input type="number" value={form.contenance_ml} onChange={e => updateForm('contenance_ml', e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold" />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Poids (g)</label>
+                    <input type="number" value={form.poids_grammes} onChange={e => updateForm('poids_grammes', e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold" />
+                  </div>
                 </div>
               </div>
 
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-3">
-                  <FloatInput
-                    label="Matière"
-                    value={form.matiere}
-                    onChange={e => updateForm('matiere', e.target.value)}
-                  />
-                  <FloatInput
-                    label="Couleur"
-                    value={form.couleur}
-                    onChange={e => updateForm('couleur', e.target.value)}
-                  />
+                  <div>
+                    <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Matière</label>
+                    <input value={form.matiere} onChange={e => updateForm('matiere', e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold" />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Couleur</label>
+                    <input value={form.couleur} onChange={e => updateForm('couleur', e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold" />
+                  </div>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
-                  <FloatInput
-                    label="Hauteur (cm)"
-                    value={form.hauteur_cm}
-                    onChange={e => updateForm('hauteur_cm', e.target.value)}
-                  />
-                  <FloatInput
-                    label="Largeur (cm)"
-                    value={form.largeur_cm}
-                    onChange={e => updateForm('largeur_cm', e.target.value)}
-                  />
+                  <div>
+                    <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Hauteur (cm)</label>
+                    <input value={form.hauteur_cm} onChange={e => updateForm('hauteur_cm', e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold" />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Largeur (cm)</label>
+                    <input value={form.largeur_cm} onChange={e => updateForm('largeur_cm', e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold" />
+                  </div>
                 </div>
-                <FloatInput
-                  label="Prix Unitaire (FCFA)"
-                  value={form.prix_unitaire}
-                  onChange={e => updateForm('prix_unitaire', e.target.value)}
-                />
+                <div>
+                  <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Prix Unitaire (FCFA)</label>
+                  <input value={form.prix_unitaire} onChange={e => updateForm('prix_unitaire', e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold" />
+                </div>
                 <div className="grid grid-cols-2 gap-3">
-                  <FloatInput
-                    label="Stock Initial"
-                    type="number"
-                    value={form.stock_quantite}
-                    onChange={e => updateForm('stock_quantite', e.target.value)}
-                  />
-                  <FloatInput
-                    label="Seuil Alerte"
-                    type="number"
-                    value={form.seuil_alerte_stock}
-                    onChange={e => updateForm('seuil_alerte_stock', e.target.value)}
-                  />
+                  <div>
+                    <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Stock Initial</label>
+                    <input type="number" value={form.stock_quantite} onChange={e => updateForm('stock_quantite', e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold" />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Seuil Alerte</label>
+                    <input type="number" value={form.seuil_alerte_stock} onChange={e => updateForm('seuil_alerte_stock', e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold" />
+                  </div>
                 </div>
                 <div>
                   <label className="flex items-center gap-2 cursor-pointer pt-2">
@@ -431,12 +352,6 @@ export default function FlaconsAdminPage() {
               </div>
             </div>
 
-            {formError && (
-              <p className="text-sm font-semibold text-red-500 bg-red-500/10 border border-red-500/20 px-4 py-2.5 rounded-xl text-center mt-4">
-                {formError}
-              </p>
-            )}
-
             <div className="flex gap-3 mt-6">
               <button onClick={() => setShowModal(false)} className="flex-1 border border-white/10 rounded-lg py-2.5 text-sm text-foreground/60 hover:bg-white/5 transition-colors">Annuler</button>
               <button onClick={handleSave} className="flex-1 bg-gold text-black rounded-lg py-2.5 text-sm font-bold hover:bg-gold/80 transition-colors">Enregistrer</button>
@@ -444,6 +359,9 @@ export default function FlaconsAdminPage() {
           </div>
         </div>
       )}
+          </div>
+        </main>
+      </div>
     </div>
   );
 }

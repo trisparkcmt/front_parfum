@@ -10,7 +10,8 @@ import { useToastStore } from '@/store/useToastStore';
 import { useCatalogPermissions } from '@/hooks/useCatalogPermissions';
 import CatalogAccessNotice from '@/components/catalog/CatalogAccessNotice';
 import { extractCatalogList } from '@/lib/catalogUtils';
-import { FloatInput } from '@/components/ui/Input';
+import Header from '@/components/admin/Header';
+import Sidebar from '@/components/admin/Sidebar';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -52,7 +53,6 @@ function IngredientsTab() {
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState<any | null>(null);
   const [saving, setSaving] = useState(false);
-  const [formError, setFormError] = useState<string | null>(null);
   const { addToast } = useToastStore();
 
   const [form, setForm] = useState({
@@ -86,7 +86,6 @@ function IngredientsTab() {
     if (!permissions.canCreate) return;
     setEditing(null);
     setForm({ nom: '', description: '', prix_par_ml: '', stock_ml: '', seuil_alerte_ml: '0', actif: true });
-    setFormError(null);
     setShowModal(true);
   };
 
@@ -101,16 +100,13 @@ function IngredientsTab() {
       seuil_alerte_ml: String(item.seuil_alerte_ml ?? '0'),
       actif: item.actif !== undefined ? item.actif : true,
     });
-    setFormError(null);
     setShowModal(true);
   };
 
   const handleSave = async () => {
     if (!permissions.canCreate && !permissions.canUpdate) return;
-    setFormError(null);
     if (!form.nom || !form.prix_par_ml || !form.stock_ml) {
-      setFormError('Nom, prix par ml et stock requis');
-      return;
+      addToast('Nom, prix par ml et stock requis', 'error'); return;
     }
     try {
       setSaving(true);
@@ -149,8 +145,6 @@ function IngredientsTab() {
       addToast('Erreur lors de la suppression', 'error');
     }
   };
-
-  const filtered = items;
 
   if (!permissions.canRead) {
     return <CatalogAccessNotice permissions={permissions} resourceLabel="les ingrédients" />;
@@ -198,7 +192,7 @@ function IngredientsTab() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
-                {filtered.map(item => (
+                {items.map(item => (
                   <tr key={item.id} className="hover:bg-white/5 transition-colors">
                     <td className="px-5 py-3">
                       <p className="font-semibold text-foreground text-sm">{item.nom}</p>
@@ -238,7 +232,7 @@ function IngredientsTab() {
                     </td>
                   </tr>
                 ))}
-                {filtered.length === 0 && (
+                {items.length === 0 && (
                   <tr>
                     <td colSpan={6} className="text-center py-16 text-foreground/40 italic text-sm">Aucun ingrédient trouvé.</td>
                   </tr>
@@ -254,40 +248,36 @@ function IngredientsTab() {
           <div className="bg-background rounded-2xl p-6 w-full max-w-md shadow-2xl border border-white/10">
             <h3 className="font-bold text-foreground mb-4">{editing ? 'Modifier l\'ingrédient' : 'Ajouter un ingrédient'}</h3>
             <div className="space-y-3">
-              <FloatInput
-                label="Nom *"
-                placeholder="Ex: Huile de Rose"
-                value={form.nom}
-                onChange={e => setForm(p => ({ ...p, nom: e.target.value }))}
-              />
-              <FloatInput
-                label="Description"
-                placeholder="Description de l'ingrédient"
-                value={form.description}
-                onChange={e => setForm(p => ({ ...p, description: e.target.value }))}
-              />
+              {[
+                { label: 'Nom *', field: 'nom', placeholder: 'Ex: Huile de Rose' },
+                { label: 'Description', field: 'description', placeholder: 'Description de l\'ingrédient' },
+              ].map(f => (
+                <div key={f.field}>
+                  <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">{f.label}</label>
+                  <input
+                    value={(form as any)[f.field]}
+                    onChange={e => setForm(p => ({ ...p, [f.field]: e.target.value }))}
+                    placeholder={f.placeholder}
+                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
+                  />
+                </div>
+              ))}
               <div className="grid grid-cols-3 gap-3">
-                <FloatInput
-                  label="Prix / ml (FCFA) *"
-                  placeholder="500"
-                  type="number"
-                  value={form.prix_par_ml}
-                  onChange={e => setForm(p => ({ ...p, prix_par_ml: e.target.value }))}
-                />
-                <FloatInput
-                  label="Stock (ml) *"
-                  placeholder="100"
-                  type="number"
-                  value={form.stock_ml}
-                  onChange={e => setForm(p => ({ ...p, stock_ml: e.target.value }))}
-                />
-                <FloatInput
-                  label="Seuil alerte (ml)"
-                  placeholder="0"
-                  type="number"
-                  value={form.seuil_alerte_ml}
-                  onChange={e => setForm(p => ({ ...p, seuil_alerte_ml: e.target.value }))}
-                />
+                {[
+                  { label: 'Prix / ml (FCFA) *', field: 'prix_par_ml', placeholder: '500' },
+                  { label: 'Stock (ml) *', field: 'stock_ml', placeholder: '100' },
+                  { label: 'Seuil alerte (ml)', field: 'seuil_alerte_ml', placeholder: '0' },
+                ].map(f => (
+                  <div key={f.field}>
+                    <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">{f.label}</label>
+                    <input
+                      value={(form as any)[f.field]}
+                      onChange={e => setForm(p => ({ ...p, [f.field]: e.target.value }))}
+                      placeholder={f.placeholder}
+                      className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
+                    />
+                  </div>
+                ))}
               </div>
               <label className="flex items-center gap-2 cursor-pointer pt-1">
                 <input
@@ -299,11 +289,6 @@ function IngredientsTab() {
                 <span className="text-sm text-foreground/60">Ingrédient actif</span>
               </label>
             </div>
-            {formError && (
-              <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-xs font-semibold mt-3">
-                {formError}
-              </div>
-            )}
             <div className="flex gap-3 mt-5">
               <button onClick={() => setShowModal(false)} className="flex-1 border border-white/10 rounded-lg py-2.5 text-sm text-foreground/60 hover:bg-white/5 transition-colors">
                 Annuler
@@ -332,7 +317,6 @@ function LotsTab() {
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState<any | null>(null);
   const [saving, setSaving] = useState(false);
-  const [formError, setFormError] = useState<string | null>(null);
   const { addToast } = useToastStore();
 
   const [form, setForm] = useState({
@@ -374,7 +358,6 @@ function LotsTab() {
     if (!permissions.canCreate) return;
     setEditing(null);
     setForm({ essence: essences[0]?.id ? String(essences[0].id) : '', stock_ml: '', seuil_alerte_ml: '', reference_fournisseur: '', actif: true });
-    setFormError(null);
     setShowModal(true);
   };
 
@@ -388,16 +371,13 @@ function LotsTab() {
       reference_fournisseur: item.reference_fournisseur || '',
       actif: item.actif !== undefined ? item.actif : true,
     });
-    setFormError(null);
     setShowModal(true);
   };
 
   const handleSave = async () => {
     if (!permissions.canCreate && !permissions.canUpdate) return;
-    setFormError(null);
     if (!form.essence || !form.stock_ml) {
-      setFormError('Essence et stock (ml) requis');
-      return;
+      addToast('Essence et stock (ml) requis', 'error'); return;
     }
     try {
       setSaving(true);
@@ -556,27 +536,36 @@ function LotsTab() {
                 </select>
               </div>
               <div className="grid grid-cols-2 gap-3">
-                <FloatInput
-                  label="Stock reçu (ml) *"
-                  type="number"
-                  placeholder="500"
-                  value={form.stock_ml}
-                  onChange={e => setForm(p => ({ ...p, stock_ml: e.target.value }))}
-                />
-                <FloatInput
-                  label="Seuil alerte (ml)"
-                  type="number"
-                  placeholder="50"
-                  value={form.seuil_alerte_ml}
-                  onChange={e => setForm(p => ({ ...p, seuil_alerte_ml: e.target.value }))}
+                <div>
+                  <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Stock reçu (ml) *</label>
+                  <input
+                    type="number"
+                    value={form.stock_ml}
+                    onChange={e => setForm(p => ({ ...p, stock_ml: e.target.value }))}
+                    placeholder="500"
+                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Seuil alerte (ml)</label>
+                  <input
+                    type="number"
+                    value={form.seuil_alerte_ml}
+                    onChange={e => setForm(p => ({ ...p, seuil_alerte_ml: e.target.value }))}
+                    placeholder="50"
+                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Référence fournisseur</label>
+                <input
+                  value={form.reference_fournisseur}
+                  onChange={e => setForm(p => ({ ...p, reference_fournisseur: e.target.value }))}
+                  placeholder="LOT-GRASSET-PATCH-09"
+                  className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
                 />
               </div>
-              <FloatInput
-                label="Référence fournisseur"
-                placeholder="LOT-GRASSET-PATCH-09"
-                value={form.reference_fournisseur}
-                onChange={e => setForm(p => ({ ...p, reference_fournisseur: e.target.value }))}
-              />
               <label className="flex items-center gap-2 cursor-pointer pt-1">
                 <input
                   type="checkbox"
@@ -587,11 +576,6 @@ function LotsTab() {
                 <span className="text-sm text-foreground/60">Lot actif</span>
               </label>
             </div>
-            {formError && (
-              <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-xs font-semibold mt-3">
-                {formError}
-              </div>
-            )}
             <div className="flex gap-3 mt-5">
               <button onClick={() => setShowModal(false)} className="flex-1 border border-white/10 rounded-lg py-2.5 text-sm text-foreground/60 hover:bg-white/5 transition-colors">
                 Annuler
@@ -767,20 +751,21 @@ function InventoryTab() {
               {editing.essence_details?.nom || `Essence #${editing.essence || editing.id}`}
             </p>
             <div className="space-y-3">
-              <FloatInput
-                label="Quantité disponible (ml)"
-                type="number"
-                placeholder="5000"
-                value={form.quantite_disponible_ml}
-                onChange={e => setForm(p => ({ ...p, quantite_disponible_ml: e.target.value }))}
-              />
-              <FloatInput
-                label="Seuil d'alerte (ml)"
-                type="number"
-                placeholder="500"
-                value={form.seuil_alerte_ml}
-                onChange={e => setForm(p => ({ ...p, seuil_alerte_ml: e.target.value }))}
-              />
+              {[
+                { label: 'Quantité disponible (ml)', field: 'quantite_disponible_ml', placeholder: '5000' },
+                { label: 'Seuil d\'alerte (ml)', field: 'seuil_alerte_ml', placeholder: '500' },
+              ].map(f => (
+                <div key={f.field}>
+                  <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">{f.label}</label>
+                  <input
+                    type="number"
+                    value={(form as any)[f.field]}
+                    onChange={e => setForm(p => ({ ...p, [f.field]: e.target.value }))}
+                    placeholder={f.placeholder}
+                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
+                  />
+                </div>
+              ))}
             </div>
             <div className="flex gap-3 mt-5">
               <button onClick={() => setShowModal(false)} className="flex-1 border border-white/10 rounded-lg py-2.5 text-sm text-foreground/60 hover:bg-white/5 transition-colors">
@@ -802,9 +787,15 @@ function InventoryTab() {
 
 export default function LabPage() {
   const [activeTab, setActiveTab] = useState<TabKey>('ingredients');
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
-    <div className="space-y-6 animate-fade-in-up">
+    <div className="flex h-screen bg-background">
+      <Sidebar open={sidebarOpen} setOpen={setSidebarOpen} />
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <Header onMenuClick={() => setSidebarOpen(true)} />
+        <main className="flex-1 overflow-y-auto">
+          <div className="p-6 space-y-6 animate-fade-in-up">
             {/* Header */}
             <div>
               <h1 className="text-2xl font-bold text-foreground">Laboratoire</h1>
@@ -813,7 +804,7 @@ export default function LabPage() {
               </p>
             </div>
 
-            {/* Tabs */}
+            {/* Tabs Panel */}
             <div className="bg-white/5 rounded-2xl border border-white/10 overflow-hidden shadow-xl">
               <div className="flex border-b border-white/10 overflow-x-auto">
                 <TabButton
@@ -842,6 +833,9 @@ export default function LabPage() {
                 {activeTab === 'inventory' && <InventoryTab />}
               </div>
             </div>
+          </div>
+        </main>
+      </div>
     </div>
   );
 }

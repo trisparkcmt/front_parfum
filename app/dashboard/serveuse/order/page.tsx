@@ -3,9 +3,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
   Search, Eye, CheckCircle, XCircle, Truck, Loader2, RefreshCw,
-  Package, MapPin, Phone, User, Calendar, Tag, X,
+  Package, MapPin, Phone, User, Calendar, Tag, X, Download, FileText, Mail,
 } from 'lucide-react';
 import { orderService, adminService } from '@/services/apiService';
+import { invoiceService } from '@/services/invoiceService';
 import { useToastStore } from '@/store/useToastStore';
 
 // ─── Status configs ───────────────────────────────────────────────────────────
@@ -63,6 +64,7 @@ export default function OrdersPage() {
   const [valDriverId,      setValDriverId]      = useState('');
   const [valDateEst,       setValDateEst]       = useState('');
   const [saving,           setSaving]           = useState(false);
+  const [downloadingInvoice, setDownloadingInvoice] = useState(false);
 
   const { addToast } = useToastStore();
 
@@ -172,6 +174,27 @@ export default function OrdersPage() {
     } catch (err: any) {
       addToast(err.response?.data?.detail ?? "Erreur lors de l'annulation", 'error');
     }
+  };
+
+  const handleDownloadInvoice = async (order: any) => {
+    const num = order.numero_commande ?? String(order.id);
+    setDownloadingInvoice(true);
+    try {
+      await invoiceService.downloadInvoiceFile(num, `facture-${num}.pdf`);
+      addToast('Facture PDF téléchargée', 'success');
+    } catch (err: any) {
+      addToast(err.response?.data?.detail ?? 'Facture non disponible', 'error');
+    } finally {
+      setDownloadingInvoice(false);
+    }
+  };
+
+  const openInvoice = async (order: any) => {
+    if (order.facture?.fichier_pdf) {
+      window.open(order.facture.fichier_pdf, '_blank');
+      return;
+    }
+    await handleDownloadInvoice(order);
   };
 
   // ── KPIs ─────────────────────────────────────────────────────────────────
@@ -408,6 +431,53 @@ export default function OrdersPage() {
                       <span className="text-foreground/60">{l.quantite} × {Number(l.prix_unitaire ?? 0).toLocaleString('fr-FR')} FCFA</span>
                     </div>
                   ))}
+                </div>
+              </div>
+            )}
+
+            {(selected.facture || selected.statut_paiement === 'payé') && (
+              <div className="mb-5 bg-emerald-500/5 border border-emerald-500/20 rounded-2xl p-4 space-y-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2 text-emerald-400 text-xs font-semibold uppercase tracking-widest">
+                    <FileText size={14} /> Reçu / Facture PDF
+                  </div>
+                  {selected.facture?.envoye_par_email && (
+                    <span className="text-[10px] text-emerald-400/70 flex items-center gap-1">
+                      <Mail size={11} /> Envoyé par email
+                    </span>
+                  )}
+                </div>
+                {selected.facture?.numero_facture && (
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="bg-white/5 rounded-xl px-3 py-2">
+                      <p className="text-[10px] text-foreground/40 mb-0.5">N° Facture</p>
+                      <p className="text-xs font-mono font-semibold text-foreground">{selected.facture.numero_facture}</p>
+                    </div>
+                    <div className="bg-white/5 rounded-xl px-3 py-2">
+                      <p className="text-[10px] text-foreground/40 mb-0.5">Date d'émission</p>
+                      <p className="text-xs font-medium text-foreground">{fmtDate(selected.facture.date_emission)}</p>
+                    </div>
+                  </div>
+                )}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {selected.facture?.fichier_pdf && (
+                    <a
+                      href={selected.facture.fichier_pdf}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="w-full inline-flex items-center justify-center gap-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl py-2.5 text-sm font-semibold text-foreground transition-colors"
+                    >
+                      <FileText size={15} /> Ouvrir le PDF
+                    </a>
+                  )}
+                  <button
+                    onClick={() => openInvoice(selected)}
+                    disabled={downloadingInvoice}
+                    className="w-full inline-flex items-center justify-center gap-2 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 rounded-xl py-2.5 text-sm font-semibold transition-colors disabled:opacity-50"
+                  >
+                    {downloadingInvoice ? <Loader2 size={15} className="animate-spin" /> : <Download size={15} />}
+                    Télécharger le PDF
+                  </button>
                 </div>
               </div>
             )}

@@ -2,7 +2,7 @@
 
 /**
  * @file components/perfume/GeminiChat.tsx
- * @description Redesigned AI Fragrance Sommelier with frontend-only duplicate filtering
+ * @description Redesigned AI Fragrance Sommelier — full chat experience.
  */
 
 import { useEffect, useRef, useState, useCallback } from 'react';
@@ -31,7 +31,7 @@ import axios from 'axios';
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
-export interface AiProduct {
+interface AiProduct {
   id: number;
   nom: string;
   slug: string;
@@ -39,7 +39,7 @@ export interface AiProduct {
   image_principale: string;
 }
 
-export interface AiEssence {
+interface AiEssence {
   id: number;
   nom: string;
   code_reference: string;
@@ -48,7 +48,7 @@ export interface AiEssence {
   prix_total_quantite: string;
 }
 
-export interface AiResponse {
+interface AiResponse {
   message: string;
   quantite_demandee_ml?: number;
   flacon?: { id: number; nom: string; prix_unitaire: string };
@@ -58,9 +58,9 @@ export interface AiResponse {
   accessoires?: Accessory[];
 }
 
-export type MessageRole = 'user' | 'ai';
+type MessageRole = 'user' | 'ai';
 
-export interface ChatMessage {
+interface ChatMessage {
   id: string;
   role: MessageRole;
   text: string;
@@ -71,9 +71,11 @@ export interface ChatMessage {
 }
 
 /** Payload sent from InputBar to handleSend */
-export interface SendPayload {
+interface SendPayload {
   content: string;
+  /** ml as a number, or null if user didn't specify */
   bottleSize: string | null;
+  /** budget in FCFA as a number, or empty string if not set */
   budget: string | number;
 }
 
@@ -89,77 +91,6 @@ const LOADING_TEXTS = [
   'Calcul des prix et des compositions optimales...',
   'Derniers ajustements olfactifs en cours...',
 ];
-
-// ── FILTERING FUNCTIONS ─────────────────────────────────────────────────────
-
-/**
- * Get all product IDs from previous AI responses in this session
- */
-function getAllRecommendedProductIds(messages: ChatMessage[]): Set<string> {
-  const ids = new Set<string>();
-  messages.forEach(msg => {
-    if (msg.role === 'ai' && msg.aiData) {
-      if (msg.aiData.parfums_existants) {
-        msg.aiData.parfums_existants.forEach(p => ids.add(String(p.id)));
-      }
-      if (msg.aiData.accessoires) {
-        msg.aiData.accessoires.forEach(a => ids.add(String(a.id)));
-      }
-    }
-  });
-  return ids;
-}
-
-/**
- * Get all essence IDs from previous AI responses in this session
- */
-function getAllRecommendedEssenceIds(messages: ChatMessage[]): Set<string> {
-  const ids = new Set<string>();
-  messages.forEach(msg => {
-    if (msg.role === 'ai' && msg.aiData?.essences_pre_faites) {
-      msg.aiData.essences_pre_faites.forEach(e => ids.add(String(e.id)));
-    }
-  });
-  return ids;
-}
-
-/**
- * Filter response to remove duplicate recommendations from this session
- */
-function filterDuplicateRecommendations(
-  aiData: AiResponse,
-  messages: ChatMessage[]
-): AiResponse {
-  const recommendedProductIds = getAllRecommendedProductIds(messages);
-  const recommendedEssenceIds = getAllRecommendedEssenceIds(messages);
-
-  const filteredParfums = aiData.parfums_existants?.filter(
-    p => !recommendedProductIds.has(String(p.id))
-  ) ?? [];
-
-  const filteredEssences = aiData.essences_pre_faites?.filter(
-    e => !recommendedEssenceIds.has(String(e.id))
-  ) ?? [];
-
-  const filteredAccessories = aiData.accessoires?.filter(
-    a => !recommendedProductIds.has(String(a.id))
-  ) ?? [];
-
-  const hasResults = filteredParfums.length > 0 || 
-                     filteredEssences.length > 0 || 
-                     filteredAccessories.length > 0;
-
-  if (!hasResults && (aiData.parfums_existants?.length ?? 0) > 0) {
-    return aiData;
-  }
-
-  return {
-    ...aiData,
-    parfums_existants: filteredParfums.length > 0 ? filteredParfums : undefined,
-    essences_pre_faites: filteredEssences.length > 0 ? filteredEssences : undefined,
-    accessoires: filteredAccessories.length > 0 ? filteredAccessories : undefined,
-  };
-}
 
 // ── Blending color helper ───────────────────────────────────────────────────
 
@@ -199,8 +130,9 @@ function LoadingBubble() {
 
   return (
     <div className="flex items-end gap-3 justify-start">
-      <div className="bg-cover h-9 w-9 rounded-full "
-           style={{ backgroundImage: `url('/mascotte.png')` }}/>  
+      <div className="w-9 h-9 rounded-full bg-gradient-to-br from-gold/30 to-gold/10 border border-gold/30 flex items-center justify-center flex-shrink-0 shadow-sm">
+        <Sparkles size={15} className="text-gold" />
+      </div>
       <div className="max-w-xs md:max-w-md bg-white/5 border border-white/10 rounded-3xl rounded-bl-md px-5 py-4 shadow-xl backdrop-blur-md">
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-1">
@@ -379,8 +311,9 @@ function AiBubble({
 
   return (
     <div className="flex items-start gap-3 justify-start">
-      <div className="bg-cover h-9 w-9 rounded-full "
-           style={{ backgroundImage: `url('/mascotte.png')` }}/> 
+      <div className="w-9 h-9 rounded-full bg-gradient-to-br from-gold/30 to-gold/10 border border-gold/30 flex items-center justify-center flex-shrink-0 shadow-sm mt-1">
+        <Sparkles size={15} className="text-gold" />
+      </div>
       <div className="flex-1 min-w-0 space-y-4">
         {isError503 ? (
           <div className="bg-red-500/10 border border-red-500/35 rounded-3xl p-5 max-w-md space-y-4">
@@ -508,6 +441,11 @@ function AiBubble({
 
 // ── Prompt builder ──────────────────────────────────────────────────────────
 
+/**
+ * Builds the prompt string sent to the AI.
+ * - bottleSize is in ml (number) or null (unspecified)
+ * - budget is in FCFA (number or string) or empty
+ */
 function buildPrompt({ content, bottleSize, budget }: SendPayload): string {
   const parts: string[] = [content.trim()];
   if (bottleSize !== null && bottleSize !== "") parts.push(`Format: ${bottleSize}ml`);
@@ -581,16 +519,7 @@ export function GeminiChat({ onChatStarted }: GeminiChatProps) {
         { signal: abortControllerRef.current.signal }
       );
 
-      let response: AiResponse = apiResponse.data;
-
-      // 🔥 FILTER - Remove products already recommended in this session
-      response = filterDuplicateRecommendations(response, messages);
-      
-      console.log('✅ Filtered duplicate recommendations:', {
-        parfums: response.parfums_existants?.length ?? 0,
-        essences: response.essences_pre_faites?.length ?? 0,
-        accessories: response.accessoires?.length ?? 0,
-      });
+      const response: AiResponse = apiResponse.data;
 
       let totalPrice = 0;
       let totalMl = 0;
@@ -650,7 +579,7 @@ export function GeminiChat({ onChatStarted }: GeminiChatProps) {
       setIsLoading(false);
       abortControllerRef.current = null;
     }
-  }, [isLoading, essences, user, addToast, onChatStarted, messages]);
+  }, [isLoading, essences, user, addToast, onChatStarted]);
 
   const handleAddAll = useCallback((aiData: AiResponse, composition?: CustomComposition) => {
     let count = 0;
@@ -699,12 +628,12 @@ export function GeminiChat({ onChatStarted }: GeminiChatProps) {
               exit={{ opacity: 0, y: -20, transition: { duration: 0.2 } }}
               className="flex flex-col items-center justify-center h-full text-center py-12 gap-6"
             >
-              <div className="bg-cover h-20 w-20 rounded-full"
-                style={{ backgroundImage: `url('/mascotte.png')` }}/>  
+              <div className="w-20 h-20 rounded-3xl bg-gold/10 border border-gold/20 flex items-center justify-center shadow-xl shadow-gold/10">
+                <Sparkles size={36} className="text-gold" />
+              </div>
               <div>
-                
                 <h1 className="font-display text-3xl md:text-5xl font-bold text-foreground mb-3">
-                  Votre Consiellier <span className="text-gradient-gold">IA</span>
+                  Votre Sommelier <span className="text-gradient-gold">IA</span>
                 </h1>
                 <p className="text-sm text-foreground/70 max-w-md mx-auto font-light leading-relaxed">
                   Décrivez votre personnalité, vos envies ou une occasion spéciale. Notre IA experte concevra la formule parfaite pour vous.
@@ -719,6 +648,7 @@ export function GeminiChat({ onChatStarted }: GeminiChatProps) {
                 ].map(s => (
                   <button
                     key={s}
+                    // Suggestion chips: bottleSize null, no budget
                     onClick={() => handleSend({ content: s, bottleSize: null, budget: '' })}
                     className="text-xs px-4 py-2 rounded-full bg-white/5 border border-white/10 text-foreground/60 hover:text-gold hover:border-gold/30 hover:bg-gold/5 transition-all"
                   >
@@ -774,6 +704,7 @@ export function GeminiChat({ onChatStarted }: GeminiChatProps) {
           status={isLoading ? 'streaming' : 'ready'}
           placeholder="Ex: Un parfum boisé pour le printemps..."
           className="px-0 pb-0"
+
         />
       </div>
     </div>

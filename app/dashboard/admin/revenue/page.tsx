@@ -31,17 +31,19 @@ import {
   CheckCircle,
 } from 'lucide-react';
 import {
-  ResponsiveContainer,
-  AreaChart,
   Area,
+  AreaChart,
   CartesianGrid,
+  Cell,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
   XAxis,
   YAxis,
-  Tooltip,
-  PieChart,
-  Pie,
-  Cell,
 } from 'recharts';
+import Header from '@/components/admin/Header';
+import Sidebar from '@/components/admin/Sidebar';
 
 const monthly = [
   { month: 'Jan', parfums: 3200000, accessoires: 1800000, total: 5000000 },
@@ -75,6 +77,7 @@ function CustomTooltip({ active, payload, label }: any) {
 }
 
 export default function RevenuePage() {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
 
   // Force le rendu uniquement côté client pour éviter les erreurs d'hydratation de Recharts
@@ -83,7 +86,12 @@ export default function RevenuePage() {
   }, []);
 
   return (
-    <div className="space-y-6">
+    <div className="flex h-screen bg-background">
+      <Sidebar open={sidebarOpen} setOpen={setSidebarOpen} />
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <Header onMenuClick={() => setSidebarOpen(true)} />
+        <main className="flex-1 overflow-y-auto">
+          <div className="p-6 space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-foreground">Revenus</h1>
         <p className="text-sm text-foreground/40 mt-0.5">Analyse financière globale</p>
@@ -136,7 +144,7 @@ export default function RevenuePage() {
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
                   <XAxis dataKey="month" tick={{ fontSize: 12, fill: 'rgba(255,255,255,0.4)' }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fontSize: 11, fill: 'rgba(255,255,255,0.4)' }} axisLine={false} tickLine={false} tickFormatter={(v) => `${(v / 1000000).toFixed(0)}M`} />
+                  <YAxis tick={{ fontSize: 11, fill: 'rgba(255,255,255,0.4)' }} axisLine={false} tickLine={false} tickFormatter={(v: number) => `${(v / 1000000).toFixed(0)}M`} />
                   <Tooltip content={<CustomTooltip />} />
                   <Area type="monotone" dataKey="parfums" name="Parfums" stroke="#C5A059" strokeWidth={2} fill="url(#gParfums)" />
                   <Area type="monotone" dataKey="accessoires" name="Accessoires" stroke="#A855F7" strokeWidth={2} fill="url(#gAccessoires)" />
@@ -157,7 +165,7 @@ export default function RevenuePage() {
                       <Cell key={`cell-${index}`} fill={entry.color} />
                     ))}
                   </Pie>
-                  <Tooltip formatter={(value) => [`${value}%`, '']} contentStyle={{ background: '#171717', border: 'rgba(255,255,255,0.1) 1px solid', borderRadius: '12px', color: '#fff', fontSize: '12px' }} />
+                  <Tooltip formatter={(value) => `${value}%`} contentStyle={{ background: '#171717', border: 'rgba(255,255,255,0.1) 1px solid', borderRadius: '12px', color: '#fff', fontSize: '12px' }} />
                 </PieChart>
               </ResponsiveContainer>
             )}
@@ -173,7 +181,10 @@ export default function RevenuePage() {
               </div>
             ))}
           </div>
+          </div>
         </div>
+          </div>
+        </main>
       </div>
     </div>
   );

@@ -435,7 +435,7 @@ export default function ClientOrdersPage() {
                         <div className="text-right">
                           <p className="text-xs text-foreground/40">×{l.quantite}</p>
                           <p className="text-sm font-semibold text-foreground">
-                            {Number((l.quantite ?? 1) * (l.prix_unitaire ?? 0)).toLocaleString('fr-FR')} FCFA
+                            {Number((l.quantite ?? 1) * Number(l.prix_unitaire_snapshot ?? 0)).toLocaleString('fr-FR')} FCFA
                           </p>
                         </div>
                       </div>
@@ -477,14 +477,26 @@ export default function ClientOrdersPage() {
                       <Mail size={11} /> Envoyée par email
                     </div>
                   )}
-                  <button
-                    onClick={() => handleDownloadInvoice(selected)}
-                    disabled={downloadingInvoice}
-                    className="w-full flex items-center justify-center gap-2 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 rounded-xl py-2.5 text-sm font-semibold transition-colors disabled:opacity-50"
-                  >
-                    {downloadingInvoice ? <Loader2 size={15} className="animate-spin" /> : <Download size={15} />}
-                    Télécharger la facture PDF
-                  </button>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {(selected as any).facture.fichier_pdf && (
+                      <a
+                        href={(selected as any).facture.fichier_pdf}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="w-full inline-flex items-center justify-center gap-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl py-2.5 text-sm font-semibold text-foreground transition-colors"
+                      >
+                        <FileText size={15} /> Ouvrir le PDF
+                      </a>
+                    )}
+                    <button
+                      onClick={() => handleDownloadInvoice(selected)}
+                      disabled={downloadingInvoice}
+                      className="w-full inline-flex items-center justify-center gap-2 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 rounded-xl py-2.5 text-sm font-semibold transition-colors disabled:opacity-50"
+                    >
+                      {downloadingInvoice ? <Loader2 size={15} className="animate-spin" /> : <Download size={15} />}
+                      Télécharger la facture PDF
+                    </button>
+                  </div>
                 </div>
               ) : selected.statut_paiement === 'payé' ? (
                 /* If order is paid but no facture object yet, offer direct download */

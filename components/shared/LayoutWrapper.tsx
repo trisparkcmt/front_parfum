@@ -11,10 +11,19 @@ import "@/lib/i18n";
 export function LayoutWrapper({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { initTheme } = useThemeStore();
+  const { syncCart } = useCartStore();
+  const { isAuthenticated, _hasHydrated } = useAuthStore();
 
   useEffect(() => {
     initTheme();
   }, [initTheme]);
+
+  // Sync cart automatically on app/page mount/refresh if user is logged in
+  useEffect(() => {
+    if (_hasHydrated && isAuthenticated) {
+      syncCart().catch((e) => console.warn('Failed to auto-sync cart:', e));
+    }
+  }, [_hasHydrated, isAuthenticated, syncCart]);
 
   // Hide Navbar and Footer on dashboard and auth routes
   const isDashboard = pathname?.startsWith('/dashboard');
