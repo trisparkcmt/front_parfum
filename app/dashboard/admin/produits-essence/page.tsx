@@ -70,9 +70,9 @@ export default function FinishedEssenceAdminPage() {
       setLoadingLotStock(true);
       const data = await labService.getLotsEssence({ essence: Number(essenceId), actif: true });
       const lots = extractCatalogList(data);
-      const total = lots.reduce((sum, lot: any) => {
+      const total = lots.reduce<number>((sum, lot: any) => {
         const stock = lot.stock_ml ?? lot.quantite_ml ?? '0';
-        return Number(sum) + parseFloat(String(stock));
+        return sum + parseFloat(String(stock));
       }, 0);
       setLotStockMl(total);
     } catch {
