@@ -54,6 +54,7 @@ export default function AccessoriesPage() {
     stock_quantite: '',
     seuil_alerte_stock: '3',
     poids_grammes: '',
+    message_promotion: '',
   });
 
   const { addToast } = useToastStore();
@@ -118,6 +119,7 @@ export default function AccessoriesPage() {
       stock_quantite: '',
       seuil_alerte_stock: '3',
       poids_grammes: '',
+      message_promotion: '',
     });
     setImageFiles({
       image_principale: null,
@@ -151,6 +153,7 @@ export default function AccessoriesPage() {
       stock_quantite: String(acc.stock_quantite || ''),
       seuil_alerte_stock: String(acc.seuil_alerte_stock || '3'),
       poids_grammes: String(acc.poids_grammes || ''),
+      message_promotion: acc.message_promotion || '',
     });
     setImageFiles({
       image_principale: null,
@@ -609,8 +612,8 @@ export default function AccessoriesPage() {
                     placeholder="Seuil d'alerte"
                     type="number"
                     value={form.seuil_alerte_stock}
-                    onChange={e => updateForm('seuil_alerte_stock', e.target.value)}
-                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
+                     onChange={e => updateForm('seuil_alerte_stock', e.target.value)}
+                     className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
                   />
                 </div>
                 <input
@@ -620,6 +623,17 @@ export default function AccessoriesPage() {
                   onChange={e => updateForm('poids_grammes', e.target.value)}
                   className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
                 />
+                <div className="space-y-1">
+                  <label className="text-xs text-foreground/40">Message promo (optionnel)</label>
+                  <textarea
+                    placeholder="ex: Soldes — -30% ce week-end uniquement !"
+                    value={form.message_promotion}
+                    onChange={e => updateForm('message_promotion', e.target.value)}
+                    rows={2}
+                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-foreground outline-none focus:border-gold resize-none"
+                  />
+                  <p className="text-[10px] text-foreground/30">Affiché dans le carousel promotionnel de la page d'accueil.</p>
+                </div>
               </div>
             </div>
             <div className="mt-4 pt-4 border-t border-white/10">

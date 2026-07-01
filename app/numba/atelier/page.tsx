@@ -390,7 +390,7 @@ export default function AtelierPage() {
           const item = ALL_ITEMS.find(e => e.id === essenceId);
           return {
             essence_catalogue: item?.backendId || undefined,
-            ingredient: item?.backendId || undefined,
+            ingredient_catalogue: item?.backendId || undefined,
             quantite_ml: quantityMl,
           };
         });
@@ -856,14 +856,16 @@ export default function AtelierPage() {
             {/* Add to cart button */}
             <button 
               onClick={handleAddToCart}
-              disabled={totalMl === 0 || isAddingToCart}
+              disabled={totalMl === 0 || isAddingToCart || (isAuthenticated && !savedParfumId)}
               className={`flex-1 sm:flex-none px-12 py-5 text-[10px] uppercase tracking-[0.2em] font-medium rounded-lg transition-all duration-300
                 ${ctaSuccess ? 'bg-green-600 text-foreground' : 'bg-gold text-black hover:bg-cream disabled:opacity-20'}
               `}
             >
               {ctaSuccess ? '✓ Ajouté' : (isAddingToCart ? <Loader2 size={14} className="inline animate-spin" /> : <>
                 <ShoppingCart size={14} className="inline mr-1" />
-                {i18n.language === 'en' ? 'Add to Cart' : 'Ajouter au Panier'}
+                {isAuthenticated && !savedParfumId 
+                  ? (i18n.language === 'en' ? 'Save first' : 'Sauvegarder d’abord')
+                  : (i18n.language === 'en' ? 'Add to Cart' : 'Ajouter au Panier')}
               </>)}
             </button>
           </div>

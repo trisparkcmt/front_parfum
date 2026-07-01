@@ -55,8 +55,9 @@ export function LayoutWrapper({ children }: { children: React.ReactNode }) {
         padding to clear it (its own inner height is h-15/h-16 depending on
         scroll state). This padding only applies at `lg`+, mobile is
         untouched since Navbar never renders there.
+        On mobile, we also add pb-28 to clear the floating BottomNav.
       */}
-      <main className={`flex-1 ${!shouldHideNav ? 'lg:pt-16' : ''}`}>
+      <main className={`flex-1 ${!shouldHideNav ? 'lg:pt-16 pb-28 lg:pb-0' : ''}`}>
         {children}
       </main>
 

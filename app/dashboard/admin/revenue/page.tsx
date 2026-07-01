@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   TrendingUp,
   TrendingDown,
@@ -42,8 +42,6 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-import Header from '@/components/admin/Header';
-import Sidebar from '@/components/admin/Sidebar';
 
 const monthly = [
   { month: 'Jan', parfums: 3200000, accessoires: 1800000, total: 5000000 },
@@ -77,21 +75,15 @@ function CustomTooltip({ active, payload, label }: any) {
 }
 
 export default function RevenuePage() {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
 
-  // Force le rendu uniquement côté client pour éviter les erreurs d'hydratation de Recharts
+  // Force client-only render to avoid Recharts hydration errors
   useEffect(() => {
     setIsMounted(true);
   }, []);
 
   return (
-    <div className="flex h-screen bg-background">
-      <Sidebar open={sidebarOpen} setOpen={setSidebarOpen} />
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <Header onMenuClick={() => setSidebarOpen(true)} />
-        <main className="flex-1 overflow-y-auto">
-          <div className="p-6 space-y-6">
+    <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-foreground">Revenus</h1>
         <p className="text-sm text-foreground/40 mt-0.5">Analyse financière globale</p>
@@ -183,9 +175,6 @@ export default function RevenuePage() {
           </div>
           </div>
         </div>
-          </div>
-        </main>
-      </div>
     </div>
   );
 }

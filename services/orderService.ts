@@ -40,12 +40,12 @@ export interface UpdateOrderPayload {
 
 export const orderService = {
   // Get all orders for the user
-  async getOrders(page?: number, pageSize?: number): Promise<any> {
+  async getOrders(params?: { page?: number; pageSize?: number; [key: string]: any }): Promise<any> {
     try {
-      const params = new URLSearchParams();
-      if (page) params.append('page', page.toString());
-      if (pageSize) params.append('page_size', pageSize.toString());
-      const response = await api.get(`/orders/commandes/${params.toString() ? '?' + params.toString() : ''}`);
+      const searchParams = new URLSearchParams();
+      if (params?.page) searchParams.append('page', params.page.toString());
+      if (params?.pageSize) searchParams.append('page_size', params.pageSize.toString());
+      const response = await api.get(`/orders/commandes/${searchParams.toString() ? '?' + searchParams.toString() : ''}`);
       return response.data;
     } catch (error) {
       console.error('Error fetching orders:', error);
@@ -113,13 +113,53 @@ export const orderService = {
     }
   },
 
-  // Create a new order (for POS/Boutique)
+  // Create a new order via the standard flow (cart → order)
   async createOrder(payload: any): Promise<Order> {
     try {
       const response = await api.post(`/orders/commandes/`, payload);
       return response.data;
     } catch (error) {
       console.error('Error creating order:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Create a direct POS sale bypassing the standard order flow.
+   * Uses the dedicated endpoint POST /pos/commandes/creer/ which immediately
+   * marks the sale as validated and paid — designed for fast in-shop transactions
+   * where the serveuse selects items and confirms on the spot.
+   */
+  async createPOSOrder(payload: {
+    lignes: Array<{
+      type: 'parfum' | 'accessoire' | 'essence';
+      id?: number;
+      quantite: number;
+      produit_personnalise?: {
+        nom: string;
+        flacon: number;
+        lignes: Array<{
+          essence_catalogue?: number;
+          ingredient_catalogue?: number;
+          quantite_ml: number;
+        }>;
+      };
+    }>;
+    client_nom_complet?: string;
+    client_telephone?: string;
+    note_interne?: string;
+    code_promo?: string;
+  }): Promise<Order> {
+    try {
+      const response = await api.post(`/pos/commandes/creer/`, {
+        ...payload,
+        source: 'pos',
+        statut: 'validé',
+        statut_paiement: 'payé',
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error creating POS order:', error);
       throw error;
     }
   },

@@ -49,6 +49,7 @@ export default function PerfumeAdminPage() {
     seuil_alerte_stock: '5',
     categorie: '',
     actif: true,
+    message_promotion: '',
   });
 
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -136,6 +137,7 @@ export default function PerfumeAdminPage() {
       seuil_alerte_stock: '5',
       categorie: categories[0]?.id ? String(categories[0].id) : '',
       actif: true,
+      message_promotion: '',
     });
     setImageFile(null);
     setImageFiles({
@@ -175,6 +177,7 @@ export default function PerfumeAdminPage() {
       seuil_alerte_stock: String(perf.seuil_alerte_stock || '5'),
       categorie: String(perf.categorie?.id || perf.categorie || ''),
       actif: perf.actif !== undefined ? perf.actif : true,
+      message_promotion: perf.message_promotion || '',
     });
     setImageFile(null);
     setImageFiles({
@@ -498,6 +501,18 @@ export default function PerfumeAdminPage() {
                     </div>
                   </div>
                   <p className="text-[10px] text-foreground/35">Sans message propre — la réduction catégorie conserve son message.</p>
+                  {/* Custom promotional message */}
+                  <div className="space-y-1">
+                    <label className="text-xs text-foreground/40">Message promo (optionnel)</label>
+                    <textarea
+                      placeholder="ex: -20% ce week-end uniquement !"
+                      value={form.message_promotion}
+                      onChange={e => updateForm('message_promotion', e.target.value)}
+                      rows={2}
+                      className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-foreground outline-none focus:border-gold resize-none"
+                    />
+                    <p className="text-[10px] text-foreground/30">Affiché dans le carousel promotionnel de la page d'accueil.</p>
+                  </div>
                   {/* Live preview */}
                   {(form.prix_promotionnel || form.taux_reduction) && form.prix_unitaire && (
                     <div className="flex items-center gap-2 pt-1 flex-wrap">

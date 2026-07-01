@@ -1,9 +1,10 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Product } from '@/types';
+import { Product, EssenceClient } from '@/types';
 import { productService } from '@/services/productService';
 import { orderService } from '@/services/orderService';
+import { labService } from '@/services/labService';
 import { useToastStore } from '@/store/useToastStore';
 import { BackButton } from '@/components/ui/BackButton';
 import {
@@ -18,6 +19,12 @@ import {
   ShoppingBag,
   Receipt,
   ImageOff,
+  User,
+  Phone,
+  FileText,
+  Tag,
+  FlaskConical,
+  RefreshCcw,
 } from 'lucide-react';
 
 interface CartItem {
@@ -33,17 +40,12 @@ function formatXAF(amount: number): string {
   );
 }
 
-/**
- * Robust image lookup helper for the backend API payload.
- * Safely handles plain string URLs, objects containing a url property, 
- * or missing image fallbacks.
- */
 function getProductImageUrl(product: Product): string | null {
   if (!product) return null;
   const p = product as unknown as Record<string, unknown>;
-  
+
   const candidates = [
-    p.image_principale, // Matches your API field exactly
+    p.image_principale,
     p.image,
     p.image_,
     p.thumbnail,
@@ -54,13 +56,9 @@ function getProductImageUrl(product: Product): string | null {
 
   for (const candidate of candidates) {
     if (!candidate) continue;
-
-    // 1. If the API returns a standard direct URL string
     if (typeof candidate === 'string' && candidate.trim().length > 0) {
       return candidate.trim();
     }
-
-    // 2. Defensive check if the object format changes or gets wrapped on the client side
     if (typeof candidate === 'object' && candidate !== null) {
       const nestedUrl = (candidate as Record<string, unknown>).url;
       if (typeof nestedUrl === 'string' && nestedUrl.trim().length > 0) {
@@ -71,14 +69,12 @@ function getProductImageUrl(product: Product): string | null {
   return null;
 }
 
-// Extracts the correct functional price from your API structure
 function getProductPrice(product: Product): number {
   const p = product as unknown as Record<string, unknown>;
   const price = p.price ?? p.prix_actuel ?? p.prix_unitaire ?? 0;
   return typeof price === 'string' ? parseFloat(price) : (price as number);
 }
 
-// Extracts the item name safely
 function getProductName(product: Product): string {
   const p = product as unknown as Record<string, unknown>;
   return (p.name ?? p.nom ?? 'Produit sans nom') as string;
@@ -90,7 +86,18 @@ export default function POSPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [draftQty, setDraftQty] = useState<number>(1);
+
+  // Cart & items
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
+
+  // Client info (for direct POS sale)
+  const [nomClient, setNomClient] = useState('');
+  const [telephoneClient, setTelephoneClient] = useState('');
+  const [note, setNote] = useState('');
+  const [codePromo, setCodePromo] = useState('');
+
+  // UI state
+  const [activeTab, setActiveTab] = useState<'products' | 'composition'>('products');
   const [isLoading, setIsLoading] = useState(false);
   const [isValidating, setIsValidating] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
@@ -98,12 +105,106 @@ export default function POSPage() {
   const searchInputRef = useRef<HTMLInputElement>(null);
   const { addToast } = useToastStore();
 
+  // Simplified Atelier space states
+  const [essences, setEssences] = useState<EssenceClient[]>([]);
+  const [loadingEssences, setLoadingEssences] = useState(false);
+  const [selectedSize, setSelectedSize] = useState<number>(100);
+  const [compositionName, setCompositionName] = useState('');
+  const [quantities, setQuantities] = useState<Record<string, number>>({});
+
+  // Load lab items (essences and raw notes) on component mount
+  useEffect(() => {
+    async function loadEssences() {
+      try {
+        setLoadingEssences(true);
+        const [ing, ess] = await Promise.all([
+          labService.getIngredients(),
+          labService.getEssences(),
+        ]);
+        setEssences([...ing, ...ess]);
+      } catch (err) {
+        console.error('Failed to load essences for simplified POS atelier:', err);
+      } finally {
+        setLoadingEssences(false);
+      }
+    }
+    loadEssences();
+  }, []);
+
+  const totalMl = useMemo(() => {
+    return Object.values(quantities).reduce((a, b) => a + b, 0);
+  }, [quantities]);
+
+  const compositionPrice = useMemo(() => {
+    // Base format pricing
+    const basePrice = selectedSize === 30 ? 5000 * 0.4 : selectedSize === 50 ? 8500 * 0.65 : 12000;
+    let total = basePrice;
+    for (const item of essences) {
+      const q = quantities[item.id] || 0;
+      if (q > 0) total += q * item.pricePerMl;
+    }
+    return Math.round(total);
+  }, [quantities, selectedSize, essences]);
+
+  const updateQuantity = (id: string, delta: number) => {
+    setQuantities((prev) => {
+      const current = prev[id] || 0;
+      const next = Math.max(0, current + delta);
+      const temp = { ...prev };
+      if (next === 0) {
+        delete temp[id];
+      } else {
+        // Prevent exceeding size limit
+        const totalOther = Object.entries(temp)
+          .filter(([key]) => key !== id)
+          .reduce((sum, [_, q]) => sum + q, 0);
+        if (totalOther + next > selectedSize) {
+          addToast("La capacité maximale du flacon est atteinte.", "info");
+          return prev;
+        }
+        temp[id] = next;
+      }
+      return temp;
+    });
+  };
+
+  // Helper to add the composed creation directly to standard POS basket
+  const handleAddCompositionToCart = () => {
+    if (totalMl === 0) {
+      addToast("Veuillez composer avec au moins 1ml.", "error");
+      return;
+    }
+    const finalName = compositionName.trim() || `Composition Client ${selectedSize}ml`;
+
+    // Construct a simulated product entity for the POS cart
+    const simulatedProduct: Product = {
+      id: `custom-${Date.now()}`,
+      nom: finalName,
+      marque: 'Atelier Exclusif',
+      prix_unitaire: compositionPrice,
+      prix_actuel: compositionPrice,
+      slug: `custom-${Date.now()}`,
+      is_custom: true,
+      description: `Format ${selectedSize}ml (Mélange de ${totalMl}ml d'ingrédients).`,
+      // Add references to lines for the serializer
+      quantities,
+      selectedSize,
+    } as any;
+
+    setCartItems((prev) => [...prev, { product: simulatedProduct, quantity: 1 }]);
+    addToast("Composition ajoutée au ticket de caisse !", "success");
+
+    // Reset simplified atelier states
+    setQuantities({});
+    setCompositionName('');
+    setActiveTab('products');
+  };
+
   // Debounce search term
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearchTerm(searchTerm);
     }, 300);
-
     return () => clearTimeout(timer);
   }, [searchTerm]);
 
@@ -124,7 +225,6 @@ export default function POSPage() {
 
         const uniqueProducts = new Map<string, Product>();
 
-        // Process search responses checking arrays or paginated results object safely
         const extractResults = (res: any): Product[] => {
           if (!res) return [];
           if (Array.isArray(res)) return res;
@@ -142,12 +242,12 @@ export default function POSPage() {
 
         setProducts(Array.from(uniqueProducts.values()));
       } catch (error) {
-      console.error('Search error:', error);
-      addToast('Erreur lors de la recherche', 'error');
-      setProducts([]);
-    } finally { // <-- Fixed the spelling here!
-      setIsLoading(false);
-    }
+        console.error('Search error:', error);
+        addToast('Erreur lors de la recherche', 'error');
+        setProducts([]);
+      } finally {
+        setIsLoading(false);
+      }
     };
 
     performSearch();
@@ -220,35 +320,65 @@ export default function POSPage() {
 
     setIsValidating(true);
     try {
-      const items = cartItems.map((item) => ({
-        produit: item.product.id,
-        quantite: item.quantity,
-        prix_unitaire: getProductPrice(item.product),
-      }));
+      const lignes = cartItems.map((item) => {
+        const p = item.product as any;
+        if (p.is_custom) {
+          // Serialize direct custom composition payload structure
+          return {
+            type: 'essence',
+            produit_personnalise: {
+              nom: p.nom,
+              flacon: p.selectedSize,
+              lignes: Object.entries(p.quantities)
+                .filter(([_, qty]) => (qty as number) > 0)
+                .map(([essenceId, qty]) => {
+                  const details = essences.find(e => e.id === essenceId);
+                  return {
+                    essence_catalogue: details?.itemType === 'essence' ? details.backendId : undefined,
+                    ingredient_catalogue: details?.itemType === 'ingredient' ? details.backendId : undefined,
+                    quantite_ml: qty,
+                  };
+                }),
+            },
+            quantite: item.quantity,
+          };
+        }
 
-      const orderPayload = {
-        items,
-        total_ht: totals.subtotal,
-        total_tva: totals.tva,
-        total_ttc: totals.total,
-        status: 'validée',
-        payment: 'payé',
-        source: 'pos',
-      };
+        const isPerfume = p.type === 'parfum' || p.contenance_ml !== undefined;
+        return {
+          type: isPerfume ? 'parfum' : 'accessoire',
+          id: Number(item.product.id),
+          quantite: item.quantity,
+        };
+      });
 
-      const order = await orderService.createOrder(orderPayload);
+      // Use the POS endpoint for instant checkout (with the correct 'lignes' body key)
+      const order = await orderService.createPOSOrder({
+        lignes,
+        client_nom_complet: nomClient || undefined,
+        client_telephone: telephoneClient || undefined,
+        note_interne: note || undefined,
+        code_promo: codePromo || undefined,
+      } as any);
+
       setLastOrderNumber(order.numero_commande || `#${order.id}`);
       setIsSuccess(true);
+
+      // Reset form
       setCartItems([]);
       setExpandedId(null);
       setSearchTerm('');
+      setNomClient('');
+      setTelephoneClient('');
+      setNote('');
+      setCodePromo('');
 
       addToast(`Commande ${order.numero_commande || '#' + order.id} créée avec succès !`, 'success');
-
-      setTimeout(() => setIsSuccess(false), 3000);
-    } catch (error) {
+      setTimeout(() => setIsSuccess(false), 4000);
+    } catch (error: any) {
       console.error('Order creation error:', error);
-      addToast('Erreur lors de la création de la commande', 'error');
+      const msg = error?.response?.data?.detail || error?.response?.data?.non_field_errors?.[0] || 'Erreur lors de la création de la commande';
+      addToast(msg, 'error');
     } finally {
       setIsValidating(false);
     }
@@ -303,85 +433,203 @@ export default function POSPage() {
           )}
         </div>
 
-        {/* Counter layout: search rail + order ticket */}
-        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,38%)_minmax(0,62%)] gap-5 flex-1 min-h-0">
-          {/* Search rail */}
-          <section className="border border-white/10 bg-white/[0.03] rounded-sm flex flex-col min-h-0">
-            <div className="p-5 border-b border-white/10 shrink-0">
-              <label className="block text-xs uppercase tracking-[0.15em] text-gold/80 mb-3 font-medium">
-                Rechercher un produit
-              </label>
-              <div className="relative">
-                <Search
-                  className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-foreground/30"
-                  strokeWidth={1.5}
-                />
-                <input
-                  ref={searchInputRef}
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder="Nom, référence, marque…"
-                  className="w-full bg-background/40 border border-white/10 rounded-sm py-2.5 pl-10 pr-9 text-sm text-foreground placeholder:text-foreground/30 focus:outline-none focus:border-gold/50 transition-colors"
-                  autoFocus
-                />
-                {isLoading ? (
-                  <Loader2 className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gold animate-spin" />
-                ) : searchTerm ? (
-                  <button
-                    onClick={handleClearSearch}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-foreground/30 hover:text-foreground/70 transition-colors"
-                    aria-label="Effacer la recherche"
-                  >
-                    <X className="w-4 h-4" strokeWidth={1.5} />
-                  </button>
-                ) : null}
-              </div>
-            </div>
+        {/* Tabs selector */}
+        <div className="shrink-0 flex gap-2 mb-3">
+          <button
+            onClick={() => setActiveTab('products')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-sm text-xs font-medium uppercase tracking-widest transition-colors ${
+              activeTab === 'products'
+                ? 'bg-gold text-background'
+                : 'border border-white/10 text-foreground/50 hover:bg-white/5'
+            }`}
+          >
+            <ShoppingBag className="w-3.5 h-3.5" />
+            Produits
+          </button>
+          <button
+            onClick={() => setActiveTab('composition')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-sm text-xs font-medium uppercase tracking-widest transition-colors ${
+              activeTab === 'composition'
+                ? 'bg-gold text-background'
+                : 'border border-white/10 text-foreground/50 hover:bg-white/5'
+            }`}
+          >
+            <FlaskConical className="w-3.5 h-3.5" />
+            Création Composition
+          </button>
+        </div>
 
-            {/* Results */}
-            <div className="flex-1 min-h-0 overflow-y-auto">
-              {!searchTerm ? (
-                <EmptyState
-                  icon={<PackageSearch className="w-7 h-7 text-foreground/20" strokeWidth={1.5} />}
-                  title="Commencez une recherche"
-                  subtitle="Les résultats apparaissent ici au fil de la frappe."
-                />
-              ) : isLoading ? (
-                <EmptyState
-                  icon={<Loader2 className="w-7 h-7 text-gold animate-spin" />}
-                  title="Recherche en cours"
-                  subtitle={null}
-                />
-              ) : products.length === 0 ? (
-                <EmptyState
-                  icon={<PackageSearch className="w-7 h-7 text-foreground/20" strokeWidth={1.5} />}
-                  title="Aucun produit trouvé"
-                  subtitle={`Rien ne correspond à « ${searchTerm} ».`}
-                />
-              ) : (
-                <ul className="divide-y divide-white/5">
-                  {products.map((product) => (
-                    <ProductRow
-                      key={product.id}
-                      product={product}
-                      isExpanded={expandedId === String(product.id)}
-                      onToggle={() => handleToggleExpand(String(product.id))}
-                      draftQty={draftQty}
-                      onDraftQtyChange={setDraftQty}
-                      onAdd={(qty) => handleAddToCart(product, qty)}
-                      inCartQty={
-                        cartItems.find((c) => c.product.id === product.id)?.quantity
-                      }
+        {/* Counter layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,45%)_minmax(0,55%)] gap-5 flex-1 min-h-0">
+          {/* Left space */}
+          <section className="border border-white/10 bg-white/[0.03] rounded-sm flex flex-col min-h-0">
+            {activeTab === 'products' ? (
+              <>
+                <div className="p-5 border-b border-white/10 shrink-0">
+                  <label className="block text-xs uppercase tracking-[0.15em] text-gold/80 mb-3 font-medium">
+                    Rechercher un produit
+                  </label>
+                  <div className="relative">
+                    <Search
+                      className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-foreground/30"
+                      strokeWidth={1.5}
                     />
-                  ))}
-                </ul>
-              )}
-            </div>
+                    <input
+                      ref={searchInputRef}
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      placeholder="Nom, référence, marque…"
+                      className="w-full bg-background/40 border border-white/10 rounded-sm py-2.5 pl-10 pr-9 text-sm text-foreground placeholder:text-foreground/30 focus:outline-none focus:border-gold/50 transition-colors"
+                      autoFocus
+                    />
+                    {isLoading ? (
+                      <Loader2 className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gold animate-spin" />
+                    ) : searchTerm ? (
+                      <button
+                        onClick={handleClearSearch}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-foreground/30 hover:text-foreground/70 transition-colors"
+                        aria-label="Effacer la recherche"
+                      >
+                        <X className="w-4 h-4" strokeWidth={1.5} />
+                      </button>
+                    ) : null}
+                  </div>
+                </div>
+
+                {/* Results list */}
+                <div className="flex-1 min-h-0 overflow-y-auto">
+                  {!searchTerm ? (
+                    <EmptyState
+                      icon={<PackageSearch className="w-7 h-7 text-foreground/20" strokeWidth={1.5} />}
+                      title="Commencez une recherche"
+                      subtitle="Les résultats apparaissent ici au fil de la frappe."
+                    />
+                  ) : isLoading ? (
+                    <EmptyState
+                      icon={<Loader2 className="w-7 h-7 text-gold animate-spin" />}
+                      title="Recherche en cours"
+                      subtitle={null}
+                    />
+                  ) : products.length === 0 ? (
+                    <EmptyState
+                      icon={<PackageSearch className="w-7 h-7 text-foreground/20" strokeWidth={1.5} />}
+                      title="Aucun produit trouvé"
+                      subtitle={`Rien ne correspond à « ${searchTerm} ».`}
+                    />
+                  ) : (
+                    <ul className="divide-y divide-white/5">
+                      {products.map((product) => (
+                        <ProductRow
+                          key={product.id}
+                          product={product}
+                          isExpanded={expandedId === String(product.id)}
+                          onToggle={() => handleToggleExpand(String(product.id))}
+                          draftQty={draftQty}
+                          onDraftQtyChange={setDraftQty}
+                          onAdd={(qty) => handleAddToCart(product, qty)}
+                          inCartQty={
+                            cartItems.find((c) => c.product.id === product.id)?.quantity
+                          }
+                        />
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              </>
+            ) : (
+              /* Simplified POS Atelier workspace */
+              <div className="flex-1 flex flex-col min-h-0 p-5 space-y-4">
+                <div className="shrink-0 flex items-center justify-between">
+                  <h3 className="text-sm font-semibold uppercase tracking-wider text-gold flex items-center gap-2">
+                    <FlaskConical className="w-4 h-4" /> Custom Composition
+                  </h3>
+                  <button
+                    onClick={() => setQuantities({})}
+                    className="text-[10px] uppercase text-foreground/40 hover:text-red-400 flex items-center gap-1"
+                  >
+                    <RefreshCcw size={10} /> Réinitialiser
+                  </button>
+                </div>
+
+                {/* Inputs for composition */}
+                <div className="grid grid-cols-2 gap-2 shrink-0">
+                  <input
+                    value={compositionName}
+                    onChange={(e) => setCompositionName(e.target.value)}
+                    placeholder="Nom du parfum (ex: Secret Oud)"
+                    className="w-full bg-background/50 border border-white/10 rounded-sm py-2 px-3 text-xs text-foreground placeholder:text-foreground/30 focus:outline-none"
+                  />
+                  <select
+                    value={selectedSize}
+                    onChange={(e) => {
+                      setSelectedSize(Number(e.target.value));
+                      setQuantities({});
+                    }}
+                    className="w-full bg-background/50 border border-white/10 rounded-sm py-2 px-2 text-xs text-foreground focus:outline-none"
+                  >
+                    <option value={30}>Format: 30ml</option>
+                    <option value={50}>Format: 50ml</option>
+                    <option value={100}>Format: 100ml</option>
+                  </select>
+                </div>
+
+                {/* Essence slider list */}
+                <div className="flex-1 min-h-0 overflow-y-auto space-y-2 pr-1">
+                  {loadingEssences ? (
+                    <div className="text-center text-xs py-8 text-foreground/40">Chargement des essences...</div>
+                  ) : (
+                    essences.map((essence) => {
+                      const currentVal = quantities[essence.id] || 0;
+                      return (
+                        <div key={essence.id} className="flex items-center justify-between bg-white/[0.02] border border-white/5 p-2 rounded-sm text-xs">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span
+                              className="w-2.5 h-2.5 rounded-full shrink-0"
+                              style={{ backgroundColor: essence.color }}
+                            />
+                            <span className="truncate text-foreground/80 font-medium">{essence.name}</span>
+                          </div>
+                          <div className="flex items-center gap-1 shrink-0">
+                            <button
+                              onClick={() => updateQuantity(essence.id, -1)}
+                              className="w-6 h-6 rounded-sm bg-white/5 border border-white/10 flex items-center justify-center text-foreground/60 hover:text-gold"
+                            >
+                              <Minus size={10} />
+                            </button>
+                            <span className="w-8 text-center text-xs font-mono font-bold">{currentVal} ml</span>
+                            <button
+                              onClick={() => updateQuantity(essence.id, 1)}
+                              className="w-6 h-6 rounded-sm bg-white/5 border border-white/10 flex items-center justify-center text-foreground/60 hover:text-gold"
+                            >
+                              <Plus size={10} />
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+
+                {/* Confirm section */}
+                <div className="shrink-0 pt-3 border-t border-white/10 flex items-center justify-between text-xs">
+                  <div>
+                    <p className="text-foreground/40">Total mélange: <span className="font-bold text-foreground font-mono">{totalMl} / {selectedSize} ml</span></p>
+                    <p className="text-gold font-bold font-serif text-sm mt-0.5">{formatXAF(compositionPrice)} F CFA</p>
+                  </div>
+                  <button
+                    onClick={handleAddCompositionToCart}
+                    disabled={totalMl === 0}
+                    className="bg-gold text-background px-4 py-2.5 rounded-sm uppercase tracking-wider font-semibold hover:opacity-90 disabled:opacity-30 transition-all"
+                  >
+                    Ajouter Composition
+                  </button>
+                </div>
+              </div>
+            )}
           </section>
 
-          {/* Order ticket */}
+          {/* Ticket checkout panel */}
           <section className="relative border border-white/10 bg-white/[0.03] rounded-sm flex flex-col min-h-0">
-            {/* Perforated receipt edge */}
             <div
               aria-hidden="true"
               className="h-3 w-full shrink-0"
@@ -399,7 +647,7 @@ export default function POSPage() {
               <div className="flex items-center gap-2.5">
                 <Receipt className="w-4 h-4 text-gold" strokeWidth={1.5} />
                 <h2 className="text-sm uppercase tracking-[0.15em] text-gold/80 font-medium">
-                  Commande en cours
+                  Ticket de caisse
                 </h2>
               </div>
               {cartItems.length > 0 && (
@@ -418,7 +666,7 @@ export default function POSPage() {
                 <EmptyState
                   icon={<ShoppingBag className="w-7 h-7 text-foreground/20" strokeWidth={1.5} />}
                   title="La commande est vide"
-                  subtitle="Ajoutez un produit depuis la recherche pour commencer."
+                  subtitle="Ajoutez des articles ou composez un parfum pour commencer."
                   className="py-20"
                 />
               </div>
@@ -433,7 +681,7 @@ export default function POSPage() {
                     <ProductThumb product={item.product} size={44} />
 
                     <div className="flex-1 min-w-0">
-                      <p className="font-serif text-base text-foreground truncate">
+                      <p className="font-serif text-sm text-foreground truncate">
                         {getProductName(item.product)}
                       </p>
                       <p className="text-xs text-foreground/40 mt-0.5">
@@ -465,7 +713,7 @@ export default function POSPage() {
                       </button>
                     </div>
 
-                    <p className="font-serif text-base text-foreground tabular-nums w-24 text-right shrink-0">
+                    <p className="font-serif text-sm text-foreground tabular-nums w-20 text-right shrink-0">
                       {formatXAF(getProductPrice(item.product) * item.quantity)}
                     </p>
 
@@ -481,8 +729,49 @@ export default function POSPage() {
               </ol>
             )}
 
-            {/* Totals */}
-            <div className="px-6 pt-5 pb-6 border-t border-white/10 shrink-0">
+            {/* Client info + Totals + Validate */}
+            <div className="px-6 pt-4 pb-6 border-t border-white/10 shrink-0 space-y-4">
+              {/* Optional client info */}
+              <div className="grid grid-cols-2 gap-2">
+                <div className="relative">
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-foreground/30" strokeWidth={1.5} />
+                  <input
+                    value={nomClient}
+                    onChange={(e) => setNomClient(e.target.value)}
+                    placeholder="Nom client (optionnel)"
+                    className="w-full bg-background/40 border border-white/10 rounded-sm py-2 pl-9 pr-3 text-xs text-foreground placeholder:text-foreground/30 focus:outline-none focus:border-gold/50"
+                  />
+                </div>
+                <div className="relative">
+                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-foreground/30" strokeWidth={1.5} />
+                  <input
+                    value={telephoneClient}
+                    onChange={(e) => setTelephoneClient(e.target.value)}
+                    placeholder="Téléphone (optionnel)"
+                    className="w-full bg-background/40 border border-white/10 rounded-sm py-2 pl-9 pr-3 text-xs text-foreground placeholder:text-foreground/30 focus:outline-none focus:border-gold/50"
+                  />
+                </div>
+                <div className="relative">
+                  <Tag className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-foreground/30" strokeWidth={1.5} />
+                  <input
+                    value={codePromo}
+                    onChange={(e) => setCodePromo(e.target.value)}
+                    placeholder="Code promo (optionnel)"
+                    className="w-full bg-background/40 border border-white/10 rounded-sm py-2 pl-9 pr-3 text-xs text-foreground placeholder:text-foreground/30 focus:outline-none focus:border-gold/50"
+                  />
+                </div>
+                <div className="relative">
+                  <FileText className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-foreground/30" strokeWidth={1.5} />
+                  <input
+                    value={note}
+                    onChange={(e) => setNote(e.target.value)}
+                    placeholder="Note interne (optionnel)"
+                    className="w-full bg-background/40 border border-white/10 rounded-sm py-2 pl-9 pr-3 text-xs text-foreground placeholder:text-foreground/30 focus:outline-none focus:border-gold/50"
+                  />
+                </div>
+              </div>
+
+              {/* Totals */}
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between text-foreground/50">
                   <span>Sous-total HT</span>
@@ -494,7 +783,7 @@ export default function POSPage() {
                 </div>
               </div>
 
-              <div className="flex justify-between items-baseline mt-4 pt-4 border-t border-gold/20">
+              <div className="flex justify-between items-baseline pt-3 border-t border-gold/20">
                 <span className="font-serif text-lg text-foreground">Total</span>
                 <span className="font-serif text-2xl text-gold tabular-nums">
                   {formatXAF(totals.total)} F CFA
@@ -504,7 +793,7 @@ export default function POSPage() {
               <button
                 onClick={handleValidateOrder}
                 disabled={isValidating || cartItems.length === 0}
-                className="w-full mt-5 bg-gold text-background font-medium text-sm uppercase tracking-[0.1em] rounded-sm py-3.5 flex items-center justify-center gap-2 transition-opacity hover:opacity-90 disabled:opacity-30 disabled:cursor-not-allowed"
+                className="w-full bg-gold text-background font-medium text-sm uppercase tracking-[0.1em] rounded-sm py-3.5 flex items-center justify-center gap-2 transition-opacity hover:opacity-90 disabled:opacity-30 disabled:cursor-not-allowed"
               >
                 {isValidating ? (
                   <>
@@ -612,7 +901,7 @@ function ProductRow({
   inCartQty?: number;
 }) {
   const currentPrice = getProductPrice(product);
-  
+
   return (
     <li>
       <button
