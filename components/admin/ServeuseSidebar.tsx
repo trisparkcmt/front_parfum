@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard, ShoppingCart, BarChart2,
-  Package, Cpu, Gem, X, ChevronDown, Sparkles, Droplets, Bell
+  Package, Cpu, Gem, X, ChevronDown, Sparkles, Droplets, Bell, DollarSign
 } from 'lucide-react';
 import { useOrderNotificationStore } from '@/store/useOrderNotificationStore';
 
@@ -24,6 +24,7 @@ interface NavItem {
 
 const menuItems: NavItem[] = [
   { label: 'Tableau de Bord', icon: <LayoutDashboard size={18} />, href: '/dashboard/serveuse/dashboard' },
+  { label: 'Dépenses', icon: <DollarSign size={18} />, href: '/dashboard/serveuse/expenses' },
   { label: 'Notifications', icon: <Bell size={18} />, href: '/dashboard/serveuse/notifications' }
 ];
 

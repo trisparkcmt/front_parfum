@@ -852,3 +852,12 @@
   .bottle-size-chip { padding: 6px 12px; font-size: 9px; }
   .bottle-size-chip .chip-ml { font-size: 13px; }
 }
+
+/* Drawer sheet slide up animation */
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+.flacon-drawer-open {
+  animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}

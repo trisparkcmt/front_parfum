@@ -1,11 +1,18 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
-import { Menu, Search, Moon, Sun, Bell, ChevronDown, LogOut, Settings, User, ArrowLeft, Check } from 'lucide-react';
+import { useState, useRef, useEffect, useCallback } from 'react';
+import { Menu, Search, Moon, Sun, Bell, User, ArrowLeft, ShoppingCart, Package, Sparkles, Gem, Users2, Check } from 'lucide-react';
 
 interface HeaderProps {
   onMenuClick: () => void;
 }
+
+type Suggestion = {
+  label: string;
+  sub?: string;
+  href: string;
+  icon: React.ReactNode;
+};
 
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
@@ -27,22 +34,128 @@ export default function Header({ onMenuClick }: HeaderProps) {
   const [notifications, setNotifications] = useState<any[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const notifRef = useRef<HTMLDivElement>(null);
+  const searchRef = useRef<HTMLDivElement>(null);
+
+  // Search autocomplete state
+  const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [activeSuggestion, setActiveSuggestion] = useState(-1);
+  const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   
   useEffect(() => {
     initTheme();
   }, [initTheme]);
 
+  // Build static page suggestions matching the query
+  const buildStaticSuggestions = useCallback((q: string): Suggestion[] => {
+    const lower = q.toLowerCase();
+    const pages: { label: string; href: string; icon: React.ReactNode; keywords: string[] }[] = [
+      { label: 'Commandes', href: '/dashboard/admin/order', icon: <ShoppingCart size={14} />, keywords: ['commande', 'order', 'cmd'] },
+      { label: 'Parfums', href: '/dashboard/admin/perfume', icon: <Sparkles size={14} />, keywords: ['parfum', 'perfume'] },
+      { label: 'Accessoires', href: '/dashboard/admin/accessories', icon: <Gem size={14} />, keywords: ['accessoire', 'accessory'] },
+      { label: 'Clients', href: '/dashboard/admin/clients', icon: <Users2 size={14} />, keywords: ['client', 'user', 'utilisateur'] },
+      { label: 'Codes Promo', href: '/dashboard/admin/promo-codes', icon: <Package size={14} />, keywords: ['promo', 'code', 'réduction'] },
+    ];
+    return pages
+      .filter(p => p.keywords.some(kw => kw.includes(lower) || lower.includes(kw)))
+      .map(p => ({ label: p.label, href: p.href, icon: p.icon, sub: 'Page admin' }));
+  }, []);
+
+  // Fetch live search suggestions
+  const fetchSuggestions = useCallback(async (q: string) => {
+    if (!q || q.length < 2) { setSuggestions([]); setShowSuggestions(false); return; }
+    setSearchLoading(true);
+    try {
+      const { adminService: adminSvc } = await import('@/services/apiService');
+      const { orderService: orderSvc } = await import('@/services/apiService');
+
+      const [usersData, ordersData] = await Promise.allSettled([
+        adminSvc.getUsers({ search: q }),
+        orderSvc.getOrders({ search: q }),
+      ]);
+
+      const results: Suggestion[] = [];
+
+      // Users
+      if (usersData.status === 'fulfilled') {
+        const users = usersData.value.results ?? usersData.value.resultats ?? (Array.isArray(usersData.value) ? usersData.value : []);
+        users.slice(0, 3).forEach((u: any) => {
+          const name = `${u.first_name || ''} ${u.last_name || ''}`.trim() || u.email;
+          results.push({
+            label: name,
+            sub: u.email ?? u.telephone,
+            href: `/dashboard/admin/clients`,
+            icon: <User size={14} />,
+          });
+        });
+      }
+
+      // Orders
+      if (ordersData.status === 'fulfilled') {
+        const orders = ordersData.value.results ?? ordersData.value.resultats ?? (Array.isArray(ordersData.value) ? ordersData.value : []);
+        orders.slice(0, 3).forEach((o: any) => {
+          results.push({
+            label: o.numero_commande,
+            sub: `${o.livraison_nom_complet ?? ''} — ${Number(o.total_ttc ?? 0).toLocaleString('fr-FR')} FCFA`,
+            href: `/dashboard/admin/order`,
+            icon: <ShoppingCart size={14} />,
+          });
+        });
+      }
+
+      // Page suggestions
+      results.push(...buildStaticSuggestions(q));
+
+      setSuggestions(results.slice(0, 8));
+      setShowSuggestions(results.length > 0);
+      setActiveSuggestion(-1);
+    } catch {
+      setSuggestions(buildStaticSuggestions(q));
+      setShowSuggestions(true);
+    } finally {
+      setSearchLoading(false);
+    }
+  }, [buildStaticSuggestions]);
+
+  // Debounce search input
+  useEffect(() => {
+    if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+    if (search.length >= 2) {
+      searchDebounceRef.current = setTimeout(() => fetchSuggestions(search), 320);
+    } else {
+      setSuggestions([]);
+      setShowSuggestions(false);
+    }
+    return () => { if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current); };
+  }, [search, fetchSuggestions]);
+
   const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setActiveSuggestion(i => Math.min(i + 1, suggestions.length - 1));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setActiveSuggestion(i => Math.max(i - 1, -1));
+    } else if (e.key === 'Escape') {
+      setShowSuggestions(false);
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (activeSuggestion >= 0 && suggestions[activeSuggestion]) {
+        router.push(suggestions[activeSuggestion].href);
+        setSearch('');
+        setShowSuggestions(false);
+        return;
+      }
       const q = search.trim();
       if (!q) return;
-      // Determine context and route to appropriate search page
-      const path = pathname.includes('/accessories') 
+      const path = pathname.includes('/accessories')
         ? `/dashboard/admin/accessories?search=${encodeURIComponent(q)}`
         : pathname.includes('/perfume')
         ? `/dashboard/admin/perfume?search=${encodeURIComponent(q)}`
-        : `/dashboard/admin/perfume?search=${encodeURIComponent(q)}`; // Default fallback to perfumes search catalog
+        : `/dashboard/admin/order?search=${encodeURIComponent(q)}`;
       router.push(path);
+      setShowSuggestions(false);
     }
   };
 
@@ -103,6 +216,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
   useEffect(() => {
     function handleClick(e: MouseEvent) {
       if (notifRef.current && !notifRef.current.contains(e.target as Node)) setShowNotifs(false);
+      if (searchRef.current && !searchRef.current.contains(e.target as Node)) setShowSuggestions(false);
     }
     document.addEventListener('mousedown', handleClick);
     return () => document.removeEventListener('mousedown', handleClick);
@@ -137,18 +251,66 @@ export default function Header({ onMenuClick }: HeaderProps) {
         <Menu size={20} />
       </button>
 
-      {/* Search */}
-      <div className="hidden sm:flex items-center gap-2 flex-1 max-w-md bg-white/5 border border-white/10 rounded-lg px-3 py-2 focus-within:border-gold focus-within:ring-1 focus-within:ring-gold/20 transition-all">
-        <Search size={16} className="text-foreground/40" />
-        <input
-          type="text"
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          onKeyDown={handleSearchKeyDown}
-          placeholder="Rechercher..."
-          className="flex-1 bg-transparent text-sm text-foreground placeholder:text-foreground/40 outline-none"
-        />
-        <span className="text-xs text-foreground/40 bg-white/5 border border-white/10 rounded px-1.5 py-0.5 font-mono">⏎</span>
+      {/* Search with autocomplete */}
+      <div ref={searchRef} className="hidden sm:block relative flex-1 max-w-md">
+        <div className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-lg px-3 py-2 focus-within:border-gold focus-within:ring-1 focus-within:ring-gold/20 transition-all">
+          <Search size={16} className={`transition-colors ${searchLoading ? 'text-gold animate-pulse' : 'text-foreground/40'}`} />
+          <input
+            type="text"
+            value={search}
+            onChange={e => { setSearch(e.target.value); setShowSuggestions(true); }}
+            onKeyDown={handleSearchKeyDown}
+            onFocus={() => { if (suggestions.length > 0) setShowSuggestions(true); }}
+            placeholder="Rechercher commandes, clients, pages…"
+            className="flex-1 bg-transparent text-sm text-foreground placeholder:text-foreground/40 outline-none"
+          />
+          {search && (
+            <button onClick={() => { setSearch(''); setSuggestions([]); setShowSuggestions(false); }} className="text-foreground/30 hover:text-foreground/60 transition-colors">
+              <span className="text-xs">✕</span>
+            </button>
+          )}
+          {!search && <span className="text-xs text-foreground/40 bg-white/5 border border-white/10 rounded px-1.5 py-0.5 font-mono flex-shrink-0">⏎</span>}
+        </div>
+
+        {/* Dropdown suggestions */}
+        {showSuggestions && suggestions.length > 0 && (
+          <div className="absolute top-full left-0 right-0 mt-1.5 bg-background border border-white/10 rounded-xl shadow-2xl z-50 overflow-hidden">
+            <div className="py-1">
+              {suggestions.map((s, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => {
+                    router.push(s.href);
+                    setSearch('');
+                    setShowSuggestions(false);
+                  }}
+                  className={`w-full flex items-center gap-3 px-4 py-2.5 text-left transition-colors ${
+                    idx === activeSuggestion ? 'bg-gold/10 text-gold' : 'hover:bg-white/5 text-foreground'
+                  }`}
+                >
+                  <span className={`flex-shrink-0 ${idx === activeSuggestion ? 'text-gold' : 'text-foreground/40'}`}>{s.icon}</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">{s.label}</p>
+                    {s.sub && <p className="text-[10px] text-foreground/40 truncate">{s.sub}</p>}
+                  </div>
+                </button>
+              ))}
+            </div>
+            <div className="border-t border-white/10 px-4 py-2 flex items-center justify-between">
+              <span className="text-[10px] text-foreground/30">↑↓ naviguer · ↵ sélectionner</span>
+              <button
+                onClick={() => {
+                  const q = search.trim();
+                  if (q) router.push(`/dashboard/admin/order?search=${encodeURIComponent(q)}`);
+                  setShowSuggestions(false);
+                }}
+                className="text-[10px] text-gold hover:underline"
+              >
+                Voir tous les résultats →
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="ml-auto flex items-center gap-1 sm:gap-2">

@@ -7,7 +7,7 @@ import {
   LayoutDashboard, ShoppingCart, BarChart2, Users2,
   TrendingUp, Package, Cpu, DollarSign, Truck,
   UserCircle, Sparkles, Gem, X, ChevronDown, ChevronRight, Droplets,
-  Bell, FileText,
+  Bell, FileText, Tag,
 } from 'lucide-react';
 import { useOrderNotificationStore } from '@/store/useOrderNotificationStore';
 
@@ -52,6 +52,8 @@ const boutiqueItems: NavItem[] = [
 
 const gestionItems: NavItem[] = [
   { label: 'Clients', icon: <Users2 size={18} />, href: '/dashboard/admin/clients' },
+  { label: 'Codes Promo', icon: <Tag size={18} />, href: '/dashboard/admin/promo-codes' },
+  { label: 'Dépenses', icon: <DollarSign size={18} />, href: '/dashboard/admin/expenses' },
   { label: 'Prestataires', icon: <TrendingUp size={18} />, href: '/dashboard/admin/providers' },
   { label: 'Livreurs', icon: <Truck size={18} />, href: '/dashboard/admin/delivery' },
   { label: 'Serveuses', icon: <Users2 size={18} />, href: '/dashboard/admin/serveuses' },

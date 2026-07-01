@@ -292,6 +292,27 @@ export default function OrdersPage() {
   const isCancellable = (o: BackendOrder) =>
     o.statut === 'en_attente' || o.statut === 'validé';
 
+  // Refund handler
+  const handleRefund = async (order: BackendOrder) => {
+    if (!confirm(`Rembourser la commande ${order.numero_commande} ?`)) return;
+    try {
+      setLoading(true);
+      await orderService.updateOrder(order.numero_commande, {
+        statut: 'remboursée',
+        statut_paiement: 'échoué'
+      });
+      addToast('Commande marquée comme remboursée', 'success');
+      fetchOrders(page);
+    } catch (err: any) {
+      addToast(err.response?.data?.detail ?? 'Erreur lors du remboursement', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const ongoingOrders = orders.filter(o => o.statut !== 'remboursée' && o.statut_livraison !== 'livrée' && o.statut !== 'annulée');
+  const completedOrders = orders.filter(o => o.statut === 'remboursée' || o.statut_livraison === 'livrée' || o.statut === 'annulée');
+
   // ─────────────────────────────────────────────────────────────────────────────
   return (
     <div className="space-y-6 animate-fade-in-up">
@@ -428,132 +449,213 @@ export default function OrdersPage() {
         )}
       </div>
 
-      {/* ── Table ──────────────────────────────────────────────────────────── */}
-      <div className="bg-white/5 rounded-3xl border border-white/10 shadow-2xl overflow-hidden backdrop-blur-md min-h-[300px]">
-        {loading ? (
-          <div className="flex flex-col items-center justify-center py-24 text-gold gap-3">
-            <Loader2 className="animate-spin" size={36} />
-            <p className="text-sm font-semibold">Chargement des commandes…</p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-white/5 border-b border-white/10">
-                <tr>
-                  {['N° Commande', 'Client / Destinataire', 'Total TTC', 'Code Promo', 'Livreur', 'Statut', 'Livraison', 'Paiement', 'Date', ''].map(h => (
-                    <th key={h} className="text-left text-[10px] font-bold text-foreground/40 uppercase tracking-wider px-4 py-3.5 whitespace-nowrap">
-                      {h}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/5">
-                {orders.map(order => (
-                  <tr key={order.id} className="hover:bg-white/[0.03] transition-colors group">
-                    {/* N° commande */}
-                    <td className="px-4 py-3.5">
-                      <span className="font-mono text-xs font-bold text-gold tracking-wider">
-                        {order.numero_commande}
-                      </span>
-                    </td>
-
-                    {/* Client / destinataire */}
-                    <td className="px-4 py-3.5 min-w-[160px]">
-                      <p className="text-xs font-semibold text-foreground leading-tight">{order.livraison_nom_complet}</p>
-                      <p className="text-[10px] text-foreground/40 mt-0.5">{order.client_email}</p>
-                      {order.livraison_ville && (
-                        <p className="text-[10px] text-foreground/30">{order.livraison_ville}{order.livraison_quartier ? `, ${order.livraison_quartier}` : ''}</p>
-                      )}
-                    </td>
-
-                    {/* Total TTC */}
-                    <td className="px-4 py-3.5 font-bold text-foreground whitespace-nowrap">
-                      {fmt(order.total_ttc)}
-                    </td>
-
-                    {/* Code promo */}
-                    <td className="px-4 py-3.5">
-                      {order.code_promo_utilise
-                        ? <span className="font-mono text-xs bg-gold/10 text-gold px-2 py-0.5 rounded border border-gold/20">{order.code_promo_utilise}</span>
-                        : <span className="text-foreground/30 text-xs">—</span>}
-                    </td>
-
-                    {/* Livreur */}
-                    <td className="px-4 py-3.5 text-xs text-foreground/60 whitespace-nowrap">
-                      {order.livreur_nom ?? <span className="text-foreground/30">—</span>}
-                    </td>
-
-                    {/* Statut commande */}
-                    <td className="px-4 py-3.5">
-                      <Badge text={STATUT_CFG[order.statut]?.label ?? order.statut} cfg={STATUT_CFG[order.statut]} />
-                    </td>
-
-                    {/* Statut livraison */}
-                    <td className="px-4 py-3.5">
-                      <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full border capitalize inline-flex
-                        {order.livreur ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' : 'text-amber-400 bg-amber-500/10 border-amber-500/20'}">
-                        {getDeliveryMethod(order)}
-                      </span>
-                    </td>
-
-                    {/* Statut paiement */}
-                    <td className="px-4 py-3.5">
-                      <Badge text={STATUT_PAIEMENT_CFG[order.statut_paiement]?.label ?? order.statut_paiement} cfg={STATUT_PAIEMENT_CFG[order.statut_paiement]} />
-                    </td>
-
-                    {/* Date */}
-                    <td className="px-4 py-3.5 text-[10px] text-foreground/40 whitespace-nowrap">
-                      {fmtDate(order.date_creation)}
-                    </td>
-
-                    {/* Actions */}
-                    <td className="px-4 py-3.5">
-                      <div className="flex items-center gap-2">
-                        <button
-                          title="Voir le détail"
-                          onClick={() => setSelected(order)}
-                          className="p-1.5 rounded-lg hover:bg-white/10 text-foreground/60 hover:text-gold transition-colors"
-                        >
-                          <Eye size={15} />
-                        </button>
-                        <button
-                          title="Modifier / Gérer"
-                          onClick={() => openEdit(order)}
-                          className="p-1.5 rounded-lg hover:bg-blue-500/10 text-foreground/60 hover:text-blue-400 transition-colors"
-                        >
-                          <ClipboardList size={15} />
-                        </button>
-                        {order.statut === 'en_attente' && (
-                          <button
-                            onClick={() => handleValidateClick(order)}
-                            className="px-2 py-1 bg-emerald-500 hover:bg-emerald-600 text-black rounded-lg text-[10px] font-bold transition-all"
-                          >
-                            Valider
-                          </button>
-                        )}
-                        {isCancellable(order) && (
-                          <button
-                            onClick={() => handleCancel(order)}
-                            className="px-2 py-1 bg-red-500 hover:bg-red-600 text-foreground rounded-lg text-[10px] font-bold transition-all"
-                          >
-                            Annuler
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-                {orders.length === 0 && !loading && (
+      {/* ── Table 1: Commandes en cours ──────────────────────────────────────────────────────────── */}
+      <div>
+        <h2 className="text-lg font-bold text-foreground mb-3 flex items-center gap-2">
+          <span className="w-2.5 h-2.5 bg-amber-500 rounded-full animate-pulse" />
+          Commandes en cours ({ongoingOrders.length})
+        </h2>
+        <div className="bg-white/5 rounded-3xl border border-white/10 shadow-2xl overflow-hidden backdrop-blur-md min-h-[150px]">
+          {loading ? (
+            <div className="flex flex-col items-center justify-center py-20 text-gold gap-3">
+              <Loader2 className="animate-spin" size={36} />
+              <p className="text-sm font-semibold">Chargement des commandes en cours…</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-white/5 border-b border-white/10">
                   <tr>
-                    <td colSpan={10} className="text-center py-20 text-foreground/30 italic text-sm">
-                      Aucune commande trouvée pour ces critères.
-                    </td>
+                    {['N° Commande', 'Client / Destinataire', 'Total TTC', 'Code Promo', 'Livreur', 'Statut', 'Livraison', 'Date', ''].map(h => (
+                      <th key={h} className="text-left text-[10px] font-bold text-foreground/40 uppercase tracking-wider px-4 py-3.5 whitespace-nowrap">
+                        {h}
+                      </th>
+                    ))}
                   </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        )}
+                </thead>
+                <tbody className="divide-y divide-white/5">
+                  {ongoingOrders.map(order => (
+                    <tr key={order.id} className="hover:bg-white/[0.03] transition-colors group">
+                      <td className="px-4 py-3.5">
+                        <span className="font-mono text-xs font-bold text-gold tracking-wider">
+                          {order.numero_commande}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3.5 min-w-[160px]">
+                        <p className="text-xs font-semibold text-foreground leading-tight">{order.livraison_nom_complet}</p>
+                        <p className="text-[10px] text-foreground/40 mt-0.5">{order.client_email}</p>
+                        {order.livraison_ville && (
+                          <p className="text-[10px] text-foreground/30">{order.livraison_ville}{order.livraison_quartier ? `, ${order.livraison_quartier}` : ''}</p>
+                        )}
+                      </td>
+                      <td className="px-4 py-3.5 font-bold text-foreground whitespace-nowrap">
+                        {fmt(order.total_ttc)}
+                      </td>
+                      <td className="px-4 py-3.5">
+                        {order.code_promo_utilise
+                          ? <span className="font-mono text-xs bg-gold/10 text-gold px-2 py-0.5 rounded border border-gold/20">{order.code_promo_utilise}</span>
+                          : <span className="text-foreground/30 text-xs">—</span>}
+                      </td>
+                      <td className="px-4 py-3.5 text-xs text-foreground/60 whitespace-nowrap">
+                        {order.livreur_nom ?? <span className="text-foreground/30">—</span>}
+                      </td>
+                      <td className="px-4 py-3.5">
+                        <Badge text={STATUT_CFG[order.statut]?.label ?? order.statut} cfg={STATUT_CFG[order.statut]} />
+                      </td>
+                      <td className="px-4 py-3.5">
+                        <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full border capitalize inline-flex
+                          {order.livreur ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' : 'text-amber-400 bg-amber-500/10 border-amber-500/20'}">
+                          {getDeliveryMethod(order)}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3.5 text-[10px] text-foreground/40 whitespace-nowrap">
+                        {fmtDate(order.date_creation)}
+                      </td>
+                      <td className="px-4 py-3.5">
+                        <div className="flex items-center gap-2">
+                          <button
+                            title="Voir le détail"
+                            onClick={() => setSelected(order)}
+                            className="p-1.5 rounded-lg hover:bg-white/10 text-foreground/60 hover:text-gold transition-colors"
+                          >
+                            <Eye size={15} />
+                          </button>
+                          <button
+                            title="Modifier / Gérer"
+                            onClick={() => openEdit(order)}
+                            className="p-1.5 rounded-lg hover:bg-blue-500/10 text-foreground/60 hover:text-blue-400 transition-colors"
+                          >
+                            <ClipboardList size={15} />
+                          </button>
+                          {order.statut === 'en_attente' && (
+                            <button
+                              onClick={() => handleValidateClick(order)}
+                              className="px-2 py-1 bg-emerald-500 hover:bg-emerald-600 text-black rounded-lg text-[10px] font-bold transition-all"
+                            >
+                              Valider
+                            </button>
+                          )}
+                          {isCancellable(order) && (
+                            <button
+                              onClick={() => handleCancel(order)}
+                              className="px-2 py-1 bg-red-500 hover:bg-red-600 text-foreground rounded-lg text-[10px] font-bold transition-all"
+                            >
+                              Annuler
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                  {ongoingOrders.length === 0 && !loading && (
+                    <tr>
+                      <td colSpan={9} className="text-center py-10 text-foreground/30 italic text-sm">
+                        Aucune commande en cours.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* ── Table 2: Commandes complétées / terminées ────────────────────────────────────────────────── */}
+      <div className="pt-4">
+        <h2 className="text-lg font-bold text-foreground mb-3 flex items-center gap-2">
+          <span className="w-2.5 h-2.5 bg-emerald-500 rounded-full" />
+          Commandes complétées / traitées ({completedOrders.length})
+        </h2>
+        <div className="bg-white/5 rounded-3xl border border-white/10 shadow-2xl overflow-hidden backdrop-blur-md min-h-[150px]">
+          {loading ? (
+            <div className="flex flex-col items-center justify-center py-20 text-gold gap-3">
+              <Loader2 className="animate-spin" size={36} />
+              <p className="text-sm font-semibold">Chargement des commandes complétées…</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-white/5 border-b border-white/10">
+                  <tr>
+                    {['N° Commande', 'Client / Destinataire', 'Total TTC', 'Code Promo', 'Livreur', 'Statut', 'Livraison', 'Date', ''].map(h => (
+                      <th key={h} className="text-left text-[10px] font-bold text-foreground/40 uppercase tracking-wider px-4 py-3.5 whitespace-nowrap">
+                        {h}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/5">
+                  {completedOrders.map(order => (
+                    <tr key={order.id} className="hover:bg-white/[0.03] transition-colors group">
+                      <td className="px-4 py-3.5">
+                        <span className="font-mono text-xs font-bold text-gold tracking-wider">
+                          {order.numero_commande}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3.5 min-w-[160px]">
+                        <p className="text-xs font-semibold text-foreground leading-tight">{order.livraison_nom_complet}</p>
+                        <p className="text-[10px] text-foreground/40 mt-0.5">{order.client_email}</p>
+                        {order.livraison_ville && (
+                          <p className="text-[10px] text-foreground/30">{order.livraison_ville}{order.livraison_quartier ? `, ${order.livraison_quartier}` : ''}</p>
+                        )}
+                      </td>
+                      <td className="px-4 py-3.5 font-bold text-foreground whitespace-nowrap">
+                        {fmt(order.total_ttc)}
+                      </td>
+                      <td className="px-4 py-3.5">
+                        {order.code_promo_utilise
+                          ? <span className="font-mono text-xs bg-gold/10 text-gold px-2 py-0.5 rounded border border-gold/20">{order.code_promo_utilise}</span>
+                          : <span className="text-foreground/30 text-xs">—</span>}
+                      </td>
+                      <td className="px-4 py-3.5 text-xs text-foreground/60 whitespace-nowrap">
+                        {order.livreur_nom ?? <span className="text-foreground/30">—</span>}
+                      </td>
+                      <td className="px-4 py-3.5">
+                        <Badge text={STATUT_CFG[order.statut]?.label ?? order.statut} cfg={STATUT_CFG[order.statut]} />
+                      </td>
+                      <td className="px-4 py-3.5">
+                        <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full border capitalize inline-flex
+                          {order.livreur ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' : 'text-amber-400 bg-amber-500/10 border-amber-500/20'}">
+                          {getDeliveryMethod(order)}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3.5 text-[10px] text-foreground/40 whitespace-nowrap">
+                        {fmtDate(order.date_creation)}
+                      </td>
+                      <td className="px-4 py-3.5">
+                        <div className="flex items-center gap-2">
+                          <button
+                            title="Voir le détail"
+                            onClick={() => setSelected(order)}
+                            className="p-1.5 rounded-lg hover:bg-white/10 text-foreground/60 hover:text-gold transition-colors"
+                          >
+                            <Eye size={15} />
+                          </button>
+                          {order.statut !== 'remboursée' && order.statut !== 'annulée' && (
+                            <button
+                              onClick={() => handleRefund(order)}
+                              className="px-2.5 py-1 bg-purple-500/15 hover:bg-purple-500/25 border border-purple-500/30 text-purple-400 rounded-lg text-[10px] font-bold transition-all"
+                            >
+                              Rembourser
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                  {completedOrders.length === 0 && !loading && (
+                    <tr>
+                      <td colSpan={9} className="text-center py-10 text-foreground/30 italic text-sm">
+                        Aucune commande complétée.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* ── Pagination ─────────────────────────────────────────────────────── */}

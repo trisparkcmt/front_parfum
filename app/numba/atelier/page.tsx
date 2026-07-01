@@ -8,7 +8,7 @@ import { useAuthStore } from '@/store/useAuthStore';
 import { useToastStore } from '@/store/useToastStore';
 import { generateId } from '@/lib/utils';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft, Minus, Plus, ChevronLeft, ChevronRight, RefreshCcw, Loader2, Save, ShoppingCart } from 'lucide-react';
+import { ArrowLeft, Minus, Plus, ChevronLeft, ChevronRight, RefreshCcw, Loader2, Save, ShoppingCart, X } from 'lucide-react';
 import type { CustomComposition, CompositionEssence, EssenceClient } from '@/types';
 import { labService } from '@/services/labService';
 import { labService as apiLabService, shopService } from '@/services/apiService';
@@ -260,8 +260,15 @@ export default function AtelierPage() {
   const ALL_ITEMS = useMemo(() => [...ingredients, ...essences], [ingredients, essences]);
 
   const maxMl = bottleSize;
+  const maxFillMl = bottleSize * 0.45;
   const totalMl = useMemo(() => Object.values(quantities).reduce((s, v) => s + v, 0), [quantities]);
-  const remaining = maxMl - totalMl;
+  const remaining = maxFillMl - totalMl;
+
+  // Flacon drawer state
+  const [showFlaconDrawer, setShowFlaconDrawer] = useState(false);
+  const [isDrawerFullScreen, setIsDrawerFullScreen] = useState(false);
+  const [drawerSizeFilter, setDrawerSizeFilter] = useState<number | null>(null);
+  const [drawerSort, setDrawerSort] = useState<'asc' | 'desc'>('asc');
 
   const currentIngredientsFiltered = useMemo(() => {
     return ingredients.filter(item => {
@@ -286,23 +293,29 @@ export default function AtelierPage() {
     setSavedParfumId(null);
     setCartAdded(false);
     setQuantities(prev => {
+      const currentOtherTotal = Object.entries(prev)
+        .filter(([k]) => k !== id)
+        .reduce((sum, [_, v]) => sum + v, 0);
+      const limit = bottleSize * 0.45;
+      const allowedValue = Math.min(value, Math.max(0, limit - currentOtherTotal));
       const newQ = { ...prev };
-      if (value <= 0) {
+      if (allowedValue <= 0) {
         delete newQ[id];
       } else {
-        newQ[id] = value;
+        newQ[id] = allowedValue;
       }
       return newQ;
     });
-  }, []);
+  }, [bottleSize]);
 
   const handleBottleSizeChange = (size: number) => {
-    if (totalMl > size) {
+    const limit = size * 0.45;
+    if (totalMl > limit) {
       setQuantities({});
       addToast(
         i18n.language === 'en'
-          ? `Bottle changed to ${size}ml — mixture reset.`
-          : `Flacon changé à ${size}ml — composition réinitialisée.`, 
+          ? `Bottle changed to ${size}ml — mixture reset due to 45% fill limit.`
+          : `Flacon changé à ${size}ml — composition réinitialisée (limite de 45% dépassée).`, 
         'info'
       );
     }
@@ -318,13 +331,19 @@ export default function AtelierPage() {
 
   const calcPrice = useMemo(() => {
     const sizeMultiplier = bottleSize === 30 ? 0.4 : bottleSize === 50 ? 0.65 : 1;
-    let total = Math.round((FORMAT_PRICES[format] || 0) * sizeMultiplier);
+    // Default format is edp
+    let total = Math.round((FORMAT_PRICES['edp'] || 0) * sizeMultiplier);
+    // Add flacon price if available
+    const matchedFlacon = flacons.find(f => Number(f.id) === selectedFlaconId);
+    if (matchedFlacon) {
+      total += Number(matchedFlacon.prix_unitaire || 0);
+    }
     for (const e of ALL_ITEMS) {
       const q = quantities[e.id] || 0;
       if (q > 0) total += q * e.pricePerMl;
     }
     return Math.round(total);
-  }, [quantities, format, bottleSize, ALL_ITEMS]);
+  }, [quantities, bottleSize, ALL_ITEMS, flacons, selectedFlaconId]);
 
   const formulaSummary = useMemo(() => {
     const list = [];
@@ -366,18 +385,18 @@ export default function AtelierPage() {
 
   const sommelierHint = useMemo(() => {
     if (totalMl === 0) return { visible: true, text: i18n.language === 'en' 
-      ? `Explore our ingredients and premium essences. Add them by <em>1ml</em> to fill your <em>${maxMl}ml</em> bottle.`
-      : `Explorez nos ingrédients et essences d'exception. Ajoutez-les par <em>1ml</em> jusqu'à remplir vos <em>${maxMl}ml</em>.` 
+      ? `Explore our ingredients and premium essences. Add them by <em>1ml</em> to fill your <em>${maxFillMl}ml</em> (45% limit).`
+      : `Explorez nos ingrédients et essences d'exception. Ajoutez-les par <em>1ml</em> jusqu'à remplir vos <em>${maxFillMl}ml</em> (limite 45%).` 
     };
     if (remaining > 0) return { visible: true, text: i18n.language === 'en'
       ? `There are <em>${remaining}ml</em> left to compose.`
       : `Il reste <em>${remaining}ml</em> à composer.`
     };
     return { visible: true, text: i18n.language === 'en'
-      ? 'Perfect harmony! Your bottle is <em>complete</em>.'
-      : 'Harmonie parfaite ! Votre flacon est <em>complet</em>.'
+      ? 'Perfect harmony! Your formulation is <em>complete</em>.'
+      : 'Harmonie parfaite ! Votre formule est <em>complète</em>.'
     };
-  }, [totalMl, remaining, maxMl, i18n.language]);
+  }, [totalMl, remaining, maxFillMl, i18n.language]);
 
   const handleSaveComposition = async (name: string) => {
     if (totalMl === 0) {
@@ -460,38 +479,31 @@ export default function AtelierPage() {
 
     setIsAddingToCart(true);
     try {
-      if (savedParfumId) {
-        // Add saved composition to cart using the ID
-        await addCustomPerfume(savedParfumId, 1, undefined, { silent: false });
-      } else {
-        // Direct composition (guest/POS mode) — add without saving
-        const lignes = Object.entries(quantities)
-          .filter(([_, qty]) => qty > 0)
-          .map(([essenceId, quantityMl]) => {
-            const item = ALL_ITEMS.find(e => e.id === essenceId);
-            return {
-              lot_essence_id: item?.lotEssenceId || item?.backendId || 0,
-              quantite_ml: quantityMl,
-            };
-          });
+      // Build lines using lot_essence_id (or backendId as fallback) for direct composition
+      const lignes = Object.entries(quantities)
+        .filter(([_, qty]) => qty > 0)
+        .map(([essenceId, quantityMl]) => {
+          const item = ALL_ITEMS.find(e => e.id === essenceId);
+          return {
+            lot_essence_id: item?.lotEssenceId || item?.backendId || 0,
+            quantite_ml: quantityMl,
+          };
+        });
 
-        // Find a flacon that matches bottleSize
-        const selectedFlacon = flacons.find(f => f.contenance_ml === bottleSize || f.capacity === bottleSize);
-        if (!selectedFlacon) {
-          addToast(
-            i18n.language === 'en' ? 'Please select a valid bottle size.' : 'Veuillez sélectionner une taille de flacon valide.',
-            'error'
-          );
-          return;
-        }
-
-        await addDirectComposition({
-          flacon_id: selectedFlacon.id,
-          lignes,
-          nom: saveModalName || `Création Numba ${bottleSize}ml`,
-          quantite: 1,
-        }, { silent: false });
+      if (!selectedFlaconId) {
+        addToast(
+          i18n.language === 'en' ? 'Please select a valid bottle size.' : 'Veuillez sélectionner une taille de flacon valide.',
+          'error'
+        );
+        return;
       }
+
+      await addDirectComposition({
+        flacon_id: selectedFlaconId,
+        lignes,
+        nom: saveModalName || compositionName || `Création Numba ${bottleSize}ml`,
+        quantite: 1,
+      }, { silent: false });
 
       setCtaSuccess(true);
       addToast(i18n.language === 'en' ? 'Added to cart!' : 'Ajouté au panier !', 'success');
@@ -552,15 +564,22 @@ export default function AtelierPage() {
         <div className="flacon-panel-bg" />
         <div className="flacon-eyebrow">Atelier Numba · {maxMl}ml</div>
         
-        <button 
-          onClick={() => setQuantities({})}
-          className="mt-2 flex items-center gap-1.5 px-4 py-2 bg-foreground/5 hover:bg-red-500/10 border border-[var(--t-border)] rounded-full text-[10px] uppercase tracking-widest text-foreground/40 hover:text-red-400 transition-all z-20"
-        >
-          <RefreshCcw size={12} />
-          {i18n.language === 'en' ? 'Empty bottle' : 'Vider le flacon'}
-        </button>
+        <div className="flex items-center gap-2 z-20">
+          <button 
+            onClick={() => setQuantities({})}
+            className="flex items-center gap-1.5 px-4 py-2 bg-foreground/5 hover:bg-red-500/10 border border-[var(--t-border)] rounded-full text-[10px] uppercase tracking-widest text-foreground/40 hover:text-red-400 transition-all"
+          >
+            <RefreshCcw size={12} />
+            {i18n.language === 'en' ? 'Empty bottle' : 'Vider le flacon'}
+          </button>
 
-
+          <button 
+            onClick={() => setShowFlaconDrawer(true)}
+            className="flex items-center gap-1.5 px-4 py-2 bg-gold/10 hover:bg-gold/20 border border-gold/30 rounded-full text-[10px] uppercase tracking-widest text-gold transition-all"
+          >
+            {i18n.language === 'en' ? 'Boutique Flacons' : 'Nos Flacons'}
+          </button>
+        </div>
 
         <div className="relative w-full flex items-center justify-center mt-8">
           <div className="size-slider-wrap">
@@ -589,9 +608,9 @@ export default function AtelierPage() {
 
           <div className="flacon-stage relative transition-all duration-700">
             <div className="bottle-glow" />
-            {bottleSize >= 61 && <Bottle100 totalMl={totalMl} maxMl={maxMl} quantities={quantities} allItems={ALL_ITEMS} />}
-            {bottleSize >= 31 && bottleSize <= 60 && <Bottle50 totalMl={totalMl} maxMl={maxMl} quantities={quantities} allItems={ALL_ITEMS} />}
-            {bottleSize <= 30 && <Bottle30 totalMl={totalMl} maxMl={maxMl} quantities={quantities} allItems={ALL_ITEMS} />}
+            {bottleSize >= 61 && <Bottle100 totalMl={totalMl} maxMl={maxFillMl} quantities={quantities} allItems={ALL_ITEMS} />}
+            {bottleSize >= 31 && bottleSize <= 60 && <Bottle50 totalMl={totalMl} maxMl={maxFillMl} quantities={quantities} allItems={ALL_ITEMS} />}
+            {bottleSize <= 30 && <Bottle30 totalMl={totalMl} maxMl={maxFillMl} quantities={quantities} allItems={ALL_ITEMS} />}
             
             <div className="absolute -right-12 top-1/2 -translate-y-1/2 flex flex-col items-center gap-1 opacity-40">
               <div className="w-[1px] h-20 bg-gold/50" />
@@ -604,10 +623,10 @@ export default function AtelierPage() {
         <div className="mt-auto pb-12 w-full max-w-xs">
           <div className="flex justify-between items-end mb-2">
             <span className="text-[10px] uppercase tracking-widest text-gold/60">Composition</span>
-            <span className="text-[14px] font-light text-cream">{totalMl} / {maxMl} ml</span>
+            <span className="text-[14px] font-light text-cream">{totalMl} / {maxFillMl} ml</span>
           </div>
           <div className="h-[2px] w-full bg-foreground/5 overflow-hidden">
-            <div className="h-full bg-gold transition-all duration-700" style={{ width: `${(totalMl/maxMl)*100}%` }} />
+            <div className="h-full bg-gold transition-all duration-700" style={{ width: `${Math.min(100, (totalMl/maxFillMl)*100)}%` }} />
           </div>
         </div>
       </div>
@@ -832,63 +851,45 @@ export default function AtelierPage() {
             )}
 
             {activeTab === 'recap' && (
-              <div className="animate-in fade-in duration-300">
-                <h3 className="text-xs uppercase tracking-[0.2em] text-foreground/30 mb-4">Format du Flacon</h3>
-                {flacons.length > 0 ? (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-8">
-                    {flacons.map((f: any) => {
-                      const cap = Number(f.contenance_ml || f.capacite_ml || 0);
-                      const fId = Number(f.id);
-                      const isSelected = fId === selectedFlaconId;
+              <div className="animate-in fade-in duration-300 space-y-6">
+                <div>
+                  <h3 className="text-xs uppercase tracking-[0.2em] text-foreground/30 mb-4">Format du Flacon</h3>
+                  {(() => {
+                    const matchedFlacon = flacons.find((f: any) => Number(f.id) === selectedFlaconId) || flacons[0];
+                    if (!matchedFlacon) {
                       return (
-                        <button
-                          key={fId}
-                          onClick={() => handleBottleSizeChange(cap)}
-                          className={`p-4 border text-left transition-all rounded-lg ${
-                            isSelected ? 'border-gold bg-gold/5' : 'border-[var(--t-border)] hover:border-foreground/20'
-                          }`}
+                        <button 
+                          onClick={() => setShowFlaconDrawer(true)}
+                          className="w-full p-6 border border-dashed border-white/20 rounded-xl text-center text-sm text-foreground/60 hover:border-gold/40 hover:text-gold transition-colors"
                         >
-                          <p className={`text-[10px] uppercase tracking-widest mb-1 ${isSelected ? 'text-gold' : 'text-foreground/40'}`}>
-                            {f.nom || `${cap}ml`}
-                          </p>
-                          <p className="text-sm font-light text-cream">
-                            {Number(f.prix_unitaire || 0).toLocaleString()} <span className="text-[9px] text-foreground/20">FCFA</span>
-                          </p>
+                          Choisir un Flacon...
                         </button>
                       );
-                    })}
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-8">
-                    {BOTTLE_SIZES.map(b => (
-                      <button
-                        key={b.ml}
-                        onClick={() => handleBottleSizeChange(b.ml)}
-                        className={`p-4 border text-left transition-all rounded-lg ${
-                          bottleSize === b.ml ? 'border-gold bg-gold/5' : 'border-[var(--t-border)] hover:border-foreground/20'
-                        }`}
-                      >
-                        <p className={`text-[10px] uppercase tracking-widest mb-1 ${bottleSize === b.ml ? 'text-gold' : 'text-foreground/40'}`}>
-                          {b.label}
-                        </p>
-                        <p className="text-xs text-foreground/30">{b.desc}</p>
-                      </button>
-                    ))}
-                  </div>
-                )}
-
-                <h3 className="text-xs uppercase tracking-[0.2em] text-foreground/30 mb-6">Concentration & Format</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-10">
-                  {(['edc','edp','extrait'] as const).map(f => (
-                    <button 
-                      key={f} 
-                      onClick={() => setFormat(f)}
-                      className={`p-6 border text-left transition-all rounded-lg ${format === f ? 'border-gold bg-gold/5' : 'border-[var(--t-border)] hover:border-foreground/20'}`}
-                    >
-                      <p className={`text-[10px] uppercase tracking-widest mb-2 ${format === f ? 'text-gold' : 'text-foreground/40'}`}>{FORMAT_LABELS[f]}</p>
-                      <p className="text-lg font-light text-cream">{FORMAT_PRICES[f].toLocaleString()} <span className="text-[10px] text-foreground/20 uppercase tracking-tighter">FCFA</span></p>
-                    </button>
-                  ))}
+                    }
+                    const cap = Number(matchedFlacon.contenance_ml || matchedFlacon.capacite_ml || 0);
+                    return (
+                      <div className="bg-white/5 border border-white/10 rounded-2xl p-5 flex items-center justify-between gap-4">
+                        <div className="flex items-center gap-4">
+                          {matchedFlacon.type_flacon?.image ? (
+                            <img src={matchedFlacon.type_flacon.image} alt={matchedFlacon.nom} className="size-16 rounded-xl object-cover border border-white/10" />
+                          ) : (
+                            <div className="size-16 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-[10px] text-foreground/30 text-center px-1">Aucune Image</div>
+                          )}
+                          <div>
+                            <p className="font-semibold text-foreground text-base">{matchedFlacon.nom}</p>
+                            <p className="text-xs text-foreground/40 mt-0.5">{cap} ml · {matchedFlacon.matiere || 'Verre'} · {matchedFlacon.couleur || 'Transparent'}</p>
+                            <p className="text-sm font-bold text-gold mt-1">{Number(matchedFlacon.prix_unitaire).toLocaleString()} FCFA</p>
+                          </div>
+                        </div>
+                        <button 
+                          onClick={() => setShowFlaconDrawer(true)}
+                          className="px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-xs font-semibold text-foreground transition-all"
+                        >
+                          Modifier
+                        </button>
+                      </div>
+                    );
+                  })()}
                 </div>
 
                 <div className="bg-foreground/5 p-8 border border-[var(--t-border)] rounded-xl">
@@ -912,20 +913,20 @@ export default function AtelierPage() {
         )}
 
         {/* Footer Summary */}
-        <div className="mt-auto pt-12 border-t border-[var(--t-border)] flex flex-col sm:flex-row items-center justify-between gap-8">
+        <div className="mt-auto pt-6 border-t border-[var(--t-border)] flex flex-col gap-4">
           <div>
             <p className="text-[10px] uppercase tracking-[0.3em] text-foreground/30 mb-1">Investissement Total</p>
             <p className="text-4xl font-extralight text-gold">{calcPrice.toLocaleString()} <span className="text-xs tracking-normal">FCFA</span></p>
-            <p className="text-[10px] text-foreground/20 mt-2 uppercase tracking-widest">{bottleSize}ml · {FORMAT_LABELS[format]}</p>
+            <p className="text-[10px] text-foreground/20 mt-1 uppercase tracking-widest">{bottleSize}ml</p>
           </div>
           
-          <div className="flex items-center gap-3 w-full sm:w-auto flex-wrap sm:flex-nowrap">
+          <div className="flex flex-col gap-2.5 w-full">
             {/* Save button (authenticated only) */}
-            {isAuthenticated && (
+            {isAuthenticated && !savedParfumId && (
               <button 
                 onClick={() => setShowSaveModal(true)}
                 disabled={totalMl === 0 || isSaving}
-                className="w-full sm:flex-none px-8 py-5 text-[10px] uppercase tracking-[0.2em] font-medium rounded-lg transition-all duration-300 border border-gold/40 text-gold hover:bg-gold/10 disabled:opacity-20"
+                className="w-full px-8 py-4 text-[10px] uppercase tracking-[0.2em] font-medium rounded-lg transition-all duration-300 border border-gold/40 text-gold hover:bg-gold/10 disabled:opacity-20"
               >
                 {isSaving ? <Loader2 size={14} className="inline animate-spin mr-1" /> : <Save size={14} className="inline mr-1" />}
                 {i18n.language === 'en' ? 'Save' : 'Sauvegarder'}
@@ -936,7 +937,7 @@ export default function AtelierPage() {
             <button 
               onClick={handleAddToCart}
               disabled={totalMl === 0 || isAddingToCart || (isAuthenticated && !savedParfumId)}
-              className={`flex-1 sm:flex-none px-12 py-5 text-[10px] uppercase tracking-[0.2em] font-medium rounded-lg transition-all duration-300
+              className={`w-full px-8 py-4 text-[10px] uppercase tracking-[0.2em] font-medium rounded-lg transition-all duration-300
                 ${ctaSuccess ? 'bg-green-600 text-foreground' : 'bg-gold text-black hover:bg-cream disabled:opacity-20'}
               `}
             >
@@ -985,8 +986,142 @@ export default function AtelierPage() {
                 disabled={isSaving || !saveModalName.trim()}
                 className="flex-1 px-6 py-3 bg-gold text-black hover:bg-cream rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
               >
-                {isSaving ? <Loader2 size={14} className="inline animate-spin" /> : (i18n.language === 'en' ? 'Save & Add to Cart' : 'Sauvegarder & Ajouter')}
+                {isSaving ? <Loader2 size={14} className="inline animate-spin" /> : (i18n.language === 'en' ? 'Save' : 'Sauvegarder')}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Flacon Selector Drawer ── */}
+      {showFlaconDrawer && (
+        <div className="fixed inset-0 z-50 flex flex-col justify-end" style={{ height: '100dvh' }}>
+          {/* Backdrop */}
+          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setShowFlaconDrawer(false)} />
+          
+          {/* Drawer Sheet */}
+          <div className={`relative bg-neutral-900 border-t border-white/15 rounded-t-[2.5rem] shadow-2xl transition-all duration-300 flex flex-col overflow-hidden w-full mx-auto max-w-xl ${
+            isDrawerFullScreen ? 'h-[92vh]' : 'h-[65vh]'
+          }`}>
+            
+            {/* Draggable header indicator */}
+            <div 
+              className="py-3 flex justify-center cursor-pointer select-none hover:bg-white/5 transition-colors"
+              onClick={() => setIsDrawerFullScreen(!isDrawerFullScreen)}
+            >
+              <div className="w-12 h-1.5 bg-white/20 rounded-full" />
+            </div>
+
+            {/* Header */}
+            <div className="px-6 pb-4 border-b border-white/10 flex items-center justify-between flex-shrink-0">
+              <div>
+                <h3 className="font-bold text-foreground text-lg">Sélectionner un Flacon</h3>
+                <p className="text-[10px] text-foreground/40 uppercase tracking-widest mt-0.5">Choisissez le flacon pour votre création</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <button 
+                  onClick={() => setIsDrawerFullScreen(!isDrawerFullScreen)}
+                  className="px-2.5 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-xs font-semibold text-foreground/70"
+                >
+                  {isDrawerFullScreen ? 'Réduire' : 'Agrandir'}
+                </button>
+                <button 
+                  onClick={() => setShowFlaconDrawer(false)}
+                  className="p-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-foreground/40 hover:text-foreground"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+            </div>
+
+            {/* Filters */}
+            <div className="p-4 border-b border-white/10 flex flex-wrap items-center justify-between gap-3 bg-neutral-950/40 flex-shrink-0">
+              {/* Size tabs */}
+              <div className="flex gap-1.5">
+                {[
+                  { value: null, label: 'Tous' },
+                  { value: 30, label: '0-30ml' },
+                  { value: 50, label: '31-60ml' },
+                  { value: 100, label: '61ml+' }
+                ].map(tab => (
+                  <button
+                    key={String(tab.value)}
+                    onClick={() => setDrawerSizeFilter(tab.value)}
+                    className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
+                      drawerSizeFilter === tab.value
+                        ? 'bg-gold border-gold text-black'
+                        : 'border-white/10 bg-white/5 text-foreground/60 hover:text-foreground'
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Price Sort */}
+              <select
+                value={drawerSort}
+                onChange={e => setDrawerSort(e.target.value as any)}
+                className="bg-white/5 border border-white/10 rounded-xl px-3 py-1.5 text-xs text-foreground outline-none cursor-pointer"
+              >
+                <option value="asc" className="bg-neutral-900 text-foreground">Prix : croissant</option>
+                <option value="desc" className="bg-neutral-900 text-foreground">Prix : décroissant</option>
+              </select>
+            </div>
+
+            {/* List */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-4">
+              {flacons
+                .filter((f: any) => {
+                  const cap = Number(f.contenance_ml || f.capacite_ml || 0);
+                  if (drawerSizeFilter === 30) return cap <= 30;
+                  if (drawerSizeFilter === 50) return cap > 30 && cap <= 60;
+                  if (drawerSizeFilter === 100) return cap > 60;
+                  return true;
+                })
+                .sort((a: any, b: any) => {
+                  const pA = Number(a.prix_unitaire || 0);
+                  const pB = Number(b.prix_unitaire || 0);
+                  return drawerSort === 'asc' ? pA - pB : pB - pA;
+                })
+                .map((f: any) => {
+                  const cap = Number(f.contenance_ml || f.capacite_ml || 0);
+                  const selected = Number(f.id) === selectedFlaconId;
+                  return (
+                    <button
+                      key={f.id}
+                      onClick={() => {
+                        handleBottleSizeChange(cap);
+                        setShowFlaconDrawer(false);
+                      }}
+                      className={`w-full flex items-center justify-between gap-4 p-4 border rounded-2xl text-left transition-all ${
+                        selected
+                          ? 'border-gold bg-gold/5 shadow-lg shadow-gold/5'
+                          : 'border-white/10 hover:border-white/20 bg-white/5'
+                      }`}
+                    >
+                      <div className="flex items-center gap-4">
+                        {f.type_flacon?.image ? (
+                          <img src={f.type_flacon.image} alt={f.nom} className="size-16 rounded-xl object-cover border border-white/10" />
+                        ) : (
+                          <div className="size-16 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-[10px] text-foreground/30 text-center px-1">Aucune Image</div>
+                        )}
+                        <div>
+                          <h4 className="font-bold text-foreground text-sm flex items-center gap-1.5">
+                            {f.nom}
+                            {selected && <span className="text-[9px] bg-gold text-black px-1.5 py-0.5 rounded-full font-bold uppercase">Actuel</span>}
+                          </h4>
+                          <p className="text-xs text-foreground/40 mt-0.5">{cap}ml · {f.matiere || 'Verre'} · {f.couleur || 'Transparent'}</p>
+                          <p className="text-xs text-foreground/30 mt-1 font-mono">Stock: {f.stock_quantite}</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-bold text-gold text-base">{Number(f.prix_unitaire).toLocaleString()} FCFA</p>
+                        <p className="text-[10px] text-foreground/40 mt-0.5">Sélectionner</p>
+                      </div>
+                    </button>
+                  );
+                })}
             </div>
           </div>
         </div>

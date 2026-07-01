@@ -30,7 +30,11 @@ export default function FinishedEssenceAdminPage() {
     prix_promotionnel: '',
     stock_disponible: '0',
     actif: true,
+    nom: '',
+    marque: '',
+    categorie: '',
   });
+  const [imageFile, setImageFile] = useState<File | null>(null);
   const [lotStockMl, setLotStockMl] = useState<number | null>(null);
   const [loadingLotStock, setLoadingLotStock] = useState(false);
   const [essenceSearch, setEssenceSearch] = useState('');
@@ -102,7 +106,11 @@ export default function FinishedEssenceAdminPage() {
       prix_promotionnel: '',
       stock_disponible: '0',
       actif: true,
+      nom: '',
+      marque: '',
+      categorie: '',
     });
+    setImageFile(null);
     setFormError('');
     setShowModal(true);
   };
@@ -116,35 +124,49 @@ export default function FinishedEssenceAdminPage() {
       prix_promotionnel: item.prix_promotionnel ? String(item.prix_promotionnel) : '',
       stock_disponible: String(item.stock_disponible ?? '0'),
       actif: item.actif !== false,
+      nom: item.nom ?? '',
+      marque: item.marque ?? '',
+      categorie: item.categorie ?? '',
     });
+    setImageFile(null);
     setFormError('');
     setShowModal(true);
   };
 
   const handleSave = async () => {
     if (!permissions.canCreate && !permissions.canUpdate) return;
-    if (!form.essence || !form.taille_ml || !form.prix || form.stock_disponible === '') {
-      setFormError('Essence, taille, prix et stock sont requis');
+    if (!form.essence || !form.taille_ml || !form.prix || form.stock_disponible === '' || !form.nom) {
+      setFormError('Essence, nom, taille, prix et stock sont requis');
       return;
     }
 
-    const payload = {
-      essence: Number(form.essence),
-      taille_ml: Number(form.taille_ml),
-      prix: form.prix,
-      prix_promotionnel: form.prix_promotionnel || null,
-      stock_disponible: Number(form.stock_disponible),
-      actif: form.actif,
-    };
+    const { adminService } = await import('@/services/apiService');
+    const formData = new FormData();
+    formData.append('essence', form.essence);
+    formData.append('taille_ml', form.taille_ml);
+    formData.append('prix', form.prix);
+    if (form.prix_promotionnel) {
+      formData.append('prix_promotionnel', form.prix_promotionnel);
+    } else {
+      formData.append('prix_promotionnel', '');
+    }
+    formData.append('stock_disponible', form.stock_disponible);
+    formData.append('actif', String(form.actif));
+    formData.append('nom', form.nom);
+    formData.append('marque', form.marque);
+    formData.append('categorie', form.categorie);
+    if (imageFile) {
+      formData.append('image_principale', imageFile);
+    }
 
     try {
       setFormError('');
       setSaving(true);
       if (editing) {
-        await shopService.updateFinishedEssence(editing.id, payload);
+        await adminService.patchFormData(`shop/produits-essence/${editing.id}/`, formData);
         addToast('Produit essence mis à jour', 'success');
       } else {
-        await shopService.createFinishedEssence(payload);
+        await adminService.postFormData('shop/produits-essence/', formData);
         addToast('Produit essence créé', 'success');
       }
       setShowModal(false);
@@ -239,7 +261,7 @@ export default function FinishedEssenceAdminPage() {
             <table className="w-full text-sm">
               <thead className="bg-white/5 border-b border-white/10">
                 <tr>
-                  {['Essence', 'Taille', 'Prix', 'Prix actuel', 'Stock', 'Actif', ''].map((h) => (
+                  {['Image', 'Nom', 'Essence', 'Taille', 'Prix actuel', 'Stock', 'Actif', ''].map((h) => (
                     <th key={h} className="text-left text-xs font-semibold text-foreground/40 uppercase px-5 py-3">{h}</th>
                   ))}
                 </tr>
@@ -247,13 +269,25 @@ export default function FinishedEssenceAdminPage() {
               <tbody className="divide-y divide-white/5">
                 {items.map((item) => (
                   <tr key={item.id} className="hover:bg-white/5">
-                    <td className="px-5 py-4 font-medium">
+                    <td className="px-5 py-4">
+                      {item.image_principale ? (
+                        <img src={item.image_principale} alt={item.nom} className="size-10 rounded-lg object-cover border border-white/10" />
+                      ) : (
+                        <div className="size-10 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-[10px] text-foreground/30">Sans image</div>
+                      )}
+                    </td>
+                    <td className="px-5 py-4 font-semibold text-foreground">
+                      <div>
+                        <p>{item.nom || '—'}</p>
+                        {item.marque && <p className="text-[10px] text-foreground/40 font-normal">{item.marque} · {item.categorie}</p>}
+                      </div>
+                    </td>
+                    <td className="px-5 py-4 text-foreground/60">
                       {item.essence_details?.nom 
                         ?? essences.find((e: any) => e.id === item.essence || e.id === item.essence_id)?.nom 
                         ?? (item.essence ? `Essence #${item.essence}` : '—')}
                     </td>
                     <td className="px-5 py-4">{item.taille_ml} ml</td>
-                    <td className="px-5 py-4">{Number(item.prix).toLocaleString()} FCFA</td>
                     <td className="px-5 py-4 font-bold text-gold">
                       {Number(item.prix_actuel ?? item.prix).toLocaleString()} FCFA
                     </td>
@@ -281,7 +315,7 @@ export default function FinishedEssenceAdminPage() {
                 ))}
                 {items.length === 0 && (
                   <tr>
-                    <td colSpan={7} className="text-center py-16 text-foreground/40 italic">
+                    <td colSpan={8} className="text-center py-16 text-foreground/40 italic">
                       Aucun produit essence trouvé.
                     </td>
                   </tr>
@@ -294,10 +328,34 @@ export default function FinishedEssenceAdminPage() {
 
       {showModal && (permissions.canCreate || permissions.canUpdate) && (
         <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
-          <div className="bg-background rounded-2xl w-full max-w-md border border-white/10 p-6 space-y-4">
+          <div className="bg-background rounded-2xl w-full max-w-md border border-white/10 p-6 space-y-4 max-h-[90vh] overflow-y-auto">
             <h3 className="font-bold text-lg">{editing ? 'Modifier' : 'Nouveau'} produit essence</h3>
+            
+            <div className="space-y-3">
+              <FloatInput
+                label="Nom du produit *"
+                placeholder="Nom du produit"
+                value={form.nom}
+                onChange={(e) => setForm((f) => ({ ...f, nom: e.target.value }))}
+              />
+              <div className="grid grid-cols-2 gap-3">
+                <FloatInput
+                  label="Marque"
+                  placeholder="Marque"
+                  value={form.marque}
+                  onChange={(e) => setForm((f) => ({ ...f, marque: e.target.value }))}
+                />
+                <FloatInput
+                  label="Catégorie"
+                  placeholder="Catégorie"
+                  value={form.categorie}
+                  onChange={(e) => setForm((f) => ({ ...f, categorie: e.target.value }))}
+                />
+              </div>
+            </div>
+
             <div className="relative">
-              <label className="text-[10px] font-bold text-gold uppercase block mb-1">Essence *</label>
+              <label className="text-[10px] font-bold text-gold uppercase block mb-1">Essence de base *</label>
               <div
                 className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-gold bg-neutral-900 cursor-pointer flex items-center justify-between"
                 onClick={() => setShowEssenceDropdown(v => !v)}
@@ -347,34 +405,49 @@ export default function FinishedEssenceAdminPage() {
                 </div>
               )}
             </div>
-            <FloatInput
-              type="number"
-              label="Taille (ml) *"
-              placeholder="Taille (ml)"
-              value={form.taille_ml}
-              onChange={(e) => setForm((f) => ({ ...f, taille_ml: e.target.value }))}
-            />
-            <FloatInput
-              type="number"
-              label="Prix (FCFA) *"
-              placeholder="Prix (FCFA)"
-              value={form.prix}
-              onChange={(e) => setForm((f) => ({ ...f, prix: e.target.value }))}
-            />
-            <FloatInput
-              type="number"
-              label="Prix promotionnel (optionnel)"
-              placeholder="Prix promotionnel (optionnel)"
-              value={form.prix_promotionnel}
-              onChange={(e) => setForm((f) => ({ ...f, prix_promotionnel: e.target.value }))}
-            />
-            <FloatInput
-              type="number"
-              label="Stock disponible *"
-              placeholder="Stock disponible"
-              value={form.stock_disponible}
-              onChange={(e) => setForm((f) => ({ ...f, stock_disponible: e.target.value }))}
-            />
+
+            <div>
+              <label className="text-[10px] font-bold text-gold uppercase block mb-1">Image principale</label>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => setImageFile(e.target.files?.[0] || null)}
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-foreground outline-none file:bg-gold file:text-black file:border-0 file:rounded file:px-2 file:py-1 file:mr-2 file:text-xs file:font-semibold"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <FloatInput
+                type="number"
+                label="Taille (ml) *"
+                placeholder="Taille (ml)"
+                value={form.taille_ml}
+                onChange={(e) => setForm((f) => ({ ...f, taille_ml: e.target.value }))}
+              />
+              <FloatInput
+                type="number"
+                label="Stock *"
+                placeholder="Stock"
+                value={form.stock_disponible}
+                onChange={(e) => setForm((f) => ({ ...f, stock_disponible: e.target.value }))}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <FloatInput
+                type="number"
+                label="Prix (FCFA) *"
+                placeholder="Prix"
+                value={form.prix}
+                onChange={(e) => setForm((f) => ({ ...f, prix: e.target.value }))}
+              />
+              <FloatInput
+                type="number"
+                label="Prix Promo"
+                placeholder="Promo"
+                value={form.prix_promotionnel}
+                onChange={(e) => setForm((f) => ({ ...f, prix_promotionnel: e.target.value }))}
+              />
+            </div>
 
             {!editing && form.essence && (
               <div className={`rounded-xl border px-4 py-3 text-sm space-y-1 ${stockInsuffisant ? 'border-red-500/30 bg-red-500/10 text-red-300' : 'border-white/10 bg-white/5 text-foreground/70'}`}>
