@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Loader2, Plus, Search, RefreshCw, Trash2, Edit2, DollarSign, Calendar } from 'lucide-react';
+import { Loader2, Plus, Search, RefreshCw, Trash2, Edit2 } from 'lucide-react';
 import { api } from '@/services/apiService';
 import { useToastStore } from '@/store/useToastStore';
 import { FloatInput } from '@/components/ui/Input';
@@ -36,14 +36,14 @@ export default function ServeuseExpensesPage() {
   const fetchExpenses = useCallback(async () => {
     try {
       setLoading(true);
-      const params: any = {};
+      const params: Record<string, string> = {};
       if (search) params.search = search;
       if (dateFilter) params.date_depense = dateFilter;
       const res = await api.get('utilisateur/depenses/', { params });
       const data = res.data;
       setExpenses(data.results ?? data.resultats ?? (Array.isArray(data) ? data : []));
     } catch {
-      addToast('Erreur lors du chargement des dépenses', 'error');
+      addToast('Erreur lors du chargement des dÃ©penses', 'error');
     } finally {
       setLoading(false);
     }
@@ -92,10 +92,10 @@ export default function ServeuseExpensesPage() {
       };
       if (editing) {
         await api.patch(`utilisateur/depenses/${editing.id}/`, payload);
-        addToast('Dépense mise à jour', 'success');
+        addToast('DÃ©pense mise Ã  jour', 'success');
       } else {
         await api.post('utilisateur/depenses/', payload);
-        addToast('Dépense enregistrée', 'success');
+        addToast('DÃ©pense enregistrÃ©e', 'success');
       }
       setShowModal(false);
       fetchExpenses();
@@ -107,10 +107,10 @@ export default function ServeuseExpensesPage() {
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm('Voulez-vous supprimer cette dépense ?')) return;
+    if (!confirm('Voulez-vous supprimer cette dÃ©pense ?')) return;
     try {
       await api.delete(`utilisateur/depenses/${id}/`);
-      addToast('Dépense supprimée', 'success');
+      addToast('DÃ©pense supprimÃ©e', 'success');
       fetchExpenses();
     } catch {
       addToast('Erreur lors de la suppression', 'error');
@@ -121,8 +121,8 @@ export default function ServeuseExpensesPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Dépenses Journalières</h1>
-          <p className="text-sm text-foreground/40 mt-0.5">Enregistrez vos dépenses quotidiennes de la boutique</p>
+          <h1 className="text-2xl font-bold text-foreground">DÃ©penses JournaliÃ¨res</h1>
+          <p className="text-sm text-foreground/40 mt-0.5">Enregistrez vos dÃ©penses quotidiennes de la boutique</p>
         </div>
         <div className="flex items-center gap-2">
           <button
@@ -136,7 +136,7 @@ export default function ServeuseExpensesPage() {
             onClick={openAdd}
             className="flex items-center gap-2 bg-gold text-black px-4 py-2.5 rounded-xl text-sm font-medium hover:bg-gold/80"
           >
-            <Plus size={16} /> Enregistrer une dépense
+            <Plus size={16} /> Enregistrer une dÃ©pense
           </button>
         </div>
       </div>
@@ -147,7 +147,7 @@ export default function ServeuseExpensesPage() {
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Rechercher par titre…"
+            placeholder="Rechercher par titre"
             className="text-sm bg-transparent outline-none flex-1 text-foreground"
           />
         </div>
@@ -163,18 +163,18 @@ export default function ServeuseExpensesPage() {
         {loading ? (
           <div className="flex flex-col items-center justify-center py-20 text-gold gap-3">
             <Loader2 className="animate-spin" size={32} />
-            <p className="text-sm">Chargement des dépenses…</p>
+            <p className="text-sm">Chargement des dÃ©penses</p>
           </div>
         ) : expenses.length === 0 ? (
           <div className="text-center py-20 text-foreground/40 italic">
-            Aucune dépense enregistrée.
+            Aucune dÃ©pense enregistrÃ©e.
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-white/5 border-b border-white/10">
                 <tr>
-                  {['Titre', 'Description', 'Montant', 'Date de la Dépense', 'Créé le', ''].map((h) => (
+                  {['Titre', 'Description', 'Montant', 'Date de la DÃ©pense', 'CrÃ©Ã© le', ''].map((h) => (
                     <th key={h} className="text-left text-xs font-semibold text-foreground/40 uppercase px-5 py-3">{h}</th>
                   ))}
                 </tr>
@@ -183,7 +183,7 @@ export default function ServeuseExpensesPage() {
                 {expenses.map((exp) => (
                   <tr key={exp.id} className="hover:bg-white/5">
                     <td className="px-5 py-4 font-medium text-foreground">{exp.titre}</td>
-                    <td className="px-5 py-4 text-foreground/60">{exp.description || '—'}</td>
+                    <td className="px-5 py-4 text-foreground/60">{exp.description || 'â€”'}</td>
                     <td className="px-5 py-4 font-bold text-red-400">{Number(exp.montant).toLocaleString()} FCFA</td>
                     <td className="px-5 py-4 text-foreground/60">{new Date(exp.date_depense).toLocaleDateString('fr-FR')}</td>
                     <td className="px-5 py-4 text-[11px] text-foreground/40">{new Date(exp.date_creation).toLocaleString('fr-FR')}</td>
@@ -208,17 +208,17 @@ export default function ServeuseExpensesPage() {
       {showModal && (
         <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
           <div className="bg-background rounded-2xl w-full max-w-md border border-white/10 p-6 space-y-4">
-            <h3 className="font-bold text-lg">{editing ? 'Modifier' : 'Nouveau'} Enregistrement de Dépense</h3>
+            <h3 className="font-bold text-lg">{editing ? 'Modifier' : 'Nouveau'} Enregistrement de DÃ©pense</h3>
             <FloatInput
               label="Titre / Objet *"
-              placeholder="Ex: Achat café, recharge gaz…"
+              placeholder="Ex: Achat cafÃ©, recharge gaz"
               value={form.titre}
               onChange={(e) => setForm((f) => ({ ...f, titre: e.target.value }))}
             />
             <div>
               <label className="text-[10px] font-bold text-gold uppercase block mb-1">Description (optionnel)</label>
               <textarea
-                placeholder="Détails supplémentaires…"
+                placeholder="DÃ©tails supplÃ©mentaires"
                 value={form.description}
                 onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
                 className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-foreground outline-none focus:border-gold h-20 resize-none"
@@ -234,7 +234,7 @@ export default function ServeuseExpensesPage() {
               />
               <FloatInput
                 type="date"
-                label="Date de la Dépense *"
+                label="Date de la DÃ©pense *"
                 placeholder="Date"
                 value={form.date_depense}
                 onChange={(e) => setForm((f) => ({ ...f, date_depense: e.target.value }))}
@@ -256,7 +256,7 @@ export default function ServeuseExpensesPage() {
                 disabled={saving}
                 className="flex-1 bg-gold text-black rounded-xl py-2.5 text-sm font-bold disabled:opacity-50"
               >
-                {saving ? 'Enregistrement…' : 'Enregistrer'}
+                {saving ? 'Enregistrementâ€¦' : 'Enregistrer'}
               </button>
             </div>
           </div>
