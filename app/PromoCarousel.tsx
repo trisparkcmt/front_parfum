@@ -22,17 +22,73 @@ interface PromoEntry {
 }
 
 const FALLBACK_IMAGE = "/promo2.png";
-const AUTO_SLIDE_INTERVAL = 5000; // Moderate speed (5 seconds)
+const AUTO_SLIDE_INTERVAL = 5000;
 
-function mapPromotionToEntry(promo: ShopPromotion): PromoEntry {
+/** Build a lookup of category/type slug → icon URL from both accessory types and perfume categories */
+async function fetchCategoryIcons(): Promise<Map<string, string>> {
+  const iconMap = new Map<string, string>();
+  try {
+    const [accTypes, perfCats] = await Promise.allSettled([
+      shopService.getAccessoryTypes(),
+      shopService.getPerfumeCategories(),
+    ]);
+    if (accTypes.status === 'fulfilled') {
+      const list: any[] = extractCatalogList(accTypes.value);
+      list.forEach((t) => {
+        if (t.icone) iconMap.set(t.slug ?? String(t.id), t.icone);
+      });
+    }
+    if (perfCats.status === 'fulfilled') {
+      const list: any[] = extractCatalogList(perfCats.value);
+      list.forEach((c) => {
+        if (c.icone) iconMap.set(c.slug ?? String(c.id), c.icone);
+      });
+    }
+  } catch {
+    /* silent */
+  }
+  return iconMap;
+}
+
+function mapPromotionToEntry(promo: ShopPromotion, iconMap: Map<string, string>): PromoEntry {
   const isPerfume = promo.type_article === 'parfum';
+
+  // Image resolution priority:
+  // 1. Product image (image_principale) — the actual product photo
+  // 2. Category icon matching the promo slug or a known category mapping
+  // 3. Static fallback
+  const productImage = promo.image_principale || null;
+
+  // Try to find a category icon by iterating iconMap keys that match part of the promo slug
+  let categoryIcon: string | null = null;
+  if (!productImage) {
+    for (const [slug, icon] of iconMap.entries()) {
+      if (promo.slug?.includes(slug) || slug?.includes(promo.slug?.split('-')[0] ?? '')) {
+        categoryIcon = icon;
+        break;
+      }
+    }
+    // Also try by iterating all icons (first match wins as fallback)
+    if (!categoryIcon && iconMap.size > 0) {
+      const titleLower = (promo.nom || '').toLowerCase();
+      for (const [slug, icon] of iconMap.entries()) {
+        if (titleLower.includes(slug.toLowerCase()) || slug.toLowerCase().includes(titleLower.split(' ')[0])) {
+          categoryIcon = icon;
+          break;
+        }
+      }
+    }
+  }
+
+  const resolvedImage = productImage || categoryIcon || null;
+
   return {
     key: `${promo.type_article}-${promo.id}`,
     title: promo.marque ? `${promo.marque} — ${promo.nom}` : promo.nom,
     discount: promo.taux_reduction ?? 0,
     description: promo.message_promotion || undefined,
     link: isPerfume ? `/shop/perfumes/${promo.slug}` : `/shop/accessories/${promo.slug}`,
-    image: promo.image_principale || null,
+    image: resolvedImage,
     type: isPerfume ? 'perfume' : 'accessory',
     rawId: String(promo.id),
   };
@@ -95,10 +151,13 @@ export default function PromoCarousel() {
     let active = true;
     const fetchPromotions = async () => {
       try {
-        const response = await shopService.getPromotions();
+        const [response, iconMap] = await Promise.all([
+          shopService.getPromotions(),
+          fetchCategoryIcons(),
+        ]);
         const list = extractCatalogList<ShopPromotion>(response);
         const entries = list
-          .map(mapPromotionToEntry)
+          .map((p) => mapPromotionToEntry(p, iconMap))
           .filter((p) => p.discount > 0 || Boolean(p.description));
 
         if (active) setPromos(entries);
@@ -128,58 +187,61 @@ export default function PromoCarousel() {
     },
   ];
 
-  // Global Auto-Slide Engine (Shared by Desktop & Mobile)
+  /** Scroll the mobile carousel so that the target card is centered in the viewport */
+  const scrollMobileToIndex = (targetIndex: number) => {
+    const container = mobileScrollRef.current;
+    if (!container) return;
+    const cards = container.querySelectorAll<HTMLElement>('[data-promo-card]');
+    if (cards[targetIndex]) {
+      isInternalScrollChange.current = true;
+      const card = cards[targetIndex];
+      const containerRect = container.getBoundingClientRect();
+      const cardRect = card.getBoundingClientRect();
+      const offset = card.offsetLeft - (container.clientWidth - card.offsetWidth) / 2;
+      container.scrollTo({ left: offset, behavior: 'smooth' });
+      void containerRect; void cardRect;
+    }
+  };
+
+  // Global Auto-Slide Engine
   useEffect(() => {
     if (items.length <= 1 || isPaused) return;
 
     const interval = setInterval(() => {
-      // Calculate next target index
       const nextIndex = (slideIndex + 1) % items.length;
-      
-      // Update state for both viewport structures
       setSlideIndex(nextIndex);
       setMobileIndex(nextIndex);
-
-      // Programmatically animate mobile view scroll window to match active slide
-      if (mobileScrollRef.current) {
-        const clientWidth = mobileScrollRef.current.clientWidth;
-        if (clientWidth > 0) {
-          isInternalScrollChange.current = true;
-          mobileScrollRef.current.scrollTo({
-            left: nextIndex * (clientWidth * 0.85 + 12), // 0.85 width layout + 12px layout flex-gap
-            behavior: "smooth"
-          });
-        }
-      }
+      scrollMobileToIndex(nextIndex);
     }, AUTO_SLIDE_INTERVAL);
 
     return () => clearInterval(interval);
   }, [items.length, slideIndex, isPaused]);
 
-  // Sync index parameters on load or mutation bounds
+  // Sync index on bounds changes
   useEffect(() => {
     if (slideIndex >= items.length) setSlideIndex(0);
     if (mobileIndex >= items.length) setMobileIndex(0);
   }, [items.length, slideIndex, mobileIndex]);
 
-  // Track manual swiping patterns on mobile devices
+  // Track manual swiping
   const handleMobileScroll = () => {
     if (!mobileScrollRef.current) return;
-    
-    // Skip index recalculation if the scroll event was triggered programmatically by auto-slide
     if (isInternalScrollChange.current) {
       isInternalScrollChange.current = false;
       return;
     }
-
-    const { scrollLeft, clientWidth } = mobileScrollRef.current;
-    if (clientWidth === 0) return;
-    
-    const computedIndex = Math.round(scrollLeft / (clientWidth * 0.85 + 12));
-    const cleanIndex = Math.max(0, Math.min(computedIndex, items.length - 1));
-    
-    setMobileIndex(cleanIndex);
-    setSlideIndex(cleanIndex); // Keeps views in sync if window resizes
+    const container = mobileScrollRef.current;
+    const cards = container.querySelectorAll<HTMLElement>('[data-promo-card]');
+    let closestIdx = 0;
+    let closestDist = Infinity;
+    const center = container.scrollLeft + container.clientWidth / 2;
+    cards.forEach((card, i) => {
+      const cardCenter = card.offsetLeft + card.offsetWidth / 2;
+      const dist = Math.abs(center - cardCenter);
+      if (dist < closestDist) { closestDist = dist; closestIdx = i; }
+    });
+    setMobileIndex(closestIdx);
+    setSlideIndex(closestIdx);
   };
 
   const goTo = (next: number) => {
@@ -187,17 +249,7 @@ export default function PromoCarousel() {
     const targetIndex = ((next % total) + total) % total;
     setSlideIndex(targetIndex);
     setMobileIndex(targetIndex);
-
-    if (mobileScrollRef.current) {
-      const clientWidth = mobileScrollRef.current.clientWidth;
-      if (clientWidth > 0) {
-        isInternalScrollChange.current = true;
-        mobileScrollRef.current.scrollTo({
-          left: targetIndex * (clientWidth * 0.85 + 12),
-          behavior: "smooth"
-        });
-      }
-    }
+    scrollMobileToIndex(targetIndex);
   };
 
   if (loading) {
@@ -230,18 +282,22 @@ export default function PromoCarousel() {
         <div
           ref={mobileScrollRef}
           onScroll={handleMobileScroll}
-          className="flex gap-3 overflow-x-auto snap-x snap-mandatory scrollbar-hide -mx-4 px-4"
-          style={{ scrollbarWidth: "none" }}
+          className="flex gap-3 overflow-x-auto snap-x snap-mandatory scrollbar-hide -mx-4 px-[10%]"
+          style={{ scrollbarWidth: "none", scrollPaddingInline: '10%' }}
         >
           {items.map((promo, idx) => {
             const displayMessage = getPromoMessage(promo);
+            const isActive = idx === mobileIndex;
             return (
               <motion.div
                 key={promo.key}
+                data-promo-card
                 initial={{ opacity: 0, y: 16 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4, delay: idx * 0.06 }}
-                className="snap-start flex-shrink-0 w-[85%] sm:w-[420px]"
+                className={`snap-center flex-shrink-0 w-[80%] sm:w-[420px] transition-all duration-300 ${
+                  isActive ? 'scale-100 opacity-100' : 'scale-95 opacity-70'
+                }`}
               >
                 <Link
                   href={promo.link}
@@ -252,6 +308,11 @@ export default function PromoCarousel() {
                     style={{ backgroundImage: `url('${promo.image || FALLBACK_IMAGE}')` }}
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent z-0" />
+
+                  {/* Active indicator ring */}
+                  {isActive && (
+                    <div className="absolute inset-0 rounded-2xl ring-2 ring-gold/40 pointer-events-none z-20" />
+                  )}
 
                   <div className="relative z-10 flex flex-col justify-between h-full p-5">
                     {promo.discount > 0 ? (

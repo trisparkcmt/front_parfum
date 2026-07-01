@@ -4,7 +4,8 @@
  * @file app/shop/accessories/page.tsx
  * @description Main Marketplace Catalog for Luxury Accessories with Advanced Filtering.
  */
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, SlidersHorizontal, X, RotateCcw, ChevronDown, Check } from 'lucide-react';
 import { ProductCard } from '@/components/ui/ProductCard';
@@ -22,7 +23,7 @@ interface AccessoryType {
   subcategory: AccessorySubCategory;
 }
 
-export default function AccessoriesShop() {
+function AccessoriesShop() {
   const { t, i18n } = useTranslation();
   const [mounted, setMounted] = useState(false);
   const [products, setProducts] = useState<Product[]>([]);
@@ -39,6 +40,19 @@ export default function AccessoriesShop() {
   const [inStockOnly, setInStockOnly] = useState<boolean>(false);
   const [ordering, setOrdering] = useState<string>('-date_creation');
   const [showFilters, setShowFilters] = useState(false);
+
+  const searchParams = useSearchParams();
+
+  // Pre-select type and search from URL params (e.g. from CategoryPills)
+  useEffect(() => {
+    const typeParam = searchParams.get('type');
+    const searchParam = searchParams.get('search');
+    if (typeParam) {
+      const parsed = parseInt(typeParam, 10);
+      if (!isNaN(parsed)) setActiveTypeId(parsed);
+    }
+    if (searchParam) setSearch(searchParam);
+  }, [searchParams]);
 
   // Debounce search input
   useEffect(() => {
@@ -424,3 +438,12 @@ export default function AccessoriesShop() {
     </div>
   );
 }
+
+function AccessoriesShopWithSuspense() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-background" />}>
+      <AccessoriesShop />
+    </Suspense>
+  );
+}
+export default AccessoriesShopWithSuspense;

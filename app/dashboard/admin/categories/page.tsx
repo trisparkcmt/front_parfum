@@ -132,18 +132,26 @@ export default function CategoriesAdminPage() {
     try {
       setFormError('');
       if (activeTab === 'perfume_categories') {
-        const payload: Record<string, unknown> = {
-          ...form,
-          ordre_affichage: Number(form.ordre_affichage),
-          date_debut: fromDatetimeLocalValue(form.date_debut),
-          date_fin: fromDatetimeLocalValue(form.date_fin),
-          message_promotion: form.message_promotion || null,
-        };
+        // Use FormData to support icon image upload
+        const formData = new FormData();
+        formData.append('nom', form.nom);
+        if (form.slug) formData.append('slug', form.slug);
+        formData.append('ordre_affichage', String(Number(form.ordre_affichage)));
+        formData.append('actif', String(form.actif));
+        formData.append('taux_reduction', form.taux_reduction);
+        formData.append('message_promotion', form.message_promotion || '');
+        const dateDebut = fromDatetimeLocalValue(form.date_debut);
+        const dateFin = fromDatetimeLocalValue(form.date_fin);
+        if (dateDebut) formData.append('date_debut', dateDebut);
+        if (dateFin) formData.append('date_fin', dateFin);
+        if (iconFile instanceof File) {
+          formData.append('icone', iconFile);
+        }
         if (editingItem) {
-          await shopService.updatePerfumeCategory(editingItem.id, payload);
+          await adminService.patchFormData(`shop/categories-parfum/${editingItem.id}/`, formData);
           addToast('Catégorie parfum mise à jour', 'success');
         } else {
-          await shopService.createPerfumeCategory(payload);
+          await adminService.postFormData('shop/categories-parfum/', formData);
           addToast('Catégorie parfum créée', 'success');
         }
 
@@ -211,7 +219,7 @@ export default function CategoriesAdminPage() {
   );
 
   // Shared column count for empty state colspan
-  const colSpan = activeTab === 'perfume_categories' ? 6 : activeTab === 'accessory_categories' ? 6 : 3;
+  const colSpan = activeTab === 'perfume_categories' ? 7 : activeTab === 'accessory_categories' ? 6 : 3;
 
   const modalTitle = editingItem
     ? (activeTab === 'perfume_categories' ? 'Modifier la catégorie' : activeTab === 'accessory_categories' ? 'Modifier le type' : 'Modifier le flacon')
@@ -260,6 +268,7 @@ export default function CategoriesAdminPage() {
                           <tr className="border-b border-white/10 bg-white/5">
                             {activeTab === 'perfume_categories' && (
                               <>
+                                <th className="px-6 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider w-16">Icône</th>
                                 <th className="px-6 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider">Nom</th>
                                 <th className="px-6 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider">Slug</th>
                                 <th className="px-6 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider">Ordre</th>
@@ -290,6 +299,15 @@ export default function CategoriesAdminPage() {
                             <tr key={c.id} className="hover:bg-white/5 transition-colors group">
                               {activeTab === 'perfume_categories' && (
                                 <>
+                                  <td className="px-6 py-3 whitespace-nowrap">
+                                    <div className="w-12 h-12 rounded-xl bg-white/5 border border-white/10 overflow-hidden flex items-center justify-center">
+                                      {c.icone ? (
+                                        <img src={c.icone} alt={c.nom} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" loading="lazy" />
+                                      ) : (
+                                        <Sparkles size={18} className="text-foreground/20" />
+                                      )}
+                                    </div>
+                                  </td>
                                   <td className="px-6 py-4 font-medium text-foreground">{c.nom}</td>
                                   <td className="px-6 py-4 text-sm text-foreground/60">{c.slug}</td>
                                   <td className="px-6 py-4 text-sm text-foreground/60">{c.ordre_affichage}</td>
@@ -428,6 +446,12 @@ export default function CategoriesAdminPage() {
                       onChange={e => updateForm('message_promotion', e.target.value)}
                     />
                   </div>
+                  {/* Image/icon upload for perfume category */}
+                  <CompactIconUpload
+                    onFileSelect={setIconFile}
+                    initialImage={editingItem?.icone}
+                    label="Image / Icône de la catégorie"
+                  />
                 </>
               )}
 

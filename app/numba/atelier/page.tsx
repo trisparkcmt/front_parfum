@@ -222,6 +222,7 @@ export default function AtelierPage() {
 
   const [format, setFormat] = useState('edp');
   const [bottleSize, setBottleSize] = useState(100);
+  const [selectedFlaconId, setSelectedFlaconId] = useState<number | null>(null);
   const [quantities, setQuantities] = useState<Record<string, number>>({});
   const [compositionName, setCompositionName] = useState('');
   const [savedParfumId, setSavedParfumId] = useState<number | null>(null);
@@ -245,6 +246,12 @@ export default function AtelierPage() {
       setIngredients(ingreds);
       setEssences(esss);
       setFlacons(bottles);
+      // Auto-select the 100ml flacon by default
+      const defaultFlacon = bottles.find((f: any) => {
+        const cap = Number(f.contenance_ml || f.capacite_ml || f.capacity_ml || f.size_ml || 0);
+        return cap === 100;
+      });
+      if (defaultFlacon) setSelectedFlaconId(Number(defaultFlacon.id));
       setLoadingData(false);
     }
     loadData();
@@ -300,6 +307,13 @@ export default function AtelierPage() {
       );
     }
     setBottleSize(size);
+    setSavedParfumId(null);
+    // Find the matching flacon from the loaded list
+    const matched = flacons.find((f: any) => {
+      const cap = Number(f.contenance_ml || f.capacite_ml || f.capacity_ml || f.size_ml || 0);
+      return cap === size;
+    });
+    setSelectedFlaconId(matched ? Number(matched.id) : null);
   };
 
   const calcPrice = useMemo(() => {
@@ -383,22 +397,41 @@ export default function AtelierPage() {
 
     setIsSaving(true);
     try {
-      // Build lignes array with essence IDs
+      // Build lignes — backend requires EITHER essence (lot id) OR ingredient, never both
       const lignes = Object.entries(quantities)
         .filter(([_, qty]) => qty > 0)
         .map(([essenceId, quantityMl]) => {
           const item = ALL_ITEMS.find(e => e.id === essenceId);
-          return {
-            essence_catalogue: item?.backendId || undefined,
-            ingredient_catalogue: item?.backendId || undefined,
-            quantite_ml: quantityMl,
-          };
-        });
+          if (!item) return null;
+          if (item.itemType === 'essence') {
+            // Use the lot d'essence ID (lotEssenceId), not the essence catalogue ID
+            return {
+              essence: item.lotEssenceId || item.backendId,
+              quantite_ml: quantityMl,
+            };
+          } else {
+            // ingredient
+            return {
+              ingredient: item.backendId,
+              quantite_ml: quantityMl,
+            };
+          }
+        })
+        .filter(Boolean);
+
+      if (!selectedFlaconId) {
+        addToast(
+          i18n.language === 'en' ? 'Please select a valid bottle size.' : 'Veuillez sélectionner un format de flacon valide.',
+          'error'
+        );
+        setIsSaving(false);
+        return;
+      }
 
       const response = await apiLabService.createCustomPerfume({
         nom: name,
-        flacon: bottleSize,
-        lignes,
+        flacon: selectedFlaconId,
+        lignes: lignes as any[],
       });
 
       setSavedParfumId(Number(response.id));
@@ -526,6 +559,30 @@ export default function AtelierPage() {
           <RefreshCcw size={12} />
           {i18n.language === 'en' ? 'Empty bottle' : 'Vider le flacon'}
         </button>
+
+        {/* Flacon real selector from DB */}
+        {flacons.length > 0 && (
+          <div className="z-20 mt-3 flex flex-wrap gap-2 justify-center">
+            {flacons.map((f: any) => {
+              const cap = Number(f.contenance_ml || f.capacite_ml || 0);
+              const fId = Number(f.id);
+              const isSelected = fId === selectedFlaconId;
+              return (
+                <button
+                  key={fId}
+                  onClick={() => handleBottleSizeChange(cap)}
+                  className={`px-3 py-1.5 rounded-full text-[10px] uppercase tracking-widest border transition-all ${
+                    isSelected
+                      ? 'bg-gold text-background border-gold'
+                      : 'border-white/15 text-foreground/60 hover:border-gold/40 hover:text-gold'
+                  }`}
+                >
+                  {f.nom || f.name || `${cap}ml`}
+                </button>
+              );
+            })}
+          </div>
+        )}
 
         <div className="relative w-full flex items-center justify-center mt-8">
           <div className="size-slider-wrap">
@@ -846,7 +903,7 @@ export default function AtelierPage() {
               <button 
                 onClick={() => setShowSaveModal(true)}
                 disabled={totalMl === 0 || isSaving}
-                className="flex-1 sm:flex-none px-8 py-5 text-[10px] uppercase tracking-[0.2em] font-medium rounded-lg transition-all duration-300 border border-gold/40 text-gold hover:bg-gold/10 disabled:opacity-20"
+                className="w-full sm:flex-none px-8 py-5 text-[10px] uppercase tracking-[0.2em] font-medium rounded-lg transition-all duration-300 border border-gold/40 text-gold hover:bg-gold/10 disabled:opacity-20"
               >
                 {isSaving ? <Loader2 size={14} className="inline animate-spin mr-1" /> : <Save size={14} className="inline mr-1" />}
                 {i18n.language === 'en' ? 'Save' : 'Sauvegarder'}

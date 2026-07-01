@@ -329,11 +329,12 @@ body {
 }
 
 /* ============================================================
-   CUSTOM SCROLLBAR
+   CUSTOM SCROLLBAR — vertical scrollbars
    ============================================================ */
 
 ::-webkit-scrollbar {
   width: 6px;
+  height: 0px; /* hide horizontal scrollbars globally */
 }
 
 ::-webkit-scrollbar-track {
@@ -347,6 +348,23 @@ body {
 
 ::-webkit-scrollbar-thumb:hover {
   background: var(--t-scrollbar-hover);
+}
+
+/* Hide horizontal scrollbars on sliders / carousels */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+/* Utility: pages that should not have top navbar spacing on mobile */
+.no-mobile-nav-top {
+  padding-top: 0 !important;
+  margin-top: 0 !important;
 }
 
 /* ============================================================

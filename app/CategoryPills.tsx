@@ -88,19 +88,21 @@ export default function CategoryPills() {
           key: `perfume-${c.type}`,
           label: t(PERFUME_LABELS[c.type] || c.name, { defaultValue: c.name }),
           href: `/shop/perfumes?category=${c.type}`,
-          image: c.image || null,
+          image: c.icone || c.image || null,
           Icon: PERFUME_ICONS[c.type] || Sparkles,
         }));
 
-                const accessoryEntries: CategoryEntry[] = accessoryTypes.map((tp: any) => {
-        const subcat = tp.subcategory as AccessorySubCategory;
-        return {
+        const accessoryEntries: CategoryEntry[] = accessoryTypes.map((tp: any) => {
+          const subcat = tp.subcategory as AccessorySubCategory;
+          // Map to correct catalog path with selected query type filter
+          return {
             key: `accessory-${tp.id}`,
             label: t(ACCESSORY_LABELS[subcat] || tp.name, { defaultValue: tp.name }),
             href: `/shop/accessories?type=${tp.id}`,
-            image: tp.icone || tp.image || null,
-            Icon: ACCESSORY_ICONS[subcat] || BagIcon,
-        }});
+            image: tp.icone || null,
+            Icon: ACCESSORY_ICONS[subcat] || Package,
+          };
+        });
 
         if (mounted) setCategories([...perfumeEntries, ...accessoryEntries]);
       } catch (error) {
@@ -135,20 +137,32 @@ export default function CategoryPills() {
             ? Array.from({ length: 5 }).map((_, i) => (
                 <div key={i} className="h-9 w-24 flex-shrink-0 rounded-full bg-foreground/5 animate-pulse" />
               ))
-            : categories.map((cat) => (
-                <Link
-                  key={cat.key}
-                  href={cat.href}
-                  onClick={() => setActive(cat.key)}
-                  className={`flex-shrink-0 px-4 h-9 flex items-center rounded-full text-sm font-medium border transition-colors whitespace-nowrap ${
-                    active === cat.key
-                      ? "bg-gold/15 border-gold/40 text-gold"
-                      : "bg-foreground/5 border-foreground/10 text-foreground/70 hover:border-gold/30 hover:text-gold"
-                  }`}
-                >
-                  {cat.label}
-                </Link>
-              ))}
+            : categories.map((cat) => {
+                const { Icon } = cat;
+                return (
+                  <Link
+                    key={cat.key}
+                    href={cat.href}
+                    onClick={() => setActive(cat.key)}
+                    className={`flex-shrink-0 pl-1 pr-4 h-9 flex items-center gap-2 rounded-full text-sm font-medium border transition-colors whitespace-nowrap ${
+                      active === cat.key
+                        ? "bg-gold/15 border-gold/40 text-gold"
+                        : "bg-foreground/5 border-foreground/10 text-foreground/70 hover:border-gold/30 hover:text-gold"
+                    }`}
+                  >
+                    {/* Mini icon/image */}
+                    <div className="size-7 rounded-full overflow-hidden flex items-center justify-center bg-foreground/10 flex-shrink-0">
+                      {cat.image ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={cat.image} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        <Icon size={14} className="text-foreground/60" />
+                      )}
+                    </div>
+                    {cat.label}
+                  </Link>
+                );
+              })}
         </div>
       </section>
 

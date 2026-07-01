@@ -103,6 +103,24 @@ export default function FlashSales() {
     return product.gender === target || product.gender === "unisex";
   };
 
+  // Interleave bestsellers and hotsellers for "All" tab for visual variety
+  const interleavedAll = useMemo(() => {
+    const seen = new Set<string>();
+    const result: Product[] = [];
+    const maxLen = Math.max(bestsellers.length, hotsellers.length);
+    for (let i = 0; i < maxLen; i++) {
+      if (i < hotsellers.length && !seen.has(hotsellers[i].id)) {
+        seen.add(hotsellers[i].id);
+        result.push(hotsellers[i]);
+      }
+      if (i < bestsellers.length && !seen.has(bestsellers[i].id)) {
+        seen.add(bestsellers[i].id);
+        result.push(bestsellers[i]);
+      }
+    }
+    return result;
+  }, [bestsellers, hotsellers]);
+
   const visibleProducts = useMemo(() => {
     switch (activeTab) {
       case "newest":
@@ -110,14 +128,14 @@ export default function FlashSales() {
       case "popular":
         return bestsellers;
       case "men":
-        return allItems.filter((p) => matchesGender(p, "masculine"));
+        return interleavedAll.filter((p) => matchesGender(p, "masculine"));
       case "women":
-        return allItems.filter((p) => matchesGender(p, "feminine"));
+        return interleavedAll.filter((p) => matchesGender(p, "feminine"));
       case "all":
       default:
-        return allItems;
+        return interleavedAll;
     }
-  }, [activeTab, allItems, bestsellers, hotsellers]);
+  }, [activeTab, interleavedAll, bestsellers, hotsellers]);
 
   const handleAddToCart = (product: Product) => {
     addProduct(product, 1);

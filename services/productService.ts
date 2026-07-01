@@ -364,7 +364,7 @@ export const productService = {
   /**
    * Fetch all accessory types from backend
    */
-  async getAccessoryTypes(): Promise<{id: number, name: string, subcategory: AccessorySubCategory}[]> {
+  async getAccessoryTypes(): Promise<{id: number, name: string, subcategory: AccessorySubCategory, icone?: string | null}[]> {
     const response = await apiShopService.getAccessoryTypes();
     const results = Array.isArray(response) ? response : (response.results || response.resultats || []);
 
@@ -387,16 +387,17 @@ export const productService = {
       return {
         id: type.id,
         name: type.nom,
-        subcategory
+        subcategory,
+        icone: type.icone || null,
       };
     });
   },
 
-  async getPerfumeCategories(): Promise<{ name: string; type: string }[]> {
+  async getPerfumeCategories(): Promise<{ name: string; type: string; icone?: string | null }[]> {
     const response = await apiShopService.getPerfumeCategories();
     const results = Array.isArray(response) ? response : (response.results || response.resultats || []);
     
-    const categoriesMap = new Map<string, { name: string; type: string }>();
+    const categoriesMap = new Map<string, { name: string; type: string; icone?: string | null }>();
     
     results.forEach((cat: any) => {
       const nomLower = cat.nom?.toLowerCase() || '';
@@ -408,12 +409,15 @@ export const productService = {
         type = 'numba-creation';
       }
       
-      categoriesMap.set(type, { name: type, type });
+      // Keep the icon if not already set for this type
+      if (!categoriesMap.has(type)) {
+        categoriesMap.set(type, { name: type, type, icone: cat.icone || null });
+      }
     });
     
     // Always guarantee that 'numba-creation' is present in the tabs
     if (!categoriesMap.has('numba-creation')) {
-      categoriesMap.set('numba-creation', { name: 'numba-creation', type: 'numba-creation' });
+      categoriesMap.set('numba-creation', { name: 'numba-creation', type: 'numba-creation', icone: null });
     }
     
     return Array.from(categoriesMap.values());

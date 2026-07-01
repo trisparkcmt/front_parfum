@@ -107,23 +107,33 @@ export default function POSPage() {
 
   // Simplified Atelier space states
   const [essences, setEssences] = useState<EssenceClient[]>([]);
+  const [flacons, setFlacons] = useState<any[]>([]);
+  const [selectedFlaconId, setSelectedFlaconId] = useState<number | null>(null);
   const [loadingEssences, setLoadingEssences] = useState(false);
   const [selectedSize, setSelectedSize] = useState<number>(100);
   const [compositionName, setCompositionName] = useState('');
   const [quantities, setQuantities] = useState<Record<string, number>>({});
+  const [essenceTier, setEssenceTier] = useState<'all' | 'premium' | 'super-premium' | 'high'>('all');
 
-  // Load lab items (essences and raw notes) on component mount
+  // Load lab items (essences, ingredients, flacons) on component mount
   useEffect(() => {
     async function loadEssences() {
       try {
         setLoadingEssences(true);
-        const [ing, ess] = await Promise.all([
+        const { productService } = await import('@/services/productService');
+        const [ing, ess, bottlesRes] = await Promise.all([
           labService.getIngredients(),
           labService.getEssences(),
+          productService.getBottles(),
         ]);
+        const bottles = (bottlesRes as any)?.results || (bottlesRes as any)?.resultats || (Array.isArray(bottlesRes) ? bottlesRes : []);
+        setFlacons(bottles);
         setEssences([...ing, ...ess]);
+        // Auto-select 100ml flacon
+        const def = bottles.find((f: any) => Number(f.contenance_ml) === 100);
+        if (def) setSelectedFlaconId(Number(def.id));
       } catch (err) {
-        console.error('Failed to load essences for simplified POS atelier:', err);
+        console.error('Failed to load POS atelier data:', err);
       } finally {
         setLoadingEssences(false);
       }
@@ -136,15 +146,28 @@ export default function POSPage() {
   }, [quantities]);
 
   const compositionPrice = useMemo(() => {
-    // Base format pricing
-    const basePrice = selectedSize === 30 ? 5000 * 0.4 : selectedSize === 50 ? 8500 * 0.65 : 12000;
+    const basePrice = selectedSize === 30 ? 2000 : selectedSize === 50 ? 5000 : 12000;
     let total = basePrice;
     for (const item of essences) {
       const q = quantities[item.id] || 0;
-      if (q > 0) total += q * item.pricePerMl;
+      if (q > 0) total += q * (item.pricePerMl || 300);
     }
     return Math.round(total);
   }, [quantities, selectedSize, essences]);
+
+  // Range slider sets quantity directly
+  const setQuantityRange = (id: string, value: number) => {
+    setQuantities((prev) => {
+      const totalOther = Object.entries(prev)
+        .filter(([key]) => key !== id)
+        .reduce((sum, [_, q]) => sum + q, 0);
+      const capped = Math.min(value, selectedSize - totalOther);
+      const temp = { ...prev };
+      if (capped <= 0) delete temp[id];
+      else temp[id] = capped;
+      return temp;
+    });
+  };
 
   const updateQuantity = (id: string, delta: number) => {
     setQuantities((prev) => {
@@ -154,7 +177,6 @@ export default function POSPage() {
       if (next === 0) {
         delete temp[id];
       } else {
-        // Prevent exceeding size limit
         const totalOther = Object.entries(temp)
           .filter(([key]) => key !== id)
           .reduce((sum, [_, q]) => sum + q, 0);
@@ -168,6 +190,26 @@ export default function POSPage() {
     });
   };
 
+  const filteredEssences = useMemo(() => {
+    if (essenceTier === 'all') return essences;
+    return essences.filter((e) => {
+      const fam = (e.family as string);
+      return fam === essenceTier;
+    });
+  }, [essences, essenceTier]);
+
+  // Helper to select flacon from DB
+  const handleSelectFlacon = (f: any) => {
+    const cap = Number(f.contenance_ml || 0);
+    const fId = Number(f.id);
+    if (totalMl > cap) {
+      setQuantities({});
+      addToast(`Format ${cap}ml sélectionné — composition réinitialisée.`, 'info');
+    }
+    setSelectedSize(cap);
+    setSelectedFlaconId(fId);
+  };
+
   // Helper to add the composed creation directly to standard POS basket
   const handleAddCompositionToCart = () => {
     if (totalMl === 0) {
@@ -176,7 +218,6 @@ export default function POSPage() {
     }
     const finalName = compositionName.trim() || `Composition Client ${selectedSize}ml`;
 
-    // Construct a simulated product entity for the POS cart
     const simulatedProduct: Product = {
       id: `custom-${Date.now()}`,
       nom: finalName,
@@ -185,16 +226,14 @@ export default function POSPage() {
       prix_actuel: compositionPrice,
       slug: `custom-${Date.now()}`,
       is_custom: true,
+      flaconId: selectedFlaconId,
       description: `Format ${selectedSize}ml (Mélange de ${totalMl}ml d'ingrédients).`,
-      // Add references to lines for the serializer
       quantities,
       selectedSize,
     } as any;
 
     setCartItems((prev) => [...prev, { product: simulatedProduct, quantity: 1 }]);
     addToast("Composition ajoutée au ticket de caisse !", "success");
-
-    // Reset simplified atelier states
     setQuantities({});
     setCompositionName('');
     setActiveTab('products');
@@ -538,72 +577,117 @@ export default function POSPage() {
               </>
             ) : (
               /* Simplified POS Atelier workspace */
-              <div className="flex-1 flex flex-col min-h-0 p-5 space-y-4">
-                <div className="shrink-0 flex items-center justify-between">
-                  <h3 className="text-sm font-semibold uppercase tracking-wider text-gold flex items-center gap-2">
-                    <FlaskConical className="w-4 h-4" /> Custom Composition
-                  </h3>
-                  <button
-                    onClick={() => setQuantities({})}
-                    className="text-[10px] uppercase text-foreground/40 hover:text-red-400 flex items-center gap-1"
-                  >
-                    <RefreshCcw size={10} /> Réinitialiser
-                  </button>
-                </div>
+              <div className="flex-1 flex flex-col min-h-0">
+                {/* Name + Flacon selector */}
+                <div className="p-4 border-b border-white/10 shrink-0 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-xs font-semibold uppercase tracking-wider text-gold flex items-center gap-2">
+                      <FlaskConical className="w-3.5 h-3.5" /> Composition sur mesure
+                    </h3>
+                    <button
+                      onClick={() => { setQuantities({}); setCompositionName(''); }}
+                      className="text-[10px] uppercase text-foreground/30 hover:text-red-400 flex items-center gap-1"
+                    >
+                      <RefreshCcw size={9} /> Reset
+                    </button>
+                  </div>
 
-                {/* Inputs for composition */}
-                <div className="grid grid-cols-2 gap-2 shrink-0">
                   <input
                     value={compositionName}
                     onChange={(e) => setCompositionName(e.target.value)}
-                    placeholder="Nom du parfum (ex: Secret Oud)"
-                    className="w-full bg-background/50 border border-white/10 rounded-sm py-2 px-3 text-xs text-foreground placeholder:text-foreground/30 focus:outline-none"
+                    placeholder="Nom du parfum (ex: Secret Oud)…"
+                    className="w-full bg-background/50 border border-white/10 rounded-sm py-2 px-3 text-xs text-foreground placeholder:text-foreground/30 focus:outline-none focus:border-gold/40"
                   />
-                  <select
-                    value={selectedSize}
-                    onChange={(e) => {
-                      setSelectedSize(Number(e.target.value));
-                      setQuantities({});
-                    }}
-                    className="w-full bg-background/50 border border-white/10 rounded-sm py-2 px-2 text-xs text-foreground focus:outline-none"
-                  >
-                    <option value={30}>Format: 30ml</option>
-                    <option value={50}>Format: 50ml</option>
-                    <option value={100}>Format: 100ml</option>
-                  </select>
+
+                  {/* Flacon chips — real DB flacons */}
+                  <div>
+                    <p className="text-[10px] uppercase tracking-widest text-foreground/40 mb-1.5">Format flacon</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {flacons.length === 0 && (
+                        <>
+                          {[30, 50, 100].map(ml => (
+                            <button key={ml} onClick={() => { setSelectedSize(ml); if (totalMl > ml) setQuantities({}); }}
+                              className={`px-3 py-1 rounded-full text-[10px] uppercase tracking-wider border transition-all ${ selectedSize === ml ? 'bg-gold text-background border-gold' : 'border-white/15 text-foreground/60 hover:border-gold/40' }`}
+                            >{ml}ml</button>
+                          ))}
+                        </>
+                      )}
+                      {flacons.map((f: any) => {
+                        const cap = Number(f.contenance_ml || 0);
+                        const fId = Number(f.id);
+                        return (
+                          <button key={fId} onClick={() => handleSelectFlacon(f)}
+                            className={`px-3 py-1 rounded-full text-[10px] uppercase tracking-wider border transition-all ${ selectedFlaconId === fId ? 'bg-gold text-background border-gold' : 'border-white/15 text-foreground/60 hover:border-gold/40' }`}
+                          >{f.nom || `${cap}ml`}</button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Progress bar */}
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-[10px] text-foreground/40">
+                      <span>Rempli</span>
+                      <span className={totalMl >= selectedSize ? 'text-gold font-bold' : ''}>{totalMl} / {selectedSize} ml</span>
+                    </div>
+                    <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-gold transition-all duration-300"
+                        style={{ width: `${Math.min(100, (totalMl / selectedSize) * 100)}%` }}
+                      />
+                    </div>
+                  </div>
                 </div>
 
-                {/* Essence slider list */}
-                <div className="flex-1 min-h-0 overflow-y-auto space-y-2 pr-1">
+                {/* Tier sub-tabs */}
+                <div className="flex gap-1 px-4 pt-3 shrink-0">
+                  {(['all', 'premium', 'super-premium', 'high'] as const).map(tier => (
+                    <button key={tier} onClick={() => setEssenceTier(tier)}
+                      className={`px-2.5 py-1 rounded-sm text-[9px] uppercase tracking-wider transition-colors ${ essenceTier === tier ? 'bg-gold/20 text-gold border border-gold/40' : 'text-foreground/40 hover:text-foreground/70' }`}
+                    >
+                      {tier === 'all' ? 'Tous' : tier === 'super-premium' ? 'S.Premium' : tier === 'high' ? 'High' : 'Premium'}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Essence list with range sliders */}
+                <div className="flex-1 min-h-0 overflow-y-auto px-4 py-3 space-y-2">
                   {loadingEssences ? (
-                    <div className="text-center text-xs py-8 text-foreground/40">Chargement des essences...</div>
+                    <div className="text-center text-xs py-8 text-foreground/40">Chargement des essences…</div>
+                  ) : filteredEssences.length === 0 ? (
+                    <div className="text-center text-xs py-8 text-foreground/30">Aucune essence dans cette catégorie.</div>
                   ) : (
-                    essences.map((essence) => {
+                    filteredEssences.map((essence) => {
                       const currentVal = quantities[essence.id] || 0;
+                      const maxForThis = selectedSize - (totalMl - currentVal);
                       return (
-                        <div key={essence.id} className="flex items-center justify-between bg-white/[0.02] border border-white/5 p-2 rounded-sm text-xs">
-                          <div className="flex items-center gap-2 min-w-0">
-                            <span
-                              className="w-2.5 h-2.5 rounded-full shrink-0"
-                              style={{ backgroundColor: essence.color }}
-                            />
-                            <span className="truncate text-foreground/80 font-medium">{essence.name}</span>
+                        <div key={essence.id} className="bg-white/[0.02] border border-white/5 p-2.5 rounded-sm space-y-1.5">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: essence.color }} />
+                              <span className="truncate text-xs text-foreground/80 font-medium">{essence.name}</span>
+                              {essence.pricePerMl > 0 && (
+                                <span className="text-[9px] text-foreground/30 shrink-0">{formatXAF(essence.pricePerMl)}/ml</span>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-1 shrink-0">
+                              <button onClick={() => updateQuantity(essence.id, -1)}
+                                className="w-5 h-5 rounded-sm bg-white/5 border border-white/10 flex items-center justify-center text-foreground/50 hover:text-gold"
+                              ><Minus size={8} /></button>
+                              <span className="w-10 text-center text-[10px] font-mono font-bold tabular-nums">{currentVal}ml</span>
+                              <button onClick={() => updateQuantity(essence.id, 1)}
+                                disabled={totalMl >= selectedSize && currentVal === 0}
+                                className="w-5 h-5 rounded-sm bg-white/5 border border-white/10 flex items-center justify-center text-foreground/50 hover:text-gold disabled:opacity-20"
+                              ><Plus size={8} /></button>
+                            </div>
                           </div>
-                          <div className="flex items-center gap-1 shrink-0">
-                            <button
-                              onClick={() => updateQuantity(essence.id, -1)}
-                              className="w-6 h-6 rounded-sm bg-white/5 border border-white/10 flex items-center justify-center text-foreground/60 hover:text-gold"
-                            >
-                              <Minus size={10} />
-                            </button>
-                            <span className="w-8 text-center text-xs font-mono font-bold">{currentVal} ml</span>
-                            <button
-                              onClick={() => updateQuantity(essence.id, 1)}
-                              className="w-6 h-6 rounded-sm bg-white/5 border border-white/10 flex items-center justify-center text-foreground/60 hover:text-gold"
-                            >
-                              <Plus size={10} />
-                            </button>
-                          </div>
+                          {/* Range slider */}
+                          <input
+                            type="range" min={0} max={Math.max(maxForThis, currentVal)} step={1}
+                            value={currentVal}
+                            onChange={(e) => setQuantityRange(essence.id, Number(e.target.value))}
+                            className="w-full h-1 accent-[#C5A059] cursor-pointer"
+                          />
                         </div>
                       );
                     })
@@ -611,17 +695,17 @@ export default function POSPage() {
                 </div>
 
                 {/* Confirm section */}
-                <div className="shrink-0 pt-3 border-t border-white/10 flex items-center justify-between text-xs">
+                <div className="shrink-0 px-4 py-3 border-t border-white/10 flex items-center justify-between">
                   <div>
-                    <p className="text-foreground/40">Total mélange: <span className="font-bold text-foreground font-mono">{totalMl} / {selectedSize} ml</span></p>
-                    <p className="text-gold font-bold font-serif text-sm mt-0.5">{formatXAF(compositionPrice)} F CFA</p>
+                    <p className="text-[10px] text-foreground/40">Estimation prix</p>
+                    <p className="text-gold font-bold font-serif text-base">{formatXAF(compositionPrice)} F CFA</p>
                   </div>
                   <button
                     onClick={handleAddCompositionToCart}
                     disabled={totalMl === 0}
-                    className="bg-gold text-background px-4 py-2.5 rounded-sm uppercase tracking-wider font-semibold hover:opacity-90 disabled:opacity-30 transition-all"
+                    className="bg-gold text-background px-4 py-2.5 rounded-sm text-xs uppercase tracking-wider font-semibold hover:opacity-90 disabled:opacity-30 transition-all"
                   >
-                    Ajouter Composition
+                    Ajouter au ticket
                   </button>
                 </div>
               </div>
