@@ -12,8 +12,7 @@ import { orderService, adminService } from '@/services/apiService';
 import { invoiceService } from '@/services/invoiceService';
 import { useToastStore } from '@/store/useToastStore';
 import type { BackendOrder, BackendOrderLine } from '@/types';
-import Header from '@/components/admin/Header';
-import Sidebar from '@/components/admin/Sidebar';
+
 
 // ─── Status configs ───────────────────────────────────────────────────────────
 
@@ -82,8 +81,6 @@ function getDeliveryMethod(order: BackendOrder): string {
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function OrdersPage() {
-  // ── sidebar state ──────────────────────────────────────────────────────────────
-  const [sidebarOpen, setSidebarOpen] = useState(false);
   
   // ── list state ──────────────────────────────────────────────────────────────
   const [orders, setOrders]     = useState<BackendOrder[]>([]);
@@ -297,12 +294,7 @@ export default function OrdersPage() {
 
   // ─────────────────────────────────────────────────────────────────────────────
   return (
-    <div className="flex h-screen bg-background">
-      <Sidebar open={sidebarOpen} setOpen={setSidebarOpen} />
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <Header onMenuClick={() => setSidebarOpen(true)} />
-        <main className="flex-1 overflow-y-auto">
-          <div className="p-6 space-y-6 animate-fade-in-up">
+    <div className="space-y-6 animate-fade-in-up">
 
       {/* ── Header ─────────────────────────────────────────────────────────── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -1028,9 +1020,6 @@ export default function OrdersPage() {
           </div>
         </div>
       )}
-          </div>
-        </main>
-      </div>
     </div>
   );
 }

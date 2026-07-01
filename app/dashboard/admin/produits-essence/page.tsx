@@ -33,6 +33,8 @@ export default function FinishedEssenceAdminPage() {
   });
   const [lotStockMl, setLotStockMl] = useState<number | null>(null);
   const [loadingLotStock, setLoadingLotStock] = useState(false);
+  const [essenceSearch, setEssenceSearch] = useState('');
+  const [showEssenceDropdown, setShowEssenceDropdown] = useState(false);
 
   const fetchItems = useCallback(async () => {
     if (!permissions.canRead) return;
@@ -246,7 +248,9 @@ export default function FinishedEssenceAdminPage() {
                 {items.map((item) => (
                   <tr key={item.id} className="hover:bg-white/5">
                     <td className="px-5 py-4 font-medium">
-                      {item.essence_details?.nom ?? `Essence #${item.essence}`}
+                      {item.essence_details?.nom 
+                        ?? essences.find((e: any) => e.id === item.essence || e.id === item.essence_id)?.nom 
+                        ?? (item.essence ? `Essence #${item.essence}` : '—')}
                     </td>
                     <td className="px-5 py-4">{item.taille_ml} ml</td>
                     <td className="px-5 py-4">{Number(item.prix).toLocaleString()} FCFA</td>
@@ -292,18 +296,56 @@ export default function FinishedEssenceAdminPage() {
         <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
           <div className="bg-background rounded-2xl w-full max-w-md border border-white/10 p-6 space-y-4">
             <h3 className="font-bold text-lg">{editing ? 'Modifier' : 'Nouveau'} produit essence</h3>
-            <div>
+            <div className="relative">
               <label className="text-[10px] font-bold text-gold uppercase block mb-1">Essence *</label>
-              <select
-                value={form.essence}
-                onChange={(e) => setForm((f) => ({ ...f, essence: e.target.value }))}
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-gold bg-neutral-900"
+              <div
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-gold bg-neutral-900 cursor-pointer flex items-center justify-between"
+                onClick={() => setShowEssenceDropdown(v => !v)}
               >
-                <option value="">Choisir une essence…</option>
-                {essences.map((e) => (
-                  <option key={e.id} value={e.id}>{e.marque} — {e.nom}</option>
-                ))}
-              </select>
+                <span className={form.essence ? 'text-foreground' : 'text-foreground/40'}>
+                  {form.essence
+                    ? essences.find((e: any) => String(e.id) === form.essence)?.nom ?? `Essence #${form.essence}`
+                    : 'Choisir une essence…'}
+                </span>
+                <Search size={14} className="text-foreground/40" />
+              </div>
+              {showEssenceDropdown && (
+                <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-neutral-900 border border-white/10 rounded-xl shadow-2xl overflow-hidden">
+                  <div className="p-2">
+                    <input
+                      autoFocus
+                      value={essenceSearch}
+                      onChange={e => setEssenceSearch(e.target.value)}
+                      placeholder="Rechercher une essence…"
+                      className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
+                    />
+                  </div>
+                  <div className="max-h-48 overflow-y-auto">
+                    {essences
+                      .filter((e: any) =>
+                        !essenceSearch ||
+                        e.nom?.toLowerCase().includes(essenceSearch.toLowerCase()) ||
+                        e.marque?.toLowerCase().includes(essenceSearch.toLowerCase())
+                      )
+                      .map((e: any) => (
+                        <button
+                          key={e.id}
+                          onClick={() => {
+                            setForm(f => ({ ...f, essence: String(e.id) }));
+                            setShowEssenceDropdown(false);
+                            setEssenceSearch('');
+                          }}
+                          className={`w-full text-left px-4 py-2.5 text-sm hover:bg-white/10 transition-colors ${
+                            String(e.id) === form.essence ? 'text-gold bg-gold/10' : 'text-foreground'
+                          }`}
+                        >
+                          <span className="font-medium">{e.nom}</span>
+                          {e.marque && <span className="text-foreground/40 ml-2 text-xs">— {e.marque}</span>}
+                        </button>
+                      ))}
+                  </div>
+                </div>
+              )}
             </div>
             <FloatInput
               type="number"

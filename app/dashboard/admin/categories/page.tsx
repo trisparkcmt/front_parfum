@@ -146,6 +146,7 @@ export default function CategoriesAdminPage() {
         if (dateFin) formData.append('date_fin', dateFin);
         if (iconFile instanceof File) {
           formData.append('icone', iconFile);
+          formData.append('image', iconFile);
         }
         if (editingItem) {
           await adminService.patchFormData(`shop/categories-parfum/${editingItem.id}/`, formData);
@@ -169,6 +170,7 @@ export default function CategoriesAdminPage() {
         if (form.message_promotion) formData.append('message_promotion', form.message_promotion);
         if (iconFile instanceof File) {
           formData.append('icone', iconFile);
+          formData.append('image', iconFile);
         }
         if (editingItem) {
           await adminService.patchFormData(`shop/types-accessoire/${editingItem.id}/`, formData);

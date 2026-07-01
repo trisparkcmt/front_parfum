@@ -26,9 +26,6 @@ function LoginFormContent() {
       loginInput: z.string().min(1, t('email_required', { defaultValue: 'Identifiant requis' })),
       password: z.string().min(1, t('password_required')),
       rememberMe: z.boolean().optional(),
-      acceptTerms: z.boolean().refine(val => val === true, {
-        message: i18n.language === 'en' ? 'You must accept the terms' : 'Vous devez accepter les conditions d’utilisation',
-      }),
     })
     .refine(
       (data) => {
@@ -71,7 +68,6 @@ function LoginFormContent() {
     defaultValues: {
       loginInput: remembered.loginInput,
       rememberMe: remembered.rememberMe,
-      acceptTerms: false,
     },
   });
 
@@ -142,8 +138,8 @@ function LoginFormContent() {
           </div>
         </div>
 
-        {/* Remember Me & Terms Checkboxes */}
-        <div className="space-y-3 pt-1">
+        {/* Remember Me Checkbox */}
+        <div className="pt-1">
           <label className="flex items-center gap-2 cursor-pointer select-none">
             <input
               type="checkbox"
@@ -154,25 +150,6 @@ function LoginFormContent() {
               {i18n.language === 'en' ? 'Remember Me' : 'Se souvenir de moi'}
             </span>
           </label>
-
-          <div className="space-y-1">
-            <label className="flex items-start gap-2 cursor-pointer select-none">
-              <input
-                type="checkbox"
-                {...register('acceptTerms')}
-                className="rounded border-white/10 bg-white/5 text-gold focus:ring-gold size-4 mt-0.5 cursor-pointer"
-              />
-              <span className="text-xs text-foreground/75 leading-tight">
-                {i18n.language === 'en' ? 'I accept the ' : 'J’accepte les '}
-                <Link href="/terms" className="text-gold underline hover:text-gold-light" target="_blank" onClick={e => e.stopPropagation()}>
-                  {i18n.language === 'en' ? 'Terms and Conditions' : 'conditions générales d’utilisation'}
-                </Link>
-              </span>
-            </label>
-            {errors.acceptTerms && (
-              <p className="text-[11px] text-red-500 font-medium pl-6">{errors.acceptTerms.message}</p>
-            )}
-          </div>
         </div>
 
         <Button type="submit" className="w-full mt-6" isLoading={isLoading} rightIcon={<LogIn size={18} />}>

@@ -560,29 +560,7 @@ export default function AtelierPage() {
           {i18n.language === 'en' ? 'Empty bottle' : 'Vider le flacon'}
         </button>
 
-        {/* Flacon real selector from DB */}
-        {flacons.length > 0 && (
-          <div className="z-20 mt-3 flex flex-wrap gap-2 justify-center">
-            {flacons.map((f: any) => {
-              const cap = Number(f.contenance_ml || f.capacite_ml || 0);
-              const fId = Number(f.id);
-              const isSelected = fId === selectedFlaconId;
-              return (
-                <button
-                  key={fId}
-                  onClick={() => handleBottleSizeChange(cap)}
-                  className={`px-3 py-1.5 rounded-full text-[10px] uppercase tracking-widest border transition-all ${
-                    isSelected
-                      ? 'bg-gold text-background border-gold'
-                      : 'border-white/15 text-foreground/60 hover:border-gold/40 hover:text-gold'
-                  }`}
-                >
-                  {f.nom || f.name || `${cap}ml`}
-                </button>
-              );
-            })}
-          </div>
-        )}
+
 
         <div className="relative w-full flex items-center justify-center mt-8">
           <div className="size-slider-wrap">
@@ -611,9 +589,9 @@ export default function AtelierPage() {
 
           <div className="flacon-stage relative transition-all duration-700">
             <div className="bottle-glow" />
-            {bottleSize === 100 && <Bottle100 totalMl={totalMl} maxMl={maxMl} quantities={quantities} allItems={ALL_ITEMS} />}
-            {bottleSize === 50 && <Bottle50 totalMl={totalMl} maxMl={maxMl} quantities={quantities} allItems={ALL_ITEMS} />}
-            {bottleSize === 30 && <Bottle30 totalMl={totalMl} maxMl={maxMl} quantities={quantities} allItems={ALL_ITEMS} />}
+            {bottleSize >= 61 && <Bottle100 totalMl={totalMl} maxMl={maxMl} quantities={quantities} allItems={ALL_ITEMS} />}
+            {bottleSize >= 31 && bottleSize <= 60 && <Bottle50 totalMl={totalMl} maxMl={maxMl} quantities={quantities} allItems={ALL_ITEMS} />}
+            {bottleSize <= 30 && <Bottle30 totalMl={totalMl} maxMl={maxMl} quantities={quantities} allItems={ALL_ITEMS} />}
             
             <div className="absolute -right-12 top-1/2 -translate-y-1/2 flex flex-col items-center gap-1 opacity-40">
               <div className="w-[1px] h-20 bg-gold/50" />
@@ -855,6 +833,50 @@ export default function AtelierPage() {
 
             {activeTab === 'recap' && (
               <div className="animate-in fade-in duration-300">
+                <h3 className="text-xs uppercase tracking-[0.2em] text-foreground/30 mb-4">Format du Flacon</h3>
+                {flacons.length > 0 ? (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-8">
+                    {flacons.map((f: any) => {
+                      const cap = Number(f.contenance_ml || f.capacite_ml || 0);
+                      const fId = Number(f.id);
+                      const isSelected = fId === selectedFlaconId;
+                      return (
+                        <button
+                          key={fId}
+                          onClick={() => handleBottleSizeChange(cap)}
+                          className={`p-4 border text-left transition-all rounded-lg ${
+                            isSelected ? 'border-gold bg-gold/5' : 'border-[var(--t-border)] hover:border-foreground/20'
+                          }`}
+                        >
+                          <p className={`text-[10px] uppercase tracking-widest mb-1 ${isSelected ? 'text-gold' : 'text-foreground/40'}`}>
+                            {f.nom || `${cap}ml`}
+                          </p>
+                          <p className="text-sm font-light text-cream">
+                            {Number(f.prix_unitaire || 0).toLocaleString()} <span className="text-[9px] text-foreground/20">FCFA</span>
+                          </p>
+                        </button>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-8">
+                    {BOTTLE_SIZES.map(b => (
+                      <button
+                        key={b.ml}
+                        onClick={() => handleBottleSizeChange(b.ml)}
+                        className={`p-4 border text-left transition-all rounded-lg ${
+                          bottleSize === b.ml ? 'border-gold bg-gold/5' : 'border-[var(--t-border)] hover:border-foreground/20'
+                        }`}
+                      >
+                        <p className={`text-[10px] uppercase tracking-widest mb-1 ${bottleSize === b.ml ? 'text-gold' : 'text-foreground/40'}`}>
+                          {b.label}
+                        </p>
+                        <p className="text-xs text-foreground/30">{b.desc}</p>
+                      </button>
+                    ))}
+                  </div>
+                )}
+
                 <h3 className="text-xs uppercase tracking-[0.2em] text-foreground/30 mb-6">Concentration & Format</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-10">
                   {(['edc','edp','extrait'] as const).map(f => (
@@ -872,7 +894,7 @@ export default function AtelierPage() {
                 <div className="bg-foreground/5 p-8 border border-[var(--t-border)] rounded-xl">
                   <h4 className="text-[10px] uppercase tracking-widest text-gold mb-6">Résumé de la Formule</h4>
                   {formulaSummary.length === 0 ? (
-                    <p className="text-xs text-foreground/30 italic uppercase tracking-wider text-center">Aucun ingrédient sélectionné</p>
+                     <p className="text-xs text-foreground/30 italic uppercase tracking-wider text-center">Aucun ingrédient sélectionné</p>
                   ) : (
                     <div className="space-y-4">
                       {formulaSummary.map((item, idx) => (

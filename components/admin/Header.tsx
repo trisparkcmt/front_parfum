@@ -13,25 +13,46 @@ import { useAuthStore } from '@/store/useAuthStore';
 import { useOrderNotificationStore } from '@/store/useOrderNotificationStore';
 import { notificationService } from '@/services/apiService';
 
+import { useThemeStore } from '@/store/useThemeStore';
+import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 
 export default function Header({ onMenuClick }: HeaderProps) {
   const router = useRouter();
+  const pathname = usePathname();
   const { user } = useAuthStore();
+  const { theme, toggleTheme, initTheme } = useThemeStore();
   const [search, setSearch] = useState('');
-  const [darkMode, setDarkMode] = useState(false);
   const [showNotifs, setShowNotifs] = useState(false);
   const [notifications, setNotifications] = useState<any[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const notifRef = useRef<HTMLDivElement>(null);
   
+  useEffect(() => {
+    initTheme();
+  }, [initTheme]);
+
+  const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      const q = search.trim();
+      if (!q) return;
+      // Determine context and route to appropriate search page
+      const path = pathname.includes('/accessories') 
+        ? `/dashboard/admin/accessories?search=${encodeURIComponent(q)}`
+        : pathname.includes('/perfume')
+        ? `/dashboard/admin/perfume?search=${encodeURIComponent(q)}`
+        : `/dashboard/admin/perfume?search=${encodeURIComponent(q)}`; // Default fallback to perfumes search catalog
+      router.push(path);
+    }
+  };
+
   // Determine profile path based on user role
   const getProfilePath = () => {
     return '/dashboard/profile';
   };
   
   const profilePath = getProfilePath();
-
+  
   const fetchNotifications = async () => {
     try {
       // 1. Fetch stock/system alert notifications
@@ -123,19 +144,20 @@ export default function Header({ onMenuClick }: HeaderProps) {
           type="text"
           value={search}
           onChange={e => setSearch(e.target.value)}
+          onKeyDown={handleSearchKeyDown}
           placeholder="Rechercher..."
           className="flex-1 bg-transparent text-sm text-foreground placeholder:text-foreground/40 outline-none"
         />
-        <span className="text-xs text-foreground/40 bg-white/5 border border-white/10 rounded px-1.5 py-0.5 font-mono">⌘K</span>
+        <span className="text-xs text-foreground/40 bg-white/5 border border-white/10 rounded px-1.5 py-0.5 font-mono">⏎</span>
       </div>
 
       <div className="ml-auto flex items-center gap-1 sm:gap-2">
         {/* Dark mode toggle */}
         <button
-          onClick={() => setDarkMode(!darkMode)}
+          onClick={toggleTheme}
           className="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-white/5 text-foreground/60 transition-colors"
         >
-          {darkMode ? <Sun size={18} /> : <Moon size={18} />}
+          {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
         </button>
 
         {/* Notifications */}

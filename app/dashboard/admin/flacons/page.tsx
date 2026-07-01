@@ -7,11 +7,8 @@ import { useToastStore } from '@/store/useToastStore';
 import { useCatalogPermissions } from '@/hooks/useCatalogPermissions';
 import CatalogAccessNotice from '@/components/catalog/CatalogAccessNotice';
 import { extractCatalogList } from '@/lib/catalogUtils';
-import Header from '@/components/admin/Header';
-import Sidebar from '@/components/admin/Sidebar';
 
 export default function FlaconsAdminPage() {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
   const permissions = useCatalogPermissions('flacons');
   const [bottles, setBottles] = useState<any[]>([]);
   const [bottleTypes, setBottleTypes] = useState<any[]>([]);
@@ -24,7 +21,6 @@ export default function FlaconsAdminPage() {
 
   const [form, setForm] = useState({
     nom: '',
-    reference_sku: '',
     type_flacon: '',
     contenance_ml: 100,
     matiere: 'Verre',
@@ -76,7 +72,6 @@ export default function FlaconsAdminPage() {
     setEditingBottle(null);
     setForm({
       nom: '',
-      reference_sku: '',
       type_flacon: bottleTypes[0]?.id ? String(bottleTypes[0].id) : '',
       contenance_ml: 100,
       matiere: 'Verre',
@@ -97,7 +92,6 @@ export default function FlaconsAdminPage() {
     setEditingBottle(bot);
     setForm({
       nom: bot.nom || '',
-      reference_sku: bot.reference_sku || '',
       type_flacon: bot.type_flacon?.id ? String(bot.type_flacon.id) : String(bot.type_flacon || ''),
       contenance_ml: bot.contenance_ml || 100,
       matiere: bot.matiere || 'Verre',
@@ -119,34 +113,39 @@ export default function FlaconsAdminPage() {
       addToast('Champs requis : Nom, Type Flacon', 'error');
       return;
     }
-
     try {
       const payload = {
-        ...form,
+        nom: form.nom,
         type_flacon: Number(form.type_flacon),
         contenance_ml: Number(form.contenance_ml),
+        matiere: form.matiere,
+        couleur: form.couleur,
+        hauteur_cm: form.hauteur_cm,
+        largeur_cm: form.largeur_cm,
         poids_grammes: Number(form.poids_grammes),
+        prix_unitaire: form.prix_unitaire,
         stock_quantite: Number(form.stock_quantite),
-        seuil_alerte_stock: Number(form.seuil_alerte_stock)
+        seuil_alerte_stock: Number(form.seuil_alerte_stock),
+        actif: form.actif,
       };
-
       if (editingBottle) {
         await shopService.updateBottle(editingBottle.id, payload);
-        addToast('Flacon mis à jour avec succès', 'success');
+        addToast('Flacon mis à jour', 'success');
       } else {
         await shopService.createBottle(payload);
-        addToast('Flacon créé avec succès', 'success');
+        addToast('Flacon créé', 'success');
       }
       setShowModal(false);
       fetchBottlesAndTypes();
     } catch (error: any) {
-      addToast(error.response?.data?.detail || 'Erreur lors de la sauvegarde', 'error');
+      const msg = error?.response?.data ? JSON.stringify(error.response.data) : 'Erreur lors de la sauvegarde';
+      addToast(msg, 'error');
     }
   };
 
   const handleDelete = async (id: number) => {
     if (!permissions.canDelete) return;
-    if (!confirm('Êtes-vous sûr de vouloir supprimer ce flacon ?')) return;
+    if (!confirm('Supprimer ce flacon ?')) return;
     try {
       await shopService.deleteBottle(id);
       addToast('Flacon supprimé', 'success');
@@ -165,40 +164,38 @@ export default function FlaconsAdminPage() {
   }
 
   return (
-    <div className="flex h-screen bg-background">
-      <Sidebar open={sidebarOpen} setOpen={setSidebarOpen} />
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <Header onMenuClick={() => setSidebarOpen(true)} />
-        <main className="flex-1 overflow-y-auto">
-          <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-6 animate-fade-in-up">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Catalogue Flacons</h1>
-          <p className="text-sm text-foreground/40 mt-0.5">Gestion des types et volumes de flacons</p>
+          <h1 className="text-2xl font-bold text-foreground">Flacons</h1>
+          <p className="text-sm text-foreground/40 mt-0.5">Gestion des flacons et formats de contenance</p>
         </div>
         {permissions.canCreate && (
-          <button onClick={handleOpenAdd} className="flex items-center gap-2 bg-gold text-black px-4 py-2.5 rounded-xl text-sm font-medium hover:bg-gold/80 transition-all shadow-lg">
-            <Plus size={16} /> Ajouter
+          <button
+            onClick={handleOpenAdd}
+            className="flex items-center gap-2 bg-gold text-black px-4 py-2.5 rounded-xl text-sm font-medium hover:bg-gold/80 transition-all"
+          >
+            <Plus size={16} /> Ajouter un flacon
           </button>
         )}
       </div>
 
       <CatalogAccessNotice permissions={permissions} resourceLabel="les flacons" />
 
-      <div className="bg-white/5 rounded-2xl border border-white/10 p-4 shadow-2xl flex flex-wrap items-center gap-3">
-        <div className="flex items-center gap-2 flex-1 min-w-48">
+      <div className="flex flex-wrap gap-3">
+        <div className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 flex-1 min-w-[200px]">
           <Search size={15} className="text-foreground/40" />
           <input
             value={search}
             onChange={e => setSearch(e.target.value)}
-            placeholder="Rechercher un flacon..."
-            className="text-sm bg-transparent outline-none flex-1 text-foreground placeholder:text-foreground/40"
+            placeholder="Rechercher un flacon…"
+            className="text-sm bg-transparent outline-none flex-1 text-foreground"
           />
         </div>
         <select
           value={typeFilter}
           onChange={e => setTypeFilter(e.target.value)}
-          className="text-sm bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-foreground outline-none focus:border-gold"
+          className="text-sm bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-foreground outline-none focus:border-gold"
         >
           <option value="">Tous les types</option>
           {bottleTypes.map(t => (
@@ -208,7 +205,7 @@ export default function FlaconsAdminPage() {
         <select
           value={enStockFilter}
           onChange={e => setEnStockFilter(e.target.value)}
-          className="text-sm bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-foreground outline-none focus:border-gold"
+          className="text-sm bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-foreground outline-none focus:border-gold"
         >
           <option value="">Stock (tous)</option>
           <option value="true">En stock</option>
@@ -228,7 +225,6 @@ export default function FlaconsAdminPage() {
               <thead>
                 <tr className="border-b border-white/10 bg-white/5">
                   <th className="px-6 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider">Nom</th>
-                  <th className="px-6 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider">SKU</th>
                   <th className="px-6 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider">Contenance</th>
                   <th className="px-6 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider">Matière / Couleur</th>
                   <th className="px-6 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider">Prix</th>
@@ -239,7 +235,6 @@ export default function FlaconsAdminPage() {
                 {bottles.map(b => (
                   <tr key={b.id} className="hover:bg-white/5 transition-colors group">
                     <td className="px-6 py-4 font-medium text-foreground">{b.nom}</td>
-                    <td className="px-6 py-4 text-sm text-foreground/60">{b.reference_sku}</td>
                     <td className="px-6 py-4 text-sm text-foreground/60">{b.contenance_ml} ml</td>
                     <td className="px-6 py-4 text-sm text-foreground/60">{b.matiere} · {b.couleur}</td>
                     <td className="px-6 py-4 text-sm text-gold font-bold">{b.prix_unitaire} FCFA</td>
@@ -261,7 +256,7 @@ export default function FlaconsAdminPage() {
                 ))}
                 {bottles.length === 0 && (
                   <tr>
-                    <td colSpan={6} className="text-center py-20 text-foreground/40 italic">Aucun flacon trouvé.</td>
+                    <td colSpan={5} className="text-center py-20 text-foreground/40 italic">Aucun flacon trouvé.</td>
                   </tr>
                 )}
               </tbody>
@@ -279,10 +274,6 @@ export default function FlaconsAdminPage() {
                 <div>
                   <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Nom *</label>
                   <input placeholder="Nom du flacon" value={form.nom} onChange={e => updateForm('nom', e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold" />
-                </div>
-                <div>
-                  <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Référence SKU *</label>
-                  <input placeholder="Ex: FLC-CRT-100" value={form.reference_sku} onChange={e => updateForm('reference_sku', e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold" />
                 </div>
                 <div>
                   <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Type de Flacon *</label>
@@ -359,9 +350,6 @@ export default function FlaconsAdminPage() {
           </div>
         </div>
       )}
-          </div>
-        </main>
-      </div>
     </div>
   );
 }
