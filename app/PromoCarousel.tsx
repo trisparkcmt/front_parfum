@@ -22,6 +22,7 @@ interface PromoEntry {
 }
 
 const FALLBACK_IMAGE = "/promo2.png";
+const AUTO_SLIDE_INTERVAL = 5000; // Moderate speed (5 seconds)
 
 function mapPromotionToEntry(promo: ShopPromotion): PromoEntry {
   const isPerfume = promo.type_article === 'parfum';
@@ -37,15 +38,9 @@ function mapPromotionToEntry(promo: ShopPromotion): PromoEntry {
   };
 }
 
-/**
- * Generates context-aware, punchy promo messaging based on category traits
- */
 function getPromoMessage(item: PromoEntry): string {
   if (item.description) return item.description;
-
-  if (item.discount <= 0) {
-    return "";
-  }
+  if (item.discount <= 0) return "";
 
   const isEn = i18n.language === 'en';
   const titleLower = (item.title || "").toLowerCase();
@@ -91,12 +86,13 @@ export default function PromoCarousel() {
   const [loading, setLoading] = useState(true);
   const [slideIndex, setSlideIndex] = useState(0);
   const [mobileIndex, setMobileIndex] = useState(0);
+  const [isPaused, setIsPaused] = useState(false);
 
   const mobileScrollRef = useRef<HTMLDivElement>(null);
+  const isInternalScrollChange = useRef(false);
 
   useEffect(() => {
     let active = true;
-
     const fetchPromotions = async () => {
       try {
         const response = await shopService.getPromotions();
@@ -115,49 +111,93 @@ export default function PromoCarousel() {
     };
 
     fetchPromotions();
-    return () => {
-      active = false;
-    };
+    return () => { active = false; };
   }, []);
 
-  const items: PromoEntry[] =
-    promos.length > 0
-      ? promos
-      : [
-          {
-            key: "atelier-evergreen",
-            title: t("create_my_perfume", { defaultValue: "Créez votre parfum" }),
-            discount: 0,
-            description: t("atelier_evergreen_desc", {
-              defaultValue: "Une création olfactive unique, conçue pour vous.",
-            }),
-            link: "/numba/atelier",
-            image: FALLBACK_IMAGE,
-            type: 'generic'
-          },
-        ];
+  const items: PromoEntry[] = promos.length > 0 ? promos : [
+    {
+      key: "atelier-evergreen",
+      title: t("create_my_perfume", { defaultValue: "Créez votre parfum" }),
+      discount: 0,
+      description: t("atelier_evergreen_desc", {
+        defaultValue: "Une création olfactive unique, conçue pour vous.",
+      }),
+      link: "/numba/atelier",
+      image: FALLBACK_IMAGE,
+      type: 'generic'
+    },
+  ];
 
-  // Sync index parameters
+  // Global Auto-Slide Engine (Shared by Desktop & Mobile)
+  useEffect(() => {
+    if (items.length <= 1 || isPaused) return;
+
+    const interval = setInterval(() => {
+      // Calculate next target index
+      const nextIndex = (slideIndex + 1) % items.length;
+      
+      // Update state for both viewport structures
+      setSlideIndex(nextIndex);
+      setMobileIndex(nextIndex);
+
+      // Programmatically animate mobile view scroll window to match active slide
+      if (mobileScrollRef.current) {
+        const clientWidth = mobileScrollRef.current.clientWidth;
+        if (clientWidth > 0) {
+          isInternalScrollChange.current = true;
+          mobileScrollRef.current.scrollTo({
+            left: nextIndex * (clientWidth * 0.85 + 12), // 0.85 width layout + 12px layout flex-gap
+            behavior: "smooth"
+          });
+        }
+      }
+    }, AUTO_SLIDE_INTERVAL);
+
+    return () => clearInterval(interval);
+  }, [items.length, slideIndex, isPaused]);
+
+  // Sync index parameters on load or mutation bounds
   useEffect(() => {
     if (slideIndex >= items.length) setSlideIndex(0);
     if (mobileIndex >= items.length) setMobileIndex(0);
   }, [items.length, slideIndex, mobileIndex]);
 
-  // Track manual scrolling behavior on mobile items layout
+  // Track manual swiping patterns on mobile devices
   const handleMobileScroll = () => {
     if (!mobileScrollRef.current) return;
+    
+    // Skip index recalculation if the scroll event was triggered programmatically by auto-slide
+    if (isInternalScrollChange.current) {
+      isInternalScrollChange.current = false;
+      return;
+    }
+
     const { scrollLeft, clientWidth } = mobileScrollRef.current;
     if (clientWidth === 0) return;
     
-    // Find matching snapped slide item
-    const computedIndex = Math.round(scrollLeft / (clientWidth * 0.85));
+    const computedIndex = Math.round(scrollLeft / (clientWidth * 0.85 + 12));
     const cleanIndex = Math.max(0, Math.min(computedIndex, items.length - 1));
+    
     setMobileIndex(cleanIndex);
+    setSlideIndex(cleanIndex); // Keeps views in sync if window resizes
   };
 
   const goTo = (next: number) => {
     const total = items.length;
-    setSlideIndex(((next % total) + total) % total);
+    const targetIndex = ((next % total) + total) % total;
+    setSlideIndex(targetIndex);
+    setMobileIndex(targetIndex);
+
+    if (mobileScrollRef.current) {
+      const clientWidth = mobileScrollRef.current.clientWidth;
+      if (clientWidth > 0) {
+        isInternalScrollChange.current = true;
+        mobileScrollRef.current.scrollTo({
+          left: targetIndex * (clientWidth * 0.85 + 12),
+          behavior: "smooth"
+        });
+      }
+    }
   };
 
   if (loading) {
@@ -178,8 +218,14 @@ export default function PromoCarousel() {
   const activeSlide = items[slideIndex] ?? items[0];
 
   return (
-    <section className="w-full">
-      {/* ================= MOBILE / TABLET (< lg): swipeable card row with indicators ================= */}
+    <section 
+      className="w-full"
+      onMouseEnter={() => setIsPaused(true)}
+      onMouseLeave={() => setIsPaused(false)}
+      onTouchStart={() => setIsPaused(true)}
+      onTouchEnd={() => setIsPaused(false)}
+    >
+      {/* ================= MOBILE / TABLET (< lg) ================= */}
       <div className="lg:hidden max-w-7xl mx-auto mt-2 px-4 sm:px-6">
         <div
           ref={mobileScrollRef}
@@ -205,8 +251,6 @@ export default function PromoCarousel() {
                     className="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-105"
                     style={{ backgroundImage: `url('${promo.image || FALLBACK_IMAGE}')` }}
                   />
-                  
-                  {/* Backdrop Overlay gradient to support readability over text */}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent z-0" />
 
                   <div className="relative z-10 flex flex-col justify-between h-full p-5">
@@ -246,18 +290,21 @@ export default function PromoCarousel() {
         {items.length > 1 && (
           <div className="flex items-center justify-center gap-1.5 mt-4 pb-2">
             {items.map((_, idx) => (
-              <div
+              <button
                 key={`mobile-dot-${idx}`}
+                type="button"
+                onClick={() => goTo(idx)}
                 className={`h-1 rounded-full transition-all duration-300 ${
                   idx === mobileIndex ? "w-4 bg-gold" : "w-1 bg-foreground/20"
                 }`}
+                aria-label={`Go to slide ${idx + 1}`}
               />
             ))}
           </div>
         )}
       </div>
 
-      {/* ================= DESKTOP (lg+): hero slider with arrows and indicators ================= */}
+      {/* ================= DESKTOP (lg+) ================= */}
       <div className="hidden lg:block relative w-full h-[440px] overflow-hidden bg-deep-black">
         <AnimatePresence mode="wait">
           <motion.div
@@ -319,7 +366,7 @@ export default function PromoCarousel() {
               type="button"
               aria-label={t("previous", { defaultValue: "Précédent" })}
               onClick={() => goTo(slideIndex - 1)}
-              className="absolute left-5 top-1/2 -translate-y-1/2 z-20 size-11 rounded-full bg-foreground/10 hover:bg-gold/20 border border-foreground/20 hover:border-gold/40 flex items-center justify-center text-foreground hover:text-gold transition-colors backdrop-blur-sm"
+              className="absolute left-5 top-1/2 -translate-y-1/2 z-20 size-11 rounded-full bg-foreground/10 hover:bg-gold/20 border border-foreground/20 hover:border-gold/40 flex items-center justify-center text-foreground hover:text-gold transition-colors backdrop-blur-sm cursor-pointer"
             >
               <ArrowLeft size={18} />
             </button>
@@ -327,7 +374,7 @@ export default function PromoCarousel() {
               type="button"
               aria-label={t("next", { defaultValue: "Suivant" })}
               onClick={() => goTo(slideIndex + 1)}
-              className="absolute right-5 top-1/2 -translate-y-1/2 z-20 size-11 rounded-full bg-foreground/10 hover:bg-gold/20 border border-foreground/20 hover:border-gold/40 flex items-center justify-center text-foreground hover:text-gold transition-colors backdrop-blur-sm"
+              className="absolute right-5 top-1/2 -translate-y-1/2 z-20 size-11 rounded-full bg-foreground/10 hover:bg-gold/20 border border-foreground/20 hover:border-gold/40 flex items-center justify-center text-foreground hover:text-gold transition-colors backdrop-blur-sm cursor-pointer"
             >
               <ArrowRight size={18} />
             </button>
