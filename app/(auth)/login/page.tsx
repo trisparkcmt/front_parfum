@@ -25,6 +25,10 @@ function LoginFormContent() {
     .object({
       loginInput: z.string().min(1, t('email_required', { defaultValue: 'Identifiant requis' })),
       password: z.string().min(1, t('password_required')),
+      rememberMe: z.boolean().optional(),
+      acceptTerms: z.boolean().refine(val => val === true, {
+        message: i18n.language === 'en' ? 'You must accept the terms' : 'Vous devez accepter les conditions d’utilisation',
+      }),
     })
     .refine(
       (data) => {
@@ -50,15 +54,39 @@ function LoginFormContent() {
   const { login, loginWithGoogle, isLoading } = useAuthStore();
   const [formError, setFormError] = useState<string | null>(null);
 
+  // Read persisted remember state values
+  const getRememberedLogin = () => {
+    if (typeof window === 'undefined') return { loginInput: '', rememberMe: false };
+    const savedInput = localStorage.getItem('remembered_login');
+    return {
+      loginInput: savedInput || '',
+      rememberMe: !!savedInput,
+    };
+  };
+
+  const remembered = getRememberedLogin();
+
   const { register, handleSubmit, formState: { errors } } = useForm<LoginForm>({
     resolver: zodResolver(loginSchema),
+    defaultValues: {
+      loginInput: remembered.loginInput,
+      rememberMe: remembered.rememberMe,
+      acceptTerms: false,
+    },
   });
 
   const onSubmit = async (data: LoginForm) => {
     setFormError(null);
     try {
       const success = await login(data.loginInput, data.password);
-      if (success) router.push(redirectUrl);
+      if (success) {
+        if (data.rememberMe) {
+          localStorage.setItem('remembered_login', data.loginInput);
+        } else {
+          localStorage.removeItem('remembered_login');
+        }
+        router.push(redirectUrl);
+      }
     } catch (err: any) {
       setFormError(err.response?.data?.detail || t('login_error') || 'Identifiant ou mot de passe incorrect.');
     }
@@ -111,6 +139,39 @@ function LoginFormContent() {
             <Link href="/forgot-password" className="text-xs text-gold hover:underline">
               {t('forgot_password')}
             </Link>
+          </div>
+        </div>
+
+        {/* Remember Me & Terms Checkboxes */}
+        <div className="space-y-3 pt-1">
+          <label className="flex items-center gap-2 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              {...register('rememberMe')}
+              className="rounded border-white/10 bg-white/5 text-gold focus:ring-gold size-4 cursor-pointer"
+            />
+            <span className="text-xs text-foreground/75">
+              {i18n.language === 'en' ? 'Remember Me' : 'Se souvenir de moi'}
+            </span>
+          </label>
+
+          <div className="space-y-1">
+            <label className="flex items-start gap-2 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                {...register('acceptTerms')}
+                className="rounded border-white/10 bg-white/5 text-gold focus:ring-gold size-4 mt-0.5 cursor-pointer"
+              />
+              <span className="text-xs text-foreground/75 leading-tight">
+                {i18n.language === 'en' ? 'I accept the ' : 'J’accepte les '}
+                <Link href="/terms" className="text-gold underline hover:text-gold-light" target="_blank" onClick={e => e.stopPropagation()}>
+                  {i18n.language === 'en' ? 'Terms and Conditions' : 'conditions générales d’utilisation'}
+                </Link>
+              </span>
+            </label>
+            {errors.acceptTerms && (
+              <p className="text-[11px] text-red-500 font-medium pl-6">{errors.acceptTerms.message}</p>
+            )}
           </div>
         </div>
 
