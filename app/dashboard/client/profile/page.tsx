@@ -39,6 +39,10 @@ export default function ClientProfilePage() {
   const handleInstallPWA = async () => {
     setIsInstallingPWA(true);
     try {
+      if (isPWAInstalled) {
+        addToast('L\'application est déjà installée sur cet appareil', 'info');
+        return;
+      }
       // Try to use the stored deferred prompt from InstallPrompt component
       const storedPrompt = (window as any).__ae_deferred_install_prompt;
       if (storedPrompt) {
@@ -88,12 +92,12 @@ export default function ClientProfilePage() {
       bg: 'bg-purple-400/10',
       action: toggleTheme
     },
-    ...(typeof window !== 'undefined' && (window as any).__ae_deferred_install_prompt && !isPWAInstalled ? [{
+    ...(typeof window !== 'undefined' && (window as any).__ae_deferred_install_prompt ? [{
       id: 'install-pwa',
       label: t('install_app', { defaultValue: 'Installer l\'app' }),
-      value: t('get_better_experience', { defaultValue: 'Meilleure expérience' }),
-      icon: <Download size={18} className="text-gold" />,
-      bg: 'bg-gold/10',
+      value: isPWAInstalled ? t('already_installed', { defaultValue: 'Déjà installée' }) : t('get_better_experience', { defaultValue: 'Meilleure expérience' }),
+      icon: <Download size={18} className={isPWAInstalled ? "text-emerald-400" : "text-gold"} />,
+      bg: isPWAInstalled ? 'bg-emerald-400/10' : 'bg-gold/10',
       action: handleInstallPWA,
       isLoading: isInstallingPWA
     }] : [])

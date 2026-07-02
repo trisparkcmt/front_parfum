@@ -374,15 +374,15 @@ export default function ProfilePage() {
                     </Pill>
                   }
                 />
-                {typeof window !== 'undefined' && !isPWAInstalled && (window as any).__ae_deferred_install_prompt && (
+                {typeof window !== 'undefined' && (
                   <SettingRow
                     icon={<Download size={16} />}
-                    iconBg="bg-gold/10 text-gold"
+                    iconBg={isPWAInstalled ? 'bg-emerald-400/10 text-emerald-400' : 'bg-gold/10 text-gold'}
                     label="Installer l’application"
-                    hint="Installer l’application PWA pour notifications et accès rapide"
+                    hint={isPWAInstalled ? 'Application déjà installée' : 'Installer l’application PWA pour notifications et accès rapide'}
                     control={
                       <Pill onClick={handleInstallPWA}>
-                        {isInstallingPWA ? 'Installation...' : 'Installer'}
+                        {isInstallingPWA ? 'Installation...' : isPWAInstalled ? 'Installée' : 'Installer'}
                       </Pill>
                     }
                   />
