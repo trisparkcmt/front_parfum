@@ -34,9 +34,13 @@ export function InstallPrompt() {
       e.preventDefault();
       const be = e as BeforeInstallPromptEvent;
       setDeferredPrompt(be);
-      // expose globally so other flows (eg: registration) can trigger prompt
-      try { (window as any).__ae_deferred_install_prompt = be; } catch (err) {}
-      // Check if user previously dismissed
+      // expose globally so other flows (eg: dashboard install button) can trigger prompt
+      try {
+        (window as any).__ae_deferred_install_prompt = be;
+      } catch (err) {
+        console.warn('[PWA] Failed to store deferred install prompt globally:', err);
+      }
+      // Check if user previously dismissed the install banner
       const dismissed = localStorage.getItem('ae-pwa-dismissed');
       if (!dismissed) {
         setShowBanner(true);

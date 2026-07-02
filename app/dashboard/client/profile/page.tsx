@@ -15,6 +15,7 @@ import Link from 'next/link';
 import { useThemeStore } from '@/store/useThemeStore';
 import { useToastStore } from '@/store/useToastStore';
 import { api } from '@/services/api';
+import { attemptPWAInstall, getPWAInstallHint, isPWAInstalled } from '@/lib/pwa';
 import PasswordChangeModal from '@/components/shared/PasswordChangeModal';
 import ProfileEditModal from '@/components/shared/ProfileEditModal';
 import ConfirmDialog from '@/components/shared/ConfirmDialog';
@@ -39,23 +40,23 @@ export default function ClientProfilePage() {
   const handleInstallPWA = async () => {
     setIsInstallingPWA(true);
     try {
-      if (isPWAInstalled) {
-        addToast('L\'application est déjà installée sur cet appareil', 'info');
-        return;
-      }
-      // Try to use the stored deferred prompt from InstallPrompt component
-      const storedPrompt = (window as any).__ae_deferred_install_prompt;
-      if (storedPrompt) {
-        await storedPrompt.prompt();
-        const { outcome } = await storedPrompt.userChoice;
-        if (outcome === 'accepted') {
-          addToast(t('pwa_install_success', { defaultValue: 'Installation en cours...' }), 'success');
-        } else {
-          addToast(t('pwa_install_cancelled', { defaultValue: 'Installation annulée' }), 'info');
-        }
-        delete (window as any).__ae_deferred_install_prompt;
+      const result = await attemptPWAInstall();
+      if (result === 'accepted') {
+        addToast(t('pwa_install_success', { defaultValue: 'Installation en cours...' }), 'success');
+      } else if (result === 'dismissed') {
+        addToast(t('pwa_install_cancelled', { defaultValue: 'Installation annulée' }), 'info');
+      } else if (result === 'installed') {
+        addToast(t('pwa_already_installed', { defaultValue: 'L’application est déjà installée' }), 'info');
+      } else if (result === 'fallback') {
+        addToast(
+          t('pwa_ios_fallback', { defaultValue: 'iOS : ouvrez Safari puis Partager → Ajouter à l’écran d’accueil.' }),
+          'info',
+        );
       } else {
-        addToast(t('pwa_not_available', { defaultValue: 'PWA installation non disponible sur ce navigateur' }), 'info');
+        addToast(
+          t('pwa_not_available', { defaultValue: 'PWA installation non disponible sur ce navigateur' }),
+          'info',
+        );
       }
     } catch (error) {
       console.error('PWA installation error:', error);
@@ -65,8 +66,7 @@ export default function ClientProfilePage() {
     }
   };
 
-  // Check if app is already installed as PWA
-  const isPWAInstalled = typeof window !== 'undefined' && window.matchMedia('(display-mode: standalone)').matches;
+  const isInstalled = isPWAInstalled();
 
   const settingsOptions = [
     { 
@@ -92,15 +92,15 @@ export default function ClientProfilePage() {
       bg: 'bg-purple-400/10',
       action: toggleTheme
     },
-    ...(typeof window !== 'undefined' && (window as any).__ae_deferred_install_prompt ? [{
+    {
       id: 'install-pwa',
       label: t('install_app', { defaultValue: 'Installer l\'app' }),
-      value: isPWAInstalled ? t('already_installed', { defaultValue: 'Déjà installée' }) : t('get_better_experience', { defaultValue: 'Meilleure expérience' }),
-      icon: <Download size={18} className={isPWAInstalled ? "text-emerald-400" : "text-gold"} />,
-      bg: isPWAInstalled ? 'bg-emerald-400/10' : 'bg-gold/10',
+      value: getPWAInstallHint(),
+      icon: <Download size={18} className={isInstalled ? 'text-emerald-400' : 'text-gold'} />,
+      bg: isInstalled ? 'bg-emerald-400/10' : 'bg-gold/10',
       action: handleInstallPWA,
-      isLoading: isInstallingPWA
-    }] : [])
+      isLoading: isInstallingPWA,
+    },
   ];
 
   const handleBecomePartner = async () => {
@@ -126,7 +126,7 @@ export default function ClientProfilePage() {
   };
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
+    <div className="max-w-2xl mx-auto px-4 sm:px-6 py-4 sm:py-6 space-y-6">
       <BackButton />
       
       <div className="flex items-center justify-between mb-2">

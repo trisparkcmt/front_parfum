@@ -16,6 +16,7 @@ import { useOrderNotificationStore } from '@/store/useOrderNotificationStore';
 import { useTranslation } from 'react-i18next';
 import i18n from '@/lib/i18n';
 import { api } from '@/services/api';
+import { attemptPWAInstall, getPWAInstallHint, isPWAInstalled as checkPWAInstalled } from '@/lib/pwa';
 
 import { BackButton } from '@/components/ui/BackButton';
 import PasswordChangeModal from '@/components/shared/PasswordChangeModal';
@@ -93,24 +94,29 @@ export default function ProfilePage() {
   const [isApplyingPartner, setIsApplyingPartner] = useState(false);
   const [isInstallingPWA, setIsInstallingPWA] = useState(false);
 
-  const isPWAInstalled = typeof window !== 'undefined' && window.matchMedia('(display-mode: standalone)').matches;
+  const isPWAInstalled = checkPWAInstalled();
 
   const handleInstallPWA = async () => {
     setIsInstallingPWA(true);
     try {
-      const storedPrompt = (window as any).__ae_deferred_install_prompt;
-      if (!storedPrompt) {
-        addToast('Aucune option d’installation PWA disponible', 'info');
-        return;
-      }
-      await storedPrompt.prompt();
-      const { outcome } = await storedPrompt.userChoice;
-      if (outcome === 'accepted') {
+      const result = await attemptPWAInstall();
+      if (result === 'accepted') {
         addToast('Application installée, ouvrez-la depuis l’écran d’accueil', 'success');
-      } else {
+      } else if (result === 'dismissed') {
         addToast('Installation annulée', 'info');
+      } else if (result === 'installed') {
+        addToast('L’application est déjà installée', 'info');
+      } else if (result === 'fallback') {
+        addToast(
+          'iOS : ouvrez Safari puis utilisez Partager → Ajouter à l’écran d’accueil.',
+          'info',
+        );
+      } else {
+        addToast(
+          'Aucune option d’installation PWA disponible pour ce navigateur. Utilisez le menu du navigateur pour ajouter l’application à l’écran d’accueil.',
+          'info',
+        );
       }
-      delete (window as any).__ae_deferred_install_prompt;
     } catch (error) {
       console.error('PWA install error:', error);
       addToast('Erreur lors de l’installation de la PWA', 'error');

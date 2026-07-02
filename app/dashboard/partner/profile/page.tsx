@@ -5,12 +5,13 @@ import { useAuthStore } from '@/store/useAuthStore';
 import { 
   User, Mail, Phone, MapPin, 
   Languages, Banknote, Palette, 
-  ChevronRight, Edit2, Shield, Bell, TrendingUp
+  ChevronRight, Edit2, Shield, Bell, TrendingUp, Download
 } from 'lucide-react';
 import { BackButton } from '@/components/ui/BackButton';
 import { useTranslation } from 'react-i18next';
 import i18n from '@/lib/i18n';
 import { useThemeStore } from '@/store/useThemeStore';
+import { attemptPWAInstall, getPWAInstallHint, isPWAInstalled } from '@/lib/pwa';
 import PasswordChangeModal from '@/components/shared/PasswordChangeModal';
 import ProfileEditModal from '@/components/shared/ProfileEditModal';
 
@@ -20,10 +21,36 @@ export default function PartnerProfilePage() {
   const { t } = useTranslation();
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [isInstallingPWA, setIsInstallingPWA] = useState(false);
+
+  const isInstalled = isPWAInstalled();
 
   const handleLanguageChange = () => {
     const newLang = i18n.language === 'fr' ? 'en' : 'fr';
     i18n.changeLanguage(newLang);
+  };
+
+  const handleInstallPWA = async () => {
+    setIsInstallingPWA(true);
+    try {
+      const result = await attemptPWAInstall();
+      if (result === 'accepted') {
+        alert('Application installée, ouvrez-la depuis l’écran d’accueil');
+      } else if (result === 'dismissed') {
+        alert('Installation annulée');
+      } else if (result === 'installed') {
+        alert('L’application est déjà installée');
+      } else if (result === 'fallback') {
+        alert('iOS : ouvrez Safari puis utilisez Partager → Ajouter à l’écran d’accueil.');
+      } else {
+        alert('Aucune option d’installation PWA disponible pour ce navigateur. Utilisez le menu du navigateur pour ajouter l’application à l’écran d’accueil.');
+      }
+    } catch (error) {
+      console.error('PWA install error:', error);
+      alert('Erreur lors de l’installation de la PWA');
+    } finally {
+      setIsInstallingPWA(false);
+    }
   };
 
   const settingsOptions = [
@@ -50,10 +77,19 @@ export default function PartnerProfilePage() {
       bg: 'bg-purple-400/10',
       action: toggleTheme
     },
+    {
+      id: 'install-pwa',
+      label: t('install_app', { defaultValue: 'Installer l\'app' }),
+      value: getPWAInstallHint(),
+      icon: <Download size={18} className={isInstalled ? 'text-emerald-400' : 'text-gold'} />,
+      bg: isInstalled ? 'bg-emerald-400/10' : 'bg-gold/10',
+      action: handleInstallPWA,
+      isLoading: isInstallingPWA,
+    },
   ];
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
+    <div className="max-w-2xl mx-auto px-4 sm:px-6 py-4 sm:py-6 space-y-6">
       <BackButton />
       
       <div className="flex items-center justify-between mb-2">
