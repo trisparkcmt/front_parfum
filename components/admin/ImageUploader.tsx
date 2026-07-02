@@ -1,5 +1,6 @@
 import { useState, useId } from 'react';
 import { ImageIcon, UploadCloud } from 'lucide-react';
+import AppImage from '@/components/ui/AppImage';
 
 interface ImageUploaderProps {
   onFileSelect: (file: File) => void;
@@ -8,6 +9,7 @@ interface ImageUploaderProps {
 
 export default function ImageUploader({ onFileSelect, initialImage }: ImageUploaderProps) {
   const [preview, setPreview] = useState<string>(initialImage || '');
+  const [errored, setErrored] = useState(false);
   const uid = useId();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -42,11 +44,7 @@ export default function ImageUploader({ onFileSelect, initialImage }: ImageUploa
 
       {preview ? (
         <div className="relative group w-full h-48 rounded-xl overflow-hidden border border-white/10">
-          <img
-            src={preview}
-            alt="preview"
-            className="w-full h-full object-cover"
-          />
+          <AppImage src={preview} alt="preview" fill className="object-cover" />
           {/* Overlay hint on hover */}
           <label
             htmlFor={uid}

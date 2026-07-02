@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Loader2, Search, Sparkles, Gem, FlaskConical } from 'lucide-react';
 import { shopService } from '@/services/apiService';
 import { useToastStore } from '@/store/useToastStore';
+import { AppImage } from '@/components/ui/AppImage';
 
 type TabKey = 'perfume_categories' | 'accessory_categories' | 'bottle_types';
 
@@ -146,7 +147,7 @@ export default function CategoriesPage() {
                             <td className="px-6 py-3 whitespace-nowrap">
                               <div className="w-12 h-12 rounded-xl bg-white/5 border border-white/10 overflow-hidden flex items-center justify-center">
                                 {c.icone ? (
-                                  <img src={c.icone} alt={c.nom} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" loading="lazy" />
+                                  <AppImage src={c.icone} alt={c.nom || 'Icône'} fill className="object-cover group-hover:scale-105 transition-transform duration-300" />
                                 ) : (
                                   <Gem size={18} className="text-foreground/20" />
                                 )}

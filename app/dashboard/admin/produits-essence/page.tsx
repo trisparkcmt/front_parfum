@@ -6,6 +6,7 @@ import { shopService, labService } from '@/services/apiService';
 import { useToastStore } from '@/store/useToastStore';
 import { useCatalogPermissions } from '@/hooks/useCatalogPermissions';
 import CatalogAccessNotice from '@/components/catalog/CatalogAccessNotice';
+import AppImage from '@/components/ui/AppImage';
 import { extractCatalogList } from '@/lib/catalogUtils';
 import { extractApiError } from '@/lib/apiError';
 import { FloatInput } from '@/components/ui/Input';
@@ -271,7 +272,7 @@ export default function FinishedEssenceAdminPage() {
                   <tr key={item.id} className="hover:bg-white/5">
                     <td className="px-5 py-4">
                       {item.image_principale ? (
-                        <img src={item.image_principale} alt={item.nom} className="size-10 rounded-lg object-cover border border-white/10" />
+                        <AppImage src={item.image_principale} alt={item.nom || 'Produit'} width={40} height={40} className="size-10 rounded-lg object-cover border border-white/10" />
                       ) : (
                         <div className="size-10 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-[10px] text-foreground/30">Sans image</div>
                       )}

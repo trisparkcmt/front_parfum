@@ -4,6 +4,7 @@ import Autoplay from "embla-carousel-autoplay";
 import { useTranslation } from "react-i18next";
 import { Product } from "@/types";
 import { API_ROOT } from "@/services/api";
+import AppImage from "@/components/ui/AppImage";
 
 import { Button } from "@/components/ui/Button";
 import {
@@ -184,10 +185,11 @@ const Gallery6 = ({
                     <div className="flex aspect-[3/2] overflow-clip w-full rounded-none">
                       <div className="flex-1">
                         <div className="relative h-full w-full origin-bottom transition duration-300 group-hover:scale-105">
-                          <img
+                          <AppImage
                             src={item.image}
-                            alt={item.title}
-                            className="h-full w-full object-cover object-center"
+                            alt={item.title || 'Galerie'}
+                            fill
+                            className="object-cover object-center"
                           />
                         </div>
                       </div>

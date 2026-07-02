@@ -3,6 +3,7 @@
 import { useCallback, useState } from 'react';
 import { Product } from '@/types';
 import { ShoppingBag } from 'lucide-react';
+import AppImage from '@/components/ui/AppImage';
 
 interface ProductPreviewPOSProps {
   product: Product;
@@ -42,11 +43,7 @@ export function ProductPreviewPOS({ product, onAddToCart }: ProductPreviewPOSPro
       {/* Product Image - Full display with object-contain */}
       <div className="flex-1 min-h-0 flex items-center justify-center bg-white/5 rounded-xl border border-white/10 p-4">
         {mainImage ? (
-          <img
-            src={mainImage}
-            alt={product.name}
-            className="w-full h-full object-contain"
-          />
+          <AppImage src={mainImage} alt={product.name} className="w-full h-full object-contain" fill />
         ) : (
           <div className="flex flex-col items-center justify-center text-foreground/40">
             <ShoppingBag size={48} />

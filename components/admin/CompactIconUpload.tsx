@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useId, useEffect } from 'react';
-import Image from 'next/image';
+import AppImage from '@/components/ui/AppImage';
 import { Upload, X } from 'lucide-react';
 
 interface CompactIconUploadProps {
@@ -55,7 +55,7 @@ export default function CompactIconUpload({
         />
         {preview ? (
           <div className="relative w-full h-full group">
-            <Image src={preview} alt="preview" fill className="object-cover rounded-lg" />
+            <AppImage src={preview} alt="preview" fill className="object-cover rounded-lg" />
             <button
               type="button"
               onClick={handleRemove}

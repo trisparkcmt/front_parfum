@@ -38,7 +38,85 @@ export const api = axios.create({
 });
 
 // Intercepteur pour ajouter le token d'authentification aux en-têtes (Mobile/Token auth)
-api.interceptors.request.use((config) => {
+api.interceptors.request.use((config: any) => {
+  // If payload contains File/Blob/FileList, convert to FormData.
+  const hasFile = (obj: any): boolean => {
+    if (!obj) return false;
+    if (typeof File !== 'undefined' && obj instanceof File) return true;
+    if (typeof Blob !== 'undefined' && obj instanceof Blob) return true;
+    if (typeof FileList !== 'undefined' && obj instanceof FileList) return true;
+    if (Array.isArray(obj)) return obj.some((v) => hasFile(v));
+    if (obj instanceof FormData) return true;
+    if (typeof obj === 'object') {
+      for (const k in obj) {
+        if (hasFile(obj[k])) return true;
+      }
+    }
+    return false;
+  };
+
+  const toFormData = (obj: any, fd: FormData = new FormData(), prefix = ''): FormData => {
+    if (obj instanceof FormData) return obj;
+    if (obj === null || obj === undefined) return fd;
+
+    if (typeof File !== 'undefined' && obj instanceof File) {
+      fd.append(prefix || 'file', obj);
+      return fd;
+    }
+
+    if (typeof Blob !== 'undefined' && obj instanceof Blob) {
+      fd.append(prefix || 'file', obj);
+      return fd;
+    }
+
+    if (typeof FileList !== 'undefined' && obj instanceof FileList) {
+      Array.from(obj).forEach((file, idx) => fd.append(prefix || 'files', file));
+      return fd;
+    }
+
+    if (Array.isArray(obj)) {
+      obj.forEach((value, index) => {
+        const key = prefix ? `${prefix}[${index}]` : String(index);
+        toFormData(value, fd, key);
+      });
+      return fd;
+    }
+
+    if (typeof obj === 'object') {
+      Object.keys(obj).forEach((key) => {
+        const value = obj[key];
+        const field = prefix ? `${prefix}.${key}` : key;
+        if (value === null || value === undefined) return;
+        if (hasFile(value)) {
+          toFormData(value, fd, field);
+        } else if (typeof value === 'object') {
+          toFormData(value, fd, field);
+        } else {
+          fd.append(field, String(value));
+        }
+      });
+      return fd;
+    }
+
+    // fallback
+    fd.append(prefix || 'value', String(obj));
+    return fd;
+  };
+
+  try {
+    if (config && config.data && !(config.data instanceof FormData) && hasFile(config.data)) {
+      config.data = toFormData(config.data);
+      // Let the browser/axios set the Content-Type with boundary
+      if (config.headers) {
+        delete config.headers['Content-Type'];
+        delete config.headers['content-type'];
+      }
+    }
+  } catch (err) {
+    // If conversion fails, continue without conversion
+    console.warn('Failed to convert payload to FormData', err);
+  }
+
   if (typeof window !== 'undefined') {
     const token = localStorage.getItem('auth_token');
     if (token) {

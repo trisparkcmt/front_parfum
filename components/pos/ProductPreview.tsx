@@ -2,7 +2,7 @@
 
 import { Product } from '@/types';
 import { ShoppingBag, Minus, Plus, AlertCircle } from 'lucide-react';
-import Image from 'next/image';
+import AppImage from '@/components/ui/AppImage';
 import { useState } from 'react';
 
 interface ProductPreviewProps {
@@ -31,11 +31,12 @@ export function ProductPreview({ product, onAddToCart, isLoading = false }: Prod
       {/* Product Image */}
       <div className="relative w-full h-64 mb-6 rounded-lg overflow-hidden bg-white/10 flex-shrink-0">
         {product.images && product.images[0] ? (
-          <Image
+          <AppImage
             src={product.images[0]}
             alt={product.name}
             fill
             className="object-cover"
+            priority
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center">

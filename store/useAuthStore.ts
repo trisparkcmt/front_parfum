@@ -9,6 +9,8 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { User, UserRole } from '@/types';
 import { authService } from '@/services/apiService';
+import { deviceService } from '@/services/deviceService';
+import { getCachedToken, cleanupFCM } from '@/services/fcmService';
 import { api, rawApi } from '@/services/api';
 import { useToastStore } from './useToastStore';
 import { useCartStore } from './useCartStore';
@@ -298,22 +300,15 @@ export const useAuthStore = create<AuthState>()(
           // Use rawApi (no cookies, no interceptors) for public registration endpoint
           await rawApi.post('auth/registration/', payload);
 
-          // Registration successful - user needs to verify email
-          // DO NOT auto-login - user must verify email first
           set({ isLoading: false });
+          addToast('Inscription réussie. Veuillez vous connecter.', 'success');
           return true;
-        } catch (error: any) {
-          console.error('Backend registration failed:', error?.response?.data || error);
+        } catch (err: any) {
+          console.error('Registration failed:', err);
           set({ isLoading: false });
 
-          const status = error?.response?.status;
-          const errData = error?.response?.data;
-
-          // Network / server unreachable
-          if (!error?.response) {
-            addToast('Impossible de contacter le serveur. Vérifiez votre connexion.', 'error');
-            return false;
-          }
+          const status = err.response?.status;
+          const errData = err.response?.data;
 
           // Server crash – Django returns an HTML error page
           const isHtml = typeof errData === 'string' && (errData.trimStart().startsWith('<') || errData.includes('<!DOCTYPE'));
@@ -350,6 +345,21 @@ export const useAuthStore = create<AuthState>()(
       },
 
       logout: async () => {
+        try {
+          const fcmToken = getCachedToken();
+          if (fcmToken) {
+            try {
+              await deviceService.unregisterDevice(fcmToken);
+            } catch (error) {
+              console.warn('[Auth] Failed to unregister FCM device, continuing logout:', error);
+            }
+          }
+
+          cleanupFCM();
+        } catch (error) {
+          console.warn('[Auth] FCM cleanup failed during logout:', error);
+        }
+
         try {
           await api.post('auth/logout/');
         } catch (e) {

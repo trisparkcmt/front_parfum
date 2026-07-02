@@ -9,6 +9,7 @@ import { useCatalogPermissions } from '@/hooks/useCatalogPermissions';
 import CatalogAccessNotice from '@/components/catalog/CatalogAccessNotice';
 import { extractCatalogList } from '@/lib/catalogUtils';
 import { fromDatetimeLocalValue, toDatetimeLocalValue } from '@/lib/promotionUtils';
+import AppImage from '@/components/ui/AppImage';
 import { MultiImageUpload } from '@/components/MultiImageUpload';
 import { CreateCategoryModal } from '@/components/CreateCategoryModal';
 
@@ -330,11 +331,11 @@ export default function PerfumeAdminPage() {
                       <td className="px-6 py-3 whitespace-nowrap">
                         <div className="w-12 h-12 rounded-xl bg-white/5 border border-white/10 overflow-hidden flex items-center justify-center">
                           {productImg ? (
-                            <img
+                            <AppImage
                               src={productImg}
                               alt={p.nom || 'Parfum'}
-                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                              loading="lazy"
+                              fill
+                              className="object-cover group-hover:scale-105 transition-transform duration-300"
                             />
                           ) : (
                             <ImageIcon size={18} className="text-foreground/20" />

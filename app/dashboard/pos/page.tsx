@@ -7,6 +7,7 @@ import { orderService } from '@/services/orderService';
 import { labService } from '@/services/labService';
 import { useToastStore } from '@/store/useToastStore';
 import { BackButton } from '@/components/ui/BackButton';
+import { AppImage } from '@/components/ui/AppImage';
 import {
   CheckCircle,
   Search,
@@ -903,45 +904,19 @@ function ProductThumb({
   product: Product;
   size?: number;
 }) {
-  const [errored, setErrored] = useState(false);
-  const [isLoaded, setIsLoaded] = useState(false);
-
   const url = useMemo(() => getProductImageUrl(product), [product]);
-  const showFallback = !url || errored;
-
-  useEffect(() => {
-    setErrored(false);
-    setIsLoaded(false);
-  }, [url]);
 
   return (
     <div
-      className="relative shrink-0 rounded-sm overflow-hidden border border-white/10 bg-background/40 flex items-center justify-center"
+      className="relative shrink-0 rounded-sm overflow-hidden border border-white/10 bg-background/40"
       style={{ width: size, height: size }}
     >
-      {showFallback ? (
-        <ImageOff className="w-4 h-4 text-foreground/20" strokeWidth={1.5} />
+      {url ? (
+        <AppImage fill src={url} alt={getProductName(product)} className="object-cover" />
       ) : (
-        <>
-          {!isLoaded && !errored && (
-            <div className="absolute inset-0 flex items-center justify-center bg-background/50">
-              <Loader2 className="w-3 h-3 text-gold animate-spin" />
-            </div>
-          )}
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={url}
-            alt={getProductName(product)}
-            className={`w-full h-full object-cover transition-opacity duration-200 ${
-              isLoaded ? 'opacity-100' : 'opacity-0'
-            }`}
-            onLoad={() => setIsLoaded(true)}
-            onError={() => {
-              console.error(`Failed to load image: ${url}`);
-              setErrored(true);
-            }}
-          />
-        </>
+        <div className="flex h-full w-full items-center justify-center text-foreground/20">
+          <ImageOff className="w-4 h-4" strokeWidth={1.5} />
+        </div>
       )}
     </div>
   );

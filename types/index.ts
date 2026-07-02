@@ -689,3 +689,18 @@ export interface EssenceFilterParams {
   occasion?: string;
   page?: number;
 }
+
+// ---- Notifications ----
+export interface Notification {
+  id: number;
+  recipient: number;
+  type: 'order_update' | 'general' | 'delivery' | 'payment' | string;
+  message: string;
+  is_global_admin: boolean;
+  created_at: string;
+  read?: boolean;
+  is_read: boolean;
+  title?: string;
+  body?: string;
+}
+

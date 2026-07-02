@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Plus, Truck, CheckCircle, Clock, Loader2, RefreshCw, Trash2 } from 'lucide-react';
 import { adminService } from '@/services/apiService';
 import { useToastStore } from '@/store/useToastStore';
+import AppImage from '@/components/ui/AppImage';
 
 // Define a type for a driver to improve type safety and readability
 interface Driver {
@@ -171,7 +172,7 @@ export default function DeliveryPage() {
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 rounded-full bg-gradient-to-br from-gold to-gold/60 flex items-center justify-center text-black font-bold overflow-hidden">
                             {d.photo ? (
-                              <img src={d.photo} alt={`${fullName}'s photo`} className="w-full h-full object-cover" />
+                              <AppImage src={d.photo} alt={`${fullName}'s photo`} fill className="object-cover" />
                             ) : (
                               <span className="text-indigo-600 font-bold text-sm">
                                 {(firstName.charAt(0) || '') + (lastName.charAt(0) || '')}

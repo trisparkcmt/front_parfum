@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Download, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import AppImage from '@/components/ui/AppImage';
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -90,13 +91,7 @@ export function InstallPrompt() {
         <div className="flex items-center gap-4">
           {/* App Icon */}
           <div className="w-14 h-14 rounded-xl overflow-hidden border border-gold/20 shadow-lg shadow-gold/10 shrink-0">
-            <img
-              src="/icons/icon-192x192.jpeg"
-              alt="Accessoires Exclusifs"
-              width={56}
-              height={56}
-              className="w-full h-full object-cover"
-            />
+            <AppImage src="/icons/icon-192x192.jpeg" alt="Accessoires Exclusifs" width={56} height={56} className="w-full h-full object-cover" />
           </div>
 
           {/* Text */}

@@ -13,7 +13,7 @@
  */
 
 import Link from 'next/link';
-import Image from 'next/image';
+import AppImage from '@/components/ui/AppImage';
 import { Heart, Star, ShoppingBag, BellRing } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { cn, formatPrice } from '@/lib/utils';
@@ -120,12 +120,12 @@ export function ProductCard({
             transition={{ duration: 0.3 }}
             className="absolute inset-0"
           >
-            <Image 
+            <AppImage
               src={getImageUrl(mainImage)}
               alt={product.name}
               fill
-              sizes="(max-width: 640px) 165px, 280px"
               className="object-cover"
+              priority={false}
             />
           </motion.div>
           
@@ -136,12 +136,12 @@ export function ProductCard({
               transition={{ duration: 0.3 }}
               className="absolute inset-0"
             >
-              <Image 
+              <AppImage
                 src={getImageUrl(secondImage)}
                 alt={`${product.name} - second view`}
                 fill
-                sizes="(max-width: 640px) 165px, 280px"
                 className="object-cover"
+                priority={false}
               />
             </motion.div>
           )}

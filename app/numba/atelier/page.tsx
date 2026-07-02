@@ -9,6 +9,7 @@ import { useToastStore } from '@/store/useToastStore';
 import { generateId } from '@/lib/utils';
 import { useTranslation } from 'react-i18next';
 import { ArrowLeft, Minus, Plus, ChevronLeft, ChevronRight, RefreshCcw, Loader2, Save, ShoppingCart, X } from 'lucide-react';
+import AppImage from '@/components/ui/AppImage';
 import type { CustomComposition, CompositionEssence, EssenceClient } from '@/types';
 import { labService } from '@/services/labService';
 import { labService as apiLabService, shopService } from '@/services/apiService';
@@ -871,7 +872,7 @@ export default function AtelierPage() {
                       <div className="bg-white/5 border border-white/10 rounded-2xl p-5 flex items-center justify-between gap-4">
                         <div className="flex items-center gap-4">
                           {matchedFlacon.type_flacon?.image ? (
-                            <img src={matchedFlacon.type_flacon.image} alt={matchedFlacon.nom} className="size-16 rounded-xl object-cover border border-white/10" />
+                            <AppImage src={matchedFlacon.type_flacon.image} alt={matchedFlacon.nom || 'Flacon'} width={64} height={64} className="size-16 rounded-xl object-cover border border-white/10" />
                           ) : (
                             <div className="size-16 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-[10px] text-foreground/30 text-center px-1">Aucune Image</div>
                           )}
@@ -1102,7 +1103,7 @@ export default function AtelierPage() {
                     >
                       <div className="flex items-center gap-4">
                         {f.type_flacon?.image ? (
-                          <img src={f.type_flacon.image} alt={f.nom} className="size-16 rounded-xl object-cover border border-white/10" />
+                          <AppImage src={f.type_flacon.image} alt={f.nom || 'Flacon'} width={64} height={64} className="size-16 rounded-xl object-cover border border-white/10" />
                         ) : (
                           <div className="size-16 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-[10px] text-foreground/30 text-center px-1">Aucune Image</div>
                         )}

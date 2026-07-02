@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef } from 'react';
-import Image from 'next/image';
+import AppImage from '@/components/ui/AppImage';
 import { X, Upload } from 'lucide-react';
 
 interface ImageFile {
@@ -184,7 +184,7 @@ export const MultiImageUpload: React.FC<MultiImageUploadProps> = ({
         >
           {principalImage.preview ? (
             <div className="relative w-full h-64 group">
-              <Image
+              <AppImage
                 src={principalImage.preview}
                 alt={principalImage.label}
                 fill
@@ -256,7 +256,7 @@ export const MultiImageUpload: React.FC<MultiImageUploadProps> = ({
                 <div className="relative group">
                   {image.preview ? (
                     <>
-                      <Image
+                              <AppImage
                         src={image.preview}
                         alt={image.label}
                         width={150}

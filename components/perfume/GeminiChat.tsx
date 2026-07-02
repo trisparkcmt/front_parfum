@@ -7,6 +7,7 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import AppImage from '@/components/ui/AppImage';
 import {
   Sparkles,
   ShoppingBag,
@@ -187,10 +188,11 @@ function ProductCard({
     <div className="flex-shrink-0 w-44 bg-white/5 border border-white/10 rounded-2xl overflow-hidden hover:border-gold/30 transition-all group">
       <div className="relative w-full h-36 bg-black/20 overflow-hidden">
         {image ? (
-          <img
+          <AppImage
             src={image.startsWith('http') ? image : `${API_ROOT}${image}`}
             alt={name}
             className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-500"
+            fill
           />
         ) : (
           <div className="flex items-center justify-center w-full h-full text-foreground/20">

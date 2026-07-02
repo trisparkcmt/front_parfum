@@ -14,6 +14,7 @@ import {
   Package,
   ArrowRight,
 } from "lucide-react";
+import AppImage from "@/components/ui/AppImage";
 import { productService } from "@/services/productService";
 import { AccessorySubCategory } from "@/types";
 
@@ -153,8 +154,7 @@ export default function CategoryPills() {
                     {/* Mini icon/image */}
                     <div className="size-7 rounded-full overflow-hidden flex items-center justify-center bg-foreground/10 flex-shrink-0">
                       {cat.image ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={cat.image} alt="" className="w-full h-full object-cover" />
+                        <AppImage src={cat.image} alt={cat.label || 'Catégorie'} fill className="object-cover" />
                       ) : (
                         <Icon size={14} className="text-foreground/60" />
                       )}
@@ -214,8 +214,7 @@ export default function CategoryPills() {
                         }`}
                       >
                         {cat.image ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img src={cat.image} alt="" className="h-full w-full object-cover" />
+                          <AppImage src={cat.image} alt={cat.label || 'Catégorie'} fill className="object-cover" />
                         ) : (
                           <Icon size={26} className="text-foreground/60 group-hover:text-gold transition-colors" />
                         )}

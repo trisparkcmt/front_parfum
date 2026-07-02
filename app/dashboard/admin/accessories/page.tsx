@@ -7,9 +7,9 @@ import { useToastStore } from '@/store/useToastStore';
 import { useCatalogPermissions } from '@/hooks/useCatalogPermissions';
 import CatalogAccessNotice from '@/components/catalog/CatalogAccessNotice';
 import { extractCatalogList } from '@/lib/catalogUtils';
-import { fromDatetimeLocalValue, toDatetimeLocalValue } from '@/lib/promotionUtils';
 import { MultiImageUpload } from '@/components/MultiImageUpload';
 import { CreateCategoryModal } from '@/components/CreateCategoryModal';
+import AppImage from '@/components/ui/AppImage';
 
 export default function AccessoriesPage() {
   const permissions = useCatalogPermissions('accessoires');
@@ -49,12 +49,9 @@ export default function AccessoriesPage() {
     taille: '',
     prix_unitaire: '',
     prix_promotionnel: '',
-    date_debut: '',
-    date_fin: '',
     stock_quantite: '',
     seuil_alerte_stock: '3',
     poids_grammes: '',
-    message_promotion: '',
   });
 
   const { addToast } = useToastStore();
@@ -114,12 +111,9 @@ export default function AccessoriesPage() {
       taille: '',
       prix_unitaire: '',
       prix_promotionnel: '',
-      date_debut: '',
-      date_fin: '',
       stock_quantite: '',
       seuil_alerte_stock: '3',
       poids_grammes: '',
-      message_promotion: '',
     });
     setImageFiles({
       image_principale: null,
@@ -148,12 +142,9 @@ export default function AccessoriesPage() {
       taille: acc.taille || '',
       prix_unitaire: String(acc.prix_unitaire || ''),
       prix_promotionnel: acc.prix_promotionnel ? String(acc.prix_promotionnel) : '',
-      date_debut: toDatetimeLocalValue(acc.date_debut),
-      date_fin: toDatetimeLocalValue(acc.date_fin),
       stock_quantite: String(acc.stock_quantite || ''),
       seuil_alerte_stock: String(acc.seuil_alerte_stock || '3'),
       poids_grammes: String(acc.poids_grammes || ''),
-      message_promotion: acc.message_promotion || '',
     });
     setImageFiles({
       image_principale: null,
@@ -185,15 +176,11 @@ export default function AccessoriesPage() {
 
     const formData = new FormData();
     Object.entries(form).forEach(([key, val]) => {
-      if (key === 'date_debut' || key === 'date_fin') return;
+      // On s'assure d'envoyer les valeurs, y compris les booleans (actif)
       if (val !== undefined && val !== null && (val !== '' || typeof val === 'boolean')) {
         formData.append(key, String(val));
       }
     });
-    const promoDateDebut = fromDatetimeLocalValue(form.date_debut);
-    const promoDateFin = fromDatetimeLocalValue(form.date_fin);
-    if (promoDateDebut) formData.append('date_debut', promoDateDebut);
-    if (promoDateFin) formData.append('date_fin', promoDateFin);
 
     Object.entries(imageFiles).forEach(([key, file]) => {
       if (file instanceof File) {
@@ -412,7 +399,7 @@ export default function AccessoriesPage() {
                         <div className="flex items-center gap-4">
                           <div className="w-12 h-12 rounded-xl bg-white/5 flex items-center justify-center text-2xl group-hover:scale-105 transition-transform overflow-hidden border border-white/5">
                             {a.image_principale ? (
-                              <img src={a.image_principale} alt={aName} className="w-full h-full object-cover" />
+                              <AppImage src={a.image_principale} alt={aName} fill className="object-cover" />
                             ) : (
                               '👜'
                             )}
@@ -577,29 +564,6 @@ export default function AccessoriesPage() {
                     className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
                   />
                 </div>
-                <div className="rounded-lg border border-white/10 bg-white/[0.03] px-3 py-3 space-y-3">
-                  <p className="text-xs font-semibold text-foreground/40 uppercase tracking-wider">Période promotion</p>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1">
-                      <label className="text-xs text-foreground/40">Date début</label>
-                      <input
-                        type="datetime-local"
-                        value={form.date_debut}
-                        onChange={e => updateForm('date_debut', e.target.value)}
-                        className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-foreground outline-none focus:border-gold"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-xs text-foreground/40">Date fin</label>
-                      <input
-                        type="datetime-local"
-                        value={form.date_fin}
-                        onChange={e => updateForm('date_fin', e.target.value)}
-                        className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-foreground outline-none focus:border-gold"
-                      />
-                    </div>
-                  </div>
-                </div>
                 <div className="grid grid-cols-2 gap-3">
                   <input
                     placeholder="Quantité en stock"
@@ -612,8 +576,8 @@ export default function AccessoriesPage() {
                     placeholder="Seuil d'alerte"
                     type="number"
                     value={form.seuil_alerte_stock}
-                     onChange={e => updateForm('seuil_alerte_stock', e.target.value)}
-                     className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
+                    onChange={e => updateForm('seuil_alerte_stock', e.target.value)}
+                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
                   />
                 </div>
                 <input
@@ -623,17 +587,6 @@ export default function AccessoriesPage() {
                   onChange={e => updateForm('poids_grammes', e.target.value)}
                   className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
                 />
-                <div className="space-y-1">
-                  <label className="text-xs text-foreground/40">Message promo (optionnel)</label>
-                  <textarea
-                    placeholder="ex: Soldes — -30% ce week-end uniquement !"
-                    value={form.message_promotion}
-                    onChange={e => updateForm('message_promotion', e.target.value)}
-                    rows={2}
-                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-foreground outline-none focus:border-gold resize-none"
-                  />
-                  <p className="text-[10px] text-foreground/30">Affiché dans le carousel promotionnel de la page d'accueil.</p>
-                </div>
               </div>
             </div>
             <div className="mt-4 pt-4 border-t border-white/10">
