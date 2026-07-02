@@ -1,6 +1,8 @@
-post https://accessoires-exclusifs-api.onrender.com/api/v1/auth/registration/resend-email/
-Content-type: application/json
+POST https://accessoires-exclusifs-api.onrender.com/api/v1/orders/commandes/passer/
+Authorization: Cookies refresh-token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoicmVmcmVzaCIsImV4cCI6MTc4MzA4MzU5MSwiaWF0IjoxNzgyOTk3MTkxLCJqdGkiOiI4ZjQzYzYxMDkwNDc0NDczYjJiZDQzMDU1MDVkN2ZmZSIsInVzZXJfaWQiOiI1NCJ9.rBLP5mqVgmldPM3EeMIRKiAU76WkarHhL8LxNqiehHU; csrftoken=KTaNdS7i8lkAQ2lkOuy3mIB6ThFzm3o1; sessionid=d38y2bz32j65evipw9jc41aw6bj165me
+
+Content-Type: application/json
 
 {
-    "email": "darrenfotsing71@gmail.com" 
+    "panier_id":122,"livraison_ville":"Retrait magasin","code_promo":""
 }

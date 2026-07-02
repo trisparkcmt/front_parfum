@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import { getFCMToken, onForegroundMessage } from '@/lib/firebase';
+import { getDevicePlatform, getFCMToken, onForegroundMessage } from '@/lib/firebase';
 import { api } from '@/services/api';
 import { useToastStore } from '@/store/useToastStore';
 import { useAuthStore } from '@/store/useAuthStore';
@@ -27,9 +27,11 @@ export async function registerFCMDevice(): Promise<void> {
     // Store token locally for unregistration on logout
     localStorage.setItem(FCM_TOKEN_KEY, token);
 
+    const platform = getDevicePlatform();
+
     await api.post('utilisateur/devices/register/', {
       registration_token: token,
-      platform: 'web',
+      platform,
     });
 
     console.log('[FCM] Device registered successfully.');

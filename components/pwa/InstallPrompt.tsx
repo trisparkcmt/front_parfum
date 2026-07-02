@@ -32,7 +32,10 @@ export function InstallPrompt() {
     const handler = (e: Event) => {
       // Prevent the default mini-infobar
       e.preventDefault();
-      setDeferredPrompt(e as BeforeInstallPromptEvent);
+      const be = e as BeforeInstallPromptEvent;
+      setDeferredPrompt(be);
+      // expose globally so other flows (eg: registration) can trigger prompt
+      try { (window as any).__ae_deferred_install_prompt = be; } catch (err) {}
       // Check if user previously dismissed
       const dismissed = localStorage.getItem('ae-pwa-dismissed');
       if (!dismissed) {

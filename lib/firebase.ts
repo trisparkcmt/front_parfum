@@ -17,6 +17,26 @@ const firebaseConfig = {
 
 const VAPID_KEY = "F0KwqkUGUbWZxo-vWoyYJzB073iJlXFZrdfCEs4UeQk";
 
+export type DevicePlatform = 'web' | 'ios' | 'android';
+
+export function getDevicePlatform(): DevicePlatform {
+  if (typeof window === 'undefined') return 'web';
+
+  const userAgent = window.navigator.userAgent || '';
+  if (/iPad|iPhone|iPod/.test(userAgent)) return 'ios';
+  if (/Android/i.test(userAgent)) return 'android';
+  return 'web';
+}
+
+export function isIOSStandaloneApp(): boolean {
+  if (typeof window === 'undefined') return false;
+
+  const standaloneNavigator = window.navigator as Navigator & { standalone?: boolean };
+  return Boolean(
+    window.matchMedia('(display-mode: standalone)').matches || standaloneNavigator.standalone
+  );
+}
+
 // Initialize Firebase App (singleton)
 const firebaseApp = getApps().length ? getApp() : initializeApp(firebaseConfig);
 
@@ -39,6 +59,18 @@ export function getFirebaseMessaging(): Messaging | null {
  */
 export async function getFCMToken(): Promise<string | null> {
   if (typeof window === 'undefined') return null;
+
+  const platform = getDevicePlatform();
+
+  if (platform === 'ios' && !isIOSStandaloneApp()) {
+    console.warn('[FCM] iPhone notifications require the app to be installed to the Home Screen and opened from there.');
+    return null;
+  }
+
+  if (typeof window === 'undefined' || typeof Notification === 'undefined') {
+    console.warn('[FCM] Notifications are not supported in this environment.');
+    return null;
+  }
 
   try {
     const permission = await Notification.requestPermission();

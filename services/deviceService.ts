@@ -10,6 +10,7 @@
  */
 
 import { api } from './api';
+import { getDevicePlatform } from '@/lib/firebase';
 import type { Notification as NotificationType } from '@/types';
 
 /**
@@ -64,7 +65,7 @@ export const deviceService = {
 
     const payload: DeviceRegistrationPayload = {
       registration_token: registrationToken,
-      platform: 'web',
+      platform: typeof window === 'undefined' ? 'web' : getDevicePlatform(),
     };
 
     try {

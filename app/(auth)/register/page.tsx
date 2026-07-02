@@ -17,6 +17,12 @@ import GoogleAuthButton from '@/components/auth/GoogleAuthButton';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useToastStore } from '@/store/useToastStore';
 import { useTranslation } from 'react-i18next';
+import { getFCMToken } from '@/lib/firebase';
+
+interface BeforeInstallPromptEvent extends Event {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
+}
 
 function RegisterFormContent() {
   const { t } = useTranslation();
@@ -67,6 +73,29 @@ function RegisterFormContent() {
         );
         // Pass email along so /verify-email can pre-fill the resend field
         router.push(`/verify-email?email=${encodeURIComponent(data.email)}`);
+        // Try to show PWA install prompt if it was deferred by the browser
+        try {
+          const storedPrompt = (window as any).__ae_deferred_install_prompt as BeforeInstallPromptEvent | undefined;
+          if (storedPrompt) {
+            storedPrompt.prompt().catch(() => null);
+            setTimeout(() => { delete (window as any).__ae_deferred_install_prompt; }, 1000);
+          }
+        } catch (e) {
+          // non-blocking
+        }
+
+        // Also try to obtain FCM token now and cache it locally so it can
+        // be registered with the backend once the user completes login.
+        try {
+          const token = await getFCMToken();
+          if (token && typeof window !== 'undefined') {
+            localStorage.setItem('fcm_token', token);
+            // mark as pending registration until backend registration occurs
+            localStorage.setItem('fcm_token_pending', '1');
+          }
+        } catch (e) {
+          // ignore - non-critical
+        }
       }
     } catch (err: any) {
       setFormError(err.message || "Échec de l'inscription. Veuillez réessayer.");
