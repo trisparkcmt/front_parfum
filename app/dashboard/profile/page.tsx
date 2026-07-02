@@ -6,7 +6,7 @@ import Link from 'next/link';
 import {
   User, Mail, Phone, MapPin, Shield, Calendar, Edit2, Lock,
   Globe, Sun, Moon, Palette, ChevronRight, LogOut, Loader2,
-  LayoutGrid, ShoppingCart, Bell, Sparkles, BadgeCheck,
+  LayoutGrid, ShoppingCart, Bell, Sparkles, BadgeCheck, Download,
 } from 'lucide-react';
 
 import { useAuthStore } from '@/store/useAuthStore';
@@ -91,6 +91,33 @@ export default function ProfilePage() {
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [isApplyingPartner, setIsApplyingPartner] = useState(false);
+  const [isInstallingPWA, setIsInstallingPWA] = useState(false);
+
+  const isPWAInstalled = typeof window !== 'undefined' && window.matchMedia('(display-mode: standalone)').matches;
+
+  const handleInstallPWA = async () => {
+    setIsInstallingPWA(true);
+    try {
+      const storedPrompt = (window as any).__ae_deferred_install_prompt;
+      if (!storedPrompt) {
+        addToast('Aucune option d’installation PWA disponible', 'info');
+        return;
+      }
+      await storedPrompt.prompt();
+      const { outcome } = await storedPrompt.userChoice;
+      if (outcome === 'accepted') {
+        addToast('Application installée, ouvrez-la depuis l’écran d’accueil', 'success');
+      } else {
+        addToast('Installation annulée', 'info');
+      }
+      delete (window as any).__ae_deferred_install_prompt;
+    } catch (error) {
+      console.error('PWA install error:', error);
+      addToast('Erreur lors de l’installation de la PWA', 'error');
+    } finally {
+      setIsInstallingPWA(false);
+    }
+  };
 
   const userRoles: UserRole[] =
     user?.roles || (user?.role ? [user.role] : (['client'] as UserRole[]));
@@ -347,6 +374,19 @@ export default function ProfilePage() {
                     </Pill>
                   }
                 />
+                {typeof window !== 'undefined' && !isPWAInstalled && (window as any).__ae_deferred_install_prompt && (
+                  <SettingRow
+                    icon={<Download size={16} />}
+                    iconBg="bg-gold/10 text-gold"
+                    label="Installer l’application"
+                    hint="Installer l’application PWA pour notifications et accès rapide"
+                    control={
+                      <Pill onClick={handleInstallPWA}>
+                        {isInstallingPWA ? 'Installation...' : 'Installer'}
+                      </Pill>
+                    }
+                  />
+                )}
               </div>
             </Panel>
           </div>

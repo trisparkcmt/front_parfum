@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard, ShoppingCart, BarChart2, Users2,
   TrendingUp, Package, Cpu, DollarSign, Truck,
-  UserCircle, Sparkles, Gem, X, ChevronDown, ChevronRight, Droplets,
+  UserCircle, Sparkles, Gem, Tag, X, ChevronDown, ChevronRight, Droplets,
   Bell, FileText,
 } from 'lucide-react';
 import { useOrderNotificationStore } from '@/store/useOrderNotificationStore';
@@ -48,6 +48,7 @@ const boutiqueItems: NavItem[] = [
   { label: 'Flacons', icon: <Package size={18} />, href: '/dashboard/admin/flacons' },
   { label: 'Accessoires', icon: <Gem size={18} />, href: '/dashboard/admin/accessories' },
   { label: 'Compositions', icon: <Cpu size={18} />, href: '/dashboard/admin/compositions' },
+  { label: 'Codes Promo', icon: <Tag size={18} />, href: '/dashboard/admin/promo-codes' },
 ];
 
 const gestionItems: NavItem[] = [
