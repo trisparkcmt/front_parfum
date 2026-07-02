@@ -6,7 +6,7 @@ import { useAuthStore } from '@/store/useAuthStore';
 import { 
   User, Mail, Phone, MapPin, 
   Languages, Banknote, Palette, 
-  ChevronRight, Edit2, Shield, Bell, Loader2 
+  ChevronRight, Edit2, Shield, Bell, Loader2, Download
 } from 'lucide-react';
 import { BackButton } from '@/components/ui/BackButton';
 import { useTranslation } from 'react-i18next';
@@ -29,11 +29,40 @@ export default function ClientProfilePage() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [isInstallingPWA, setIsInstallingPWA] = useState(false);
 
   const handleLanguageChange = () => {
     const newLang = i18n.language === 'fr' ? 'en' : 'fr';
     i18n.changeLanguage(newLang);
   };
+
+  const handleInstallPWA = async () => {
+    setIsInstallingPWA(true);
+    try {
+      // Try to use the stored deferred prompt from InstallPrompt component
+      const storedPrompt = (window as any).__ae_deferred_install_prompt;
+      if (storedPrompt) {
+        await storedPrompt.prompt();
+        const { outcome } = await storedPrompt.userChoice;
+        if (outcome === 'accepted') {
+          addToast(t('pwa_install_success', { defaultValue: 'Installation en cours...' }), 'success');
+        } else {
+          addToast(t('pwa_install_cancelled', { defaultValue: 'Installation annulée' }), 'info');
+        }
+        delete (window as any).__ae_deferred_install_prompt;
+      } else {
+        addToast(t('pwa_not_available', { defaultValue: 'PWA installation non disponible sur ce navigateur' }), 'info');
+      }
+    } catch (error) {
+      console.error('PWA installation error:', error);
+      addToast(t('pwa_install_failed', { defaultValue: 'Erreur lors de l\'installation' }), 'error');
+    } finally {
+      setIsInstallingPWA(false);
+    }
+  };
+
+  // Check if app is already installed as PWA
+  const isPWAInstalled = typeof window !== 'undefined' && window.matchMedia('(display-mode: standalone)').matches;
 
   const settingsOptions = [
     { 
@@ -59,6 +88,15 @@ export default function ClientProfilePage() {
       bg: 'bg-purple-400/10',
       action: toggleTheme
     },
+    ...(typeof window !== 'undefined' && (window as any).__ae_deferred_install_prompt && !isPWAInstalled ? [{
+      id: 'install-pwa',
+      label: t('install_app', { defaultValue: 'Installer l\'app' }),
+      value: t('get_better_experience', { defaultValue: 'Meilleure expérience' }),
+      icon: <Download size={18} className="text-gold" />,
+      bg: 'bg-gold/10',
+      action: handleInstallPWA,
+      isLoading: isInstallingPWA
+    }] : [])
   ];
 
   const handleBecomePartner = async () => {
@@ -206,11 +244,16 @@ export default function ClientProfilePage() {
             <button 
               key={opt.id}
               onClick={opt.action}
-              className="w-full flex items-center justify-between px-5 py-4 hover:bg-gray-500/5 transition-all group"
+              disabled={(opt as any).isLoading}
+              className="w-full flex items-center justify-between px-5 py-4 hover:bg-gray-500/5 transition-all group disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <div className="flex items-center gap-3">
                 <div className={`w-9 h-9 rounded-lg ${opt.bg} flex items-center justify-center group-hover:scale-110 transition-transform`}>
-                  {opt.icon}
+                  {(opt as any).isLoading ? (
+                    <Loader2 size={18} className="animate-spin" />
+                  ) : (
+                    opt.icon
+                  )}
                 </div>
                 <div className="text-left">
                   <p className="text-sm font-semibold text-foreground">{opt.label}</p>
