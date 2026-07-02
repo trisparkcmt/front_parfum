@@ -29,14 +29,36 @@ export const AppImage: React.FC<AppImageProps> = ({
 
   const resolved = useMemo(() => {
     if (!src) return null;
-    // Data URLs are fine
     if (src.startsWith('data:')) return src;
-    // Absolute URLs are already fine
-    if (src.startsWith('http://') || src.startsWith('https://') || src.startsWith('/')) return src;
-    // Otherwise treat as relative path from API base URL
+
     const apiRoot = process.env.NEXT_PUBLIC_API_URL || API_BASE_URL || '';
+    let urlStr = src;
+
+    if (src.startsWith('http://') || src.startsWith('https://')) {
+      try {
+        const parsedUrl = new URL(src);
+        const apiHost = apiRoot ? new URL(apiRoot).host : '';
+        // If image URL host is local but the API root is remote, rewrite host to API root to load uploaded assets
+        if (
+          (parsedUrl.hostname === '127.0.0.1' || parsedUrl.hostname === 'localhost') &&
+          apiHost &&
+          !apiHost.includes('127.0.0.1') &&
+          !apiHost.includes('localhost')
+        ) {
+          const apiURLObj = new URL(apiRoot);
+          parsedUrl.protocol = apiURLObj.protocol;
+          parsedUrl.host = apiURLObj.host;
+          urlStr = parsedUrl.toString();
+        }
+      } catch (e) {
+        // Fallback to original src if URL parsing fails
+      }
+      return urlStr;
+    }
+
+    if (src.startsWith('/')) return src;
+
     if (!apiRoot) return src;
-    // ensure no duplicate slashes
     return `${apiRoot.replace(/\/+$|^\/+/, '')}/${src.replace(/^\/+/, '')}`;
   }, [src]);
 
