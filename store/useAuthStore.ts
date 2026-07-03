@@ -11,6 +11,7 @@ import type { User, UserRole } from '@/types';
 import { authService } from '@/services/apiService';
 import { deviceService } from '@/services/deviceService';
 import { getCachedToken, cleanupFCM } from '@/services/fcmService';
+import { registerPushNotifications, unregisterPushNotifications, listenForegroundNotifications } from '@/services/notifications';
 import { api, rawApi } from '@/services/api';
 import { useToastStore } from './useToastStore';
 import { useCartStore } from './useCartStore';
@@ -138,6 +139,13 @@ export const useAuthStore = create<AuthState>()(
             // Store only access token; refresh token comes via HttpOnly cookie
             localStorage.setItem('auth_token', loginData.access);
             api.defaults.headers.common['Authorization'] = `Bearer ${loginData.access}`;
+            // Register push notifications with backend using Token auth
+            try {
+              await registerPushNotifications(loginData.access);
+              listenForegroundNotifications();
+            } catch (err) {
+              console.warn('[Auth] Failed to register push notifications:', err);
+            }
           }
 
           const mapUser = (userObj: any, meData?: any): User => ({
@@ -347,11 +355,20 @@ export const useAuthStore = create<AuthState>()(
       logout: async () => {
         try {
           const fcmToken = getCachedToken();
+          const authToken = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
           if (fcmToken) {
             try {
+              // Try unregistering via deviceService (api-based) and via explicit unregister endpoint
               await deviceService.unregisterDevice(fcmToken);
             } catch (error) {
-              console.warn('[Auth] Failed to unregister FCM device, continuing logout:', error);
+              console.warn('[Auth] Failed to unregister FCM device via deviceService:', error);
+            }
+            if (authToken) {
+              try {
+                await unregisterPushNotifications(authToken);
+              } catch (error) {
+                console.warn('[Auth] Failed to unregister push notifications via explicit endpoint:', error);
+              }
             }
           }
 
