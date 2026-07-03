@@ -17,6 +17,7 @@ import { useTranslation } from 'react-i18next';
 import i18n from '@/lib/i18n';
 import { api } from '@/services/api';
 import { attemptPWAInstall, getPWAInstallHint, isPWAInstalled as checkPWAInstalled } from '@/lib/pwa';
+import { triggerTestNotification } from '@/services/notifications';
 
 import { BackButton } from '@/components/ui/BackButton';
 import PasswordChangeModal from '@/components/shared/PasswordChangeModal';
@@ -93,6 +94,7 @@ export default function ProfilePage() {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [isApplyingPartner, setIsApplyingPartner] = useState(false);
   const [isInstallingPWA, setIsInstallingPWA] = useState(false);
+  const [isSendingTestNotification, setIsSendingTestNotification] = useState(false);
 
   const isPWAInstalled = checkPWAInstalled();
 
@@ -164,6 +166,27 @@ export default function ProfilePage() {
       console.error(err);
       addToast(t('logout_error', { defaultValue: 'Erreur lors de la déconnexion' }), 'error');
       setIsLoggingOut(false);
+    }
+  };
+
+  const handleTestNotification = async () => {
+    setIsSendingTestNotification(true);
+    try {
+      const sent = await triggerTestNotification(
+        'Test de notification',
+        'Cette notification confirme que l’affichage push est bien prêt.'
+      );
+
+      if (sent) {
+        addToast('Notification de test envoyée.', 'success');
+      } else {
+        addToast('La permission de notification n’a pas été accordée.', 'error');
+      }
+    } catch (error) {
+      console.error(error);
+      addToast('Impossible d’envoyer la notification de test.', 'error');
+    } finally {
+      setIsSendingTestNotification(false);
     }
   };
 
@@ -415,6 +438,20 @@ export default function ProfilePage() {
                   label={t('notifications', 'Notifications')}
                   hint={t('notification_channels', 'Canaux de notification')}
                 />
+                <div className="px-5 py-3">
+                  <button
+                    onClick={handleTestNotification}
+                    disabled={isSendingTestNotification}
+                    className="w-full flex items-center justify-center gap-2 rounded-xl border border-gold/20 bg-gold/10 px-3 py-2.5 text-sm font-semibold text-gold transition-colors hover:bg-gold/20 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {isSendingTestNotification ? (
+                      <Loader2 size={16} className="animate-spin" />
+                    ) : (
+                      <Bell size={16} />
+                    )}
+                    {isSendingTestNotification ? 'Envoi...' : 'Tester la notification'}
+                  </button>
+                </div>
               </div>
             </Panel>
           </div>

@@ -17,15 +17,14 @@ export async function registerPushNotifications(authToken: string): Promise<void
   if (!isBrowser()) return;
   try {
     console.log('[FCM] Starting registration...');
-    
+
     const permission = await Notification.requestPermission();
     console.log('[FCM] Notification permission:', permission);
     if (permission !== 'granted') {
-      console.warn('[FCM] Permission refusée par l\'utilisateur');
+      console.warn('[FCM] Permission refused by user');
       return;
     }
 
-    // Ensure service worker is registered
     console.log('[FCM] Registering service worker...');
     const swReg = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
     console.log('[FCM] Service worker registered:', swReg);
@@ -34,34 +33,24 @@ export async function registerPushNotifications(authToken: string): Promise<void
     console.log('[FCM] Getting token with VAPID key:', VAPID_KEY);
     const fcmToken = await getToken(messaging, { vapidKey: VAPID_KEY, serviceWorkerRegistration: swReg });
     if (!fcmToken) {
-      console.warn('[FCM] Aucun token obtenu');
+      console.warn('[FCM] No FCM token obtained');
       return;
     }
-    
+
     console.log('[FCM] Token obtained:', fcmToken);
 
-    // Send token to backend using the authenticated API client
-    console.log('[FCM] Sending token to backend...');
-    const registerResponse = await api.post(
-      'utilisateur/devices/register/',
-      {
-        registration_token: fcmToken,
-        platform: 'web',
-      },
-      {
-        headers: {
-          Authorization: `Bearer ${authToken}`,
-        },
-      }
-    );
-    
+    console.log('[FCM] Sending registration to backend using cookie-based session...');
+    const registerResponse = await api.post('utilisateur/devices/register/', {
+      registration_token: fcmToken,
+      platform: 'web',
+    });
     console.log('[FCM] Register response status:', registerResponse.status);
     console.log('[FCM] Register response body:', registerResponse.data);
 
     localStorage.setItem(STORAGE_KEY, fcmToken);
-    console.log('[FCM] Token enregistré avec succès');
+    console.log('[FCM] Token stored locally');
   } catch (error) {
-    console.error('[FCM] Erreur d\'enregistrement :', error);
+    console.error('[FCM] Registration error:', error);
   }
 }
 
@@ -71,22 +60,15 @@ export async function unregisterPushNotifications(authToken: string): Promise<vo
     const fcmToken = localStorage.getItem(STORAGE_KEY);
     if (!fcmToken) return;
 
-    await api.post(
-      'utilisateur/devices/unregister/',
-      {
-        registration_token: fcmToken,
-      },
-      {
-        headers: {
-          Authorization: `Bearer ${authToken}`,
-        },
-      }
-    );
+    const resp = await api.post('utilisateur/devices/unregister/', {
+      registration_token: fcmToken,
+    });
+    console.log('[FCM] Unregister response status:', resp.status);
 
     localStorage.removeItem(STORAGE_KEY);
-    console.log('[FCM] Token désenregistré avec succès');
+    console.log('[FCM] Token unregistered and removed locally');
   } catch (error) {
-    console.error('[FCM] Erreur de désenregistrement :', error);
+    console.error('[FCM] Unregister error:', error);
   }
 }
 
@@ -103,5 +85,53 @@ export function listenForegroundNotifications(): void {
     console.log('[FCM] Listening for foreground notifications');
   } catch (error) {
     console.error('[FCM] Error setting up foreground listener:', error);
+  }
+}
+
+export async function triggerTestNotification(
+  title = 'Test de notification',
+  body = 'Cette notification confirme que la réception est bien configurée.'
+): Promise<boolean> {
+  if (!isBrowser()) return false;
+
+  try {
+    if (typeof Notification === 'undefined') {
+      console.warn('[FCM] Notification API not available in this browser');
+      return false;
+    }
+
+    if (Notification.permission === 'default') {
+      const permission = await Notification.requestPermission();
+      if (permission !== 'granted') {
+        console.warn('[FCM] Test notification permission not granted');
+        return false;
+      }
+    }
+
+    if (Notification.permission !== 'granted') {
+      console.warn('[FCM] Test notification permission not granted');
+      return false;
+    }
+
+    const notificationOptions = {
+      body,
+      icon: '/icons/icon-192x192.jpeg',
+      badge: '/icons/badge-72x72.png',
+      tag: 'accessories-test-notification',
+      data: { url: '/' },
+    };
+
+    if ('serviceWorker' in navigator) {
+      const registration = await navigator.serviceWorker.ready;
+      registration.showNotification(title, notificationOptions);
+    } else {
+      new Notification(title, notificationOptions);
+    }
+
+    useToastStore.getState().addToast(`${title} — ${body}`, 'info');
+    return true;
+  } catch (error) {
+    console.error('[FCM] Test notification error:', error);
+    return false;
   }
 }

@@ -123,9 +123,17 @@ api.interceptors.request.use((config: any) => {
       config.headers.Authorization = `Bearer ${token}`;
       // Don't send HttpOnly cookies alongside Bearer — stale cookies can override the header
       config.withCredentials = false;
+          // Debug logging for FCM endpoints
+          if (config.url && config.url.includes('devices/register')) {
+            console.log('[API Interceptor] FCM register request - Authorization header set:', config.headers.Authorization ? 'YES (Bearer token present)' : 'NO');
+            console.log('[API Interceptor] Token in localStorage:', token.substring(0, 20) + '...');
+          }
     } else {
       delete config.headers.Authorization;
       config.withCredentials = true;
+          if (config.url && config.url.includes('devices/register')) {
+            console.log('[API Interceptor] FCM register request - NO token in localStorage');
+          }
     }
   }
   return config;

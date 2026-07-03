@@ -136,12 +136,17 @@ export const useAuthStore = create<AuthState>()(
           const loginData = loginResponse.data;
 
           if (typeof window !== 'undefined') {
-            // Store only access token; refresh token comes via HttpOnly cookie
-            localStorage.setItem('auth_token', loginData.access);
-            api.defaults.headers.common['Authorization'] = `Bearer ${loginData.access}`;
-            // Register push notifications with backend using Token auth
+            // Cookie-based web login: the backend sets the session cookie, so we do not rely on a JWT in the response body.
+            if (loginData.access) {
+              localStorage.setItem('auth_token', loginData.access);
+              api.defaults.headers.common['Authorization'] = `Bearer ${loginData.access}`;
+            } else {
+              delete api.defaults.headers.common['Authorization'];
+              localStorage.removeItem('auth_token');
+            }
+
             try {
-              await registerPushNotifications(loginData.access);
+              await registerPushNotifications(loginData.access || '');
               listenForegroundNotifications();
             } catch (err) {
               console.warn('[Auth] Failed to register push notifications:', err);
