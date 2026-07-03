@@ -1,7 +1,11 @@
 import { MetadataRoute } from 'next'
 
+type ManifestWithGcmSenderId = MetadataRoute.Manifest & {
+  gcm_sender_id?: string;
+};
+
 export default function manifest(): MetadataRoute.Manifest {
-  return {
+  const manifest: ManifestWithGcmSenderId = {
     name: 'Accessoires Exclusifs',
     short_name: 'Accessoires Exclusifs',
     description: 'Luxe & Création de Parfums — Boutique, Atelier IA et Livraison',
@@ -13,6 +17,7 @@ export default function manifest(): MetadataRoute.Manifest {
     theme_color: '#C5A059',
     lang: 'fr',
     categories: ['shopping', 'lifestyle', 'beauty'],
+    gcm_sender_id: '103953800507',
     icons: [
       {
         src: '/icons/icon-192x192.jpeg',
@@ -39,5 +44,7 @@ export default function manifest(): MetadataRoute.Manifest {
         purpose: 'maskable',
       },
     ],
-  }
+  };
+
+  return manifest;
 }
