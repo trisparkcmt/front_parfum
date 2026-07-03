@@ -1,13 +1,12 @@
 import { initializeApp } from 'firebase/app';
 import { getMessaging, getToken, onMessage } from 'firebase/messaging';
 import { firebaseApp } from '@/lib/firebase';
+import { api } from '@/services/api';
 import { useToastStore } from '@/store/useToastStore';
 
 // Use VAPID key in original URL-safe base64 format as provided by Firebase
 const VAPID_KEY = 'BIH086VT_ZEmPMDKIoJUfyaPmRQXF9sXGhGQpdQFHTK467Y4rKTm6TJHVNKZV1TPCLe8BCqNIRWVOXHqXLNd2r8';
 
-const REGISTER_URL = 'https://accessoires-exclusifs-api.onrender.com/api/v1/utilisateur/devices/register/';
-const UNREGISTER_URL = 'https://accessoires-exclusifs-api.onrender.com/api/v1/utilisateur/devices/unregister/';
 const STORAGE_KEY = 'fcm_token';
 
 function isBrowser() {
@@ -41,20 +40,23 @@ export async function registerPushNotifications(authToken: string): Promise<void
     
     console.log('[FCM] Token obtained:', fcmToken);
 
-    // Send token to backend using the Token auth header as requested
+    // Send token to backend using the authenticated API client
     console.log('[FCM] Sending token to backend...');
-    const registerResponse = await fetch(REGISTER_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Token ${authToken}`,
+    const registerResponse = await api.post(
+      'utilisateur/devices/register/',
+      {
+        registration_token: fcmToken,
+        platform: 'web',
       },
-      body: JSON.stringify({ registration_token: fcmToken, platform: 'web' }),
-    });
+      {
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+      }
+    );
     
     console.log('[FCM] Register response status:', registerResponse.status);
-    const registerData = await registerResponse.json();
-    console.log('[FCM] Register response body:', registerData);
+    console.log('[FCM] Register response body:', registerResponse.data);
 
     localStorage.setItem(STORAGE_KEY, fcmToken);
     console.log('[FCM] Token enregistré avec succès');
@@ -69,14 +71,17 @@ export async function unregisterPushNotifications(authToken: string): Promise<vo
     const fcmToken = localStorage.getItem(STORAGE_KEY);
     if (!fcmToken) return;
 
-    await fetch(UNREGISTER_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Token ${authToken}`,
+    await api.post(
+      'utilisateur/devices/unregister/',
+      {
+        registration_token: fcmToken,
       },
-      body: JSON.stringify({ registration_token: fcmToken }),
-    });
+      {
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+      }
+    );
 
     localStorage.removeItem(STORAGE_KEY);
     console.log('[FCM] Token désenregistré avec succès');
