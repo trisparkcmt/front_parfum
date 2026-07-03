@@ -19,6 +19,8 @@ interface PromoEntry {
   image?: string | null;
   type: 'perfume' | 'accessory' | 'generic';
   rawId?: string;
+  startDate?: string;
+  endDate?: string;
 }
 
 const FALLBACK_IMAGE = "/promo2.png";
@@ -91,7 +93,42 @@ function mapPromotionToEntry(promo: ShopPromotion, iconMap: Map<string, string>)
     image: resolvedImage,
     type: isPerfume ? 'perfume' : 'accessory',
     rawId: String(promo.id),
+    startDate: promo.date_debut || undefined,
+    endDate: promo.date_fin || undefined,
   };
+}
+
+function formatCountdown(item: PromoEntry): string | null {
+  const now = new Date();
+  const start = item.startDate ? new Date(item.startDate) : null;
+  const end = item.endDate ? new Date(item.endDate) : null;
+  const isEn = i18n.language === 'en';
+
+  if (start && now < start) {
+    const diffMs = start.getTime() - now.getTime();
+    const hours = Math.floor(diffMs / (1000 * 60 * 60));
+    const days = Math.floor(hours / 24);
+    if (days >= 1) {
+      return isEn ? `Starts in ${days} day${days > 1 ? 's' : ''}` : `Commence dans ${days} jour${days > 1 ? 's' : ''}`;
+    }
+    return isEn ? `Starts in ${hours} hour${hours > 1 ? 's' : ''}` : `Commence dans ${hours} heure${hours > 1 ? 's' : ''}`;
+  }
+
+  if (end && now < end) {
+    const diffMs = end.getTime() - now.getTime();
+    const hours = Math.floor(diffMs / (1000 * 60 * 60));
+    const days = Math.floor(hours / 24);
+    if (days >= 1) {
+      return isEn
+        ? `${days} day${days > 1 ? 's' : ''} remaining to benefit from this promotion`
+        : `Encore ${days} jour${days > 1 ? 's' : ''} pour profiter de la promotion`;
+    }
+    return isEn
+      ? `Remaining ${hours} hour${hours > 1 ? 's' : ''} to benefit from this promotion`
+      : `Encore ${hours} heure${hours > 1 ? 's' : ''} pour profiter de la promotion`;
+  }
+
+  return null;
 }
 
 function getPromoMessage(item: PromoEntry): string {
@@ -256,9 +293,9 @@ export default function PromoCarousel() {
     return (
       <div className="w-full">
         <div className="lg:hidden max-w-7xl mx-auto px-4 sm:px-6">
-          <div className="flex gap-3">
+          <div className="flex gap-3 overflow-x-auto snap-x snap-mandatory scrollbar-hide -mx-4 px-4">
             {Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className="h-52 w-[85%] flex-shrink-0 rounded-2xl bg-foreground/5 animate-pulse" />
+              <div key={i} className="h-52 w-[82%] min-w-[280px] max-w-[340px] sm:w-[320px] flex-shrink-0 rounded-2xl bg-foreground/5 animate-pulse" />
             ))}
           </div>
         </div>
@@ -268,6 +305,7 @@ export default function PromoCarousel() {
   }
 
   const activeSlide = items[slideIndex] ?? items[0];
+  const activeCountdownMessage = formatCountdown(activeSlide);
 
   return (
     <section 
@@ -282,11 +320,12 @@ export default function PromoCarousel() {
         <div
           ref={mobileScrollRef}
           onScroll={handleMobileScroll}
-          className="flex gap-3 overflow-x-auto snap-x snap-mandatory scrollbar-hide -mx-4 px-[10%]"
-          style={{ scrollbarWidth: "none", scrollPaddingInline: '10%' }}
+          className="flex gap-3 overflow-x-auto snap-x snap-mandatory scrollbar-hide -mx-4 px-4"
+          style={{ scrollbarWidth: 'none', scrollPaddingInline: '1rem' }}
         >
           {items.map((promo, idx) => {
             const displayMessage = getPromoMessage(promo);
+            const countdownMessage = formatCountdown(promo);
             const isActive = idx === mobileIndex;
             return (
               <motion.div
@@ -295,13 +334,13 @@ export default function PromoCarousel() {
                 initial={{ opacity: 0, y: 16 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4, delay: idx * 0.06 }}
-                className={`snap-center flex-shrink-0 w-[80%] sm:w-[420px] transition-all duration-300 ${
+                className={`snap-center flex-shrink-0 w-[82%] min-w-[280px] max-w-[340px] sm:w-[320px] transition-all duration-300 ${
                   isActive ? 'scale-100 opacity-100' : 'scale-95 opacity-70'
                 }`}
               >
                 <Link
                   href={promo.link}
-                  className="group relative block h-56 rounded-2xl overflow-hidden border border-gold/15 bg-deep-black"
+                  className="group relative block h-52 rounded-2xl overflow-hidden border border-gold/15 bg-deep-black"
                 >
                   <div
                     className="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-105"
@@ -333,6 +372,11 @@ export default function PromoCarousel() {
                       {displayMessage && (
                         <p className="text-white/80 text-[11px] leading-relaxed line-clamp-2">
                           {displayMessage}
+                        </p>
+                      )}
+                      {countdownMessage && (
+                        <p className="text-white/80 text-[11px] leading-relaxed mt-1">
+                          {countdownMessage}
                         </p>
                       )}
                       <span className="pt-1 inline-flex items-center gap-1 text-xs font-medium text-gold">
@@ -407,6 +451,11 @@ export default function PromoCarousel() {
                 <p className="text-foreground/90 text-base leading-relaxed mb-7 line-clamp-2 font-medium">
                   {getPromoMessage(activeSlide)}
                 </p>
+                {activeCountdownMessage && (
+                  <p className="text-foreground/70 text-sm leading-relaxed mb-7">
+                    {activeCountdownMessage}
+                  </p>
+                )}
 
                 <Link
                   href={activeSlide.link}

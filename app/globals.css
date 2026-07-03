@@ -310,6 +310,33 @@ body {
   }
 }
 
+/* Marquee animation for continuous category pills */
+.marquee {
+  --marquee-gap: 8px;
+}
+
+.marquee__inner {
+  display: flex;
+  gap: var(--marquee-gap);
+  will-change: transform;
+  min-width: max-content;
+  animation-name: marquee-scroll;
+  animation-duration: 18s;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  animation-fill-mode: forwards;
+  animation-play-state: running;
+}
+
+@keyframes marquee-scroll {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
 .animate-shimmer {
   background: linear-gradient(90deg, transparent, rgba(197, 160, 89, 0.1), transparent);
   background-size: 200% 100%;

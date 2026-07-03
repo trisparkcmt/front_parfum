@@ -3,7 +3,9 @@ import { getMessaging, getToken, onMessage } from 'firebase/messaging';
 import { firebaseApp } from '@/lib/firebase';
 import { useToastStore } from '@/store/useToastStore';
 
-const VAPID_KEY = 'F0KwqkUGUbWZxo-vWoyYJzB073iJlXFZrdfCEs4UeQk';
+// Use VAPID key in original URL-safe base64 format as provided by Firebase
+const VAPID_KEY = 'BIH086VT_ZEmPMDKIoJUfyaPmRQXF9sXGhGQpdQFHTK467Y4rKTm6TJHVNKZV1TPCLe8BCqNIRWVOXHqXLNd2r8';
+
 const REGISTER_URL = 'https://accessoires-exclusifs-api.onrender.com/api/v1/utilisateur/devices/register/';
 const UNREGISTER_URL = 'https://accessoires-exclusifs-api.onrender.com/api/v1/utilisateur/devices/unregister/';
 const STORAGE_KEY = 'fcm_token';
@@ -15,24 +17,33 @@ function isBrowser() {
 export async function registerPushNotifications(authToken: string): Promise<void> {
   if (!isBrowser()) return;
   try {
+    console.log('[FCM] Starting registration...');
+    
     const permission = await Notification.requestPermission();
+    console.log('[FCM] Notification permission:', permission);
     if (permission !== 'granted') {
       console.warn('[FCM] Permission refusée par l\'utilisateur');
       return;
     }
 
     // Ensure service worker is registered
+    console.log('[FCM] Registering service worker...');
     const swReg = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+    console.log('[FCM] Service worker registered:', swReg);
 
     const messaging = getMessaging(firebaseApp);
+    console.log('[FCM] Getting token with VAPID key:', VAPID_KEY);
     const fcmToken = await getToken(messaging, { vapidKey: VAPID_KEY, serviceWorkerRegistration: swReg });
     if (!fcmToken) {
       console.warn('[FCM] Aucun token obtenu');
       return;
     }
+    
+    console.log('[FCM] Token obtained:', fcmToken);
 
     // Send token to backend using the Token auth header as requested
-    await fetch(REGISTER_URL, {
+    console.log('[FCM] Sending token to backend...');
+    const registerResponse = await fetch(REGISTER_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -40,6 +51,10 @@ export async function registerPushNotifications(authToken: string): Promise<void
       },
       body: JSON.stringify({ registration_token: fcmToken, platform: 'web' }),
     });
+    
+    console.log('[FCM] Register response status:', registerResponse.status);
+    const registerData = await registerResponse.json();
+    console.log('[FCM] Register response body:', registerData);
 
     localStorage.setItem(STORAGE_KEY, fcmToken);
     console.log('[FCM] Token enregistré avec succès');

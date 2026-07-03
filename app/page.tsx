@@ -180,13 +180,43 @@ import HomeLoadingScreen from '@/components/ui/HomeLoadingScreen';
 import HomeHeader from './HomeHeader';
 import PromoCarousel from './PromoCarousel';
 import CategoryPills from './CategoryPills';
-import FlashSales from './FlashSales';
+import ProductSection from './ProductSection';
+import { useTranslation } from 'react-i18next';
+import { productService } from '@/services/productService';
+import { useCartStore } from '@/store/useCartStore';
+import { useFavoritesStore } from '@/store/useFavoritesStore';
+import { useToastStore } from '@/store/useToastStore';
+
+import type { Product } from '@/types';
 
 export default function Home() {
   const [mounted, setMounted] = useState(false);
+  const { t } = useTranslation();
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const { addProduct } = useCartStore();
+  const { addFavorite, removeFavorite, isFavorite } = useFavoritesStore();
+  const { addToast } = useToastStore();
 
   useEffect(() => {
     setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    const load = async () => {
+      try {
+        const list = await productService.getBestsellerPerfumes().catch(() => []);
+        if (active) setProducts(list.slice(0, 8));
+      } catch (err) {
+        console.error('[Home] failed to fetch products', err);
+      } finally {
+        if (active) setLoading(false);
+      }
+    };
+    load();
+    return () => { active = false; };
   }, []);
 
   // This mounted check exists only to avoid a hydration flash before
@@ -202,7 +232,17 @@ export default function Home() {
       <HomeHeader />
       <PromoCarousel />
       <CategoryPills />
-      <FlashSales />
+      <ProductSection
+        title={t('current_products', { defaultValue: 'Nos produits' })}
+        viewAllHref="/shop/perfumes"
+        products={products}
+        loading={loading}
+        onAddToCart={(p) => { addProduct(p, 1); addToast(`${p.name} ${t('added_to_cart')}`); }}
+        onToggleFavorite={(p) => {
+          if (isFavorite(p.id)) removeFavorite(p.id); else { addFavorite(p); addToast(`${p.name} ${t('added_to_favorites')}`, 'info'); }
+        }}
+        isFavorite={(id) => isFavorite(id)}
+      />
     </div>
   );
 }
