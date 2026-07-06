@@ -246,7 +246,7 @@ function IngredientsTab() {
 
       {showModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-background rounded-2xl p-6 w-full max-w-md shadow-2xl border border-white/10">
+          <div className="bg-background rounded-2xl p-6 w-full max-w-md shadow-sm border border-white/10">
             <h3 className="font-bold text-foreground mb-4">{editing ? 'Modifier l\'ingrédient' : 'Ajouter un ingrédient'}</h3>
             <div className="space-y-3">
               {[
@@ -520,7 +520,7 @@ function LotsTab() {
 
       {showModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-background rounded-2xl p-6 w-full max-w-md shadow-2xl border border-white/10">
+          <div className="bg-background rounded-2xl p-6 w-full max-w-md shadow-sm border border-white/10">
             <h3 className="font-bold text-foreground mb-4">{editing ? 'Modifier le lot' : 'Créer un lot'}</h3>
             <div className="space-y-3">
               <div>
@@ -746,7 +746,7 @@ function InventoryTab() {
 
       {showModal && editing && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-background rounded-2xl p-6 w-full max-w-sm shadow-2xl border border-white/10">
+          <div className="bg-background rounded-2xl p-6 w-full max-w-sm shadow-sm border border-white/10">
             <h3 className="font-bold text-foreground mb-1">Ajuster le stock labo</h3>
             <p className="text-xs text-foreground/40 mb-4">
               {editing.essence_details?.nom || `Essence #${editing.essence || editing.id}`}

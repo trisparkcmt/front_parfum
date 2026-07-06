@@ -24,6 +24,8 @@ export default function PerfumeAdminPage() {
   const [editingPerfume, setEditingPerfume] = useState<any | null>(null);
   const [categories, setCategories] = useState<any[]>([]);
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
+  const [selectedSlugs, setSelectedSlugs] = useState<string[]>([]);
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
   const [form, setForm] = useState({
     marque: 'Accessoire Exclusif',
@@ -97,7 +99,43 @@ export default function PerfumeAdminPage() {
 
   const updateForm = (field: keyof typeof form, value: any) => {
     setForm(prev => ({ ...prev, [field]: value }));
+    setFormErrors(prev => {
+      if (!prev[field]) return prev;
+      const next = { ...prev };
+      delete next[field];
+      return next;
+    });
   };
+
+  const toggleSelectedSlug = (slug: string) => {
+    setSelectedSlugs(prev => prev.includes(slug) ? prev.filter(item => item !== slug) : [...prev, slug]);
+  };
+
+  const handleBulkDelete = async () => {
+    if (!permissions.canDelete || selectedSlugs.length === 0) return;
+    if (!confirm(`Supprimer ${selectedSlugs.length} parfum(s) sélectionné(s) ?`)) return;
+
+    try {
+      await Promise.all(selectedSlugs.map((slug) => shopService.deletePerfume(slug)));
+      addToast(`${selectedSlugs.length} parfum(s) supprimé(s)`, 'success');
+      setSelectedSlugs([]);
+      fetchPerfumes();
+    } catch {
+      addToast('Erreur lors de la suppression en masse', 'error');
+    }
+  };
+
+  const validateForm = useCallback(() => {
+    const errors: Record<string, string> = {};
+    if (!form.marque.trim()) errors.marque = 'La marque est requise';
+    if (!form.nom.trim()) errors.nom = 'Le nom du parfum est requis';
+    if (!form.contenance_ml || Number(form.contenance_ml) <= 0) errors.contenance_ml = 'La contenance doit être supérieure à 0';
+    if (!form.prix_unitaire || Number(form.prix_unitaire) <= 0) errors.prix_unitaire = 'Le prix doit être supérieur à 0';
+    if (!form.categorie) errors.categorie = 'Une catégorie est requise';
+    if (!form.stock_quantite || Number(form.stock_quantite) < 0) errors.stock_quantite = 'Le stock est requis';
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  }, [form.marque, form.nom, form.contenance_ml, form.prix_unitaire, form.categorie, form.stock_quantite]);
 
   const handleAddCategory = async (name: string) => {
     const newCategory = await shopService.createPerfumeCategory({
@@ -148,6 +186,7 @@ export default function PerfumeAdminPage() {
       image_supp_3: null,
       image_supp_4: null,
     });
+    setFormErrors({});
     setShowModal(true);
   };
 
@@ -188,13 +227,14 @@ export default function PerfumeAdminPage() {
       image_supp_3: null,
       image_supp_4: null,
     });
+    setFormErrors({});
     setShowModal(true);
   };
 
   const handleSave = async () => {
     if (!permissions.canCreate && !permissions.canUpdate) return;
-    if (!form.marque || !form.nom || !form.contenance_ml || !form.prix_unitaire || !form.categorie || !form.stock_quantite) {
-      addToast('Champs requis : Marque, Nom, Contenance, Prix, Catégorie, Stock', 'error');
+    if (!validateForm()) {
+      addToast('Veuillez corriger les champs obligatoires.', 'error');
       return;
     }
 
@@ -273,7 +313,7 @@ export default function PerfumeAdminPage() {
 
       {/* Filters */}
       <div className="flex flex-wrap gap-3">
-        <div className="bg-white/5 rounded-2xl border border-white/10 p-4 shadow-2xl flex items-center gap-2 w-full max-w-md">
+        <div className="bg-white/5 rounded-2xl border border-white/10 p-4 shadow-sm flex items-center gap-2 w-full max-w-md">
           <Search size={15} className="text-foreground/40" />
           <input
             value={search}
@@ -304,7 +344,17 @@ export default function PerfumeAdminPage() {
       </div>
 
       {/* Table */}
-      <div className="bg-white/5 rounded-2xl border border-white/10 shadow-2xl overflow-hidden min-h-[300px]">
+      <div className="bg-white/5 rounded-2xl border border-white/10 shadow-sm overflow-hidden min-h-[300px]">
+        <div className="flex items-center justify-between border-b border-white/10 px-6 py-3">
+          <p className="text-xs uppercase tracking-wider text-foreground/40">
+            {selectedSlugs.length > 0 ? `${selectedSlugs.length} sélectionné(s)` : 'Sélection multiple'}
+          </p>
+          {selectedSlugs.length > 0 && permissions.canDelete && (
+            <button onClick={handleBulkDelete} className="text-xs font-semibold text-red-400 hover:text-red-300">
+              Supprimer la sélection
+            </button>
+          )}
+        </div>
         {loading ? (
           <div className="flex flex-col items-center justify-center py-20 text-gold gap-3">
             <Loader2 className="animate-spin" size={32} />
@@ -315,20 +365,44 @@ export default function PerfumeAdminPage() {
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="border-b border-white/10 bg-white/5">
-                  <th className="px-6 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider w-16">Image</th>
-                  <th className="px-6 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider">Nom</th>
-                  <th className="px-6 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider">SKU</th>
-                  <th className="px-6 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider">Contenance (ml)</th>
-                  <th className="px-6 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider">Prix</th>
-                  <th className="px-6 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider text-right">Actions</th>
+                  <th className="px-4 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider w-10">
+                    <input
+                      type="checkbox"
+                      checked={filtered.length > 0 && selectedSlugs.length === filtered.length}
+                      onChange={() => {
+                        if (selectedSlugs.length === filtered.length) {
+                          setSelectedSlugs([]);
+                        } else {
+                          setSelectedSlugs(filtered.map((p: any) => p.slug || String(p.id)));
+                        }
+                      }}
+                      className="rounded border-white/10 bg-white/5 text-gold focus:ring-gold"
+                    />
+                  </th>
+                  <th className="px-4 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider w-16">Image</th>
+                  <th className="px-4 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider">Nom</th>
+                  <th className="px-4 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider">Stock</th>
+                  <th className="px-4 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider">Contenance (ml)</th>
+                  <th className="px-4 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider">Prix</th>
+                  <th className="px-4 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
                 {filtered.map(p => {
                   const productImg = p.image_principale || p.image;
+                  const slugKey = p.slug || String(p.id);
+                  const isSelected = selectedSlugs.includes(slugKey);
                   return (
                     <tr key={p.id} className="hover:bg-white/5 transition-colors group">
-                      <td className="px-6 py-3 whitespace-nowrap">
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => toggleSelectedSlug(slugKey)}
+                          className="rounded border-white/10 bg-white/5 text-gold focus:ring-gold"
+                        />
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap">
                         <div className="w-12 h-12 rounded-xl bg-white/5 border border-white/10 overflow-hidden flex items-center justify-center">
                           {productImg ? (
                             <AppImage
@@ -342,10 +416,10 @@ export default function PerfumeAdminPage() {
                           )}
                         </div>
                       </td>
-                      <td className="px-6 py-4 font-medium text-foreground">{p.nom || p.name}</td>
-                      <td className="px-6 py-4 text-sm text-foreground/60">{p.reference_sku || ''}</td>
-                      <td className="px-6 py-4 text-sm text-foreground/60">{p.contenance_ml}</td>
-                      <td className="px-6 py-4 text-sm font-bold">
+                      <td className="px-4 py-4 font-medium text-foreground">{p.nom || p.name}</td>
+                      <td className="px-4 py-4 text-sm text-foreground/60">{p.stock_quantite ?? p.stock ?? '—'}</td>
+                      <td className="px-4 py-4 text-sm text-foreground/60">{p.contenance_ml}</td>
+                      <td className="px-4 py-4 text-sm font-bold">
                         <div className="flex items-center gap-2 flex-wrap">
                           {p.taux_reduction ? (
                             <>
@@ -358,7 +432,7 @@ export default function PerfumeAdminPage() {
                           )}
                         </div>
                       </td>
-                      <td className="px-6 py-4 text-right">
+                      <td className="px-4 py-4 text-right">
                         <div className="flex items-center justify-end gap-2">
                           {permissions.canUpdate && (
                             <button onClick={() => handleOpenEdit(p)} className="p-2 rounded-lg hover:bg-white/5 text-foreground/40 hover:text-gold transition-colors">
@@ -377,7 +451,7 @@ export default function PerfumeAdminPage() {
                 })}
                 {filtered.length === 0 && (
                   <tr>
-                    <td colSpan={6} className="text-center py-20 text-foreground/40 italic">Aucun parfum trouvé.</td>
+                    <td colSpan={7} className="text-center py-20 text-foreground/40 italic">Aucun parfum trouvé.</td>
                   </tr>
                 )}
               </tbody>
@@ -391,19 +465,25 @@ export default function PerfumeAdminPage() {
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div
             key={editingPerfume?.slug ?? 'new'}
-            className="bg-background rounded-2xl p-6 w-full max-w-2xl shadow-2xl border border-white/10 max-h-[90vh] overflow-y-auto"
+            className="bg-background rounded-2xl p-6 w-full max-w-2xl shadow-sm border border-white/10 max-h-[90vh] overflow-y-auto"
           >
             <h3 className="font-bold text-foreground mb-4">{editingPerfume ? 'Modifier le parfum' : 'Ajouter un parfum'}</h3>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Left column */}
               <div className="space-y-4">
-                <input placeholder="Marque" value={form.marque} onChange={e => updateForm('marque', e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold" />
-                <input placeholder="Nom" value={form.nom} onChange={e => updateForm('nom', e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold" />
+                <div>
+                  <input placeholder="Marque" value={form.marque} onChange={e => updateForm('marque', e.target.value)} className={`w-full bg-white/5 border rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold ${formErrors.marque ? 'border-red-500/50' : 'border-white/10'}`} />
+                  {formErrors.marque && <p className="mt-1 text-xs text-red-500">{formErrors.marque}</p>}
+                </div>
+                <div>
+                  <input placeholder="Nom" value={form.nom} onChange={e => updateForm('nom', e.target.value)} className={`w-full bg-white/5 border rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold ${formErrors.nom ? 'border-red-500/50' : 'border-white/10'}`} />
+                  {formErrors.nom && <p className="mt-1 text-xs text-red-500">{formErrors.nom}</p>}
+                </div>
                 <input placeholder="Slug (optionnel)" value={form.slug} onChange={e => updateForm('slug', e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold" />
                 <input placeholder="Référence SKU (optionnel)" value={form.reference_sku} onChange={e => updateForm('reference_sku', e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold" />
                 <div className="flex gap-2">
-                  <select value={form.categorie} onChange={e => updateForm('categorie', e.target.value)} className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold">
+                  <select value={form.categorie} onChange={e => updateForm('categorie', e.target.value)} className={`flex-1 bg-white/5 border rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold ${formErrors.categorie ? 'border-red-500/50' : 'border-white/10'}`}>
                     <option value="" disabled className="bg-neutral-900">Catégorie</option>
                     {categories.map(c => <option key={c.id} value={c.id} className="bg-neutral-900">{c.nom}</option>)}
                   </select>
@@ -416,6 +496,7 @@ export default function PerfumeAdminPage() {
                     +
                   </button>
                 </div>
+                {formErrors.categorie && <p className="mt-1 text-xs text-red-500">{formErrors.categorie}</p>}
                 <div className="grid grid-cols-2 gap-3">
                   <select value={form.genre_cible} onChange={e => updateForm('genre_cible', e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold">
                     <option value="homme">Homme</option>
@@ -444,13 +525,22 @@ export default function PerfumeAdminPage() {
 
                 {/* Prix & Contenance */}
                 <div className="grid grid-cols-2 gap-3">
-                  <input placeholder="Contenance (ml)" type="number" value={form.contenance_ml} onChange={e => updateForm('contenance_ml', e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold" />
-                  <input placeholder="Prix (FCFA)" type="number" value={form.prix_unitaire} onChange={e => updateForm('prix_unitaire', e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold" />
+                  <div>
+                    <input placeholder="Contenance (ml)" type="number" value={form.contenance_ml} onChange={e => updateForm('contenance_ml', e.target.value)} className={`w-full bg-white/5 border rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold ${formErrors.contenance_ml ? 'border-red-500/50' : 'border-white/10'}`} />
+                    {formErrors.contenance_ml && <p className="mt-1 text-xs text-red-500">{formErrors.contenance_ml}</p>}
+                  </div>
+                  <div>
+                    <input placeholder="Prix (FCFA)" type="number" value={form.prix_unitaire} onChange={e => updateForm('prix_unitaire', e.target.value)} className={`w-full bg-white/5 border rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold ${formErrors.prix_unitaire ? 'border-red-500/50' : 'border-white/10'}`} />
+                    {formErrors.prix_unitaire && <p className="mt-1 text-xs text-red-500">{formErrors.prix_unitaire}</p>}
+                  </div>
                 </div>
 
                 {/* Stock */}
                 <div className="grid grid-cols-2 gap-3">
-                  <input placeholder="Stock" type="number" value={form.stock_quantite} onChange={e => updateForm('stock_quantite', e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-foreground outline-none focus:border-gold" />
+                  <div>
+                    <input placeholder="Stock" type="number" value={form.stock_quantite} onChange={e => updateForm('stock_quantite', e.target.value)} className={`w-full bg-white/5 border rounded-lg px-3 py-2 text-xs text-foreground outline-none focus:border-gold ${formErrors.stock_quantite ? 'border-red-500/50' : 'border-white/10'}`} />
+                    {formErrors.stock_quantite && <p className="mt-1 text-xs text-red-500">{formErrors.stock_quantite}</p>}
+                  </div>
                   <input placeholder="Seuil alerte" type="number" value={form.seuil_alerte_stock} onChange={e => updateForm('seuil_alerte_stock', e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-foreground outline-none focus:border-gold" />
                 </div>
 

@@ -241,7 +241,7 @@ export default function ClientDashboard() {
 
       {selectedOrder && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setSelectedOrder(null)}>
-          <div className="bg-background rounded-2xl w-full max-w-2xl shadow-2xl border border-white/10 max-h-[90vh] overflow-y-auto" onClick={(event) => event.stopPropagation()}>
+          <div className="bg-background rounded-2xl w-full max-w-2xl shadow-sm border border-white/10 max-h-[90vh] overflow-y-auto" onClick={(event) => event.stopPropagation()}>
             <div className="sticky top-0 bg-background border-b border-white/10 px-6 py-4 flex items-center justify-between z-10">
               <div>
                 <h3 className="font-bold text-foreground text-lg">{selectedOrder.id}</h3>

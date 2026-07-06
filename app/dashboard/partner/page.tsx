@@ -59,7 +59,7 @@ export default function PartnerDashboard() {
       <BackButton />
 
       {/* User Information Profile Quick view */}
-      <div className="bg-white/5 rounded-2xl border border-white/10 p-5 shadow-2xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="bg-white/5 rounded-2xl border border-white/10 p-5 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
             {firstName} {lastName}
@@ -105,7 +105,7 @@ export default function PartnerDashboard() {
            { label: t('commission_label'), value: formatPrice(totalEarnings), icon: <Percent size={18} />, color: 'text-amber-400 bg-amber-400/10' },
            { label: t('converted_clients_label'), value: totalOrdersCount, icon: <Users size={18} />, color: 'text-purple-400 bg-purple-400/10' },
          ].map(s => (
-           <div key={s.label} className="bg-white/5 rounded-2xl border border-white/10 p-5 shadow-2xl">
+           <div key={s.label} className="bg-white/5 rounded-2xl border border-white/10 p-5 shadow-sm">
              <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-3 ${s.color}`}>{s.icon}</div>
              <p className="text-xl font-bold text-foreground">{s.value}</p>
              <p className="text-xs text-foreground/40 mt-0.5">{s.label}</p>
@@ -114,7 +114,7 @@ export default function PartnerDashboard() {
        </div>
 
       {/* Sales table */}
-      <div className="bg-white/5 rounded-2xl border border-white/10 shadow-2xl overflow-hidden">
+      <div className="bg-white/5 rounded-2xl border border-white/10 shadow-sm overflow-hidden">
         <div className="px-6 py-4 border-b border-white/10 flex items-center justify-between">
           <div>
             <h2 className="font-semibold text-foreground">{t('recent_sales')}</h2>
@@ -160,7 +160,7 @@ export default function PartnerDashboard() {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <button 
           onClick={() => router.push('/dashboard/partner/profile')}
-          className="bg-white/5 rounded-2xl border border-white/10 p-5 shadow-2xl hover:shadow-gold/5 transition-all text-left group"
+          className="bg-white/5 rounded-2xl border border-white/10 p-5 shadow-sm hover:shadow-gold/5 transition-all text-left group"
         >
           <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-foreground mb-3 group-hover:scale-110 transition-transform">
             <Palette size={20} />

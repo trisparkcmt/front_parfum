@@ -5,7 +5,7 @@ import {
   Search, Plus, Edit2, Trash2, Droplets, Loader2, 
   ShoppingBag, RefreshCw, ChevronLeft, ChevronRight 
 } from 'lucide-react';
-import { labService } from '@/services/apiService';
+import { labService, adminService } from '@/services/apiService';
 import { useToastStore } from '@/store/useToastStore';
 import { useCatalogPermissions } from '@/hooks/useCatalogPermissions';
 import CatalogAccessNotice from '@/components/catalog/CatalogAccessNotice';
@@ -47,6 +47,7 @@ export default function EssencesPage() {
     prix_promotionnel: '',
     stock_disponible: '0',
   });
+  const [produitFiniImageFile, setProduitFiniImageFile] = useState<File | null>(null);
   const [selectedEssences, setSelectedEssences] = useState<Set<number>>(new Set());
 
   const fetchData = useCallback(async () => {
@@ -87,6 +88,7 @@ export default function EssencesPage() {
     setLotReferenceFournisseur('');
     setIncludeProduitsFinis(false);
     setProduitFini({ taille_ml: '50', prix: '', prix_promotionnel: '', stock_disponible: '0' });
+    setProduitFiniImageFile(null);
     setFormError(null);
     setShowModal(true);
   };
@@ -103,6 +105,7 @@ export default function EssencesPage() {
     setGenreCible(item.genre_cible || 'mixte');
     setPrixParMl(String(item.prix_par_ml || '0.00'));
     setIncludeProduitsFinis(false);
+    setProduitFiniImageFile(null);
     setFormError(null);
     setShowModal(true);
   };
@@ -136,13 +139,53 @@ export default function EssencesPage() {
         };
       }
 
-      if (!editingEssence && includeProduitsFinis && produitFini.taille_ml && produitFini.prix) {
-        payload.produits_finis = [{
-          taille_ml: Number(produitFini.taille_ml),
-          prix: produitFini.prix,
-          prix_promotionnel: produitFini.prix_promotionnel || undefined,
-          stock_disponible: Number(produitFini.stock_disponible || 0),
-        }];
+if (!editingEssence && includeProduitsFinis) {
+      const boutiqueStock = Number(produitFini.stock_disponible || 0);
+      const lotStock = Number(lotStockMl || 0);
+      if (!produitFini.taille_ml || Number(produitFini.taille_ml) <= 0) {
+        setFormError('La taille du format boutique doit être supérieure à 0.');
+        setSaving(false);
+        return;
+      }
+      if (!produitFini.prix || Number(produitFini.prix) <= 0) {
+        setFormError('Le prix du format boutique est requis.');
+        setSaving(false);
+        return;
+      }
+      if (boutiqueStock > lotStock) {
+        setFormError('Le stock du format boutique doit être inférieur ou égal au stock initial du lot.');
+        setSaving(false);
+        return;
+      }
+      if (!produitFiniImageFile) {
+        setFormError('Une image est requise pour le format boutique.');
+        setSaving(false);
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append('nom', nom);
+      formData.append('marque', marque);
+      formData.append('code_reference', codeReference);
+      formData.append('categorie', categorie);
+      formData.append('description', description || '');
+      formData.append('intensite', intensite);
+      formData.append('genre_cible', genreCible);
+      formData.append('prix_par_ml', prixParMl);
+      formData.append('initial_lot[stock_ml]', String(lotStockMl));
+      formData.append('initial_lot[seuil_alerte_ml]', String(lotSeuilAlerteMl || '0'));
+      formData.append('initial_lot[reference_fournisseur]', lotReferenceFournisseur || '');
+      formData.append('produits_finis[0][taille_ml]', String(Number(produitFini.taille_ml)));
+      formData.append('produits_finis[0][prix]', String(produitFini.prix));
+      formData.append('produits_finis[0][prix_promotionnel]', produitFini.prix_promotionnel || '');
+      formData.append('produits_finis[0][stock_disponible]', String(Number(produitFini.stock_disponible || 0)));
+      formData.append('produits_finis[0][image_principale]', produitFiniImageFile);
+
+      await adminService.postFormData('lab/essences/', formData);
+      addToast('Essence créée avec succès', 'success');
+      setShowModal(false);
+      fetchData();
+      return;
       }
 
       if (editingEssence) {
@@ -413,7 +456,7 @@ export default function EssencesPage() {
               {/* Modale d'Ajout / Modification */}
               {showModal && (
                 <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex p-4 overflow-y-auto" onClick={() => setShowModal(false)}>
-                  <div className="bg-background rounded-2xl p-6 w-full max-w-6xl shadow-2xl border border-white/10 overflow-y-auto max-h-fit my-auto mx-auto" onClick={e => e.stopPropagation()}>
+                  <div className="bg-background rounded-2xl p-6 w-full max-w-6xl shadow-sm border border-white/10 overflow-y-auto max-h-fit my-auto mx-auto" onClick={e => e.stopPropagation()}>
                     <h3 className="font-bold text-foreground text-lg mb-4">
                       {editingEssence ? 'Modifier l\'essence' : 'Ajouter une nouvelle essence'}
                     </h3>
@@ -545,16 +588,28 @@ export default function EssencesPage() {
                             {includeProduitsFinis && (
                               <div className="grid grid-cols-2 gap-3 pt-2 border-t border-white/5">
                                 <div>
-                                  <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Taille</label>
-                                  <select value={produitFini.taille_ml} onChange={e => setProduitFini(p => ({ ...p, taille_ml: e.target.value }))} className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white outline-none focus:border-gold bg-neutral-900">
-                                    <option value="10">10 ml</option>
-                                    <option value="30">30 ml</option>
-                                    <option value="50">50 ml</option>
-                                  </select>
+                                  <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Taille (ml)</label>
+                                  <input
+                                    type="number"
+                                    min="1"
+                                    value={produitFini.taille_ml}
+                                    onChange={e => setProduitFini(p => ({ ...p, taille_ml: e.target.value }))}
+                                    className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white outline-none focus:border-gold bg-neutral-900"
+                                    placeholder="50"
+                                  />
                                 </div>
                                 <FloatInput label="Prix" type="number" value={produitFini.prix} onChange={e => setProduitFini(p => ({ ...p, prix: e.target.value }))} />
                                 <FloatInput label="Prix Promo" type="number" value={produitFini.prix_promotionnel} onChange={e => setProduitFini(p => ({ ...p, prix_promotionnel: e.target.value }))} />
                                 <FloatInput label="Stock" type="number" value={produitFini.stock_disponible} onChange={e => setProduitFini(p => ({ ...p, stock_disponible: e.target.value }))} />
+                                <div className="col-span-2">
+                                  <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Image du format boutique *</label>
+                                  <input
+                                    type="file"
+                                    accept="image/*"
+                                    onChange={(e) => setProduitFiniImageFile(e.target.files?.[0] || null)}
+                                    className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-foreground outline-none file:bg-gold file:text-black file:border-0 file:rounded file:px-2 file:py-1 file:mr-2 file:text-xs file:font-semibold"
+                                  />
+                                </div>
                               </div>
                             )}
                           </div>

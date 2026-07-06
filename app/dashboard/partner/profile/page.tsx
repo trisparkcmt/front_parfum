@@ -103,7 +103,7 @@ export default function PartnerProfilePage() {
       </div>
 
       {/* Profile Card */}
-      <div className="bg-white/5 rounded-2xl border border-white/10 p-6 shadow-2xl flex items-center gap-4">
+      <div className="bg-white/5 rounded-2xl border border-white/10 p-6 shadow-sm flex items-center gap-4">
         <div className="w-16 h-16 rounded-full bg-gradient-to-br from-gold to-gold-dark flex items-center justify-center text-black text-xl font-bold shadow-lg shadow-gold/20">
           {user?.firstName?.charAt(0)}{user?.lastName?.charAt(0)}
         </div>
@@ -122,7 +122,7 @@ export default function PartnerProfilePage() {
       {/* Information Section */}
       <div className="space-y-3">
         <h3 className="text-xs font-bold text-foreground/40 uppercase tracking-widest px-1">{t('partner_info')}</h3>
-        <div className="bg-white/5 rounded-2xl border border-white/10 shadow-2xl overflow-hidden divide-y divide-white/5">
+        <div className="bg-white/5 rounded-2xl border border-white/10 shadow-sm overflow-hidden divide-y divide-white/5">
           <div className="flex items-center justify-between px-5 py-4">
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-lg bg-white/5 flex items-center justify-center text-foreground/40">
@@ -151,7 +151,7 @@ export default function PartnerProfilePage() {
        {/* Preferences Section */}
        <div className="space-y-3">
          <h3 className="text-xs font-bold text-foreground/40 uppercase tracking-widest px-1">{t('settings')}</h3>
-         <div className="bg-white/5 rounded-2xl border border-white/10 shadow-2xl overflow-hidden divide-y divide-white/5">
+         <div className="bg-white/5 rounded-2xl border border-white/10 shadow-sm overflow-hidden divide-y divide-white/5">
            <button 
              onClick={() => setShowPasswordModal(true)}
              className="w-full flex items-center justify-between px-5 py-4 hover:bg-white/5 transition-all group">

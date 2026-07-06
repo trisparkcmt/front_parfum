@@ -249,7 +249,7 @@ export default function CategoriesAdminPage() {
                 </div>
 
                 <div className="p-6">
-                  <div className="bg-white/5 rounded-2xl border border-white/10 p-4 shadow-2xl flex items-center gap-2 w-full max-w-md mb-6">
+                  <div className="bg-white/5 rounded-2xl border border-white/10 p-4 shadow-sm flex items-center gap-2 w-full max-w-md mb-6">
                     <Search size={15} className="text-foreground/40" />
                     <input
                       value={search}
@@ -387,7 +387,7 @@ export default function CategoriesAdminPage() {
       {/* Add/Edit Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-background rounded-2xl p-6 w-full max-w-md shadow-2xl border border-white/10 max-h-[90vh] overflow-y-auto">
+          <div className="bg-background rounded-2xl p-6 w-full max-w-md shadow-sm border border-white/10 max-h-[90vh] overflow-y-auto">
             <h3 className="font-bold text-foreground mb-5">{modalTitle}</h3>
 
             <div className="space-y-4">

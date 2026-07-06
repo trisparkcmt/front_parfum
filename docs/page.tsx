@@ -38,7 +38,7 @@ export default function AdminProfilePage() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Left Col: Avatar & Basic Info */}
         <div className="md:col-span-1 space-y-6">
-          <div className="bg-white/5 rounded-2xl border border-white/10 p-6 shadow-2xl text-center">
+          <div className="bg-white/5 rounded-2xl border border-white/10 p-6 shadow-sm text-center">
             <div className="relative inline-block mb-4">
               <div className="w-24 h-24 rounded-full bg-gradient-to-br from-gold to-gold-dark flex items-center justify-center text-black text-3xl font-bold shadow-xl shadow-gold/20">
                 {user?.firstName?.charAt(0)}{user?.lastName?.charAt(0)}
@@ -79,7 +79,7 @@ export default function AdminProfilePage() {
         {/* Right Col: Details & Security */}
         <div className="md:col-span-2 space-y-6">
           {/* Details */}
-          <div className="bg-white/5 rounded-2xl border border-white/10 shadow-2xl overflow-hidden">
+          <div className="bg-white/5 rounded-2xl border border-white/10 shadow-sm overflow-hidden">
             <div className="px-6 py-4 flex items-center justify-between">
               <h3 className="font-semibold text-foreground">{t('information')}</h3>
               <button
@@ -118,7 +118,7 @@ export default function AdminProfilePage() {
           </div>
 
           {/* Preferences */}
-          <div className="bg-white/5 rounded-2xl border border-white/10 shadow-2xl overflow-hidden">
+          <div className="bg-white/5 rounded-2xl border border-white/10 shadow-sm overflow-hidden">
             <div className="px-6 py-4">
               <h3 className="font-semibold text-foreground">{t('settings')}</h3>
             </div>
@@ -152,7 +152,7 @@ export default function AdminProfilePage() {
           </div>
 
           {/* Security */}
-          <div className="bg-white/5 rounded-2xl border border-white/10 shadow-2xl overflow-hidden">
+          <div className="bg-white/5 rounded-2xl border border-white/10 shadow-sm overflow-hidden">
             <div className="px-6 py-4">
               <h3 className="font-semibold text-foreground">{t('account_security')}</h3>
             </div>

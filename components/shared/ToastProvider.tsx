@@ -49,7 +49,7 @@ export function ToastProvider() {
               initial={{ opacity: 0, y: 20, scale: 0.95 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, x: 100, scale: 0.95 }}
-              className={`relative flex items-center gap-[15px] px-[15px] py-[10px] h-[80px] rounded-lg overflow-hidden glass-dark border ${theme.borderColor} shadow-2xl select-none`}
+              className={`relative flex items-center gap-[15px] px-[15px] py-[10px] h-[80px] rounded-lg overflow-hidden glass-dark border ${theme.borderColor} shadow-sm select-none`}
             >
               {/* Decorative Redesigned Wave Graphic */}
               <svg 

@@ -773,7 +773,7 @@ export default function ProviderDashboardPage() {
       </div>
 
       {/* Providers Grid/Table */}
-      <div className="bg-white/5 rounded-3xl border border-white/10 overflow-hidden shadow-2xl backdrop-blur-md min-h-[300px]">
+      <div className="bg-white/5 rounded-3xl border border-white/10 overflow-hidden shadow-sm backdrop-blur-md min-h-[300px]">
         {loadingList ? (
           <div className="flex flex-col items-center justify-center py-24 text-gold gap-3">
             <Loader2 className="animate-spin" size={36} />
@@ -885,7 +885,7 @@ export default function ProviderDashboardPage() {
       {/* Validation modal for pending provider applications */}
       {approvingProvider && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-background border border-white/10 rounded-3xl p-6 w-full max-w-sm shadow-2xl animate-fade-in-up">
+          <div className="bg-background border border-white/10 rounded-3xl p-6 w-full max-w-sm shadow-sm animate-fade-in-up">
             <div className="flex items-center gap-3 mb-4.5">
               <Award className="text-gold" size={24} />
               <div>

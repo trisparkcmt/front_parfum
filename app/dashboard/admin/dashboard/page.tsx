@@ -95,7 +95,7 @@ export default function AdminDashboardPage() {
               <Link
                 key={stat.label}
                 href={stat.href}
-                className="bg-white/5 rounded-2xl border border-white/10 p-5 shadow-2xl group hover:border-gold/30 transition-all block"
+                className="bg-white/5 rounded-2xl border border-white/10 p-5 shadow-sm group hover:border-gold/30 transition-all block"
               >
                 <div className="flex items-center justify-between mb-3">
                   <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${stat.color}`}>
@@ -114,7 +114,7 @@ export default function AdminDashboardPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
         {/* Top 5 Clients */}
-        <div className="bg-white/5 rounded-2xl border border-white/10 shadow-2xl overflow-hidden">
+        <div className="bg-white/5 rounded-2xl border border-white/10 shadow-sm overflow-hidden">
           <div className="flex items-center justify-between px-5 py-4 border-b border-white/10">
             <div className="flex items-center gap-2">
               <Trophy size={16} className="text-gold" />
@@ -164,7 +164,7 @@ export default function AdminDashboardPage() {
         </div>
 
         {/* Top 5 Prestataires */}
-        <div className="bg-white/5 rounded-2xl border border-white/10 shadow-2xl overflow-hidden">
+        <div className="bg-white/5 rounded-2xl border border-white/10 shadow-sm overflow-hidden">
           <div className="flex items-center justify-between px-5 py-4 border-b border-white/10">
             <div className="flex items-center gap-2">
               <TrendingUp size={16} className="text-emerald-400" />

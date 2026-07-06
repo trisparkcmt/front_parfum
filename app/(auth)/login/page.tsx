@@ -124,7 +124,7 @@ function LoginFormContent() {
 
         <div className="space-y-1">
           <Input
-            label={t('password_required').split(' ')[0]}
+            label={t('password', { defaultValue: 'Mot de passe' })}
             type="password"
             placeholder="••••••••"
             icon={<Lock size={18} />}

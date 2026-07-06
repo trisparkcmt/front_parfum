@@ -983,11 +983,7 @@ export const adminService = {
    * Post FormData to the given endpoint with proper headers (for image uploads).
    */
   postFormData: async (url: string, data: FormData) => {
-    const response = await api.post(url, data, {
-      headers: {
-        'Content-Type': 'multipart/form-data', // Γ£à overrides the default JSON header
-      },
-    });
+    const response = await api.post(url, data);
     return response.data;
   },
 
@@ -995,11 +991,7 @@ export const adminService = {
    * Patch FormData to the given endpoint (for image uploads in updates).
    */
    patchFormData: async (url: string, data: FormData) => {
-    const response = await api.patch(url, data, {
-      headers: {
-        'Content-Type': 'multipart/form-data', // Γ£à overrides the default JSON header
-      },
-    });
+    const response = await api.patch(url, data);
     return response.data;
   },
   /**
@@ -1527,7 +1519,7 @@ export const cartService = {
     nom?: string;
     note_client?: string;
     flacon_id: number;
-    lignes: Array<{ lot_essence_id: number; quantite_ml: number }>;
+    lignes: Array<{ ingredient?: number; lot_essence_id?: number; quantite_ml: number }>;
   }) => {
     const response = await api.post(
       'orders/panier/ajouter/composition-directe/',

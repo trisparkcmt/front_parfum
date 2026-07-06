@@ -60,7 +60,7 @@ export default function ConfirmDialog({
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 10 }}
         transition={{ duration: 0.2 }}
-        className="w-full max-w-md mx-4 bg-background rounded-2xl border border-white/10 shadow-2xl p-6"
+        className="w-full max-w-md mx-4 bg-background rounded-2xl border border-white/10 shadow-sm p-6"
       >
         {/* Header with close button */}
         <div className="flex items-start justify-between mb-4">

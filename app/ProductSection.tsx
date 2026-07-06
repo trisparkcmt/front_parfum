@@ -34,7 +34,22 @@ export default function ProductSection({
   onToggleFavorite,
   isFavorite,
 }: ProductSectionProps) {
-  if (!loading && products.length === 0) return null;
+  // Avoid completely removing the section from the DOM when there are no
+  // products — render an empty state so layout stays stable and debugging
+  // is easier. Previously this returned `null` which made the whole page
+  // look like it disappeared when the products array became empty.
+  if (!loading && products.length === 0) {
+    return (
+      <section className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8 md:mt-12">
+        <div className="flex items-center justify-between mb-4 md:mb-5">
+          <h2 className="font-display text-xl md:text-2xl font-semibold text-foreground">
+            {title}
+          </h2>
+        </div>
+        <div className="py-10 text-center text-foreground/60">Aucun produit disponible pour le moment.</div>
+      </section>
+    );
+  }
 
   return (
     <section className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8 md:mt-12">
@@ -77,3 +92,5 @@ export default function ProductSection({
     </section>
   );
 }
+
+

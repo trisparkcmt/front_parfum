@@ -10,7 +10,7 @@ import { generateId } from '@/lib/utils';
 import { useTranslation } from 'react-i18next';
 import { ArrowLeft, Minus, Plus, ChevronLeft, ChevronRight, RefreshCcw, Loader2, Save, ShoppingCart, X } from 'lucide-react';
 import AppImage from '@/components/ui/AppImage';
-import type { CustomComposition, CompositionEssence, EssenceClient } from '@/types';
+import type { CustomComposition, CompositionEssence, EssenceClient, Product } from '@/types';
 import { labService } from '@/services/labService';
 import { labService as apiLabService, shopService } from '@/services/apiService';
 import './atelier.css';
@@ -203,6 +203,7 @@ function Bottle30({ totalMl, maxMl, quantities, allItems }: any) {
    ═══════════════════════════════════════ */
 export default function AtelierPage() {
   const { addCustomPerfume, addComposition, addDirectComposition } = useCartStore();
+  const { addFavorite } = useFavoritesStore();
   const { user, isAuthenticated } = useAuthStore();
   const { addToast } = useToastStore();
   const { i18n } = useTranslation();
@@ -457,6 +458,24 @@ export default function AtelierPage() {
       setSavedParfumId(Number(response.id));
       setShowSaveModal(false);
       setSaveModalName('');
+      addFavorite({
+        id: `composition-${response.id}`,
+        name,
+        description: i18n.language === 'en'
+          ? `Numba Atelier custom composition (${bottleSize}ml)`
+          : `Composition personnalisée Numba Atelier (${bottleSize}ml)`,
+        price: calcPrice,
+        originalPrice: calcPrice,
+        category: 'numba-creation',
+        images: ['/parfume1.png'],
+        brand: 'Numba Atelier',
+        inStock: true,
+        slug: `composition-${response.id}`,
+        createdAt: new Date().toISOString(),
+        isCustomComposition: true,
+        volume: `${bottleSize}ml`,
+        image_principale: '/parfume1.png',
+      });
       addToast(
         i18n.language === 'en' ? `Composition saved! (ID: ${response.id})` : `Composition sauvegardée ! (ID: ${response.id})`,
         'success'
@@ -499,12 +518,16 @@ export default function AtelierPage() {
         return;
       }
 
-      await addDirectComposition({
-        flacon_id: selectedFlaconId,
-        lignes,
-        nom: saveModalName || compositionName || `Création Numba ${bottleSize}ml`,
-        quantite: 1,
-      }, { silent: false });
+      if (savedParfumId) {
+        await addCustomPerfume(savedParfumId, 1);
+      } else {
+        await addDirectComposition({
+          flacon_id: selectedFlaconId,
+          lignes,
+          nom: saveModalName || compositionName || `Création Numba ${bottleSize}ml`,
+          quantite: 1,
+        }, { silent: false });
+      }
 
       setCtaSuccess(true);
       addToast(i18n.language === 'en' ? 'Added to cart!' : 'Ajouté au panier !', 'success');
@@ -956,7 +979,7 @@ export default function AtelierPage() {
       {/* Save Modal */}
       {showSaveModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-background rounded-2xl p-8 w-full max-w-sm shadow-2xl border border-white/10 animate-in fade-in zoom-in-95">
+          <div className="bg-background rounded-2xl p-8 w-full max-w-sm shadow-sm border border-white/10 animate-in fade-in zoom-in-95">
             <h2 className="text-2xl font-extralight text-foreground mb-2">
               {i18n.language === 'en' ? 'Save Your Composition' : 'Sauvegarder votre Composition'}
             </h2>
@@ -1001,7 +1024,7 @@ export default function AtelierPage() {
           <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setShowFlaconDrawer(false)} />
           
           {/* Drawer Sheet */}
-          <div className={`relative bg-neutral-900 border-t border-white/15 rounded-t-[2.5rem] shadow-2xl transition-all duration-300 flex flex-col overflow-hidden w-full mx-auto max-w-xl ${
+          <div className={`relative bg-neutral-900 border-t border-white/15 rounded-t-[2.5rem] shadow-sm transition-all duration-300 flex flex-col overflow-hidden w-full mx-auto max-w-xl ${
             isDrawerFullScreen ? 'h-[92vh]' : 'h-[65vh]'
           }`}>
             

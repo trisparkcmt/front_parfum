@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Heart, ShoppingBag, Search, Trash2, Eye } from 'lucide-react';
+import { Heart, ShoppingBag, Search, X, ArrowUpRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useRouter } from 'next/navigation';
 import { BackButton } from '@/components/ui/BackButton';
@@ -26,6 +26,7 @@ export default function FavoritesPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filteredFavorites, setFilteredFavorites] = useState<FavoriteProduct[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [removingId, setRemovingId] = useState<string | null>(null);
 
   useEffect(() => {
     setIsLoading(false);
@@ -37,7 +38,11 @@ export default function FavoritesPage() {
   }, [favorites, searchTerm]);
 
   const handleRemoveFavorite = (id: string) => {
-    removeFavorite(id);
+    setRemovingId(id);
+    setTimeout(() => {
+      removeFavorite(id);
+      setRemovingId(null);
+    }, 200);
   };
 
   const handleAddToCart = (product: FavoriteProduct) => {
@@ -49,132 +54,160 @@ export default function FavoritesPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-8 pb-12">
       <BackButton />
 
-      <div className="bg-gradient-to-r from-red-400/10 to-red-600/10 rounded-2xl p-6 border border-red-400/20">
-        <div className="flex items-center gap-3 mb-2">
-          <div className="w-10 h-10 rounded-xl bg-red-400/20 flex items-center justify-center">
-            <Heart size={20} className="text-red-400 fill-red-400" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">{t('my_favorites_action', 'Mes favoris')}</h1>
-            <p className="text-sm text-foreground/70">{favorites.length} {t('saved_products', 'produit(s) sauvegardé(s)')}</p>
-          </div>
+      {/* Header */}
+      <div className="relative overflow-hidden rounded-2xl border border-gold/15 bg-gradient-to-br from-white/[0.04] to-transparent px-6 py-8">
+        <div
+          className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-gold/[0.06] blur-3xl"
+          aria-hidden
+        />
+        <p className="text-[11px] font-semibold uppercase tracking-[0.25em] text-gold/80">
+          {t('personal_collection', 'Collection personnelle')}
+        </p>
+        <div className="mt-2 flex items-end justify-between gap-4">
+          <h1 className="font-serif text-3xl italic tracking-tight text-foreground">
+            {t('my_favorites_action', 'Mes Favoris')}
+          </h1>
+          <span className="mb-1 text-sm text-foreground/50">
+            {favorites.length.toString().padStart(2, '0')}{' '}
+            {favorites.length > 1
+              ? t('pieces_plural', 'pièces')
+              : t('pieces_singular', 'pièce')}
+          </span>
         </div>
+        <div className="mt-4 h-px w-full bg-gradient-to-r from-gold/40 via-gold/10 to-transparent" />
       </div>
 
-      <div className="relative">
-        <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-foreground/40" />
-        <input
-          type="text"
-          placeholder={t('search_favorites', 'Rechercher dans vos favoris...')}
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full pl-12 pr-4 py-3 rounded-xl bg-white/5 border border-white/10 text-foreground placeholder-foreground/40 focus:outline-none focus:ring-2 focus:ring-gold focus:border-transparent transition-all"
-        />
-      </div>
+      {/* Search */}
+      {favorites.length > 0 && (
+        <div className="relative border-b border-white/10 pb-3 transition-colors focus-within:border-gold/50">
+          <Search size={16} className="absolute left-0 top-1/2 -translate-y-1/2 text-foreground/30" />
+          <input
+            type="text"
+            placeholder={t('search_favorites', 'Rechercher dans vos favoris…')}
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full bg-transparent pl-7 pr-4 text-sm text-foreground placeholder-foreground/35 focus:outline-none"
+          />
+        </div>
+      )}
 
       {isLoading ? (
-        <div className="py-12 text-center">
-          <div className="inline-block animate-spin">
-            <Heart size={24} className="text-gold" />
+        <div className="py-20 text-center">
+          <div className="inline-block animate-pulse">
+            <Heart size={22} className="text-gold/60" />
           </div>
-          <p className="mt-4 text-foreground/60">{t('loading', 'Chargement...')}</p>
         </div>
       ) : favorites.length === 0 ? (
-        <div className="py-12 text-center bg-white/5 rounded-2xl border border-white/10">
-          <Heart size={32} className="mx-auto mb-3 text-foreground/30" />
-          <h3 className="text-lg font-semibold text-foreground mb-1">{t('no_favorites', 'Aucun favori')}</h3>
-          <p className="text-sm text-foreground/60 mb-6">{t('no_favorites_desc', 'Commencez à ajouter vos produits préférés')}</p>
+        <div className="flex flex-col items-center justify-center rounded-2xl border border-white/10 bg-white/[0.02] px-6 py-20 text-center">
+          <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-full border border-gold/20">
+            <Heart size={20} className="text-gold/50" />
+          </div>
+          <h3 className="font-serif text-xl italic text-foreground">
+            {t('no_favorites', 'Votre sélection est vide')}
+          </h3>
+          <p className="mt-2 max-w-xs text-sm text-foreground/50">
+            {t(
+              'no_favorites_desc',
+              'Les pièces que vous aimez trouvent ici leur place, prêtes à être retrouvées.'
+            )}
+          </p>
           <button
             onClick={() => router.push('/shop/perfumes')}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-gold text-black rounded-lg font-medium hover:bg-gold-dark transition-colors"
+            className="mt-7 inline-flex items-center gap-2 border border-gold/40 px-6 py-2.5 text-xs font-semibold uppercase tracking-[0.15em] text-gold transition-colors hover:bg-gold hover:text-black"
           >
-            <ShoppingBag size={16} />
-            {t('browse_products', 'Parcourir les produits')}
+            {t('browse_products', 'Découvrir la collection')}
+            <ArrowUpRight size={14} />
           </button>
         </div>
       ) : filteredFavorites.length === 0 ? (
-        <div className="py-8 text-center bg-white/5 rounded-2xl border border-white/10">
-          <Search size={24} className="mx-auto mb-2 text-foreground/30" />
-          <p className="text-foreground/60">{t('no_results', 'Aucun résultat trouvé')}</p>
+        <div className="py-16 text-center">
+          <p className="text-sm text-foreground/50">{t('no_results', 'Aucun résultat trouvé')}</p>
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 gap-x-4 gap-y-8 sm:grid-cols-3 lg:grid-cols-4">
             {filteredFavorites.map((product) => (
               <div
                 key={product.id}
-                className="bg-white/5 rounded-xl border border-white/10 overflow-hidden hover:border-gold/30 transition-all group"
+                className={`group relative transition-all duration-200 ${
+                  removingId === product.id ? 'scale-95 opacity-0' : 'opacity-100'
+                }`}
               >
-                {product.image ? (
-                  <div className="relative w-full h-40 bg-white/5 overflow-hidden">
+                {/* Image */}
+                <div
+                  className="relative aspect-[4/5] cursor-pointer overflow-hidden bg-white/[0.03]"
+                  onClick={() => handleViewProduct(product.slug || product.id)}
+                >
+                  {product.image ? (
                     <Image
                       src={product.image}
                       alt={product.name}
                       fill
-                      className="object-cover group-hover:scale-105 transition-transform"
+                      className="object-cover transition-transform duration-500 ease-out group-hover:scale-[1.04]"
                     />
-                  </div>
-                ) : (
-                  <div className="w-full h-40 bg-white/5 flex items-center justify-center">
-                    <ShoppingBag size={24} className="text-foreground/20" />
-                  </div>
-                )}
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center">
+                      <ShoppingBag size={20} className="text-foreground/15" />
+                    </div>
+                  )}
 
-                <div className="p-4 space-y-3">
-                  <div>
-                    <p className="text-xs text-gold uppercase font-semibold">{product.type === 'perfume' ? 'Parfum' : 'Accessoire'}</p>
-                    <h3 className="font-semibold text-foreground line-clamp-2 mt-1">{product.name}</h3>
-                  </div>
+                  {/* Remove */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleRemoveFavorite(product.id);
+                    }}
+                    aria-label={t('remove', 'Supprimer')}
+                    className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-black/50 text-white/80 backdrop-blur-sm transition-colors hover:bg-black/70 hover:text-white"
+                  >
+                    <X size={13} />
+                  </button>
 
-                  <div className="flex items-center justify-between">
-                    <p className="text-lg font-bold text-foreground">{formatPrice(product.price)}</p>
-                  </div>
+                  {/* Add to cart — reveals on hover */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleAddToCart(product);
+                    }}
+                    className="absolute inset-x-0 bottom-0 flex translate-y-full items-center justify-center gap-2 bg-gold py-2.5 text-[11px] font-semibold uppercase tracking-[0.15em] text-black transition-transform duration-300 ease-out group-hover:translate-y-0"
+                  >
+                    <ShoppingBag size={13} />
+                    {t('add', 'Ajouter')}
+                  </button>
+                </div>
 
-                  <div className="flex gap-2 pt-2">
-                    <button
-                      onClick={() => handleViewProduct(product.slug || product.id)}
-                      className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-gold/10 text-gold hover:bg-gold/20 transition-colors text-xs font-medium"
-                    >
-                      <Eye size={14} />
-                      {t('view', 'Voir')}
-                    </button>
-                    <button
-                      onClick={() => handleAddToCart(product)}
-                      className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-green-500/10 text-green-400 hover:bg-green-500/20 transition-colors text-xs font-medium"
-                    >
-                      <ShoppingBag size={14} />
-                      {t('add', 'Ajouter')}
-                    </button>
-                    <button
-                      onClick={() => handleRemoveFavorite(product.id)}
-                      className="px-3 py-2 rounded-lg bg-red-400/10 text-red-400 hover:bg-red-400/20 transition-colors"
-                      title={t('remove', 'Supprimer')}
-                    >
-                      <Trash2 size={14} />
-                    </button>
-                  </div>
+                {/* Info */}
+                <div className="mt-3 space-y-0.5">
+                  <p className="text-[10px] font-medium uppercase tracking-[0.15em] text-gold/70">
+                    {product.type === 'perfume' ? 'Parfum' : 'Accessoire'}
+                  </p>
+                  <h3
+                    className="cursor-pointer truncate font-serif text-[15px] text-foreground/90 transition-colors hover:text-gold"
+                    onClick={() => handleViewProduct(product.slug || product.id)}
+                  >
+                    {product.name}
+                  </h3>
+                  <p className="text-sm text-foreground/60">{formatPrice(product.price)}</p>
                 </div>
               </div>
             ))}
           </div>
 
-          {favorites.length > 0 && (
-            <div className="flex justify-end pt-4">
-              <button
-                onClick={() => {
-                  if (confirm(t('confirm_clear', 'Êtes-vous sûr de vouloir supprimer tous vos favoris ?'))) {
-                    clearFavorites();
-                  }
-                }}
-                className="px-4 py-2 rounded-lg bg-red-400/10 text-red-400 hover:bg-red-400/20 transition-colors text-sm font-medium"
-              >
-                {t('clear_all', 'Effacer tous')}
-              </button>
-            </div>
-          )}
+          <div className="flex justify-center pt-6">
+            <button
+              onClick={() => {
+                if (confirm(t('confirm_clear', 'Êtes-vous sûr de vouloir supprimer tous vos favoris ?'))) {
+                  clearFavorites();
+                }
+              }}
+              className="text-xs uppercase tracking-[0.15em] text-foreground/40 transition-colors hover:text-red-400"
+            >
+              {t('clear_all', 'Tout effacer')}
+            </button>
+          </div>
         </>
       )}
     </div>

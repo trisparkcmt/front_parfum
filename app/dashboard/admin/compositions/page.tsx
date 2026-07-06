@@ -46,7 +46,7 @@ export default function CompositionsPage() {
           { label: 'Manuelles', value: compositions.filter(c => !(c.type === 'ia' || c.is_ai)).length, icon: <Pencil size={18} />, color: 'text-amber-400 bg-amber-500/10' },
           { label: 'Prix moyen', value: `${(compositions.reduce((s, c) => s + (c.prix || 0), 0) / (compositions.length || 1)).toFixed(0)} FCFA`, icon: <FlaskConical size={18} />, color: 'text-emerald-400 bg-emerald-500/10' },
         ].map(k => (
-          <div key={k.label} className="bg-white/5 rounded-2xl border border-white/10 p-5 shadow-2xl">
+          <div key={k.label} className="bg-white/5 rounded-2xl border border-white/10 p-5 shadow-sm">
             <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-3 ${k.color}`}>
               {k.icon}
             </div>
@@ -57,7 +57,7 @@ export default function CompositionsPage() {
       </div>
 
       {/* List */}
-      <div className="bg-white/5 rounded-2xl border border-white/10 shadow-2xl overflow-hidden min-h-[300px]">
+      <div className="bg-white/5 rounded-2xl border border-white/10 shadow-sm overflow-hidden min-h-[300px]">
         {loading ? (
           <div className="flex flex-col items-center justify-center py-20 text-gold gap-3">
             <Loader2 className="animate-spin" size={32} />
@@ -126,7 +126,7 @@ export default function CompositionsPage() {
       {/* Detail modal */}
       {selected && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-background rounded-2xl p-6 w-full max-w-md shadow-2xl border border-white/10">
+          <div className="bg-background rounded-2xl p-6 w-full max-w-md shadow-sm border border-white/10">
             <h3 className="font-bold text-foreground mb-1">{selected.nom || selected.name || `Composition #${selected.id}`}</h3>
             <p className="text-xs text-foreground/40 mb-4">Auteur: {selected.user_details?.first_name || 'Client'}</p>
             {selected.description && (

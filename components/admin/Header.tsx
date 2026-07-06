@@ -51,11 +51,11 @@ export default function Header({ onMenuClick }: HeaderProps) {
   const buildStaticSuggestions = useCallback((q: string): Suggestion[] => {
     const lower = q.toLowerCase();
     const pages: { label: string; href: string; icon: React.ReactNode; keywords: string[] }[] = [
-      { label: 'Commandes', href: '/dashboard/admin/order', icon: <ShoppingCart size={14} />, keywords: ['commande', 'order', 'cmd'] },
-      { label: 'Parfums', href: '/dashboard/admin/perfume', icon: <Sparkles size={14} />, keywords: ['parfum', 'perfume'] },
-      { label: 'Accessoires', href: '/dashboard/admin/accessories', icon: <Gem size={14} />, keywords: ['accessoire', 'accessory'] },
-      { label: 'Clients', href: '/dashboard/admin/clients', icon: <Users2 size={14} />, keywords: ['client', 'user', 'utilisateur'] },
-      { label: 'Codes Promo', href: '/dashboard/admin/promo-codes', icon: <Package size={14} />, keywords: ['promo', 'code', 'réduction'] },
+      { label: 'Commandes', href: `${dashboardBasePath}/order`, icon: <ShoppingCart size={14} />, keywords: ['commande', 'order', 'cmd'] },
+      { label: 'Parfums', href: `${dashboardBasePath}/perfume`, icon: <Sparkles size={14} />, keywords: ['parfum', 'perfume'] },
+      { label: 'Accessoires', href: `${dashboardBasePath}/accessories`, icon: <Gem size={14} />, keywords: ['accessoire', 'accessory'] },
+      { label: 'Clients', href: `${dashboardBasePath}/clients`, icon: <Users2 size={14} />, keywords: ['client', 'user', 'utilisateur'] },
+      { label: 'Codes Promo', href: `${dashboardBasePath}/promo-codes`, icon: <Package size={14} />, keywords: ['promo', 'code', 'réduction'] },
     ];
     return pages
       .filter(p => p.keywords.some(kw => kw.includes(lower) || lower.includes(kw)))
@@ -130,6 +130,9 @@ export default function Header({ onMenuClick }: HeaderProps) {
     return () => { if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current); };
   }, [search, fetchSuggestions]);
 
+  const isServeuseContext = pathname?.includes('/dashboard/serveuse');
+  const dashboardBasePath = isServeuseContext ? '/dashboard/serveuse' : '/dashboard/admin';
+
   const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'ArrowDown') {
       e.preventDefault();
@@ -150,10 +153,10 @@ export default function Header({ onMenuClick }: HeaderProps) {
       const q = search.trim();
       if (!q) return;
       const path = pathname.includes('/accessories')
-        ? `/dashboard/admin/accessories?search=${encodeURIComponent(q)}`
+        ? `${dashboardBasePath}/accessories?search=${encodeURIComponent(q)}`
         : pathname.includes('/perfume')
-        ? `/dashboard/admin/perfume?search=${encodeURIComponent(q)}`
-        : `/dashboard/admin/order?search=${encodeURIComponent(q)}`;
+        ? `${dashboardBasePath}/perfume?search=${encodeURIComponent(q)}`
+        : `${dashboardBasePath}/order?search=${encodeURIComponent(q)}`;
       router.push(path);
       setShowSuggestions(false);
     }
@@ -274,7 +277,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
 
         {/* Dropdown suggestions */}
         {showSuggestions && suggestions.length > 0 && (
-          <div className="absolute top-full left-0 right-0 mt-1.5 bg-background border border-white/10 rounded-xl shadow-2xl z-50 overflow-hidden">
+          <div className="absolute top-full left-0 right-0 mt-1.5 bg-background border border-white/10 rounded-xl shadow-sm z-50 overflow-hidden">
             <div className="py-1">
               {suggestions.map((s, idx) => (
                 <button
@@ -338,7 +341,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
 
           {/* Notifications dropdown */}
           {showNotifs && (
-            <div className="absolute right-0 mt-2 w-80 bg-background rounded-xl border border-white/10 shadow-2xl z-50 overflow-hidden">
+            <div className="absolute right-0 mt-2 w-80 bg-background rounded-xl border border-white/10 shadow-sm z-50 overflow-hidden">
               <div className="px-4 py-3 border-b border-white/10 flex items-center justify-between">
                 <h3 className="font-semibold text-sm text-foreground">Notifications</h3>
                 <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-red-500/10 text-red-500">

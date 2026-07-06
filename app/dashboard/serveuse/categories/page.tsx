@@ -80,7 +80,7 @@ export default function CategoriesPage() {
         </div>
 
         <div className="p-6">
-          <div className="bg-white/5 rounded-2xl border border-white/10 p-4 shadow-2xl flex items-center gap-2 w-full max-w-md mb-6">
+          <div className="bg-white/5 rounded-2xl border border-white/10 p-4 shadow-sm flex items-center gap-2 w-full max-w-md mb-6">
             <Search size={15} className="text-foreground/40" />
             <input
               value={search}
@@ -90,7 +90,7 @@ export default function CategoriesPage() {
             />
           </div>
 
-          <div className="bg-white/5 rounded-2xl border border-white/10 shadow-2xl overflow-hidden min-h-[300px]">
+          <div className="bg-white/5 rounded-2xl border border-white/10 shadow-sm overflow-hidden min-h-[300px]">
             {loading ? (
               <div className="flex flex-col items-center justify-center py-20 text-gold gap-3">
                 <Loader2 className="animate-spin" size={32} />

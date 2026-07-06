@@ -64,7 +64,8 @@ export type ProductCategory =
   | 'accessory'
   | 'perfume-brand'
   | 'perfume-dupe'
-  | 'numba-creation';
+  | 'numba-creation'
+  | 'huile';
 
 export type AccessorySubCategory =
   | 'watches'
@@ -105,6 +106,7 @@ export interface Product {
   createdAt: string;
   image_principale?: string;
   image_supp_1?: string;
+  isCustomComposition?: boolean;
 }
 
 export interface Accessory extends Product {}

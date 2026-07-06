@@ -19,7 +19,7 @@ const BottomNav = () => {
 
   return (
     <nav
-      className="fixed bottom-5 left-4 right-4 bg-[var(--t-nav-bg)]/95 backdrop-blur-xl border border-[var(--t-nav-border)]/50 z-[100] md:hidden shadow-2xl rounded-3xl"
+      className="fixed bottom-5 left-4 right-4 bg-[var(--t-nav-bg)]/95 backdrop-blur-xl border border-[var(--t-nav-border)]/50 z-[100] md:hidden shadow-sm rounded-3xl"
       style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 0px)' }}
     >
       <div className="flex justify-around items-center h-18 px-1 py-2">

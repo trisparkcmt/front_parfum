@@ -121,7 +121,7 @@ export default function FacturesPage() {
             color: 'text-amber-400 bg-amber-500/10',
           },
         ].map(k => (
-          <div key={k.label} className="bg-white/5 rounded-2xl border border-white/10 p-5 shadow-2xl">
+          <div key={k.label} className="bg-white/5 rounded-2xl border border-white/10 p-5 shadow-sm">
             <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-3 ${k.color}`}>
               {k.icon}
             </div>
@@ -132,7 +132,7 @@ export default function FacturesPage() {
       </div>
 
       {/* Search */}
-      <div className="bg-white/5 rounded-2xl border border-white/10 p-4 shadow-2xl">
+      <div className="bg-white/5 rounded-2xl border border-white/10 p-4 shadow-sm">
         <div className="flex items-center gap-2 border border-white/10 rounded-lg px-3 py-2 max-w-sm">
           <Search size={15} className="text-foreground/40" />
           <input
@@ -145,7 +145,7 @@ export default function FacturesPage() {
       </div>
 
       {/* Table */}
-      <div className="bg-white/5 rounded-2xl border border-white/10 shadow-2xl overflow-hidden min-h-[300px]">
+      <div className="bg-white/5 rounded-2xl border border-white/10 shadow-sm overflow-hidden min-h-[300px]">
         {loading ? (
           <div className="flex flex-col items-center justify-center py-20 text-gold gap-3">
             <Loader2 className="animate-spin" size={32} />

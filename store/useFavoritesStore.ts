@@ -43,6 +43,11 @@ export const useFavoritesStore = create<FavoritesState>()(
           return { items: [...state.items, product] };
         });
 
+        const isCustomComposition = (product as any).isCustomComposition;
+        if (isCustomComposition) {
+          return;
+        }
+
         // Sync with backend if authenticated
         const isAuth = useAuthStore.getState().isAuthenticated;
         if (isAuth) {
@@ -72,6 +77,11 @@ export const useFavoritesStore = create<FavoritesState>()(
         set((state) => ({
           items: state.items.filter((p) => p.id !== productId),
         }));
+
+        const isCustomComposition = (product as any)?.isCustomComposition;
+        if (isCustomComposition) {
+          return;
+        }
 
         // Sync with backend if authenticated and product is found
         const isAuth = useAuthStore.getState().isAuthenticated;

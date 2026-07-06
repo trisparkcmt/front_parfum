@@ -166,7 +166,7 @@ export default function NotificationsPage() {
       </div>
 
       {/* Filters & Search */}
-      <div className="bg-white/5 rounded-2xl border border-white/10 p-4 shadow-2xl flex flex-col md:flex-row gap-3 items-center justify-between">
+      <div className="bg-white/5 rounded-2xl border border-white/10 p-4 shadow-sm flex flex-col md:flex-row gap-3 items-center justify-between">
         {/* Search */}
         <div className="flex items-center gap-2 border border-white/10 rounded-lg px-3 py-2 w-full md:max-w-md">
           <Search size={15} className="text-foreground/40" />
@@ -233,7 +233,7 @@ export default function NotificationsPage() {
       </div>
 
       {/* Notifications List */}
-      <div className="bg-white/5 rounded-2xl border border-white/10 shadow-2xl overflow-hidden min-h-[300px]">
+      <div className="bg-white/5 rounded-2xl border border-white/10 shadow-sm overflow-hidden min-h-[300px]">
         {loading ? (
           <div className="flex flex-col items-center justify-center py-24 text-gold gap-3">
             <RefreshCw className="animate-spin" size={32} />

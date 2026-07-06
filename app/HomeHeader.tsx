@@ -2,8 +2,8 @@
 
 import { Search, SlidersHorizontal, LogIn } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useAuthStore } from "@/store/useAuthStore";
 
@@ -14,19 +14,27 @@ import { useAuthStore } from "@/store/useAuthStore";
 export default function HomeHeader() {
   const { t } = useTranslation();
   const router = useRouter();
+  const pathname = usePathname();
   const user = useAuthStore((s) => s.user);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const [query, setQuery] = useState('');
+  const [isNavigating, setIsNavigating] = useState(false);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     const q = query.trim();
     if (!q) return;
+    setIsNavigating(true);
     router.push(`/shop/accessories?search=${encodeURIComponent(q)}`);
   };
 
+  useEffect(() => {
+    setIsNavigating(false);
+  }, [pathname]);
+
   return (
-    <header className="lg:hidden w-full max-w-7xl mx-auto px-4 sm:px-6 pt-5 pb-3">
+    <header className="relative lg:hidden w-full max-w-7xl mx-auto px-4 sm:px-6 pt-5 pb-3">
+      <div className={`absolute inset-x-0 top-0 h-0.5 bg-gold transition-opacity duration-200 ${isNavigating ? 'opacity-100' : 'opacity-0'}`} />
       <div className="flex items-center justify-between mb-4">
         <div>
           <p className="text-xs uppercase tracking-[0.2em] text-foreground/50 font-medium">
@@ -40,6 +48,7 @@ export default function HomeHeader() {
         {isAuthenticated && user ? (
           <Link
             href="/dashboard/profile"
+            onClick={() => setIsNavigating(true)}
             aria-label={t("my_account", { defaultValue: "My account" })}
             className="size-10 rounded-full bg-gold/20 border border-gold/30 flex items-center justify-center text-gold flex-shrink-0 overflow-hidden"
           >
@@ -51,6 +60,7 @@ export default function HomeHeader() {
         ) : (
           <Link
             href="/login"
+            onClick={() => setIsNavigating(true)}
             aria-label={t("login", { defaultValue: "Se connecter" })}
             className="flex items-center gap-1.5 px-3 py-2 rounded-full border border-gold/40 bg-gold/10 text-gold text-[10px] uppercase tracking-wider font-semibold flex-shrink-0 hover:bg-gold/20 transition-colors"
           >

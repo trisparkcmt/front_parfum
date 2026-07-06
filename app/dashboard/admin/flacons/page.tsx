@@ -213,7 +213,7 @@ export default function FlaconsAdminPage() {
         </select>
       </div>
 
-      <div className="bg-white/5 rounded-2xl border border-white/10 shadow-2xl overflow-hidden min-h-[300px]">
+      <div className="bg-white/5 rounded-2xl border border-white/10 shadow-sm overflow-hidden min-h-[300px]">
         {loading ? (
           <div className="flex flex-col items-center justify-center py-20 text-gold gap-3">
             <Loader2 className="animate-spin" size={32} />
@@ -267,7 +267,7 @@ export default function FlaconsAdminPage() {
 
       {showModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-background rounded-2xl p-6 w-full max-w-2xl shadow-2xl border border-white/10 max-h-[90vh] overflow-y-auto">
+          <div className="bg-background rounded-2xl p-6 w-full max-w-2xl shadow-sm border border-white/10 max-h-[90vh] overflow-y-auto">
             <h3 className="font-bold text-foreground mb-4">{editingBottle ? 'Modifier le flacon' : 'Ajouter un flacon'}</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-4">

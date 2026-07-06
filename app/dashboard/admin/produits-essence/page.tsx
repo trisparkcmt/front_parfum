@@ -22,6 +22,7 @@ export default function FinishedEssenceAdminPage() {
   const [editing, setEditing] = useState<any | null>(null);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState('');
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const { addToast } = useToastStore();
 
   const [form, setForm] = useState({
@@ -98,6 +99,28 @@ export default function FinishedEssenceAdminPage() {
   const mlRequis = Number(form.taille_ml || 0) * Number(form.stock_disponible || 0);
   const stockInsuffisant = lotStockMl !== null && mlRequis > 0 && mlRequis > lotStockMl;
 
+  const validateForm = useCallback(() => {
+    const errors: Record<string, string> = {};
+    if (!form.essence.trim()) errors.essence = 'Une essence doit être sélectionnée';
+    if (!form.nom.trim()) errors.nom = 'Le nom du produit est requis';
+    if (!form.taille_ml || Number(form.taille_ml) <= 0) errors.taille_ml = 'La taille doit être supérieure à 0';
+    if (!form.prix || Number(form.prix) <= 0) errors.prix = 'Le prix doit être supérieur à 0';
+    if (form.stock_disponible === '' || Number(form.stock_disponible) < 0) errors.stock_disponible = 'Le stock est requis';
+    if (stockInsuffisant) errors.stock_disponible = 'Le stock demandé dépasse le stock du lot laboratoire';
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  }, [form.essence, form.nom, form.taille_ml, form.prix, form.stock_disponible, stockInsuffisant]);
+
+  const updateFormField = (field: keyof typeof form, value: string | boolean) => {
+    setForm((prev) => ({ ...prev, [field]: value }));
+    setFormErrors((prev) => {
+      if (!prev[field]) return prev;
+      const next = { ...prev };
+      delete next[field];
+      return next;
+    });
+  };
+
   const openAdd = () => {
     setEditing(null);
     setForm({
@@ -113,15 +136,18 @@ export default function FinishedEssenceAdminPage() {
     });
     setImageFile(null);
     setFormError('');
+    setFormErrors({});
     setShowModal(true);
   };
 
   const openEdit = (item: any) => {
     setEditing(item);
+    const essenceId = item.essence_details?.id ?? item.essence_id ?? item.essence ?? '';
+    const priceValue = item.prix_actuel ?? item.prix ?? item.prix_unitaire ?? '';
     setForm({
-      essence: String(item.essence ?? ''),
+      essence: String(essenceId ?? ''),
       taille_ml: String(item.taille_ml ?? ''),
-      prix: String(item.prix ?? ''),
+      prix: String(priceValue ?? ''),
       prix_promotionnel: item.prix_promotionnel ? String(item.prix_promotionnel) : '',
       stock_disponible: String(item.stock_disponible ?? '0'),
       actif: item.actif !== false,
@@ -131,17 +157,30 @@ export default function FinishedEssenceAdminPage() {
     });
     setImageFile(null);
     setFormError('');
+    setFormErrors({});
     setShowModal(true);
   };
 
   const handleSave = async () => {
     if (!permissions.canCreate && !permissions.canUpdate) return;
-    if (!form.essence || !form.taille_ml || !form.prix || form.stock_disponible === '' || !form.nom) {
-      setFormError('Essence, nom, taille, prix et stock sont requis');
+    if (!validateForm()) {
+      setFormError('Veuillez corriger les champs obligatoires.');
       return;
     }
 
     const { adminService } = await import('@/services/apiService');
+
+    const existingItems = await shopService.getFinishedEssences({
+      essence: Number(form.essence),
+      taille_ml: Number(form.taille_ml),
+    });
+    const existingList = extractCatalogList(existingItems).filter((item: any) => !editing || String(item.id) !== String(editing.id));
+    if (!editing && existingList.length > 0) {
+      setFormError('Un produit fini existe déjà pour cette essence et cette taille. Modifiez le produit existant plutôt que d’en créer un doublon.');
+      setSaving(false);
+      return;
+    }
+
     const formData = new FormData();
     formData.append('essence', form.essence);
     formData.append('taille_ml', form.taille_ml);
@@ -337,20 +376,21 @@ export default function FinishedEssenceAdminPage() {
                 label="Nom du produit *"
                 placeholder="Nom du produit"
                 value={form.nom}
-                onChange={(e) => setForm((f) => ({ ...f, nom: e.target.value }))}
+                error={formErrors.nom}
+                onChange={(e) => updateFormField('nom', e.target.value)}
               />
               <div className="grid grid-cols-2 gap-3">
                 <FloatInput
                   label="Marque"
                   placeholder="Marque"
                   value={form.marque}
-                  onChange={(e) => setForm((f) => ({ ...f, marque: e.target.value }))}
+                  onChange={(e) => updateFormField('marque', e.target.value)}
                 />
                 <FloatInput
                   label="Catégorie"
                   placeholder="Catégorie"
                   value={form.categorie}
-                  onChange={(e) => setForm((f) => ({ ...f, categorie: e.target.value }))}
+                  onChange={(e) => updateFormField('categorie', e.target.value)}
                 />
               </div>
             </div>
@@ -358,7 +398,7 @@ export default function FinishedEssenceAdminPage() {
             <div className="relative">
               <label className="text-[10px] font-bold text-gold uppercase block mb-1">Essence de base *</label>
               <div
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-gold bg-neutral-900 cursor-pointer flex items-center justify-between"
+                className={`w-full bg-white/5 border rounded-xl px-3 py-2.5 text-sm outline-none focus:border-gold bg-neutral-900 cursor-pointer flex items-center justify-between ${formErrors.essence ? 'border-red-500/50' : 'border-white/10'}`}
                 onClick={() => setShowEssenceDropdown(v => !v)}
               >
                 <span className={form.essence ? 'text-foreground' : 'text-foreground/40'}>
@@ -368,8 +408,9 @@ export default function FinishedEssenceAdminPage() {
                 </span>
                 <Search size={14} className="text-foreground/40" />
               </div>
+              {formErrors.essence && <p className="mt-1 text-xs text-red-500">{formErrors.essence}</p>}
               {showEssenceDropdown && (
-                <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-neutral-900 border border-white/10 rounded-xl shadow-2xl overflow-hidden">
+                <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-neutral-900 border border-white/10 rounded-xl shadow-sm overflow-hidden">
                   <div className="p-2">
                     <input
                       autoFocus
@@ -391,6 +432,12 @@ export default function FinishedEssenceAdminPage() {
                           key={e.id}
                           onClick={() => {
                             setForm(f => ({ ...f, essence: String(e.id) }));
+                            setFormErrors((prev) => {
+                              if (!prev.essence) return prev;
+                              const next = { ...prev };
+                              delete next.essence;
+                              return next;
+                            });
                             setShowEssenceDropdown(false);
                             setEssenceSearch('');
                           }}
@@ -423,14 +470,16 @@ export default function FinishedEssenceAdminPage() {
                 label="Taille (ml) *"
                 placeholder="Taille (ml)"
                 value={form.taille_ml}
-                onChange={(e) => setForm((f) => ({ ...f, taille_ml: e.target.value }))}
+                error={formErrors.taille_ml}
+                onChange={(e) => updateFormField('taille_ml', e.target.value)}
               />
               <FloatInput
                 type="number"
                 label="Stock *"
                 placeholder="Stock"
                 value={form.stock_disponible}
-                onChange={(e) => setForm((f) => ({ ...f, stock_disponible: e.target.value }))}
+                error={formErrors.stock_disponible}
+                onChange={(e) => updateFormField('stock_disponible', e.target.value)}
               />
             </div>
             <div className="grid grid-cols-2 gap-3">
@@ -439,14 +488,15 @@ export default function FinishedEssenceAdminPage() {
                 label="Prix (FCFA) *"
                 placeholder="Prix"
                 value={form.prix}
-                onChange={(e) => setForm((f) => ({ ...f, prix: e.target.value }))}
+                error={formErrors.prix}
+                onChange={(e) => updateFormField('prix', e.target.value)}
               />
               <FloatInput
                 type="number"
                 label="Prix Promo"
                 placeholder="Promo"
                 value={form.prix_promotionnel}
-                onChange={(e) => setForm((f) => ({ ...f, prix_promotionnel: e.target.value }))}
+                onChange={(e) => updateFormField('prix_promotionnel', e.target.value)}
               />
             </div>
 

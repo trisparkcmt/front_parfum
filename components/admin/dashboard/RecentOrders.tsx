@@ -57,7 +57,7 @@ const orders = [
 
 export default function RecentOrders() {
   return (
-    <div className="bg-white/5 rounded-2xl border border-white/10 p-6 shadow-2xl hover:shadow-gold/5 transition-all duration-300">
+    <div className="bg-white/5 rounded-2xl border border-white/10 p-6 shadow-sm hover:shadow-gold/5 transition-all duration-300">
       <div className="flex items-center justify-between mb-5">
         <h3 className="font-semibold text-foreground">Commandes Récentes</h3>
         <div className="flex items-center gap-2">

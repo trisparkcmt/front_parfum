@@ -114,7 +114,7 @@ export default function PromoCodesPage() {
         </div>
       </div>
 
-      <div className="bg-white/5 rounded-2xl border border-white/10 shadow-2xl overflow-hidden">
+      <div className="bg-white/5 rounded-2xl border border-white/10 shadow-sm overflow-hidden">
         {loading ? (
           <div className="flex flex-col items-center justify-center py-20 gap-3 text-gold"><Loader2 size={32} className="animate-spin" /><p className="text-sm font-medium">Chargement des codes promo...</p></div>
         ) : codes.length === 0 ? (
@@ -156,7 +156,7 @@ export default function PromoCodesPage() {
 
       {showModal && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={e => { if (e.target === e.currentTarget) setShowModal(false); }}>
-          <div className="bg-background rounded-3xl w-full max-w-xl shadow-2xl border border-white/10 max-h-[90vh] flex flex-col">
+          <div className="bg-background rounded-3xl w-full max-w-xl shadow-sm border border-white/10 max-h-[90vh] flex flex-col">
             <div className="border-b border-white/10 px-6 py-4 flex items-center justify-between flex-shrink-0">
               <div>
                 <h3 className="font-bold text-foreground">{editingCode ? 'Modifier le code promo' : 'Creer un code promo'}</h3>

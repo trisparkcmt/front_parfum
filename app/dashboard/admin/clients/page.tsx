@@ -155,7 +155,7 @@ export default function ClientsPage() {
               { label: 'Favoris enregistrés', value: clients.reduce((s, c) => s + (c.favorites?.length || 0), 0), icon: <Heart size={18} />, color: 'text-red-400 bg-red-500/10' },
               { label: 'Compositions créées', value: clients.reduce((s, c) => s + (c.custom_perfumes?.length || 0), 0), icon: <FlaskConical size={18} />, color: 'text-purple-400 bg-purple-500/10' },
             ].map(k => (
-              <div key={k.label} className="bg-white/5 rounded-2xl border border-white/10 p-5 shadow-2xl">
+              <div key={k.label} className="bg-white/5 rounded-2xl border border-white/10 p-5 shadow-sm">
                 <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-3 ${k.color}`}>
                   {k.icon}
                 </div>
@@ -166,7 +166,7 @@ export default function ClientsPage() {
           </div>
 
           {/* Search */}
-          <div className="bg-white/5 rounded-2xl border border-white/10 p-4 shadow-2xl">
+          <div className="bg-white/5 rounded-2xl border border-white/10 p-4 shadow-sm">
             <div className="flex items-center gap-2 border border-white/10 rounded-lg px-3 py-2 max-w-sm">
               <Search size={15} className="text-foreground/40" />
               <input
@@ -179,7 +179,7 @@ export default function ClientsPage() {
           </div>
 
           {/* Table */}
-          <div className="bg-white/5 rounded-2xl border border-white/10 shadow-2xl overflow-hidden min-h-[300px]">
+          <div className="bg-white/5 rounded-2xl border border-white/10 shadow-sm overflow-hidden min-h-[300px]">
             {loading ? (
               <div className="flex flex-col items-center justify-center py-20 text-gold gap-3">
                 <Loader2 className="animate-spin" size={32} />
@@ -242,7 +242,7 @@ export default function ClientsPage() {
           {/* Client detail modal */}
           {selected && (
             <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-              <div className="bg-background rounded-2xl p-6 w-full max-w-sm shadow-2xl border border-white/10">
+              <div className="bg-background rounded-2xl p-6 w-full max-w-sm shadow-sm border border-white/10">
                 <div className="flex items-center gap-4 mb-5">
                   <div className="w-14 h-14 rounded-full bg-gradient-to-br from-gold to-gold-dark flex items-center justify-center text-black text-xl font-bold">
                     {(selected.first_name || 'U').charAt(0).toUpperCase()}
@@ -310,7 +310,7 @@ export default function ClientsPage() {
           </div>
 
           {/* Leaderboard */}
-          <div className="bg-white/5 rounded-2xl border border-white/10 shadow-2xl overflow-hidden">
+          <div className="bg-white/5 rounded-2xl border border-white/10 shadow-sm overflow-hidden">
             {bestLoading ? (
               <div className="flex flex-col items-center justify-center py-20 text-gold gap-3">
                 <Loader2 className="animate-spin" size={32} />
@@ -338,7 +338,7 @@ export default function ClientsPage() {
                     <div className="flex flex-col items-center gap-2">
                       <Crown size={20} className="text-gold" />
                       <div className="relative">
-                        <div className="w-16 h-16 rounded-full bg-gradient-to-br from-gold to-amber-600 flex items-center justify-center text-black text-2xl font-bold shadow-2xl ring-2 ring-gold/40">
+                        <div className="w-16 h-16 rounded-full bg-gradient-to-br from-gold to-amber-600 flex items-center justify-center text-black text-2xl font-bold shadow-sm ring-2 ring-gold/40">
                           {(bestClients[0]?.user_details?.first_name || 'U').charAt(0).toUpperCase()}
                         </div>
                         <span className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-gold text-black text-xs font-bold flex items-center justify-center">1</span>

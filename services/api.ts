@@ -104,12 +104,19 @@ api.interceptors.request.use((config: any) => {
   };
 
   try {
-    if (config && config.data && !(config.data instanceof FormData) && hasFile(config.data)) {
-      config.data = toFormData(config.data);
-      // Let the browser/axios set the Content-Type with boundary
-      if (config.headers) {
-        delete config.headers['Content-Type'];
-        delete config.headers['content-type'];
+    if (config && config.data) {
+      if (config.data instanceof FormData) {
+        // Ensure FormData requests are sent with the browser-generated boundary header.
+        if (config.headers) {
+          delete config.headers['Content-Type'];
+          delete config.headers['content-type'];
+        }
+      } else if (hasFile(config.data)) {
+        config.data = toFormData(config.data);
+        if (config.headers) {
+          delete config.headers['Content-Type'];
+          delete config.headers['content-type'];
+        }
       }
     }
   } catch (err) {

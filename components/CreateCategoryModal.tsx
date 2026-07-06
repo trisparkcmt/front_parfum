@@ -55,7 +55,7 @@ export const CreateCategoryModal: React.FC<CreateCategoryModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
-      <div className="bg-background rounded-2xl shadow-2xl border border-white/10 max-w-sm w-full overflow-hidden">
+      <div className="bg-background rounded-2xl shadow-sm border border-white/10 max-w-sm w-full overflow-hidden">
         <div className="flex items-center justify-between px-5 py-4 border-b border-white/10">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-lg bg-gold/10 flex items-center justify-center">

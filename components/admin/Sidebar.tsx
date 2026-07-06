@@ -194,17 +194,17 @@ export default function Sidebar({ open, setOpen }: SidebarProps) {
         <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1 scrollbar-thin">
           <SectionLabel label="MENU" />
           {menuItems.map(item => (
-            <NavItemComponent key={item.label} item={item} onNavigate={() => setOpen(false)} />
+            <NavItemComponent key={item.label} item={item} onNavigate={() => undefined} />
           ))}
 
           <SectionLabel label="BOUTIQUE" />
           {boutiqueItemsWithBadge.map(item => (
-            <NavItemComponent key={item.label} item={item} onNavigate={() => setOpen(false)} />
+            <NavItemComponent key={item.label} item={item} onNavigate={() => undefined} />
           ))}
 
           <SectionLabel label="GESTION" />
           {gestionItems.map(item => (
-            <NavItemComponent key={item.label} item={item} onNavigate={() => setOpen(false)} />
+            <NavItemComponent key={item.label} item={item} onNavigate={() => undefined} />
           ))}
         </nav>
 

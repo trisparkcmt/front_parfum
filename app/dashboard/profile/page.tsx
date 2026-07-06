@@ -16,10 +16,11 @@ import { useOrderNotificationStore } from '@/store/useOrderNotificationStore';
 import { useTranslation } from 'react-i18next';
 import i18n from '@/lib/i18n';
 import { api } from '@/services/api';
-import { attemptPWAInstall, getPWAInstallHint, isPWAInstalled as checkPWAInstalled } from '@/lib/pwa';
+import { attemptPWAInstall, isPWAInstalled as checkPWAInstalled } from '@/lib/pwa';
 import { triggerTestNotification } from '@/services/notifications';
 
 import { BackButton } from '@/components/ui/BackButton';
+import { Modal } from '@/components/ui/Modal';
 import PasswordChangeModal from '@/components/shared/PasswordChangeModal';
 import ProfileEditModal from '@/components/shared/ProfileEditModal';
 import ConfirmDialog from '@/components/shared/ConfirmDialog';
@@ -91,6 +92,8 @@ export default function ProfilePage() {
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [showNotificationHelp, setShowNotificationHelp] = useState(false);
+  const [showPWAHelp, setShowPWAHelp] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [isApplyingPartner, setIsApplyingPartner] = useState(false);
   const [isInstallingPWA, setIsInstallingPWA] = useState(false);
@@ -104,24 +107,16 @@ export default function ProfilePage() {
       const result = await attemptPWAInstall();
       if (result === 'accepted') {
         addToast('Application installée, ouvrez-la depuis l’écran d’accueil', 'success');
-      } else if (result === 'dismissed') {
-        addToast('Installation annulée', 'info');
       } else if (result === 'installed') {
         addToast('L’application est déjà installée', 'info');
-      } else if (result === 'fallback') {
-        addToast(
-          'iOS : ouvrez Safari puis utilisez Partager → Ajouter à l’écran d’accueil.',
-          'info',
-        );
+      } else if (result === 'dismissed') {
+        addToast('Installation annulée', 'info');
       } else {
-        addToast(
-          'Aucune option d’installation PWA disponible pour ce navigateur. Utilisez le menu du navigateur pour ajouter l’application à l’écran d’accueil.',
-          'info',
-        );
+        setShowPWAHelp(true);
       }
     } catch (error) {
       console.error('PWA install error:', error);
-      addToast('Erreur lors de l’installation de la PWA', 'error');
+      setShowPWAHelp(true);
     } finally {
       setIsInstallingPWA(false);
     }
@@ -167,6 +162,14 @@ export default function ProfilePage() {
       addToast(t('logout_error', { defaultValue: 'Erreur lors de la déconnexion' }), 'error');
       setIsLoggingOut(false);
     }
+  };
+
+  const handleNotificationHelp = () => {
+    setShowNotificationHelp(true);
+  };
+
+  const handlePWAHelp = () => {
+    setShowPWAHelp(true);
   };
 
   const handleTestNotification = async () => {
@@ -397,7 +400,7 @@ export default function ProfilePage() {
                   control={
                     <Pill
                       active={notificationsEnabled}
-                      onClick={() => useOrderNotificationStore.getState().toggleNotifications()}
+                      onClick={handleNotificationHelp}
                     >
                       {notificationsEnabled ? 'Activé' : 'Désactivé'}
                     </Pill>
@@ -484,6 +487,75 @@ export default function ProfilePage() {
         onConfirm={handleLogout}
         onCancel={() => setShowLogoutConfirm(false)}
       />
+      <Modal
+        isOpen={showNotificationHelp}
+        onClose={() => setShowNotificationHelp(false)}
+        title="Activer les notifications"
+        size="lg"
+      >
+        <div className="space-y-4 text-sm text-foreground/90">
+          <p>
+            Pour recevoir des notifications de commandes et de mises à jour, vous devez autoriser les notifications dans les paramètres de votre téléphone ou navigateur.
+          </p>
+          <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+            <h3 className="text-sm font-semibold text-foreground mb-2">Android</h3>
+            <ol className="list-decimal list-inside space-y-2 text-[13px] leading-6">
+              <li>Ouvrez l’application Paramètres de votre téléphone.</li>
+              <li>Accédez à Applications, puis trouvez votre navigateur (Chrome, Firefox, Edge, etc.).</li>
+              <li>Tapez sur Notifications.</li>
+              <li>Activez les notifications pour ce navigateur.</li>
+              <li>Retournez ensuite sur le site et rechargez la page.</li>
+            </ol>
+          </div>
+          <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+            <h3 className="text-sm font-semibold text-foreground mb-2">iPhone</h3>
+            <ol className="list-decimal list-inside space-y-2 text-[13px] leading-6">
+              <li>Ouvrez l’application Réglages sur votre iPhone.</li>
+              <li>Faites défiler vers Safari, puis ouvrez Safari.</li>
+              <li>Vérifiez que les notifications sont autorisées pour Safari.</li>
+              <li>Installez le site sur l’écran d’accueil en utilisant Partager → Ajouter à l’écran d’accueil.</li>
+              <li>Ouvrez ensuite l’application depuis l’écran d’accueil pour recevoir les notifications.</li>
+            </ol>
+          </div>
+          <p className="text-xs text-foreground/50">
+            Si la permission a déjà été refusée, vous devez la modifier depuis les Réglages du navigateur ou les paramètres du téléphone.
+          </p>
+        </div>
+      </Modal>
+      <Modal
+        isOpen={showPWAHelp}
+        onClose={() => setShowPWAHelp(false)}
+        title="Ajouter à l’écran d’accueil"
+        size="lg"
+      >
+        <div className="space-y-4 text-sm text-foreground/90">
+          <p>
+            Pour installer l’application sur votre téléphone, suivez les étapes ci-dessous selon votre appareil.
+          </p>
+          <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+            <h3 className="text-sm font-semibold text-foreground mb-2">iPhone</h3>
+            <ol className="list-decimal list-inside space-y-2 text-[13px] leading-6">
+              <li>Ouvrez Safari et rendez-vous sur ce site.</li>
+              <li>Tapez sur l’icône Partager en bas de l’écran.</li>
+              <li>Choisissez « Ajouter à l’écran d’accueil ».</li>
+              <li>Confirmez en appuyant sur « Ajouter ».</li>
+              <li>Ouvrez l’application depuis votre écran d’accueil.</li>
+            </ol>
+          </div>
+          <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+            <h3 className="text-sm font-semibold text-foreground mb-2">Android</h3>
+            <ol className="list-decimal list-inside space-y-2 text-[13px] leading-6">
+              <li>Ouvrez le menu du navigateur (trois points ou barre de menu).</li>
+              <li>Choisissez « Ajouter à l’écran d’accueil » ou « Installer l’application ». </li>
+              <li>Confirmez la demande d’ajout.</li>
+              <li>Ouvrez l’application depuis votre écran d’accueil.</li>
+            </ol>
+          </div>
+          <p className="text-xs text-foreground/50">
+            Si votre navigateur ne propose pas d’installation automatique, utilisez le menu de partage ou d’options pour ajouter manuellement ce site à l’écran d’accueil.
+          </p>
+        </div>
+      </Modal>
     </div>
   );
 }

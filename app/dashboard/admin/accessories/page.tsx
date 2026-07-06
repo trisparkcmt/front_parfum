@@ -286,7 +286,7 @@ export default function AccessoriesPage() {
 
       <CatalogAccessNotice permissions={permissions} resourceLabel="les accessoires" />
 
-      <div className="bg-white/5 rounded-2xl border border-white/10 p-4 shadow-2xl flex flex-wrap items-center gap-3">
+      <div className="bg-white/5 rounded-2xl border border-white/10 p-4 shadow-sm flex flex-wrap items-center gap-3">
         <div className="flex items-center gap-2 border border-white/10 rounded-lg px-3 py-2 flex-1 min-w-48">
           <Search size={15} className="text-foreground/40" />
           <input
@@ -344,7 +344,7 @@ export default function AccessoriesPage() {
         </select>
       </div>
 
-      <div className="bg-white/5 rounded-2xl border border-white/10 shadow-2xl overflow-hidden min-h-[300px]">
+      <div className="bg-white/5 rounded-2xl border border-white/10 shadow-sm overflow-hidden min-h-[300px]">
         {loading ? (
           <div className="flex flex-col items-center justify-center py-20 text-gold gap-3">
             <Loader2 className="animate-spin" size={32} />
@@ -455,7 +455,7 @@ export default function AccessoriesPage() {
           onClick={() => setShowModal(false)}
         >
           <div 
-            className="bg-background rounded-2xl p-6 w-full max-w-6xl shadow-2xl border border-white/10 overflow-y-auto max-h-fit my-auto mx-auto"
+            className="bg-background rounded-2xl p-6 w-full max-w-6xl shadow-sm border border-white/10 overflow-y-auto max-h-fit my-auto mx-auto"
             onClick={e => e.stopPropagation()}
           >
             <h3 className="font-bold text-foreground mb-4">

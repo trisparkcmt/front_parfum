@@ -44,7 +44,7 @@ export default function StatsCards() {
       {stats.map((stat, i) => (
         <div
           key={stat.label}
-          className="bg-white/5 rounded-2xl border border-white/10 p-5 flex flex-col justify-between shadow-2xl hover:shadow-gold/5 transition-all duration-300 group"
+          className="bg-white/5 rounded-2xl border border-white/10 p-5 flex flex-col justify-between shadow-sm hover:shadow-gold/5 transition-all duration-300 group"
           style={{ animationDelay: `${i * 100}ms` }}
         >
           <div className={`w-11 h-11 rounded-xl ${stat.bg} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300`}>

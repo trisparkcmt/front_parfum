@@ -85,7 +85,7 @@ export function InstallPrompt() {
 
   return (
     <div className="fixed bottom-4 left-4 right-4 z-[9999] mx-auto max-w-md animate-fade-in-up">
-      <div className="relative bg-gradient-to-r from-charcoal to-deep-black border border-gold/30 rounded-2xl p-4 shadow-2xl shadow-gold/10 backdrop-blur-xl">
+      <div className="relative bg-gradient-to-r from-charcoal to-deep-black border border-gold/30 rounded-2xl p-4 shadow-sm shadow-gold/10 backdrop-blur-xl">
         {/* Close button */}
         <button
           onClick={handleDismiss}

@@ -9,7 +9,7 @@ import { useOrderNotificationStore } from '@/store/useOrderNotificationStore';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const { isAuthorized, isLoading } = useAuthGuard(['superadmin']);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
   const { fetchPendingOrders, requestNotificationPermission } = useOrderNotificationStore();
 
   useEffect(() => {

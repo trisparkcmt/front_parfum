@@ -10,7 +10,7 @@ const countries = [
 
 export default function CustomersDemographic() {
   return (
-    <div className="bg-white/5 rounded-2xl border border-white/10 p-6 shadow-2xl hover:shadow-gold/5 transition-all duration-300">
+    <div className="bg-white/5 rounded-2xl border border-white/10 p-6 shadow-sm hover:shadow-gold/5 transition-all duration-300">
       <div className="flex items-center justify-between mb-5">
         <div>
           <h3 className="font-semibold text-foreground">Démographie Clients</h3>

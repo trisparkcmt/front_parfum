@@ -72,7 +72,7 @@ export function Modal({ isOpen, onClose, title, children, size = 'md', className
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
             className={cn(
-              'relative w-full  bg-cream dark:bg-charcoal border border-white/10 shadow-2xl',
+              'relative w-full  bg-cream dark:bg-charcoal border border-white/10 shadow-sm',
               sizes[size],
               className
             )}

@@ -168,7 +168,7 @@ export default function ClientOrdersPage() {
           { label: 'Validées',   value: orders.filter(o => getStatut(o) === 'validé').length,                  color: 'text-blue-400',   bg: 'bg-blue-500/10' },
           { label: 'Annulées',   value: orders.filter(o => getStatut(o) === 'annulée').length,                 color: 'text-red-400',    bg: 'bg-red-500/10' },
         ].map(k => (
-          <div key={k.label} className="bg-white/5 rounded-2xl border border-white/10 p-4 shadow-2xl">
+          <div key={k.label} className="bg-white/5 rounded-2xl border border-white/10 p-4 shadow-sm">
             <p className="text-xs text-foreground/40 mb-1">{k.label}</p>
             <p className={`text-2xl font-bold ${k.color}`}>{k.value}</p>
           </div>
@@ -215,7 +215,7 @@ export default function ClientOrdersPage() {
               <div
                 key={order.id}
                 onClick={() => setSelected(order)}
-                className="bg-white/5 rounded-2xl border border-white/10 p-5 shadow-2xl hover:border-gold/20 hover:bg-white/[0.07] transition-all cursor-pointer group"
+                className="bg-white/5 rounded-2xl border border-white/10 p-5 shadow-sm hover:border-gold/20 hover:bg-white/[0.07] transition-all cursor-pointer group"
               >
                 {/* Row top */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
@@ -310,7 +310,7 @@ export default function ClientOrdersPage() {
       {/* ── Detail modal ──────────────────────────────────────────────────────── */}
       {selected && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-background rounded-2xl w-full max-w-lg shadow-2xl border border-white/10 max-h-[90vh] overflow-y-auto">
+          <div className="bg-background rounded-2xl w-full max-w-lg shadow-sm border border-white/10 max-h-[90vh] overflow-y-auto">
             {/* Header */}
             <div className="sticky top-0 bg-background border-b border-white/10 px-6 py-4 flex items-center justify-between z-10">
               <div>

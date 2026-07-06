@@ -21,6 +21,8 @@ export default function PerfumesShop() {
   const [mounted, setMounted] = useState(false);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const [finishedEssenceLoading, setFinishedEssenceLoading] = useState(false);
+  const [finishedEssenceProducts, setFinishedEssenceProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<{id: string | number, label: string, desc?: string}[]>([]);
 
   // Pagination state — driven by backend response
@@ -68,6 +70,7 @@ export default function PerfumesShop() {
         const backendCats = await productService.getPerfumeCategories();
         const mappedTabs = [
           { id: 'all', label: t('all_perfumes'), desc: t('all_perfumes_desc') },
+          { id: 'huile', label: t('huile', 'Huile'), desc: t('huile_desc', 'Toutes les essences finies disponibles') },
           ...backendCats.map(cat => ({
             id: cat.name,
             label: cat.name === 'perfume-brand' ? t('perfume_brand', { defaultValue: 'Parfums de Marque' }) :
@@ -118,6 +121,27 @@ export default function PerfumesShop() {
     setMounted(true);
   }, []);
 
+  useEffect(() => {
+    if (!mounted || activeTab !== 'huile') return;
+
+    async function loadFinishedEssences() {
+      setFinishedEssenceLoading(true);
+      try {
+        const response = await productService.getFinishedEssenceProducts({
+          search: debouncedSearch || undefined,
+          ordering: ordering || undefined,
+        });
+        setFinishedEssenceProducts(response);
+      } catch (error) {
+        console.error('Failed to load finished essences:', error);
+      } finally {
+        setFinishedEssenceLoading(false);
+      }
+    }
+
+    loadFinishedEssences();
+  }, [mounted, activeTab, debouncedSearch, ordering]);
+
   // Scroll the active tab to centre whenever activeTab changes
   useEffect(() => {
     const bar = tabBarRef.current;
@@ -152,6 +176,8 @@ export default function PerfumesShop() {
 
   // Client-side category filtering (only needed if API doesn't filter by category)
   const filteredPerfumes = products.filter(p => activeTab === 'all' || p.category === activeTab);
+  const activeProducts = activeTab === 'huile' ? finishedEssenceProducts : filteredPerfumes;
+  const isActiveLoading = activeTab === 'huile' ? finishedEssenceLoading : loading;
 
   const resetFilters = () => {
     setSearch('');
@@ -407,19 +433,19 @@ export default function PerfumesShop() {
       </div>
 
       {/* Product Grid / Loading State */}
-      {loading ? (
+      {isActiveLoading ? (
         <ProductGridSkeleton count={8} />
       ) : (
         <AnimatePresence mode="wait">
           <motion.div
-            key={`${activeTab}_${currentPage}_${products.length}`}
+            key={`${activeTab}_${currentPage}_${activeProducts.length}`}
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.3 }}
             className="flex flex-row flex-wrap justify-center sm:justify-start -mx-2 gap-3 md:gap-6"
           >
-            {filteredPerfumes.map((product, index) => (
+            {activeProducts.map((product, index) => (
               <motion.div
                 key={product.id}
                 initial={{ opacity: 0 }}
@@ -435,7 +461,7 @@ export default function PerfumesShop() {
               </motion.div>
             ))}
 
-            {filteredPerfumes.length === 0 && (
+            {activeProducts.length === 0 && (
               <div className="col-span-full w-full py-20 text-center border border-white/5 rounded-2xl bg-white/[0.02]">
                 <div className="text-foreground/30 text-3xl mb-4 font-light">∅</div>
                 <div className="text-foreground/50 text-sm font-medium tracking-wide">

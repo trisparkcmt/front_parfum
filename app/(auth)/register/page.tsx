@@ -134,7 +134,7 @@ function RegisterFormContent() {
 
         <Input label={t('email')} type="email" placeholder="vous@exemple.com" icon={<Mail size={18} />} error={errors.email?.message} {...register('email')} />
         <Input label={t('phone')} type="tel" placeholder="+237 6XX XX XX XX" icon={<Phone size={18} />} error={errors.phone?.message} {...register('phone')} />
-        <Input label={t('password_required').split(' ')[0]} type="password" placeholder="••••••••" icon={<Lock size={18} />} error={errors.password?.message} {...register('password')} />
+        <Input label={t('password', { defaultValue: 'Mot de passe' })} type="password" placeholder="••••••••" icon={<Lock size={18} />} error={errors.password?.message} {...register('password')} />
         <Input label={t('confirm_password', { defaultValue: 'Confirmer le mot de passe' })} type="password" placeholder="••••••••" icon={<Lock size={18} />} error={errors.passwordConfirm?.message} {...register('passwordConfirm')} />
 
         <Button type="submit" className="w-full mt-6" isLoading={isLoading} rightIcon={<UserPlus size={18} />}>

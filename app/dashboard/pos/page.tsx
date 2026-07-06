@@ -5,6 +5,7 @@ import { Product, EssenceClient } from '@/types';
 import { productService } from '@/services/productService';
 import { orderService } from '@/services/orderService';
 import { labService } from '@/services/labService';
+import { cartService } from '@/services/apiService';
 import { useToastStore } from '@/store/useToastStore';
 import { BackButton } from '@/components/ui/BackButton';
 import { AppImage } from '@/components/ui/AppImage';
@@ -115,6 +116,7 @@ export default function POSPage() {
   const [compositionName, setCompositionName] = useState('');
   const [quantities, setQuantities] = useState<Record<string, number>>({});
   const [essenceTier, setEssenceTier] = useState<'all' | 'premium' | 'super-premium' | 'high'>('all');
+  const [essenceSearch, setEssenceSearch] = useState('');
 
   // Load lab items (essences, ingredients, flacons) on component mount
   useEffect(() => {
@@ -146,6 +148,9 @@ export default function POSPage() {
     return Object.values(quantities).reduce((a, b) => a + b, 0);
   }, [quantities]);
 
+  const maxOilMl = useMemo(() => Math.max(0, Number((selectedSize * 0.45).toFixed(2))), [selectedSize]);
+  const oilLimitExceeded = totalMl > maxOilMl;
+
   const compositionPrice = useMemo(() => {
     const basePrice = selectedSize === 30 ? 2000 : selectedSize === 50 ? 5000 : 12000;
     let total = basePrice;
@@ -162,7 +167,7 @@ export default function POSPage() {
       const totalOther = Object.entries(prev)
         .filter(([key]) => key !== id)
         .reduce((sum, [_, q]) => sum + q, 0);
-      const capped = Math.min(value, selectedSize - totalOther);
+      const capped = Math.min(value, Math.min(selectedSize - totalOther, maxOilMl - totalOther));
       const temp = { ...prev };
       if (capped <= 0) delete temp[id];
       else temp[id] = capped;
@@ -181,8 +186,8 @@ export default function POSPage() {
         const totalOther = Object.entries(temp)
           .filter(([key]) => key !== id)
           .reduce((sum, [_, q]) => sum + q, 0);
-        if (totalOther + next > selectedSize) {
-          addToast("La capacité maximale du flacon est atteinte.", "info");
+        if (totalOther + next > maxOilMl) {
+          addToast(`Le contenu ne peut dépasser ${maxOilMl} ml pour respecter la règle de 45% du flacon.`, "info");
           return prev;
         }
         temp[id] = next;
@@ -192,12 +197,17 @@ export default function POSPage() {
   };
 
   const filteredEssences = useMemo(() => {
-    if (essenceTier === 'all') return essences;
-    return essences.filter((e) => {
-      const fam = (e.family as string);
-      return fam === essenceTier;
+    let base = essences;
+    if (essenceTier !== 'all') {
+      base = essences.filter((e) => (e.family as string) === essenceTier);
+    }
+    if (!essenceSearch.trim()) return base;
+    const query = essenceSearch.toLowerCase();
+    return base.filter((e) => {
+      const name = `${e.name || ''} ${e.family || ''}`.toLowerCase();
+      return name.includes(query);
     });
-  }, [essences, essenceTier]);
+  }, [essences, essenceTier, essenceSearch]);
 
   // Helper to select flacon from DB
   const handleSelectFlacon = (f: any) => {
@@ -212,12 +222,47 @@ export default function POSPage() {
   };
 
   // Helper to add the composed creation directly to standard POS basket
-  const handleAddCompositionToCart = () => {
+  const handleAddCompositionToCart = async () => {
     if (totalMl === 0) {
       addToast("Veuillez composer avec au moins 1ml.", "error");
       return;
     }
+    if (oilLimitExceeded) {
+      addToast(`Le contenu dépasse la limite de ${maxOilMl} ml pour ce flacon.`, "error");
+      return;
+    }
     const finalName = compositionName.trim() || `Composition Client ${selectedSize}ml`;
+
+    const lignes = Object.entries(quantities)
+      .filter(([_, qty]) => (qty as number) > 0)
+      .map(([essenceId, qty]) => {
+        const details = essences.find((e) => String(e.id) === String(essenceId));
+
+        if (details?.itemType === 'ingredient') {
+          return {
+            ingredient: details.backendId ?? Number(essenceId),
+            quantite_ml: qty,
+          };
+        }
+
+        return {
+          lot_essence_id: details?.lotEssenceId ?? details?.backendId ?? Number(essenceId),
+          quantite_ml: qty,
+        };
+      });
+
+    try {
+      await cartService.addDirectComposition({
+        flacon_id: Number(selectedFlaconId || selectedSize),
+        lignes,
+        quantite: 1,
+        nom: finalName,
+        note_client: note.trim() || undefined,
+      });
+    } catch (err: any) {
+      addToast(err?.response?.data?.detail || 'La composition n’a pas pu être ajoutée au panier.', 'error');
+      return;
+    }
 
     const simulatedProduct: Product = {
       id: `custom-${Date.now()}`,
@@ -274,7 +319,10 @@ export default function POSPage() {
         const cleanedPerfumes = extractResults(perfumes);
         const cleanedAccessories = extractResults(accessories);
 
-        [...cleanedPerfumes, ...cleanedAccessories].forEach((p) => {
+        const normalizedPerfumes = cleanedPerfumes.map((p: any) => ({ ...p, type: 'parfum' }));
+        const normalizedAccessories = cleanedAccessories.map((p: any) => ({ ...p, type: 'accessoire' }));
+
+        [...normalizedPerfumes, ...normalizedAccessories].forEach((p) => {
           if (p && p.id && !uniqueProducts.has(String(p.id))) {
             uniqueProducts.set(String(p.id), p);
           }
@@ -360,31 +408,16 @@ export default function POSPage() {
 
     setIsValidating(true);
     try {
-      const lignes = cartItems.map((item) => {
-        const p = item.product as any;
-        if (p.is_custom) {
-          // Serialize direct custom composition payload structure
-          return {
-            type: 'essence',
-            produit_personnalise: {
-              nom: p.nom,
-              flacon: p.selectedSize,
-              lignes: Object.entries(p.quantities)
-                .filter(([_, qty]) => (qty as number) > 0)
-                .map(([essenceId, qty]) => {
-                  const details = essences.find(e => e.id === essenceId);
-                  return {
-                    essence_catalogue: details?.itemType === 'essence' ? details.backendId : undefined,
-                    ingredient_catalogue: details?.itemType === 'ingredient' ? details.backendId : undefined,
-                    quantite_ml: qty,
-                  };
-                }),
-            },
-            quantite: item.quantity,
-          };
-        }
+      const regularItems = cartItems.filter((item) => !(item.product as any).is_custom);
+      if (regularItems.length === 0) {
+        addToast('Aucun article standard à commander. La composition a été enregistrée via le panier.', 'info');
+        setIsValidating(false);
+        return;
+      }
 
-        const isPerfume = p.type === 'parfum' || p.contenance_ml !== undefined;
+      const lignes = regularItems.map((item) => {
+        const p = item.product as any;
+        const isPerfume = p.type === 'parfum' || p.contenance_ml !== undefined || p.genre_cible || p.notes_tete;
         return {
           type: isPerfume ? 'parfum' : 'accessoire',
           id: Number(item.product.id),
@@ -629,19 +662,29 @@ export default function POSPage() {
                   <div className="space-y-1">
                     <div className="flex justify-between text-[10px] text-foreground/40">
                       <span>Rempli</span>
-                      <span className={totalMl >= selectedSize ? 'text-gold font-bold' : ''}>{totalMl} / {selectedSize} ml</span>
+                      <span className={oilLimitExceeded ? 'text-red-400 font-bold' : totalMl >= selectedSize ? 'text-gold font-bold' : ''}>{totalMl} / {selectedSize} ml</span>
                     </div>
                     <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
                       <div
                         className="h-full bg-gold transition-all duration-300"
-                        style={{ width: `${Math.min(100, (totalMl / selectedSize) * 100)}%` }}
+                        style={{ width: `${Math.min(100, (Math.min(totalMl, maxOilMl) / selectedSize) * 100)}%` }}
                       />
                     </div>
                   </div>
                 </div>
 
                 {/* Tier sub-tabs */}
-                <div className="flex gap-1 px-4 pt-3 shrink-0">
+                <div className="px-4 pt-3 shrink-0 space-y-2">
+                  <div className="flex items-center gap-2 rounded-sm border border-white/10 bg-background/50 px-3 py-2">
+                    <Search className="w-3.5 h-3.5 text-foreground/30" />
+                    <input
+                      value={essenceSearch}
+                      onChange={(e) => setEssenceSearch(e.target.value)}
+                      placeholder="Rechercher une huile ou une essence…"
+                      className="w-full bg-transparent text-xs text-foreground placeholder:text-foreground/30 outline-none"
+                    />
+                  </div>
+                  <div className="flex gap-1">
                   {(['all', 'premium', 'super-premium', 'high'] as const).map(tier => (
                     <button key={tier} onClick={() => setEssenceTier(tier)}
                       className={`px-2.5 py-1 rounded-sm text-[9px] uppercase tracking-wider transition-colors ${ essenceTier === tier ? 'bg-gold/20 text-gold border border-gold/40' : 'text-foreground/40 hover:text-foreground/70' }`}
@@ -649,6 +692,13 @@ export default function POSPage() {
                       {tier === 'all' ? 'Tous' : tier === 'super-premium' ? 'S.Premium' : tier === 'high' ? 'High' : 'Premium'}
                     </button>
                   ))}
+                  </div>
+                </div>
+
+                <div className="px-4 pb-2">
+                  <p className={`text-[10px] ${oilLimitExceeded ? 'text-red-400' : 'text-foreground/40'}`}>
+                    Limite d’huile : {maxOilMl} ml max sur {selectedSize} ml ({(maxOilMl / selectedSize * 100).toFixed(0)}%).
+                  </p>
                 </div>
 
                 {/* Essence list with range sliders */}

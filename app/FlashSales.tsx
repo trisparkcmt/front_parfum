@@ -151,8 +151,6 @@ export default function FlashSales() {
     }
   };
 
-  if (!loading && allItems.length === 0) return null;
-
   return (
     <section className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8 md:mt-12">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-5 md:mb-6">

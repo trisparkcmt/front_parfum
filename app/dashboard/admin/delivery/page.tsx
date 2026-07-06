@@ -146,7 +146,7 @@ export default function DeliveryPage() {
       </div>
 
       {/* Driver cards / list */}
-      <div className="bg-white/5 rounded-2xl border border-white/10 shadow-2xl overflow-hidden min-h-[200px]">
+      <div className="bg-white/5 rounded-2xl border border-white/10 shadow-sm overflow-hidden min-h-[200px]">
         {loading ? (
           <div className="flex flex-col items-center justify-center py-20 text-gold gap-3">
             <Loader2 className="animate-spin" size={32} />
@@ -166,7 +166,7 @@ export default function DeliveryPage() {
                 const displayDeliveriesCount = d.nombre_livraisons || 0;
 
                 return (
-                  <div key={d.id} className="bg-white/5 rounded-2xl border border-white/10 p-5 shadow-2xl hover:border-gold/30 transition-all flex flex-col justify-between">
+                  <div key={d.id} className="bg-white/5 rounded-2xl border border-white/10 p-5 shadow-sm hover:border-gold/30 transition-all flex flex-col justify-between">
                     <div>
                       <div className="flex items-start justify-between mb-4">
                         <div className="flex items-center gap-3">
@@ -237,7 +237,7 @@ export default function DeliveryPage() {
       </div>
 
       {/* Deliveries list */}
-      <div className="bg-white/5 rounded-2xl border border-white/10 shadow-2xl overflow-hidden mt-6">
+      <div className="bg-white/5 rounded-2xl border border-white/10 shadow-sm overflow-hidden mt-6">
         <div className="p-6">
           <h2 className="font-semibold text-foreground mb-4">Suivi Global des Livraisons</h2>
           <div className="overflow-x-auto">
@@ -293,7 +293,7 @@ export default function DeliveryPage() {
 
       {showModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-background rounded-2xl p-6 w-full max-w-sm shadow-2xl border border-white/10">
+          <div className="bg-background rounded-2xl p-6 w-full max-w-sm shadow-sm border border-white/10">
             <h3 className="font-bold text-foreground mb-1">Promouvoir en tant que Livreur</h3>
             <p className="text-xs text-foreground/40 mb-4">Attribue le rôle opérationnel à l'utilisateur.</p>
             <div className="space-y-3">

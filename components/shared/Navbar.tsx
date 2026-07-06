@@ -27,6 +27,7 @@ export function Navbar() {
   const [mounted, setMounted] = useState(false);
   const pathname = usePathname();
   const [scrolled, setScrolled] = useState(false);
+  const [isNavigating, setIsNavigating] = useState(false);
 
   // Use proper selectors for auth state to ensure re-renders
   const user = useAuthStore((s) => s.user);
@@ -42,6 +43,10 @@ export function Navbar() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  useEffect(() => {
+    setIsNavigating(false);
+  }, [pathname]);
+
   // Debug logging for auth state
   useEffect(() => {
     console.log('Navbar auth state:', { user, isAuthenticated });
@@ -52,8 +57,12 @@ export function Navbar() {
 
   return (
     <header className={cn(
-      "backdrop-blur-lg fixed top-0 left-0 right-0 z-50 transition-all duration-300"
+      "relative backdrop-blur-lg fixed top-0 left-0 right-0 z-50 transition-all duration-300"
     )}>
+      <div className={cn(
+        'absolute inset-x-0 top-0 h-0.5 bg-gold transition-opacity duration-200',
+        isNavigating ? 'opacity-100' : 'opacity-0'
+      )} />
       <nav className={cn(
         'transition-all duration-300 border-transparent',
         scrolled ? 'bg-[var(--t-nav-dark-bg)] py-0 border-b border-[var(--t-nav-border)]' : 'bg-transparent py-2'
@@ -146,6 +155,7 @@ export function Navbar() {
               
               <Link
                 href="/cart"
+                onClick={() => setIsNavigating(true)}
                 className="relative p-2.5 hover:bg-[var(--t-hover-bg)] transition-colors"
               >
                 <ShoppingBag size={20} className="text-foreground/80" />
@@ -172,6 +182,7 @@ export function Navbar() {
               {isAuthenticated && user ? (
                 <Link
                   href="/dashboard/profile"
+                  onClick={() => setIsNavigating(true)}
                   className="flex items-center gap-2 p-2 hover:bg-[var(--t-hover-bg)] transition-colors group"
                 >
                   <div className="h-8 w-8 rounded-full bg-gold/20 border border-gold/30 flex items-center justify-center text-gold text-xs font-bold group-hover:scale-105 transition-transform">
@@ -182,7 +193,7 @@ export function Navbar() {
                   </span>
                 </Link>
               ) : (
-                <Link href="/login">
+                <Link href="/login" onClick={() => setIsNavigating(true)}>
                   <Button variant="secondary" size="sm" className="border-gold/30 text-gold hover:bg-gold/10">
                     {t('login')}
                   </Button>

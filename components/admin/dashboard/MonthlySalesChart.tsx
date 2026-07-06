@@ -37,7 +37,7 @@ function CustomTooltip({ active, payload, label }: any) {
 
 export default function MonthlySalesChart() {
   return (
-    <div className="bg-white/5 rounded-2xl border border-white/10 p-6 shadow-2xl hover:shadow-gold/5 transition-all duration-300">
+    <div className="bg-white/5 rounded-2xl border border-white/10 p-6 shadow-sm hover:shadow-gold/5 transition-all duration-300">
       <div className="flex items-center justify-between mb-6">
         <div>
           <h3 className="font-semibold text-foreground">Ventes Mensuelles</h3>

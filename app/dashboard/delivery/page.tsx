@@ -185,7 +185,7 @@ export default function DeliveryDashboard() {
           { label: 'Total missions',value: stats.totalAssigned,        icon: <Package size={18} />,     color: 'text-gold bg-gold/10'              },
           { label: 'En route',      value: tasks.filter(t => t.status === 'in_transit' || t.status === 'delivering').length, icon: <Navigation size={18} />, color: 'text-blue-400 bg-blue-400/10' },
         ].map(s => (
-          <div key={s.label} className="bg-white/5 rounded-2xl border border-white/10 p-5 shadow-2xl">
+          <div key={s.label} className="bg-white/5 rounded-2xl border border-white/10 p-5 shadow-sm">
             <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-3 ${s.color}`}>{s.icon}</div>
             <p className="text-2xl font-bold text-foreground">{s.value}</p>
             <p className="text-xs text-foreground/40 mt-0.5">{s.label}</p>
@@ -210,7 +210,7 @@ export default function DeliveryDashboard() {
               return (
                 <div
                   key={task.id}
-                  className="bg-white/5 rounded-2xl border border-white/10 p-5 shadow-2xl hover:shadow-gold/5 transition-all group"
+                  className="bg-white/5 rounded-2xl border border-white/10 p-5 shadow-sm hover:shadow-gold/5 transition-all group"
                 >
                   <div className="flex justify-between items-start mb-4">
                     <div>
@@ -281,7 +281,7 @@ export default function DeliveryDashboard() {
             })}
 
             {pendingTasks.length === 0 && (
-              <div className="text-center py-12 bg-white/5 rounded-2xl border border-white/10 shadow-2xl">
+              <div className="text-center py-12 bg-white/5 rounded-2xl border border-white/10 shadow-sm">
                 <CheckCircle size={48} className="text-emerald-500/20 mx-auto mb-4" />
                 <p className="text-foreground font-medium">{t('all_missions_done')}</p>
                 <p className="text-xs text-foreground/40 mt-1">{t('check_later_desc')}</p>
@@ -319,7 +319,7 @@ export default function DeliveryDashboard() {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <button
           onClick={() => router.push('/dashboard/delivery/orders')}
-          className="bg-white/5 rounded-2xl border border-white/10 p-5 shadow-2xl hover:shadow-gold/5 transition-all text-left group"
+          className="bg-white/5 rounded-2xl border border-white/10 p-5 shadow-sm hover:shadow-gold/5 transition-all text-left group"
         >
           <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center text-foreground mb-3 group-hover:scale-110 transition-transform">
             <Truck size={20} />
@@ -329,7 +329,7 @@ export default function DeliveryDashboard() {
         </button>
         <button
           onClick={() => router.push('/dashboard/delivery/profile')}
-          className="bg-white/5 rounded-2xl border border-white/10 p-5 shadow-2xl hover:shadow-gold/5 transition-all text-left group"
+          className="bg-white/5 rounded-2xl border border-white/10 p-5 shadow-sm hover:shadow-gold/5 transition-all text-left group"
         >
           <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-foreground mb-3 group-hover:scale-110 transition-transform">
             <Palette size={20} />
@@ -342,7 +342,7 @@ export default function DeliveryDashboard() {
       {/* ── Detail modal ──────────────────────────────────────────────────────── */}
       {selected && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-background rounded-2xl w-full max-w-md shadow-2xl border border-white/10 max-h-[90vh] overflow-y-auto">
+          <div className="bg-background rounded-2xl w-full max-w-md shadow-sm border border-white/10 max-h-[90vh] overflow-y-auto">
             <div className="sticky top-0 bg-background border-b border-white/10 px-6 py-4 flex items-center justify-between z-10">
               <div>
                 <h3 className="font-bold text-foreground">Commande {selected.orderId}</h3>
@@ -433,7 +433,7 @@ export default function DeliveryDashboard() {
       {/* ── Fail reason modal ─────────────────────────────────────────────────── */}
       {failModal && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-background rounded-2xl w-full max-w-sm shadow-2xl border border-white/10 p-6">
+          <div className="bg-background rounded-2xl w-full max-w-sm shadow-sm border border-white/10 p-6">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-bold text-foreground">Signaler un échec</h3>
               <button onClick={() => setFailModal(null)} className="p-2 rounded-xl hover:bg-white/5 text-foreground/40">

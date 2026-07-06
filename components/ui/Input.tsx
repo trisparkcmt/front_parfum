@@ -39,9 +39,10 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
       if (onChange) onChange(e);
     };
 
-    const labelText = label || placeholder;
+    const labelText = label ?? placeholder;
     const isFloating = isFocused || hasValue;
     const finalType = type === 'password' && showPassword ? 'text' : type;
+    const inputPlaceholder = labelText ? ' ' : placeholder;
 
     return (
       <div className="w-full">
@@ -59,7 +60,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
             onFocus={handleFocus}
             onBlur={handleBlur}
             onChange={handleChange}
-            placeholder={isFocused ? placeholder : ' '}
+            placeholder={inputPlaceholder}
             className={cn(
               'w-full border bg-white/5 text-sm text-foreground focus:border-gold focus:ring-2 focus:ring-gold/20 focus:outline-none transition-all duration-200',
               labelText ? 'pt-5 pb-1.5 px-4' : 'py-2.5 px-4',
@@ -144,6 +145,7 @@ export const FloatInput = forwardRef<HTMLInputElement, FloatInputProps>(
 
     const isFloating = isFocused || hasValue;
     const finalType = type === 'password' && showPassword ? 'text' : type;
+    const inputPlaceholder = ' ';
 
     return (
       <div className="w-full">
@@ -161,7 +163,7 @@ export const FloatInput = forwardRef<HTMLInputElement, FloatInputProps>(
             onFocus={handleFocus}
             onBlur={handleBlur}
             onChange={handleChange}
-            placeholder={isFocused ? props.placeholder : ' '}
+            placeholder={inputPlaceholder}
             className={cn(
               'w-full border bg-white/5 text-sm text-foreground focus:border-gold focus:ring-2 focus:ring-gold/20 focus:outline-none transition-all duration-200 rounded-xl pt-5 pb-1.5 px-4',
               icon && 'pl-10',

@@ -78,7 +78,7 @@ export default function ServeuseDashboardPage() {
               { label: 'Accessoires', value: stats.accessoriesCount, icon: <Gem size={20} />, color: 'text-emerald-400 bg-emerald-500/10' },
               { label: 'Flacons', value: stats.bottlesCount, icon: <Droplets size={20} />, color: 'text-blue-400 bg-blue-500/10' },
             ].map((stat) => (
-              <div key={stat.label} className="bg-white/5 rounded-2xl border border-white/10 p-5 shadow-2xl group hover:border-gold/30 transition-all">
+              <div key={stat.label} className="bg-white/5 rounded-2xl border border-white/10 p-5 shadow-sm group hover:border-gold/30 transition-all">
                 <div className="flex items-center justify-between mb-3">
                   <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${stat.color}`}>
                     {stat.icon}

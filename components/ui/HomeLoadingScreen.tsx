@@ -35,7 +35,7 @@ export default function HomeLoadingScreen() {
           transition={{ duration: 2.5, repeat: Infinity }}
           className="flex items-center justify-center"
         >
-          <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-gold to-gold-dark flex items-center justify-center shadow-2xl shadow-gold/30">
+          <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-gold to-gold-dark flex items-center justify-center shadow-sm shadow-gold/30">
             <Sparkles size={40} className="text-black" />
           </div>
         </motion.div>

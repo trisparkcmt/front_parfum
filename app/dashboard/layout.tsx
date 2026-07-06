@@ -31,7 +31,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   // Client, Partner, Delivery get a simple dark layout
   return (
     <div className="min-h-screen bg-background">
-      {/* <div className="bg-foreground/5 backdrop-blur-xl border-b border-[var(--t-border)] py-4 shadow-2xl">
+      {/* <div className="bg-foreground/5 backdrop-blur-xl border-b border-[var(--t-border)] py-4 shadow-sm">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-center">
           <div className="flex items-center gap-4">
             <h1 className="font-bold text-foreground text-lg">

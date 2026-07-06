@@ -62,7 +62,7 @@ const pieData = [
 function CustomTooltip({ active, payload, label }: any) {
   if (!active || !payload) return null;
   return (
-    <div className="bg-[#171717] border border-white/10 text-foreground px-4 py-3 rounded-xl shadow-2xl text-xs">
+    <div className="bg-[#171717] border border-white/10 text-foreground px-4 py-3 rounded-xl shadow-sm text-xs">
       <p className="font-semibold mb-2">{label}</p>
       {payload.map((p: any, i: number) => (
         <p key={i} className="flex items-center gap-2 mt-1">
@@ -97,7 +97,7 @@ export default function RevenuePage() {
           { label: 'Accessoires', value: '11M', sub: 'FCFA', change: '+18.2%', pos: true },
           { label: 'Commissions', value: '3.5M', sub: 'FCFA', change: '-2.1%', pos: false },
         ].map(k => (
-          <div key={k.label} className="bg-white/5 rounded-2xl border border-white/10 p-5 shadow-2xl hover:shadow-gold/5 transition-all">
+          <div key={k.label} className="bg-white/5 rounded-2xl border border-white/10 p-5 shadow-sm hover:shadow-gold/5 transition-all">
             <p className="text-xs text-foreground/40 mb-2">{k.label}</p>
             <p className="text-2xl font-bold text-foreground">
               {k.value} <span className="text-sm font-medium text-foreground/40">{k.sub}</span>
@@ -112,7 +112,7 @@ export default function RevenuePage() {
 
       {/* Charts row */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-        <div className="xl:col-span-2 bg-white/5 rounded-2xl border border-white/10 p-6 shadow-2xl">
+        <div className="xl:col-span-2 bg-white/5 rounded-2xl border border-white/10 p-6 shadow-sm">
           <div className="flex items-center justify-between mb-5">
             <h3 className="font-semibold text-foreground">Revenus par catégorie</h3>
             <div className="flex items-center gap-4 text-xs">
@@ -146,7 +146,7 @@ export default function RevenuePage() {
           </div>
         </div>
 
-        <div className="bg-white/5 rounded-2xl border border-white/10 p-6 shadow-2xl">
+        <div className="bg-white/5 rounded-2xl border border-white/10 p-6 shadow-sm">
           <h3 className="font-semibold text-foreground mb-5">Répartition des ventes</h3>
           <div className="h-[200px] w-full">
             {isMounted && (
