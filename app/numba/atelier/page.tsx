@@ -500,10 +500,14 @@ export default function AtelierPage() {
 
     setIsAddingToCart(true);
     try {
+      type DirectCompositionLine =
+        | { lot_essence_id: number; quantite_ml: number }
+        | { ingredient: number; quantite_ml: number };
+
       // Build lines using the backend contract for direct composition
       const lignes = Object.entries(quantities)
         .filter(([_, qty]) => Number(qty) > 0)
-        .map(([essenceId, quantityMl]) => {
+        .map<DirectCompositionLine | null>(([essenceId, quantityMl]) => {
           const item = ALL_ITEMS.find(e => e.id === essenceId);
           if (!item) return null;
 
@@ -519,7 +523,7 @@ export default function AtelierPage() {
             quantite_ml: Number(quantityMl),
           };
         })
-        .filter((line): line is { lot_essence_id?: number; ingredient?: number; quantite_ml: number } => line !== null);
+        .filter((line): line is DirectCompositionLine => line !== null);
 
       if (!selectedFlaconId) {
         addToast(
