@@ -733,7 +733,7 @@ export const labService = {
     description?: string;
     flacon: number;
     lignes: Array<{
-      essence_catalogue?: number;
+      essence?: number;
       essence_personnalisee?: number;
       ingredient?: number;
       quantite_ml: number;

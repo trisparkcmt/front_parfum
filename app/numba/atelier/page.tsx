@@ -500,16 +500,26 @@ export default function AtelierPage() {
 
     setIsAddingToCart(true);
     try {
-      // Build lines using lot_essence_id (or backendId as fallback) for direct composition
+      // Build lines using the backend contract for direct composition
       const lignes = Object.entries(quantities)
-        .filter(([_, qty]) => qty > 0)
+        .filter(([_, qty]) => Number(qty) > 0)
         .map(([essenceId, quantityMl]) => {
           const item = ALL_ITEMS.find(e => e.id === essenceId);
+          if (!item) return null;
+
+          if (item.itemType === 'ingredient') {
+            return {
+              ingredient: item.backendId ?? Number(essenceId),
+              quantite_ml: Number(quantityMl),
+            };
+          }
+
           return {
-            lot_essence_id: item?.lotEssenceId || item?.backendId || 0,
-            quantite_ml: quantityMl,
+            lot_essence_id: item.lotEssenceId || item.backendId || Number(essenceId),
+            quantite_ml: Number(quantityMl),
           };
-        });
+        })
+        .filter((line): line is { lot_essence_id?: number; ingredient?: number; quantite_ml: number } => line !== null);
 
       if (!selectedFlaconId) {
         addToast(

@@ -93,7 +93,11 @@ interface CartState {
   addCustomEssence: (essencePersoId: number, quantite?: number) => Promise<void>;
   addDirectComposition: (data: {
     flacon_id: number;
-    lignes: Array<{ lot_essence_id: number; quantite_ml: number }>;
+    lignes: Array<{
+      lot_essence_id?: number;
+      ingredient?: number;
+      quantite_ml: number;
+    }>;
     nom?: string;
     note_client?: string;
     quantite?: number;
