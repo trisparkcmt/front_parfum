@@ -806,7 +806,7 @@ export default function LabPage() {
             </div>
 
             {/* Tabs Panel */}
-            <div className="bg-white/5 rounded-2xl border border-white/10 overflow-hidden shadow-xl">
+            <div className="bg-white/5 rounded-2xl border border-white/10 overflow-hidden shadow-sm">
               <div className="flex border-b border-white/10 overflow-x-auto">
                 <TabButton
                   active={activeTab === 'ingredients'}

@@ -238,7 +238,7 @@ export const InputBar = memo(function InputBar({
   return (
     <div className={cn("shrink-0 px-3 pb-3 w-full", className)}>
       <div className="mx-auto max-w-3xl">
-        <div className="relative cursor-text rounded-[24px] bg-white dark:bg-neutral-900 shadow-xl ring-1 ring-neutral-200 dark:ring-neutral-800 focus-within:ring-gold/40 transition-shadow">
+        <div className="relative cursor-text rounded-[24px] bg-white dark:bg-neutral-900 shadow-sm ring-1 ring-neutral-200 dark:ring-neutral-800 focus-within:ring-gold/40 transition-shadow">
           {/* Attachments Area */}
           <div className={cn("grid transition-[grid-template-rows] duration-200 ease-out", hasContextItems ? "grid-rows-[1fr]" : "grid-rows-[0fr]")}>
             <div className="overflow-hidden">

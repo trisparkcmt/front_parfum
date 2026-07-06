@@ -337,7 +337,7 @@ export default function OrdersPage() {
       {/* ── KPI Row ────────────────────────────────────────────────────────── */}
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
         {kpi.map(k => (
-          <div key={k.label} className="bg-white/5 rounded-2xl border border-white/10 p-4 shadow-xl backdrop-blur-md">
+          <div key={k.label} className="bg-white/5 rounded-2xl border border-white/10 p-4 shadow-sm backdrop-blur-md">
             <p className="text-[10px] text-foreground/40 uppercase font-bold tracking-widest mb-1">{k.label}</p>
             <p className={`text-2xl font-bold ${k.color}`}>{k.value}</p>
           </div>
@@ -345,7 +345,7 @@ export default function OrdersPage() {
       </div>
 
       {/* ── Filter Bar ─────────────────────────────────────────────────────── */}
-      <div className="bg-white/5 rounded-2xl border border-white/10 p-4 shadow-xl backdrop-blur-md space-y-3">
+      <div className="bg-white/5 rounded-2xl border border-white/10 p-4 shadow-sm backdrop-blur-md space-y-3">
         {/* row 1: search + toggle */}
         <div className="flex gap-3 items-center">
           <div className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 flex-1">

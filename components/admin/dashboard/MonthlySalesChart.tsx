@@ -23,7 +23,7 @@ const data = [
 function CustomTooltip({ active, payload, label }: any) {
   if (!active || !payload) return null;
   return (
-    <div className="bg-[#1E293B] text-foreground px-4 py-3 rounded-xl shadow-xl text-xs">
+    <div className="bg-[#1E293B] text-foreground px-4 py-3 rounded-xl shadow-sm text-xs">
       <p className="font-semibold mb-2">{label}</p>
       {payload.map((p: any, i: number) => (
         <p key={i} className="flex items-center gap-2">

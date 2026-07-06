@@ -40,7 +40,7 @@ export default function AdminProfilePage() {
         <div className="md:col-span-1 space-y-6">
           <div className="bg-gray-800/5 rounded-2xl border border-white/10 p-6  text-center">
             <div className="relative inline-block mb-4">
-              <div className="w-24 h-24 rounded-full bg-gradient-to-br from-gold to-gold-dark flex items-center justify-center text-black text-3xl font-bold shadow-xl shadow-gold/20">
+              <div className="w-24 h-24 rounded-full bg-gradient-to-br from-gold to-gold-dark flex items-center justify-center text-black text-3xl font-bold shadow-sm shadow-gold/20">
                 {user?.firstName?.charAt(0)}{user?.lastName?.charAt(0)}
               </div>
               <button className="absolute bottom-0 right-0 p-1.5 bg-background rounded-full border border-white/10 text-foreground/40 hover:text-gold shadow-sm transition-colors">

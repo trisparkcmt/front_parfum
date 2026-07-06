@@ -133,7 +133,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
 
       {/* Dropdown Panel */}
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-96 max-h-96 bg-background border border-foreground/10 rounded-lg shadow-xl flex flex-col z-50">
+        <div className="absolute right-0 mt-2 w-96 max-h-96 bg-background border border-foreground/10 rounded-lg shadow-sm flex flex-col z-50">
           {/* Header */}
           <div className="p-4 border-b border-foreground/10 flex items-center justify-between">
             <h3 className="font-semibold text-foreground">Notifications</h3>

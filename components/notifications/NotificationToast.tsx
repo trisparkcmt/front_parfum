@@ -122,7 +122,7 @@ export const NotificationToast: React.FC<NotificationToastProps> = ({
         backdrop-blur-sm
         transform transition-all duration-300
         animate-in slide-in-from-right-full
-        hover:shadow-xl
+        hover:shadow-sm
         overflow-hidden
         group
         cursor-pointer

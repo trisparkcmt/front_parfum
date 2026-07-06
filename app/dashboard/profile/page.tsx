@@ -216,7 +216,7 @@ export default function ProfilePage() {
           <div className="flex flex-col sm:flex-row sm:items-end gap-5">
             {/* avatar */}
             <div className="relative shrink-0">
-              <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl bg-gradient-to-br from-gold to-gold-dark flex items-center justify-center text-black text-3xl sm:text-4xl font-black shadow-xl shadow-gold/30 ring-4 ring-background">
+              <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl bg-gradient-to-br from-gold to-gold-dark flex items-center justify-center text-black text-3xl sm:text-4xl font-black shadow-sm shadow-gold/30 ring-4 ring-background">
                 {initials}
               </div>
               <button

@@ -75,7 +75,7 @@ export default function PartnerDashboard() {
       </div>
 
       {/* Commission banner */}
-      <div className="bg-gradient-to-r from-amber-500 to-amber-600 rounded-2xl p-6 text-foreground relative overflow-hidden shadow-xl shadow-amber-500/20">
+      <div className="bg-gradient-to-r from-amber-500 to-amber-600 rounded-2xl p-6 text-foreground relative overflow-hidden shadow-sm shadow-amber-500/20">
         <div className="absolute top-0 right-0 opacity-10">
           <Percent size={120} />
         </div>

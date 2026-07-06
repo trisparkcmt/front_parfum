@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils';
 import { Eye, EyeOff } from 'lucide-react';
 
 interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
-  label?: string;
+  label: string; // REQUIRED: always display on top
   error?: string;
   icon?: React.ReactNode;
 }
@@ -39,14 +39,14 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
       if (onChange) onChange(e);
     };
 
-    const labelText = label ?? placeholder;
-    const isFloating = isFocused || hasValue;
     const finalType = type === 'password' && showPassword ? 'text' : type;
-    const inputPlaceholder = labelText ? ' ' : placeholder;
 
     return (
       <div className="w-full">
-        <div className="relative mt-2">
+        <label htmlFor={id} className="block text-sm font-medium text-foreground/70 mb-1">
+          {label}
+        </label>
+        <div className="relative">
           {icon && (
             <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-foreground/40 z-10 pointer-events-none">
               {icon}
@@ -60,10 +60,10 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
             onFocus={handleFocus}
             onBlur={handleBlur}
             onChange={handleChange}
-            placeholder={inputPlaceholder}
+            placeholder={placeholder || ''}
             className={cn(
-              'w-full border bg-white/5 text-sm text-foreground focus:border-gold focus:ring-2 focus:ring-gold/20 focus:outline-none transition-all duration-200',
-              labelText ? 'pt-5 pb-1.5 px-4' : 'py-2.5 px-4',
+              'w-full border bg-white/5 text-sm text-foreground placeholder:text-foreground/40 focus:border-gold focus:ring-2 focus:ring-gold/20 focus:outline-none transition-all duration-200',
+              'py-2.5 px-4',
               icon && 'pl-10',
               type === 'password' && 'pr-10',
               error ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : 'border-white/10',
@@ -72,20 +72,6 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
             {...props}
           />
 
-          {labelText && (
-            <label
-              htmlFor={id}
-              className={cn(
-                'absolute transition-all duration-200 pointer-events-none origin-left',
-                icon ? 'left-10' : 'left-4',
-                isFloating
-                  ? 'top-1 text-[9px] font-bold text-gold uppercase tracking-wider scale-90'
-                  : 'top-1/2 -translate-y-1/2 text-sm text-foreground/30'
-              )}
-            >
-              {labelText}
-            </label>
-          )}
 
           {type === 'password' && (
             <button

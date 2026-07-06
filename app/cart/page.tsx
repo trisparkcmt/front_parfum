@@ -348,6 +348,7 @@ export default function CartPage() {
                 {deliveryType === 'delivery' && (
                   <div className="space-y-2 mt-2">
                     <Input
+                      label={t('city', { defaultValue: 'Ville' })}
                       placeholder={t('city', { defaultValue: 'Ville (ex: Yaoundé)' })}
                       value={deliveryCity}
                       onChange={(e) => setDeliveryCity(e.target.value)}
@@ -468,6 +469,7 @@ export default function CartPage() {
             {!cart?.code_promo_applique ? (
               <form onSubmit={handleApplyPromo} className="flex gap-2 mb-8">
                 <Input
+                  label={t('promo_code', { defaultValue: 'Code promo' })}
                   placeholder={t('promo_code')}
                   value={promoInput}
                   onChange={(e) => setPromoInput(e.target.value)}

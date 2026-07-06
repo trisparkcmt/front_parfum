@@ -72,7 +72,7 @@ export default function CategoriesPage() {
         <p className="text-sm text-foreground/40 mt-0.5">Types d'accessoires, flacons et catégories de parfums (Lecture seule)</p>
       </div>
 
-      <div className="bg-white/5 rounded-2xl border border-white/10 overflow-hidden shadow-xl">
+      <div className="bg-white/5 rounded-2xl border border-white/10 overflow-hidden shadow-sm">
         <div className="flex border-b border-white/10 overflow-x-auto">
           <TabButton active={activeTab === 'perfume_categories'} onClick={() => setActiveTab('perfume_categories')} icon={<Sparkles size={14} />} label="Catégories Parfums" />
           <TabButton active={activeTab === 'accessory_categories'} onClick={() => setActiveTab('accessory_categories')} icon={<Gem size={14} />} label="Catégories Accessoires" />

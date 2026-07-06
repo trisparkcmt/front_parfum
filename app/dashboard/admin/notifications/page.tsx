@@ -138,19 +138,19 @@ export default function NotificationsPage() {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-white/5 border border-white/10 rounded-2xl p-4 shadow-xl">
+        <div className="bg-white/5 border border-white/10 rounded-2xl p-4 shadow-sm">
           <p className="text-xs font-semibold text-foreground/40 uppercase tracking-wider">Total alertes</p>
           <p className="text-2xl font-bold text-foreground mt-1">{stats?.total ?? 0}</p>
         </div>
-        <div className="bg-red-500/5 border border-red-500/10 rounded-2xl p-4 shadow-xl">
+        <div className="bg-red-500/5 border border-red-500/10 rounded-2xl p-4 shadow-sm">
           <p className="text-xs font-semibold text-red-400/60 uppercase tracking-wider">Non lues</p>
           <p className="text-2xl font-bold text-red-400 mt-1">{stats?.non_lues ?? 0}</p>
         </div>
-        <div className="bg-emerald-500/5 border border-emerald-500/10 rounded-2xl p-4 shadow-xl">
+        <div className="bg-emerald-500/5 border border-emerald-500/10 rounded-2xl p-4 shadow-sm">
           <p className="text-xs font-semibold text-emerald-400/60 uppercase tracking-wider">Lues</p>
           <p className="text-2xl font-bold text-emerald-400 mt-1">{stats?.lues ?? 0}</p>
         </div>
-        <div className="bg-white/5 border border-white/10 rounded-2xl p-4 shadow-xl flex flex-col justify-between">
+        <div className="bg-white/5 border border-white/10 rounded-2xl p-4 shadow-sm flex flex-col justify-between">
           <p className="text-xs font-semibold text-foreground/40 uppercase tracking-wider">Par type de produit</p>
           <div className="flex flex-wrap gap-2 mt-2">
             {stats?.par_type_produit?.map((item: any) => (

@@ -154,7 +154,7 @@ export default function DeliveryDashboard() {
       <BackButton />
 
       {/* Welcome banner */}
-      <div className="bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-2xl p-6 text-foreground relative overflow-hidden shadow-xl shadow-emerald-500/20">
+      <div className="bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-2xl p-6 text-foreground relative overflow-hidden shadow-sm shadow-emerald-500/20">
         <div className="absolute top-0 right-0 opacity-10">
           <Truck size={120} />
         </div>

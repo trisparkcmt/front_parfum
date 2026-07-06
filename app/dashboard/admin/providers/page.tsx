@@ -409,7 +409,7 @@ export default function ProviderDashboardPage() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               {/* Left Column: Logs / Transactions */}
               <div className="lg:col-span-2 space-y-6">
-                <div className="bg-white/5 rounded-3xl border border-white/10 overflow-hidden backdrop-blur-md shadow-xl">
+                <div className="bg-white/5 rounded-3xl border border-white/10 overflow-hidden backdrop-blur-md shadow-sm">
                   {/* Tabs header */}
                   <div className="flex border-b border-white/10 bg-white/5">
                     <button
@@ -552,7 +552,7 @@ export default function ProviderDashboardPage() {
               {/* Right Column: Settings & Payout Form */}
               <div className="space-y-6">
                 {/* Edit Config Rules */}
-                <div className="bg-white/5 rounded-3xl border border-white/10 p-6 backdrop-blur-md shadow-xl">
+                <div className="bg-white/5 rounded-3xl border border-white/10 p-6 backdrop-blur-md shadow-sm">
                   <div className="flex items-center gap-3 mb-5">
                     <Target className="text-gold" size={20} />
                     <h3 className="font-bold text-base text-foreground">Paramètres Financiers</h3>
@@ -618,7 +618,7 @@ export default function ProviderDashboardPage() {
                 </div>
 
                 {/* Mobile Money Payout Trigger */}
-                <div className="bg-white/5 rounded-3xl border border-gold/20 p-6 backdrop-blur-md shadow-xl shadow-gold/5">
+                <div className="bg-white/5 rounded-3xl border border-gold/20 p-6 backdrop-blur-md shadow-sm shadow-gold/5">
                   <div className="flex items-center gap-3 mb-5">
                     <Coins className="text-gold" size={20} />
                     <h3 className="font-bold text-base text-foreground">Virement de Commission</h3>
@@ -657,7 +657,7 @@ export default function ProviderDashboardPage() {
                 </div>
 
                 {/* Promo Sharing link */}
-                <div className="bg-white/5 rounded-3xl border border-white/10 p-6 backdrop-blur-md shadow-xl">
+                <div className="bg-white/5 rounded-3xl border border-white/10 p-6 backdrop-blur-md shadow-sm">
                   <p className="text-[10px] font-bold text-foreground/40 uppercase mb-3.5 tracking-widest">
                     Outils de parrainage
                   </p>
@@ -734,7 +734,7 @@ export default function ProviderDashboardPage() {
       </div>
 
       {/* Search & Filters */}
-      <div className="bg-white/5 rounded-2xl border border-white/10 p-4 shadow-xl flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-4 backdrop-blur-md">
+      <div className="bg-white/5 rounded-2xl border border-white/10 p-4 shadow-sm flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-4 backdrop-blur-md">
         <div className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-xl px-3.5 py-2.5 max-w-sm flex-1">
           <Search size={16} className="text-foreground/40" />
           <input
