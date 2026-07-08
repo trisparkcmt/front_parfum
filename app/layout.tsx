@@ -12,6 +12,12 @@ export const metadata: Metadata = {
     template: '%s | Accessoires Exclusifs',
   },
   description: 'Plateforme e-commerce de luxe intégrant une boutique d\'accessoires, de parfumerie de marque, et un atelier de création olfactive assisté par IA.',
+  
+  // Google Site Verification Key Added Successfully
+  verification: {
+    google: '5nPGSz3ynU22pUw1Ycf-uzj-WYM1a6yx3GNfRBlFEGM',
+  },
+
   keywords: [
     'accessoires exclusifs',
     'parfums de marque',
@@ -82,6 +88,8 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   themeColor: '#C5A059',
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{

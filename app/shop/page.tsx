@@ -1,8 +1,5 @@
-'use client';
-
 import { Metadata } from 'next';
-import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import ShopRedirectClient from './ShopRedirectClient';
 
 export const metadata: Metadata = {
   title: 'Boutique',
@@ -13,11 +10,5 @@ export const metadata: Metadata = {
 };
 
 export default function ShopPage() {
-  const router = useRouter();
-
-  useEffect(() => {
-    router.replace('/shop/perfumes');
-  }, [router]);
-
-  return null;
+  return <ShopRedirectClient />;
 }
