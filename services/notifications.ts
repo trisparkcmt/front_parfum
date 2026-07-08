@@ -1,90 +1,142 @@
 import { initializeApp } from 'firebase/app';
 import { getMessaging, getToken, onMessage } from 'firebase/messaging';
 import { firebaseApp } from '@/lib/firebase';
-import { api } from '@/services/api';
 import { useToastStore } from '@/store/useToastStore';
 
-// Use VAPID key in original URL-safe base64 format as provided by Firebase
-const VAPID_KEY = 'BIH086VT_ZEmPMDKIoJUfyaPmRQXF9sXGhGQpdQFHTK467Y4rKTm6TJHVNKZV1TPCLe8BCqNIRWVOXHqXLNd2r8';
-
+const VAPID_KEY = "F0KwqkUGUbWZxo-vWoyYJzB073iJlXFZrdfCEs4UeQk";
 const STORAGE_KEY = 'fcm_token';
 
 function isBrowser() {
   return typeof window !== 'undefined' && typeof navigator !== 'undefined';
 }
 
-export async function registerPushNotifications(authToken: string): Promise<void> {
-  if (!isBrowser()) return;
-  try {
-    console.log('[FCM] Starting registration...');
+export function isSupportedBrowser() {
+  return (
+    isBrowser() &&
+    'Notification' in window &&
+    'serviceWorker' in navigator &&
+    'PushManager' in window
+  );
+}
 
+export async function registerPushNotifications(authToken: string): Promise<void> {
+  if (!isSupportedBrowser()) {
+    console.warn('[FCM] Push notifications are not supported in this browser/environment.');
+    return;
+  }
+
+  try {
+    console.log('[FCM] Requesting notification permission...');
     const permission = await Notification.requestPermission();
-    console.log('[FCM] Notification permission:', permission);
     if (permission !== 'granted') {
-      console.warn('[FCM] Permission refused by user');
+      console.warn('[FCM] Notification permission denied by user.');
       return;
     }
 
-    console.log('[FCM] Registering service worker...');
-    const swReg = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
-    console.log('[FCM] Service worker registered:', swReg);
+    console.log('[FCM] Registering Service Worker...');
+    // Register the SW
+    const swRegistration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+    console.log('[FCM] Service Worker registered. Waiting for it to be ready...');
+
+    // Wait until the Service Worker is fully active to avoid intermittent getToken failures
+    await navigator.serviceWorker.ready;
+    console.log('[FCM] Service Worker is ready.');
 
     const messaging = getMessaging(firebaseApp);
-    console.log('[FCM] Getting token with VAPID key:', VAPID_KEY);
-    const fcmToken = await getToken(messaging, { vapidKey: VAPID_KEY, serviceWorkerRegistration: swReg });
+    console.log('[FCM] Fetching FCM token...');
+    const fcmToken = await getToken(messaging, {
+      vapidKey: VAPID_KEY,
+      serviceWorkerRegistration: swRegistration,
+    });
+
     if (!fcmToken) {
-      console.warn('[FCM] No FCM token obtained');
+      console.warn('[FCM] Failed to obtain registration token.');
       return;
     }
 
-    console.log('[FCM] Token obtained:', fcmToken);
+    console.log('[FCM] FCM Token obtained:', fcmToken);
 
-    console.log('[FCM] Sending registration to backend using cookie-based session...');
-    const registerResponse = await api.post('utilisateur/devices/register/', {
-      registration_token: fcmToken,
-      platform: 'web',
+    // Skip backend registration call if token hasn't changed
+    const cachedToken = localStorage.getItem(STORAGE_KEY);
+    if (cachedToken === fcmToken) {
+      console.log('[FCM] Token is unchanged. Skipping backend registration.');
+      return;
+    }
+
+    console.log('[FCM] Registering token with backend...');
+    // Use raw fetch to ensure Authorization header is formatted correctly and handle timeout/re-wake ups
+    const response = await fetch('https://accessoires-exclusifs-api.onrender.com/api/v1/utilisateur/devices/register/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Token ${authToken}`,
+      },
+      body: JSON.stringify({
+        registration_token: fcmToken,
+        platform: 'web',
+      }),
     });
-    console.log('[FCM] Register response status:', registerResponse.status);
-    console.log('[FCM] Register response body:', registerResponse.data);
 
+    if (!response.ok) {
+      throw new Error(`Backend registration failed with status: ${response.status}`);
+    }
+
+    console.log('[FCM] Successfully registered device with backend.');
     localStorage.setItem(STORAGE_KEY, fcmToken);
-    console.log('[FCM] Token stored locally');
   } catch (error) {
-    console.error('[FCM] Registration error:', error);
+    console.error('[FCM] Error registering push notifications:', error);
   }
 }
 
 export async function unregisterPushNotifications(authToken: string): Promise<void> {
   if (!isBrowser()) return;
-  try {
-    const fcmToken = localStorage.getItem(STORAGE_KEY);
-    if (!fcmToken) return;
+  const fcmToken = localStorage.getItem(STORAGE_KEY);
+  if (!fcmToken) {
+    console.log('[FCM] No token found in localStorage to unregister.');
+    return;
+  }
 
-    const resp = await api.post('utilisateur/devices/unregister/', {
-      registration_token: fcmToken,
+  try {
+    console.log('[FCM] Unregistering token from backend...');
+    const response = await fetch('https://accessoires-exclusifs-api.onrender.com/api/v1/utilisateur/devices/unregister/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Token ${authToken}`,
+      },
+      body: JSON.stringify({
+        registration_token: fcmToken,
+      }),
     });
-    console.log('[FCM] Unregister response status:', resp.status);
+
+    if (!response.ok) {
+      throw new Error(`Backend unregistration failed with status: ${response.status}`);
+    }
 
     localStorage.removeItem(STORAGE_KEY);
-    console.log('[FCM] Token unregistered and removed locally');
+    console.log('[FCM] Successfully unregistered device from backend and cleared local storage.');
   } catch (error) {
-    console.error('[FCM] Unregister error:', error);
+    console.error('[FCM] Error unregistering push notifications:', error);
   }
 }
 
 export function listenForegroundNotifications(): void {
-  if (!isBrowser()) return;
+  if (!isSupportedBrowser()) return;
   try {
     const messaging = getMessaging(firebaseApp);
     onMessage(messaging, (payload) => {
-      const title = payload.notification?.title || 'Notification';
-      const body = payload.notification?.body || '';
+      console.log('[FCM] Foreground notification received:', payload);
+      
+      const title = payload.notification?.title || payload.data?.title || 'Notification';
+      const body = payload.notification?.body || payload.data?.body || '';
+
+      // HOOK TOAST / UI ALERTS HERE
       const addToast = useToastStore.getState().addToast;
       addToast(`${title}: ${body}`, 'info');
     });
-    console.log('[FCM] Listening for foreground notifications');
+    console.log('[FCM] Listening for foreground notifications.');
   } catch (error) {
-    console.error('[FCM] Error setting up foreground listener:', error);
+    console.error('[FCM] Error listening for foreground notifications:', error);
   }
 }
 
