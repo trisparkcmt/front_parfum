@@ -6,6 +6,9 @@ import { ToastProvider } from "@/components/shared/ToastProvider";
 import { FCMProvider } from "@/components/pwa/FCMProvider";
 import { InstallPrompt } from "@/components/pwa/InstallPrompt";
 
+// 1. Import the optimized Next.js Google Analytics component
+import { GoogleAnalytics } from '@next/third-parties/google';
+
 export const metadata: Metadata = {
   metadataBase: new URL('https://accessoires-exclusifs.vercel.app'),
   title: {
@@ -14,7 +17,6 @@ export const metadata: Metadata = {
   },
   description: 'Plateforme e-commerce de luxe intégrant une boutique d\'accessoires, de parfumerie de marque, et un atelier de création olfactive assisté par IA.',
   
-  // Google Site Verification Key Added Successfully
   verification: {
     google: '5nPGSz3ynU22pUw1Ycf-uzj-WYM1a6yx3GNfRBlFEGM',
   },
@@ -128,6 +130,9 @@ export default function RootLayout({
         <ToastProvider />
         <FCMProvider />
         <InstallPrompt />
+
+        {/* 2. Google Analytics tracking code */}
+        <GoogleAnalytics gaId="G-JG0NYEN3VL" />
       </body>
     </html>
   );
