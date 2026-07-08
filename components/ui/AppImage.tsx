@@ -69,18 +69,20 @@ export const AppImage: React.FC<AppImageProps> = ({
   const placeholder = '/icons/icon-192x192.jpeg';
   const finalSrc = errored || !resolved ? placeholder : resolved;
 
-  // Use native <img> when using fill to avoid styling constraints with next/image in some layouts
+  // Use Next.js Image with fill so that local/remote assets are optimized
   if (fill) {
     return (
-      // eslint-disable-next-line @next/next/no-img-element
-      <img
+      <Image
         src={finalSrc}
         alt={alt}
+        fill
         className={className}
-        style={{ objectFit: 'cover', width: '100%', height: '100%', ...(style || {}) }}
+        style={{ objectFit: 'cover', ...(style || {}) }}
+        sizes={sizes}
+        priority={priority}
+        quality={80}
+        loading={priority ? undefined : loading}
         onError={() => setErrored(true)}
-        loading={loading}
-        decoding="async"
       />
     );
   }

@@ -26,6 +26,7 @@ export default function Home() {
 
   return (
     <div className="flex flex-col w-full">
+      <h1 className="sr-only">Accessoires Exclusifs | Luxe & Création de Parfums</h1>
       <HomeHeader />
 
       {/* HERO */}

@@ -65,8 +65,8 @@
 
   /* Text tokens */
   --t-text-primary: #FAF7F2;
-  --t-text-secondary: rgba(250, 247, 242, 0.7);
-  --t-text-muted: rgba(250, 247, 242, 0.4);
+  --t-text-secondary: rgba(250, 247, 242, 0.75);
+  --t-text-muted: rgba(250, 247, 242, 0.6);
 
   /* Component tokens */
   --t-nav-bg: rgba(23, 23, 23, 0.95);
@@ -146,7 +146,7 @@
   /* Text tokens */
   --t-text-primary: #2E2316;
   --t-text-secondary: #0b0b0b;
-  --t-text-muted: #9A8D7F;
+  --t-text-muted: #6D5E50;
 
   /* Component tokens */
   --t-nav-bg: rgba(250, 245, 237, 0.92);

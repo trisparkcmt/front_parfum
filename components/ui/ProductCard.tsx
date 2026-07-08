@@ -103,7 +103,12 @@ export function ProductCard({
     >
 
       {/* ─── Image Block ─────────────────────────────────────── */}
-      <Link href={`/shop/product/${product.slug || product.id}`} className="block relative">
+      <Link
+        href={`/shop/product/${product.slug || product.id}`}
+        className="block relative"
+        tabIndex={-1}
+        aria-hidden="true"
+      >
         {/* Image Section */} 
         {product.taux_reduction && parseFloat(product.taux_reduction) > 0 && (
           <div className="absolute top-3 left-3 z-20 bg-red-600 text-white text-xs font-bold px-2 py-1 rounded-full">

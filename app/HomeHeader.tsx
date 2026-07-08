@@ -40,9 +40,9 @@ export default function HomeHeader() {
           <p className="text-xs uppercase tracking-[0.2em] text-foreground/50 font-medium">
             {t("shop_subtitle", { defaultValue: "Boutique en ligne" })}
           </p>
-          <h1 className="font-display text-xl font-semibold text-foreground leading-tight">
+          <p className="font-display text-xl font-semibold text-foreground leading-tight">
             Accessoires Exclusifs
-          </h1>
+          </p>
         </div>
 
         {isAuthenticated && user ? (

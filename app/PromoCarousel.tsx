@@ -10,6 +10,7 @@ import i18n from "@/lib/i18n";
 import { shopService } from "@/services/apiService";
 import { extractCatalogList } from "@/lib/catalogUtils";
 import type { ShopPromotion } from "@/types";
+import AppImage from "@/components/ui/AppImage";
 
 interface PromoEntry {
   key: string;
@@ -336,28 +337,36 @@ export default function PromoCarousel() {
                 key={promo.key}
                 data-promo-card
                 initial={{ opacity: 0, y: 16 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, delay: idx * 0.06 }}
-                className={`snap-center flex-shrink-0 w-[82%] min-w-[280px] max-w-[340px] sm:w-[320px] transition-all duration-300 ${
-                  isActive ? 'scale-100 opacity-100' : 'scale-95 opacity-70'
-                }`}
+                animate={{ 
+                  opacity: isActive ? 1 : 0.7, 
+                  scale: isActive ? 1 : 0.95,
+                  y: 0 
+                }}
+                transition={{ duration: 0.4 }}
+                className="snap-center flex-shrink-0 w-[82%] min-w-[280px] max-w-[340px] sm:w-[320px]"
               >
                 <Link
                   href={promo.link}
                   className="group relative block h-52 rounded-2xl overflow-hidden border border-gold/15 bg-deep-black"
                 >
-                  <div
-                    className="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-105"
-                    style={{ backgroundImage: `url('${promo.image || FALLBACK_IMAGE}')` }}
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent z-0" />
+                  <div className="absolute inset-0 pointer-events-none">
+                    <AppImage
+                      src={promo.image || FALLBACK_IMAGE}
+                      alt={promo.title}
+                      fill
+                      priority={isActive}
+                      sizes="(max-width: 1024px) 80vw, 340px"
+                      className="transition-transform duration-500 group-hover:scale-105"
+                    />
+                  </div>
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent z-10" />
 
                   {/* Active indicator ring */}
                   {isActive && (
                     <div className="absolute inset-0 rounded-2xl ring-2 ring-gold/40 pointer-events-none z-20" />
                   )}
 
-                  <div className="relative z-10 flex flex-col justify-between h-full p-5">
+                  <div className="relative z-20 flex flex-col justify-between h-full p-5">
                     {promo.discount > 0 ? (
                       <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-gold/20 border border-gold/40 text-gold text-[10px] font-bold uppercase tracking-widest w-fit backdrop-blur-sm">
                         <Tag size={11} />
@@ -426,12 +435,19 @@ export default function PromoCarousel() {
           >
             {/* Ken Burns — slow, subtle drift on the background image */}
             <motion.div
-              className="absolute inset-0 bg-cover bg-center"
-              style={{ backgroundImage: `url('${activeSlide.image || FALLBACK_IMAGE}')` }}
+              className="absolute inset-0"
               initial={{ scale: 1 }}
               animate={{ scale: 1.08 }}
               transition={{ duration: AUTO_SLIDE_INTERVAL / 1000 + 2, ease: 'linear' }}
-            />
+            >
+              <AppImage
+                src={activeSlide.image || FALLBACK_IMAGE}
+                alt={activeSlide.title}
+                fill
+                priority={true}
+                sizes="100vw"
+              />
+            </motion.div>
 
             {/* Directional scrim for text legibility */}
             <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/45 to-transparent" />
