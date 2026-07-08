@@ -7,20 +7,43 @@ import { InstallPrompt } from "@/components/pwa/InstallPrompt";
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://accessoires-exclusifs.vercel.app'),
-  title: "Accessoires Exclusifs | Luxe & Création de Parfums",
-  description: "Plateforme e-commerce de luxe intégrant une boutique d'accessoires, de parfumerie de marque, et un atelier de création olfactive assisté par IA.",
-  
-  // 1. OPEN GRAPH (For WhatsApp, LinkedIn, Facebook sharing optimization)
+  title: {
+    default: 'Accessoires Exclusifs | Luxe & Création de Parfums',
+    template: '%s | Accessoires Exclusifs',
+  },
+  description: 'Plateforme e-commerce de luxe intégrant une boutique d\'accessoires, de parfumerie de marque, et un atelier de création olfactive assisté par IA.',
+  keywords: [
+    'accessoires exclusifs',
+    'parfums de marque',
+    'dupes de parfums',
+    'atelier parfum',
+    'création parfum',
+    'e-commerce luxe',
+    'accessoires luxe',
+  ],
+  authors: [{ name: 'Accessoires Exclusifs' }],
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
+  },
+
   openGraph: {
-    title: "Accessoires Exclusifs | Luxe & Création de Parfums",
-    description: "Découvrez notre plateforme e-commerce de luxe, notre boutique d'accessoires, et notre atelier de création olfactive assisté par IA.",
+    title: 'Accessoires Exclusifs | Luxe & Création de Parfums',
+    description: 'Découvrez notre plateforme e-commerce de luxe, notre boutique d\'accessoires, et notre atelier de création olfactive assisté par IA.',
     url: 'https://accessoires-exclusifs.vercel.app',
     siteName: 'Accessoires Exclusifs',
     locale: 'fr_FR',
     type: 'website',
     images: [
       {
-        url: '/og-image.jpg', // Place a 1200x630px image in your public/ folder
+        url: '/og-image.svg',
         width: 1200,
         height: 630,
         alt: 'Accessoires Exclusifs - Atelier de création olfactive assisté par IA',
@@ -28,12 +51,11 @@ export const metadata: Metadata = {
     ],
   },
 
-  // 2. TWITTER / X CARD
   twitter: {
     card: 'summary_large_image',
-    title: "Accessoires Exclusifs | Luxe & Création de Parfums",
-    description: "Plateforme e-commerce de luxe et atelier de création olfactive assisté par IA.",
-    images: ['/og-image.jpg'],
+    title: 'Accessoires Exclusifs | Luxe & Création de Parfums',
+    description: 'Plateforme e-commerce de luxe et atelier de création olfactive assisté par IA.',
+    images: ['/og-image.svg'],
   },
 
   manifest: '/manifest.webmanifest',
@@ -44,25 +66,22 @@ export const metadata: Metadata = {
   },
   appleWebApp: {
     capable: true,
-    statusBarStyle: "default",
-    title: "Accessoires Exclusifs",
+    statusBarStyle: 'default',
+    title: 'Accessoires Exclusifs',
   },
   formatDetection: {
     telephone: false,
   },
-  
-  // 3. FIXED CANONICAL URL (Next.js automatically handles appending nested pathnames if set to '')
   alternates: {
-    canonical: '',
+    canonical: 'https://accessoires-exclusifs.vercel.app',
   },
 };
 
 export const viewport: Viewport = {
-  width: "device-width",
+  width: 'device-width',
   initialScale: 1,
   maximumScale: 1,
-};
-
+  themeColor: '#C5A059',
 export default function RootLayout({
   children,
 }: Readonly<{

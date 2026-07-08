@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <rect width="1200" height="630" fill="#050505"/>
+  <rect x="60" y="60" width="1080" height="510" rx="32" fill="#0f0f0f" stroke="#C5A059" stroke-width="3"/>
+  <text x="110" y="240" fill="#C5A059" font-family="Georgia, serif" font-size="54" letter-spacing="4">ACCESSOIRES EXCLUSIFS</text>
+  <text x="110" y="320" fill="#F5F5F0" font-family="Georgia, serif" font-size="86">Luxe &amp; Création de Parfums</text>
+  <text x="110" y="390" fill="#CFC8B7" font-family="Arial, sans-serif" font-size="28">Boutique d’accessoires • Parfums de marque • Atelier IA</text>
+  <circle cx="960" cy="430" r="110" fill="none" stroke="#C5A059" stroke-width="16"/>
+  <path d="M960 340v180M870 430h180" stroke="#C5A059" stroke-width="16" stroke-linecap="round"/>
+</svg>

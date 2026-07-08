@@ -1,25 +1,57 @@
 import { MetadataRoute } from 'next';
 
-export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+export default function sitemap(): MetadataRoute.Sitemap {
   const baseUrl = 'https://accessoires-exclusifs.vercel.app';
-
-  // If you fetch dynamic data (like products, posts, or items), fetch them here:
-  // const items = await getYourItems();
-  // const dynamicUrls = items.map(item => ({ url: `${baseUrl}/item/${item.id}`, lastModified: new Date() }));
+  const now = new Date();
 
   return [
     {
       url: baseUrl,
-      lastModified: new Date(),
-      changeFrequency: 'yearly',
+      lastModified: now,
+      changeFrequency: 'daily',
       priority: 1,
     },
     {
-      url: `${baseUrl}/about`,
-      lastModified: new Date(),
+      url: `${baseUrl}/shop`,
+      lastModified: now,
+      changeFrequency: 'weekly',
+      priority: 0.95,
+    },
+    {
+      url: `${baseUrl}/shop/perfumes`,
+      lastModified: now,
+      changeFrequency: 'weekly',
+      priority: 0.9,
+    },
+    {
+      url: `${baseUrl}/shop/accessories`,
+      lastModified: now,
+      changeFrequency: 'weekly',
+      priority: 0.9,
+    },
+    {
+      url: `${baseUrl}/numba`,
+      lastModified: now,
+      changeFrequency: 'monthly',
+      priority: 0.88,
+    },
+    {
+      url: `${baseUrl}/numba/ai-consultant`,
+      lastModified: now,
       changeFrequency: 'monthly',
       priority: 0.8,
     },
-    // ...dynamicUrls (spread your dynamic URLs here if you have any)
+    {
+      url: `${baseUrl}/numba/atelier`,
+      lastModified: now,
+      changeFrequency: 'monthly',
+      priority: 0.8,
+    },
+    {
+      url: `${baseUrl}/terms`,
+      lastModified: now,
+      changeFrequency: 'yearly',
+      priority: 0.6,
+    },
   ];
 }
