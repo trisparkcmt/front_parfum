@@ -119,34 +119,6 @@ function collectProductImages(p: any): string[] {
   return images;
 }
 
-export function mapFinishedEssenceToProduct(p: any): Product {
-  const images = collectProductImages(p);
-  return {
-    id: String(p.id),
-    name: p.nom,
-    description: p.description_courte || p.description_longue || '',
-    price: parseFloat(p.prix_actuel || p.prix_unitaire || '0'),
-    originalPrice: parseFloat(p.prix_unitaire),
-    taux_reduction: p.taux_reduction || (
-      p.prix_unitaire && p.prix_actuel && parseFloat(p.prix_unitaire) > parseFloat(p.prix_actuel)
-        ? String(Math.round((1 - parseFloat(p.prix_actuel) / parseFloat(p.prix_unitaire)) * 100))
-        : undefined
-    ),
-    category: 'huile',
-    images,
-    brand: p.marque || 'Huile',
-    inStock: (p.stock_quantite > 0 || p.en_stock !== false) && !p.rupture_de_stock,
-    rating: p.rating || 4.5,
-    reviews: p.reviews || 8,
-    volume: p.taille_ml ? `${p.taille_ml}ml` : undefined,
-    slug: p.slug || `huile-${p.id}`,
-    isFeatured: p.est_bestseller || false,
-    createdAt: p.date_creation || new Date().toISOString(),
-    image_principale: p.image_principale || images[0],
-    image_supp_1: p.image_supp_1 || images[1],
-  };
-}
-
 // Helper to map backend accessory to frontend Product model
 export function mapBackendAccessoryToProduct(p: any): Product {
   const images = collectProductImages(p);
@@ -272,8 +244,8 @@ export const productService = {
       if (filters.prix_min) params.prix_min = filters.prix_min;
       if (filters.prix_max) params.prix_max = filters.prix_max;
       if (filters.couleur && filters.couleur !== 'all') params.couleur = filters.couleur;
-      if (filters.matiere) params.matiere = filters.matiere;
-      if (filters.taille) params.taille = filters.taille;
+      if (filters.matiere && filters.matiere !== 'all') params.matiere = filters.matiere;
+      if (filters.taille && filters.taille !== 'all') params.taille = filters.taille;
       if (filters.en_stock !== undefined) params.en_stock = filters.en_stock;
       if (filters.search) params.search = filters.search;
       if (filters.ordering) params.ordering = filters.ordering;
@@ -295,15 +267,16 @@ export const productService = {
     return results.map(mapBackendAccessoryToProduct);
   },
 
-  async getFinishedEssenceProducts(filters?: { search?: string; ordering?: string; taille_ml?: number; essence?: number; page?: number }): Promise<Product[]> {
+  /**
+   * Fetch finished essence products from API
+   */
+  async getFinishedEssenceProducts(filters?: { search?: string; ordering?: string; page?: number }): Promise<Product[]> {
+    await _loadPerfumeCategories();
+
     const params: any = {};
-    if (filters) {
-      if (filters.search) params.search = filters.search;
-      if (filters.ordering) params.ordering = filters.ordering;
-      if (filters.taille_ml) params.taille_ml = filters.taille_ml;
-      if (filters.essence) params.essence = filters.essence;
-      if (filters.page) params.page = filters.page;
-    }
+    if (filters?.search) params.search = filters.search;
+    if (filters?.ordering) params.ordering = filters.ordering;
+    if (filters?.page) params.page = filters.page;
 
     const response = await apiShopService.getFinishedEssences(params);
 
@@ -318,7 +291,7 @@ export const productService = {
       }
     }
 
-    return results.map(mapFinishedEssenceToProduct);
+    return results.map(mapBackendPerfumeToProduct);
   },
 
   /**

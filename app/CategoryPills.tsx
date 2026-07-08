@@ -8,12 +8,11 @@ import {
   Gem,
   Watch,
   Glasses,
-  ShoppingBag as BagIcon,
-  Tag as BeltIcon,
   Crown,
   Package,
   ArrowRight,
 } from "lucide-react";
+import { CartIcon, CategoryIcon, TagIcon } from "@/components/icons/CustomIcons";
 import AppImage from "@/components/ui/AppImage";
 import { productService } from "@/services/productService";
 import { AccessorySubCategory } from "@/types";
@@ -50,9 +49,9 @@ const ACCESSORY_LABELS: Record<AccessorySubCategory, string> = {
 const ACCESSORY_ICONS: Record<AccessorySubCategory, React.ComponentType<{ size?: number; className?: string }>> = {
   watches: Watch,
   jewelry: Gem,
-  bags: BagIcon,
+  bags: CartIcon,
   sunglasses: Glasses,
-  belts: BeltIcon,
+  belts: TagIcon,
   other: Package,
 };
 

@@ -109,8 +109,8 @@ export default function StatisticsChart() {
             stroke="#C5A059"
             strokeWidth={2.5}
             fill="url(#colorRevenue)"
-            dot={{ r: 3, fill: '#C5A059', strokeWidth: 2, stroke: '#171717' }}
-            activeDot={{ r: 5, fill: '#C5A059', strokeWidth: 2, stroke: '#171717' }}
+            dot={{ r: 3, fill: '#C5A059', strokeWidth: 2, stroke: '#0b0b0b' }}
+            activeDot={{ r: 5, fill: '#C5A059', strokeWidth: 2, stroke: '#0b0b0b' }}
           />
           <Area
             type="monotone"

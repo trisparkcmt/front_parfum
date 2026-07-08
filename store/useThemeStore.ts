@@ -34,7 +34,7 @@ function updateViewportThemeColor(theme: Theme) {
   if (typeof window === 'undefined') return;
   
   const colors: Record<Theme, string> = {
-    dark: '#171717',  // Adjust this hex to match your layout's deep background color
+    dark: '#0b0b0b',  // Adjust this hex to match your layout's deep background color
     light: '#ffffff', // Adjust this hex to match your layout's light background color
   };
 

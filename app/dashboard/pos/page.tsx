@@ -7,6 +7,7 @@ import { orderService } from '@/services/orderService';
 import { labService } from '@/services/labService';
 import { cartService } from '@/services/apiService';
 import { useToastStore } from '@/store/useToastStore';
+import { CartIcon } from '@/components/icons/CustomIcons';
 import { BackButton } from '@/components/ui/BackButton';
 import { AppImage } from '@/components/ui/AppImage';
 import {
@@ -18,7 +19,6 @@ import {
   Trash2,
   Loader2,
   PackageSearch,
-  ShoppingBag,
   Receipt,
   ImageOff,
   User,
@@ -27,6 +27,7 @@ import {
   Tag,
   FlaskConical,
   RefreshCcw,
+  ShoppingBag,
 } from 'lucide-react';
 
 interface CartItem {
@@ -799,7 +800,7 @@ export default function POSPage() {
             {cartItems.length === 0 ? (
               <div className="flex-1 min-h-0 overflow-y-auto">
                 <EmptyState
-                  icon={<ShoppingBag className="w-7 h-7 text-foreground/20" strokeWidth={1.5} />}
+                  icon={<CartIcon className="w-7 h-7 text-foreground/20" />}
                   title="La commande est vide"
                   subtitle="Ajoutez des articles ou composez un parfum pour commencer."
                   className="py-20"

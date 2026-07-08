@@ -62,7 +62,7 @@ const pieData = [
 function CustomTooltip({ active, payload, label }: any) {
   if (!active || !payload) return null;
   return (
-    <div className="bg-[#171717] border border-white/10 text-foreground px-4 py-3 rounded-xl shadow-sm text-xs">
+    <div className="bg-[#0b0b0b] border border-white/10 text-foreground px-4 py-3 rounded-xl shadow-sm text-xs">
       <p className="font-semibold mb-2">{label}</p>
       {payload.map((p: any, i: number) => (
         <p key={i} className="flex items-center gap-2 mt-1">
@@ -157,7 +157,7 @@ export default function RevenuePage() {
                       <Cell key={`cell-${index}`} fill={entry.color} />
                     ))}
                   </Pie>
-                  <Tooltip formatter={(value) => `${value}%`} contentStyle={{ background: '#171717', border: 'rgba(255,255,255,0.1) 1px solid', borderRadius: '12px', color: '#fff', fontSize: '12px' }} />
+                  <Tooltip formatter={(value) => `${value}%`} contentStyle={{ background: '#0b0b0b', border: 'rgba(255,255,255,0.1) 1px solid', borderRadius: '12px', color: '#fff', fontSize: '12px' }} />
                 </PieChart>
               </ResponsiveContainer>
             )}

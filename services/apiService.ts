@@ -288,7 +288,7 @@ export const shopService = {
    * Get historical bestsellers perfumes (Top 20)
    */
   getPerfumeBestsellers: async () => {
-    const response = await api.get('shop/parfums/bestsellers/');
+    const response = await api.get('shop/bestsellers/');
     return response.data;
   },
 
@@ -296,7 +296,7 @@ export const shopService = {
    * Get hotsellers perfumes of current month (Top 10)
    */
   getPerfumeHotsellers: async () => {
-    const response = await api.get('shop/parfums/hotsellers/');
+    const response = await api.get('shop/hotsellers/');
     return response.data;
   },
 

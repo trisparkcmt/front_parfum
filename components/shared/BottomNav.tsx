@@ -2,7 +2,8 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Watch, Droplets, Sparkles, ShoppingBag } from 'lucide-react';
+import { HomeIcon, CartIcon } from '@/components/icons/CustomIcons';
+import { Watch, Droplets, Sparkles } from 'lucide-react';
 import { useCartStore } from '@/store/useCartStore';
 
 const BottomNav = () => {
@@ -10,11 +11,11 @@ const BottomNav = () => {
   const itemCount = useCartStore((s) => s.getItemCount());
 
   const links = [
-    { href: '/',                  icon: Home,        label: 'Accueil'      },
+    { href: '/',                  icon: HomeIcon,        label: 'Accueil'      },
     { href: '/shop/accessories',  icon: Watch,       label: 'Accessoires'  },
     { href: '/shop/perfumes',     icon: Droplets,    label: 'Parfum'       },
     { href: '/numba',             icon: Sparkles,    label: 'Atelier'      },
-    { href: '/cart',              icon: ShoppingBag, label: 'Panier', badge: itemCount },
+    { href: '/cart',              icon: CartIcon, label: 'Panier', badge: itemCount },
   ];
 
   return (

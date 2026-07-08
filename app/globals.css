@@ -39,7 +39,7 @@
    ============================================================ */
 :root,
 [data-theme="dark"] {
-  --background: #171717;
+  --background: #0b0b0b;
   --foreground: #F5F4F2;
 
   --t-cream: #F5F4F2;
@@ -47,7 +47,7 @@
   --t-charcoal: #1A1A1A;
   --t-deep-black: #050505;
   --t-onyx: #1A1A1A;
-  --t-soft-stone: #171717;
+  --t-soft-stone: #0b0b0b;
   --t-champagne: #1A1A1A;
 
   --t-status-pending: #F59E0B;
@@ -92,7 +92,7 @@
   --t-glass-gold-border: rgba(197, 160, 89, 0.2);
   --t-glass-dark-bg: rgba(5, 5, 5, 0.6);
   --t-glass-dark-border: rgba(255, 255, 255, 0.06);
-  --t-nav-dark-bg:#171717;
+  --t-nav-dark-bg:#0b0b0b;
   /* Scrollbar */
   --t-scrollbar-thumb: #C5A059;
   --t-scrollbar-hover: #D4B87A;

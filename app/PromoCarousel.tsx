@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, ArrowRight, Tag } from "lucide-react";
 import Link from "next/link";
 import { useTranslation } from "react-i18next";
+import { cn } from "@/lib/utils";
 import i18n from "@/lib/i18n";
 import { shopService } from "@/services/apiService";
 import { extractCatalogList } from "@/lib/catalogUtils";
@@ -25,6 +26,9 @@ interface PromoEntry {
 
 const FALLBACK_IMAGE = "/promo2.png";
 const AUTO_SLIDE_INTERVAL = 5000;
+
+// Shared glass treatment for floating controls, echoes the navbar's glass pills
+const glass = 'rounded-full border border-white/10 bg-white/[0.06] backdrop-blur-2xl shadow-[0_4px_30px_rgba(0,0,0,0.25)] supports-[backdrop-filter]:bg-white/[0.06]';
 
 /** Build a lookup of category/type slug → icon URL from both accessory types and perfume categories */
 async function fetchCategoryIcons(): Promise<Map<string, string>> {
@@ -292,14 +296,14 @@ export default function PromoCarousel() {
   if (loading) {
     return (
       <div className="w-full">
-        <div className="lg:hidden max-w-7xl mx-auto px-4 sm:px-6">
+        <div className="lg:hidden max-w-7xl mx-auto px-4 sm:px-6 pt-2">
           <div className="flex gap-3 overflow-x-auto snap-x snap-mandatory scrollbar-hide -mx-4 px-4">
             {Array.from({ length: 3 }).map((_, i) => (
               <div key={i} className="h-52 w-[82%] min-w-[280px] max-w-[340px] sm:w-[320px] flex-shrink-0 rounded-2xl bg-foreground/5 animate-pulse" />
             ))}
           </div>
         </div>
-        <div className="hidden lg:block w-full h-[420px] bg-foreground/5 animate-pulse" />
+        <div className="hidden lg:block w-full h-[600px] bg-foreground/5 animate-pulse" />
       </div>
     );
   }
@@ -409,74 +413,84 @@ export default function PromoCarousel() {
         )}
       </div>
 
-      {/* ================= DESKTOP (lg+) ================= */}
-      <div className="hidden lg:block relative w-full h-[440px] overflow-hidden bg-deep-black">
+      {/* ================= DESKTOP (lg+) — full-bleed hero, sits behind the transparent navbar ================= */}
+      <div className="hidden lg:block relative w-full h-[620px] overflow-hidden bg-deep-black">
         <AnimatePresence mode="wait">
           <motion.div
             key={activeSlide.key}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.5 }}
+            transition={{ duration: 0.6 }}
             className="absolute inset-0"
           >
-            <div
+            {/* Ken Burns — slow, subtle drift on the background image */}
+            <motion.div
               className="absolute inset-0 bg-cover bg-center"
               style={{ backgroundImage: `url('${activeSlide.image || FALLBACK_IMAGE}')` }}
+              initial={{ scale: 1 }}
+              animate={{ scale: 1.08 }}
+              transition={{ duration: AUTO_SLIDE_INTERVAL / 1000 + 2, ease: 'linear' }}
             />
-            <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/40 to-transparent z-0" />
 
-            <div className="relative z-10 max-w-7xl mx-auto h-full px-6 lg:px-8 flex items-center">
+            {/* Directional scrim for text legibility */}
+            <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/45 to-transparent" />
+            {/* Top scrim so the transparent glass navbar always reads clearly, regardless of image */}
+            <div className="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-black/70 to-transparent pointer-events-none" />
+            {/* Bottom scrim to ground the progress indicators */}
+            <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-black/50 to-transparent pointer-events-none" />
+
+            <div className="relative z-10 max-w-7xl mx-auto h-full px-6 lg:px-8 flex items-center pt-16">
               <motion.div
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0, y: 24 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: 0.15 }}
+                transition={{ duration: 0.7, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
                 className="max-w-xl"
               >
                 {activeSlide.discount > 0 ? (
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gold/15 border border-gold/30 text-gold text-xs font-bold uppercase tracking-widest mb-5">
+                  <span className={cn(glass, 'inline-flex items-center gap-1.5 px-3.5 py-1.5 text-gold text-xs font-bold uppercase tracking-widest mb-6')}>
                     <Tag size={13} />
                     -{activeSlide.discount}% {t("exclusive_offer", { defaultValue: "Offre exclusive" })}
                   </span>
                 ) : (
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gold/15 border border-gold/30 text-gold text-xs font-bold uppercase tracking-widest mb-5">
+                  <span className={cn(glass, 'inline-flex items-center gap-1.5 px-3.5 py-1.5 text-gold text-xs font-bold uppercase tracking-widest mb-6')}>
                     {t("exclusive_offer", { defaultValue: "Exclusif" })}
                   </span>
                 )}
 
-                <h2 className="font-display text-4xl lg:text-5xl font-bold text-foreground leading-tight mb-3 capitalize">
+                <h2 className="font-display text-5xl xl:text-6xl font-bold text-white leading-[1.05] mb-4 capitalize drop-shadow-sm">
                   {activeSlide.title}
                 </h2>
 
-                <p className="text-foreground/90 text-base leading-relaxed mb-7 line-clamp-2 font-medium">
+                <p className="text-white/85 text-base leading-relaxed mb-8 line-clamp-2 font-medium">
                   {getPromoMessage(activeSlide)}
                 </p>
                 {activeCountdownMessage && (
-                  <p className="text-foreground/70 text-sm leading-relaxed mb-7">
+                  <p className="text-white/60 text-sm leading-relaxed mb-8">
                     {activeCountdownMessage}
                   </p>
                 )}
 
                 <Link
                   href={activeSlide.link}
-                  className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-gold text-deep-black text-sm font-semibold hover:bg-gold/90 transition-colors"
+                  className="group inline-flex items-center gap-2 px-7 py-3.5 rounded-full bg-gold text-deep-black text-sm font-semibold hover:bg-white transition-colors duration-300"
                 >
                   {t("shop_now", { defaultValue: "Découvrir" })}
-                  <ArrowRight size={16} />
+                  <ArrowRight size={16} className="transition-transform duration-300 group-hover:translate-x-1" />
                 </Link>
               </motion.div>
             </div>
           </motion.div>
         </AnimatePresence>
 
-        {/* Desktop Prev / Next Nav controls */}
+        {/* Desktop Prev / Next Nav controls — glass, matches navbar language */}
         {items.length > 1 && (
           <>
             <button
               type="button"
               aria-label={t("previous", { defaultValue: "Précédent" })}
               onClick={() => goTo(slideIndex - 1)}
-              className="absolute left-5 top-1/2 -translate-y-1/2 z-20 size-11 rounded-full bg-foreground/10 hover:bg-gold/20 border border-foreground/20 hover:border-gold/40 flex items-center justify-center text-foreground hover:text-gold transition-colors backdrop-blur-sm cursor-pointer"
+              className={cn(glass, 'absolute left-6 top-1/2 -translate-y-1/2 z-20 size-12 flex items-center justify-center text-white/80 hover:text-gold hover:bg-white/10 transition-colors cursor-pointer')}
             >
               <ArrowLeft size={18} />
             </button>
@@ -484,23 +498,32 @@ export default function PromoCarousel() {
               type="button"
               aria-label={t("next", { defaultValue: "Suivant" })}
               onClick={() => goTo(slideIndex + 1)}
-              className="absolute right-5 top-1/2 -translate-y-1/2 z-20 size-11 rounded-full bg-foreground/10 hover:bg-gold/20 border border-foreground/20 hover:border-gold/40 flex items-center justify-center text-foreground hover:text-gold transition-colors backdrop-blur-sm cursor-pointer"
+              className={cn(glass, 'absolute right-6 top-1/2 -translate-y-1/2 z-20 size-12 flex items-center justify-center text-white/80 hover:text-gold hover:bg-white/10 transition-colors cursor-pointer')}
             >
               <ArrowRight size={18} />
             </button>
 
-            {/* Desktop Dot indicators */}
-            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2">
+            {/* Desktop progress indicators — each bar fills over the autoplay interval when active */}
+            <div className="absolute bottom-7 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2">
               {items.map((_, idx) => (
                 <button
-                  key={`desktop-dot-${idx}`}
+                  key={`desktop-progress-${idx}`}
                   type="button"
                   aria-label={`Slide ${idx + 1}`}
                   onClick={() => goTo(idx)}
-                  className={`h-1.5 rounded-full transition-all ${
-                    idx === slideIndex ? "w-6 bg-gold" : "w-1.5 bg-foreground/30 hover:bg-foreground/50"
-                  }`}
-                />
+                  className="relative h-1 w-10 rounded-full bg-white/20 overflow-hidden cursor-pointer"
+                >
+                  {idx === slideIndex && (
+                    <motion.span
+                      key={`${activeSlide.key}-${isPaused}`}
+                      className="absolute inset-y-0 left-0 bg-gold rounded-full"
+                      initial={{ width: '0%' }}
+                      animate={{ width: isPaused ? '0%' : '100%' }}
+                      transition={{ duration: AUTO_SLIDE_INTERVAL / 1000, ease: 'linear' }}
+                    />
+                  )}
+                  {idx < slideIndex && <span className="absolute inset-0 bg-gold/70 rounded-full" />}
+                </button>
               ))}
             </div>
           </>

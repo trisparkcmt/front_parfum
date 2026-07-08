@@ -28,13 +28,13 @@ export default function CustomersDemographic() {
             className="text-foreground/10"
           />
           {/* Country dots */}
-          <circle cx="220" cy="160" r="6" fill="#C5A059" stroke="#171717" strokeWidth="2">
+          <circle cx="220" cy="160" r="6" fill="#C5A059" stroke="#0b0b0b" strokeWidth="2">
             <animate attributeName="r" values="6;8;6" dur="2s" repeatCount="indefinite" />
           </circle>
-          <circle cx="180" cy="110" r="4" fill="#C5A059" opacity="0.8" stroke="#171717" strokeWidth="2" />
-          <circle cx="170" cy="155" r="4" fill="#C5A059" opacity="0.6" stroke="#171717" strokeWidth="2" />
-          <circle cx="160" cy="130" r="3.5" fill="#C5A059" opacity="0.4" stroke="#171717" strokeWidth="2" />
-          <circle cx="240" cy="175" r="3" fill="#C5A059" opacity="0.2" stroke="#171717" strokeWidth="2" />
+          <circle cx="180" cy="110" r="4" fill="#C5A059" opacity="0.8" stroke="#0b0b0b" strokeWidth="2" />
+          <circle cx="170" cy="155" r="4" fill="#C5A059" opacity="0.6" stroke="#0b0b0b" strokeWidth="2" />
+          <circle cx="160" cy="130" r="3.5" fill="#C5A059" opacity="0.4" stroke="#0b0b0b" strokeWidth="2" />
+          <circle cx="240" cy="175" r="3" fill="#C5A059" opacity="0.2" stroke="#0b0b0b" strokeWidth="2" />
           
           {/* Connection lines */}
           <line x1="220" y1="160" x2="180" y2="110" stroke="#C5A059" strokeWidth="0.5" opacity="0.1" />
