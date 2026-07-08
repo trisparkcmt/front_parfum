@@ -164,7 +164,7 @@ export default function CategoryPills() {
                           >
                             <div className="size-7 rounded-full overflow-hidden flex items-center justify-center bg-foreground/10 flex-shrink-0">
                               {cat.image ? (
-                                <AppImage src={cat.image} alt={cat.label || 'Catégorie'} fill className="object-cover" />
+                                <AppImage src={cat.image} alt={cat.label || 'Catégorie'} fill className="object-cover" loading="lazy" sizes="28px" />
                               ) : (
                                 <Icon size={14} className="text-foreground/60" />
                               )}
@@ -228,7 +228,7 @@ export default function CategoryPills() {
                         }`}
                       >
                         {cat.image ? (
-                          <AppImage src={cat.image} alt={cat.label || 'Catégorie'} fill className="object-cover" />
+                          <AppImage src={cat.image} alt={cat.label || 'Catégorie'} fill className="object-cover" loading="lazy" sizes="60px" />
                         ) : (
                           <Icon size={26} className="text-foreground/60 group-hover:text-gold transition-colors" />
                         )}

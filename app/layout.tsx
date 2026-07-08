@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import { lora } from "@/lib/fonts";
 import { LayoutWrapper } from "@/components/shared/LayoutWrapper";
 import { ToastProvider } from "@/components/shared/ToastProvider";
 import { FCMProvider } from "@/components/pwa/FCMProvider";
@@ -96,26 +97,29 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="fr" className="h-full antialiased" suppressHydrationWarning>
+    <html lang="fr" className={`h-full antialiased ${lora.variable}`} suppressHydrationWarning>
       <head>
-        <script dangerouslySetInnerHTML={{
-          __html: `
-            (function() {
-              try {
-                var theme = localStorage.getItem('ae-theme') || 'dark';
-                document.documentElement.setAttribute('data-theme', theme);
-                var metaColor = theme === 'dark' ? '#0b0b0b' : '#ffffff'; 
-                var metaTag = document.querySelector('meta[name="theme-color"]');
-                if (!metaTag) {
-                  metaTag = document.createElement('meta');
-                  metaTag.setAttribute('name', 'theme-color');
-                  document.head.appendChild(metaTag);
-                }
-                metaTag.setAttribute('content', metaColor);
-              } catch(e) {}
-            })();
-          `
-        }} />
+        {/* Critical inline script for theme — must run before paint */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                try {
+                  var theme = localStorage.getItem('ae-theme') || 'dark';
+                  document.documentElement.setAttribute('data-theme', theme);
+                  var metaColor = theme === 'dark' ? '#0b0b0b' : '#ffffff'; 
+                  var metaTag = document.querySelector('meta[name="theme-color"]');
+                  if (!metaTag) {
+                    metaTag = document.createElement('meta');
+                    metaTag.setAttribute('name', 'theme-color');
+                    document.head.appendChild(metaTag);
+                  }
+                  metaTag.setAttribute('content', metaColor);
+                } catch(e) {}
+              })();
+            `
+          }}
+        />
       </head>
       <body className="min-h-full flex flex-col bg-background text-foreground selection:bg-gold selection:text-deep-black font-serif" suppressHydrationWarning>
         <LayoutWrapper>

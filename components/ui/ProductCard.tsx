@@ -126,6 +126,8 @@ export function ProductCard({
               fill
               className="object-cover"
               priority={false}
+              loading="lazy"
+              sizes="(max-width: 640px) 45vw, 280px"
             />
           </motion.div>
           
@@ -142,6 +144,8 @@ export function ProductCard({
                 fill
                 className="object-cover"
                 priority={false}
+                loading="lazy"
+                sizes="(max-width: 640px) 45vw, 280px"
               />
             </motion.div>
           )}

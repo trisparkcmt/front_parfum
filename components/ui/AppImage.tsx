@@ -13,6 +13,8 @@ interface AppImageProps {
   style?: React.CSSProperties;
   fill?: boolean;
   priority?: boolean;
+  sizes?: string;
+  loading?: 'lazy' | 'eager';
 }
 
 export const AppImage: React.FC<AppImageProps> = ({
@@ -24,6 +26,8 @@ export const AppImage: React.FC<AppImageProps> = ({
   style,
   fill = false,
   priority = false,
+  sizes = '(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw',
+  loading = 'lazy',
 }) => {
   const [errored, setErrored] = useState(false);
 
@@ -75,6 +79,8 @@ export const AppImage: React.FC<AppImageProps> = ({
         className={className}
         style={{ objectFit: 'cover', width: '100%', height: '100%', ...(style || {}) }}
         onError={() => setErrored(true)}
+        loading={loading}
+        decoding="async"
       />
     );
   }
@@ -87,8 +93,10 @@ export const AppImage: React.FC<AppImageProps> = ({
       height={height}
       className={className}
       style={style}
-      unoptimized
       priority={priority}
+      sizes={sizes}
+      quality={80}
+      loading={priority ? 'eager' : loading}
       onError={() => setErrored(true)}
     />
   );
