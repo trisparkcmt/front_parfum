@@ -1,11 +1,7 @@
-import { Lora } from 'next/font/google';
+// Expose fallback/placeholder values as we load Lora font directly in app/globals.css
+// to bypass Turbopack build errors with next/font/google.
+export const lora = {
+  className: "font-serif",
+  variable: "font-serif",
+};
 
-// Preload critical font weights for faster FCP
-export const lora = Lora({
-  subsets: ['latin'],
-  weight: ['400', '700'],
-  variable: '--font-serif',
-  preload: true,
-  fallback: ['ui-serif', 'Georgia', 'serif'],
-  display: 'swap', // Show fallback font immediately
-});

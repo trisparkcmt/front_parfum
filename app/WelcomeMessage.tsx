@@ -10,7 +10,7 @@ export default function EditorialQuote() {
         <h2 className="font-serif text-3xl lg:text-5xl leading-tight text-foreground">
           {t('quote', {
             defaultValue:
-              '« Bienvenue chez accessoires exclusifs. »',
+              'Bienvenue chez accessoires exclusifs!',
           })}
         </h2>
       </div>
