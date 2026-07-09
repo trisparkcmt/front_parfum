@@ -179,7 +179,7 @@ export default function Sidebar({ open, setOpen }: SidebarProps) {
       >
         {/* Logo */}
         <div className="flex items-center justify-between px-5 py-5 border-b border-white/10">
-          <Link href="/dashboard/admin/dashboard" className="flex items-center gap-3 group">
+          <Link href="/dashboard/admin/dashboard" onClick={() => setOpen(false)} className="flex items-center gap-3 group">
             <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-gold to-gold-dark flex items-center justify-center shadow-lg shadow-gold/20 group-hover:shadow-gold/40 transition-shadow">
               <BarChart2 size={18} className="text-black" />
             </div>
@@ -194,17 +194,17 @@ export default function Sidebar({ open, setOpen }: SidebarProps) {
         <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1 scrollbar-thin">
           <SectionLabel label="MENU" />
           {menuItems.map(item => (
-            <NavItemComponent key={item.label} item={item} onNavigate={() => undefined} />
+            <NavItemComponent key={item.label} item={item} onNavigate={() => setOpen(false)} />
           ))}
 
           <SectionLabel label="BOUTIQUE" />
           {boutiqueItemsWithBadge.map(item => (
-            <NavItemComponent key={item.label} item={item} onNavigate={() => undefined} />
+            <NavItemComponent key={item.label} item={item} onNavigate={() => setOpen(false)} />
           ))}
 
           <SectionLabel label="GESTION" />
           {gestionItems.map(item => (
-            <NavItemComponent key={item.label} item={item} onNavigate={() => undefined} />
+            <NavItemComponent key={item.label} item={item} onNavigate={() => setOpen(false)} />
           ))}
         </nav>
 

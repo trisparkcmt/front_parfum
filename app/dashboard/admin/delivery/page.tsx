@@ -170,7 +170,7 @@ export default function DeliveryPage() {
                     <div>
                       <div className="flex items-start justify-between mb-4">
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-gold to-gold/60 flex items-center justify-center text-black font-bold overflow-hidden">
+                          <div className="relative w-10 h-10 rounded-full bg-gradient-to-br from-gold to-gold/60 flex items-center justify-center text-black font-bold overflow-hidden">
                             {d.photo ? (
                               <AppImage src={d.photo} alt={`${fullName}'s photo`} fill className="object-cover" />
                             ) : (

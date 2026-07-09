@@ -403,7 +403,7 @@ export default function PerfumeAdminPage() {
                         />
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap">
-                        <div className="w-12 h-12 rounded-xl bg-white/5 border border-white/10 overflow-hidden flex items-center justify-center">
+                        <div className="relative w-12 h-12 rounded-xl bg-white/5 border border-white/10 overflow-hidden flex items-center justify-center">
                           {productImg ? (
                             <AppImage
                               src={productImg}

@@ -303,7 +303,7 @@ export default function CategoriesAdminPage() {
                               {activeTab === 'perfume_categories' && (
                                 <>
                                   <td className="px-6 py-3 whitespace-nowrap">
-                                    <div className="w-12 h-12 rounded-xl bg-white/5 border border-white/10 overflow-hidden flex items-center justify-center">
+                                    <div className="relative w-12 h-12 rounded-xl bg-white/5 border border-white/10 overflow-hidden flex items-center justify-center">
                                       {c.icone ? (
                                         <AppImage src={c.icone} alt={c.nom || 'Icône'} fill className="object-cover group-hover:scale-105 transition-transform duration-300" />
                                       ) : (
@@ -329,7 +329,7 @@ export default function CategoriesAdminPage() {
                               {activeTab === 'accessory_categories' && (
                                 <>
                                   <td className="px-6 py-3 whitespace-nowrap">
-                                    <div className="w-12 h-12 rounded-xl bg-white/5 border border-white/10 overflow-hidden flex items-center justify-center">
+                                    <div className="relative w-12 h-12 rounded-xl bg-white/5 border border-white/10 overflow-hidden flex items-center justify-center">
                                       {c.icone ? (
                                         <AppImage src={c.icone} alt={c.nom || 'Icône'} fill className="object-cover group-hover:scale-105 transition-transform duration-300" />
                                       ) : (

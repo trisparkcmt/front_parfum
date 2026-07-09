@@ -40,7 +40,7 @@ const boutiqueItems: NavItem[] = [
   { label: 'Compositions', icon: <Cpu size={18} />, href: '/dashboard/serveuse/compositions' },
 ];
 
-function NavItemComponent({ item }: { item: NavItem }) {
+function NavItemComponent({ item, onNavigate }: { item: NavItem; onNavigate: () => void }) {
   const pathname = usePathname();
   const [expanded, setExpanded] = useState(
     item.children?.some(c => pathname.startsWith(c.href)) || false
@@ -73,6 +73,7 @@ function NavItemComponent({ item }: { item: NavItem }) {
               <Link
                 key={child.href}
                 href={child.href}
+                onClick={onNavigate}
                 className={`flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-all duration-200
                   ${pathname === child.href
                     ? 'bg-gold/10 text-gold font-medium'
@@ -96,6 +97,7 @@ function NavItemComponent({ item }: { item: NavItem }) {
   return (
     <Link
       href={item.href || '#'}
+      onClick={onNavigate}
       className={`flex items-center justify-between px-4 py-2.5 rounded-lg text-sm transition-all duration-200 group
         ${isActive
           ? 'bg-gold/10 text-gold font-medium'
@@ -155,7 +157,7 @@ export default function ServeuseSidebar({ open, setOpen }: SidebarProps) {
       >
         {/* Logo */}
         <div className="flex items-center justify-between px-5 py-5 border-b border-white/10">
-          <Link href="/dashboard/serveuse/dashboard" className="flex items-center gap-3 group">
+          <Link href="/dashboard/serveuse/dashboard" onClick={() => setOpen(false)} className="flex items-center gap-3 group">
             <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-gold to-gold-dark flex items-center justify-center shadow-lg shadow-gold/20 group-hover:shadow-gold/40 transition-shadow">
               <BarChart2 size={18} className="text-black" />
             </div>
@@ -170,12 +172,12 @@ export default function ServeuseSidebar({ open, setOpen }: SidebarProps) {
         <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1 scrollbar-thin">
           <SectionLabel label="ESPACE" />
           {menuItems.map(item => (
-            <NavItemComponent key={item.label} item={item} />
+            <NavItemComponent key={item.label} item={item} onNavigate={() => setOpen(false)} />
           ))}
 
           <SectionLabel label="BOUTIQUE" />
           {boutiqueItemsWithBadge.map(item => (
-            <NavItemComponent key={item.label} item={item} />
+            <NavItemComponent key={item.label} item={item} onNavigate={() => setOpen(false)} />
           ))}
         </nav>
 

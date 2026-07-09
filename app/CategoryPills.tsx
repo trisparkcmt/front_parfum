@@ -132,50 +132,40 @@ export default function CategoryPills() {
           </Link>
         </div>
 
-        {/* Marquee-style continuous scroll for mobile */}
-        <div className="relative -mx-4 px-4">
-          <div className="marquee overflow-hidden">
-            <div
-              className="marquee__inner flex items-center"
-              style={{
-                // speed scales with number of items; min 12s
-                animationDuration: `${Math.max(12, categories.length * 3)}s`,
-              }}
-            >
-              {loading
-                ? Array.from({ length: 5 }).map((_, i) => (
-                    <div key={i} className="h-9 w-24 flex-shrink-0 rounded-full bg-foreground/5 animate-pulse mr-2" />
-                  ))
-                : (
-                    // render two copies for seamless loop
-                    [0, 1].map((rep) =>
-                      categories.map((cat) => {
-                        const { Icon } = cat;
-                        return (
-                          <Link
-                            key={`${rep}-${cat.key}`}
-                            href={cat.href}
-                            onClick={() => setActive(cat.key)}
-                            className={`flex-shrink-0 pl-1 pr-4 h-9 flex items-center gap-2 rounded-full text-sm font-medium border transition-colors whitespace-nowrap mr-2 ${
-                              active === cat.key
-                                ? "bg-gold/15 border-gold/40 text-gold"
-                                : "bg-foreground/5 border-foreground/10 text-foreground/70 hover:border-gold/30 hover:text-gold"
-                            }`}
-                          >
-                            <div className="size-7 rounded-full overflow-hidden flex items-center justify-center bg-foreground/10 flex-shrink-0">
-                              {cat.image ? (
-                                <AppImage src={cat.image} alt={cat.label || 'Catégorie'} fill className="object-cover" loading="lazy" sizes="28px" />
-                              ) : (
-                                <Icon size={14} className="text-foreground/60" />
-                              )}
-                            </div>
-                            {cat.label}
-                          </Link>
-                        );
-                      })
-                    )
-                  )}
-            </div>
+        {/* Horizontally scrollable pill row for mobile */}
+        <div className="relative -mx-4">
+          <div
+            className="flex items-center gap-2 overflow-x-auto px-4 pb-2"
+            style={{ scrollbarWidth: "none", WebkitOverflowScrolling: "touch" } as React.CSSProperties}
+          >
+            {loading
+              ? Array.from({ length: 5 }).map((_, i) => (
+                  <div key={i} className="h-9 w-24 flex-shrink-0 rounded-full bg-foreground/5 animate-pulse" />
+                ))
+              : categories.map((cat) => {
+                  const { Icon } = cat;
+                  return (
+                    <Link
+                      key={cat.key}
+                      href={cat.href}
+                      onClick={() => setActive(cat.key)}
+                      className={`flex-shrink-0 pl-1 pr-4 h-9 flex items-center gap-2 rounded-full text-sm font-medium border transition-colors whitespace-nowrap ${
+                        active === cat.key
+                          ? "bg-gold/15 border-gold/40 text-gold"
+                          : "bg-foreground/5 border-foreground/10 text-foreground/70 hover:border-gold/30 hover:text-gold"
+                      }`}
+                    >
+                      <div className="relative size-7 rounded-full overflow-hidden flex items-center justify-center bg-foreground/10 flex-shrink-0">
+                        {cat.image ? (
+                          <AppImage src={cat.image} alt={cat.label || 'Catégorie'} fill className="object-cover" loading="lazy" sizes="28px" />
+                        ) : (
+                          <Icon size={14} className="text-foreground/60" />
+                        )}
+                      </div>
+                      {cat.label}
+                    </Link>
+                  );
+                })}
           </div>
         </div>
       </section>

@@ -397,7 +397,7 @@ export default function AccessoriesPage() {
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-4">
-                          <div className="w-12 h-12 rounded-xl bg-white/5 flex items-center justify-center text-2xl group-hover:scale-105 transition-transform overflow-hidden border border-white/5">
+                          <div className="relative w-12 h-12 rounded-xl bg-white/5 flex items-center justify-center text-2xl group-hover:scale-105 transition-transform overflow-hidden border border-white/5">
                             {a.image_principale ? (
                               <AppImage src={a.image_principale} alt={aName} fill className="object-cover" />
                             ) : (
