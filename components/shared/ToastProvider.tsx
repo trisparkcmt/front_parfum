@@ -49,7 +49,7 @@ export function ToastProvider() {
               initial={{ opacity: 0, y: 20, scale: 0.95 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, x: 100, scale: 0.95 }}
-              className={`relative flex items-center gap-[15px] px-[15px] py-[10px] h-[80px] rounded-lg overflow-hidden glass-dark border ${theme.borderColor} shadow-sm select-none`}
+              className={`relative flex items-center gap-[15px] px-[15px] py-[12px] min-h-[80px] rounded-lg overflow-hidden glass-dark border ${theme.borderColor} shadow-sm select-none`}
             >
               {/* Decorative Redesigned Wave Graphic */}
               <svg 
@@ -67,10 +67,10 @@ export function ToastProvider() {
 
               {/* Text Layout Block */}
               <div className="flex-1 flex flex-col justify-center min-w-0 z-10">
-                <p className={`text-[17px] font-bold leading-tight truncate ${theme.titleColor}`}>
+                <p className={`text-[17px] font-bold leading-tight ${theme.titleColor}`}>
                   {toast.type.charAt(0).toUpperCase() + toast.type.slice(1)} Note
                 </p>
-                <p className="text-[14px] text-cream/80 truncate leading-snug">
+                <p className="text-[14px] text-cream/80 leading-snug break-words">
                   {toast.message}
                 </p>
                 

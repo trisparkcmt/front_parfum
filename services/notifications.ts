@@ -3,7 +3,7 @@ import { getMessaging, getToken, onMessage } from 'firebase/messaging';
 import { firebaseApp } from '@/lib/firebase';
 import { useToastStore } from '@/store/useToastStore';
 
-const VAPID_KEY = "F0KwqkUGUbWZxo-vWoyYJzB073iJlXFZrdfCEs4UeQk";
+const VAPID_KEY = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY || "BIH086VT_ZEmPMDKIoJUfyaPmRQXF9sXGhGQpdQFHTK467Y4rKTm6TJHVNKZV1TPCLe8BCqNIRWVOXHqXLNd2r";
 const STORAGE_KEY = 'fcm_token';
 
 function isBrowser() {

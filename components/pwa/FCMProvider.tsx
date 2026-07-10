@@ -40,15 +40,6 @@ export function FCMProvider() {
         (window.navigator as any).standalone
       );
 
-      const hasNotificationAPI = typeof Notification !== 'undefined';
-      const permission = hasNotificationAPI ? Notification.permission : 'non-supporté';
-      const hasSW = 'serviceWorker' in navigator;
-
-      addToast(
-        `Diagnostic iOS: Standalone=${standalone}, Permission=${permission}, SW=${hasSW}`,
-        'info' as any
-      );
-
       if (!standalone) {
         addToast(
           "⚠️ Action requise: Pour recevoir des notifications sur iPhone, vous devez installer l'application sur l'écran d'accueil (Partager > Sur l'écran d'accueil) et l'ouvrir depuis l'icône installée.",
