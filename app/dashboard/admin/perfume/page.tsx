@@ -460,14 +460,20 @@ export default function PerfumeAdminPage() {
         )}
       </div>
 
-      {/* Modal */}
+      {/* Full-page form panel */}
       {showModal && (permissions.canCreate || permissions.canUpdate) && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div
-            key={editingPerfume?.slug ?? 'new'}
-            className="bg-background rounded-2xl p-6 w-full max-w-2xl shadow-sm border border-white/10 max-h-[90vh] overflow-y-auto"
-          >
-            <h3 className="font-bold text-foreground mb-4">{editingPerfume ? 'Modifier le parfum' : 'Ajouter un parfum'}</h3>
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-start justify-end">
+          <div className="w-full max-w-6xl h-full bg-background/95 border-l border-white/10 shadow-2xl overflow-y-auto">
+            <div className="sticky top-0 z-10 flex items-center justify-between border-b border-white/10 bg-background/90 px-6 py-4 backdrop-blur">
+              <div>
+                <h3 className="font-bold text-foreground">{editingPerfume ? 'Modifier le parfum' : 'Ajouter un parfum'}</h3>
+                <p className="text-sm text-foreground/40">Formulaire complet, sans popup ni défilement gênant.</p>
+              </div>
+              <button onClick={() => setShowModal(false)} className="rounded-lg border border-white/10 px-3 py-2 text-sm text-foreground/70 hover:bg-white/5">Fermer</button>
+            </div>
+
+            <div className="p-6 lg:p-8">
+              <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Left column */}
@@ -636,16 +642,17 @@ export default function PerfumeAdminPage() {
               </div>
             </div>
 
-            {/* Image Uploader - Multiple Images */}
-            <div className="mt-4 pt-4 border-t border-white/10">
-              <MultiImageUpload
-                onImagesChange={(images) => setImageFiles(images)}
-              />
-            </div>
+              {/* Image Uploader - Multiple Images */}
+              <div className="mt-6 pt-6 border-t border-white/10 xl:col-span-2">
+                <MultiImageUpload
+                  onImagesChange={(images) => setImageFiles(images)}
+                />
+              </div>
 
-            <div className="flex gap-3 mt-6">
-              <button onClick={() => setShowModal(false)} className="flex-1 border border-white/10 rounded-lg py-2.5 text-sm text-foreground/60 hover:bg-white/5 transition-colors">Annuler</button>
-              <button onClick={handleSave} className="flex-1 bg-gold text-black rounded-lg py-2.5 text-sm font-bold hover:bg-gold/80 transition-colors">Enregistrer</button>
+              <div className="xl:col-span-2 flex gap-3 pt-4">
+                <button onClick={() => setShowModal(false)} className="flex-1 border border-white/10 rounded-lg py-2.5 text-sm text-foreground/60 hover:bg-white/5 transition-colors">Annuler</button>
+                <button onClick={handleSave} className="flex-1 bg-gold text-black rounded-lg py-2.5 text-sm font-bold hover:bg-gold/80 transition-colors">Enregistrer</button>
+              </div>
             </div>
           </div>
         </div>

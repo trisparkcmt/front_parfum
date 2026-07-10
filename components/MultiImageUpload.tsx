@@ -68,37 +68,48 @@ export const MultiImageUpload: React.FC<MultiImageUploadProps> = ({
   const handleBulkSupplementaryFiles = (files: FileList | null) => {
     if (!files) return;
 
-    const newImages = [...images];
-    let fileIndex = 1; // Start from image_supp_1
+    const validFiles: File[] = [];
+    const validTypes = accept.split(',');
 
     Array.from(files).forEach((file) => {
-      if (fileIndex > 4) return; // Max 4 supplementary images
-
-      // Validate file type
-      const validTypes = accept.split(',');
       if (!validTypes.includes(file.type)) {
         console.warn(`Skipping invalid file type: ${file.type}`);
         return;
       }
 
-      // Validate file size
       if (file.size > maxSize) {
         console.warn(`Skipping oversized file: ${file.name}`);
         return;
       }
 
+      validFiles.push(file);
+    });
+
+    if (validFiles.length === 0) return;
+
+    const nextImages = [...images];
+    let fileIndex = 1;
+
+    validFiles.forEach((file) => {
+      while (fileIndex <= 4 && nextImages[fileIndex]?.file) {
+        fileIndex += 1;
+      }
+
+      if (fileIndex > 4) return;
+
       const reader = new FileReader();
       reader.onload = (e) => {
-        newImages[fileIndex] = {
-          ...newImages[fileIndex],
+        const updated = [...nextImages];
+        updated[fileIndex] = {
+          ...updated[fileIndex],
           file,
           preview: e.target?.result as string,
         };
-        setImages([...newImages]);
-        notifyParent(newImages);
+        setImages(updated);
+        notifyParent(updated);
       };
       reader.readAsDataURL(file);
-      fileIndex++;
+      fileIndex += 1;
     });
   };
 

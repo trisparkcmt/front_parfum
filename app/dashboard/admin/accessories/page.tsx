@@ -589,12 +589,13 @@ export default function AccessoriesPage() {
                 />
               </div>
             </div>
-            <div className="mt-4 pt-4 border-t border-white/10">
+            <div className="mt-6 pt-6 border-t border-white/10 xl:col-span-2">
               <MultiImageUpload onImagesChange={(images) => setImageFiles(images)} />
             </div>
-            <div className="flex gap-3 mt-6">
+            <div className="xl:col-span-2 flex gap-3 pt-4">
               <button onClick={() => setShowModal(false)} className="flex-1 border border-white/10 rounded-lg py-2.5 text-sm text-foreground/60 hover:bg-white/5 transition-colors">Annuler</button>
               <button onClick={handleSave} className="flex-1 bg-gold text-black rounded-lg py-2.5 text-sm font-bold hover:bg-gold/80 transition-colors">Enregistrer</button>
+            </div>
             </div>
           </div>
         </div>

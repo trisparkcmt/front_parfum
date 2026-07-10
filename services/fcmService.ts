@@ -53,8 +53,9 @@ let foregroundUnsubscribe: (() => void) | null = null;
  * VAPID Key for Firebase Cloud Messaging (public key)
  * This is the same key defined in lib/firebase.ts
  */
-const VAPID_KEY = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY ||
+const RAW_VAPID_KEY = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY ||
   'BIH086VT_ZEmPMDKIoJUfyaPmRQXF9sXGhGQpdQFHTK467Y4rKTm6TJHVNKZV1TPCLe8BCqNIRWVOXHqXLNd2r8';
+const VAPID_KEY = RAW_VAPID_KEY.replace(/^"|"$/g, '');
 
 /**
  * Local storage keys for FCM token management
