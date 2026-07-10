@@ -14,19 +14,28 @@ const FCM_TOKEN_KEY = 'fcm_token';
  */
 export async function registerFCMDevice(): Promise<void> {
   if (typeof window === 'undefined' || !('serviceWorker' in navigator)) return;
+  const { addToast } = useToastStore.getState();
   try {
-    const token = await getFCMToken();
-    if (!token) return;
+    const userAgent = window.navigator.userAgent || '';
+    const isIOS = /iPad|iPhone|iPod/.test(userAgent);
 
-    const stored = localStorage.getItem(FCM_TOKEN_KEY);
-    if (stored === token) {
-      // Token unchanged — no need to re-register
+    const token = await getFCMToken();
+    if (!token) {
+      if (isIOS) {
+        addToast("FCM Diagnostic: Impossible d'obtenir le token Firebase pour iOS.", 'error' as any);
+      }
       return;
     }
 
-    // Store token locally for unregistration on logout
-    localStorage.setItem(FCM_TOKEN_KEY, token);
+    const stored = localStorage.getItem(FCM_TOKEN_KEY);
+    if (stored === token) {
+      if (isIOS) {
+        addToast("FCM Diagnostic: Token inchangé et déjà enregistré localement.", 'success' as any);
+      }
+      return;
+    }
 
+    localStorage.setItem(FCM_TOKEN_KEY, token);
     const platform = getDevicePlatform();
 
     await api.post('utilisateur/devices/register/', {
@@ -35,9 +44,12 @@ export async function registerFCMDevice(): Promise<void> {
     });
 
     console.log('[FCM] Device registered successfully.');
-  } catch (error) {
-    // Non-blocking: don't crash the login flow on FCM errors
+    if (isIOS) {
+      addToast("FCM Diagnostic: Enregistrement réussi auprès du serveur backend !", 'success' as any);
+    }
+  } catch (error: any) {
     console.error('[FCM] Failed to register device:', error);
+    addToast(`FCM Diagnostic Erreur: ${error.message || error}`, 'error' as any);
   }
 }
 
@@ -85,6 +97,37 @@ export function FCMProvider() {
       .catch((err) => console.error('[SW] Registration failed:', err));
   }, []);
 
+  // Run iOS diagnostics on page mount
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const userAgent = window.navigator.userAgent || '';
+    const isIOS = /iPad|iPhone|iPod/.test(userAgent);
+
+    if (isIOS) {
+      const standalone = Boolean(
+        window.matchMedia('(display-mode: standalone)').matches || 
+        (window.navigator as any).standalone
+      );
+
+      const hasNotificationAPI = typeof Notification !== 'undefined';
+      const permission = hasNotificationAPI ? Notification.permission : 'non-supporté';
+      const hasSW = 'serviceWorker' in navigator;
+
+      addToast(
+        `Diagnostic iOS: Standalone=${standalone}, Permission=${permission}, SW=${hasSW}`,
+        'info' as any
+      );
+
+      if (!standalone) {
+        addToast(
+          "⚠️ Action requise: Pour recevoir des notifications sur iPhone, vous devez installer l'application sur l'écran d'accueil (Partager > Sur l'écran d'accueil) et l'ouvrir depuis l'icône installée.",
+          'warning' as any
+        );
+      }
+    }
+  }, [addToast]);
+
   // Watch auth state — register token on login, unregister on logout
   useEffect(() => {
     if (!_hasHydrated) return;
@@ -120,3 +163,4 @@ export function FCMProvider() {
 
   return null;
 }
+
