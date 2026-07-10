@@ -11,7 +11,6 @@ import type { User, UserRole } from '@/types';
 import { authService } from '@/services/apiService';
 import { deviceService } from '@/services/deviceService';
 import { getCachedToken, cleanupFCM } from '@/services/fcmService';
-import { registerPushNotifications, unregisterPushNotifications, listenForegroundNotifications } from '@/services/notifications';
 import { api, rawApi } from '@/services/api';
 import { useToastStore } from './useToastStore';
 import { useCartStore } from './useCartStore';
@@ -144,30 +143,21 @@ export const useAuthStore = create<AuthState>()(
               delete api.defaults.headers.common['Authorization'];
               localStorage.removeItem('auth_token');
             }
-
-            try {
-              await registerPushNotifications(loginData.access || '');
-              listenForegroundNotifications();
-            } catch (err) {
-              console.warn('[Auth] Failed to register push notifications:', err);
-            }
           }
 
-          const mapUser = (userObj: any, meData?: any): User => ({
-            ...(function () {
-              const roles = extractUserRoles(userObj, loginData.access);
-              return {
-                role: resolvePrimaryRole(roles),
-                roles,
-              };
-            })(),
-            id: String(userObj.id),
-            firstName: userObj.first_name || '',
-            lastName: userObj.last_name || '',
-            email: userObj.email || '',
-            phone: userObj.telephone || userObj.phone || '',
-            createdAt: meData?.client?.date_creation || userObj.date_creation || new Date().toISOString(),
-          });
+          const mapUser = (userObj: any, meData?: any): User => {
+            const roles = extractUserRoles(userObj, loginData.access);
+            return {
+              id: String(userObj.id),
+              firstName: userObj.first_name || '',
+              lastName: userObj.last_name || '',
+              email: userObj.email || '',
+              phone: userObj.telephone || userObj.phone || '',
+              role: resolvePrimaryRole(roles),
+              roles,
+              createdAt: meData?.client?.date_creation || userObj.date_creation || new Date().toISOString(),
+            };
+          };
 
           // Fetch full profile via rawApi to avoid the refresh interceptor during login
           let meUser: User | null = null;
@@ -360,23 +350,13 @@ export const useAuthStore = create<AuthState>()(
       logout: async () => {
         try {
           const fcmToken = getCachedToken();
-          const authToken = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
           if (fcmToken) {
             try {
-              // Try unregistering via deviceService (api-based) and via explicit unregister endpoint
               await deviceService.unregisterDevice(fcmToken);
             } catch (error) {
               console.warn('[Auth] Failed to unregister FCM device via deviceService:', error);
             }
-            if (authToken) {
-              try {
-                await unregisterPushNotifications(authToken);
-              } catch (error) {
-                console.warn('[Auth] Failed to unregister push notifications via explicit endpoint:', error);
-              }
-            }
           }
-
           cleanupFCM();
         } catch (error) {
           console.warn('[Auth] FCM cleanup failed during logout:', error);
