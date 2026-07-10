@@ -53,34 +53,37 @@ export function getFirebaseMessaging(): Messaging | null {
   }
 }
 
-/**
- * Requests notification permission and retrieves the FCM registration token.
- * Returns null if permission is denied or an error occurs.
- */
-export async function getFCMToken(): Promise<string | null> {
-  if (typeof window === 'undefined') return null;
+export interface FCMTokenResult {
+  token: string | null;
+  reason?: string;
+}
+
+export async function getFCMToken(): Promise<FCMTokenResult> {
+  if (typeof window === 'undefined') return { token: null, reason: 'SSR Environment' };
 
   const platform = getDevicePlatform();
 
   if (platform === 'ios' && !isIOSStandaloneApp()) {
-    console.warn('[FCM] iPhone notifications require the app to be installed to the Home Screen and opened from there.');
-    return null;
+    return { 
+      token: null, 
+      reason: "L'application n'est pas ouverte en mode PWA autonome (Ajoutez-la à l'écran d'accueil d'abord)." 
+    };
   }
 
-  if (typeof window === 'undefined' || typeof Notification === 'undefined') {
-    console.warn('[FCM] Notifications are not supported in this environment.');
-    return null;
+  if (typeof Notification === 'undefined') {
+    return { token: null, reason: 'Notification API non-supportée par le navigateur.' };
   }
 
   try {
     const permission = await Notification.requestPermission();
     if (permission !== 'granted') {
-      console.warn('[FCM] Notification permission denied.');
-      return null;
+      return { token: null, reason: `Permission de notification refusée (${permission}).` };
     }
 
     const messaging = getFirebaseMessaging();
-    if (!messaging) return null;
+    if (!messaging) {
+      return { token: null, reason: 'Impossible de charger Firebase Messaging (messaging instance null).' };
+    }
 
     // Ensure the Firebase SW is registered first
     const swRegistration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
@@ -92,14 +95,13 @@ export async function getFCMToken(): Promise<string | null> {
 
     if (token) {
       console.log('[FCM] Token obtained:', token);
-      return token;
+      return { token };
     } else {
-      console.warn('[FCM] No registration token available.');
-      return null;
+      return { token: null, reason: 'Aucun token reçu de Firebase (token vide).' };
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error('[FCM] Error getting FCM token:', error);
-    return null;
+    return { token: null, reason: `Erreur Firebase: ${error.message || error}` };
   }
 }
 

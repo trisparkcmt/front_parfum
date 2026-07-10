@@ -19,10 +19,10 @@ export async function registerFCMDevice(): Promise<void> {
     const userAgent = window.navigator.userAgent || '';
     const isIOS = /iPad|iPhone|iPod/.test(userAgent);
 
-    const token = await getFCMToken();
+    const { token, reason } = await getFCMToken();
     if (!token) {
       if (isIOS) {
-        addToast("FCM Diagnostic: Impossible d'obtenir le token Firebase pour iOS.", 'error' as any);
+        addToast(`FCM Diagnostic: Impossible d'obtenir le token (${reason || 'Raison inconnue'}).`, 'error' as any);
       }
       return;
     }
