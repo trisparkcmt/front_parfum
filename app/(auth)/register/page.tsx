@@ -87,7 +87,7 @@ function RegisterFormContent() {
         // Also try to obtain FCM token now and cache it locally so it can
         // be registered with the backend once the user completes login.
         try {
-          const token = await getFCMToken();
+          const { token } = await getFCMToken();
           if (token && typeof window !== 'undefined') {
             localStorage.setItem('fcm_token', token);
             // mark as pending registration until backend registration occurs
