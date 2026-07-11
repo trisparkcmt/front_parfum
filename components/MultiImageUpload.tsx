@@ -65,7 +65,7 @@ export const MultiImageUpload: React.FC<MultiImageUploadProps> = ({
     reader.readAsDataURL(file);
   };
 
-  const handleBulkSupplementaryFiles = (files: FileList | null) => {
+  const handleBulkSupplementaryFiles = async (files: FileList | null) => {
     if (!files) return;
 
     const validFiles: File[] = [];
@@ -87,29 +87,50 @@ export const MultiImageUpload: React.FC<MultiImageUploadProps> = ({
 
     if (validFiles.length === 0) return;
 
-    const nextImages = [...images];
-    let fileIndex = 1;
+    const imagePreviews = await Promise.all(
+      validFiles.map(
+        (file) =>
+          new Promise<{ file: File; preview: string }>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+              if (typeof e.target?.result === 'string') {
+                resolve({ file, preview: e.target.result });
+              } else {
+                reject(new Error('Failed to read file preview'));
+              }
+            };
+            reader.onerror = () => reject(new Error('FileReader error'));
+            reader.readAsDataURL(file);
+          })
+      )
+    ).catch((error) => {
+      console.error('[MultiImageUpload] Failed to read supplementary files:', error);
+      return [] as { file: File; preview: string }[];
+    });
 
-    validFiles.forEach((file) => {
-      while (fileIndex <= 4 && nextImages[fileIndex]?.file) {
-        fileIndex += 1;
-      }
+    if (imagePreviews.length === 0) return;
 
-      if (fileIndex > 4) return;
+    setImages((prevImages) => {
+      const updated = [...prevImages];
+      let nextSlot = 1;
 
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const updated = [...nextImages];
-        updated[fileIndex] = {
-          ...updated[fileIndex],
+      imagePreviews.forEach(({ file, preview }) => {
+        while (nextSlot <= 4 && updated[nextSlot]?.file) {
+          nextSlot += 1;
+        }
+
+        if (nextSlot > 4) return;
+
+        updated[nextSlot] = {
+          ...updated[nextSlot],
           file,
-          preview: e.target?.result as string,
+          preview,
         };
-        setImages(updated);
-        notifyParent(updated);
-      };
-      reader.readAsDataURL(file);
-      fileIndex += 1;
+        nextSlot += 1;
+      });
+
+      notifyParent(updated);
+      return updated;
     });
   };
 
@@ -181,7 +202,7 @@ export const MultiImageUpload: React.FC<MultiImageUploadProps> = ({
       <div>
         <h3 className="text-sm font-semibold text-foreground mb-3">Image Principale *</h3>
         <div
-          className={`relative border-2 border-dashed rounded-xl transition-colors cursor-pointer p-8 ${
+          className={`relative border-2 border-dashed rounded-xl transition-colors cursor-pointer p-6 ${
             draggedIndex === 0
               ? 'border-gold bg-gold/5'
               : principalImage.preview
@@ -194,7 +215,7 @@ export const MultiImageUpload: React.FC<MultiImageUploadProps> = ({
           onClick={() => principalInputRef.current?.click()}
         >
           {principalImage.preview ? (
-            <div className="relative w-full h-64 group">
+            <div className="relative w-full h-40 group">
               <AppImage
                 src={principalImage.preview}
                 alt={principalImage.label}
@@ -214,7 +235,7 @@ export const MultiImageUpload: React.FC<MultiImageUploadProps> = ({
             </div>
           ) : (
             <div className="flex flex-col items-center justify-center text-center">
-              <Upload className="text-gold mb-2" size={32} />
+              <Upload className="text-gold mb-2" size={24} />
               <p className="text-sm font-medium text-foreground mb-1">Cliquer pour ajouter l'image principale</p>
               <p className="text-xs text-foreground/40">ou glisser-déposer une image</p>
             </div>
@@ -260,19 +281,18 @@ export const MultiImageUpload: React.FC<MultiImageUploadProps> = ({
         </div>
 
         {supplementaryImages.some((img) => img.preview) && (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-3">
             {supplementaryImages.map((image, index) => (
-              <div key={image.key} className="flex flex-col gap-2">
-                <label className="block text-xs font-medium text-foreground/60">{image.label}</label>
-                <div className="relative group">
+              <div key={image.key} className="flex flex-col gap-2 items-center">
+                <label className="block text-[11px] font-medium text-foreground/60">{image.label}</label>
+                <div className="relative w-full max-w-[110px] aspect-square group">
                   {image.preview ? (
                     <>
                               <AppImage
                         src={image.preview}
                         alt={image.label}
-                        width={150}
-                        height={150}
-                        className="w-full h-32 object-cover rounded-lg border border-white/10"
+                        fill
+                        className="object-cover rounded-lg border border-white/10"
                       />
                       <button
                         type="button"
@@ -286,7 +306,7 @@ export const MultiImageUpload: React.FC<MultiImageUploadProps> = ({
                       </button>
                     </>
                   ) : (
-                    <div className="w-full h-32 border border-dashed border-white/10 rounded-lg bg-white/[0.02] flex items-center justify-center text-foreground/30">
+                    <div className="w-full h-full border border-dashed border-white/10 rounded-lg bg-white/[0.02] flex items-center justify-center text-foreground/30">
                       —
                     </div>
                   )}

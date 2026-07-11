@@ -705,12 +705,12 @@ export default function OrdersPage() {
       ════════════════════════════════════════════════════════════════════════ */}
       {selected && (
         <div
-          className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+          className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-start justify-end"
           onClick={e => { if (e.target === e.currentTarget) setSelected(null); }}
         >
-          <div className="bg-background rounded-3xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-sm border border-white/10">
+          <div className="w-full max-w-4xl h-full bg-background/95 border-l border-white/10 shadow-2xl overflow-y-auto">
             {/* header */}
-            <div className="sticky top-0 bg-background border-b border-white/10 px-6 py-4 flex items-center justify-between rounded-t-3xl z-10">
+            <div className="sticky top-0 bg-background/90 border-b border-white/10 px-6 py-4 flex items-center justify-between z-10 backdrop-blur">
               <div>
                 <h3 className="font-bold text-foreground text-lg">{selected.numero_commande}</h3>
                 <p className="text-xs text-foreground/40">{fmtDate(selected.date_creation, true)}</p>
@@ -720,7 +720,7 @@ export default function OrdersPage() {
               </button>
             </div>
 
-            <div className="p-6 space-y-6">
+            <div className="p-6 lg:p-8 space-y-6">
               {/* status badges */}
               <div className="flex flex-wrap gap-2">
                 <Badge text={STATUT_CFG[selected.statut]?.label ?? selected.statut} cfg={STATUT_CFG[selected.statut]} />
@@ -891,12 +891,12 @@ export default function OrdersPage() {
       ════════════════════════════════════════════════════════════════════════ */}
       {editModal && (
         <div
-          className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+          className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-start justify-end"
           onClick={e => { if (e.target === e.currentTarget) setEditModal(null); }}
         >
-          <div className="bg-background rounded-3xl w-full max-w-lg shadow-sm border border-white/10">
+          <div className="w-full max-w-4xl h-full bg-background/95 border-l border-white/10 shadow-2xl overflow-y-auto">
             {/* header */}
-            <div className="border-b border-white/10 px-6 py-4 flex items-center justify-between">
+            <div className="sticky top-0 bg-background/90 border-b border-white/10 px-6 py-4 flex items-center justify-between z-10 backdrop-blur">
               <div>
                 <h3 className="font-bold text-foreground">Gérer la commande</h3>
                 <p className="text-xs text-gold font-mono mt-0.5">{editModal.numero_commande}</p>
@@ -1048,12 +1048,12 @@ export default function OrdersPage() {
       ════════════════════════════════════════════════════════════════════════ */}
       {validationModal && (
         <div
-          className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+          className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-start justify-end"
           onClick={e => { if (e.target === e.currentTarget) setValidationModal(null); }}
         >
-          <div className="bg-background rounded-3xl w-full max-w-md shadow-sm border border-white/10">
+          <div className="w-full max-w-4xl h-full bg-background/95 border-l border-white/10 shadow-2xl overflow-y-auto">
             {/* header */}
-            <div className="border-b border-white/10 px-6 py-4 flex items-center justify-between">
+            <div className="sticky top-0 bg-background/90 border-b border-white/10 px-6 py-4 flex items-center justify-between z-10 backdrop-blur">
               <div>
                 <h3 className="font-bold text-foreground">Validation & Livraison</h3>
                 <p className="text-xs text-gold font-mono mt-0.5">{validationModal.numero_commande}</p>

@@ -10,6 +10,7 @@ import AppImage from '@/components/ui/AppImage';
 import { extractCatalogList } from '@/lib/catalogUtils';
 import { extractApiError } from '@/lib/apiError';
 import { FloatInput } from '@/components/ui/Input';
+import { SlideOver } from '@/components/ui/SlideOver';
 
 export default function FinishedEssenceAdminPage() {
   const permissions = useCatalogPermissions('produits_essence');
@@ -366,12 +367,26 @@ export default function FinishedEssenceAdminPage() {
         )}
       </div>
 
-      {showModal && (permissions.canCreate || permissions.canUpdate) && (
-        <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
-          <div className="bg-background rounded-2xl w-full max-w-md border border-white/10 p-6 space-y-4 max-h-[90vh] overflow-y-auto">
-            <h3 className="font-bold text-lg">{editing ? 'Modifier' : 'Nouveau'} produit essence</h3>
-            
-            <div className="space-y-3">
+      <SlideOver
+        isOpen={Boolean(showModal && (permissions.canCreate || permissions.canUpdate))}
+        onClose={() => setShowModal(false)}
+        title={editing ? 'Modifier' : 'Nouveau'}
+        description="Formulaire complet, sans popup ni défilement gênant."
+        size="lg"
+        footer={
+          <div className="flex gap-3 pt-2">
+            <button onClick={() => setShowModal(false)} className="flex-1 border border-white/10 rounded-xl py-2.5 text-sm">Annuler</button>
+            <button
+              onClick={handleSave}
+              disabled={saving}
+              className="flex-1 bg-gold text-black rounded-xl py-2.5 text-sm font-bold disabled:opacity-50"
+            >
+              {saving ? 'Enregistrement…' : 'Enregistrer'}
+            </button>
+          </div>
+        }
+      >
+        <div className="space-y-4">
               <FloatInput
                 label="Nom du produit *"
                 placeholder="Nom du produit"
@@ -543,21 +558,7 @@ export default function FinishedEssenceAdminPage() {
               </p>
             )}
 
-            <div className="flex gap-3 pt-2">
-              <button onClick={() => setShowModal(false)} className="flex-1 border border-white/10 rounded-xl py-2.5 text-sm">
-                Annuler
-              </button>
-              <button
-                onClick={handleSave}
-                disabled={saving}
-                className="flex-1 bg-gold text-black rounded-xl py-2.5 text-sm font-bold disabled:opacity-50"
-              >
-                {saving ? 'Enregistrement…' : 'Enregistrer'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      </SlideOver>
     </div>
   );
 }

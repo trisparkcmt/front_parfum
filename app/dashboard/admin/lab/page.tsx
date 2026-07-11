@@ -13,6 +13,7 @@ import { extractCatalogList } from '@/lib/catalogUtils';
 import { extractApiError } from '@/lib/apiError';
 import Header from '@/components/admin/Header';
 import Sidebar from '@/components/admin/Sidebar';
+import { SlideOver } from '@/components/ui/SlideOver';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -244,11 +245,25 @@ function IngredientsTab() {
         )}
       </div>
 
-      {showModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-background rounded-2xl p-6 w-full max-w-md shadow-sm border border-white/10">
-            <h3 className="font-bold text-foreground mb-4">{editing ? 'Modifier l\'ingrédient' : 'Ajouter un ingrédient'}</h3>
-            <div className="space-y-3">
+      <SlideOver
+        isOpen={showModal}
+        onClose={() => setShowModal(false)}
+        title={editing ? 'Modifier l\'ingrédient' : 'Ajouter un ingrédient'}
+        description="Formulaire de saisie complet dans un panneau latéral."
+        size="lg"
+        footer={
+          <div className="flex gap-3">
+            <button onClick={() => setShowModal(false)} className="flex-1 border border-white/10 rounded-lg py-2.5 text-sm text-foreground/60 hover:bg-white/5 transition-colors">
+              Annuler
+            </button>
+            <button onClick={handleSave} disabled={saving} className="flex-1 bg-gold text-black rounded-lg py-2.5 text-sm font-bold hover:bg-gold/80 transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
+              {saving && <Loader2 size={14} className="animate-spin" />}
+              Enregistrer
+            </button>
+          </div>
+        }
+      >
+        <div className="space-y-3">
               {[
                 { label: 'Nom *', field: 'nom', placeholder: 'Ex: Huile de Rose' },
                 { label: 'Description', field: 'description', placeholder: 'Description de l\'ingrédient' },
@@ -290,18 +305,7 @@ function IngredientsTab() {
                 <span className="text-sm text-foreground/60">Ingrédient actif</span>
               </label>
             </div>
-            <div className="flex gap-3 mt-5">
-              <button onClick={() => setShowModal(false)} className="flex-1 border border-white/10 rounded-lg py-2.5 text-sm text-foreground/60 hover:bg-white/5 transition-colors">
-                Annuler
-              </button>
-              <button onClick={handleSave} disabled={saving} className="flex-1 bg-gold text-black rounded-lg py-2.5 text-sm font-bold hover:bg-gold/80 transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
-                {saving && <Loader2 size={14} className="animate-spin" />}
-                Enregistrer
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      </SlideOver>
     </div>
   );
 }
@@ -518,11 +522,25 @@ function LotsTab() {
         )}
       </div>
 
-      {showModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-background rounded-2xl p-6 w-full max-w-md shadow-sm border border-white/10">
-            <h3 className="font-bold text-foreground mb-4">{editing ? 'Modifier le lot' : 'Créer un lot'}</h3>
-            <div className="space-y-3">
+      <SlideOver
+        isOpen={showModal}
+        onClose={() => setShowModal(false)}
+        title={editing ? 'Modifier le lot' : 'Créer un lot'}
+        description="Gestion détaillée d’un lot d’essence dans un panneau latéral."
+        size="lg"
+        footer={
+          <div className="flex gap-3">
+            <button onClick={() => setShowModal(false)} className="flex-1 border border-white/10 rounded-lg py-2.5 text-sm text-foreground/60 hover:bg-white/5 transition-colors">
+              Annuler
+            </button>
+            <button onClick={handleSave} disabled={saving} className="flex-1 bg-gold text-black rounded-lg py-2.5 text-sm font-bold hover:bg-gold/80 transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
+              {saving && <Loader2 size={14} className="animate-spin" />}
+              Enregistrer
+            </button>
+          </div>
+        }
+      >
+        <div className="space-y-3">
               <div>
                 <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Essence *</label>
                 <select
@@ -577,18 +595,7 @@ function LotsTab() {
                 <span className="text-sm text-foreground/60">Lot actif</span>
               </label>
             </div>
-            <div className="flex gap-3 mt-5">
-              <button onClick={() => setShowModal(false)} className="flex-1 border border-white/10 rounded-lg py-2.5 text-sm text-foreground/60 hover:bg-white/5 transition-colors">
-                Annuler
-              </button>
-              <button onClick={handleSave} disabled={saving} className="flex-1 bg-gold text-black rounded-lg py-2.5 text-sm font-bold hover:bg-gold/80 transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
-                {saving && <Loader2 size={14} className="animate-spin" />}
-                Enregistrer
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      </SlideOver>
     </div>
   );
 }
@@ -744,14 +751,25 @@ function InventoryTab() {
         )}
       </div>
 
-      {showModal && editing && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-background rounded-2xl p-6 w-full max-w-sm shadow-sm border border-white/10">
-            <h3 className="font-bold text-foreground mb-1">Ajuster le stock labo</h3>
-            <p className="text-xs text-foreground/40 mb-4">
-              {editing.essence_details?.nom || `Essence #${editing.essence || editing.id}`}
-            </p>
-            <div className="space-y-3">
+      <SlideOver
+        isOpen={Boolean(showModal && editing)}
+        onClose={() => setShowModal(false)}
+        title="Ajuster le stock labo"
+        description={editing?.essence_details?.nom || `Essence #${editing?.essence || editing?.id}`}
+        size="lg"
+        footer={
+          <div className="flex gap-3">
+            <button onClick={() => setShowModal(false)} className="flex-1 border border-white/10 rounded-lg py-2.5 text-sm text-foreground/60 hover:bg-white/5 transition-colors">
+              Annuler
+            </button>
+            <button onClick={handleSave} disabled={saving} className="flex-1 bg-gold text-black rounded-lg py-2.5 text-sm font-bold hover:bg-gold/80 transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
+              {saving && <Loader2 size={14} className="animate-spin" />}
+              Mettre à jour
+            </button>
+          </div>
+        }
+      >
+        <div className="space-y-3">
               {[
                 { label: 'Quantité disponible (ml)', field: 'quantite_disponible_ml', placeholder: '5000' },
                 { label: 'Seuil d\'alerte (ml)', field: 'seuil_alerte_ml', placeholder: '500' },
@@ -768,18 +786,7 @@ function InventoryTab() {
                 </div>
               ))}
             </div>
-            <div className="flex gap-3 mt-5">
-              <button onClick={() => setShowModal(false)} className="flex-1 border border-white/10 rounded-lg py-2.5 text-sm text-foreground/60 hover:bg-white/5 transition-colors">
-                Annuler
-              </button>
-              <button onClick={handleSave} disabled={saving} className="flex-1 bg-gold text-black rounded-lg py-2.5 text-sm font-bold hover:bg-gold/80 transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
-                {saving && <Loader2 size={14} className="animate-spin" />}
-                Mettre à jour
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      </SlideOver>
     </div>
   );
 }

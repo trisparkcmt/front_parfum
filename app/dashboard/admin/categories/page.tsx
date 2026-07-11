@@ -8,6 +8,7 @@ import { useToastStore } from '@/store/useToastStore';
 import AppImage from '@/components/ui/AppImage';
 import CompactIconUpload from '@/components/admin/CompactIconUpload';
 import { FloatInput } from '@/components/ui/Input';
+import { SlideOver } from '@/components/ui/SlideOver';
 import { fromDatetimeLocalValue, formatPromotionPeriod, toDatetimeLocalValue } from '@/lib/promotionUtils';
 import { extractApiError } from '@/lib/apiError';
 
@@ -385,12 +386,30 @@ export default function CategoriesAdminPage() {
     </div>
 
       {/* Add/Edit Modal */}
-      {showModal && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-background rounded-2xl p-6 w-full max-w-md shadow-sm border border-white/10 max-h-[90vh] overflow-y-auto">
-            <h3 className="font-bold text-foreground mb-5">{modalTitle}</h3>
-
-            <div className="space-y-4">
+      <SlideOver
+        isOpen={showModal}
+        onClose={() => setShowModal(false)}
+        title={modalTitle}
+        description="Formulaire complet, sans popup ni défilement gênant."
+        size="xl"
+        footer={
+          <div className="flex gap-3">
+            <button
+              onClick={() => setShowModal(false)}
+              className="flex-1 border border-white/10 rounded-lg py-2.5 text-sm text-foreground/60 hover:bg-white/5 transition-colors"
+            >
+              Annuler
+            </button>
+            <button
+              onClick={handleSave}
+              className="flex-1 bg-gold text-black rounded-lg py-2.5 text-sm font-bold hover:bg-gold/80 transition-colors"
+            >
+              Enregistrer
+            </button>
+          </div>
+        }
+      >
+        <div className="space-y-4">
               <FloatInput
                 label="Nom *"
                 placeholder="Nom"
@@ -535,23 +554,7 @@ export default function CategoriesAdminPage() {
               </p>
             )}
 
-            <div className="flex gap-3 mt-6">
-              <button
-                onClick={() => setShowModal(false)}
-                className="flex-1 border border-white/10 rounded-lg py-2.5 text-sm text-foreground/60 hover:bg-white/5 transition-colors"
-              >
-                Annuler
-              </button>
-              <button
-                onClick={handleSave}
-                className="flex-1 bg-gold text-black rounded-lg py-2.5 text-sm font-bold hover:bg-gold/80 transition-colors"
-              >
-                Enregistrer
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      </SlideOver>
     </>
   );
 }

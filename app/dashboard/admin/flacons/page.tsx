@@ -7,6 +7,7 @@ import { useToastStore } from '@/store/useToastStore';
 import { useCatalogPermissions } from '@/hooks/useCatalogPermissions';
 import CatalogAccessNotice from '@/components/catalog/CatalogAccessNotice';
 import { extractCatalogList } from '@/lib/catalogUtils';
+import { SlideOver } from '@/components/ui/SlideOver';
 
 export default function FlaconsAdminPage() {
   const permissions = useCatalogPermissions('flacons');
@@ -265,11 +266,21 @@ export default function FlaconsAdminPage() {
         )}
       </div>
 
-      {showModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-background rounded-2xl p-6 w-full max-w-2xl shadow-sm border border-white/10 max-h-[90vh] overflow-y-auto">
-            <h3 className="font-bold text-foreground mb-4">{editingBottle ? 'Modifier le flacon' : 'Ajouter un flacon'}</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <SlideOver
+        isOpen={showModal}
+        onClose={() => setShowModal(false)}
+        title={editingBottle ? 'Modifier le flacon' : 'Ajouter un flacon'}
+        description="Formulaire complet, sans popup ni défilement gênant."
+        size="lg"
+        footer={
+          <div className="flex gap-3">
+            <button onClick={() => setShowModal(false)} className="flex-1 border border-white/10 rounded-lg py-2.5 text-sm text-foreground/60 hover:bg-white/5 transition-colors">Annuler</button>
+            <button onClick={handleSave} className="flex-1 bg-gold text-black rounded-lg py-2.5 text-sm font-bold hover:bg-gold/80 transition-colors">Enregistrer</button>
+          </div>
+        }
+      >
+        <div className="p-6 lg:p-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-4">
                 <div>
                   <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Nom *</label>
@@ -342,14 +353,8 @@ export default function FlaconsAdminPage() {
                 </div>
               </div>
             </div>
-
-            <div className="flex gap-3 mt-6">
-              <button onClick={() => setShowModal(false)} className="flex-1 border border-white/10 rounded-lg py-2.5 text-sm text-foreground/60 hover:bg-white/5 transition-colors">Annuler</button>
-              <button onClick={handleSave} className="flex-1 bg-gold text-black rounded-lg py-2.5 text-sm font-bold hover:bg-gold/80 transition-colors">Enregistrer</button>
-            </div>
           </div>
-        </div>
-      )}
+      </SlideOver>
     </div>
   );
 }

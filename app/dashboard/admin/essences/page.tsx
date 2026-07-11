@@ -10,10 +10,11 @@ import { useToastStore } from '@/store/useToastStore';
 import { useCatalogPermissions } from '@/hooks/useCatalogPermissions';
 import CatalogAccessNotice from '@/components/catalog/CatalogAccessNotice';
 import { FloatInput } from '@/components/ui/Input';
+import { SlideOver } from '@/components/ui/SlideOver';
 
 const STATIC_CATEGORIES = ['super_premium', 'premium', 'high'];
 
-export default function EssencesPage() {
+export default function EssencesPage () {
   const permissions = useCatalogPermissions('essences');
   const [essences, setEssences] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -454,14 +455,14 @@ if (!editingEssence && includeProduitsFinis) {
               )}
 
               {/* Modale d'Ajout / Modification */}
-              {showModal && (
-                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex p-4 overflow-y-auto" onClick={() => setShowModal(false)}>
-                  <div className="bg-background rounded-2xl p-6 w-full max-w-6xl shadow-sm border border-white/10 overflow-y-auto max-h-fit my-auto mx-auto" onClick={e => e.stopPropagation()}>
-                    <h3 className="font-bold text-foreground text-lg mb-4">
-                      {editingEssence ? 'Modifier l\'essence' : 'Ajouter une nouvelle essence'}
-                    </h3>
-                    
-                    <div className="space-y-4">
+              <SlideOver
+                isOpen={showModal}
+                onClose={() => setShowModal(false)}
+                title={editingEssence ? 'Modifier l\'essence' : 'Ajouter une nouvelle essence'}
+                description="Formulaire complet, sans popup ni défilement gênant."
+                size="xl"
+              >
+                <div className="space-y-4">
                       <div className="grid grid-cols-2 gap-3">
                         <FloatInput
                           label="Nom de l'essence *"
@@ -639,9 +640,7 @@ if (!editingEssence && includeProduitsFinis) {
                         </button>
                       </div>
                     </div>
-                  </div>
-                </div>
-              )}
+                  </SlideOver>
     </div>
   );
 }

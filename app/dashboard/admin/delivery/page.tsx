@@ -5,6 +5,7 @@ import { Plus, Truck, CheckCircle, Clock, Loader2, RefreshCw, Trash2 } from 'luc
 import { adminService } from '@/services/apiService';
 import { useToastStore } from '@/store/useToastStore';
 import AppImage from '@/components/ui/AppImage';
+import { SlideOver } from '@/components/ui/SlideOver';
 
 // Define a type for a driver to improve type safety and readability
 interface Driver {
@@ -291,30 +292,34 @@ export default function DeliveryPage() {
         </div>
       </div>
 
-      {showModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-background rounded-2xl p-6 w-full max-w-sm shadow-sm border border-white/10">
-            <h3 className="font-bold text-foreground mb-1">Promouvoir en tant que Livreur</h3>
-            <p className="text-xs text-foreground/40 mb-4">Attribue le rôle opérationnel à l'utilisateur.</p>
-            <div className="space-y-3">
-              <div>
-                <label className="text-[10px] font-bold text-foreground/40 uppercase mb-1 block">ID de l'utilisateur</label>
-                <input
-                  type="number"
-                  placeholder="Ex: 42"
-                  value={userIdVal}
-                  onChange={e => setUserIdVal(e.target.value)}
-                  className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
-                />
-              </div>
-            </div>
-            <div className="flex gap-3 mt-5">
-              <button onClick={() => setShowModal(false)} className="flex-1 border border-white/10 rounded-lg py-2.5 text-sm text-foreground/60 hover:bg-white/5 transition-colors">Annuler</button>
-              <button onClick={handlePromote} className="flex-1 bg-gold text-black rounded-lg py-2.5 text-sm font-medium hover:bg-gold/80 transition-colors">Promouvoir</button>
+      <SlideOver
+        isOpen={showModal}
+        onClose={() => setShowModal(false)}
+        title="Promouvoir en tant que Livreur"
+        description="Attribue le rôle opérationnel à l'utilisateur."
+        size="md"
+        footer={
+          <div className="flex gap-3 mt-5">
+            <button onClick={() => setShowModal(false)} className="flex-1 border border-white/10 rounded-lg py-2.5 text-sm text-foreground/60 hover:bg-white/5 transition-colors">Annuler</button>
+            <button onClick={handlePromote} className="flex-1 bg-gold text-black rounded-lg py-2.5 text-sm font-medium hover:bg-gold/80 transition-colors">Promouvoir</button>
+          </div>
+        }
+      >
+        <div className="p-6 lg:p-8">
+          <div className="space-y-3">
+            <div>
+              <label className="text-[10px] font-bold text-foreground/40 uppercase mb-1 block">ID de l'utilisateur</label>
+              <input
+                type="number"
+                placeholder="Ex: 42"
+                value={userIdVal}
+                onChange={e => setUserIdVal(e.target.value)}
+                className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
+              />
             </div>
           </div>
         </div>
-      )}
+      </SlideOver>
     </div>
   );
 }

@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { adminService, api } from '@/services/apiService';
 import { useToastStore } from '@/store/useToastStore';
+import { SlideOver } from '@/components/ui/SlideOver';
 
 // API helpers
 const promoApi = {
@@ -154,88 +155,85 @@ export default function PromoCodesPage() {
         )}
       </div>
 
-      {showModal && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={e => { if (e.target === e.currentTarget) setShowModal(false); }}>
-          <div className="bg-background rounded-3xl w-full max-w-xl shadow-sm border border-white/10 max-h-[90vh] flex flex-col">
-            <div className="border-b border-white/10 px-6 py-4 flex items-center justify-between flex-shrink-0">
-              <div>
-                <h3 className="font-bold text-foreground">{editingCode ? 'Modifier le code promo' : 'Creer un code promo'}</h3>
-                {!editingCode && <p className="text-xs text-foreground/40 mt-0.5">Un email sera envoye aux clients selectionnes apres creation.</p>}
-              </div>
-              <button onClick={() => setShowModal(false)} className="p-2 rounded-xl hover:bg-white/5 text-foreground/40 hover:text-foreground transition-colors"><X size={18} /></button>
-            </div>
-            <div className="p-6 space-y-5 overflow-y-auto flex-1">
-              <div>
-                <label className="text-[10px] font-bold text-foreground/40 uppercase tracking-widest mb-2 block">Code promo *</label>
-                <input value={formCode} onChange={e => setFormCode(e.target.value.toUpperCase())} placeholder="Ex: VIP2026" className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm font-mono font-bold text-gold tracking-widest outline-none focus:border-gold transition-all placeholder:text-foreground/20" />
-              </div>
-              <div>
-                <label className="text-[10px] font-bold text-foreground/40 uppercase tracking-widest mb-2 block">Reduction (%) *</label>
-                <div className="relative">
-                  <input type="number" min="0" max="100" step="0.5" value={formReduction} onChange={e => setFormReduction(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-foreground outline-none focus:border-gold transition-all pr-10" />
-                  <Percent size={16} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-foreground/30" />
-                </div>
-              </div>
-              <label className="flex items-center gap-3 cursor-pointer select-none">
-                <div onClick={() => setFormActif(v => !v)} className={`w-10 h-5 rounded-full transition-all relative flex-shrink-0 ${formActif ? 'bg-gold' : 'bg-white/10'}`}>
-                  <span className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-all ${formActif ? 'left-5' : 'left-0.5'}`} />
-                </div>
-                <div><p className="text-sm font-medium text-foreground">{formActif ? 'Actif' : 'Inactif'}</p><p className="text-[10px] text-foreground/40">Le code peut etre utilise au checkout</p></div>
-              </label>
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <label className="text-[10px] font-bold text-foreground/40 uppercase tracking-widest">Clients autorises</label>
-                  <span className="text-[10px] text-foreground/40">{formClients.length === 0 ? 'Tous les clients' : `${formClients.length} selectionne(s)`}</span>
-                </div>
-                {formClients.length > 0 && (
-                  <div className="flex flex-wrap gap-1.5 mb-3">
-                    {formClients.map(id => {
-                      const c = clients.find(cl => cl.id === id);
-                      const label = c ? `${c.first_name} ${c.last_name}`.trim() || c.email : `#${id}`;
-                      return (<span key={id} className="inline-flex items-center gap-1 text-[11px] bg-gold/10 text-gold border border-gold/20 px-2 py-0.5 rounded-full">{label}<button onClick={() => toggleClient(id)} className="hover:text-red-400 transition-colors"><X size={10} /></button></span>);
-                    })}
-                  </div>
-                )}
-                <button type="button" onClick={() => setShowClientPicker(v => !v)} className="flex items-center gap-2 w-full px-4 py-2.5 border border-white/10 rounded-xl text-sm text-foreground/60 hover:bg-white/5 hover:border-white/20 transition-all">
-                  <Users2 size={14} />{showClientPicker ? 'Fermer la selection' : 'Selectionner des clients...'}
-                </button>
-                {showClientPicker && (
-                  <div className="mt-2 border border-white/10 rounded-xl overflow-hidden">
-                    <div className="px-3 py-2 border-b border-white/10 flex items-center gap-2">
-                      <Search size={14} className="text-foreground/40" />
-                      <input autoFocus value={clientSearch} onChange={e => setClientSearch(e.target.value)} placeholder="Rechercher par nom ou email..." className="flex-1 bg-transparent text-sm outline-none text-foreground placeholder:text-foreground/30" />
-                      {clientsLoading && <Loader2 size={14} className="animate-spin text-gold" />}
-                    </div>
-                    <div className="max-h-44 overflow-y-auto">
-                      {clients.length === 0 ? (
-                        <p className="text-center text-xs text-foreground/30 italic py-4">{clientSearch ? 'Aucun client trouve.' : 'Tapez pour rechercher un client.'}</p>
-                      ) : clients.map(c => {
-                        const name = `${c.first_name || ''} ${c.last_name || ''}`.trim() || c.email;
-                        const selected = formClients.includes(c.id);
-                        return (
-                          <button key={c.id} onClick={() => toggleClient(c.id)} className={`w-full flex items-center gap-3 px-4 py-2.5 text-left transition-colors ${selected ? 'bg-gold/10' : 'hover:bg-white/5'}`}>
-                            <div className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 transition-all ${selected ? 'bg-gold border-gold' : 'border-white/20'}`}>
-                              {selected && <CheckCircle size={10} className="text-black" />}
-                            </div>
-                            <div className="flex-1 min-w-0"><p className="text-sm font-medium truncate">{name}</p><p className="text-[10px] text-foreground/40 truncate">{c.email}</p></div>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-            <div className="border-t border-white/10 px-6 py-4 flex gap-3 flex-shrink-0">
-              <button onClick={handleSave} disabled={saving} className="flex-1 bg-gold text-black rounded-xl py-3 text-sm font-bold flex items-center justify-center gap-2 hover:bg-gold/80 transition-all disabled:opacity-50">
-                {saving ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle size={16} />}
-                {editingCode ? 'Enregistrer les modifications' : 'Creer et envoyer'}
-              </button>
-              <button onClick={() => setShowModal(false)} className="px-5 border border-white/10 rounded-xl py-3 text-sm text-foreground/60 hover:bg-white/5 transition-all">Annuler</button>
+      <SlideOver
+        isOpen={showModal}
+        onClose={() => setShowModal(false)}
+        title={editingCode ? 'Modifier le code promo' : 'Creer un code promo'}
+        description={!editingCode ? 'Un email sera envoye aux clients selectionnes apres creation.' : undefined}
+        size="xl"
+        footer={
+          <div className="flex gap-3">
+            <button onClick={handleSave} disabled={saving} className="flex-1 bg-gold text-black rounded-xl py-3 text-sm font-bold flex items-center justify-center gap-2 hover:bg-gold/80 transition-all disabled:opacity-50">
+              {saving ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle size={16} />}
+              {editingCode ? 'Enregistrer les modifications' : 'Creer et envoyer'}
+            </button>
+            <button onClick={() => setShowModal(false)} className="px-5 border border-white/10 rounded-xl py-3 text-sm text-foreground/60 hover:bg-white/5 transition-all">Annuler</button>
+          </div>
+        }
+      >
+        <div className="space-y-5">
+          <div>
+            <label className="text-[10px] font-bold text-foreground/40 uppercase tracking-widest mb-2 block">Code promo *</label>
+            <input value={formCode} onChange={e => setFormCode(e.target.value.toUpperCase())} placeholder="Ex: VIP2026" className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm font-mono font-bold text-gold tracking-widest outline-none focus:border-gold transition-all placeholder:text-foreground/20" />
+          </div>
+          <div>
+            <label className="text-[10px] font-bold text-foreground/40 uppercase tracking-widest mb-2 block">Reduction (%) *</label>
+            <div className="relative">
+              <input type="number" min="0" max="100" step="0.5" value={formReduction} onChange={e => setFormReduction(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-foreground outline-none focus:border-gold transition-all pr-10" />
+              <Percent size={16} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-foreground/30" />
             </div>
           </div>
+          <label className="flex items-center gap-3 cursor-pointer select-none">
+            <div onClick={() => setFormActif(v => !v)} className={`w-10 h-5 rounded-full transition-all relative flex-shrink-0 ${formActif ? 'bg-gold' : 'bg-white/10'}`}>
+              <span className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-all ${formActif ? 'left-5' : 'left-0.5'}`} />
+            </div>
+            <div><p className="text-sm font-medium text-foreground">{formActif ? 'Actif' : 'Inactif'}</p><p className="text-[10px] text-foreground/40">Le code peut etre utilise au checkout</p></div>
+          </label>
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-[10px] font-bold text-foreground/40 uppercase tracking-widest">Clients autorises</label>
+              <span className="text-[10px] text-foreground/40">{formClients.length === 0 ? 'Tous les clients' : `${formClients.length} selectionne(s)`}</span>
+            </div>
+            {formClients.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 mb-3">
+                {formClients.map(id => {
+                  const c = clients.find(cl => cl.id === id);
+                  const label = c ? `${c.first_name} ${c.last_name}`.trim() || c.email : `#${id}`;
+                  return (<span key={id} className="inline-flex items-center gap-1 text-[11px] bg-gold/10 text-gold border border-gold/20 px-2 py-0.5 rounded-full">{label}<button onClick={() => toggleClient(id)} className="hover:text-red-400 transition-colors"><X size={10} /></button></span>);
+                })}
+              </div>
+            )}
+            <button type="button" onClick={() => setShowClientPicker(v => !v)} className="flex items-center gap-2 w-full px-4 py-2.5 border border-white/10 rounded-xl text-sm text-foreground/60 hover:bg-white/5 hover:border-white/20 transition-all">
+              <Users2 size={14} />{showClientPicker ? 'Fermer la selection' : 'Selectionner des clients...'}
+            </button>
+            {showClientPicker && (
+              <div className="mt-2 border border-white/10 rounded-xl overflow-hidden">
+                <div className="px-3 py-2 border-b border-white/10 flex items-center gap-2">
+                  <Search size={14} className="text-foreground/40" />
+                  <input autoFocus value={clientSearch} onChange={e => setClientSearch(e.target.value)} placeholder="Rechercher par nom ou email..." className="flex-1 bg-transparent text-sm outline-none text-foreground placeholder:text-foreground/30" />
+                  {clientsLoading && <Loader2 size={14} className="animate-spin text-gold" />}
+                </div>
+                <div className="max-h-44 overflow-y-auto">
+                  {clients.length === 0 ? (
+                    <p className="text-center text-xs text-foreground/30 italic py-4">{clientSearch ? 'Aucun client trouve.' : 'Tapez pour rechercher un client.'}</p>
+                  ) : clients.map(c => {
+                    const name = `${c.first_name || ''} ${c.last_name || ''}`.trim() || c.email;
+                    const selected = formClients.includes(c.id);
+                    return (
+                      <button key={c.id} onClick={() => toggleClient(c.id)} className={`w-full flex items-center gap-3 px-4 py-2.5 text-left transition-colors ${selected ? 'bg-gold/10' : 'hover:bg-white/5'}`}>
+                        <div className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 transition-all ${selected ? 'bg-gold border-gold' : 'border-white/20'}`}>
+                          {selected && <CheckCircle size={10} className="text-black" />}
+                        </div>
+                        <div className="flex-1 min-w-0"><p className="text-sm font-medium truncate">{name}</p><p className="text-[10px] text-foreground/40 truncate">{c.email}</p></div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
-      )}
+      </SlideOver>
     </div>
   );
 }

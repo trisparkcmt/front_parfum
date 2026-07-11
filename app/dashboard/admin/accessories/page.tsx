@@ -10,6 +10,7 @@ import { extractCatalogList } from '@/lib/catalogUtils';
 import { MultiImageUpload } from '@/components/MultiImageUpload';
 import { CreateCategoryModal } from '@/components/CreateCategoryModal';
 import AppImage from '@/components/ui/AppImage';
+import { SlideOver } from '@/components/ui/SlideOver';
 
 export default function AccessoriesPage() {
   const permissions = useCatalogPermissions('accessoires');
@@ -449,20 +450,22 @@ export default function AccessoriesPage() {
         )}
       </div>
 
-      {showModal && (
-        <div 
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex p-4 overflow-y-auto"
-          onClick={() => setShowModal(false)}
-        >
-          <div 
-            className="bg-background rounded-2xl p-6 w-full max-w-6xl shadow-sm border border-white/10 overflow-y-auto max-h-fit my-auto mx-auto"
-            onClick={e => e.stopPropagation()}
-          >
-            <h3 className="font-bold text-foreground mb-4">
-              {editingAccessory ? 'Modifier l\'accessoire' : 'Ajouter un accessoire'}
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Left column */}
+      <SlideOver
+        isOpen={showModal}
+        onClose={() => setShowModal(false)}
+        title={editingAccessory ? "Modifier l'accessoire" : "Ajouter un accessoire"}
+        description="Formulaire complet, sans popup ni défilement gênant."
+        size="xl"
+        footer={
+          <div className="flex gap-3">
+            <button onClick={handleSave} className="flex-1 bg-gold text-black rounded-xl py-3 text-sm font-bold hover:bg-gold/80 transition-all">Enregistrer</button>
+            <button onClick={() => setShowModal(false)} className="px-5 border border-white/10 rounded-xl py-3 text-sm text-foreground/60 hover:bg-white/5 transition-all">Annuler</button>
+          </div>
+        }
+      >
+        <div className="grid grid-cols-1 xl:grid-cols-[1.6fr_0.9fr] gap-6">
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-4">
                 <input
                   placeholder="Marque *"
@@ -512,7 +515,6 @@ export default function AccessoriesPage() {
                 />
               </div>
 
-              {/* Right column */}
               <div className="space-y-4">
                 <textarea
                   placeholder="Description longue"
@@ -589,17 +591,14 @@ export default function AccessoriesPage() {
                 />
               </div>
             </div>
-            <div className="mt-6 pt-6 border-t border-white/10 xl:col-span-2">
-              <MultiImageUpload onImagesChange={(images) => setImageFiles(images)} />
-            </div>
-            <div className="xl:col-span-2 flex gap-3 pt-4">
-              <button onClick={() => setShowModal(false)} className="flex-1 border border-white/10 rounded-lg py-2.5 text-sm text-foreground/60 hover:bg-white/5 transition-colors">Annuler</button>
-              <button onClick={handleSave} className="flex-1 bg-gold text-black rounded-lg py-2.5 text-sm font-bold hover:bg-gold/80 transition-colors">Enregistrer</button>
-            </div>
-            </div>
+          </div>
+
+          <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-4 xl:sticky xl:top-6">
+            <h3 className="text-sm font-semibold text-foreground mb-4">Images</h3>
+            <MultiImageUpload onImagesChange={(images) => setImageFiles(images)} />
           </div>
         </div>
-      )}
+      </SlideOver>
 
       <CreateCategoryModal
         isOpen={isTypeModalOpen}
