@@ -34,6 +34,7 @@ import { adminService } from '@/services/apiService';
 import { useToastStore } from '@/store/useToastStore';
 import Header from '@/components/admin/Header';
 import Sidebar from '@/components/admin/Sidebar';
+import { SlideOver } from '@/components/ui/SlideOver';
 
 // Type definitions for Type-Safety and ESLint compliance
 interface ProviderUserDetails {
@@ -884,52 +885,13 @@ export default function ProviderDashboardPage() {
 
       {/* Validation modal for pending provider applications */}
       {approvingProvider && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-background border border-white/10 rounded-3xl p-6 w-full max-w-sm shadow-sm animate-fade-in-up">
-            <div className="flex items-center gap-3 mb-4.5">
-              <Award className="text-gold" size={24} />
-              <div>
-                <h3 className="font-bold text-base text-foreground">Valider le Partenaire</h3>
-                <p className="text-xs text-foreground/40 mt-0.5">
-                  Approuver {(approvingProvider.user_details?.first_name || 'le prestataire')}
-                </p>
-              </div>
-            </div>
-
-            <div className="space-y-4 mb-6">
-              <div>
-                <label className="text-[10px] font-bold text-foreground/40 uppercase mb-2 block tracking-widest">
-                  Taux Commission (%)
-                </label>
-                <div className="relative">
-                  <input
-                    type="number"
-                    value={validateComm}
-                    onChange={e => setValidateComm(e.target.value)}
-                    className="w-full bg-white/5 border border-white/10 rounded-xl pl-4 pr-10 py-3 text-sm focus:border-gold outline-none transition-all text-foreground font-mono"
-                    placeholder="Ex: 10"
-                  />
-                  <Percent className="absolute right-3.5 top-3.5 text-foreground/30" size={14} />
-                </div>
-              </div>
-
-              <div>
-                <label className="text-[10px] font-bold text-foreground/40 uppercase mb-2 block tracking-widest">
-                  Réduction Client (%)
-                </label>
-                <div className="relative">
-                  <input
-                    type="number"
-                    value={validateDisc}
-                    onChange={e => setValidateDisc(e.target.value)}
-                    className="w-full bg-white/5 border border-white/10 rounded-xl pl-4 pr-10 py-3 text-sm focus:border-gold outline-none transition-all text-foreground font-mono"
-                    placeholder="Ex: 5"
-                  />
-                  <Percent className="absolute right-3.5 top-3.5 text-foreground/30" size={14} />
-                </div>
-              </div>
-            </div>
-
+        <SlideOver
+          isOpen={!!approvingProvider}
+          onClose={() => setApprovingProvider(null)}
+          title="Valider le Partenaire"
+          description={`Approuver ${(approvingProvider.user_details?.first_name || 'le prestataire')}`}
+          size="sm"
+          footer={
             <div className="flex items-center gap-3">
               <button
                 onClick={() => setApprovingProvider(null)}
@@ -947,8 +909,42 @@ export default function ProviderDashboardPage() {
                 Approuver
               </button>
             </div>
+          }
+        >
+          <div className="space-y-4">
+            <div>
+              <label className="text-[10px] font-bold text-foreground/40 uppercase mb-2 block tracking-widest">
+                Taux Commission (%)
+              </label>
+              <div className="relative">
+                <input
+                  type="number"
+                  value={validateComm}
+                  onChange={e => setValidateComm(e.target.value)}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl pl-4 pr-10 py-3 text-sm focus:border-gold outline-none transition-all text-foreground font-mono"
+                  placeholder="Ex: 10"
+                />
+                <Percent className="absolute right-3.5 top-3.5 text-foreground/30" size={14} />
+              </div>
+            </div>
+
+            <div>
+              <label className="text-[10px] font-bold text-foreground/40 uppercase mb-2 block tracking-widest">
+                Réduction Client (%)
+              </label>
+              <div className="relative">
+                <input
+                  type="number"
+                  value={validateDisc}
+                  onChange={e => setValidateDisc(e.target.value)}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl pl-4 pr-10 py-3 text-sm focus:border-gold outline-none transition-all text-foreground font-mono"
+                  placeholder="Ex: 5"
+                />
+                <Percent className="absolute right-3.5 top-3.5 text-foreground/30" size={14} />
+              </div>
+            </div>
           </div>
-        </div>
+        </SlideOver>
       )}
           </div>
         </main>

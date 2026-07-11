@@ -8,6 +8,7 @@ import {
 import { adminService } from '@/services/apiService';
 import { adminService as adminHelpers, type BestClient } from '@/services/adminService';
 import { useToastStore } from '@/store/useToastStore';
+import { SlideOver } from '@/components/ui/SlideOver';
 
 function isServeuse(user: { roles?: string[]; role?: string }) {
   const roles = user.roles || (user.role ? [user.role] : []);
@@ -241,46 +242,54 @@ export default function ClientsPage() {
 
           {/* Client detail modal */}
           {selected && (
-            <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-              <div className="bg-background rounded-2xl p-6 w-full max-w-sm shadow-sm border border-white/10">
-                <div className="flex items-center gap-4 mb-5">
-                  <div className="w-14 h-14 rounded-full bg-gradient-to-br from-gold to-gold-dark flex items-center justify-center text-black text-xl font-bold">
-                    {(selected.first_name || 'U').charAt(0).toUpperCase()}
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-foreground">{selected.first_name || ''} {selected.last_name || ''}</h3>
-                    <p className="text-xs text-foreground/40">{selected.email}</p>
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-3 mb-5">
-                  {[
-                    { label: 'Favoris', value: selected.favorites?.length || 0 },
-                    { label: 'Compositions', value: selected.custom_perfumes?.length || 0 },
-                  ].map(s => (
-                    <div key={s.label} className="bg-white/5 rounded-xl p-3 text-center">
-                      <p className="text-xl font-bold text-foreground">{s.value}</p>
-                      <p className="text-[11px] text-foreground/40">{s.label}</p>
-                    </div>
-                  ))}
-                </div>
-                <p className="text-xs text-foreground/40 mb-4">Téléphone: {selected.telephone || '—'} · Statut: {selected.is_active ? 'Actif' : 'Inactif'}</p>
-                {isServeuse(selected) ? (
-                  <p className="text-xs text-emerald-400 text-center mb-4 font-medium">Déjà serveuse</p>
-                ) : (
-                  <button
-                    onClick={handlePromoteToServeuse}
-                    disabled={promoting}
-                    className="w-full mb-3 flex items-center justify-center gap-2 bg-gold text-black rounded-lg py-2.5 text-sm font-medium hover:bg-gold/80 transition-colors disabled:opacity-50"
-                  >
-                    {promoting ? <Loader2 size={16} className="animate-spin" /> : <UserCheck size={16} />}
-                    Convertir en serveuse
-                  </button>
-                )}
+            <SlideOver
+              isOpen={!!selected}
+              onClose={() => setSelected(null)}
+              title={`${selected.first_name || ''} ${selected.last_name || ''}`}
+              description={selected.email}
+              size="sm"
+              footer={
                 <button onClick={() => setSelected(null)} className="w-full border border-white/10 rounded-lg py-2.5 text-sm text-foreground/60 hover:bg-white/5 transition-colors">
                   Fermer
                 </button>
+              }
+            >
+              <div className="flex items-center gap-4 mb-4">
+                <div className="w-14 h-14 rounded-full bg-gradient-to-br from-gold to-gold-dark flex items-center justify-center text-black text-xl font-bold">
+                  {(selected.first_name || 'U').charAt(0).toUpperCase()}
+                </div>
+                <div>
+                  <p className="text-xs text-foreground/40">{selected.email}</p>
+                </div>
               </div>
-            </div>
+
+              <div className="grid grid-cols-2 gap-3 mb-5">
+                {[
+                  { label: 'Favoris', value: selected.favorites?.length || 0 },
+                  { label: 'Compositions', value: selected.custom_perfumes?.length || 0 },
+                ].map(s => (
+                  <div key={s.label} className="bg-white/5 rounded-xl p-3 text-center">
+                    <p className="text-xl font-bold text-foreground">{s.value}</p>
+                    <p className="text-[11px] text-foreground/40">{s.label}</p>
+                  </div>
+                ))}
+              </div>
+
+              <p className="text-xs text-foreground/40 mb-4">Téléphone: {selected.telephone || '—'} · Statut: {selected.is_active ? 'Actif' : 'Inactif'}</p>
+
+              {isServeuse(selected) ? (
+                <p className="text-xs text-emerald-400 text-center mb-4 font-medium">Déjà serveuse</p>
+              ) : (
+                <button
+                  onClick={handlePromoteToServeuse}
+                  disabled={promoting}
+                  className="w-full mb-3 flex items-center justify-center gap-2 bg-gold text-black rounded-lg py-2.5 text-sm font-medium hover:bg-gold/80 transition-colors disabled:opacity-50"
+                >
+                  {promoting ? <Loader2 size={16} className="animate-spin" /> : <UserCheck size={16} />}
+                  Convertir en serveuse
+                </button>
+              )}
+            </SlideOver>
           )}
         </>
       )}

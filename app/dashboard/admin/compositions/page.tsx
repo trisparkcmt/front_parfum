@@ -5,6 +5,7 @@ import { FlaskConical, Cpu, Pencil, Eye, Loader2 } from 'lucide-react';
 import { labService } from '@/services/apiService';
 import { useToastStore } from '@/store/useToastStore';
 import { BackButton } from '@/components/ui/BackButton';
+import { SlideOver } from '@/components/ui/SlideOver';
 
 export default function CompositionsPage() {
   const [compositions, setCompositions] = useState<any[]>([]);
@@ -125,35 +126,40 @@ export default function CompositionsPage() {
 
       {/* Detail modal */}
       {selected && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-background rounded-2xl p-6 w-full max-w-md shadow-sm border border-white/10">
-            <h3 className="font-bold text-foreground mb-1">{selected.nom || selected.name || `Composition #${selected.id}`}</h3>
-            <p className="text-xs text-foreground/40 mb-4">Auteur: {selected.user_details?.first_name || 'Client'}</p>
-            {selected.description && (
-              <p className="text-sm text-foreground/60 italic mb-4">"{selected.description}"</p>
-            )}
-            <div className="space-y-3 mb-5">
-              <p className="text-xs font-semibold text-foreground/40 uppercase">Ingrédients & Formule</p>
-              {selected.lignes?.map((ligne: any, i: number) => {
-                const name = ligne.essence_details?.nom || ligne.essence_details?.name || `Essence #${ligne.essence_catalogue || ligne.essence_personnalisee}`;
-                return (
-                  <div key={i}>
-                    <div className="flex justify-between text-xs mb-1">
-                      <span className="text-foreground font-medium">{name}</span>
-                      <span className="text-foreground/40">{ligne.quantite_ml} ml</span>
-                    </div>
-                  </div>
-                );
-              })}
-              {(!selected.lignes || selected.lignes.length === 0) && (
-                <p className="text-xs text-foreground/40 italic">Aucun détail sur les lignes de formulation.</p>
-              )}
-            </div>
+        <SlideOver
+          isOpen={!!selected}
+          onClose={() => setSelected(null)}
+          title={selected.nom || selected.name || `Composition #${selected.id}`}
+          description={`Auteur: ${selected.user_details?.first_name || 'Client'}`}
+          size="md"
+          footer={
             <button onClick={() => setSelected(null)} className="w-full border border-white/10 rounded-lg py-2.5 text-sm text-foreground/60 hover:bg-white/5 transition-colors">
               Fermer
             </button>
+          }
+        >
+          {selected.description && (
+            <p className="text-sm text-foreground/60 italic mb-4">"{selected.description}"</p>
+          )}
+
+          <div className="space-y-3">
+            <p className="text-xs font-semibold text-foreground/40 uppercase">Ingrédients & Formule</p>
+            {selected.lignes?.map((ligne: any, i: number) => {
+              const name = ligne.essence_details?.nom || ligne.essence_details?.name || `Essence #${ligne.essence_catalogue || ligne.essence_personnalisee}`;
+              return (
+                <div key={i}>
+                  <div className="flex justify-between text-xs mb-1">
+                    <span className="text-foreground font-medium">{name}</span>
+                    <span className="text-foreground/40">{ligne.quantite_ml} ml</span>
+                  </div>
+                </div>
+              );
+            })}
+            {(!selected.lignes || selected.lignes.length === 0) && (
+              <p className="text-xs text-foreground/40 italic">Aucun détail sur les lignes de formulation.</p>
+            )}
           </div>
-        </div>
+        </SlideOver>
       )}
     </div>
   );

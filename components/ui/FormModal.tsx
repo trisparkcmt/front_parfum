@@ -14,6 +14,7 @@ interface FormModalProps {
   size?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | 'full';
   className?: string;
   showCloseButton?: boolean;
+  footer?: React.ReactNode;
 }
 
 /**
@@ -30,6 +31,7 @@ export function FormModal({
   size = 'xl',
   className,
   showCloseButton = true,
+  footer,
 }: FormModalProps) {
   useEffect(() => {
     if (isOpen) {
@@ -99,8 +101,13 @@ export function FormModal({
             )}
 
             {/* Scrollable Content */}
-            <div className="flex-1 overflow-y-auto">
-              <div className="p-6 lg:p-8">{children}</div>
+            <div className="flex-1 flex flex-col overflow-y-hidden">
+              <div className="flex-1 overflow-y-auto">
+                <div className="p-6 lg:p-8">{children}</div>
+              </div>
+              {footer ? (
+                <div className="border-t border-white/10 bg-background/90 px-6 py-4">{footer}</div>
+              ) : null}
             </div>
           </motion.div>
         </div>
