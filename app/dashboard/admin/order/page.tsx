@@ -11,6 +11,7 @@ import {
 import { orderService, adminService } from '@/services/apiService';
 import { invoiceService } from '@/services/invoiceService';
 import { useToastStore } from '@/store/useToastStore';
+import { FormModal } from '@/components/ui/FormModal';
 import type { BackendOrder, BackendOrderLine } from '@/types';
 
 
@@ -704,23 +705,14 @@ export default function OrdersPage() {
           DETAIL MODAL
       ════════════════════════════════════════════════════════════════════════ */}
       {selected && (
-        <div
-          className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-start justify-end"
-          onClick={e => { if (e.target === e.currentTarget) setSelected(null); }}
+        <FormModal
+          isOpen={Boolean(selected)}
+          onClose={() => setSelected(null)}
+          title={selected.numero_commande}
+          subtitle={fmtDate(selected.date_creation, true)}
+          size="2xl"
         >
-          <div className="w-full max-w-4xl h-full bg-background/95 border-l border-white/10 shadow-2xl overflow-y-auto">
-            {/* header */}
-            <div className="sticky top-0 bg-background/90 border-b border-white/10 px-6 py-4 flex items-center justify-between z-10 backdrop-blur">
-              <div>
-                <h3 className="font-bold text-foreground text-lg">{selected.numero_commande}</h3>
-                <p className="text-xs text-foreground/40">{fmtDate(selected.date_creation, true)}</p>
-              </div>
-              <button onClick={() => setSelected(null)} className="p-2 rounded-xl hover:bg-white/5 text-foreground/40 hover:text-foreground transition-colors">
-                <X size={18} />
-              </button>
-            </div>
-
-            <div className="p-6 lg:p-8 space-y-6">
+          <div className="p-6 lg:p-8 space-y-6">
               {/* status badges */}
               <div className="flex flex-wrap gap-2">
                 <Badge text={STATUT_CFG[selected.statut]?.label ?? selected.statut} cfg={STATUT_CFG[selected.statut]} />
@@ -881,32 +873,22 @@ export default function OrdersPage() {
                   Fermer
                 </button>
               </div>
-            </div>
           </div>
-        </div>
+        </FormModal>
       )}
 
       {/* ═══════════════════════════════════════════════════════════════════════
           EDIT / MANAGE MODAL
       ════════════════════════════════════════════════════════════════════════ */}
       {editModal && (
-        <div
-          className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-start justify-end"
-          onClick={e => { if (e.target === e.currentTarget) setEditModal(null); }}
+        <FormModal
+          isOpen={Boolean(editModal)}
+          onClose={() => setEditModal(null)}
+          title="Gérer la commande"
+          subtitle={editModal?.numero_commande}
+          size="2xl"
         >
-          <div className="w-full max-w-4xl h-full bg-background/95 border-l border-white/10 shadow-2xl overflow-y-auto">
-            {/* header */}
-            <div className="sticky top-0 bg-background/90 border-b border-white/10 px-6 py-4 flex items-center justify-between z-10 backdrop-blur">
-              <div>
-                <h3 className="font-bold text-foreground">Gérer la commande</h3>
-                <p className="text-xs text-gold font-mono mt-0.5">{editModal.numero_commande}</p>
-              </div>
-              <button onClick={() => setEditModal(null)} className="p-2 rounded-xl hover:bg-white/5 text-foreground/40 hover:text-foreground transition-colors">
-                <X size={18} />
-              </button>
-            </div>
-
-            <div className="p-6 space-y-4">
+          <div className="p-6 space-y-4">
               {/* Statut commande */}
               <div>
                 <label className="text-[10px] font-bold text-foreground/40 uppercase tracking-widest mb-2 block">Statut de la commande</label>
@@ -1039,31 +1021,21 @@ export default function OrdersPage() {
                 </button>
               </div>
             </div>
-          </div>
-        </div>
+          </FormModal>
       )}
 
       {/* ═══════════════════════════════════════════════════════════════════════
           VALIDATION / DRIVER ASSIGNMENT MODAL
       ════════════════════════════════════════════════════════════════════════ */}
       {validationModal && (
-        <div
-          className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-start justify-end"
-          onClick={e => { if (e.target === e.currentTarget) setValidationModal(null); }}
+        <FormModal
+          isOpen={Boolean(validationModal)}
+          onClose={() => setValidationModal(null)}
+          title="Validation & Livraison"
+          subtitle={validationModal?.numero_commande}
+          size="2xl"
         >
-          <div className="w-full max-w-4xl h-full bg-background/95 border-l border-white/10 shadow-2xl overflow-y-auto">
-            {/* header */}
-            <div className="sticky top-0 bg-background/90 border-b border-white/10 px-6 py-4 flex items-center justify-between z-10 backdrop-blur">
-              <div>
-                <h3 className="font-bold text-foreground">Validation & Livraison</h3>
-                <p className="text-xs text-gold font-mono mt-0.5">{validationModal.numero_commande}</p>
-              </div>
-              <button onClick={() => setValidationModal(null)} className="p-2 rounded-xl hover:bg-white/5 text-foreground/40 hover:text-foreground transition-colors">
-                <X size={18} />
-              </button>
-            </div>
-
-            <div className="p-6 space-y-4">
+          <div className="p-6 space-y-4">
               <div className="bg-white/5 border border-white/5 rounded-2xl p-4 text-xs space-y-2">
                 <p className="text-[10px] font-bold text-foreground/40 uppercase tracking-widest flex items-center gap-1.5"><MapPin size={11} />Destinataire & Adresse</p>
                 <div><span className="text-foreground/40">Nom: </span><span className="text-foreground/85 font-medium">{validationModal.livraison_nom_complet}</span></div>
@@ -1119,8 +1091,7 @@ export default function OrdersPage() {
                 </button>
               </div>
             </div>
-          </div>
-        </div>
+          </FormModal>
       )}
     </div>
   );
