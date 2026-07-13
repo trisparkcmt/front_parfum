@@ -11,8 +11,6 @@ import { useCatalogPermissions } from '@/hooks/useCatalogPermissions';
 import CatalogAccessNotice from '@/components/catalog/CatalogAccessNotice';
 import { extractCatalogList } from '@/lib/catalogUtils';
 import { extractApiError } from '@/lib/apiError';
-import Header from '@/components/admin/Header';
-import Sidebar from '@/components/admin/Sidebar';
 import { SlideOver } from '@/components/ui/SlideOver';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -795,26 +793,20 @@ function InventoryTab() {
 
 export default function LabPage() {
   const [activeTab, setActiveTab] = useState<TabKey>('ingredients');
-  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
-    <div className="flex h-screen bg-background">
-      <Sidebar open={sidebarOpen} setOpen={setSidebarOpen} />
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <Header onMenuClick={() => setSidebarOpen(true)} />
-        <main className="flex-1 overflow-y-auto">
-          <div className="p-6 space-y-6 animate-fade-in-up">
-            {/* Header */}
-            <div>
-              <h1 className="text-2xl font-bold text-foreground">Laboratoire</h1>
-              <p className="text-sm text-foreground/40 mt-0.5">
-                Gestion des ingrédients, des lots de production et de l'inventaire labo
-              </p>
-            </div>
+    <div className="space-y-6 animate-fade-in-up">
+      {/* Header */}
+      <div>
+        <h1 className="text-2xl font-bold text-foreground">Laboratoire</h1>
+        <p className="text-sm text-foreground/40 mt-0.5">
+          Gestion des ingrédients, des lots de production et de l'inventaire labo
+        </p>
+      </div>
 
-            {/* Tabs Panel */}
-            <div className="bg-white/5 rounded-2xl border border-white/10 overflow-hidden shadow-sm">
-              <div className="flex border-b border-white/10 overflow-x-auto">
+      {/* Tabs Panel */}
+      <div className="bg-white/5 rounded-2xl border border-white/10 overflow-hidden shadow-sm">
+        <div className="flex border-b border-white/10 overflow-x-auto">
                 <TabButton
                   active={activeTab === 'ingredients'}
                   onClick={() => setActiveTab('ingredients')}
@@ -841,9 +833,6 @@ export default function LabPage() {
                 {activeTab === 'inventory' && <InventoryTab />}
               </div>
             </div>
-          </div>
-        </main>
-      </div>
     </div>
   );
 }

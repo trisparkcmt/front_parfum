@@ -32,8 +32,6 @@ import {
 } from 'lucide-react';
 import { adminService } from '@/services/apiService';
 import { useToastStore } from '@/store/useToastStore';
-import Header from '@/components/admin/Header';
-import Sidebar from '@/components/admin/Sidebar';
 import { SlideOver } from '@/components/ui/SlideOver';
 
 // Type definitions for Type-Safety and ESLint compliance
@@ -95,7 +93,7 @@ interface ProviderDashboardData {
 export default function ProviderDashboardPage() {
   // Navigation & view states
   const [selectedProvider, setSelectedProvider] = useState<Provider | null>(null);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+
   
   // List view states
   const [providers, setProviders] = useState<Provider[]>([]);
@@ -692,12 +690,7 @@ export default function ProviderDashboardPage() {
 
   // Render provider lists view (default)
   return (
-    <div className="flex h-screen bg-background">
-      <Sidebar open={sidebarOpen} setOpen={setSidebarOpen} />
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <Header onMenuClick={() => setSidebarOpen(true)} />
-        <main className="flex-1 overflow-y-auto">
-          <div className="p-6 space-y-6 animate-fade-in-up">
+    <div className="space-y-6 animate-fade-in-up">
       {/* Header & KPI Summary */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
@@ -946,9 +939,6 @@ export default function ProviderDashboardPage() {
           </div>
         </SlideOver>
       )}
-          </div>
-        </main>
-      </div>
     </div>
   );
 }

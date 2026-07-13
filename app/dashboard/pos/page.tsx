@@ -13,6 +13,7 @@ import { AppImage } from '@/components/ui/AppImage';
 import {
   CheckCircle,
   Search,
+  ShoppingBag,
   X,
   Plus,
   Minus,
@@ -27,7 +28,6 @@ import {
   Tag,
   FlaskConical,
   RefreshCcw,
-  ShoppingBag,
 } from 'lucide-react';
 
 interface CartItem {
