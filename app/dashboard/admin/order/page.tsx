@@ -314,9 +314,9 @@ export default function OrdersPage() {
   const ongoingOrders = orders.filter(o => o.statut !== 'remboursée' && o.statut_livraison !== 'livrée' && o.statut !== 'annulée');
   const completedOrders = orders.filter(o => o.statut === 'remboursée' || o.statut_livraison === 'livrée' || o.statut === 'annulée');
 
-  // ─────────────────────────────────────────────────────────────────────────────
   return (
-    <div className="space-y-6 animate-fade-in-up">
+    <>
+      <div className="space-y-6 animate-fade-in-up">
 
       {/* ── Header ─────────────────────────────────────────────────────────── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -712,7 +712,7 @@ export default function OrdersPage() {
           subtitle={fmtDate(selected.date_creation, true)}
           size="2xl"
         >
-          <div className="p-6 lg:p-8 space-y-6">
+          <div className="space-y-6">
               {/* status badges */}
               <div className="flex flex-wrap gap-2">
                 <Badge text={STATUT_CFG[selected.statut]?.label ?? selected.statut} cfg={STATUT_CFG[selected.statut]} />
@@ -888,7 +888,7 @@ export default function OrdersPage() {
           subtitle={editModal?.numero_commande}
           size="2xl"
         >
-          <div className="p-6 space-y-4">
+          <div className="space-y-4">
               {/* Statut commande */}
               <div>
                 <label className="text-[10px] font-bold text-foreground/40 uppercase tracking-widest mb-2 block">Statut de la commande</label>
@@ -1035,7 +1035,7 @@ export default function OrdersPage() {
           subtitle={validationModal?.numero_commande}
           size="2xl"
         >
-          <div className="p-6 space-y-4">
+          <div className="space-y-4">
               <div className="bg-white/5 border border-white/5 rounded-2xl p-4 text-xs space-y-2">
                 <p className="text-[10px] font-bold text-foreground/40 uppercase tracking-widest flex items-center gap-1.5"><MapPin size={11} />Destinataire & Adresse</p>
                 <div><span className="text-foreground/40">Nom: </span><span className="text-foreground/85 font-medium">{validationModal.livraison_nom_complet}</span></div>
@@ -1093,7 +1093,8 @@ export default function OrdersPage() {
             </div>
           </FormModal>
       )}
-    </div>
+      </div>
+    </>
   );
 }
 
