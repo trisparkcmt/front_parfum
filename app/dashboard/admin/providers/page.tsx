@@ -93,7 +93,6 @@ interface ProviderDashboardData {
 export default function ProviderDashboardPage() {
   // Navigation & view states
   const [selectedProvider, setSelectedProvider] = useState<Provider | null>(null);
-
   
   // List view states
   const [providers, setProviders] = useState<Provider[]>([]);

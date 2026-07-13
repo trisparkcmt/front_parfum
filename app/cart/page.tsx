@@ -19,7 +19,7 @@
  * - **Animated Transitions**: Uses `AnimatePresence` and `motion.div` from `framer-motion` for smooth list reordering and item removal.
  * - **Empty State**: Provides a dedicated "Empty Cart" UI with quick-access links back to the shop or atelier.
  */
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -66,6 +66,15 @@ export default function CartPage() {
   const [deliveryLocation, setDeliveryLocation] = useState(''); // quartier (free text)
   const [deliveryCity, setDeliveryCity] = useState('');
   const [noteClient, setNoteClient] = useState('');
+  const [deliveryFullName, setDeliveryFullName] = useState('');
+  const [deliveryPhone, setDeliveryPhone] = useState('');
+
+  useEffect(() => {
+    if (user) {
+      setDeliveryFullName(`${user.firstName || ''} ${user.lastName || ''}`.trim());
+      setDeliveryPhone(user.phone || '');
+    }
+  }, [user]);
 
   const subtotal = getSubtotal();
   const total = getTotalPrice();
@@ -123,9 +132,13 @@ export default function CartPage() {
   const handleCheckout = async () => {
     if (!cart || allItems.length === 0) return;
 
-    if (!isAuthenticated) {
-      addToast(t('login_required', { defaultValue: 'Veuillez vous connecter pour passer commande.' }), 'error');
-      router.push('/login?redirect=/cart');
+    if (!deliveryFullName.trim()) {
+      addToast(t('name_required', { defaultValue: 'Nom complet requis.' }), 'error');
+      return;
+    }
+
+    if (!deliveryPhone.trim()) {
+      addToast(t('phone_required', { defaultValue: 'Téléphone requis.' }), 'error');
       return;
     }
 
@@ -144,6 +157,8 @@ export default function CartPage() {
     try {
       await orderService.placeOrder({
         panier_id: panierId ?? undefined,
+        livraison_nom_complet: deliveryFullName.trim(),
+        livraison_telephone: deliveryPhone.trim(),
         livraison_quartier: deliveryType === 'delivery' ? deliveryLocation.trim() || undefined : undefined,
         livraison_ville: deliveryType === 'delivery' ? deliveryCity.trim() : 'Retrait magasin',
         note_client: noteClient.trim() || undefined,
@@ -322,6 +337,29 @@ export default function CartPage() {
               </div>
 
 
+
+              {/* Contact Information */}
+              <div className="space-y-3 pt-2">
+                <p className="text-xs font-bold text-foreground/40 uppercase tracking-wider">{t('contact_info', { defaultValue: 'Informations de Contact' })}</p>
+                <div className="space-y-2">
+                  <Input
+                    label={t('full_name', { defaultValue: 'Nom complet' })}
+                    placeholder={t('full_name_placeholder', { defaultValue: 'ex: Jean Dupont' })}
+                    value={deliveryFullName}
+                    onChange={(e) => setDeliveryFullName(e.target.value)}
+                    disabled={isLoading || isProcessing}
+                    className="bg-black/20"
+                  />
+                  <Input
+                    label={t('phone', { defaultValue: 'Téléphone' })}
+                    placeholder={t('phone_placeholder', { defaultValue: 'ex: +2250102030405' })}
+                    value={deliveryPhone}
+                    onChange={(e) => setDeliveryPhone(e.target.value)}
+                    disabled={isLoading || isProcessing}
+                    className="bg-black/20"
+                  />
+                </div>
+              </div>
 
               {/* Delivery Mode Selection */}
               <div className="space-y-3 pt-2">

@@ -264,25 +264,6 @@ export default function PerfumesShopClient() {
         </div>
       </div>
 
-      <section className="mb-8 rounded-2xl border border-gold/20 bg-gradient-to-r from-gold/10 via-background to-foreground/5 p-5 sm:p-6">
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <p className="text-[10px] uppercase tracking-[0.3em] text-gold font-semibold">Création libre & sur mesure</p>
-            <h2 className="text-xl font-serif font-semibold text-foreground">
-              Créez votre parfum unique avec l’atelier olfactif Accessoires Exclusifs
-            </h2>
-            <p className="mt-2 text-sm text-foreground/70 max-w-2xl">
-              Donnez vie à votre signature olfactive avec un accompagnement personnalisé, des essences raffinées et une création libre adaptée à votre style.
-            </p>
-          </div>
-          <a
-            href="/numba"
-            className="inline-flex items-center justify-center rounded-full border border-gold/40 bg-gold/10 px-4 py-2 text-sm font-semibold text-gold transition hover:bg-gold/20"
-          >
-            Découvrir l’atelier
-          </a>
-        </div>
-      </section>
 
       {/* Advanced Collapsible Filter Drawer */}
       <AnimatePresence>

@@ -9,11 +9,11 @@ import { useAuthStore } from '@/store/useAuthStore';
 import { useToastStore } from '@/store/useToastStore';
 import { generateId } from '@/lib/utils';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft, Minus, Plus, ChevronLeft, ChevronRight, RefreshCcw, Loader2, Save, ShoppingCart, X } from 'lucide-react';
+import { ArrowLeft, Minus, Plus, ChevronLeft, ChevronRight, RefreshCcw, Loader2, Save, ShoppingCart, X, Send } from 'lucide-react';
 import AppImage from '@/components/ui/AppImage';
 import type { CustomComposition, CompositionEssence, EssenceClient, Product } from '@/types';
 import { labService } from '@/services/labService';
-import { labService as apiLabService, shopService } from '@/services/apiService';
+import { labService as apiLabService, shopService, cartService, orderService } from '@/services/apiService';
 import './atelier.css';
 
 /* ═══════════════════════════════════════
@@ -235,6 +235,23 @@ export default function AtelierPage() {
   const [ctaSuccess, setCtaSuccess] = useState(false);
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [saveModalName, setSaveModalName] = useState('');
+
+  // Direct Order Workflow states
+  const [showDirectOrderModal, setShowDirectOrderModal] = useState(false);
+  const [orderFullName, setOrderFullName] = useState('');
+  const [orderPhone, setOrderPhone] = useState('');
+  const [orderCity, setOrderCity] = useState('');
+  const [orderQuartier, setOrderQuartier] = useState('');
+  const [isOrderingDirect, setIsOrderingDirect] = useState(false);
+  const [createdOrderNumber, setCreatedOrderNumber] = useState<string | null>(null);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+
+  useEffect(() => {
+    if (user) {
+      setOrderFullName(`${user.firstName || ''} ${user.lastName || ''}`.trim());
+      setOrderPhone(user.phone || '');
+    }
+  }, [user]);
 
   useEffect(() => {
     setMounted(true);
@@ -582,6 +599,76 @@ export default function AtelierPage() {
     setCtaSuccess(true);
     addToast(i18n.language === 'en' ? 'Added to cart!' : 'Ajouté au panier !', 'success');
     setTimeout(() => setCtaSuccess(false), 3000);
+  };
+
+  const handleDirectOrderSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (totalMl === 0) return;
+
+    if (!selectedFlaconId) {
+      addToast(
+        i18n.language === 'en' ? 'Please select a valid bottle size.' : 'Veuillez sélectionner une taille de flacon valide.',
+        'error'
+      );
+      return;
+    }
+
+    setIsOrderingDirect(true);
+    try {
+      type DirectCompositionLine =
+        | { lot_essence_id: number; quantite_ml: number }
+        | { ingredient: number; quantite_ml: number };
+
+      const lignes = Object.entries(quantities)
+        .filter(([_, qty]) => Number(qty) > 0)
+        .map<DirectCompositionLine | null>(([essenceId, quantityMl]) => {
+          const item = ALL_ITEMS.find(e => e.id === essenceId);
+          if (!item) return null;
+
+          if (item.itemType === 'ingredient') {
+            return {
+              ingredient: item.backendId ?? Number(essenceId),
+              quantite_ml: Number(quantityMl),
+            };
+          }
+
+          return {
+            lot_essence_id: item.lotEssenceId || item.backendId || Number(essenceId),
+            quantite_ml: Number(quantityMl),
+          };
+        })
+        .filter((line): line is DirectCompositionLine => line !== null);
+
+      // Step 1: Add direct composition to cart (enregistre=False by default)
+      const cartResponse = await cartService.addDirectComposition({
+        flacon_id: selectedFlaconId,
+        lignes,
+        nom: saveModalName || compositionName || `Création Numba ${bottleSize}ml`,
+        quantite: 1,
+      });
+
+      const panier_id = cartResponse.id;
+
+      // Step 2: Place order using the generated panier_id
+      const orderResponse = await orderService.placeOrder({
+        panier_id,
+        livraison_nom_complet: orderFullName.trim() || undefined,
+        livraison_telephone: orderPhone.trim() || undefined,
+        livraison_ville: orderCity.trim() || undefined,
+        livraison_quartier: orderQuartier.trim() || undefined,
+      });
+
+      setCreatedOrderNumber(orderResponse.numero_commande || `#${orderResponse.id}`);
+      setShowDirectOrderModal(false);
+      setShowSuccessModal(true);
+      setQuantities({}); // Reset composition quantities on success
+      addToast(i18n.language === 'en' ? 'Order placed successfully!' : 'Commande passée avec succès !', 'success');
+    } catch (error: any) {
+      const errorMsg = error?.response?.data?.detail || (i18n.language === 'en' ? 'Error processing your order.' : 'Erreur lors du traitement de votre commande.');
+      addToast(errorMsg, 'error');
+    } finally {
+      setIsOrderingDirect(false);
+    }
   };
 
   if (!mounted) return <div className="min-h-screen bg-background" />;
@@ -987,6 +1074,16 @@ export default function AtelierPage() {
                   : (i18n.language === 'en' ? 'Add to Cart' : 'Ajouter au Panier')}
               </>)}
             </button>
+
+            {/* Direct Order button */}
+            <button
+              onClick={() => setShowDirectOrderModal(true)}
+              disabled={totalMl === 0 || isOrderingDirect || !selectedFlaconId}
+              className="w-full px-8 py-3.5 text-[10px] uppercase tracking-[0.2em] font-medium rounded-lg transition-all duration-300 border border-white/20 text-foreground/70 hover:border-gold/50 hover:text-gold disabled:opacity-20 flex items-center justify-center gap-2"
+            >
+              <Send size={12} />
+              {i18n.language === 'en' ? 'Order Directly' : 'Commander directement'}
+            </button>
           </div>
         </div>
       </div>
@@ -1028,6 +1125,157 @@ export default function AtelierPage() {
                 {isSaving ? <Loader2 size={14} className="inline animate-spin" /> : (i18n.language === 'en' ? 'Save' : 'Sauvegarder')}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Direct Order Modal ── */}
+      {showDirectOrderModal && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-background rounded-2xl p-8 w-full max-w-md border border-white/10 shadow-2xl animate-in fade-in zoom-in-95">
+            {/* Header */}
+            <div className="flex items-start justify-between mb-6">
+              <div>
+                <h2 className="text-2xl font-extralight text-foreground">
+                  {i18n.language === 'en' ? 'Order Your Composition' : 'Commander votre Composition'}
+                </h2>
+                <p className="text-xs text-foreground/40 uppercase tracking-widest mt-1">
+                  {i18n.language === 'en' ? 'Delivery information (optional)' : 'Informations de livraison (optionnelles)'}
+                </p>
+              </div>
+              <button
+                onClick={() => setShowDirectOrderModal(false)}
+                className="p-2 rounded-lg hover:bg-white/10 text-foreground/40 hover:text-foreground transition-colors"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Composition Summary */}
+            <div className="bg-white/5 border border-white/10 rounded-xl p-4 mb-6">
+              <div className="flex justify-between items-center">
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-widest text-foreground/40">{i18n.language === 'en' ? 'Composition' : 'Composition'}</p>
+                  <p className="text-sm text-foreground mt-0.5">{saveModalName || compositionName || `Création Numba ${bottleSize}ml`}</p>
+                  <p className="text-[10px] text-foreground/30 mt-0.5">{bottleSize}ml · {totalMl.toFixed(1)}ml d'essences</p>
+                </div>
+                <p className="text-xl font-light text-gold">{calcPrice.toLocaleString()} <span className="text-[10px]">FCFA</span></p>
+              </div>
+            </div>
+
+            <form onSubmit={handleDirectOrderSubmit} className="space-y-3">
+              {/* Contact fields (optional) */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-foreground/40 block mb-1.5">
+                    {i18n.language === 'en' ? 'Full Name' : 'Nom complet'}
+                  </label>
+                  <input
+                    type="text"
+                    value={orderFullName}
+                    onChange={e => setOrderFullName(e.target.value)}
+                    placeholder="ex: Jean Dupont"
+                    className="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-lg text-sm text-foreground placeholder-foreground/30 focus:outline-none focus:border-gold/50 transition-colors"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-foreground/40 block mb-1.5">
+                    {i18n.language === 'en' ? 'Phone' : 'Téléphone'}
+                  </label>
+                  <input
+                    type="tel"
+                    value={orderPhone}
+                    onChange={e => setOrderPhone(e.target.value)}
+                    placeholder="+2250102030405"
+                    className="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-lg text-sm text-foreground placeholder-foreground/30 focus:outline-none focus:border-gold/50 transition-colors"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-[10px] font-bold uppercase tracking-widest text-foreground/40 block mb-1.5">
+                  {i18n.language === 'en' ? 'City' : 'Ville'}
+                </label>
+                <input
+                  type="text"
+                  value={orderCity}
+                  onChange={e => setOrderCity(e.target.value)}
+                  placeholder="ex: Abidjan"
+                  className="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-lg text-sm text-foreground placeholder-foreground/30 focus:outline-none focus:border-gold/50 transition-colors"
+                />
+              </div>
+
+              <div>
+                <label className="text-[10px] font-bold uppercase tracking-widest text-foreground/40 block mb-1.5">
+                  {i18n.language === 'en' ? 'District / Quartier' : 'Quartier'}
+                </label>
+                <input
+                  type="text"
+                  value={orderQuartier}
+                  onChange={e => setOrderQuartier(e.target.value)}
+                  placeholder="ex: Cocody, Plateau..."
+                  className="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-lg text-sm text-foreground placeholder-foreground/30 focus:outline-none focus:border-gold/50 transition-colors"
+                />
+              </div>
+
+              <p className="text-[10px] text-foreground/30 italic pt-1">
+                {i18n.language === 'en'
+                  ? '* All fields are optional. Our team will contact you to confirm details.'
+                  : '* Tous les champs sont optionnels. Notre équipe vous contactera pour confirmer les détails.'}
+              </p>
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowDirectOrderModal(false)}
+                  className="flex-1 px-6 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-sm text-foreground/60 transition-colors"
+                >
+                  {i18n.language === 'en' ? 'Cancel' : 'Annuler'}
+                </button>
+                <button
+                  type="submit"
+                  disabled={isOrderingDirect || totalMl === 0}
+                  className="flex-1 px-6 py-3 bg-gold text-black hover:bg-cream rounded-lg text-sm font-bold transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {isOrderingDirect ? (
+                    <Loader2 size={14} className="animate-spin" />
+                  ) : (
+                    <><Send size={13} /> {i18n.language === 'en' ? 'Place Order' : 'Passer la commande'}</>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ── Order Success Modal ── */}
+      {showSuccessModal && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-background rounded-2xl p-10 w-full max-w-sm border border-white/10 shadow-2xl text-center animate-in fade-in zoom-in-95">
+            <div className="w-16 h-16 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mx-auto mb-6">
+              <span className="text-3xl">✓</span>
+            </div>
+            <h2 className="text-2xl font-extralight text-foreground mb-2">
+              {i18n.language === 'en' ? 'Order Confirmed!' : 'Commande confirmée !'}
+            </h2>
+            {createdOrderNumber && (
+              <p className="text-xs text-foreground/40 uppercase tracking-widest mb-1">
+                {i18n.language === 'en' ? 'Order #' : 'Commande #'}
+                <span className="text-gold font-bold ml-1">{createdOrderNumber}</span>
+              </p>
+            )}
+            <p className="text-sm text-foreground/50 mt-4 mb-8">
+              {i18n.language === 'en'
+                ? 'Your custom composition has been ordered. Our team will prepare it and contact you shortly.'
+                : 'Votre composition personnalisée a été commandée. Notre équipe va la préparer et vous contactera très bientôt.'}
+            </p>
+            <button
+              onClick={() => { setShowSuccessModal(false); setCreatedOrderNumber(null); }}
+              className="w-full px-6 py-3 bg-gold text-black hover:bg-cream rounded-lg text-sm font-bold transition-colors"
+            >
+              {i18n.language === 'en' ? "Back to Atelier" : "Retour à l'Atelier"}
+            </button>
           </div>
         </div>
       )}
