@@ -1488,7 +1488,7 @@ export const cartService = {
     note_client?: string;
   }) => {
     const response = await api.post(
-      'orders/panier/ajouter/parfum-personnalise/',
+      'orders/panier/ajouter/parfum-personnalise-labo/',
       data
     );
     return response.data;

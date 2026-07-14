@@ -1,1 +1,9 @@
-GET https://accessoires-exclusifs-api.onrender.com/api/v1/shop/hotsellers
+POST https://accessoires-exclusifs-api.onrender.com/api/v1/orders/panier/ajouter/parfum-personnalise/
+content-type:Application/json
+
+{
+    "parfum_personnalise_id": 38,
+    "quantite": 1,
+    "panier_id": 388
+}
+

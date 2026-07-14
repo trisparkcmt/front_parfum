@@ -34,12 +34,18 @@ export function FormModal({
   footer,
 }: FormModalProps) {
   useEffect(() => {
+    const mainEl = document.querySelector('main');
     if (isOpen) {
       document.body.style.overflow = 'hidden';
+      if (mainEl) mainEl.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = '';
+      if (mainEl) mainEl.style.overflow = '';
     }
-    return () => { document.body.style.overflow = ''; };
+    return () => {
+      document.body.style.overflow = '';
+      if (mainEl) mainEl.style.overflow = '';
+    };
   }, [isOpen]);
 
   useEffect(() => {
