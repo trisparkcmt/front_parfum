@@ -6,17 +6,19 @@ import { motion, AnimatePresence, LayoutGroup } from 'framer-motion';
 import { HomeIcon, CartIcon } from '@/components/icons/CustomIcons';
 import { Watch, Droplets, Sparkles } from 'lucide-react';
 import { useCartStore } from '@/store/useCartStore';
+import { useCartDrawerStore } from '@/store/useCartDrawerStore';
 
 const BottomNav = () => {
   const pathname = usePathname();
   const itemCount = useCartStore((s) => s.getItemCount());
+  const openCartDrawer = useCartDrawerStore((s) => s.open);
 
   const links = [
-    { href: '/',                  icon: HomeIcon, label: 'Accueil'     },
-    { href: '/shop/accessories',  icon: Watch,     label: 'Accessoires' },
-    { href: '/shop/perfumes',     icon: Droplets,  label: 'Parfum'      },
-    { href: '/numba',             icon: Sparkles,  label: 'Atelier'     },
-    { href: '/cart',              icon: CartIcon,  label: 'Panier', badge: itemCount },
+    { href: '/',                  icon: HomeIcon, label: 'Accueil',     action: null },
+    { href: '/shop/accessories',  icon: Watch,     label: 'Accessoires', action: null },
+    { href: '/shop/perfumes',     icon: Droplets,  label: 'Parfum',      action: null },
+    { href: '/numba',             icon: Sparkles,  label: 'Atelier',     action: null },
+    { href: '/cart',              icon: CartIcon,  label: 'Panier',      action: openCartDrawer, badge: itemCount },
   ];
 
   return (
@@ -35,11 +37,82 @@ const BottomNav = () => {
                    before:pointer-events-none"
       >
         <LayoutGroup id="bottom-nav">
-          {links.map(({ href, icon: Icon, label, badge }) => {
+          {links.map(({ href, icon: Icon, label, badge, action }) => {
             const isActive =
-              href === '/' ? pathname === '/' : pathname.startsWith(href);
+              href === '/' ? pathname === '/' : pathname.startsWith(href) && href !== '/cart';
 
-            return (
+            const inner = (
+              <motion.div
+                layout
+                transition={{
+                  type: 'spring',
+                  stiffness: 420,
+                  damping: 34,
+                  mass: 0.7,
+                }}
+                className={`relative flex items-center h-11 rounded-full overflow-hidden
+                  ${isActive ? 'px-4 gap-2' : 'w-11 justify-center'}`}
+              >
+                {/* Sliding gold-glass highlight behind the active tab */}
+                {isActive && (
+                  <motion.div
+                    layoutId="bottomNavActivePill"
+                    className="absolute inset-0 rounded-full bg-gold/95
+                               shadow-[0_2px_14px_rgba(212,175,55,0.35)]"
+                    transition={{
+                      type: 'spring',
+                      stiffness: 420,
+                      damping: 34,
+                      mass: 0.7,
+                    }}
+                  />
+                )}
+
+                <span
+                  className={`relative shrink-0 transition-colors duration-200 ${
+                    isActive ? 'text-black' : 'text-foreground/60'
+                  }`}
+                >
+                  <Icon size={19} strokeWidth={isActive ? 2.1 : 1.8} />
+                  {!!badge && (
+                    <span
+                      className="absolute -top-2 -right-2.5 bg-foreground text-background
+                                 font-bold text-[9px] rounded-full w-4 h-4
+                                 flex items-center justify-center border border-deep-black"
+                    >
+                      {badge}
+                    </span>
+                  )}
+                </span>
+
+                <AnimatePresence initial={false}>
+                  {isActive && (
+                    <motion.span
+                      key="label"
+                      initial={{ opacity: 0, width: 0, x: -4 }}
+                      animate={{ opacity: 1, width: 'auto', x: 0 }}
+                      exit={{ opacity: 0, width: 0, x: -4 }}
+                      transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+                      className="relative whitespace-nowrap text-[11px] font-semibold
+                                 uppercase tracking-wider text-black"
+                    >
+                      {label}
+                    </motion.span>
+                  )}
+                </AnimatePresence>
+              </motion.div>
+            );
+
+            return action ? (
+              <button
+                key={href}
+                onClick={action}
+                aria-label={label}
+                className="relative z-10 flex items-center justify-center h-full flex-1"
+              >
+                {inner}
+              </button>
+            ) : (
               <Link
                 key={href}
                 href={href}
@@ -47,65 +120,7 @@ const BottomNav = () => {
                 aria-current={isActive ? 'page' : undefined}
                 className="relative z-10 flex items-center justify-center h-full flex-1"
               >
-                <motion.div
-                  layout
-                  transition={{
-                    type: 'spring',
-                    stiffness: 420,
-                    damping: 34,
-                    mass: 0.7,
-                  }}
-                  className={`relative flex items-center h-11 rounded-full overflow-hidden
-                    ${isActive ? 'px-4 gap-2' : 'w-11 justify-center'}`}
-                >
-                  {/* Sliding gold-glass highlight behind the active tab */}
-                  {isActive && (
-                    <motion.div
-                      layoutId="bottomNavActivePill"
-                      className="absolute inset-0 rounded-full bg-gold/95
-                                 shadow-[0_2px_14px_rgba(212,175,55,0.35)]"
-                      transition={{
-                        type: 'spring',
-                        stiffness: 420,
-                        damping: 34,
-                        mass: 0.7,
-                      }}
-                    />
-                  )}
-
-                  <span
-                    className={`relative shrink-0 transition-colors duration-200 ${
-                      isActive ? 'text-black' : 'text-foreground/60'
-                    }`}
-                  >
-                    <Icon size={19} strokeWidth={isActive ? 2.1 : 1.8} />
-                    {!!badge && (
-                      <span
-                        className="absolute -top-2 -right-2.5 bg-foreground text-background
-                                   font-bold text-[9px] rounded-full w-4 h-4
-                                   flex items-center justify-center border border-deep-black"
-                      >
-                        {badge}
-                      </span>
-                    )}
-                  </span>
-
-                  <AnimatePresence initial={false}>
-                    {isActive && (
-                      <motion.span
-                        key="label"
-                        initial={{ opacity: 0, width: 0, x: -4 }}
-                        animate={{ opacity: 1, width: 'auto', x: 0 }}
-                        exit={{ opacity: 0, width: 0, x: -4 }}
-                        transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-                        className="relative whitespace-nowrap text-[11px] font-semibold
-                                   uppercase tracking-wider text-black"
-                      >
-                        {label}
-                      </motion.span>
-                    )}
-                  </AnimatePresence>
-                </motion.div>
+                {inner}
               </Link>
             );
           })}

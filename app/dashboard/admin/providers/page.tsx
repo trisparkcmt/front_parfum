@@ -33,6 +33,7 @@ import {
 import { adminService } from '@/services/apiService';
 import { useToastStore } from '@/store/useToastStore';
 import { SlideOver } from '@/components/ui/SlideOver';
+import { localAuth } from '@/lib/localAuth';
 
 // Type definitions for Type-Safety and ESLint compliance
 interface ProviderUserDetails {
@@ -265,7 +266,38 @@ export default function ProviderDashboardPage() {
     }
 
     try {
-      setIsInitiatingPayout(true);
+      // Local device biometric / PIN verification check
+      const isAuthSupported = await localAuth.isSupported();
+      if (isAuthSupported) {
+        if (!localAuth.isDeviceRegistered()) {
+          const confirmSetup = window.confirm(
+            "Pour des raisons de sécurité, veuillez lier cet appareil pour les virements en utilisant votre méthode de déverrouillage habituelle (Face ID, Touch ID, code PIN ou mot de passe de l'appareil)."
+          );
+          if (!confirmSetup) return;
+
+          setIsInitiatingPayout(true);
+          await localAuth.registerDevice(selectedProvider.user_details?.email || 'admin@exclusif.cm');
+          addToast("Appareil lié avec succès !", "success");
+        } else {
+          setIsInitiatingPayout(true);
+        }
+
+        addToast("Veuillez confirmer l'identité via votre appareil...", "info");
+        const authenticated = await localAuth.verifyUser();
+        if (!authenticated) {
+          addToast("Validation de sécurité requise pour le virement.", "error");
+          setIsInitiatingPayout(false);
+          return;
+        }
+      } else {
+        // Fallback or warning if device doesn't support platform biometrics/PIN lock
+        const confirmAnyway = window.confirm(
+          "Attention : l'authentification locale par biométrie/PIN n'est pas disponible sur cet appareil. Voulez-vous tout de même forcer le virement ?"
+        );
+        if (!confirmAnyway) return;
+        setIsInitiatingPayout(true);
+      }
+
       // Generate a unique external reference for idempotency
       const randomPart = Math.random().toString(36).substring(2, 6) + '-' + Math.floor(1000 + Math.random() * 9000);
       const todayStr = new Date().toISOString().split('T')[0];
@@ -279,10 +311,10 @@ export default function ProviderDashboardPage() {
       addToast(`Ordre de virement de ${amount.toLocaleString()} FCFA initié via Monetbil`, 'success');
       setPayoutAmount('');
       fetchDashboard(selectedProvider.id);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Payout failed:', error);
       const err = error as { response?: { data?: { detail?: string } } };
-      const errMsg = err.response?.data?.detail || 'Erreur lors du déclenchement du virement';
+      const errMsg = err.response?.data?.detail || error.message || 'Erreur lors du déclenchement du virement';
       addToast(errMsg, 'error');
     } finally {
       setIsInitiatingPayout(false);

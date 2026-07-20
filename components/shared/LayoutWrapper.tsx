@@ -1,19 +1,21 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
-import dynamic from 'next/dynamic';
 import { Navbar } from "@/components/shared/Navbar";
 import { Footer } from "@/components/shared/Footer";
 import BottomNav from "@/components/shared/BottomNav";
+import { CartDrawer } from "@/components/shared/CartDrawer";
 import { useThemeStore } from '@/store/useThemeStore';
 import { useCartStore } from '@/store/useCartStore';
 import { useAuthStore } from '@/store/useAuthStore';
+import { useCartDrawerStore } from '@/store/useCartDrawerStore';
 
 export function LayoutWrapper({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { initTheme } = useThemeStore();
   const { syncCart } = useCartStore();
   const { isAuthenticated, _hasHydrated } = useAuthStore();
+  const { isOpen: cartDrawerOpen, close: closeCartDrawer } = useCartDrawerStore();
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
@@ -60,6 +62,8 @@ export function LayoutWrapper({ children }: { children: React.ReactNode }) {
         </div>
       )}
       {!shouldHideFooter && hydrated && <Footer />}
+      {/* Global Cart Drawer — available on all pages */}
+      <CartDrawer isOpen={cartDrawerOpen} onClose={closeCartDrawer} />
     </div>
   );
 }

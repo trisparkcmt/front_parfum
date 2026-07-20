@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useMemo, useEffect } from 'react';
+import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCartStore } from '@/store/useCartStore';
@@ -102,13 +102,25 @@ const GlassDefs = ({ col, id }: any) => (
    BOTTLE SVG COMPONENTS (WITH DYNAMIC COLORS)
    ═══════════════════════════════════════ */
 function Bottle100({ totalMl, maxMl, quantities, allItems }: any) {
+  const [isAdding, setIsAdding] = useState(false);
+  const prevTotalMl = useRef(totalMl);
+
+  useEffect(() => {
+    if (totalMl > prevTotalMl.current) {
+      setIsAdding(true);
+      const timer = setTimeout(() => setIsAdding(false), 1600);
+      return () => clearTimeout(timer);
+    }
+    prevTotalMl.current = totalMl;
+  }, [totalMl]);
+
   const pct = Math.min(1, totalMl / maxMl);
   const topY = Math.round(420 - pct * 300);
   const col = blendColor(quantities, allItems);
   const isEmpty = totalMl === 0;
 
   return (
-    <svg width="260" height="480" viewBox="0 0 260 480" fill="none" className="mx-auto">
+    <svg width="260" height="480" viewBox="0 0 260 480" fill="none" className={`mx-auto transition-all ${isAdding ? 'bottle-glow' : ''}`}>
       <GlassDefs col={col} id="100" />
       <clipPath id="c-100"><rect x="42" y="118" width="176" height="310" rx="6" ry="6" /></clipPath>
       <rect x="42" y="118" width="176" height="310" rx="6" fill="url(#g-glass-v-100)" stroke="rgba(180,170,155,0.50)" strokeWidth="1" />
@@ -116,6 +128,24 @@ function Bottle100({ totalMl, maxMl, quantities, allItems }: any) {
         <g clipPath="url(#c-100)">
           <rect x="42" y={topY} width="176" height={Math.max(2, 430 - topY)} fill="url(#g-liquid-100)" className="liquid-body" />
           <ellipse cx="130" cy={topY} rx={Math.round(52 + pct * 32)} ry="8" fill="url(#g-surface-100)" />
+          
+          {/* Animated bubbles rising from bottom to current level */}
+          {isAdding && (
+            <g>
+              <circle cx="90" cy="400" r="2.5" fill="rgba(255,255,255,0.35)">
+                <animate attributeName="cy" from="400" to={topY} dur="1.2s" repeatCount="1" fill="freeze" />
+                <animate attributeName="opacity" from="0.7" to="0" dur="1.2s" repeatCount="1" fill="freeze" />
+              </circle>
+              <circle cx="150" cy="410" r="1.5" fill="rgba(255,255,255,0.35)">
+                <animate attributeName="cy" from="410" to={topY} dur="0.9s" repeatCount="1" fill="freeze" />
+                <animate attributeName="opacity" from="0.7" to="0" dur="0.9s" repeatCount="1" fill="freeze" />
+              </circle>
+              <circle cx="120" cy="380" r="2" fill="rgba(255,255,255,0.35)">
+                <animate attributeName="cy" from="380" to={topY} dur="1.4s" repeatCount="1" fill="freeze" />
+                <animate attributeName="opacity" from="0.7" to="0" dur="1.4s" repeatCount="1" fill="freeze" />
+              </circle>
+            </g>
+          )}
         </g>
       )}
       <rect x="42" y="118" width="176" height="310" rx="6" fill="url(#g-glass-100)" opacity="0.60" />
@@ -130,22 +160,47 @@ function Bottle100({ totalMl, maxMl, quantities, allItems }: any) {
       <rect x="88" y="6" width="84" height="36" rx="10" fill="url(#g-glass-v-100)" stroke="rgba(180,170,155,0.55)" strokeWidth="1" />
       <rect x="88" y="6" width="84" height="36" rx="10" fill="url(#g-glass-100)" opacity="0.70" />
       <text x="130" y="29" textAnchor="middle" fontFamily="serif" fontSize="8" fontStyle="italic" fill="rgba(197,160,89,0.80)" letterSpacing="2">N</text>
-      <g className="drip-group">
-        <line x1="130" y1="0" x2="130" y2="46" stroke="url(#g-drip-100)" strokeWidth="3.5" strokeLinecap="round" />
-        {!isEmpty && <ellipse cx="130" cy={50} rx={4.5} ry={6} fill={col.mid} opacity="0.90" />}
-      </g>
+      
+      {/* Falling Drop and Surface Ripple Animation */}
+      {isAdding && (
+        <g>
+          {/* Falling drop */}
+          <circle cx="130" cy="50" r="3.5" fill="url(#g-drip-100)">
+            <animate attributeName="cy" from="50" to={topY} dur="0.4s" repeatCount="1" fill="freeze" />
+            <animate attributeName="opacity" from="1" to="0" begin="0.38s" dur="0.02s" repeatCount="1" fill="freeze" />
+          </circle>
+          {/* Expanding surface ripple wave */}
+          <ellipse cx="130" cy={topY} rx="2" ry="0.5" fill="none" stroke="rgba(255,255,255,0.7)" strokeWidth="1">
+            <animate attributeName="rx" from="2" to={Math.round(52 + pct * 32)} begin="0.4s" dur="0.5s" repeatCount="1" fill="freeze" />
+            <animate attributeName="ry" from="0.5" to="8" begin="0.4s" dur="0.5s" repeatCount="1" fill="freeze" />
+            <animate attributeName="opacity" from="0.9" to="0" begin="0.4s" dur="0.5s" repeatCount="1" fill="freeze" />
+          </ellipse>
+        </g>
+      )}
     </svg>
   );
 }
 
 function Bottle50({ totalMl, maxMl, quantities, allItems }: any) {
+  const [isAdding, setIsAdding] = useState(false);
+  const prevTotalMl = useRef(totalMl);
+
+  useEffect(() => {
+    if (totalMl > prevTotalMl.current) {
+      setIsAdding(true);
+      const timer = setTimeout(() => setIsAdding(false), 1600);
+      return () => clearTimeout(timer);
+    }
+    prevTotalMl.current = totalMl;
+  }, [totalMl]);
+
   const pct = Math.min(1, totalMl / maxMl);
   const col = blendColor(quantities, allItems);
   const topY = Math.round(380 - pct * 240);
   const isEmpty = totalMl === 0;
 
   return (
-    <svg width="260" height="480" viewBox="0 0 260 480" fill="none" className="mx-auto">
+    <svg width="260" height="480" viewBox="0 0 260 480" fill="none" className={`mx-auto transition-all ${isAdding ? 'bottle-glow' : ''}`}>
       <GlassDefs col={col} id="50" />
       <clipPath id="c-50">
         <path d="M130,120 C80,120 45,180 45,280 C45,380 85,415 130,415 C175,415 215,380 215,280 C215,180 180,120 130,120 Z" />
@@ -155,6 +210,20 @@ function Bottle50({ totalMl, maxMl, quantities, allItems }: any) {
         <g clipPath="url(#c-50)">
           <rect x="40" y={topY} width="180" height="300" fill="url(#g-liquid-50)" className="liquid-body" />
           <ellipse cx="130" cy={topY} rx={Math.round(40 + pct * 30)} ry={7} fill="url(#g-surface-50)" />
+          
+          {/* Animated bubbles rising */}
+          {isAdding && (
+            <g>
+              <circle cx="100" cy="360" r="2" fill="rgba(255,255,255,0.35)">
+                <animate attributeName="cy" from="360" to={topY} dur="1.1s" repeatCount="1" fill="freeze" />
+                <animate attributeName="opacity" from="0.7" to="0" dur="1.1s" repeatCount="1" fill="freeze" />
+              </circle>
+              <circle cx="145" cy="370" r="1.5" fill="rgba(255,255,255,0.35)">
+                <animate attributeName="cy" from="370" to={topY} dur="0.8s" repeatCount="1" fill="freeze" />
+                <animate attributeName="opacity" from="0.7" to="0" dur="0.8s" repeatCount="1" fill="freeze" />
+              </circle>
+            </g>
+          )}
         </g>
       )}
       <path d="M130,120 C80,120 45,180 45,280 C45,380 85,415 130,415 C175,415 215,380 215,280 C215,180 180,120 130,120 Z" fill="url(#g-glass-50)" opacity="0.60" />
@@ -163,21 +232,45 @@ function Bottle50({ totalMl, maxMl, quantities, allItems }: any) {
       <circle cx="130" cy="45" r="35" fill="url(#g-glass-v-50)" stroke="rgba(197,160,89,0.5)" strokeWidth="1" />
       <circle cx="130" cy="45" r="35" fill="url(#g-glass-50)" opacity="0.7" />
       <text x="130" y="52" textAnchor="middle" fontFamily="serif" fontSize="14" fill="rgba(197,160,89,0.8)" >N</text>
-      <g className="drip-group">
-        <line x1="130" y1="0" x2="130" y2="40" stroke="url(#g-drip-50)" strokeWidth="3" strokeLinecap="round" />
-      </g>
+      
+      {/* Falling Drop and Surface Ripple Animation */}
+      {isAdding && (
+        <g>
+          <circle cx="130" cy="50" r="3" fill="url(#g-drip-50)">
+            <animate attributeName="cy" from="50" to={topY} dur="0.4s" repeatCount="1" fill="freeze" />
+            <animate attributeName="opacity" from="1" to="0" begin="0.38s" dur="0.02s" repeatCount="1" fill="freeze" />
+          </circle>
+          <ellipse cx="130" cy={topY} rx="2" ry="0.5" fill="none" stroke="rgba(255,255,255,0.7)" strokeWidth="1">
+            <animate attributeName="rx" from="2" to={Math.round(40 + pct * 30)} begin="0.4s" dur="0.5s" repeatCount="1" fill="freeze" />
+            <animate attributeName="ry" from="0.5" to="7" begin="0.4s" dur="0.5s" repeatCount="1" fill="freeze" />
+            <animate attributeName="opacity" from="0.9" to="0" begin="0.4s" dur="0.5s" repeatCount="1" fill="freeze" />
+          </ellipse>
+        </g>
+      )}
     </svg>
   );
 }
 
 function Bottle30({ totalMl, maxMl, quantities, allItems }: any) {
+  const [isAdding, setIsAdding] = useState(false);
+  const prevTotalMl = useRef(totalMl);
+
+  useEffect(() => {
+    if (totalMl > prevTotalMl.current) {
+      setIsAdding(true);
+      const timer = setTimeout(() => setIsAdding(false), 1600);
+      return () => clearTimeout(timer);
+    }
+    prevTotalMl.current = totalMl;
+  }, [totalMl]);
+
   const pct = Math.min(1, totalMl / maxMl);
   const col = blendColor(quantities, allItems);
   const topY = Math.round(400 - pct * 300);
   const isEmpty = totalMl === 0;
 
   return (
-    <svg width="260" height="480" viewBox="0 0 260 480" fill="none" className="mx-auto">
+    <svg width="260" height="480" viewBox="0 0 260 480" fill="none" className={`mx-auto transition-all ${isAdding ? 'bottle-glow' : ''}`}>
       <GlassDefs col={col} id="30" />
       <clipPath id="c-30"><rect x="90" y="100" width="80" height="320" rx="40" /></clipPath>
       <rect x="90" y="100" width="80" height="320" rx="40" fill="url(#g-glass-v-30)" stroke="rgba(180,170,155,0.50)" strokeWidth="1" />
@@ -185,6 +278,20 @@ function Bottle30({ totalMl, maxMl, quantities, allItems }: any) {
         <g clipPath="url(#c-30)">
           <rect x="90" y={topY} width="80" height="330" fill="url(#g-liquid-30)" className="liquid-body" />
           <ellipse cx="130" cy={topY} rx={32} ry="6" fill="url(#g-surface-30)" />
+          
+          {/* Animated bubbles rising */}
+          {isAdding && (
+            <g>
+              <circle cx="115" cy="380" r="1.8" fill="rgba(255,255,255,0.35)">
+                <animate attributeName="cy" from="380" to={topY} dur="1.3s" repeatCount="1" fill="freeze" />
+                <animate attributeName="opacity" from="0.7" to="0" dur="1.3s" repeatCount="1" fill="freeze" />
+              </circle>
+              <circle cx="138" cy="390" r="1.2" fill="rgba(255,255,255,0.35)">
+                <animate attributeName="cy" from="390" to={topY} dur="0.9s" repeatCount="1" fill="freeze" />
+                <animate attributeName="opacity" from="0.7" to="0" dur="0.9s" repeatCount="1" fill="freeze" />
+              </circle>
+            </g>
+          )}
         </g>
       )}
       <rect x="90" y="100" width="80" height="320" rx="40" fill="url(#g-glass-30)" opacity="0.60" />
@@ -192,9 +299,21 @@ function Bottle30({ totalMl, maxMl, quantities, allItems }: any) {
       <rect x="110" y="70" width="40" height="35" rx="2" fill="url(#g-chrome-30)" />
       <rect x="95" y="15" width="70" height="55" rx="5" fill="#111" stroke="#C5A059" strokeWidth="1.5" />
       <text x="130" y="48" textAnchor="middle" fontFamily="serif" fontSize="12" fill="#C5A059">N</text>
-      <g className="drip-group">
-        <line x1="130" y1="0" x2="130" y2="25" stroke="url(#g-drip-30)" strokeWidth="3" strokeLinecap="round" />
-      </g>
+      
+      {/* Falling Drop and Surface Ripple Animation */}
+      {isAdding && (
+        <g>
+          <circle cx="130" cy="50" r="3" fill="url(#g-drip-30)">
+            <animate attributeName="cy" from="50" to={topY} dur="0.4s" repeatCount="1" fill="freeze" />
+            <animate attributeName="opacity" from="1" to="0" begin="0.38s" dur="0.02s" repeatCount="1" fill="freeze" />
+          </circle>
+          <ellipse cx="130" cy={topY} rx="2" ry="0.5" fill="none" stroke="rgba(255,255,255,0.7)" strokeWidth="1">
+            <animate attributeName="rx" from="2" to={32} begin="0.4s" dur="0.5s" repeatCount="1" fill="freeze" />
+            <animate attributeName="ry" from="0.5" to="6" begin="0.4s" dur="0.5s" repeatCount="1" fill="freeze" />
+            <animate attributeName="opacity" from="0.9" to="0" begin="0.4s" dur="0.5s" repeatCount="1" fill="freeze" />
+          </ellipse>
+        </g>
+      )}
     </svg>
   );
 }

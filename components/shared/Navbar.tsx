@@ -19,6 +19,7 @@ import { cn } from '@/lib/utils';
 import { PUBLIC_NAV_LINKS } from '@/lib/constants';
 import { useCartStore } from '@/store/useCartStore';
 import { useAuthStore } from '@/store/useAuthStore';
+import { useCartDrawerStore } from '@/store/useCartDrawerStore';
 import { Button } from '@/components/ui/Button';
 import { LanguageSelector } from './LanguageSelector';
 import { ThemeToggle } from './ThemeToggle';
@@ -34,6 +35,7 @@ export function Navbar() {
   const user = useAuthStore((s) => s.user);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const itemCount = useCartStore((s) => s.getItemCount());
+  const openCartDrawer = useCartDrawerStore((s) => s.open);
 
   useEffect(() => {
     setMounted(true);
@@ -87,14 +89,14 @@ export function Navbar() {
 
             {/* Right utilities — each control is its own glass pill */}
             <div className="flex items-center gap-1.5 justify-self-end">
-              <Link href="/cart" className={cn(glass, 'relative p-2 flex items-center hover:bg-white/10 transition-colors')}>
+              <button onClick={openCartDrawer} className={cn(glass, 'relative p-2 flex items-center hover:bg-white/10 transition-colors')}>
                 <CartIcon size={18} className="text-foreground/80" />
                 {itemCount > 0 && (
                   <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-gold text-deep-black text-[9px] font-bold flex items-center justify-center">
                     {itemCount}
                   </span>
                 )}
-              </Link>
+              </button>
 
               {isAuthenticated && user ? (
                 <Link
@@ -166,9 +168,8 @@ export function Navbar() {
               </div>
 
               <div className={cn(glass, 'p-1.5 flex items-center gap-0.5')}>
-                <Link
-                  href="/cart"
-                  onClick={() => setIsNavigating(true)}
+                <button
+                  onClick={() => { openCartDrawer(); }}
                   className="relative p-1.5 flex items-center rounded-full hover:bg-white/10 transition-colors"
                 >
                   <CartIcon size={19} className="text-foreground/80" />
@@ -181,7 +182,7 @@ export function Navbar() {
                       {itemCount}
                     </motion.span>
                   )}
-                </Link>
+                </button>
 
                 <Link
                   href="/dashboard/client/favorites"

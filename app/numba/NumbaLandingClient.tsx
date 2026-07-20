@@ -23,7 +23,7 @@ export default function NumbaLandingClient() {
         <div>Numba Lab System v2.6</div>
       </div>
 
-      <main className="p-4 sm:p-6 lg:p-0 grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-0 w-full max-w-[1800px] mx-auto flex-grow items-stretch lg:border-b lg:border-[var(--t-border)]">
+      <main className="p-4 sm:p-6 lg:p-0 grid grid-cols-1 lg:grid-cols-4 gap-6 lg:gap-0 w-full max-w-[1800px] mx-auto flex-grow items-stretch lg:border-b lg:border-[var(--t-border)]">
         <div className="p-8 sm:p-12 lg:p-16 flex flex-col justify-between rounded-2xl lg:rounded-none border border-[var(--t-border)] lg:border-t-0 lg:border-b-0 lg:border-l-0 lg:border-r bg-foreground/[0.03]">
           <div>
             <span className="text-[11px] font-mono tracking-[0.25em] uppercase text-gold block mb-12">
@@ -102,6 +102,39 @@ export default function NumbaLandingClient() {
 
           <div className="mt-16 pt-6 border-t border-[var(--t-border)] flex items-center justify-between text-xs font-mono tracking-[0.2em] uppercase text-foreground">
             <span className="font-bold">{t('open_atelier')}</span>
+            <span className="transform group-hover:translate-x-2 transition-transform duration-300">→</span>
+          </div>
+        </Link>
+
+        {/* Option C — Olfactive Quiz */}
+        <Link
+          href="/numba/quiz"
+          className="group block relative p-8 sm:p-12 lg:p-16 flex flex-col justify-between rounded-2xl lg:rounded-none border border-[var(--t-border)] lg:border-none bg-foreground/[0.03] lg:bg-transparent hover:bg-purple-950/20 transition-all duration-500"
+        >
+          <div className="lg:hidden absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-purple-900 text-purple-400 text-[9px] font-mono tracking-widest uppercase px-3 py-0.5 rounded-full border border-purple-800">
+            Option C
+          </div>
+
+          <div>
+            <div className="flex justify-between items-baseline mb-16">
+              <span className="text-[11px] font-mono tracking-[0.25em] uppercase text-foreground/40 group-hover:text-purple-400 transition-colors">
+                Methodology C
+              </span>
+              <span className="text-xs font-mono text-purple-400/70 bg-purple-500/10 px-2 py-0.5 rounded lg:bg-transparent lg:p-0">
+                [ Quiz ]
+              </span>
+            </div>
+
+            <h2 className="font-display text-2xl sm:text-3xl font-bold text-foreground tracking-tight mb-6">
+              Diagnostic Olfactif
+            </h2>
+            <p className="text-foreground/60 text-sm font-light leading-relaxed max-w-sm">
+              Répondez à 4 questions sur votre style et vos préférences pour recevoir une formule personnalisée algorithmique.
+            </p>
+          </div>
+
+          <div className="mt-16 pt-6 border-t border-[var(--t-border)] flex items-center justify-between text-xs font-mono tracking-[0.2em] uppercase text-purple-400">
+            <span className="font-bold">Commencer le quiz</span>
             <span className="transform group-hover:translate-x-2 transition-transform duration-300">→</span>
           </div>
         </Link>
