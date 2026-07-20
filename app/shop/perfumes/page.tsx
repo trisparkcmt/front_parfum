@@ -1,4 +1,5 @@
-﻿import { Metadata } from 'next';
+import { Metadata } from 'next';
+import { Suspense } from 'react';
 import PerfumesShopClient from './PerfumesShopClient';
 
 export const metadata: Metadata = {
@@ -16,5 +17,9 @@ export const metadata: Metadata = {
 };
 
 export default function PerfumesShop() {
-  return <PerfumesShopClient />;
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-background flex items-center justify-center text-foreground/30 font-mono text-xs uppercase tracking-widest">Chargement...</div>}>
+      <PerfumesShopClient />
+    </Suspense>
+  );
 }
