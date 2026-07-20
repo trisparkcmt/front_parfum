@@ -215,7 +215,7 @@ export default function AtelierPage() {
   
   // Sub-tabs
   const [ingredientSubtab, setIngredientSubtab] = useState<'tete' | 'coeur' | 'fond'>('tete');
-  const [essenceSubtab, setEssenceSubtab] = useState<'premium' | 'super-premium' | 'high'>('premium');
+  const [essenceSubtab, setEssenceSubtab] = useState<'high' | 'premium' | 'super-premium'>('high');
 
   // Datasets
   const [ingredients, setIngredients] = useState<EssenceClient[]>([]);
@@ -350,9 +350,7 @@ export default function AtelierPage() {
   };
 
   const calcPrice = useMemo(() => {
-    const sizeMultiplier = bottleSize === 30 ? 0.4 : bottleSize === 50 ? 0.65 : 1;
-    // Default format is edp
-    let total = Math.round((FORMAT_PRICES['edp'] || 0) * sizeMultiplier);
+    let total = 0;
     // Add flacon price if available
     const matchedFlacon = flacons.find(f => Number(f.id) === selectedFlaconId);
     if (matchedFlacon) {
@@ -734,9 +732,9 @@ export default function AtelierPage() {
 
           <div className="flacon-stage relative transition-all duration-700">
             <div className="bottle-glow" />
-            {bottleSize >= 61 && <Bottle100 totalMl={totalMl} maxMl={maxFillMl} quantities={quantities} allItems={ALL_ITEMS} />}
-            {bottleSize >= 31 && bottleSize <= 60 && <Bottle50 totalMl={totalMl} maxMl={maxFillMl} quantities={quantities} allItems={ALL_ITEMS} />}
-            {bottleSize <= 30 && <Bottle30 totalMl={totalMl} maxMl={maxFillMl} quantities={quantities} allItems={ALL_ITEMS} />}
+            {bottleSize >= 61 && <Bottle100 totalMl={totalMl} maxMl={bottleSize} quantities={quantities} allItems={ALL_ITEMS} />}
+            {bottleSize >= 31 && bottleSize <= 60 && <Bottle50 totalMl={totalMl} maxMl={bottleSize} quantities={quantities} allItems={ALL_ITEMS} />}
+            {bottleSize <= 30 && <Bottle30 totalMl={totalMl} maxMl={bottleSize} quantities={quantities} allItems={ALL_ITEMS} />}
             
             <div className="absolute -right-12 top-1/2 -translate-y-1/2 flex flex-col items-center gap-1 opacity-40">
               <div className="w-[1px] h-20 bg-gold/50" />
@@ -890,9 +888,9 @@ export default function AtelierPage() {
                 {/* Steps within premium essences */}
                 <div className="atelier-tab-row flex items-center gap-3 overflow-x-auto pb-2">
                   {[
+                    { id: 'high', label: 'High Luxury' },
                     { id: 'premium', label: 'Premium' },
-                    { id: 'super-premium', label: 'Super Premium' },
-                    { id: 'high', label: 'High Luxury' }
+                    { id: 'super-premium', label: 'Super Premium' }
                   ].map(sub => (
                     <button
                       key={sub.id}

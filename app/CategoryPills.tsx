@@ -85,11 +85,11 @@ export default function CategoryPills() {
         ]);
 
         const perfumeEntries: CategoryEntry[] = perfumeCategories.map((c: any) => ({
-          key: `perfume-${c.type}`,
-          label: t(PERFUME_LABELS[c.type] || c.name, { defaultValue: c.name }),
-          href: `/shop/perfumes?category=${c.type}`,
-          image: c.icone || c.image || null,
-          Icon: PERFUME_ICONS[c.type] || Sparkles,
+          key: `perfume-${c.id}`,
+          label: c.name,
+          href: `/shop/perfumes?categorie=${c.id}`,
+          image: c.image || c.icone || null,
+          Icon: Sparkles,
         }));
 
         const accessoryEntries: CategoryEntry[] = accessoryTypes.map((tp: any) => {

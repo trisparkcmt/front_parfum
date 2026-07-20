@@ -239,6 +239,7 @@ export const shopService = {
     occasion?: string;
     saison?: string;
     tags?: string;
+    categorie?: number;
   }) => {
     const response = await api.get('shop/parfums/', { params });
     return response.data;
@@ -1056,13 +1057,13 @@ export const adminService = {
     return response.data;
   },
 
-  /**
-   * Initiate provider payout via Monetbil
-   */
-  initiateProviderPayout: async (providerId: number, montant: number) => {
+  initiateProviderPayout: async (
+    providerId: number,
+    data: { montant: string; telephone?: string; external_reference: string }
+  ) => {
     const response = await api.post(
       `auth/admin/prestataires/${providerId}/payout/`,
-      { montant }
+      data
     );
     return response.data;
   },

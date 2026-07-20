@@ -5,6 +5,7 @@
  * @description Client-side marketplace catalog for brand perfumes, dupes and finished essences.
  */
 import { useState, useEffect, useRef } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, SlidersHorizontal, X, RotateCcw, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import { ProductCard } from '@/components/ui/ProductCard';
@@ -18,6 +19,7 @@ import type { Product } from '@/types';
 
 export default function PerfumesShopClient() {
   const { t, i18n } = useTranslation();
+  const searchParams = useSearchParams();
   const [mounted, setMounted] = useState(false);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -39,7 +41,11 @@ export default function PerfumesShopClient() {
   const [maxPrice, setMaxPrice] = useState<number>(150000);
   const [ordering, setOrdering] = useState<string>('-date_creation');
   const [showFilters, setShowFilters] = useState(false);
-  const [activeTab, setActiveTab] = useState<string | number>('all');
+  // Initialise activeTab from URL ?categorie=<id> if present
+  const [activeTab, setActiveTab] = useState<string | number>(() => {
+    const catParam = searchParams?.get('categorie');
+    return catParam ? Number(catParam) : 'all';
+  });
 
   // Ref for the scrollable tab bar and individual tab buttons
   const tabBarRef = useRef<HTMLDivElement>(null);
@@ -69,19 +75,19 @@ export default function PerfumesShopClient() {
       if (categories.length === 0) {
         const backendCats = await productService.getPerfumeCategories();
         const mappedTabs = [
-          { id: 'all', label: t('all_perfumes'), desc: t('all_perfumes_desc') },
-          { id: 'huile', label: t('huile', 'Huile'), desc: t('huile_desc', 'Toutes les essences finies disponibles') },
+          { id: 'all', label: t('all_perfumes', { defaultValue: 'Tous les Parfums' }), desc: '' },
           ...backendCats.map(cat => ({
-            id: cat.name,
-            label: cat.name === 'perfume-brand' ? t('perfume_brand', { defaultValue: 'Parfums de Marque' }) :
-                   cat.name === 'perfume-dupe' ? t('perfume_dupe', { defaultValue: 'Dupes de Parfums' }) :
-                   cat.name === 'numba-creation' ? t('numba_creation', { defaultValue: 'Créations Numba' }) :
-                   cat.name,
-            desc: t(`tab_${cat.type.replace('-', '_')}_desc`, { defaultValue: '' })
-          }))
+            id: cat.id,       // real backend numeric id
+            label: cat.name,  // real backend nom
+            desc: ''
+          })),
+          { id: 'huile', label: t('huile', { defaultValue: 'Huiles' }), desc: t('huile_desc', { defaultValue: 'Toutes les essences finies disponibles' }) },
         ];
         setCategories(mappedTabs);
-        setActiveTab('all');
+        // Only reset to 'all' if there was no ?categorie= param in the URL
+        if (!searchParams?.get('categorie')) {
+          setActiveTab('all');
+        }
       }
 
       // Explicitly cast to 'any' to bypass strict backend enum constraints on local component string states
@@ -93,6 +99,8 @@ export default function PerfumesShopClient() {
         search: debouncedSearch || undefined,
         ordering: ordering || undefined,
         page: currentPage,
+        // Pass real category id to API – skip for 'all' and 'huile' tabs
+        categorie: (activeTab !== 'all' && activeTab !== 'huile' && typeof activeTab === 'number') ? activeTab : undefined,
       } as any;
 
       // Type the response to handle both array and paginated formats natively
@@ -174,9 +182,8 @@ export default function PerfumesShopClient() {
     }
   };
 
-  // Client-side category filtering (only needed if API doesn't filter by category)
-  const filteredPerfumes = products.filter(p => activeTab === 'all' || p.category === activeTab);
-  const activeProducts = activeTab === 'huile' ? finishedEssenceProducts : filteredPerfumes;
+  // For 'huile' tab, use the dedicated essences list; otherwise use the backend-filtered products directly
+  const activeProducts = activeTab === 'huile' ? finishedEssenceProducts : products;
   const isActiveLoading = activeTab === 'huile' ? finishedEssenceLoading : loading;
 
   const resetFilters = () => {

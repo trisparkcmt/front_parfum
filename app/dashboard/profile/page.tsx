@@ -67,7 +67,7 @@ function Panel({ children, className = '' }: { children: React.ReactNode; classN
     <div
       className={
         'relative rounded-2xl border border-white/10 bg-white/[0.03] ' +
-        'backdrop-blur-md shadow-[0_8px_30px_-12px_rgba(0,0,0,0.4)] ' +
+        'backdrop-blur-md shadow-[0_2px_15px_-12px_rgba(0,0,0,0.4)] ' +
         className
       }
     >
@@ -262,7 +262,7 @@ export default function ProfilePage() {
               <button
                 onClick={handleBecomePartner}
                 disabled={isApplyingPartner}
-                className="sm:pb-2 group inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-br from-gold to-gold-dark text-black text-sm font-bold shadow-lg shadow-gold/20 hover:shadow-gold/40 hover:-translate-y-0.5 transition-all disabled:opacity-60"
+                className="sm:pb-2 group inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-br from-gold to-gold-dark text-black text-sm font-bold shadow-sm shadow-gold/20 hover:shadow-gold/40 hover:-translate-y-0.5 transition-all disabled:opacity-60"
               >
                 {isApplyingPartner ? (
                   <Loader2 size={16} className="animate-spin" />

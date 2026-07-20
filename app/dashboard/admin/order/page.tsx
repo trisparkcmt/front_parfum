@@ -13,7 +13,7 @@ import { invoiceService } from '@/services/invoiceService';
 import { useToastStore } from '@/store/useToastStore';
 import { FormModal } from '@/components/ui/FormModal';
 import type { BackendOrder, BackendOrderLine } from '@/types';
-
+import { useOptimisticOrders } from '@/hooks/useOptimisticOrders';
 
 // ─── Status configs ───────────────────────────────────────────────────────────
 
@@ -79,10 +79,16 @@ function getDeliveryMethod(order: BackendOrder): string {
   return order.livreur ? 'livraison' : 'retrait en boutique';
 }
 
+function driverDisplayName(d: any): string {
+  return d.user_details?.first_name
+    ? `${d.user_details.first_name} ${d.user_details.last_name ?? ''}`.trim()
+    : d.name ?? `Livreur #${d.id}`;
+}
+
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function OrdersPage() {
-  
+
   // ── list state ──────────────────────────────────────────────────────────────
   const [orders, setOrders]     = useState<BackendOrder[]>([]);
   const [total, setTotal]       = useState(0);
@@ -105,24 +111,38 @@ export default function OrdersPage() {
   const [drivers,          setDrivers]          = useState<any[]>([]);
 
   // ── edit form ───────────────────────────────────────────────────────────────
-  const [editStatut,       setEditStatut]       = useState('');
-  const [editLivraison,    setEditLivraison]    = useState('');
-  const [editPaiement,     setEditPaiement]     = useState('');
+  const [editStatut,       setEditStatut]       = useState<'en_attente' | 'validé' | 'annulée' | 'remboursée' | ''>('');
+  const [editLivraison,    setEditLivraison]    = useState<'en_attente_affectation' | 'assignée' | 'livrée' | 'échouée' | ''>('');
+  const [editPaiement,     setEditPaiement]     = useState<'en_attente' | 'payé' | 'échoué' | ''>('');
   const [editLivreur,      setEditLivreur]      = useState('');
   const [editDateEst,      setEditDateEst]      = useState('');
   const [editNote,         setEditNote]         = useState('');
   const [editFrais,        setEditFrais]        = useState('');
-  const [saving,           setSaving]           = useState(false);
   const [downloadingInvoice, setDownloadingInvoice] = useState(false);
   const [valDriverId,      setValDriverId]      = useState('');
   const [valDateEst,       setValDateEst]       = useState('');
 
+  // ── per-table (client-side) pagination ────────────────────────────────────────
+  // The server already paginates the full fetch at PAGE_SIZE below; these two
+  // control paging within each of the two on-screen tables independently.
+  const [ongoingPage,   setOngoingPage]   = useState(1);
+  const [completedPage, setCompletedPage] = useState(1);
+  const ROWS_PER_TABLE = 10;
 
   const { addToast } = useToastStore();
   const searchRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const PAGE_SIZE = 100;
 
+  // ── optimistic mutation engine ────────────────────────────────────────────
+  // `runOptimisticUpdate` mutates `orders` in place and fires the API call in
+  // the background — no fetchOrders(), no loading flag, no spinner.
+  // `pendingIds` lets us show a subtle per-row "syncing" hint without
+  // blocking the table.
+  const { runOptimisticUpdate, pendingIds } = useOptimisticOrders(setOrders, addToast);
+
   // ── fetch orders ─────────────────────────────────────────────────────────────
+  // Used only for: initial load, pagination, filters/search, and the manual
+  // "Actualiser" button. Status mutations no longer call this.
   const fetchOrders = useCallback(async (pg = page) => {
     setLoading(true);
     try {
@@ -137,6 +157,8 @@ export default function OrdersPage() {
       const list  = data.results ?? data.resultats ?? (Array.isArray(data) ? data : []);
       setOrders(list);
       setTotal(data.count ?? list.length);
+      setOngoingPage(1);
+      setCompletedPage(1);
     } catch {
       addToast('Erreur lors du chargement des commandes', 'error');
     } finally {
@@ -172,30 +194,42 @@ export default function OrdersPage() {
     setEditFrais(order.frais_livraison ?? '');
   };
 
-  // ── save patch ────────────────────────────────────────────────────────────────
+  // ── save patch (optimistic) ──────────────────────────────────────────────────
   const handleSave = async () => {
     if (!editModal) return;
-    setSaving(true);
-    try {
-      const payload: Record<string, any> = {
-        statut:               editStatut,
-        statut_livraison:     editLivraison,
-        statut_paiement:      editPaiement,
-        note_interne:         editNote,
-      };
-      if (editLivreur)  payload.livreur               = Number(editLivreur);
-      if (editDateEst)  payload.date_livraison_estimee = editDateEst;
-      if (editFrais)    payload.frais_livraison        = parseFloat(editFrais);
+    const order = editModal;
 
-      await orderService.updateOrder(editModal.numero_commande, payload);
-      addToast('Commande mise à jour avec succès', 'success');
-      setEditModal(null);
-      fetchOrders(page);
-    } catch (err: any) {
-      addToast(err.response?.data?.detail ?? 'Erreur lors de la mise à jour', 'error');
-    } finally {
-      setSaving(false);
-    }
+    const payload: Record<string, any> = {
+      statut:           editStatut,
+      statut_livraison: editLivraison,
+      statut_paiement:  editPaiement,
+      note_interne:     editNote,
+    };
+    if (editLivreur)  payload.livreur               = Number(editLivreur);
+    if (editDateEst)  payload.date_livraison_estimee = editDateEst;
+    if (editFrais)    payload.frais_livraison        = parseFloat(editFrais);
+
+    const driverObj = editLivreur ? drivers.find(d => String(d.id ?? d.user_id) === editLivreur) : null;
+
+    // Close the modal immediately — the row updates instantly in the table,
+    // the request itself happens after, invisibly.
+    setEditModal(null);
+
+    await runOptimisticUpdate({
+      orderId: order.id,
+      patch: {
+        statut:           editStatut as any,
+        statut_livraison: editLivraison as any,
+        statut_paiement:  editPaiement as any,
+        note_interne:     editNote,
+        ...(driverObj ? { livreur: Number(editLivreur), livreur_nom: driverDisplayName(driverObj) } : {}),
+        ...(editDateEst ? { date_livraison_estimee: editDateEst } : {}),
+        ...(editFrais ? { frais_livraison: editFrais } : {}),
+      },
+      apiCall: () => orderService.updateOrder(order.numero_commande, payload),
+      successMessage: 'Commande mise à jour avec succès',
+      errorMessage: 'Erreur lors de la mise à jour',
+    });
   };
 
   const handleDownloadInvoice = async (order: BackendOrder) => {
@@ -219,65 +253,74 @@ export default function OrdersPage() {
     await handleDownloadInvoice(order);
   };
 
-  // ── cancel ────────────────────────────────────────────────────────────────────
+  // ── cancel (optimistic) ──────────────────────────────────────────────────────
   const handleCancel = async (order: BackendOrder) => {
     if (!confirm(`Annuler la commande ${order.numero_commande} ?`)) return;
-    try {
-      await orderService.cancelOrder(order.numero_commande);
-      addToast('Commande annulée', 'success');
-      fetchOrders(page);
-    } catch (err: any) {
-      addToast(err.response?.data?.detail ?? 'Erreur lors de l\'annulation', 'error');
-    }
+
+    await runOptimisticUpdate({
+      orderId: order.id,
+      patch: { statut: 'annulée' },
+      apiCall: () => orderService.cancelOrder(order.numero_commande),
+      successMessage: 'Commande annulée',
+      errorMessage: "Erreur lors de l'annulation",
+    });
   };
 
-  // ── validate click ─────────────────────────────────────────────────────────────
+  // ── validate click (optimistic for the pickup path) ──────────────────────────
   const handleValidateClick = async (order: BackendOrder) => {
     const isDelivery = !!order.livraison_ville && order.livraison_ville.trim() !== '';
     if (isDelivery) {
       setValidationModal(order);
       setValDriverId(order.livreur != null ? String(order.livreur) : '');
       setValDateEst(order.date_livraison_estimee ?? '');
-    } else {
-      if (!confirm(`Valider la commande pickup ${order.numero_commande} ?`)) return;
-      try {
-        setLoading(true);
-        await orderService.updateOrder(order.numero_commande, {
-          statut: 'validé',
-          statut_livraison: 'en_attente_affectation',
-        });
-        addToast('Commande pickup validée avec succès', 'success');
-        fetchOrders(page);
-      } catch (err: any) {
-        addToast(err.response?.data?.detail ?? 'Erreur lors de la validation', 'error');
-      } finally {
-        setLoading(false);
-      }
+      return;
     }
+
+    if (!confirm(`Valider la commande pickup ${order.numero_commande} ?`)) return;
+
+    await runOptimisticUpdate({
+      orderId: order.id,
+      patch: { statut: 'validé', statut_livraison: 'en_attente_affectation' },
+      apiCall: () => orderService.updateOrder(order.numero_commande, {
+        statut: 'validé',
+        statut_livraison: 'en_attente_affectation',
+      }),
+      successMessage: 'Commande pickup validée avec succès',
+      errorMessage: 'Erreur lors de la validation',
+    });
   };
 
-  // ── confirm validation with driver ─────────────────────────────────────────────
+  // ── confirm validation with driver (optimistic) ──────────────────────────────
   const handleConfirmValidation = async () => {
     if (!validationModal) return;
-    setSaving(true);
-    try {
-      const payload: Record<string, any> = {
+    const order = validationModal;
+
+    const payload: Record<string, any> = {
+      statut: 'validé',
+      statut_livraison: valDriverId ? 'assignée' : 'en_attente_affectation',
+    };
+    if (valDriverId) payload.livreur = Number(valDriverId);
+    if (valDateEst) payload.date_livraison_estimee = valDateEst;
+
+    const driverObj = valDriverId ? drivers.find(d => String(d.id ?? d.user_id) === valDriverId) : null;
+
+    // Close immediately — assignment reflects in the table right away.
+    setValidationModal(null);
+
+    await runOptimisticUpdate({
+      orderId: order.id,
+      patch: {
         statut: 'validé',
         statut_livraison: valDriverId ? 'assignée' : 'en_attente_affectation',
-      };
-      if (valDriverId) payload.livreur = Number(valDriverId);
-      if (valDateEst) payload.date_livraison_estimee = valDateEst;
-
-      await orderService.updateOrder(validationModal.numero_commande, payload);
-      addToast('Commande validée et livreur assigné', 'success');
-      setValidationModal(null);
-      fetchOrders(page);
-    } catch (err: any) {
-      addToast(err.response?.data?.detail ?? 'Erreur lors de la validation', 'error');
-    } finally {
-      setSaving(false);
-    }
+        ...(driverObj ? { livreur: Number(valDriverId), livreur_nom: driverDisplayName(driverObj) } : {}),
+        ...(valDateEst ? { date_livraison_estimee: valDateEst } : {}),
+      },
+      apiCall: () => orderService.updateOrder(order.numero_commande, payload),
+      successMessage: 'Commande validée et livreur assigné',
+      errorMessage: 'Erreur lors de la validation',
+    });
   };
+
   // ── pagination ────────────────────────────────────────────────────────────────
   const totalPages = Math.ceil(total / PAGE_SIZE) || 1;
 
@@ -293,26 +336,65 @@ export default function OrdersPage() {
   const isCancellable = (o: BackendOrder) =>
     o.statut === 'en_attente' || o.statut === 'validé';
 
-  // Refund handler
-  const handleRefund = async (order: BackendOrder) => {
-    if (!confirm(`Rembourser la commande ${order.numero_commande} ?`)) return;
-    try {
-      setLoading(true);
-      await orderService.updateOrder(order.numero_commande, {
-        statut: 'remboursée',
-        statut_paiement: 'échoué'
-      });
-      addToast('Commande marquée comme remboursée', 'success');
-      fetchOrders(page);
-    } catch (err: any) {
-      addToast(err.response?.data?.detail ?? 'Erreur lors du remboursement', 'error');
-    } finally {
-      setLoading(false);
-    }
+  // ── mark delivered (optimistic, direct action button) ────────────────────────
+  // Available once an order has been validated. Skips the modal entirely —
+  // one click flips it to delivered + paid and moves it to the completed table.
+  const handleMarkDelivered = async (order: BackendOrder) => {
+    if (!confirm(`Marquer la commande ${order.numero_commande} comme livrée (et payée) ?`)) return;
+
+    await runOptimisticUpdate({
+      orderId: order.id,
+      patch: {
+        statut_livraison: 'livrée',
+        statut_paiement: 'payé',
+      },
+      apiCall: () => orderService.updateOrder(order.numero_commande, {
+        statut_livraison: 'livrée',
+        statut_paiement: 'payé',
+      }),
+      successMessage: 'Commande marquée comme livrée et payée',
+      errorMessage: 'Erreur lors de la mise à jour de la livraison',
+    });
   };
 
+  // ── refund (optimistic) ───────────────────────────────────────────────────────
+  const handleRefund = async (order: BackendOrder) => {
+    if (!confirm(`Rembourser la commande ${order.numero_commande} ?`)) return;
+
+    await runOptimisticUpdate({
+      orderId: order.id,
+      patch: { statut: 'remboursée', statut_paiement: 'échoué' },
+      apiCall: () => orderService.updateOrder(order.numero_commande, {
+        statut: 'remboursée',
+        statut_paiement: 'échoué',
+      }),
+      successMessage: 'Commande marquée comme remboursée',
+      errorMessage: 'Erreur lors du remboursement',
+    });
+  };
+
+  // These are derived from `orders` on every render, so mutating one order's
+  // `statut` / `statut_livraison` via runOptimisticUpdate automatically moves
+  // it between the two tables below — no extra bookkeeping needed.
   const ongoingOrders = orders.filter(o => o.statut !== 'remboursée' && o.statut_livraison !== 'livrée' && o.statut !== 'annulée');
   const completedOrders = orders.filter(o => o.statut === 'remboursée' || o.statut_livraison === 'livrée' || o.statut === 'annulée');
+
+  const ongoingTotalPages   = Math.max(1, Math.ceil(ongoingOrders.length / ROWS_PER_TABLE));
+  const completedTotalPages = Math.max(1, Math.ceil(completedOrders.length / ROWS_PER_TABLE));
+
+  // If an optimistic move (or a filter change) leaves the current page past
+  // the end of the list, snap back to the last valid page instead of
+  // rendering an empty table.
+  useEffect(() => {
+    if (ongoingPage > ongoingTotalPages) setOngoingPage(ongoingTotalPages);
+  }, [ongoingTotalPages, ongoingPage]);
+
+  useEffect(() => {
+    if (completedPage > completedTotalPages) setCompletedPage(completedTotalPages);
+  }, [completedTotalPages, completedPage]);
+
+  const visibleOngoingOrders   = ongoingOrders.slice((ongoingPage - 1) * ROWS_PER_TABLE, ongoingPage * ROWS_PER_TABLE);
+  const visibleCompletedOrders = completedOrders.slice((completedPage - 1) * ROWS_PER_TABLE, completedPage * ROWS_PER_TABLE);
 
   return (
     <>
@@ -475,11 +557,14 @@ export default function OrdersPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/5">
-                  {ongoingOrders.map(order => (
-                    <tr key={order.id} className="hover:bg-white/[0.03] transition-colors group">
+                  {visibleOngoingOrders.map(order => {
+                    const isPending = pendingIds.has(String(order.id));
+                    return (
+                    <tr key={order.id} className={`hover:bg-white/[0.03] transition-all group ${isPending ? 'opacity-60' : ''}`}>
                       <td className="px-4 py-3.5">
-                        <span className="font-mono text-xs font-bold text-gold tracking-wider">
+                        <span className="font-mono text-xs font-bold text-gold tracking-wider inline-flex items-center gap-1.5">
                           {order.numero_commande}
+                          {isPending && <Loader2 size={11} className="animate-spin text-gold/70" />}
                         </span>
                       </td>
                       <td className="px-4 py-3.5 min-w-[160px]">
@@ -504,8 +589,9 @@ export default function OrdersPage() {
                         <Badge text={STATUT_CFG[order.statut]?.label ?? order.statut} cfg={STATUT_CFG[order.statut]} />
                       </td>
                       <td className="px-4 py-3.5">
-                        <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full border capitalize inline-flex
-                          {order.livreur ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' : 'text-amber-400 bg-amber-500/10 border-amber-500/20'}">
+                        <span className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-full border capitalize inline-flex ${
+                          order.livreur ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' : 'text-amber-400 bg-amber-500/10 border-amber-500/20'
+                        }`}>
                           {getDeliveryMethod(order)}
                         </span>
                       </td>
@@ -536,6 +622,16 @@ export default function OrdersPage() {
                               Valider
                             </button>
                           )}
+                          {order.statut === 'validé' && order.statut_livraison !== 'livrée' && (
+                            <button
+                              onClick={() => handleMarkDelivered(order)}
+                              title="Marquer comme livrée et payée"
+                              className="px-2 py-1 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-[10px] font-bold transition-all flex items-center gap-1"
+                            >
+                              <Truck size={11} />
+                              Livré
+                            </button>
+                          )}
                           {isCancellable(order) && (
                             <button
                               onClick={() => handleCancel(order)}
@@ -547,7 +643,8 @@ export default function OrdersPage() {
                         </div>
                       </td>
                     </tr>
-                  ))}
+                    );
+                  })}
                   {ongoingOrders.length === 0 && !loading && (
                     <tr>
                       <td colSpan={9} className="text-center py-10 text-foreground/30 italic text-sm">
@@ -560,6 +657,9 @@ export default function OrdersPage() {
             </div>
           )}
         </div>
+        {!loading && ongoingOrders.length > 0 && (
+          <TablePagination page={ongoingPage} totalPages={ongoingTotalPages} onChange={setOngoingPage} totalItems={ongoingOrders.length} />
+        )}
       </div>
 
       {/* ── Table 2: Commandes complétées / terminées ────────────────────────────────────────────────── */}
@@ -587,11 +687,14 @@ export default function OrdersPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/5">
-                  {completedOrders.map(order => (
-                    <tr key={order.id} className="hover:bg-white/[0.03] transition-colors group">
+                  {visibleCompletedOrders.map(order => {
+                    const isPending = pendingIds.has(String(order.id));
+                    return (
+                    <tr key={order.id} className={`hover:bg-white/[0.03] transition-all group ${isPending ? 'opacity-60' : ''}`}>
                       <td className="px-4 py-3.5">
-                        <span className="font-mono text-xs font-bold text-gold tracking-wider">
+                        <span className="font-mono text-xs font-bold text-gold tracking-wider inline-flex items-center gap-1.5">
                           {order.numero_commande}
+                          {isPending && <Loader2 size={11} className="animate-spin text-gold/70" />}
                         </span>
                       </td>
                       <td className="px-4 py-3.5 min-w-[160px]">
@@ -616,8 +719,9 @@ export default function OrdersPage() {
                         <Badge text={STATUT_CFG[order.statut]?.label ?? order.statut} cfg={STATUT_CFG[order.statut]} />
                       </td>
                       <td className="px-4 py-3.5">
-                        <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full border capitalize inline-flex
-                          {order.livreur ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' : 'text-amber-400 bg-amber-500/10 border-amber-500/20'}">
+                        <span className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-full border capitalize inline-flex ${
+                          order.livreur ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' : 'text-amber-400 bg-amber-500/10 border-amber-500/20'
+                        }`}>
                           {getDeliveryMethod(order)}
                         </span>
                       </td>
@@ -644,7 +748,8 @@ export default function OrdersPage() {
                         </div>
                       </td>
                     </tr>
-                  ))}
+                    );
+                  })}
                   {completedOrders.length === 0 && !loading && (
                     <tr>
                       <td colSpan={9} className="text-center py-10 text-foreground/30 italic text-sm">
@@ -657,9 +762,12 @@ export default function OrdersPage() {
             </div>
           )}
         </div>
+        {!loading && completedOrders.length > 0 && (
+          <TablePagination page={completedPage} totalPages={completedTotalPages} onChange={setCompletedPage} totalItems={completedOrders.length} />
+        )}
       </div>
 
-      {/* ── Pagination ─────────────────────────────────────────────────────── */}
+      {/* ── Pagination (server page — which 100-row batch is loaded) ────────── */}
       {totalPages > 1 && (
         <div className="flex items-center justify-between">
           <p className="text-xs text-foreground/40">
@@ -896,7 +1004,7 @@ export default function OrdersPage() {
                   {STATUT_OPTIONS.filter(v => v !== '').map(v => (
                     <button
                       key={v}
-                      onClick={() => setEditStatut(v)}
+                      onClick={() => setEditStatut(v as any)}
                       className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all ${
                         editStatut === v
                           ? 'bg-gold text-black border-gold'
@@ -916,7 +1024,7 @@ export default function OrdersPage() {
                   {LIVRAISON_OPTIONS.filter(v => v !== '').map(v => (
                     <button
                       key={v}
-                      onClick={() => setEditLivraison(v)}
+                      onClick={() => setEditLivraison(v as any)}
                       className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all ${
                         editLivraison === v
                           ? 'bg-blue-500 text-white border-blue-500'
@@ -936,7 +1044,7 @@ export default function OrdersPage() {
                   {PAIEMENT_OPTIONS.filter(v => v !== '').map(v => (
                     <button
                       key={v}
-                      onClick={() => setEditPaiement(v)}
+                      onClick={() => setEditPaiement(v as any)}
                       className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all ${
                         editPaiement === v
                           ? 'bg-emerald-500 text-white border-emerald-500'
@@ -959,9 +1067,7 @@ export default function OrdersPage() {
                 >
                   <option value="" className="bg-background">— Aucun —</option>
                   {drivers.map(d => {
-                    const name = d.user_details?.first_name
-                      ? `${d.user_details.first_name} ${d.user_details.last_name ?? ''}`.trim()
-                      : d.name ?? `Livreur #${d.id}`;
+                    const name = driverDisplayName(d);
                     const id = d.id ?? d.user_id;
                     return <option key={id} value={id} className="bg-background">{name}</option>;
                   })}
@@ -1003,14 +1109,13 @@ export default function OrdersPage() {
                 />
               </div>
 
-              {/* submit */}
+              {/* submit — closes instantly; the row updates and syncs in the background */}
               <div className="flex gap-3 pt-2 border-t border-white/10">
                 <button
                   onClick={handleSave}
-                  disabled={saving}
-                  className="flex-1 bg-gold text-black rounded-xl py-3 text-sm font-bold flex items-center justify-center gap-2 hover:bg-gold/80 transition-all disabled:opacity-50"
+                  className="flex-1 bg-gold text-black rounded-xl py-3 text-sm font-bold flex items-center justify-center gap-2 hover:bg-gold/80 transition-all"
                 >
-                  {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+                  <Save size={16} />
                   Enregistrer les modifications
                 </button>
                 <button
@@ -1053,9 +1158,7 @@ export default function OrdersPage() {
                 >
                   <option value="" className="bg-background">— Aucun / Assigner plus tard —</option>
                   {drivers.map(d => {
-                    const name = d.user_details?.first_name
-                      ? `${d.user_details.first_name} ${d.user_details.last_name ?? ''}`.trim()
-                      : d.name ?? `Livreur #${d.id}`;
+                    const name = driverDisplayName(d);
                     const id = d.id ?? d.user_id;
                     return <option key={id} value={id} className="bg-background">{name}</option>;
                   })}
@@ -1073,14 +1176,13 @@ export default function OrdersPage() {
                 />
               </div>
 
-              {/* submit */}
+              {/* submit — closes instantly; the row moves and syncs in the background */}
               <div className="flex gap-3 pt-2 border-t border-white/10">
                 <button
                   onClick={handleConfirmValidation}
-                  disabled={saving}
-                  className="flex-1 bg-emerald-500 text-black rounded-xl py-3 text-sm font-bold flex items-center justify-center gap-2 hover:bg-emerald-600 transition-all disabled:opacity-50"
+                  className="flex-1 bg-emerald-500 text-black rounded-xl py-3 text-sm font-bold flex items-center justify-center gap-2 hover:bg-emerald-600 transition-all"
                 >
-                  {saving ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle size={16} />}
+                  <CheckCircle size={16} />
                   Confirmer la validation
                 </button>
                 <button
@@ -1099,6 +1201,52 @@ export default function OrdersPage() {
 }
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
+
+function TablePagination({
+  page, totalPages, onChange, totalItems,
+}: { page: number; totalPages: number; onChange: (p: number) => void; totalItems: number }) {
+  if (totalPages <= 1) return null;
+  return (
+    <div className="flex items-center justify-between px-1 pt-3">
+      <p className="text-[11px] text-foreground/40">
+        {totalItems} commande{totalItems > 1 ? 's' : ''} · page {page}/{totalPages}
+      </p>
+      <div className="flex items-center gap-1.5">
+        <button
+          disabled={page <= 1}
+          onClick={() => onChange(Math.max(1, page - 1))}
+          className="p-1.5 rounded-lg border border-white/10 text-foreground/60 hover:bg-white/5 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+        >
+          <ChevronLeft size={14} />
+        </button>
+        {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+          const start = Math.max(1, Math.min(page - 2, totalPages - 4));
+          const pg = start + i;
+          return (
+            <button
+              key={pg}
+              onClick={() => onChange(pg)}
+              className={`w-7 h-7 rounded-lg text-[11px] font-semibold transition-all border ${
+                pg === page
+                  ? 'bg-gold text-black border-gold'
+                  : 'border-white/10 text-foreground/50 hover:bg-white/5'
+              }`}
+            >
+              {pg}
+            </button>
+          );
+        })}
+        <button
+          disabled={page >= totalPages}
+          onClick={() => onChange(Math.min(totalPages, page + 1))}
+          className="p-1.5 rounded-lg border border-white/10 text-foreground/60 hover:bg-white/5 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+        >
+          <ChevronRight size={14} />
+        </button>
+      </div>
+    </div>
+  );
+}
 
 function InfoRow({ label, value, bold, mono }: { label: string; value: string; bold?: boolean; mono?: boolean }) {
   return (

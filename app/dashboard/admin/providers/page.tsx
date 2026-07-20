@@ -122,6 +122,7 @@ export default function ProviderDashboardPage() {
 
   // Payout states
   const [payoutAmount, setPayoutAmount] = useState('');
+  const [payoutPhone, setPayoutPhone] = useState('');
   const [isInitiatingPayout, setIsInitiatingPayout] = useState(false);
 
   // Copy indicator state
@@ -186,6 +187,7 @@ export default function ProviderDashboardPage() {
         await Promise.resolve();
         if (active) {
           fetchDashboard(selectedProvider.id);
+          setPayoutPhone(selectedProvider.user_details?.telephone || '');
         }
       }
     };
@@ -264,7 +266,16 @@ export default function ProviderDashboardPage() {
 
     try {
       setIsInitiatingPayout(true);
-      await adminService.initiateProviderPayout(Number(selectedProvider.id), amount);
+      // Generate a unique external reference for idempotency
+      const randomPart = Math.random().toString(36).substring(2, 6) + '-' + Math.floor(1000 + Math.random() * 9000);
+      const todayStr = new Date().toISOString().split('T')[0];
+      const extRef = `payout-${todayStr}-uuid-${randomPart}`;
+
+      await adminService.initiateProviderPayout(Number(selectedProvider.id), {
+        montant: amount.toFixed(2),
+        ...(payoutPhone ? { telephone: payoutPhone } : {}),
+        external_reference: extRef
+      });
       addToast(`Ordre de virement de ${amount.toLocaleString()} FCFA initié via Monetbil`, 'success');
       setPayoutAmount('');
       fetchDashboard(selectedProvider.id);
@@ -331,6 +342,8 @@ export default function ProviderDashboardPage() {
               onClick={() => {
                 setSelectedProvider(null);
                 setData(null);
+                setPayoutAmount('');
+                setPayoutPhone('');
               }}
               className="p-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 text-foreground/60 hover:text-foreground transition-all duration-200"
             >
@@ -640,6 +653,19 @@ export default function ProviderDashboardPage() {
                         onChange={e => setPayoutAmount(e.target.value)}
                         className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:border-gold outline-none transition-all text-foreground"
                         placeholder="Montant en FCFA"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-[10px] font-bold text-foreground/40 uppercase mb-2 block tracking-widest">
+                        Téléphone destination (Optionnel)
+                      </label>
+                      <input
+                        type="text"
+                        value={payoutPhone}
+                        onChange={e => setPayoutPhone(e.target.value)}
+                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:border-gold outline-none transition-all text-foreground"
+                        placeholder="2376XXXXXXXX"
                       />
                     </div>
 

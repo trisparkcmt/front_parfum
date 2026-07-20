@@ -210,6 +210,7 @@ export interface PerfumeFilterParams {
   est_bestseller?: boolean;
   search?: string;
   ordering?: string;
+  categorie?: number;
 }
 
 export interface AccessoryFilterParams {
@@ -245,6 +246,7 @@ export const productService = {
       if (filters.est_bestseller !== undefined) params.est_bestseller = filters.est_bestseller;
       if (filters.search) params.search = filters.search;
       if (filters.ordering) params.ordering = filters.ordering;
+      if (filters.categorie) params.categorie = filters.categorie;
     }
 
     const response = await apiShopService.getPerfumes(params);
@@ -449,33 +451,17 @@ export const productService = {
     });
   },
 
-  async getPerfumeCategories(): Promise<{ name: string; type: string; icone?: string | null }[]> {
+  async getPerfumeCategories(): Promise<{ id: number; name: string; type: string; image?: string | null; icone?: string | null }[]> {
     const response = await apiShopService.getPerfumeCategories();
     const results = Array.isArray(response) ? response : (response.results || response.resultats || []);
-    
-    const categoriesMap = new Map<string, { name: string; type: string; icone?: string | null }>();
-    
-    results.forEach((cat: any) => {
-      const nomLower = cat.nom?.toLowerCase() || '';
-      let type = 'perfume-brand';
-      
-      if (nomLower.includes('dupe') || nomLower.includes('inspiration')) {
-        type = 'perfume-dupe';
-      } else if (nomLower.includes('numba')) {
-        type = 'numba-creation';
-      }
-      
-      // Keep the icon if not already set for this type
-      if (!categoriesMap.has(type)) {
-        categoriesMap.set(type, { name: type, type, icone: cat.icone || null });
-      }
-    });
-    
-    // Always guarantee that 'numba-creation' is present in the tabs
-    if (!categoriesMap.has('numba-creation')) {
-      categoriesMap.set('numba-creation', { name: 'numba-creation', type: 'numba-creation', icone: null });
-    }
-    
-    return Array.from(categoriesMap.values());
+
+    // Return every real backend category with its actual id and name
+    return results.map((cat: any) => ({
+      id: cat.id,
+      name: cat.nom,
+      type: cat.slug || String(cat.id),
+      image: cat.image || null,
+      icone: cat.icone || null,
+    }));
   }
 }
