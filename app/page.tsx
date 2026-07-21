@@ -12,6 +12,7 @@ import FeatureStrip from './FeatureStrip';
 import NewsletterBanner from './NewsletterBanner';
 import EditorialQuote from './EditorialQuote';
 import WelcomeMessage from './WelcomeMessage';
+import StoreSection from './StoreSection';
 import { useTranslation } from 'react-i18next';
 
 export default function Home() {
@@ -77,6 +78,9 @@ export default function Home() {
 
       {/* NEWSLETTER */}
       <NewsletterBanner />
+
+      {/* STORE LOCATION */}
+      <StoreSection />
     </div>
   );
 }
