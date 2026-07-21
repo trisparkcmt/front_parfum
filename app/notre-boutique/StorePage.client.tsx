@@ -5,14 +5,14 @@ import { motion } from 'framer-motion';
 import { MapPin, Clock, Phone, Navigation, MessageCircle, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 
-const LAT = 3.8667;
-const LNG = 11.5167;
+const LAT = 3.86484;
+const LNG = 11.52030;
 
 const STORE_INFO = {
   name: 'Accessoires Exclusifs',
   address: 'Yaoundé, Centre, Cameroun',
-  phone: '+237 6XX XXX XXX',
-  whatsapp: '+237 6XX XXX XXX',
+  phone: '+237 680 254 243',
+  whatsapp: '+237 680 254 243',
   hours: [
     { day: 'Lundi – Vendredi', time: '09h00 – 19h00' },
     { day: 'Samedi',           time: '10h00 – 18h00' },
