@@ -9,7 +9,6 @@ import {
   UserCircle, Sparkles, Gem, Tag, X, ChevronDown, ChevronRight, Droplets,
   Bell, FileText,
 } from 'lucide-react';
-import { useOrderNotificationStore } from '@/store/useOrderNotificationStore';
 
 
 interface SidebarProps {
@@ -150,15 +149,6 @@ function SectionLabel({ label }: { label: string }) {
 }
 
 export default function Sidebar({ open, setOpen }: SidebarProps) {
-  const { pendingCount } = useOrderNotificationStore();
-
-  // Inject live badge count into the 'Gestion des Commandes' item
-  const boutiqueItemsWithBadge = boutiqueItems.map(item =>
-    item.label === 'Gestion des Commandes' && pendingCount > 0
-      ? { ...item, badge: String(pendingCount) }
-      : item
-  );
-
   return (
     <>
       {/* Mobile overlay */}
@@ -198,7 +188,7 @@ export default function Sidebar({ open, setOpen }: SidebarProps) {
           ))}
 
           <SectionLabel label="BOUTIQUE" />
-          {boutiqueItemsWithBadge.map(item => (
+          {boutiqueItems.map(item => (
             <NavItemComponent key={item.label} item={item} onNavigate={() => setOpen(false)} />
           ))}
 

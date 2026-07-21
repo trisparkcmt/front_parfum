@@ -17,7 +17,6 @@ type Suggestion = {
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
 import { useAuthStore } from '@/store/useAuthStore';
-import { useOrderNotificationStore } from '@/store/useOrderNotificationStore';
 import { notificationService } from '@/services/apiService';
 
 import { useThemeStore } from '@/store/useThemeStore';
@@ -171,32 +170,13 @@ export default function Header({ onMenuClick }: HeaderProps) {
   
   const fetchNotifications = async () => {
     try {
-      // 1. Fetch stock/system alert notifications
       const data = await notificationService.getUnreadNotifications();
       const list = data.results || data.resultats || (Array.isArray(data) ? data : []);
       
-      // 2. Fetch pending order notifications
-      const pendingOrders = useOrderNotificationStore.getState().pendingOrders;
-      
-      // Format pending orders as notifications
-      const orderNotifs = pendingOrders.map((order: any) => ({
-        id: `order-${order.id || order.numero_commande}`,
-        isOrder: true,
-        numeroCommande: order.numero_commande,
-        titre: `Nouvelle commande ${order.numero_commande}`,
-        message: `Par ${order.client_nom || 'Client'} - Total: ${order.total_ttc || order.total || 0} FCFA`,
-        cree_le: order.cree_le || order.date_creation || new Date().toISOString(),
-        est_lu: false,
-      }));
-
-      // Combine both lists
-      const combined = [...orderNotifs, ...list];
-      
-      setNotifications(combined.slice(0, 8));
-      const count = combined.length;
+      setNotifications(list.slice(0, 8));
+      const count = list.length;
       setUnreadCount(count);
       
-      // Update PWA badging count if supported by device
       if (typeof navigator !== 'undefined' && 'setAppBadge' in navigator) {
         if (count > 0) {
           (navigator as any).setAppBadge(count).catch((err: any) => console.warn('App badge failed:', err));
