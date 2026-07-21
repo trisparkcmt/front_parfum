@@ -62,7 +62,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
             onChange={handleChange}
             placeholder={placeholder || ''}
             className={cn(
-              'w-full border bg-white/5 text-sm text-foreground placeholder:text-foreground/40 focus:border-gold focus:ring-2 focus:ring-gold/20 focus:outline-none transition-all duration-200',
+              'w-full border bg-white/5 text-base text-foreground placeholder:text-foreground/40 focus:border-gold focus:ring-2 focus:ring-gold/20 focus:outline-none transition-all duration-200',
               'py-2.5 px-4',
               icon && 'pl-10',
               type === 'password' && 'pr-10',
@@ -151,7 +151,7 @@ export const FloatInput = forwardRef<HTMLInputElement, FloatInputProps>(
             onChange={handleChange}
             placeholder={inputPlaceholder}
             className={cn(
-              'w-full border bg-white/5 text-sm text-foreground focus:border-gold focus:ring-2 focus:ring-gold/20 focus:outline-none transition-all duration-200 rounded-xl pt-5 pb-1.5 px-4',
+              'w-full border bg-white/5 text-base text-foreground focus:border-gold focus:ring-2 focus:ring-gold/20 focus:outline-none transition-all duration-200 rounded-xl pt-5 pb-1.5 px-4',
               icon && 'pl-10',
               type === 'password' && 'pr-10',
               error ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : 'border-white/10',

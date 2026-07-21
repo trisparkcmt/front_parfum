@@ -420,6 +420,10 @@ input[type=number] {
   -moz-appearance: textfield;
 }
 
+input, textarea, select {
+  font-size: 16px !important;
+}
+
 /*
  * ProductCard theme tokens
  * Add these inside your existing :root and .dark (or [data-theme="dark"]) blocks.

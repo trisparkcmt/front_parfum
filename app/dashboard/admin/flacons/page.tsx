@@ -284,11 +284,11 @@ export default function FlaconsAdminPage() {
               <div className="space-y-4">
                 <div>
                   <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Nom *</label>
-                  <input placeholder="Nom du flacon" value={form.nom} onChange={e => updateForm('nom', e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold" />
+                  <input placeholder="Nom du flacon" value={form.nom} onChange={e => updateForm('nom', e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-base text-foreground outline-none focus:border-gold" />
                 </div>
                 <div>
                   <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Type de Flacon *</label>
-                  <select value={form.type_flacon} onChange={e => updateForm('type_flacon', e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold">
+                  <select value={form.type_flacon} onChange={e => updateForm('type_flacon', e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-base text-foreground outline-none focus:border-gold">
                     <option value="" disabled className="text-black bg-white">Type Flacon</option>
                     {bottleTypes.map(t => <option key={t.id} value={t.id} className="text-black bg-white">{t.nom}</option>)}
                   </select>
@@ -296,11 +296,11 @@ export default function FlaconsAdminPage() {
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Contenance (ml)</label>
-                    <input type="number" value={form.contenance_ml} onChange={e => updateForm('contenance_ml', e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold" />
+                    <input type="number" value={form.contenance_ml} onChange={e => updateForm('contenance_ml', e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-base text-foreground outline-none focus:border-gold" />
                   </div>
                   <div>
                     <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Poids (g)</label>
-                    <input type="number" value={form.poids_grammes} onChange={e => updateForm('poids_grammes', e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold" />
+                    <input type="number" value={form.poids_grammes} onChange={e => updateForm('poids_grammes', e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-base text-foreground outline-none focus:border-gold" />
                   </div>
                 </div>
               </div>
@@ -328,16 +328,16 @@ export default function FlaconsAdminPage() {
                 </div>
                 <div>
                   <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Prix Unitaire (FCFA)</label>
-                  <input value={form.prix_unitaire} onChange={e => updateForm('prix_unitaire', e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold" />
+                  <input value={form.prix_unitaire} onChange={e => updateForm('prix_unitaire', e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-base text-foreground outline-none focus:border-gold" />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Stock Initial</label>
-                    <input type="number" value={form.stock_quantite} onChange={e => updateForm('stock_quantite', e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold" />
+                    <input type="number" value={form.stock_quantite} onChange={e => updateForm('stock_quantite', e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-base text-foreground outline-none focus:border-gold" />
                   </div>
                   <div>
                     <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Seuil Alerte</label>
-                    <input type="number" value={form.seuil_alerte_stock} onChange={e => updateForm('seuil_alerte_stock', e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold" />
+                    <input type="number" value={form.seuil_alerte_stock} onChange={e => updateForm('seuil_alerte_stock', e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-base text-foreground outline-none focus:border-gold" />
                   </div>
                 </div>
                 <div>

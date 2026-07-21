@@ -400,7 +400,7 @@ export default function CartPage() {
                         placeholder={t('delivery_location_placeholder')}
                         value={deliveryLocation}
                         onChange={(e) => setDeliveryLocation(e.target.value)}
-                        className="w-full bg-white/5 border border-white/10 rounded-xl pl-9 pr-4 py-2.5 text-xs text-foreground outline-none focus:border-gold/50 transition-all"
+                        className="w-full bg-white/5 border border-white/10 rounded-xl pl-9 pr-4 py-2.5 text-base text-foreground outline-none focus:border-gold/50 transition-all"
                         disabled={isLoading || isProcessing}
                       />
                     </div>
