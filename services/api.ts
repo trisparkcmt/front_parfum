@@ -18,23 +18,22 @@ const AUTH_PATHS_SKIP_REFRESH = /auth\/(mobile|web)\/login|auth\/registration|au
  * Plain axios instance without interceptors.
  * Used for login and background checks so they never lock isRefreshing.
  */
+
 export const rawApi = axios.create({
   baseURL: getBaseURL(),
-  timeout: 60000,
+
   headers: {
     'Content-Type': 'application/json',
   },
   withCredentials: false,
 });
 
-// Instance de base pour les requêtes vers le backend Django (qui sera prêt plus tard)
 export const api = axios.create({
   baseURL: getBaseURL(),
-  timeout: 60000,
   headers: {
     'Content-Type': 'application/json',
   },
-  withCredentials: true,
+  withCredentials: true, // Cookie auth (web login) when no Bearer token in localStorage
   xsrfCookieName: 'csrftoken',
   xsrfHeaderName: 'X-CSRFToken',
 });
