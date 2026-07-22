@@ -84,7 +84,19 @@ function LoginFormContent() {
         router.push(redirectUrl);
       }
     } catch (err: any) {
-      setFormError(err.response?.data?.detail || t('login_error') || 'Identifiant ou mot de passe incorrect.');
+      const errorMessage = err.response?.data?.detail || t('login_error') || 'Identifiant ou mot de passe incorrect.';
+      setFormError(errorMessage);
+      if (errors.loginInput) {
+        setTimeout(() => {
+          const el = document.querySelector('[data-field="loginInput"]');
+          if (el instanceof HTMLInputElement) el.focus();
+        }, 0);
+      } else if (errors.password) {
+        setTimeout(() => {
+          const el = document.querySelector('[data-field="password"]');
+          if (el instanceof HTMLInputElement) el.focus();
+        }, 0);
+      }
     }
   };
 
@@ -119,6 +131,7 @@ function LoginFormContent() {
           placeholder="vous@exemple.com / +2376XXXXXXXX"
           icon={<Mail size={18} />}
           error={errors.loginInput?.message}
+          data-field="loginInput"
           {...register('loginInput')}
         />
 
@@ -129,6 +142,7 @@ function LoginFormContent() {
             placeholder="••••••••"
             icon={<Lock size={18} />}
             error={errors.password?.message}
+            data-field="password"
             {...register('password')}
           />
           <div className="flex justify-end">

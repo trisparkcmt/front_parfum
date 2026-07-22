@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Eye, EyeOff, Lock, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useToastStore } from '@/store/useToastStore';
@@ -34,6 +34,11 @@ export default function PasswordChangeModal({
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  // Refs for focusing inputs
+  const oldPasswordRef = useRef<HTMLInputElement>(null);
+  const newPasswordRef = useRef<HTMLInputElement>(null);
+  const confirmPasswordRef = useRef<HTMLInputElement>(null);
+
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
 
@@ -54,6 +59,19 @@ export default function PasswordChangeModal({
     }
 
     setErrors(newErrors);
+
+    // If there are errors, focus the first field with an error
+    if (Object.keys(newErrors).length > 0) {
+      const firstErrorKey = Object.keys(newErrors)[0] as keyof typeof formData;
+      if (firstErrorKey === 'oldPassword') {
+        oldPasswordRef.current?.focus();
+      } else if (firstErrorKey === 'newPassword') {
+        newPasswordRef.current?.focus();
+      } else if (firstErrorKey === 'newPasswordConfirm') {
+        confirmPasswordRef.current?.focus();
+      }
+    }
+
     return Object.keys(newErrors).length === 0;
   };
 
@@ -86,6 +104,29 @@ export default function PasswordChangeModal({
         error.response?.data?.old_password?.[0] ||
         t('password_change_failed', 'Failed to change password');
       addToast(errorMsg, 'error');
+
+      // Handle field-specific errors from the API
+      const errData = error.response?.data;
+      if (errData) {
+        // Map API error to field
+        if (errData.old_password?.[0]) {
+          setErrors(prev => ({ ...prev, oldPassword: errData.old_password[0] }));
+          oldPasswordRef.current?.focus();
+        } else if (errData.password?.[0]) {
+          // Assuming this is for new password
+          setErrors(prev => ({ ...prev, newPassword: errData.password[0] }));
+          newPasswordRef.current?.focus();
+        } else if (errData.password_confirm?.[0]) {
+          setErrors(prev => ({ ...prev, newPasswordConfirm: errData.password_confirm[0] }));
+          confirmPasswordRef.current?.focus();
+        } else {
+          // If we can't map, focus the first field
+          oldPasswordRef.current?.focus();
+        }
+      } else {
+        // If we can't determine the field, focus the first field
+        oldPasswordRef.current?.focus();
+      }
     } finally {
       setLoading(false);
     }
@@ -122,13 +163,14 @@ export default function PasswordChangeModal({
             </label>
             <div className="relative">
               <input
+                ref={oldPasswordRef}
                 type={showPasswords.old ? 'text' : 'password'}
                 value={formData.oldPassword}
                 onChange={(e) =>
                   setFormData({ ...formData, oldPassword: e.target.value })
                 }
                 disabled={loading}
-                className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-lg text-foreground placeholder:text-foreground/40 focus:outline-none focus:border-gold/50 focus:ring-1 focus:ring-gold/50 disabled:opacity-50 transition-colors"
+                className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-lg text-base text-foreground placeholder:text-foreground/40 focus:outline-none focus:border-gold/50 focus:ring-1 focus:ring-gold/50 disabled:opacity-50 transition-colors"
                 placeholder={t('enter_current_password')}
               />
               <button
@@ -153,13 +195,14 @@ export default function PasswordChangeModal({
             </label>
             <div className="relative">
               <input
+                ref={newPasswordRef}
                 type={showPasswords.new ? 'text' : 'password'}
                 value={formData.newPassword}
                 onChange={(e) =>
                   setFormData({ ...formData, newPassword: e.target.value })
                 }
                 disabled={loading}
-                className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-lg text-foreground placeholder:text-foreground/40 focus:outline-none focus:border-gold/50 focus:ring-1 focus:ring-gold/50 disabled:opacity-50 transition-colors"
+                className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-lg text-base text-foreground placeholder:text-foreground/40 focus:outline-none focus:border-gold/50 focus:ring-1 focus:ring-gold/50 disabled:opacity-50 transition-colors"
                 placeholder={t('enter_new_password')}
               />
               <button
@@ -184,13 +227,14 @@ export default function PasswordChangeModal({
             </label>
             <div className="relative">
               <input
+                ref={confirmPasswordRef}
                 type={showPasswords.confirm ? 'text' : 'password'}
                 value={formData.newPasswordConfirm}
                 onChange={(e) =>
                   setFormData({ ...formData, newPasswordConfirm: e.target.value })
                 }
                 disabled={loading}
-                className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-lg text-foreground placeholder:text-foreground/40 focus:outline-none focus:border-gold/50 focus:ring-1 focus:ring-gold/50 disabled:opacity-50 transition-colors"
+                className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-lg text-base text-foreground placeholder:text-foreground/40 focus:outline-none focus:border-gold/50 focus:ring-1 focus:ring-gold/50 disabled:opacity-50 transition-colors"
                 placeholder={t('confirm_new_password')}
               />
               <button

@@ -32,7 +32,7 @@ export default function ResendVerificationPage() {
   });
   type FormData = z.infer<typeof schema>;
 
-  const { register, handleSubmit, formState: { errors } } = useForm<FormData>({ resolver: zodResolver(schema) });
+  const { register, handleSubmit, formState: { errors }, setError, focus } = useForm<FormData>({ resolver: zodResolver(schema) });
 
   const onSubmit = async (data: FormData) => {
     setIsLoading(true);
@@ -44,12 +44,15 @@ export default function ResendVerificationPage() {
         'success',
       );
     } catch (error: any) {
-      addToast(
+      const errorMsg =
         error.response?.data?.detail ||
-          error.response?.data?.email?.[0] ||
-          t('resend_email_error', { defaultValue: "Impossible de renvoyer l'e-mail de validation." }),
-        'error',
-      );
+        error.response?.data?.email?.[0] ||
+        t('resend_email_error', { defaultValue: "Impossible de renvoyer l'e-mail de validation." });
+      addToast(errorMsg, 'error');
+
+      // Set field-specific error and focus
+      setError('email', { type: 'manual', message: errorMsg });
+      focus('email');
     } finally {
       setIsLoading(false);
     }
@@ -96,8 +99,12 @@ export default function ResendVerificationPage() {
           placeholder="vous@exemple.com"
           icon={<Mail size={18} />}
           error={errors.email?.message}
+          data-field="email"
           {...register('email')}
         />
+        {errors.email && (
+          <p className="mt-1 text-xs text-red-500">{errors.email.message}</p>
+        )}
         <Button type="submit" className="w-full mt-6" isLoading={isLoading} rightIcon={<RefreshCw size={18} />}>
           {t('resend_email_btn', { defaultValue: "Renvoyer l'e-mail de validation" })}
         </Button>

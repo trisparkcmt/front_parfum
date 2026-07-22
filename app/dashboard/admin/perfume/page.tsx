@@ -136,6 +136,15 @@ export default function PerfumeAdminPage() {
     if (!form.categorie) errors.categorie = 'Une catégorie est requise';
     if (!form.stock_quantite || Number(form.stock_quantite) < 0) errors.stock_quantite = 'Le stock est requis';
     setFormErrors(errors);
+    if (Object.keys(errors).length > 0) {
+      setTimeout(() => {
+        const firstField = Object.keys(errors)[0];
+        const el = document.querySelector(`[data-field="${firstField}"]`);
+        if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement || el instanceof HTMLSelectElement) {
+          el.focus();
+        }
+      }, 0);
+    }
     return Object.keys(errors).length === 0;
   }, [form.marque, form.nom, form.contenance_ml, form.prix_unitaire, form.categorie, form.stock_quantite]);
 
@@ -154,7 +163,7 @@ export default function PerfumeAdminPage() {
   const handleOpenAdd = () => {
     setEditingPerfume(null);
     setForm({
-      marque: 'Accessoire Exclusif',
+      marque: '',
       nom: '',
       slug: '',
       reference_sku: '',
@@ -167,16 +176,16 @@ export default function PerfumeAdminPage() {
       taux_reduction: '',
       date_debut: '',
       date_fin: '',
-      genre_cible: 'mixte',
-      intensite: 'moyenne',
+      genre_cible: '',
+      intensite: '',
       notes_tete: '',
       notes_coeur: '',
       notes_fond: '',
       est_nouveau: false,
       est_bestseller: false,
       stock_quantite: '',
-      seuil_alerte_stock: '5',
-      categorie: categories[0]?.id ? String(categories[0].id) : '',
+      seuil_alerte_stock: '',
+      categorie: '',
       actif: true,
       message_promotion: '',
     });
@@ -483,182 +492,219 @@ export default function PerfumeAdminPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-4">
                   <div>
+                    <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">Marque *</label>
                     <input
-                      placeholder="Marque"
+                      data-field="marque"
                       value={form.marque}
                       onChange={(e) => updateForm('marque', e.target.value)}
-                      className={`w-full bg-white/5 border rounded-lg px-3 py-2.5 text-sm text-foreground outline-none focus:border-gold ${formErrors.marque ? 'border-red-500/50' : 'border-white/10'}`}
+                      className={`w-full bg-white/5 border rounded-lg px-3 py-2.5 text-base text-foreground outline-none focus:border-gold ${formErrors.marque ? 'border-red-500/50' : 'border-white/10'}`}
                     />
                     {formErrors.marque && <p className="mt-1 text-xs text-red-500">{formErrors.marque}</p>}
                   </div>
                   <div>
+                    <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">Nom *</label>
                     <input
-                      placeholder="Nom"
+                      data-field="nom"
                       value={form.nom}
                       onChange={(e) => updateForm('nom', e.target.value)}
-                      className={`w-full bg-white/5 border rounded-lg px-3 py-2.5 text-sm text-foreground outline-none focus:border-gold ${formErrors.nom ? 'border-red-500/50' : 'border-white/10'}`}
+                      className={`w-full bg-white/5 border rounded-lg px-3 py-2.5 text-base text-foreground outline-none focus:border-gold ${formErrors.nom ? 'border-red-500/50' : 'border-white/10'}`}
                     />
                     {formErrors.nom && <p className="mt-1 text-xs text-red-500">{formErrors.nom}</p>}
                   </div>
-                  <input
-                    placeholder="Slug (optionnel)"
-                    value={form.slug}
-                    onChange={(e) => updateForm('slug', e.target.value)}
-                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-sm text-foreground outline-none focus:border-gold"
-                  />
-                  <input
-                    placeholder="Référence SKU (optionnel)"
-                    value={form.reference_sku}
-                    onChange={(e) => updateForm('reference_sku', e.target.value)}
-                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-sm text-foreground outline-none focus:border-gold"
-                  />
-                  <div className="flex gap-2">
-                    <select
-                      value={form.categorie}
-                      onChange={(e) => updateForm('categorie', e.target.value)}
-                      className={`flex-1 bg-white/5 border rounded-lg px-3 py-2.5 text-sm text-foreground outline-none focus:border-gold ${formErrors.categorie ? 'border-red-500/50' : 'border-white/10'}`}
-                    >
-                      <option value="" disabled className="bg-neutral-900">Catégorie</option>
-                      {categories.map((c) => (
-                        <option key={c.id} value={c.id} className="bg-neutral-900">{c.nom}</option>
-                      ))}
-                    </select>
-                    <button
-                      type="button"
-                      onClick={() => setIsCategoryModalOpen(true)}
-                      className="px-3 py-2.5 bg-gold text-neutral-900 rounded-lg hover:bg-gold/80 font-medium"
-                      title="Créer une nouvelle catégorie"
-                    >
-                      +
-                    </button>
+                  <div>
+                    <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">Slug (optionnel)</label>
+                    <input
+                      data-field="slug"
+                      value={form.slug}
+                      onChange={(e) => updateForm('slug', e.target.value)}
+                      className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-base text-foreground outline-none focus:border-gold"
+                    />
                   </div>
-                  {formErrors.categorie && <p className="mt-1 text-xs text-red-500">{formErrors.categorie}</p>}
+                  <div>
+                    <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">Référence SKU (optionnel)</label>
+                    <input
+                      data-field="reference_sku"
+                      value={form.reference_sku}
+                      onChange={(e) => updateForm('reference_sku', e.target.value)}
+                      className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-base text-foreground outline-none focus:border-gold"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">Catégorie *</label>
+                    <div className="flex gap-2">
+                      <select
+                        data-field="categorie"
+                        value={form.categorie}
+                        onChange={(e) => updateForm('categorie', e.target.value)}
+                        className={`flex-1 bg-white/5 border rounded-lg px-3 py-2.5 text-base text-foreground outline-none focus:border-gold ${formErrors.categorie ? 'border-red-500/50' : 'border-white/10'}`}
+                      >
+                        <option value="" disabled className="bg-neutral-900">Catégorie</option>
+                        {categories.map((c) => (
+                          <option key={c.id} value={c.id} className="bg-neutral-900">{c.nom}</option>
+                        ))}
+                      </select>
+                      <button
+                        type="button"
+                        onClick={() => setIsCategoryModalOpen(true)}
+                        className="px-3 py-2.5 bg-gold text-neutral-900 rounded-lg hover:bg-gold/80 font-medium"
+                        title="Créer une nouvelle catégorie"
+                      >
+                        +
+                      </button>
+                    </div>
+                    {formErrors.categorie && <p className="mt-1 text-xs text-red-500">{formErrors.categorie}</p>}
+                  </div>
                   <div className="grid grid-cols-2 gap-3">
-                    <select
-                      value={form.genre_cible}
-                      onChange={(e) => updateForm('genre_cible', e.target.value)}
-                      className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-sm text-foreground outline-none focus:border-gold"
-                    >
-                      <option value="homme">Homme</option>
-                      <option value="femme">Femme</option>
-                      <option value="mixte">Mixte</option>
-                    </select>
-                    <select
-                      value={form.intensite}
-                      onChange={(e) => updateForm('intensite', e.target.value)}
-                      className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-sm text-foreground outline-none focus:border-gold"
-                    >
-                      <option value="légère">Légère</option>
-                      <option value="moyenne">Moyenne</option>
-                      <option value="forte">Forte</option>
-                      <option value="très forte">Très forte</option>
-                    </select>
+                    <div>
+                      <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">Genre</label>
+                      <select
+                        data-field="genre_cible"
+                        value={form.genre_cible}
+                        onChange={(e) => updateForm('genre_cible', e.target.value)}
+                        className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-base text-foreground outline-none focus:border-gold"
+                      >
+                        <option value="homme">Homme</option>
+                        <option value="femme">Femme</option>
+                        <option value="mixte">Mixte</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">Intensité</label>
+                      <select
+                        data-field="intensite"
+                        value={form.intensite}
+                        onChange={(e) => updateForm('intensite', e.target.value)}
+                        className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-base text-foreground outline-none focus:border-gold"
+                      >
+                        <option value="légère">Légère</option>
+                        <option value="moyenne">Moyenne</option>
+                        <option value="forte">Forte</option>
+                        <option value="très forte">Très forte</option>
+                      </select>
+                    </div>
                   </div>
                   <div className="grid grid-cols-3 gap-2">
-                    <input
-                      placeholder="Notes tête"
-                      value={form.notes_tete}
-                      onChange={(e) => updateForm('notes_tete', e.target.value)}
-                      className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-xs text-foreground outline-none focus:border-gold"
-                    />
-                    <input
-                      placeholder="Notes cœur"
-                      value={form.notes_coeur}
-                      onChange={(e) => updateForm('notes_coeur', e.target.value)}
-                      className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-xs text-foreground outline-none focus:border-gold"
-                    />
-                    <input
-                      placeholder="Notes fond"
-                      value={form.notes_fond}
-                      onChange={(e) => updateForm('notes_fond', e.target.value)}
-                      className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-xs text-foreground outline-none focus:border-gold"
-                    />
+                    <div>
+                      <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">Notes tête</label>
+                      <input
+                        data-field="notes_tete"
+                        value={form.notes_tete}
+                        onChange={(e) => updateForm('notes_tete', e.target.value)}
+                        className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-base text-foreground outline-none focus:border-gold"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">Notes cœur</label>
+                      <input
+                        data-field="notes_coeur"
+                        value={form.notes_coeur}
+                        onChange={(e) => updateForm('notes_coeur', e.target.value)}
+                        className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-base text-foreground outline-none focus:border-gold"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">Notes fond</label>
+                      <input
+                        data-field="notes_fond"
+                        value={form.notes_fond}
+                        onChange={(e) => updateForm('notes_fond', e.target.value)}
+                        className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-base text-foreground outline-none focus:border-gold"
+                      />
+                    </div>
                   </div>
                 </div>
 
                 <div className="space-y-4">
                   <div className="space-y-1">
-                    <label className="text-xs text-foreground/40">Contenance (ml)</label>
+                    <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">Contenance (ml) *</label>
                     <input
+                      data-field="contenance_ml"
                       type="number"
                       placeholder="ex: 100"
                       value={form.contenance_ml}
                       onChange={(e) => updateForm('contenance_ml', e.target.value)}
-                      className={`w-full bg-white/5 border rounded-lg px-3 py-2.5 text-sm text-foreground outline-none focus:border-gold ${formErrors.contenance_ml ? 'border-red-500/50' : 'border-white/10'}`}
+                      className={`w-full bg-white/5 border rounded-lg px-3 py-2.5 text-base text-foreground outline-none focus:border-gold ${formErrors.contenance_ml ? 'border-red-500/50' : 'border-white/10'}`}
                     />
                     {formErrors.contenance_ml && <p className="mt-1 text-xs text-red-500">{formErrors.contenance_ml}</p>}
                   </div>
                   <div className="space-y-1">
-                    <label className="text-xs text-foreground/40">Prix unitaire (FCFA)</label>
+                    <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">Prix unitaire (FCFA) *</label>
                     <input
+                      data-field="prix_unitaire"
                       type="number"
                       placeholder="ex: 25000"
                       value={form.prix_unitaire}
                       onChange={(e) => updateForm('prix_unitaire', e.target.value)}
-                      className={`w-full bg-white/5 border rounded-lg px-3 py-2.5 text-sm text-foreground outline-none focus:border-gold ${formErrors.prix_unitaire ? 'border-red-500/50' : 'border-white/10'}`}
+                      className={`w-full bg-white/5 border rounded-lg px-3 py-2.5 text-base text-foreground outline-none focus:border-gold ${formErrors.prix_unitaire ? 'border-red-500/50' : 'border-white/10'}`}
                     />
                     {formErrors.prix_unitaire && <p className="mt-1 text-xs text-red-500">{formErrors.prix_unitaire}</p>}
                   </div>
                   <div className="space-y-1">
-                    <label className="text-xs text-foreground/40">Stock</label>
+                    <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">Stock *</label>
                     <input
+                      data-field="stock_quantite"
                       type="number"
                       value={form.stock_quantite}
                       onChange={(e) => updateForm('stock_quantite', e.target.value)}
-                      className={`w-full bg-white/5 border rounded-lg px-3 py-2.5 text-sm text-foreground outline-none focus:border-gold ${formErrors.stock_quantite ? 'border-red-500/50' : 'border-white/10'}`}
+                      className={`w-full bg-white/5 border rounded-lg px-3 py-2.5 text-base text-foreground outline-none focus:border-gold ${formErrors.stock_quantite ? 'border-red-500/50' : 'border-white/10'}`}
                     />
                     {formErrors.stock_quantite && <p className="mt-1 text-xs text-red-500">{formErrors.stock_quantite}</p>}
                   </div>
                   <div className="space-y-1">
-                    <label className="text-xs text-foreground/40">Seuil d’alerte</label>
+                    <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">Seuil d’alerte</label>
                     <input
+                      data-field="seuil_alerte_stock"
                       type="number"
                       value={form.seuil_alerte_stock}
                       onChange={(e) => updateForm('seuil_alerte_stock', e.target.value)}
-                      className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-sm text-foreground outline-none focus:border-gold"
+                      className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-base text-foreground outline-none focus:border-gold"
                     />
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1">
-                      <label className="text-xs text-foreground/40">Prix promo</label>
+                      <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">Prix promo</label>
                       <input
+                        data-field="prix_promotionnel"
                         type="number"
                         placeholder="ex: 18000"
                         value={form.prix_promotionnel}
                         onChange={(e) => updateForm('prix_promotionnel', e.target.value)}
-                        className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-sm text-foreground outline-none focus:border-gold"
+                        className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-base text-foreground outline-none focus:border-gold"
                       />
                     </div>
                     <div className="space-y-1">
-                      <label className="text-xs text-foreground/40">Taux réduction (%)</label>
+                      <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">Taux réduction (%)</label>
                       <input
+                        data-field="taux_reduction"
                         type="number"
                         min="0"
                         max="100"
                         placeholder="ex: 20"
                         value={form.taux_reduction}
                         onChange={(e) => updateForm('taux_reduction', e.target.value)}
-                        className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-sm text-foreground outline-none focus:border-gold"
+                        className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-base text-foreground outline-none focus:border-gold"
                       />
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1">
-                      <label className="text-xs text-foreground/40">Date début</label>
+                      <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">Date début</label>
                       <input
+                        data-field="date_debut"
                         type="datetime-local"
                         value={form.date_debut}
                         onChange={(e) => updateForm('date_debut', e.target.value)}
-                        className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-sm text-foreground outline-none focus:border-gold"
+                        className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-base text-foreground outline-none focus:border-gold"
                       />
                     </div>
                     <div className="space-y-1">
-                      <label className="text-xs text-foreground/40">Date fin</label>
+                      <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">Date fin</label>
                       <input
+                        data-field="date_fin"
                         type="datetime-local"
                         value={form.date_fin}
                         onChange={(e) => updateForm('date_fin', e.target.value)}
-                        className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-sm text-foreground outline-none focus:border-gold"
+                        className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-base text-foreground outline-none focus:border-gold"
                       />
                     </div>
                   </div>
@@ -667,39 +713,43 @@ export default function PerfumeAdminPage() {
 
               <div className="space-y-4">
                 <div className="space-y-1">
-                  <label className="text-xs text-foreground/40">Description courte</label>
+                  <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">Description courte</label>
                   <textarea
+                    data-field="description_courte"
                     value={form.description_courte}
                     onChange={(e) => updateForm('description_courte', e.target.value)}
                     rows={2}
-                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-sm text-foreground outline-none focus:border-gold resize-none"
+                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-base text-foreground outline-none focus:border-gold resize-none"
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs text-foreground/40">Description longue</label>
+                  <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">Description longue</label>
                   <textarea
+                    data-field="description_longue"
                     value={form.description_longue}
                     onChange={(e) => updateForm('description_longue', e.target.value)}
                     rows={4}
-                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-sm text-foreground outline-none focus:border-gold resize-none"
+                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-base text-foreground outline-none focus:border-gold resize-none"
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs text-foreground/40">Description IA</label>
+                  <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">Description IA</label>
                   <textarea
+                    data-field="description_ia"
                     value={form.description_ia}
                     onChange={(e) => updateForm('description_ia', e.target.value)}
                     rows={2}
-                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-sm text-foreground outline-none focus:border-gold resize-none"
+                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-base text-foreground outline-none focus:border-gold resize-none"
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs text-foreground/40">Message promo (optionnel)</label>
+                  <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">Message promo (optionnel)</label>
                   <textarea
+                    data-field="message_promotion"
                     value={form.message_promotion}
                     onChange={(e) => updateForm('message_promotion', e.target.value)}
                     rows={2}
-                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-sm text-foreground outline-none focus:border-gold resize-none"
+                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-base text-foreground outline-none focus:border-gold resize-none"
                   />
                 </div>
               </div>

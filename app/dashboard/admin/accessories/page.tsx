@@ -37,7 +37,7 @@ export default function AccessoriesPage() {
 
   // Consolidate form state into a single object based on requested schema
   const [form, setForm] = useState({
-    marque: 'Accessoire Exclusif',
+    marque: '',
     nom: '',
     slug: '',
     reference_sku: '',
@@ -51,9 +51,11 @@ export default function AccessoriesPage() {
     prix_unitaire: '',
     prix_promotionnel: '',
     stock_quantite: '',
-    seuil_alerte_stock: '3',
+    seuil_alerte_stock: '',
     poids_grammes: '',
   });
+
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
   const { addToast } = useToastStore();
 
@@ -98,8 +100,9 @@ export default function AccessoriesPage() {
   const handleOpenAdd = () => {
     if (!permissions.canCreate) return;
     setEditingAccessory(null);
+    setFormErrors({});
     setForm({
-      marque: 'Accessoire Exclusif',
+      marque: '',
       nom: '',
       slug: '',
       reference_sku: '',
@@ -113,7 +116,7 @@ export default function AccessoriesPage() {
       prix_unitaire: '',
       prix_promotionnel: '',
       stock_quantite: '',
-      seuil_alerte_stock: '3',
+      seuil_alerte_stock: '',
       poids_grammes: '',
     });
     setImageFiles({
@@ -129,6 +132,7 @@ export default function AccessoriesPage() {
   const handleOpenEdit = (acc: any) => {
     if (!permissions.canUpdate) return;
     setEditingAccessory(acc);
+    setFormErrors({});
     setForm({
       marque: acc.marque || 'Accessoire Exclusif',
       nom: acc.nom || '',
@@ -170,8 +174,21 @@ export default function AccessoriesPage() {
 
   const handleSave = async () => {
     if (!permissions.canCreate && !permissions.canUpdate) return;
-    if (!form.marque || !form.nom || !form.prix_unitaire || !form.type_accessoire || !form.stock_quantite) {
-      addToast('Champs requis manquants: Nom, Prix, Type, Stock', 'error');
+
+    const errors: Record<string, string> = {};
+    if (!form.marque) errors.marque = 'La marque est requise';
+    if (!form.nom) errors.nom = 'Le nom est requis';
+    if (!form.prix_unitaire) errors.prix_unitaire = 'Le prix unitaire est requis';
+    if (!form.type_accessoire) errors.type_accessoire = "Le type d'accessoire est requis";
+    if (!form.stock_quantite) errors.stock_quantite = 'La quantité en stock est requise';
+
+    setFormErrors(errors);
+
+    if (Object.keys(errors).length > 0) {
+      setTimeout(() => {
+        const firstError = document.querySelector('[data-field="marque"], [data-field="nom"], [data-field="prix_unitaire"], [data-field="type_accessoire"], [data-field="stock_quantite"]') as HTMLElement | null;
+        if (firstError) firstError.focus();
+      }, 50);
       return;
     }
 
@@ -467,128 +484,188 @@ export default function AccessoriesPage() {
           <div className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-4">
-                <input
-                  placeholder="Marque *"
-                  value={form.marque}
-                  onChange={e => updateForm('marque', e.target.value)}
-                  className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
-                />
-                <input
-                  placeholder="Nom de l'accessoire"
-                  value={form.nom}
-                  onChange={e => updateForm('nom', e.target.value)}
-                  className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
-                />
-                <div className="flex gap-2">
+                <div>
+                  <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">Marque *</label>
+                  <input
+                    data-field="marque"
+                    value={form.marque}
+                    onChange={e => updateForm('marque', e.target.value)}
+                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-base text-foreground outline-none focus:border-gold"
+                  />
+                  {formErrors.marque && <p className="mt-1 text-xs text-red-500">{formErrors.marque}</p>}
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">Nom de l'accessoire *</label>
+                  <input
+                    data-field="nom"
+                    value={form.nom}
+                    onChange={e => updateForm('nom', e.target.value)}
+                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-base text-foreground outline-none focus:border-gold"
+                  />
+                  {formErrors.nom && <p className="mt-1 text-xs text-red-500">{formErrors.nom}</p>}
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">Type d'accessoire *</label>
                   <select
+                    data-field="type_accessoire"
                     value={form.type_accessoire}
                     onChange={e => updateForm('type_accessoire', e.target.value)}
-                    className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
+                    className="flex-1 w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-base text-foreground outline-none focus:border-gold"
                   >
                     <option value="" disabled className="bg-neutral-900">Type d'accessoire</option>
                     {accessoryTypes.map(t => (
                       <option key={t.id} value={t.id} className="bg-neutral-900">{t.nom}</option>
                     ))}
                   </select>
-                  <button type="button" onClick={() => setIsTypeModalOpen(true)} className="px-3 py-2 bg-gold text-neutral-900 rounded-lg hover:bg-gold/80 font-medium">
-                    +
-                  </button>
+                  {formErrors.type_accessoire && <p className="mt-1 text-xs text-red-500">{formErrors.type_accessoire}</p>}
                 </div>
-                <input
-                  placeholder="Slug (optionnel)"
-                  value={form.slug}
-                  onChange={e => updateForm('slug', e.target.value)}
-                  className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
-                />
-                <input
-                  placeholder="Référence SKU (optionnel)"
-                  value={form.reference_sku}
-                  onChange={e => updateForm('reference_sku', e.target.value)}
-                  className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
-                />
-                <textarea
-                  placeholder="Description courte"
-                  value={form.description_courte}
-                  onChange={e => updateForm('description_courte', e.target.value)}
-                  className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
-                  rows={2}
-                />
+                <div>
+                  <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">Slug (optionnel)</label>
+                  <input
+                    data-field="slug"
+                    value={form.slug}
+                    onChange={e => updateForm('slug', e.target.value)}
+                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-base text-foreground outline-none focus:border-gold"
+                  />
+                  {formErrors.slug && <p className="mt-1 text-xs text-red-500">{formErrors.slug}</p>}
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">Référence SKU (optionnel)</label>
+                  <input
+                    data-field="reference_sku"
+                    value={form.reference_sku}
+                    onChange={e => updateForm('reference_sku', e.target.value)}
+                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-base text-foreground outline-none focus:border-gold"
+                  />
+                  {formErrors.reference_sku && <p className="mt-1 text-xs text-red-500">{formErrors.reference_sku}</p>}
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">Description courte</label>
+                  <textarea
+                    data-field="description_courte"
+                    value={form.description_courte}
+                    onChange={e => updateForm('description_courte', e.target.value)}
+                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-base text-foreground outline-none focus:border-gold"
+                    rows={2}
+                  />
+                  {formErrors.description_courte && <p className="mt-1 text-xs text-red-500">{formErrors.description_courte}</p>}
+                </div>
               </div>
 
               <div className="space-y-4">
-                <textarea
-                  placeholder="Description longue"
-                  value={form.description_longue}
-                  onChange={e => updateForm('description_longue', e.target.value)}
-                  className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
-                  rows={3}
-                />
-                <textarea
-                  placeholder="Description IA"
-                  value={form.description_ia}
-                  onChange={e => updateForm('description_ia', e.target.value)}
-                  className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
-                  rows={2}
-                />
+                <div>
+                  <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">Description longue</label>
+                  <textarea
+                    data-field="description_longue"
+                    value={form.description_longue}
+                    onChange={e => updateForm('description_longue', e.target.value)}
+                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-base text-foreground outline-none focus:border-gold"
+                    rows={3}
+                  />
+                  {formErrors.description_longue && <p className="mt-1 text-xs text-red-500">{formErrors.description_longue}</p>}
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">Description IA</label>
+                  <textarea
+                    data-field="description_ia"
+                    value={form.description_ia}
+                    onChange={e => updateForm('description_ia', e.target.value)}
+                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-base text-foreground outline-none focus:border-gold"
+                    rows={2}
+                  />
+                  {formErrors.description_ia && <p className="mt-1 text-xs text-red-500">{formErrors.description_ia}</p>}
+                </div>
                 <div className="grid grid-cols-3 gap-2">
-                  <input
-                    placeholder="Matière"
-                    value={form.matiere}
-                    onChange={e => updateForm('matiere', e.target.value)}
-                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-foreground outline-none focus:border-gold"
-                  />
-                  <input
-                    placeholder="Couleur"
-                    value={form.couleur}
-                    onChange={e => updateForm('couleur', e.target.value)}
-                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-foreground outline-none focus:border-gold"
-                  />
-                  <input
-                    placeholder="Taille"
-                    value={form.taille}
-                    onChange={e => updateForm('taille', e.target.value)}
-                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-foreground outline-none focus:border-gold"
-                  />
+                  <div>
+                    <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">Matière</label>
+                    <input
+                      data-field="matiere"
+                      value={form.matiere}
+                      onChange={e => updateForm('matiere', e.target.value)}
+                      className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-base text-foreground outline-none focus:border-gold"
+                    />
+                    {formErrors.matiere && <p className="mt-1 text-xs text-red-500">{formErrors.matiere}</p>}
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">Couleur</label>
+                    <input
+                      data-field="couleur"
+                      value={form.couleur}
+                      onChange={e => updateForm('couleur', e.target.value)}
+                      className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-base text-foreground outline-none focus:border-gold"
+                    />
+                    {formErrors.couleur && <p className="mt-1 text-xs text-red-500">{formErrors.couleur}</p>}
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">Taille</label>
+                    <input
+                      data-field="taille"
+                      value={form.taille}
+                      onChange={e => updateForm('taille', e.target.value)}
+                      className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-base text-foreground outline-none focus:border-gold"
+                    />
+                    {formErrors.taille && <p className="mt-1 text-xs text-red-500">{formErrors.taille}</p>}
+                  </div>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
-                  <input
-                    placeholder="Prix unitaire (FCFA)"
-                    type="number"
-                    value={form.prix_unitaire}
-                    onChange={e => updateForm('prix_unitaire', e.target.value)}
-                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
-                  />
-                  <input
-                    placeholder="Prix promo (optionnel)"
-                    type="number"
-                    value={form.prix_promotionnel}
-                    onChange={e => updateForm('prix_promotionnel', e.target.value)}
-                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
-                  />
+                  <div>
+                    <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">Prix unitaire (FCFA) *</label>
+                    <input
+                      data-field="prix_unitaire"
+                      type="number"
+                      value={form.prix_unitaire}
+                      onChange={e => updateForm('prix_unitaire', e.target.value)}
+                      className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-base text-foreground outline-none focus:border-gold"
+                    />
+                    {formErrors.prix_unitaire && <p className="mt-1 text-xs text-red-500">{formErrors.prix_unitaire}</p>}
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">Prix promo (optionnel)</label>
+                    <input
+                      data-field="prix_promotionnel"
+                      type="number"
+                      value={form.prix_promotionnel}
+                      onChange={e => updateForm('prix_promotionnel', e.target.value)}
+                      className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-base text-foreground outline-none focus:border-gold"
+                    />
+                    {formErrors.prix_promotionnel && <p className="mt-1 text-xs text-red-500">{formErrors.prix_promotionnel}</p>}
+                  </div>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
-                  <input
-                    placeholder="Quantité en stock"
-                    type="number"
-                    value={form.stock_quantite}
-                    onChange={e => updateForm('stock_quantite', e.target.value)}
-                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
-                  />
-                  <input
-                    placeholder="Seuil d'alerte"
-                    type="number"
-                    value={form.seuil_alerte_stock}
-                    onChange={e => updateForm('seuil_alerte_stock', e.target.value)}
-                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
-                  />
+                  <div>
+                    <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">Quantité en stock *</label>
+                    <input
+                      data-field="stock_quantite"
+                      type="number"
+                      value={form.stock_quantite}
+                      onChange={e => updateForm('stock_quantite', e.target.value)}
+                      className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-base text-foreground outline-none focus:border-gold"
+                    />
+                    {formErrors.stock_quantite && <p className="mt-1 text-xs text-red-500">{formErrors.stock_quantite}</p>}
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">Seuil d'alerte</label>
+                    <input
+                      data-field="seuil_alerte_stock"
+                      type="number"
+                      value={form.seuil_alerte_stock}
+                      onChange={e => updateForm('seuil_alerte_stock', e.target.value)}
+                      className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-base text-foreground outline-none focus:border-gold"
+                    />
+                    {formErrors.seuil_alerte_stock && <p className="mt-1 text-xs text-red-500">{formErrors.seuil_alerte_stock}</p>}
+                  </div>
                 </div>
-                <input
-                  placeholder="Poids (grammes)"
-                  type="number"
-                  value={form.poids_grammes}
-                  onChange={e => updateForm('poids_grammes', e.target.value)}
-                  className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
-                />
+                <div>
+                  <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">Poids (grammes)</label>
+                  <input
+                    data-field="poids_grammes"
+                    type="number"
+                    value={form.poids_grammes}
+                    onChange={e => updateForm('poids_grammes', e.target.value)}
+                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-base text-foreground outline-none focus:border-gold"
+                  />
+                  {formErrors.poids_grammes && <p className="mt-1 text-xs text-red-500">{formErrors.poids_grammes}</p>}
+                </div>
               </div>
             </div>
           </div>

@@ -58,22 +58,43 @@ export default function CartPage() {
   const { addToast } = useToastStore();
   const [promoInput, setPromoInput] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
-  // New state for checkout options
-  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'mobile_money'>('cash');
-  const [mobileNetwork, setMobileNetwork] = useState<'mtn' | 'orange' | null>(null);
-  const [deliveryType, setDeliveryType] = useState<'delivery' | 'pickup'>('delivery');
-  const [deliveryLocation, setDeliveryLocation] = useState(''); // quartier (free text)
-  const [deliveryCity, setDeliveryCity] = useState('');
-  const [noteClient, setNoteClient] = useState('');
-  const [deliveryFullName, setDeliveryFullName] = useState('');
-  const [deliveryPhone, setDeliveryPhone] = useState('');
+  // Form state for checkout fields
+  const [form, setForm] = useState({
+    deliveryFullName: '',
+    deliveryPhone: '',
+    deliveryCity: '',
+    deliveryLocation: '',
+    noteClient: '',
+    paymentMethod: 'cash' as 'cash' | 'mobile_money',
+    mobileNetwork: null as 'mtn' | 'orange' | null,
+    deliveryType: 'delivery' as 'delivery' | 'pickup',
+  });
 
-  useEffect(() => {
-    if (user) {
-      setDeliveryFullName(`${user.firstName || ''} ${user.lastName || ''}`.trim());
-      setDeliveryPhone(user.phone || '');
+  const updateFormField = (field: keyof typeof form, value: any) => {
+    setForm(prev => ({ ...prev, [field]: value }));
+    // Clear error for this field when user starts typing
+    if (formErrors[field]) {
+      setFormErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[field];
+        return newErrors;
+      });
     }
+  };
+
+  // Initialize form with user data if available (commented out per requirements)
+  useEffect(() => {
+    // Removed auto-prefilling of name and phone as per requirements
+    // Only set if user explicitly wants to use their profile data
+    // if (user) {
+    //   setForm(prev => ({
+    //     ...prev,
+    //     deliveryFullName: `${user.firstName || ''} ${user.lastName || ''}`.trim(),
+    //     deliveryPhone: user.phone || '',
+    //   }));
+    // }
   }, [user]);
 
   const subtotal = getSubtotal();
@@ -129,26 +150,40 @@ export default function CartPage() {
     }
   };
 
-  const handleCheckout = async () => {
+const handleCheckout = async () => {
     if (!cart || allItems.length === 0) return;
 
-    if (!deliveryFullName.trim()) {
-      addToast(t('name_required', { defaultValue: 'Nom complet requis.' }), 'error');
+    // Validate form fields
+    const errors: Record<string, string> = {};
+    
+    if (!form.deliveryFullName.trim()) {
+      errors.deliveryFullName = t('name_required', { defaultValue: 'Nom complet requis.' });
+    }
+    
+    if (!form.deliveryPhone.trim()) {
+      errors.deliveryPhone = t('phone_required', { defaultValue: 'Téléphone requis.' });
+    }
+    
+    if (form.deliveryType === 'delivery' && !form.deliveryCity.trim()) {
+      errors.deliveryCity = t('city_required', { defaultValue: 'Ville de livraison requise.' });
+    }
+    
+    // Set errors and focus first invalid field if any
+    if (Object.keys(errors).length > 0) {
+      setFormErrors(errors);
+      // Focus first invalid field
+      setTimeout(() => {
+        const firstField = Object.keys(errors)[0];
+        const element = document.getElementById(`field-${firstField}`);
+        if (element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement) {
+          element.focus();
+        }
+      }, 0);
       return;
     }
 
-    if (!deliveryPhone.trim()) {
-      addToast(t('phone_required', { defaultValue: 'Téléphone requis.' }), 'error');
-      return;
-    }
-
-    if (deliveryType === 'delivery' && !deliveryCity.trim()) {
-      addToast(t('city_required', { defaultValue: 'Ville de livraison requise.' }), 'error');
-      return;
-    }
-
-    // Keep existing payment UI, but backend order placement is independent for now.
-    if (paymentMethod === 'mobile_money' && !mobileNetwork) {
+    // Validate payment method if mobile money
+    if (form.paymentMethod === 'mobile_money' && !form.mobileNetwork) {
       addToast(t('choose_network'), 'error');
       return;
     }
@@ -157,16 +192,16 @@ export default function CartPage() {
     try {
       await orderService.placeOrder({
         panier_id: panierId ?? undefined,
-        livraison_nom_complet: deliveryFullName.trim(),
-        livraison_telephone: deliveryPhone.trim(),
-        livraison_quartier: deliveryType === 'delivery' ? deliveryLocation.trim() || undefined : undefined,
-        livraison_ville: deliveryType === 'delivery' ? deliveryCity.trim() : 'Retrait magasin',
-        note_client: noteClient.trim() || undefined,
+        livraison_nom_complet: form.deliveryFullName.trim(),
+        livraison_telephone: form.deliveryPhone.trim(),
+        livraison_quartier: form.deliveryType === 'delivery' ? form.deliveryLocation.trim() || undefined : undefined,
+        livraison_ville: form.deliveryType === 'delivery' ? form.deliveryCity.trim() : 'Retrait magasin',
+        note_client: form.noteClient.trim() || undefined,
         // Include applied promo code so the backend can attribute it to the order
         code_promo: cart?.code_promo_applique ?? undefined,
       });
 
-     // Format items to match the CartItem structure expected by generateWhatsAppLink
+      // Format items to match the CartItem structure expected by generateWhatsAppLink
       const formattedItems = allItems.map((item: any) => ({
         id: String(item.id),
         type: 'product' as const,
@@ -192,10 +227,10 @@ export default function CartPage() {
         total,
         cart?.code_promo_applique,
         cart?.remise_pourcentage ? Number(cart.remise_pourcentage) : undefined,
-        paymentMethod,
-        mobileNetwork || undefined,
-        deliveryType,
-        deliveryType === 'delivery' ? `${deliveryCity.trim()} - ${deliveryLocation.trim()}` : 'Retrait magasin'
+        form.paymentMethod,
+        form.mobileNetwork || undefined,
+        form.deliveryType,
+        form.deliveryType === 'delivery' ? `${form.deliveryCity.trim()} - ${form.deliveryLocation.trim()}` : 'Retrait magasin'
       );
 
       addToast(t('order_success', { defaultValue: 'Commande passée avec succès. Redirection vers WhatsApp...' }), 'success');
@@ -341,94 +376,118 @@ export default function CartPage() {
               {/* Contact Information */}
               <div className="space-y-3 pt-2">
                 <p className="text-xs font-bold text-foreground/40 uppercase tracking-wider">{t('contact_info', { defaultValue: 'Informations de Contact' })}</p>
-                <div className="space-y-2">
-                  <Input
-                    label={t('full_name', { defaultValue: 'Nom complet' })}
-                    placeholder={t('full_name_placeholder', { defaultValue: 'ex: Jean Dupont' })}
-                    value={deliveryFullName}
-                    onChange={(e) => setDeliveryFullName(e.target.value)}
-                    disabled={isLoading || isProcessing}
-                    className="bg-black/20"
-                  />
-                  <Input
-                    label={t('phone', { defaultValue: 'Téléphone' })}
-                    placeholder={t('phone_placeholder', { defaultValue: 'ex: +2250102030405' })}
-                    value={deliveryPhone}
-                    onChange={(e) => setDeliveryPhone(e.target.value)}
-                    disabled={isLoading || isProcessing}
-                    className="bg-black/20"
-                  />
-                </div>
+<div className="space-y-2">
+                   <Input
+                     label={t('full_name', { defaultValue: 'Nom complet' })}
+                     placeholder={t('full_name_placeholder', { defaultValue: 'ex: Jean Dupont' })}
+                     value={form.deliveryFullName}
+                     onChange={(e) => updateFormField('deliveryFullName', e.target.value)}
+                     disabled={isLoading || isProcessing}
+                     className="bg-black/20"
+                     id="field-deliveryFullName"
+                   />
+                   {formErrors.deliveryFullName && (
+                     <p className="mt-1 text-xs text-red-500">{formErrors.deliveryFullName}</p>
+                   )}
+                   <Input
+                     label={t('phone', { defaultValue: 'Téléphone' })}
+                     placeholder={t('phone_placeholder', { defaultValue: 'ex: +2250102030405' })}
+                     value={form.deliveryPhone}
+                     onChange={(e) => updateFormField('deliveryPhone', e.target.value)}
+                     disabled={isLoading || isProcessing}
+                     className="bg-black/20"
+                     id="field-deliveryPhone"
+                   />
+                   {formErrors.deliveryPhone && (
+                     <p className="mt-1 text-xs text-red-500">{formErrors.deliveryPhone}</p>
+                   )}
+                 </div>
+                   {form.deliveryPhone && (
+                     <p className="mt-1 text-xs text-red-500">{form.deliveryPhone}</p>
+                   )}
+                 </div>
+                   {formErrors.deliveryPhone && (
+                     <p className="mt-1 text-xs text-red-500">{formErrors.deliveryPhone}</p>
+                   )}
+                 </div>
               </div>
 
               {/* Delivery Mode Selection */}
               <div className="space-y-3 pt-2">
                 <p className="text-xs font-bold text-foreground/40 uppercase tracking-wider">{t('reception_mode')}</p>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    onClick={() => setDeliveryType('delivery')}
-                    className={`flex items-center gap-2 p-3 rounded-xl border text-xs font-medium transition-all ${
-                      deliveryType === 'delivery' ? 'bg-gold/10 border-gold text-gold' : 'bg-white/5 border-white/10 text-foreground/60'
-                    }`}
-                  >
-                    <Truck size={14} /> {t('delivery_option')}
-                  </button>
-                  <button
-                    onClick={() => setDeliveryType('pickup')}
-                    className={`flex items-center gap-2 p-3 rounded-xl border text-xs font-medium transition-all ${
-                      deliveryType === 'pickup' ? 'bg-gold/10 border-gold text-gold' : 'bg-white/5 border-white/10 text-foreground/60'
-                    }`}
-                  >
-                    <Store size={14} /> {t('pickup_option')}
-                  </button>
-                </div>
+<div className="grid grid-cols-2 gap-2">
+                   <button
+                     onClick={() => updateFormField('deliveryType', 'delivery')}
+                     className={`flex items-center gap-2 p-3 rounded-xl border text-xs font-medium transition-all ${
+                       form.deliveryType === 'delivery' ? 'bg-gold/10 border-gold text-gold' : 'bg-white/5 border-white/10 text-foreground/60'
+                     }`}
+                   >
+                     <Truck size={14} /> {t('delivery_option')}
+                   </button>
+                   <button
+                     onClick={() => updateFormField('deliveryType', 'pickup')}
+                     className={`flex items-center gap-2 p-3 rounded-xl border text-xs font-medium transition-all ${
+                       form.deliveryType === 'pickup' ? 'bg-gold/10 border-gold text-gold' : 'bg-white/5 border-white/10 text-foreground/60'
+                     }`}
+                   >
+                     <Store size={14} /> {t('pickup_option')}
+                   </button>
+                 </div>
 
-                {deliveryType === 'delivery' && (
-                  <div className="space-y-2 mt-2">
-                    <Input
-                      label={t('city', { defaultValue: 'Ville' })}
-                      placeholder={t('city', { defaultValue: 'Ville (ex: Yaoundé)' })}
-                      value={deliveryCity}
-                      onChange={(e) => setDeliveryCity(e.target.value)}
-                      disabled={isLoading || isProcessing}
-                      className="bg-black/20"
-                    />
-                    <div className="relative">
-                      <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-foreground/40" size={14} />
-                      <input
-                        type="text"
-                        placeholder={t('delivery_location_placeholder')}
-                        value={deliveryLocation}
-                        onChange={(e) => setDeliveryLocation(e.target.value)}
-                        className="w-full bg-white/5 border border-white/10 rounded-xl pl-9 pr-4 py-2.5 text-base text-foreground outline-none focus:border-gold/50 transition-all"
+{deliveryType === 'delivery' && (
+                    <div className="space-y-2 mt-2">
+                      <Input
+                        label={t('city', { defaultValue: 'Ville' })}
+                        placeholder={t('city', { defaultValue: 'Ville (ex: Yaoundé)' })}
+                        value={form.deliveryCity}
+                        onChange={(e) => updateFormField('deliveryCity', e.target.value)}
                         disabled={isLoading || isProcessing}
+                        className="bg-black/20"
+                        id="field-deliveryCity"
                       />
+                      {formErrors.deliveryCity && (
+                        <p className="mt-1 text-xs text-red-500">{formErrors.deliveryCity}</p>
+                      )}
+                      <div className="relative">
+                        <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-foreground/40" size={14} />
+                        <input
+                          type="text"
+                          placeholder={t('delivery_location_placeholder')}
+                          value={form.deliveryLocation}
+                          onChange={(e) => updateFormField('deliveryLocation', e.target.value)}
+                          className="w-full bg-white/5 border border-white/10 rounded-xl pl-9 pr-4 py-2.5 text-base text-foreground outline-none focus:border-gold/50 transition-all"
+                          disabled={isLoading || isProcessing}
+                          id="field-deliveryLocation"
+                        />
+                        {formErrors.deliveryLocation && (
+                          <p className="mt-1 text-xs text-red-500">{formErrors.deliveryLocation}</p>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )}
               </div>
 
               {/* Payment Method Selection */}
               <div className="space-y-3 pt-2">
                 <p className="text-xs font-bold text-foreground/40 uppercase tracking-wider">{t('payment_mode')}</p>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    onClick={() => { setPaymentMethod('cash'); setMobileNetwork(null); }}
-                    className={`flex items-center gap-2 p-3 rounded-xl border text-xs font-medium transition-all ${
-                      paymentMethod === 'cash' ? 'bg-gold/10 border-gold text-gold' : 'bg-white/5 border-white/10 text-foreground/60'
-                    }`}
-                  >
-                    <CreditCard size={14} /> {t('cash_option')}
-                  </button>
-                  <button
-                    onClick={() => setPaymentMethod('mobile_money')}
-                    className={`flex items-center gap-2 p-3 rounded-xl border text-xs font-medium transition-all ${
-                      paymentMethod === 'mobile_money' ? 'bg-gold/10 border-gold text-gold' : 'bg-white/5 border-white/10 text-foreground/60'
-                    }`}
-                  >
-                    <Smartphone size={14} /> {t('mobile_money_option')}
-                  </button>
-                </div>
+<div className="grid grid-cols-2 gap-2">
+                   <button
+                     onClick={() => { updateFormField('paymentMethod', 'cash'); updateFormField('mobileNetwork', null); }}
+                     className={`flex items-center gap-2 p-3 rounded-xl border text-xs font-medium transition-all ${
+                       form.paymentMethod === 'cash' ? 'bg-gold/10 border-gold text-gold' : 'bg-white/5 border-white/10 text-foreground/60'
+                     }`}
+                   >
+                     <CreditCard size={14} /> {t('cash_option')}
+                   </button>
+                   <button
+                     onClick={() => updateFormField('paymentMethod', 'mobile_money')}
+                     className={`flex items-center gap-2 p-3 rounded-xl border text-xs font-medium transition-all ${
+                       form.paymentMethod === 'mobile_money' ? 'bg-gold/10 border-gold text-gold' : 'bg-white/5 border-white/10 text-foreground/60'
+                     }`}
+                   >
+                     <Smartphone size={14} /> {t('mobile_money_option')}
+                   </button>
+                 </div>
 
                 {paymentMethod === 'mobile_money' && (
                   <motion.div
@@ -436,24 +495,24 @@ export default function CartPage() {
                     animate={{ opacity: 1, height: 'auto' }}
                     className="space-y-3 pt-1"
                   >
-                    <div className="grid grid-cols-2 gap-2">
-                      <button
-                        onClick={() => setMobileNetwork('mtn')}
-                        className={`p-2 rounded-lg border text-[10px] font-bold uppercase transition-all ${
-                          mobileNetwork === 'mtn' ? 'bg-amber-400 text-black border-amber-400' : 'bg-white/5 border-white/10 text-foreground/40'
-                        }`}
-                      >
-                        MTN Mobile Money
-                      </button>
-                      <button
-                        onClick={() => setMobileNetwork('orange')}
-                        className={`p-2 rounded-lg border text-[10px] font-bold uppercase transition-all ${
-                          mobileNetwork === 'orange' ? 'bg-orange-500 text-foreground border-orange-500' : 'bg-white/5 border-white/10 text-foreground/40'
-                        }`}
-                      >
-                        Orange Money
-                      </button>
-                    </div>
+<div className="grid grid-cols-2 gap-2">
+                       <button
+                         onClick={() => updateFormField('mobileNetwork', 'mtn')}
+                         className={`p-2 rounded-lg border text-[10px] font-bold uppercase transition-all ${
+                           form.mobileNetwork === 'mtn' ? 'bg-amber-400 text-black border-amber-400' : 'bg-white/5 border-white/10 text-foreground/40'
+                         }`}
+                       >
+                         MTN Mobile Money
+                       </button>
+                       <button
+                         onClick={() => updateFormField('mobileNetwork', 'orange')}
+                         className={`p-2 rounded-lg border text-[10px] font-bold uppercase transition-all ${
+                           form.mobileNetwork === 'orange' ? 'bg-orange-500 text-foreground border-orange-500' : 'bg-white/5 border-white/10 text-foreground/40'
+                         }`}
+                       >
+                         Orange Money
+                       </button>
+                     </div>
 
                     {mobileNetwork && (
                       <div className="p-3 bg-white/5 border border-white/10 rounded-xl text-center space-y-1">
@@ -486,14 +545,18 @@ export default function CartPage() {
             </div>
 
             <div className="mb-6">
-              <textarea
-                value={noteClient}
-                onChange={(e) => setNoteClient(e.target.value)}
-                rows={2}
-                placeholder={t('order_note', { defaultValue: 'Note (optionnel) — ex: appeler avant de livrer…' })}
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-xs text-foreground outline-none focus:border-gold/50 transition-all resize-none"
-                disabled={isLoading || isProcessing}
-              />
+<textarea
+            id="field-noteClient"
+            value={form.noteClient}
+            onChange={(e) => updateFormField('noteClient', e.target.value)}
+            className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
+            rows={4}
+            placeholder={t('order_note_placeholder')}
+            disabled={isLoading || isProcessing}
+          />
+          {formErrors.noteClient && (
+            <p className="mt-1 text-xs text-red-500">{formErrors.noteClient}</p>
+          )}
             </div>
 
             <div className="border-t border-white/10 pt-4 mb-8">

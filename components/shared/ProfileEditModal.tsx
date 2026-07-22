@@ -1,11 +1,14 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { User, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useToastStore } from '@/store/useToastStore';
 import { useAuthStore } from '@/store/useAuthStore';
-import { FloatInput } from '@/components/ui/Input';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+import { Input } from '@/components/ui/Input';
 
 interface ProfileEditModalProps {
   isOpen: boolean;
@@ -21,56 +24,43 @@ export default function ProfileEditModal({
   const { t } = useTranslation();
   const { addToast } = useToastStore();
   const { user, updateProfile } = useAuthStore();
-  const [loading, setLoading] = useState(false);
 
-  const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
-    email: '',
-    phone: '',
+  const formSchema = z.object({
+    firstName: z.string().min(1, t('required_field')),
+    lastName: z.string().min(1, t('required_field')),
+    email: z.string().email(t('invalid_email')),
+    phone: z.string().min(1, t('required_field')),
   });
 
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  type FormData = z.infer<typeof formSchema>;
 
-  useEffect(() => {
-    if (user && isOpen) {
-      setFormData({
-        firstName: user.firstName || '',
-        lastName: user.lastName || '',
-        email: user.email || '',
-        phone: user.phone || '',
-      });
-      setErrors({});
-    }
-  }, [isOpen, user]);
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+    reset,
+    setError,
+    focus,
+  } = useForm<FormData>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      firstName: user?.firstName || '',
+      lastName: user?.lastName || '',
+      email: user?.email || '',
+      phone: user?.phone || '',
+    },
+  });
 
-  const validateForm = () => {
-    const newErrors: Record<string, string> = {};
+  const [loading, setLoading] = useState(false);
 
-    if (!formData.firstName?.trim()) newErrors.firstName = t('required_field');
-    if (!formData.lastName?.trim()) newErrors.lastName = t('required_field');
-    if (!formData.email?.trim()) {
-      newErrors.email = t('required_field');
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = t('invalid_email', 'Invalid email address');
-    }
-    if (!formData.phone?.trim()) newErrors.phone = t('required_field');
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!validateForm()) return;
-
+  const onSubmit = async (data: FormData) => {
     setLoading(true);
     try {
       const success = await updateProfile({
-        firstName: formData.firstName,
-        lastName: formData.lastName,
-        email: formData.email,
-        phone: formData.phone,
+        firstName: data.firstName,
+        lastName: data.lastName,
+        email: data.email,
+        phone: data.phone,
       });
 
       if (success) {
@@ -80,7 +70,37 @@ export default function ProfileEditModal({
       }
     } catch (error: any) {
       console.error('Profile update failed:', error);
-      addToast(t('profile_update_failed', 'Failed to update profile'), 'error');
+      const errorMsg =
+        error.response?.data?.detail ||
+        error.response?.data?.message ||
+        t('profile_update_failed', 'Failed to update profile');
+      addToast(errorMsg, 'error');
+
+      // Handle field-specific errors from the API
+      const errData = error.response?.data;
+      if (errData) {
+        // Map API error to field
+        if (errData.first_name?.[0]) {
+          setError('firstName', { type: 'manual', message: errData.first_name[0] });
+          focus('firstName');
+        } else if (errData.last_name?.[0]) {
+          setError('lastName', { type: 'manual', message: errData.last_name[0] });
+          focus('lastName');
+        } else if (errData.email?.[0]) {
+          setError('email', { type: 'manual', message: errData.email[0] });
+          focus('email');
+        } else if (errData.telephone?.[0]) {
+          // Note: the API uses 'telephone' for phone
+          setError('phone', { type: 'manual', message: errData.telephone[0] });
+          focus('phone');
+        } else {
+          // If we can't map, focus the first field
+          focus('firstName');
+        }
+      } else {
+        // If we can't determine the field, focus the first field
+        focus('firstName');
+      }
     } finally {
       setLoading(false);
     }
@@ -109,45 +129,78 @@ export default function ProfileEditModal({
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-2">
-          <div className="grid grid-cols-2 gap-3">
-            <FloatInput
-              label={t('first_name', 'Prénom')}
-              value={formData.firstName}
-              onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+        <form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-4">
+          {/* First Name */}
+          <div>
+            <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">
+              {t('first_name', 'Prénom')}
+            </label>
+            <input
+              id="field-firstName"
+              type="text"
+              {...register('firstName')}
               disabled={loading}
+              className="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-lg text-base text-foreground placeholder-text-foreground/30 focus:outline-none focus:border-gold/50 transition-colors"
               placeholder={t('enter_first_name')}
-              error={errors.firstName}
             />
-            <FloatInput
-              label={t('last_name', 'Nom')}
-              value={formData.lastName}
-              onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
-              disabled={loading}
-              placeholder={t('enter_last_name')}
-              error={errors.lastName}
-            />
+            {errors.firstName && (
+              <p className="mt-1 text-xs text-red-500">{errors.firstName.message}</p>
+            )}
           </div>
 
-          <FloatInput
-            label={t('email', 'Email')}
-            type="email"
-            value={formData.email}
-            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-            disabled={loading}
-            placeholder={t('enter_email')}
-            error={errors.email}
-          />
+          {/* Last Name */}
+          <div>
+            <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">
+              {t('last_name', 'Nom')}
+            </label>
+            <input
+              id="field-lastName"
+              type="text"
+              {...register('lastName')}
+              disabled={loading}
+              className="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-lg text-base text-foreground placeholder-text-foreground/30 focus:outline-none focus:border-gold/50 transition-colors"
+              placeholder={t('enter_last_name')}
+            />
+            {errors.lastName && (
+              <p className="mt-1 text-xs text-red-500">{errors.lastName.message}</p>
+            )}
+          </div>
 
-          <FloatInput
-            label={t('phone', 'Téléphone')}
-            type="tel"
-            value={formData.phone}
-            onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-            disabled={loading}
-            placeholder={t('enter_phone')}
-            error={errors.phone}
-          />
+          {/* Email */}
+          <div>
+            <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">
+              {t('email', 'Email')}
+            </label>
+            <input
+              id="field-email"
+              type="email"
+              {...register('email')}
+              disabled={loading}
+              className="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-lg text-base text-foreground placeholder-text-foreground/30 focus:outline-none focus:border-gold/50 transition-colors"
+              placeholder={t('enter_email')}
+            />
+            {errors.email && (
+              <p className="mt-1 text-xs text-red-500">{errors.email.message}</p>
+            )}
+          </div>
+
+          {/* Phone */}
+          <div>
+            <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">
+              {t('phone', 'Téléphone')}
+            </label>
+            <input
+              id="field-phone"
+              type="tel"
+              {...register('phone')}
+              disabled={loading}
+              className="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-lg text-base text-foreground placeholder-text-foreground/30 focus:outline-none focus:border-gold/50 transition-colors"
+              placeholder={t('enter_phone')}
+            />
+            {errors.phone && (
+              <p className="mt-1 text-xs text-red-500">{errors.phone.message}</p>
+            )}
+          </div>
 
           {/* Buttons */}
           <div className="flex gap-3 pt-4">

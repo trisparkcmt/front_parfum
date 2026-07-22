@@ -4,9 +4,6 @@ import { API_BASE_URL } from '@/lib/constants';
 export const API_ROOT = (process.env.NEXT_PUBLIC_API_URL || API_BASE_URL || '').replace(/\/api\/v1\/?$/, '').replace(/\/+$/, '');
 
 export const getBaseURL = () => {
-  if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
-    return '/api/v1/';
-  }
   const url = API_ROOT;
   if (url.endsWith('/api/v1')) {
     return `${url}/`;
@@ -37,7 +34,7 @@ export const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  withCredentials: false,
+  withCredentials: true,
   xsrfCookieName: 'csrftoken',
   xsrfHeaderName: 'X-CSRFToken',
 });
@@ -142,7 +139,7 @@ api.interceptors.request.use((config: any) => {
           }
     } else {
       delete config.headers.Authorization;
-      config.withCredentials = false;
+      config.withCredentials = true;
           if (config.url && config.url.includes('devices/register')) {
             console.log('[API Interceptor] FCM register request - NO token in localStorage');
           }

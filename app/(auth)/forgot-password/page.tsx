@@ -23,7 +23,7 @@ export default function ForgotPasswordPage() {
   });
   type FormData = z.infer<typeof schema>;
 
-  const { register, handleSubmit, formState: { errors } } = useForm<FormData>({ resolver: zodResolver(schema) });
+  const { register, handleSubmit, formState: { errors }, setError, focus } = useForm<FormData>({ resolver: zodResolver(schema) });
 
   const onSubmit = async (data: FormData) => {
     setIsLoading(true);
@@ -32,12 +32,15 @@ export default function ForgotPasswordPage() {
       setIsSubmitted(true);
       addToast(t('password_reset_sent', { defaultValue: 'E-mail de réinitialisation envoyé avec succès.' }), 'success');
     } catch (error: any) {
-      addToast(
+      const errorMsg =
         error.response?.data?.detail ||
-          error.response?.data?.email?.[0] ||
-          t('password_reset_error', { defaultValue: 'Une erreur est survenue. Veuillez réessayer.' }),
-        'error',
-      );
+        error.response?.data?.email?.[0] ||
+        t('password_reset_error', { defaultValue: 'Une erreur est survenue. Veuillez réessayer.' });
+      addToast(errorMsg, 'error');
+
+      // Set field-specific error and focus
+      setError('email', { type: 'manual', message: errorMsg });
+      focus('email');
     } finally {
       setIsLoading(false);
     }
@@ -80,6 +83,7 @@ export default function ForgotPasswordPage() {
           placeholder="vous@exemple.com"
           icon={<Mail size={18} />}
           error={errors.email?.message}
+          data-field="email"
           {...register('email')}
         />
         <Button type="submit" className="w-full mt-6" isLoading={isLoading} rightIcon={<ArrowRight size={18} />}>

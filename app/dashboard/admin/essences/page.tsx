@@ -23,6 +23,7 @@ export default function EssencesPage () {
   const [editingEssence, setEditingEssence] = useState<any | null>(null);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const { addToast } = useToastStore();
 
   // Pagination locale (Max 20 éléments par page)
@@ -30,26 +31,61 @@ export default function EssencesPage () {
   const itemsPerPage = 20;
 
   // Form State (Lab / Raw Essence)
-  const [nom, setNom] = useState('');
-  const [marque, setMarque] = useState('Exclusif');
-  const [codeReference, setCodeReference] = useState('');
-  const [categorie, setCategorie] = useState('premium');
-  const [description, setDescription] = useState('');
-  const [intensite, setIntensite] = useState('moyenne');
-  const [genreCible, setGenreCible] = useState('mixte');
-  const [prixParMl, setPrixParMl] = useState('0.00');
-  const [lotStockMl, setLotStockMl] = useState('500');
-  const [lotSeuilAlerteMl, setLotSeuilAlerteMl] = useState('50');
-  const [lotReferenceFournisseur, setLotReferenceFournisseur] = useState('');
-  const [includeProduitsFinis, setIncludeProduitsFinis] = useState(false);
-  const [produitFini, setProduitFini] = useState({
-    taille_ml: '50',
-    prix: '',
-    prix_promotionnel: '',
-    stock_disponible: '0',
+  const [form, setForm] = useState({
+    nom: '',
+    marque: '',
+    codeReference: '',
+    categorie: '',
+    description: '',
+    intensite: '',
+    genreCible: '',
+    prixParMl: '',
+    lotStockMl: '',
+    lotSeuilAlerteMl: '',
+    lotReferenceFournisseur: '',
+    includeProduitsFinis: false,
+    produitFini: {
+      taille_ml: '',
+      prix: '',
+      prix_promotionnel: '',
+      stock_disponible: '',
+    },
   });
   const [produitFiniImageFile, setProduitFiniImageFile] = useState<File | null>(null);
   const [selectedEssences, setSelectedEssences] = useState<Set<number>>(new Set());
+
+  const updateForm = (field: string, value: any) => {
+    setForm(prev => ({
+      ...prev,
+      [field]: value,
+    }));
+  };
+
+  const resetForm = () => {
+    setForm({
+      nom: '',
+      marque: '',
+      codeReference: '',
+      categorie: '',
+      description: '',
+      intensite: '',
+      genreCible: '',
+      prixParMl: '',
+      lotStockMl: '',
+      lotSeuilAlerteMl: '',
+      lotReferenceFournisseur: '',
+      includeProduitsFinis: false,
+      produitFini: {
+        taille_ml: '',
+        prix: '',
+        prix_promotionnel: '',
+        stock_disponible: '',
+      },
+    });
+    setFormErrors({});
+    setFormError(null);
+    setProduitFiniImageFile(null);
+  };
 
   const fetchData = useCallback(async () => {
     try {
@@ -76,131 +112,176 @@ export default function EssencesPage () {
   const openAdd = () => {
     if (!permissions.canCreate) return;
     setEditingEssence(null);
-    setNom('');
-    setMarque('Exclusif');
-    setCodeReference('');
-    setCategorie('premium');
-    setDescription('');
-    setIntensite('moyenne');
-    setGenreCible('mixte');
-    setPrixParMl('0.00');
-    setLotStockMl('500');
-    setLotSeuilAlerteMl('50');
-    setLotReferenceFournisseur('');
-    setIncludeProduitsFinis(false);
-    setProduitFini({ taille_ml: '50', prix: '', prix_promotionnel: '', stock_disponible: '0' });
-    setProduitFiniImageFile(null);
-    setFormError(null);
+    resetForm();
     setShowModal(true);
   };
 
   const openEdit = (item: any) => {
     if (!permissions.canUpdate) return;
     setEditingEssence(item);
-    setNom(item.nom || '');
-    setMarque(item.marque || 'Exclusif');
-    setCodeReference(item.code_reference || '');
-    setCategorie(item.categorie || 'premium');
-    setDescription(item.description || '');
-    setIntensite(item.intensite || 'moyenne');
-    setGenreCible(item.genre_cible || 'mixte');
-    setPrixParMl(String(item.prix_par_ml || '0.00'));
-    setIncludeProduitsFinis(false);
+    setForm({
+      nom: item.nom || '',
+      marque: item.marque || '',
+      codeReference: item.code_reference || '',
+      categorie: item.categorie || '',
+      description: item.description || '',
+      intensite: item.intensite || '',
+      genreCible: item.genre_cible || '',
+      prixParMl: String(item.prix_par_ml || '0.00'),
+      lotStockMl: item.initial_lot?.stock_ml || '',
+      lotSeuilAlerteMl: item.initial_lot?.seuil_alerte_ml || '',
+      lotReferenceFournisseur: item.initial_lot?.reference_fournisseur || '',
+      includeProduitsFinis: !!item.produits_finis?.length,
+      produitFini: item.produits_finis?.[0] ? {
+        taille_ml: String(item.produits_finis[0].taille_ml || ''),
+        prix: String(item.produits_finis[0].prix || ''),
+        prix_promotionnel: item.produits_finis[0].prix_promotionnel || '',
+        stock_disponible: String(item.produits_finis[0].stock_disponible || ''),
+      } : {
+        taille_ml: '',
+        prix: '',
+        prix_promotionnel: '',
+        stock_disponible: '',
+      },
+    });
     setProduitFiniImageFile(null);
+    setFormErrors({});
     setFormError(null);
     setShowModal(true);
   };
 
-  const handleSave = async () => {
+const handleSave = async () => {
     if (!permissions.canCreate && !permissions.canUpdate) return;
-    setFormError(null);
-    if (!nom || !codeReference) {
-      setFormError('Le nom et le code de référence sont requis');
+    
+    // Validate all fields
+    const errors: Record<string, string> = {};
+    
+    // Basic validation
+    if (!form.nom.trim()) errors.nom = 'Le nom est requis';
+    if (!form.codeReference.trim()) errors.codeReference = 'Le code de référence est requis';
+    if (!form.marque.trim()) errors.marque = 'La marque est requise';
+    if (!form.categorie) errors.categorie = 'La catégorie est requise';
+    if (!form.intensite) errors.intensite = 'L\'intensité est requise';
+    if (!form.genreCible) errors.genreCible = 'Le genre cible est requis';
+    if (!form.prixParMl) errors.prixParMl = 'Le prix par ml est requis';
+    else if (isNaN(Number(form.prixParMl)) || Number(form.prixParMl) <= 0) 
+      errors.prixParMl = 'Le prix par ml doit être supérieur à 0';
+    
+    // Description validation (optional but we'll validate if provided)
+    if (form.description && form.description.trim().length < 10) 
+      errors.description = 'La description doit contenir au moins 10 caractères';
+    
+    // Lot Initial validation (only for add)
+    if (!editingEssence) {
+      if (!form.lotStockMl) errors.lotStockMl = 'Le stock ML est requis';
+      else if (isNaN(Number(form.lotStockMl)) || Number(form.lotStockMl) <= 0) 
+        errors.lotStockMl = 'Le stock ML doit être supérieur à 0';
+      
+      if (!form.lotSeuilAlerteMl) errors.lotSeuilAlerteMl = 'Le seuil d\'alerte ML est requis';
+      else if (isNaN(Number(form.lotSeuilAlerteMl)) || Number(form.lotSeuilAlerteMl) < 0) 
+        errors.lotSeuilAlerteMl = 'Le seuil d\'alerte ML doit être supérieur ou égal à 0';
+    }
+    
+    // Produit fini validation (only for add and when includeProduitsFinis is true)
+    if (!editingEssence && form.includeProduitsFinis) {
+      if (!form.produitFini.taille_ml) errors['produitFini.taille_ml'] = 'La taille du format boutique est requise';
+      else if (isNaN(Number(form.produitFini.taille_ml)) || Number(form.produitFini.taille_ml) <= 0) 
+        errors['produitFini.taille_ml'] = 'La taille du format boutique doit être supérieure à 0';
+      
+      if (!form.produitFini.prix) errors['produitFini.prix'] = 'Le prix du format boutique est requis';
+      else if (isNaN(Number(form.produitFini.prix)) || Number(form.produitFini.prix) <= 0) 
+        errors['produitFini.prix'] = 'Le prix du format boutique doit être supérieur à 0';
+      
+      if (form.produitFini.stock_disponible === '') errors['produitFini.stock_disponible'] = 'Le stock du format boutique est requis';
+      else if (isNaN(Number(form.produitFini.stock_disponible)) || Number(form.produitFini.stock_disponible) < 0) 
+        errors['produitFini.stock_disponible'] = 'Le stock du format boutique doit être supérieur ou égal à 0';
+      
+      if (!form.produitFiniImageFile) errors.produitFiniImageFile = 'Une image est requise pour le format boutique';
+      
+      // Additional validation: boutique stock should not exceed lot stock
+      if (form.produitFini.stock_disponible !== '' && form.lotStockMl !== '') {
+        const boutiqueStock = Number(form.produitFini.stock_disponible);
+        const lotStock = Number(form.lotStockMl);
+        if (!isNaN(boutiqueStock) && !isNaN(lotStock) && boutiqueStock > lotStock) {
+          errors['produitFini.stock_disponible'] = 'Le stock du format boutique doit être inférieur ou égal au stock initial du lot';
+        }
+      }
+    }
+    
+    // Set errors and focus first invalid field if any
+    if (Object.keys(errors).length > 0) {
+      setFormErrors(errors);
+      // Focus first invalid field
+      setTimeout(() => {
+        const firstField = Object.keys(errors)[0];
+        const el = document.querySelector(`[data-field="${firstField}"]`);
+        if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement || el instanceof HTMLSelectElement) {
+          el.focus();
+        }
+      }, 0);
       return;
     }
-
+    
+    // No errors, proceed with save
     try {
       setSaving(true);
-      const payload: Record<string, unknown> = {
-        nom,
-        marque,
-        code_reference: codeReference,
-        categorie,
-        description: description || undefined,
-        intensite,
-        genre_cible: genreCible,
-        prix_par_ml: prixParMl,
-      };
-
-      if (!editingEssence && lotStockMl) {
-        payload.initial_lot = {
-          stock_ml: lotStockMl,
-          seuil_alerte_ml: lotSeuilAlerteMl || undefined,
-          reference_fournisseur: lotReferenceFournisseur || undefined,
-        };
-      }
-
-if (!editingEssence && includeProduitsFinis) {
-      const boutiqueStock = Number(produitFini.stock_disponible || 0);
-      const lotStock = Number(lotStockMl || 0);
-      if (!produitFini.taille_ml || Number(produitFini.taille_ml) <= 0) {
-        setFormError('La taille du format boutique doit être supérieure à 0.');
-        setSaving(false);
-        return;
-      }
-      if (!produitFini.prix || Number(produitFini.prix) <= 0) {
-        setFormError('Le prix du format boutique est requis.');
-        setSaving(false);
-        return;
-      }
-      if (boutiqueStock > lotStock) {
-        setFormError('Le stock du format boutique doit être inférieur ou égal au stock initial du lot.');
-        setSaving(false);
-        return;
-      }
-      if (!produitFiniImageFile) {
-        setFormError('Une image est requise pour le format boutique.');
-        setSaving(false);
-        return;
-      }
-
-      const formData = new FormData();
-      formData.append('nom', nom);
-      formData.append('marque', marque);
-      formData.append('code_reference', codeReference);
-      formData.append('categorie', categorie);
-      formData.append('description', description || '');
-      formData.append('intensite', intensite);
-      formData.append('genre_cible', genreCible);
-      formData.append('prix_par_ml', prixParMl);
-      formData.append('initial_lot[stock_ml]', String(lotStockMl));
-      formData.append('initial_lot[seuil_alerte_ml]', String(lotSeuilAlerteMl || '0'));
-      formData.append('initial_lot[reference_fournisseur]', lotReferenceFournisseur || '');
-      formData.append('produits_finis[0][taille_ml]', String(Number(produitFini.taille_ml)));
-      formData.append('produits_finis[0][prix]', String(produitFini.prix));
-      formData.append('produits_finis[0][prix_promotionnel]', produitFini.prix_promotionnel || '');
-      formData.append('produits_finis[0][stock_disponible]', String(Number(produitFini.stock_disponible || 0)));
-      formData.append('produits_finis[0][image_principale]', produitFiniImageFile);
-
-      await adminService.postFormData('lab/essences/', formData);
-      addToast('Essence créée avec succès', 'success');
-      setShowModal(false);
-      fetchData();
-      return;
-      }
-
+      
       if (editingEssence) {
+        // Update existing essence
+        const payload: Record<string, unknown> = {
+          nom: form.nom,
+          marque: form.marque,
+          code_reference: form.codeReference,
+          categorie: form.categorie,
+          description: form.description || undefined,
+          intensite: form.intensite,
+          genre_cible: form.genreCible,
+          prix_par_ml: form.prixParMl,
+        };
+        
         await labService.updateEssence(editingEssence.id, payload);
         addToast('Essence mise à jour avec succès', 'success');
       } else {
-        await labService.createEssence(payload);
+        // Create new essence
+        const formData = new FormData();
+        formData.append('nom', form.nom);
+        formData.append('marque', form.marque);
+        formData.append('code_reference', form.codeReference);
+        formData.append('categorie', form.categorie);
+        formData.append('description', form.description || '');
+        formData.append('intensite', form.intensite);
+        formData.append('genre_cible', form.genreCible);
+        formData.append('prix_par_ml', form.prixParMl);
+        
+        // Add lot initial data
+        formData.append('initial_lot[stock_ml]', form.lotStockMl);
+        formData.append('initial_lot[seuil_alerte_ml]', form.lotSeuilAlerteMl || '0');
+        formData.append('initial_lot[reference_fournisseur]', form.lotReferenceFournisseur || '');
+        
+        // Add produit fini data if applicable
+        if (form.includeProduitsFinis) {
+          const boutiqueStock = Number(form.produitFini.stock_disponible || 0);
+          const lotStock = Number(form.lotStockMl || 0);
+          
+          formData.append('produits_finis[0][taille_ml]', form.produitFini.taille_ml);
+          formData.append('produits_finis[0][prix]', form.produitFini.prix);
+          formData.append('produits_finis[0][prix_promotionnel]', form.produitFini.prix_promotionnel || '');
+          formData.append('produits_finis[0][stock_disponible]', form.produitFini.stock_disponible);
+          
+          if (form.produitFiniImageFile) {
+            formData.append('produits_finis[0][image_principale]', form.produitFiniImageFile);
+          }
+        }
+        
+        await adminService.postFormData('lab/essences/', formData);
         addToast('Essence créée avec succès', 'success');
       }
-
+      
       setShowModal(false);
       fetchData();
     } catch (e: any) {
-      addToast(e.response?.data?.detail || 'Erreur lors de la sauvegarde', 'error');
+      const errorMessage = e.response?.data?.detail || e.response?.data?.error || 'Erreur lors de la sauvegarde';
+      setFormError(errorMessage);
     } finally {
       setSaving(false);
     }
@@ -463,20 +544,28 @@ if (!editingEssence && includeProduitsFinis) {
                 size="xl"
               >
                 <div className="space-y-4">
-                      <div className="grid grid-cols-2 gap-3">
-                        <FloatInput
-                          label="Nom de l'essence *"
-                          value={nom}
-                          onChange={e => setNom(e.target.value)}
-                          placeholder="Ex: Royal Oud"
-                        />
-                        <FloatInput
-                          label="Code Référence *"
-                          value={codeReference}
-                          onChange={e => setCodeReference(e.target.value)}
-                          placeholder="Ex: ESS-OUD-01"
-                        />
-                      </div>
+<div className="grid grid-cols-2 gap-3">
+                         <div>
+                           <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">Nom de l'essence *</label>
+                           <input
+                             data-field="nom"
+                             value={form.nom}
+                             onChange={e => updateForm('nom', e.target.value)}
+                             className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-base text-foreground outline-none focus:border-gold"
+                           />
+                           {formErrors.nom && <p className="mt-1 text-xs text-red-500">{formErrors.nom}</p>}
+                         </div>
+                         <div>
+                           <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">Code Référence *</label>
+                           <input
+                             data-field="codeReference"
+                             value={form.codeReference}
+                             onChange={e => updateForm('codeReference', e.target.value)}
+                             className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-base text-foreground outline-none focus:border-gold"
+                           />
+                           {formErrors.codeReference && <p className="mt-1 text-xs text-red-500">{formErrors.codeReference}</p>}
+                         </div>
+                       </div>
 
                       <div className="grid grid-cols-2 gap-3">
                         <FloatInput
@@ -524,54 +613,69 @@ if (!editingEssence && includeProduitsFinis) {
                             <option value="femme">Femme</option>
                           </select>
                         </div>
-                        <FloatInput
-                          label="Prix de base / ml"
-                          type="number"
-                          value={prixParMl}
-                          onChange={e => setPrixParMl(e.target.value)}
-                        />
+<div>
+                           <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">Prix de base / ml</label>
+                           <input
+                             data-field="prixParMl"
+                             value={form.prixParMl}
+                             onChange={e => updateForm('prixParMl', e.target.value)}
+                             className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-base text-white outline-none focus:border-gold bg-neutral-900"
+                           />
+                         </div>
                       </div>
 
-                      <div>
-                        <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Description / Notes Olfactives</label>
-                        <textarea
-                          value={description}
-                          onChange={e => setDescription(e.target.value)}
-                          placeholder="Notes de tête, cœur, fond..."
-                          rows={2}
-                          className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-foreground outline-none focus:border-gold resize-none"
-                        />
-                      </div>
+<div>
+                         <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">Description / Notes Olfactives</label>
+                         <textarea
+                           data-field="description"
+                           value={form.description}
+                           onChange={e => updateForm('description', e.target.value)}
+                           placeholder="Notes de tête, cœur, fond..."
+                           rows={2}
+                           className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-base text-foreground outline-none focus:border-gold resize-none"
+                         />
+                         {formErrors.description && <p className="mt-1 text-xs text-red-500">{formErrors.description}</p>}
+                       </div>
 
-                      {!editingEssence && (
-                        <>
-                          <div className="bg-white/5 border border-white/10 rounded-xl p-4 space-y-3">
-                            <p className="text-sm font-semibold text-foreground mb-3">Lot Initial (Stock Laboratoire)</p>
-                            <div className="grid grid-cols-2 gap-3">
-                              <FloatInput
-                                label="Stock ML"
-                                type="number"
-                                value={lotStockMl}
-                                onChange={e => setLotStockMl(e.target.value)}
-                                placeholder="500"
-                              />
-                              <FloatInput
-                                label="Seuil d'alerte ML"
-                                type="number"
-                                value={lotSeuilAlerteMl}
-                                onChange={e => setLotSeuilAlerteMl(e.target.value)}
-                                placeholder="50"
-                              />
-                              <div className="col-span-2">
-                                <FloatInput
-                                  label="Référence Fournisseur (optionnel)"
-                                  value={lotReferenceFournisseur}
-                                  onChange={e => setLotReferenceFournisseur(e.target.value)}
-                                  placeholder="Ref du fournisseur"
-                                />
-                              </div>
-                            </div>
-                          </div>
+{!editingEssence && (
+                         <>
+                           <div className="bg-white/5 border border-white/10 rounded-xl p-4 space-y-3">
+                             <p className="text-sm font-semibold text-foreground mb-3">Lot Initial (Stock Laboratoire)</p>
+                             <div className="grid grid-cols-2 gap-3">
+                               <div>
+                                 <label className="block text-xs font-bold text-foreground/40 tracking-wider mb-1.5">Stock ML</label>
+                                 <input
+                                   data-field="lotStockMl"
+                                   type="number"
+                                   value={form.lotStockMl}
+                                   onChange={e => updateForm('lotStockMl', e.target.value)}
+                                   className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-base text-white outline-none focus:border-gold bg-neutral-900"
+                                 />
+                                 {formErrors.lotStockMl && <p className="mt-1 text-xs text-red-500">{formErrors.lotStockMl}</p>}
+                               </div>
+                               <div>
+                                 <label className="block text-xs font-bold text-foreground/40 tracking-wider mb-1.5">Seuil d'alerte ML</label>
+                                 <input
+                                   data-field="lotSeuilAlerteMl"
+                                   type="number"
+                                   value={form.lotSeuilAlerteMl}
+                                   onChange={e => updateForm('lotSeuilAlerteMl', e.target.value)}
+                                   className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-base text-white outline-none focus:border-gold bg-neutral-900"
+                                 />
+                                 {formErrors.lotSeuilAlerteMl && <p className="mt-1 text-xs text-red-500">{formErrors.lotSeuilAlerteMl}</p>}
+                               </div>
+                               <div className="col-span-2">
+                                 <label className="block text-xs font-bold text-foreground/40 tracking-wider mb-1.5">Référence Fournisseur (optionnel)</label>
+                                 <input
+                                   data-field="lotReferenceFournisseur"
+                                   value={form.lotReferenceFournisseur}
+                                   onChange={e => updateForm('lotReferenceFournisseur', e.target.value)}
+                                   className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-base text-white outline-none focus:border-gold"
+                                 />
+                                 {formErrors.lotReferenceFournisseur && <p className="mt-1 text-xs text-red-500">{formErrors.lotReferenceFournisseur}</p>}
+                               </div>
+                             </div>
+                           </div>
 
                           <div className="bg-white/5 border border-white/10 rounded-xl p-4 space-y-3">
                             <label className="flex items-center gap-2 cursor-pointer">
@@ -586,33 +690,69 @@ if (!editingEssence && includeProduitsFinis) {
                                 <p className="text-foreground/40 text-sm">Flacon prêt à la vente dans le shop</p>
                               </div>
                             </label>
-                            {includeProduitsFinis && (
-                              <div className="grid grid-cols-2 gap-3 pt-2 border-t border-white/5">
-                                <div>
-                                  <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Taille (ml)</label>
-                                  <input
-                                    type="number"
-                                    min="1"
-                                    value={produitFini.taille_ml}
-                                    onChange={e => setProduitFini(p => ({ ...p, taille_ml: e.target.value }))}
-                                    className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white outline-none focus:border-gold bg-neutral-900"
-                                    placeholder="50"
-                                  />
-                                </div>
-                                <FloatInput label="Prix" type="number" value={produitFini.prix} onChange={e => setProduitFini(p => ({ ...p, prix: e.target.value }))} />
-                                <FloatInput label="Prix Promo" type="number" value={produitFini.prix_promotionnel} onChange={e => setProduitFini(p => ({ ...p, prix_promotionnel: e.target.value }))} />
-                                <FloatInput label="Stock" type="number" value={produitFini.stock_disponible} onChange={e => setProduitFini(p => ({ ...p, stock_disponible: e.target.value }))} />
-                                <div className="col-span-2">
-                                  <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Image du format boutique *</label>
-                                  <input
-                                    type="file"
-                                    accept="image/*"
-                                    onChange={(e) => setProduitFiniImageFile(e.target.files?.[0] || null)}
-                                    className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-foreground outline-none file:bg-gold file:text-black file:border-0 file:rounded file:px-2 file:py-1 file:mr-2 file:text-xs file:font-semibold"
-                                  />
-                                </div>
-                              </div>
-                            )}
+{includeProduitsFinis && (
+                               <div className="grid grid-cols-2 gap-3 pt-2 border-t border-white/5">
+                                 <div>
+                                   <label className="block text-xs font-bold text-foreground/40 tracking-wider mb-1.5">Taille (ml)</label>
+                                   <input
+                                     data-field="produitFini.taille_ml"
+                                     type="number"
+                                     min="1"
+                                     value={form.produitFini.taille_ml}
+                                     onChange={e => updateForm('produitFini.taille_ml', e.target.value)}
+                                     className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-base text-white outline-none focus:border-gold bg-neutral-900"
+                                   />
+                                   {formErrors['produitFini.taille_ml'] && <p className="mt-1 text-xs text-red-500">{formErrors['produitFini.taille_ml']}</p>}
+                                 </div>
+                                 <div>
+                                   <label className="block text-xs font-bold text-foreground/40 tracking-wider mb-1.5">Prix</label>
+                                   <input
+                                     data-field="produitFini.prix"
+                                     type="number"
+                                     value={form.produitFini.prix}
+                                     onChange={e => updateForm('produitFini.prix', e.target.value)}
+                                     className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-base text-white outline-none focus:border-gold bg-neutral-900"
+                                   />
+                                   {formErrors['produitFini.prix'] && <p className="mt-1 text-xs text-red-500">{formErrors['produitFini.prix']}</p>}
+                                 </div>
+                                 <div>
+                                   <label className="block text-xs font-bold text-foreground/40 tracking-wider mb-1.5">Prix Promo</label>
+                                   <input
+                                     data-field="produitFini.prix_promotionnel"
+                                     type="number"
+                                     value={form.produitFini.prix_promotionnel}
+                                     onChange={e => updateForm('produitFini.prix_promotionnel', e.target.value)}
+                                     className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-base text-white outline-none focus:border-gold bg-neutral-900"
+                                   />
+                                   {formErrors['produitFini.prix_promotionnel'] && <p className="mt-1 text-xs text-red-500">{formErrors['produitFini.prix_promotionnel']}</p>}
+                                 </div>
+                                 <div>
+                                   <label className="block text-xs font-bold text-foreground/40 tracking-wider mb-1.5">Stock</label>
+                                   <input
+                                     data-field="produitFini.stock_disponible"
+                                     type="number"
+                                     value={form.produitFini.stock_disponible}
+                                     onChange={e => updateForm('produitFini.stock_disponible', e.target.value)}
+                                     className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-base text-white outline-none focus:border-gold bg-neutral-900"
+                                   />
+                                   {formErrors['produitFini.stock_disponible'] && <p className="mt-1 text-xs text-red-500">{formErrors['produitFini.stock_disponible']}</p>}
+                                 </div>
+                                 <div className="col-span-2">
+                                   <label className="block text-xs font-bold text-foreground/40 tracking-wider mb-1.5">Image du format boutique *</label>
+                                   <input
+                                     data-field="produitFiniImageFile"
+                                     type="file"
+                                     accept="image/*"
+                                     onChange={(e) => {
+                                       updateForm('produitFiniImageFile', e.target.files?.[0] || null);
+                                       setProduitFiniImageFile(e.target.files?.[0] || null);
+                                     }}
+                                     className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-base text-white outline-none file:bg-gold file:text-black file:border-0 file:rounded file:px-2 file:py-1 file:mr-2 file:text-xs file:font-semibold"
+                                   />
+                                   {formErrors.produitFiniImageFile && <p className="mt-1 text-xs text-red-500">{formErrors.produitFiniImageFile}</p>}
+                                 </div>
+                               </div>
+                             )}
                           </div>
                         </>
                       )}

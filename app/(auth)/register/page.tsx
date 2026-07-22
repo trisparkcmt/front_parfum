@@ -46,11 +46,17 @@ function RegisterFormContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirectUrl = searchParams.get('redirect') || '/';
-  const { register: registerUser, loginWithGoogle, isLoading } = useAuthStore();
+  const { register: registerUser, isLoading } = useAuthStore();
   const { addToast } = useToastStore();
   const [formError, setFormError] = useState<string | null>(null);
 
-  const { register, handleSubmit, formState: { errors } } = useForm<RegisterForm>({
+  const {
+    register: registerField,
+    handleSubmit,
+    formState: { errors },
+    setError,
+    focus,
+  } = useForm<RegisterForm>({
     resolver: zodResolver(registerSchema),
   });
 
@@ -69,7 +75,7 @@ function RegisterFormContent() {
           t('registration_success_check_email', {
             defaultValue: 'Inscription réussie! Veuillez vérifier votre email pour confirmer votre compte.',
           }),
-          'success',
+          'success'
         );
         // Pass email along so /verify-email can pre-fill the resend field
         router.push(`/verify-email?email=${encodeURIComponent(data.email)}`);
@@ -84,8 +90,8 @@ function RegisterFormContent() {
           // non-blocking
         }
 
-        // Also try to obtain FCM token now and cache it locally so it can
-        // be registered with the backend once the user completes login.
+        // Also try to obtain FCM token now and cache it locally so it can be
+        // registered with the backend once the user completes login.
         try {
           const { token } = await getFCMToken();
           if (token && typeof window !== 'undefined') {
@@ -98,7 +104,72 @@ function RegisterFormContent() {
         }
       }
     } catch (err: any) {
-      setFormError(err.message || "Échec de l'inscription. Veuillez réessayer.");
+      // Handle error from registerUser (same logic as in auth store)
+      const addToast = useToastStore.getState().addToast;
+      let field: keyof RegisterForm | null = null;
+      let message = t('registration_failed', { defaultValue: 'Registration failed. Please try again.' });
+
+      if (err.response?.status) {
+        const status = err.response?.status;
+        const errData = err.response?.data;
+
+        // Server crash – Django returns an HTML error page
+        const isHtml =
+          typeof errData === 'string' &&
+          (errData.trimStart().startsWith('<') || errData.includes('<!DOCTYPE'));
+        if (isHtml || status >= 500) {
+          message = t('server_error', { defaultValue: 'Server error. Please try again later.' });
+        } else {
+          // Extract the most helpful validation error from the backend JSON
+          if (errData) {
+            if (errData.detail) {
+              message = errData.detail;
+            } else if (errData.email?.[0]) {
+              message = `Email : ${errData.email[0]}`;
+              field = 'email';
+            } else if (errData.telephone?.[0]) {
+              message = `Téléphone : ${errData.telephone[0]}`;
+              field = 'phone';
+            } else if (errData.password?.[0]) {
+              message = `Mot de passe : ${errData.password[0]}`;
+              field = 'password';
+            } else if (errData.password_confirm?.[0]) {
+              message = `Confirmation : ${errData.password_confirm[0]}`;
+              field = 'passwordConfirm';
+            } else if (errData.first_name?.[0]) {
+              message = `Prénom : ${errData.first_name[0]}`;
+              field = 'firstName';
+            } else if (errData.last_name?.[0]) {
+              message = `Nom : ${errData.last_name[0]}`;
+              field = 'lastName';
+            } else if (errData.non_field_errors?.[0]) {
+              message = errData.non_field_errors[0];
+            } else {
+              const allErrors = Object.entries(errData)
+                .map(
+                  ([fieldName, errs]) =>
+                    `${fieldName}: ${Array.isArray(errs) ? errs[0] : errs}`
+                )
+                .join(' | ');
+              if (allErrors) message = allErrors;
+            }
+          }
+        }
+      } else {
+        message = err.message || t('registration_failed', { defaultValue: 'Registration failed. Please try again.' });
+      }
+
+      // Show toast
+      addToast(message, 'error');
+
+      // Set field-specific error and focus if we have a field
+      if (field) {
+        setError(field as any, { type: 'manual', message });
+        focus(field as any);
+      } else {
+        // Fallback: focus first field
+        focus('firstName');
+      }
     }
   };
 
@@ -128,14 +199,60 @@ function RegisterFormContent() {
         )}
 
         <div className="grid grid-cols-2 gap-4">
-          <Input label={t('first_name')} placeholder="Jean" icon={<User size={18} />} error={errors.firstName?.message} {...register('firstName')} />
-          <Input label={t('last_name')} placeholder="Dupont" icon={<User size={18} />} error={errors.lastName?.message} {...register('lastName')} />
+          <Input
+            label={t('first_name')}
+            placeholder="Jean"
+            icon={<User size={18} />}
+            error={errors.firstName?.message}
+            data-field="firstName"
+            {...registerField('firstName')}
+          />
+          <Input
+            label={t('last_name')}
+            placeholder="Dupont"
+            icon={<User size={18} />}
+            error={errors.lastName?.message}
+            data-field="lastName"
+            {...registerField('lastName')}
+          />
         </div>
 
-        <Input label={t('email')} type="email" placeholder="vous@exemple.com" icon={<Mail size={18} />} error={errors.email?.message} {...register('email')} />
-        <Input label={t('phone')} type="tel" placeholder="+237 6XX XX XX XX" icon={<Phone size={18} />} error={errors.phone?.message} {...register('phone')} />
-        <Input label={t('password', { defaultValue: 'Mot de passe' })} type="password" placeholder="••••••••" icon={<Lock size={18} />} error={errors.password?.message} {...register('password')} />
-        <Input label={t('confirm_password', { defaultValue: 'Confirmer le mot de passe' })} type="password" placeholder="••••••••" icon={<Lock size={18} />} error={errors.passwordConfirm?.message} {...register('passwordConfirm')} />
+        <Input
+          label={t('email')}
+          type="email"
+          placeholder="vous@exemple.com"
+          icon={<Mail size={18} />}
+          error={errors.email?.message}
+          data-field="email"
+          {...registerField('email')}
+        />
+        <Input
+          label={t('phone')}
+          type="tel"
+          placeholder="+237 6XX XX XX XX"
+          icon={<Phone size={18} />}
+          error={errors.phone?.message}
+          data-field="phone"
+          {...registerField('phone')}
+        />
+        <Input
+          label={t('password', { defaultValue: 'Mot de passe' })}
+          type="password"
+          placeholder="••••••••"
+          icon={<Lock size={18} />}
+          error={errors.password?.message}
+          data-field="password"
+          {...registerField('password')}
+        />
+        <Input
+          label={t('confirm_password', { defaultValue: 'Confirmer le mot de passe' })}
+          type="password"
+          placeholder="••••••••"
+          icon={<Lock size={18} />}
+          error={errors.passwordConfirm?.message}
+          data-field="passwordConfirm"
+          {...registerField('passwordConfirm')}
+        />
 
         <Button type="submit" className="w-full mt-6" isLoading={isLoading} rightIcon={<UserPlus size={18} />}>
           {t('register_btn')}

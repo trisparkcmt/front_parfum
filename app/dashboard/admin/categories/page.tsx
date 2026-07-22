@@ -55,6 +55,8 @@ export default function CategoriesAdminPage() {
     message_promotion: '',
   });
 
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+
   const { addToast } = useToastStore();
 
   const fetchItems = useCallback(async () => {
@@ -103,6 +105,7 @@ export default function CategoriesAdminPage() {
   const handleOpenAdd = () => {
     setEditingItem(null);
     resetForm();
+    setFormErrors({});
     setFormError('');
     setShowModal(true);
   };
@@ -116,23 +119,62 @@ export default function CategoriesAdminPage() {
       ordre_affichage: item.ordre_affichage || 0,
       actif: item.actif !== undefined ? item.actif : true,
       taux_reduction: item.taux_reduction || '0.00',
-      date_debut: toDatetimeLocalValue(item.date_debut),
+      date_debur: toDatetimeLocalValue(item.date_debut),
       date_fin: toDatetimeLocalValue(item.date_fin),
       message_promotion: item.message_promotion || '',
     });
     setIconFile(null);
+    setFormErrors({});
     setFormError('');
     setShowModal(true);
   };
 
   const handleSave = async () => {
-    if (!form.nom) {
-      setFormError('Le nom est requis');
+    // Validate all fields
+    const errors: Record<string, string> = {};
+    
+    // Validate based on active tab
+    if (activeTab === 'perfume_categories' || activeTab === 'accessory_categories') {
+      if (!form.nom.trim()) errors.nom = 'Le nom est requis';
+      if (!form.slug.trim()) errors.slug = 'Le slug est requis';
+      if (form.ordre_affichage === '') errors.ordre_affichage = "L'ordre d'affichage est requis";
+      else if (isNaN(Number(form.ordre_affichage)) || Number(form.ordre_affichage) < 0) errors.ordre_affichage = "L'ordre d'affichage doit être un nombre positif";
+      if (!form.taux_reduction) errors.taux_reduction = 'Le taux de réduction est requis';
+      else if (isNaN(Number(form.taux_reduction)) || Number(form.taux_reduction) < 0 || Number(form.taux_reduction) > 100) 
+        errors.taux_reduction = 'Le taux de réduction doit être entre 0 et 100';
+      if (!form.message_promotion) errors.message_promotion = 'Le message de promotion est requis';
+    }
+    
+    // Date validation (only for perfume and accessory categories)
+    if (activeTab === 'perfume_categories' || activeTab === 'accessory_categories') {
+      if (!form.date_debut) errors.date_debut = 'La date de début est requise';
+      if (!form.date_fin) errors.date_fin = 'La date de fin est requise';
+      else if (form.date_debut && form.date_fin && new Date(form.date_fin) < new Date(form.date_debut)) {
+        errors.date_fin = 'La date de fin doit être après la date de début';
+      }
+    }
+    
+    // Description validation (only for accessory and bottle types)
+    if (activeTab === 'accessory_categories' || activeTab === 'bottle_types') {
+      if (!form.description.trim()) errors.description = 'La description est requise';
+    }
+    
+    // Set errors and focus first invalid field if any
+    if (Object.keys(errors).length > 0) {
+      setFormErrors(errors);
+      // Focus first invalid field
+      setTimeout(() => {
+        const firstField = Object.keys(errors)[0];
+        const el = document.querySelector(`[data-field="${firstField}"]`);
+        if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement || el instanceof HTMLSelectElement) {
+          el.focus();
+        }
+      }, 0);
       return;
     }
-
+    
+    // No errors, proceed with save
     try {
-      setFormError('');
       if (activeTab === 'perfume_categories') {
         // Use FormData to support icon image upload
         const formData = new FormData();
@@ -157,7 +199,7 @@ export default function CategoriesAdminPage() {
           await adminService.postFormData('shop/categories-parfum/', formData);
           addToast('Catégorie parfum créée', 'success');
         }
-
+        
       } else if (activeTab === 'accessory_categories') {
         // Use FormData to support icon upload
         const formData = new FormData();
@@ -167,7 +209,7 @@ export default function CategoriesAdminPage() {
         formData.append('actif', String(form.actif));
         const dateDebut = fromDatetimeLocalValue(form.date_debut);
         const dateFin = fromDatetimeLocalValue(form.date_fin);
-        if (dateDebut) formData.append('date_debut', dateDebut);
+        if (dateDebut) formData.append('date_depart', dateDebut);
         if (dateFin) formData.append('date_fin', dateFin);
         if (form.message_promotion) formData.append('message_promotion', form.message_promotion);
         if (iconFile instanceof File) {
@@ -181,7 +223,7 @@ export default function CategoriesAdminPage() {
           await adminService.postFormData('shop/types-accessoire/', formData);
           addToast('Type accessoire créé', 'success');
         }
-
+        
       } else if (activeTab === 'bottle_types') {
         const payload = { nom: form.nom, description: form.description };
         if (editingItem) {
@@ -192,7 +234,7 @@ export default function CategoriesAdminPage() {
           addToast('Type flacon créé', 'success');
         }
       }
-
+      
       setShowModal(false);
       fetchItems();
     } catch (error: any) {
@@ -410,64 +452,85 @@ export default function CategoriesAdminPage() {
         }
       >
         <div className="space-y-4">
-              <FloatInput
-                label="Nom *"
-                placeholder="Nom"
-                value={form.nom}
-                onChange={e => updateForm('nom', e.target.value)}
-              />
+<div>
+                <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">Nom *</label>
+                <input
+                    data-field="nom"
+                    value={form.nom}
+                    onChange={e => updateForm('nom', e.target.value)}
+                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-base text-foreground outline-none focus:border-gold"
+                />
+                {formErrors.nom && <p className="mt-1 text-xs text-red-500">{formErrors.nom}</p>}
+            </div>
 
-              {activeTab === 'perfume_categories' && (
-                <>
-                  <FloatInput
-                    label="Slug"
-                    placeholder="slug-auto (optionnel)"
-                    value={form.slug}
-                    onChange={e => updateForm('slug', e.target.value)}
-                  />
-                  <div className="grid grid-cols-2 gap-3">
-                    <FloatInput
-                      label="Ordre"
-                      type="number"
-                      value={form.ordre_affichage}
-                      onChange={e => updateForm('ordre_affichage', Number(e.target.value))}
-                    />
-                    <FloatInput
-                      label="Réduction (%)"
-                      placeholder="0.00"
-                      value={form.taux_reduction}
-                      onChange={e => updateForm('taux_reduction', e.target.value)}
-                    />
-                  </div>
-                  <div className="rounded-xl border border-gold/20 bg-gold/5 p-4 space-y-3">
-                    <p className="text-xs font-bold text-gold uppercase tracking-wider">Promotion catégorie</p>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Date début</label>
-                        <input
-                          type="datetime-local"
-                          value={form.date_debut}
-                          onChange={e => updateForm('date_debut', e.target.value)}
-                          className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Date fin</label>
-                        <input
-                          type="datetime-local"
-                          value={form.date_fin}
-                          onChange={e => updateForm('date_fin', e.target.value)}
-                          className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
-                        />
-                      </div>
-                    </div>
-                    <FloatInput
-                      label="Message promotion"
-                      placeholder="Ex: Offre spéciale Noël"
-                      value={form.message_promotion}
-                      onChange={e => updateForm('message_promotion', e.target.value)}
-                    />
-                  </div>
+{activeTab === 'perfume_categories' && (
+                    <>
+                        <div>
+                            <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">Slug</label>
+                            <input
+                                data-field="slug"
+                                value={form.slug}
+                                onChange={e => updateForm('slug', e.target.value)}
+                                className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-base text-foreground outline-none focus:border-gold"
+                            />
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                            <div>
+                                <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">Ordre</label>
+                                <input
+                                    data-field="ordre_affichage"
+                                    type="number"
+                                    value={form.ordre_affichage}
+                                    onChange={e => updateForm('ordre_affichage', Number(e.target.value))}
+                                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-base text-foreground outline-none focus:border-gold"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">Réduction (%)</label>
+                                <input
+                                    data-field="taux_reduction"
+                                    value={form.taux_reduction}
+                                    onChange={e => updateForm('taux_reduction', e.target.value)}
+                                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-base text-foreground outline-none focus:border-gold"
+                                />
+                            </div>
+                        </div>
+                        <div className="rounded-xl border border-gold/20 bg-gold/5 p-4 space-y-3">
+                            <p className="text-xs font-bold text-gold uppercase tracking-wider">Promotion catégorie</p>
+                            <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Date début</label>
+                                    <input
+                                        data-field="date_debut"
+                                        type="datetime-local"
+                                        value={form.date_debut}
+                                        onChange={e => updateForm('date_debut', e.target.value)}
+                                        className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-base text-foreground outline-none focus:border-gold"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Date fin</label>
+                                    <input
+                                        data-field="date_fin"
+                                        type="datetime-local"
+                                        value={form.date_fin}
+                                        onChange={e => updateForm('date_fin', e.target.value)}
+                                        className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-base text-foreground outline-none focus:border-gold"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                        <div>
+                            <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">Message promotion</label>
+                            <input
+                                data-field="message_promotion"
+                                value={form.message_promotion}
+                                onChange={e => updateForm('message_promotion', e.target.value)}
+                                className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-base text-foreground outline-none focus:border-gold"
+                            />
+                        </div>
+                    </>
+
                   {/* Image/icon upload for perfume category */}
                   <CompactIconUpload
                     onFileSelect={setIconFile}
@@ -479,25 +542,31 @@ export default function CategoriesAdminPage() {
 
               {(activeTab === 'accessory_categories' || activeTab === 'bottle_types') && (
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold text-gold uppercase block mb-1">Description</label>
-                  <textarea
-                    value={form.description}
-                    onChange={e => updateForm('description', e.target.value)}
-                    placeholder="Description (optionnel)"
-                    rows={2}
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-foreground outline-none focus:border-gold resize-none"
-                  />
+<label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">Description</label>
+                   <textarea
+                     data-field="description"
+                     value={form.description}
+                     onChange={e => updateForm('description', e.target.value)}
+                     placeholder="Description (optionnel)"
+                     rows={2}
+                     className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-base text-foreground outline-none focus:border-gold resize-none"
+                   />
+                   {formErrors.description && <p className="mt-1 text-xs text-red-500">{formErrors.description}</p>}
                 </div>
               )}
 
               {activeTab === 'accessory_categories' && (
                 <>
-                  <FloatInput
-                    label="Taux réduction (%)"
-                    placeholder="0.00"
-                    value={form.taux_reduction}
-                    onChange={e => updateForm('taux_reduction', e.target.value)}
-                  />
+                  <div>
+                    <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">Taux réduction (%)</label>
+                    <input
+                        data-field="taux_reduction"
+                        value={form.taux_reduction}
+                        onChange={e => updateForm('taux_reduction', e.target.value)}
+                        className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-base text-foreground outline-none focus:border-gold"
+                    />
+                    {formErrors.taux_reduction && <p className="mt-1 text-xs text-red-500">{formErrors.taux_reduction}</p>}
+                  </div>
                   <div className="rounded-xl border border-gold/20 bg-gold/5 p-4 space-y-3">
                     <p className="text-xs font-bold text-gold uppercase tracking-wider">Promotion type accessoire</p>
                     <div className="grid grid-cols-2 gap-3">
@@ -520,12 +589,16 @@ export default function CategoriesAdminPage() {
                         />
                       </div>
                     </div>
-                    <FloatInput
-                      label="Message promotion"
-                      placeholder="Ex: Semaine accessoires"
-                      value={form.message_promotion}
-                      onChange={e => updateForm('message_promotion', e.target.value)}
-                    />
+<div>
+                                    <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">Message promotion</label>
+                                    <input
+                                        data-field="message_promotion"
+                                        value={form.message_promotion}
+                                        onChange={e => updateForm('message_promotion', e.target.value)}
+                                        className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-base text-foreground outline-none focus:border-gold"
+                                    />
+                                    {formErrors.message_promotion && <p className="mt-1 text-xs text-red-500">{formErrors.message_promotion}</p>}
+                                </div>
                   </div>
                   <CompactIconUpload
                     onFileSelect={setIconFile}

@@ -352,24 +352,38 @@ export default function AtelierPage() {
   const [isAddingToCart, setIsAddingToCart] = useState(false);
   const [cartAdded, setCartAdded] = useState(false);
   const [ctaSuccess, setCtaSuccess] = useState(false);
-  const [showSaveModal, setShowSaveModal] = useState(false);
-  const [saveModalName, setSaveModalName] = useState('');
+  const [form, setForm] = useState({
+    saveModalName: '',
+    orderFullName: '',
+    orderPhone: '',
+    orderCity: '',
+    orderQuartier: '',
+  });
 
-  // Direct Order Workflow states
-  const [showDirectOrderModal, setShowDirectOrderModal] = useState(false);
-  const [orderFullName, setOrderFullName] = useState('');
-  const [orderPhone, setOrderPhone] = useState('');
-  const [orderCity, setOrderCity] = useState('');
-  const [orderQuartier, setOrderQuartier] = useState('');
-  const [isOrderingDirect, setIsOrderingDirect] = useState(false);
-  const [createdOrderNumber, setCreatedOrderNumber] = useState<string | null>(null);
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
-
-  useEffect(() => {
-    if (user) {
-      setOrderFullName(`${user.firstName || ''} ${user.lastName || ''}`.trim());
-      setOrderPhone(user.phone || '');
+  const updateFormField = (field: keyof typeof form, value: string) => {
+    setForm(prev => ({ ...prev, [field]: value }));
+    // Clear error for this field when user starts typing
+    if (formErrors[field]) {
+      setFormErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[field];
+        return newErrors;
+      });
     }
+  };
+
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+
+  // Removed auto-prefilling of name and phone as per requirements
+  // Only set if user explicitly wants to use their profile data
+  useEffect(() => {
+    // if (user) {
+    //   setForm(prev => ({
+    //     ...prev,
+    //     orderFullName: `${user.firstName || ''} ${user.lastName || ''}`.trim(),
+    //     orderPhone: user.phone || '',
+    //   }));
+    // }
   }, [user]);
 
   useEffect(() => {
@@ -536,18 +550,34 @@ export default function AtelierPage() {
   }, [totalMl, remaining, maxFillMl, i18n.language]);
 
   const handleSaveComposition = async (name: string) => {
-    if (totalMl === 0) {
-      addToast(
-        i18n.language === 'en' ? 'Please select at least one essence/ingredient.' : 'Veuillez sélectionner au moins une essence.',
-        'info'
-      );
+    // Validate name is provided
+    if (!name.trim()) {
+      setFormErrors(prev => ({
+        ...prev,
+        saveModalName: i18n.language === 'en' ? 'Please enter a name for your composition.' : 'Veuillez donner un nom à votre composition.'
+      }));
+      // Focus the name field
+      setTimeout(() => {
+        const element = document.getElementById('field-saveModalName');
+        if (element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement) {
+          element.focus();
+        }
+      }, 0);
       return;
     }
-    if (!name.trim()) {
-      addToast(
-        i18n.language === 'en' ? 'Please enter a name for your composition.' : 'Veuillez donner un nom à votre composition.',
-        'error'
-      );
+
+    if (totalMl === 0) {
+      setFormErrors(prev => ({
+        ...prev,
+        saveModalName: i18n.language === 'en' ? 'Please select at least one essence/ingredient.' : 'Veuillez sélectionner au moins une essence.'
+      }));
+      // Focus the name field
+      setTimeout(() => {
+        const element = document.getElementById('field-saveModalName');
+        if (element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement) {
+          element.focus();
+        }
+      }, 0);
       return;
     }
 
@@ -576,10 +606,17 @@ export default function AtelierPage() {
         .filter(Boolean);
 
       if (!selectedFlaconId) {
-        addToast(
-          i18n.language === 'en' ? 'Please select a valid bottle size.' : 'Veuillez sélectionner un format de flacon valide.',
-          'error'
-        );
+        setFormErrors(prev => ({
+          ...prev,
+          saveModalName: i18n.language === 'en' ? 'Please select a valid bottle size.' : 'Veuillez sélectionner un format de flacon valide.'
+        }));
+        // Focus the name field
+        setTimeout(() => {
+          const element = document.getElementById('field-saveModalName');
+          if (element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement) {
+            element.focus();
+          }
+        }, 0);
         setIsSaving(false);
         return;
       }
@@ -592,7 +629,7 @@ export default function AtelierPage() {
 
       setSavedParfumId(Number(response.id));
       setShowSaveModal(false);
-      setSaveModalName('');
+      setForm(prev => ({ ...prev, saveModalName: '' })); // Clear the form
       addFavorite({
         id: `composition-${response.id}`,
         name,
@@ -617,8 +654,17 @@ export default function AtelierPage() {
       );
     } catch (error: any) {
       const errorMsg = error?.response?.data?.detail || (i18n.language === 'en' ? 'Error saving composition.' : 'Erreur lors de la sauvegarde.');
-      addToast(errorMsg, 'error');
-    } finally {
+      setFormErrors(prev => ({
+        ...prev,
+        saveModalName: errorMsg
+      }));
+      // Focus the name field
+      setTimeout(() => {
+        const element = document.getElementById('field-saveModalName');
+        if (element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement) {
+          element.focus();
+        }
+      }, 0);
       setIsSaving(false);
     }
   };
@@ -730,6 +776,40 @@ export default function AtelierPage() {
       return;
     }
 
+    // Validate form fields (even though they're optional, we'll validate if provided)
+    const errors: Record<string, string> = {};
+    
+    // Only validate if fields have values (they're optional)
+    if (form.orderFullName && form.orderFullName.trim().length < 2) {
+      errors.orderFullName = i18n.language === 'en' ? 'Name must be at least 2 characters' : 'Le nom doit contenir au moins 2 caractères';
+    }
+    
+    if (form.orderPhone && !/^\+?[\d\s\-\(\)]+$/.test(form.orderPhone)) {
+      errors.orderPhone = i18n.language === 'en' ? 'Invalid phone number format' : 'Format de numéro de téléphone invalide';
+    }
+    
+    if (form.orderCity && form.orderCity.trim().length < 2) {
+      errors.orderCity = i18n.language === 'en' ? 'City must be at least 2 characters' : 'La ville doit contenir au moins 2 caractères';
+    }
+    
+    if (form.orderQuartier && form.orderQuartier.trim().length < 2) {
+      errors.orderQuartier = i18n.language === 'en' ? 'District must be at least 2 characters' : 'Le quartier doit contenir au moins 2 caractères';
+    }
+
+    // Set errors and focus first invalid field if any
+    if (Object.keys(errors).length > 0) {
+      setFormErrors(errors);
+      // Focus first invalid field
+      setTimeout(() => {
+        const firstField = Object.keys(errors)[0];
+        const element = document.getElementById(`field-${firstField}`);
+        if (element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement) {
+          element.focus();
+        }
+      }, 0);
+      return;
+    }
+
     setIsOrderingDirect(true);
     try {
       type DirectCompositionLine =
@@ -767,18 +847,26 @@ export default function AtelierPage() {
       const panier_id = cartResponse.id;
 
       // Step 2: Place order using the generated panier_id
-      const orderResponse = await orderService.placeOrder({
+const orderResponse = await orderService.placeOrder({
         panier_id,
-        livraison_nom_complet: orderFullName.trim() || undefined,
-        livraison_telephone: orderPhone.trim() || undefined,
-        livraison_ville: orderCity.trim() || undefined,
-        livraison_quartier: orderQuartier.trim() || undefined,
+        livraison_nom_complet: form.orderFullName.trim() || undefined,
+        livraison_telephone: form.orderPhone.trim() || undefined,
+        livraison_ville: form.orderCity.trim() || undefined,
+        livraison_quartier: form.orderQuartier.trim() || undefined,
       });
 
       setCreatedOrderNumber(orderResponse.numero_commande || `#${orderResponse.id}`);
       setShowDirectOrderModal(false);
       setShowSuccessModal(true);
       setQuantities({}); // Reset composition quantities on success
+      // Reset form after successful submission
+      setForm(prev => ({
+        ...prev,
+        orderFullName: '',
+        orderPhone: '',
+        orderCity: '',
+        orderQuartier: '',
+      }));
       addToast(i18n.language === 'en' ? 'Order placed successfully!' : 'Commande passée avec succès !', 'success');
     } catch (error: any) {
       const errorMsg = error?.response?.data?.detail || (i18n.language === 'en' ? 'Error processing your order.' : 'Erreur lors du traitement de votre commande.');
@@ -1205,46 +1293,50 @@ export default function AtelierPage() {
         </div>
       </div>
 
-      {/* Save Modal */}
-      {showSaveModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-background rounded-2xl p-8 w-full max-w-sm shadow-sm border border-white/10 animate-in fade-in zoom-in-95">
-            <h2 className="text-2xl font-extralight text-foreground mb-2">
-              {i18n.language === 'en' ? 'Save Your Composition' : 'Sauvegarder votre Composition'}
-            </h2>
-            <p className="text-xs text-foreground/40 uppercase tracking-widest mb-6">
-              {i18n.language === 'en' ? 'Give your creation a name' : 'Donnez un nom à votre création'}
-            </p>
+{/* Save Modal */}
+       {showSaveModal && (
+         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+           <div className="bg-background rounded-2xl p-8 w-full max-w-sm shadow-sm border border-white/10 animate-in fade-in zoom-in-95">
+             <h2 className="text-2xl font-extralight text-foreground mb-2">
+               {i18n.language === 'en' ? 'Save Your Composition' : 'Sauvegarder votre Composition'}
+             </h2>
+             <p className="text-xs text-foreground/40 uppercase tracking-widest mb-6">
+               {i18n.language === 'en' ? 'Give your creation a name' : 'Donnez un nom à votre création'}
+             </p>
 
-            <input
-              type="text"
-              placeholder={i18n.language === 'en' ? 'e.g. Rose & Oud Evening' : 'ex. Rose & Oud Soirée'}
-              value={saveModalName}
-              onChange={(e) => setSaveModalName(e.target.value)}
-              className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-foreground placeholder-foreground/30 focus:outline-none focus:border-gold/50 mb-6 text-sm"
-            />
+             <input
+               id="field-saveModalName"
+               type="text"
+               placeholder={i18n.language === 'en' ? 'e.g. Rose & Oud Evening' : 'ex. Rose & Oud Soirée'}
+               value={form.saveModalName}
+               onChange={(e) => updateFormField('saveModalName', e.target.value)}
+               className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-foreground placeholder-foreground/30 focus:outline-none focus:border-gold/50 mb-6 text-base"
+             />
+             {formErrors.saveModalName && (
+               <p className="mt-1 text-xs text-red-500">{formErrors.saveModalName}</p>
+             )}
 
-            <div className="flex gap-3">
-              <button
-                onClick={() => {
-                  setShowSaveModal(false);
-                  setSaveModalName('');
-                }}
-                className="flex-1 px-6 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-sm text-foreground/60 transition-colors"
-              >
-                {i18n.language === 'en' ? 'Cancel' : 'Annuler'}
-              </button>
-              <button
-                onClick={() => handleSaveComposition(saveModalName)}
-                disabled={isSaving || !saveModalName.trim()}
-                className="flex-1 px-6 py-3 bg-gold text-black hover:bg-cream rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
-              >
-                {isSaving ? <Loader2 size={14} className="inline animate-spin" /> : (i18n.language === 'en' ? 'Save' : 'Sauvegarder')}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+             <div className="flex gap-3">
+               <button
+                 onClick={() => {
+                   setShowSaveModal(false);
+                   setForm(prev => ({ ...prev, saveModalName: '' }));
+                 }}
+                 className="flex-1 px-6 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-sm text-foreground/60 transition-colors"
+               >
+                 {i18n.language === 'en' ? 'Cancel' : 'Annuler'}
+               </button>
+               <button
+                 onClick={() => handleSaveComposition(form.saveModalName)}
+                 disabled={isSaving || !form.saveModalName.trim()}
+                 className="flex-1 px-6 py-3 bg-gold text-black hover:bg-cream rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+               >
+                 {isSaving ? <Loader2 size={14} className="inline animate-spin" /> : (i18n.language === 'en' ? 'Save' : 'Sauvegarder')}
+               </button>
+             </div>
+           </div>
+         </div>
+       )}
 
       {/* ── Direct Order Modal ── */}
       {showDirectOrderModal && (
@@ -1280,60 +1372,79 @@ export default function AtelierPage() {
               </div>
             </div>
 
-            <form onSubmit={handleDirectOrderSubmit} className="space-y-3">
-              {/* Contact fields (optional) */}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-foreground/40 block mb-1.5">
-                    {i18n.language === 'en' ? 'Full Name' : 'Nom complet'}
-                  </label>
-                  <input
-                    type="text"
-                    value={orderFullName}
-                    onChange={e => setOrderFullName(e.target.value)}
-                    placeholder="ex: Jean Dupont"
-                    className="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-lg text-sm text-foreground placeholder-foreground/30 focus:outline-none focus:border-gold/50 transition-colors"
-                  />
-                </div>
-                <div>
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-foreground/40 block mb-1.5">
-                    {i18n.language === 'en' ? 'Phone' : 'Téléphone'}
-                  </label>
-                  <input
-                    type="tel"
-                    value={orderPhone}
-                    onChange={e => setOrderPhone(e.target.value)}
-                    placeholder="+2250102030405"
-                    className="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-lg text-sm text-foreground placeholder-foreground/30 focus:outline-none focus:border-gold/50 transition-colors"
-                  />
-                </div>
-              </div>
+<form onSubmit={handleDirectOrderSubmit} className="space-y-3">
+               {/* Contact fields (optional) */}
+               <div className="grid grid-cols-2 gap-3">
+                 <div>
+                   <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">
+                     {i18n.language === 'en' ? 'Full Name' : 'Nom complet'}
+                   </label>
+                   <input
+                     id="field-orderFullName"
+                     type="text"
+                     value={form.orderFullName}
+                     onChange={e => updateFormField('orderFullName', e.target.value)}
+                     placeholder="ex: Jean Dupont"
+                     className="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-lg text-base text-foreground placeholder-foreground/30 focus:outline-none focus:border-gold/50 transition-colors"
+                   /formErrors.order"
+                   />
+                   {formErrors.orderFullName && (
+                     <p className="mt-1 text-xs text-red-500">{formErrors.orderFullName}</p>
+                   )}
+                 </div>
+                 <div>
+                   <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">
+                     {i18n.language === 'en' ? 'Phone' : 'Téléphone'}
+                   </label>
+                   <input
+                     id="field-orderPhone"
+                     type="tel"
+                     value={form.orderPhone}
+                     onChange={e => updateFormField('orderPhone', e.target.value)}
+                     placeholder="+2250102030405"
+                     className="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-lg text-base text-foreground placeholder-foreground/30 focus:outline-none focus:border-gold/50 transition-colors"
+                   />
+                   {formErrors.orderPhone && (
+                     <p className="mt-1 text-xs text-red-500">{formErrors.orderPhone}</p>
+                   )}
+                 </div>
+               </div>
 
-              <div>
-                <label className="text-[10px] font-bold uppercase tracking-widest text-foreground/40 block mb-1.5">
-                  {i18n.language === 'en' ? 'City' : 'Ville'}
-                </label>
-                <input
-                  type="text"
-                  value={orderCity}
-                  onChange={e => setOrderCity(e.target.value)}
-                  placeholder="ex: Abidjan"
-                  className="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-lg text-sm text-foreground placeholder-foreground/30 focus:outline-none focus:border-gold/50 transition-colors"
-                />
-              </div>
+               <div className="space-y-2">
+                 <div>
+                   <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">
+                     {i18n.language === 'en' ? 'City' : 'Ville'}
+                   </label>
+                   <input
+                     id="field-orderCity"
+                     type="text"
+                     value={form.orderCity}
+                     onChange={e => updateFormField('orderCity', e.target.value)}
+                     placeholder="ex: Abidjan"
+                     className="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-lg text-base text-foreground placeholder-foreground/30 focus:outline-none focus:border-gold/50 transition-colors"
+                   />
+                   {formErrors.orderCity && (
+                     <p className="mt-1 text-xs text-red-500">{formErrors.orderCity}</p>
+                   )}
+                 </div>
 
-              <div>
-                <label className="text-[10px] font-bold uppercase tracking-widest text-foreground/40 block mb-1.5">
-                  {i18n.language === 'en' ? 'District / Quartier' : 'Quartier'}
-                </label>
-                <input
-                  type="text"
-                  value={orderQuartier}
-                  onChange={e => setOrderQuartier(e.target.value)}
-                  placeholder="ex: Cocody, Plateau..."
-                  className="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-lg text-sm text-foreground placeholder-foreground/30 focus:outline-none focus:border-gold/50 transition-colors"
-                />
-              </div>
+                 <div>
+                   <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">
+                     {i18n.language === 'en' ? 'District / Quartier' : 'Quartier'}
+                   </label>
+                   <input
+                     id="field-orderQuartier"
+                     type="text"
+                     value={form.orderQuartier}
+                     onChange={e => updateFormField('orderQuartier', e.target.value)}
+                     placeholder="ex: Cocody, Plateau..."
+                     className="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-lg text-base text-foreground placeholder-foreground/30 focus:outline-none focus:border-gold/50 transition-colors"
+                   />
+                   {formErrors.orderQuartier && (
+                     <p className="mt-1 text-xs text-red-500">{formErrors.orderQuartier}</p>
+                   )}
+                 </div>
+               </div>
 
               <p className="text-[10px] text-foreground/30 italic pt-1">
                 {i18n.language === 'en'

@@ -55,12 +55,19 @@ function VerifyEmailContent() {
       await authService.resendVerificationEmail(email);
       addToast(t('verification_email_resent', { defaultValue: 'Lien de validation envoyé avec succès.' }), 'success');
     } catch (error: any) {
-      addToast(
+      const errorMsg =
         error.response?.data?.detail ||
-          error.response?.data?.email?.[0] ||
-          t('resend_email_error', { defaultValue: "Impossible de renvoyer l'e-mail de validation." }),
-        'error',
-      );
+        error.response?.data?.email?.[0] ||
+        t('resend_email_error', { defaultValue: "Impossible de renvoyer l'e-mail de validation." });
+      addToast(errorMsg, 'error');
+      
+      // Focus the email field on error
+      setTimeout(() => {
+        const emailInput = document.getElementById('field-email-verify');
+        if (emailInput instanceof HTMLInputElement) {
+          emailInput.focus();
+        }
+      }, 0);
     } finally {
       setIsResending(false);
     }
@@ -123,7 +130,9 @@ function VerifyEmailContent() {
           icon={<Mail size={18} />}
           value={email}
           onChange={(e) => setEmail(e.target.value)}
+          id="field-email-verify"
         />
+        {/* Error will be handled by toast and focus - keeping it simple for this page */}
         <Button type="submit" className="w-full mt-6" isLoading={isResending}>
           {t('resend_email_btn', { defaultValue: "Renvoyer l'e-mail de validation" })}
         </Button>

@@ -9,7 +9,6 @@ import CatalogAccessNotice from '@/components/catalog/CatalogAccessNotice';
 import AppImage from '@/components/ui/AppImage';
 import { extractCatalogList } from '@/lib/catalogUtils';
 import { extractApiError } from '@/lib/apiError';
-import { FloatInput } from '@/components/ui/Input';
 import { SlideOver } from '@/components/ui/SlideOver';
 
 export default function FinishedEssenceAdminPage() {
@@ -102,15 +101,18 @@ export default function FinishedEssenceAdminPage() {
 
   const validateForm = useCallback(() => {
     const errors: Record<string, string> = {};
-    if (!form.essence.trim()) errors.essence = 'Une essence doit être sélectionnée';
+    if (!form.essence || form.essence === '') errors.essence = 'Une essence doit être sélectionnée';
     if (!form.nom.trim()) errors.nom = 'Le nom du produit est requis';
+    if (!form.marque.trim()) errors.marque = 'La marque est requise';
+    if (!form.categorie.trim()) errors.categorie = 'La catégorie est requise';
     if (!form.taille_ml || Number(form.taille_ml) <= 0) errors.taille_ml = 'La taille doit être supérieure à 0';
     if (!form.prix || Number(form.prix) <= 0) errors.prix = 'Le prix doit être supérieur à 0';
-    if (form.stock_disponible === '' || Number(form.stock_disponible) < 0) errors.stock_disponible = 'Le stock est requis';
+    if (form.stock_disponible === '' || Number(form.stock_disponible) < 0) 
+      errors.stock_disponible = 'Le stock est requis';
     if (stockInsuffisant) errors.stock_disponible = 'Le stock demandé dépasse le stock du lot laboratoire';
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
-  }, [form.essence, form.nom, form.taille_ml, form.prix, form.stock_disponible, stockInsuffisant]);
+  }, [form.essence, form.nom, form.marque, form.categorie, form.taille_ml, form.prix, form.stock_disponible, stockInsuffisant]);
 
   const updateFormField = (field: keyof typeof form, value: string | boolean) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -125,11 +127,11 @@ export default function FinishedEssenceAdminPage() {
   const openAdd = () => {
     setEditing(null);
     setForm({
-      essence: essences[0]?.id ? String(essences[0].id) : '',
-      taille_ml: '50',
+      essence: '',
+      taille_ml: '',
       prix: '',
       prix_promotionnel: '',
-      stock_disponible: '0',
+      stock_disponible: '',
       actif: true,
       nom: '',
       marque: '',
@@ -387,44 +389,56 @@ export default function FinishedEssenceAdminPage() {
         }
       >
         <div className="space-y-4">
-              <FloatInput
-                label="Nom du produit *"
-                placeholder="Nom du produit"
-                value={form.nom}
-                error={formErrors.nom}
-                onChange={(e) => updateFormField('nom', e.target.value)}
-              />
-              <div className="grid grid-cols-2 gap-3">
-                <FloatInput
-                  label="Marque"
-                  placeholder="Marque"
-                  value={form.marque}
-                  onChange={(e) => updateFormField('marque', e.target.value)}
-                />
-                <FloatInput
-                  label="Catégorie"
-                  placeholder="Catégorie"
-                  value={form.categorie}
-                  onChange={(e) => updateFormField('categorie', e.target.value)}
-                />
-              </div>
+<div>
+                 <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">Nom du produit *</label>
+                 <input
+                   data-field="nom"
+                   value={form.nom}
+                   onChange={(e) => updateFormField('nom', e.target.value)}
+                   className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-base text-foreground outline-none focus:border-gold"
+                 />
+                 {formErrors.nom && <p className="mt-1 text-xs text-red-500">{formErrors.nom}</p>}
+               </div>
+<div className="grid grid-cols-2 gap-3">
+                 <div>
+                   <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">Marque</label>
+                   <input
+                     data-field="marque"
+                     value={form.marque}
+                     onChange={(e) => updateFormField('marque', e.target.value)}
+                     className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-base text-foreground outline-none focus:border-gold"
+                   />
+                   {formErrors.marque && <p className="mt-1 text-xs text-red-500">{formErrors.marque}</p>}
+                 </div>
+                 <div>
+                   <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">Catégorie</label>
+                   <input
+                     data-field="categorie"
+                     value={form.categorie}
+                     onChange={(e) => updateFormField('categorie', e.target.value)}
+                     className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-base text-foreground outline-none focus:border-gold"
+                   />
+                   {formErrors.categorie && <p className="mt-1 text-xs text-red-500">{formErrors.categorie}</p>}
+                 </div>
+               </div>
             </div>
 
-            <div className="relative">
-              <label className="text-[10px] font-bold text-gold uppercase block mb-1">Essence de base *</label>
-              <div
-                className={`w-full bg-white/5 border rounded-xl px-3 py-2.5 text-sm outline-none focus:border-gold bg-neutral-900 cursor-pointer flex items-center justify-between ${formErrors.essence ? 'border-red-500/50' : 'border-white/10'}`}
-                onClick={() => setShowEssenceDropdown(v => !v)}
-              >
-                <span className={form.essence ? 'text-foreground' : 'text-foreground/40'}>
-                  {form.essence
-                    ? essences.find((e: any) => String(e.id) === form.essence)?.nom ?? `Essence #${form.essence}`
-                    : 'Choisir une essence…'}
-                </span>
-                <Search size={14} className="text-foreground/40" />
-              </div>
-              {formErrors.essence && <p className="mt-1 text-xs text-red-500">{formErrors.essence}</p>}
-              {showEssenceDropdown && (
+<div className="relative">
+               <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">Essence de base *</label>
+               <div
+                 data-field="essence"
+                 className={`w-full bg-white/5 border rounded-xl px-3 py-2.5 text-base outline-none focus:border-gold bg-neutral-900 cursor-pointer flex items-center justify-between ${formErrors.essence ? 'border-red-500/50' : 'border-white/10'}`}
+                 onClick={() => setShowEssenceDropdown(v => !v)}
+               >
+                 <span className={form.essence ? 'text-foreground' : 'text-foreground/40'}>
+                   {form.essence
+                     ? essences.find((e: any) => String(e.id) === form.essence)?.nom ?? `Essence #${form.essence}`
+                     : 'Choisir une essence…'}
+                 </span>
+                 <Search size={14} className="text-foreground/40" />
+               </div>
+               {formErrors.essence && <p className="mt-1 text-xs text-red-500">{formErrors.essence}</p>}
+               {showEssenceDropdown && (
                 <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-neutral-900 border border-white/10 rounded-xl shadow-sm overflow-hidden">
                   <div className="p-2">
                     <input
@@ -469,51 +483,66 @@ export default function FinishedEssenceAdminPage() {
               )}
             </div>
 
-            <div>
-              <label className="text-[10px] font-bold text-gold uppercase block mb-1">Image principale</label>
-              <input
-                type="file"
-                accept="image/*"
-                onChange={(e) => setImageFile(e.target.files?.[0] || null)}
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-foreground outline-none file:bg-gold file:text-black file:border-0 file:rounded file:px-2 file:py-1 file:mr-2 file:text-xs file:font-semibold"
-              />
-            </div>
+<div>
+               <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">Image principale</label>
+               <input
+                 data-field="imageFile"
+                 type="file"
+                 accept="image/*"
+                 onChange={(e) => setImageFile(e.target.files?.[0] || null)}
+                 className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-base text-foreground outline-none file:bg-gold file:text-black file:border-0 file:rounded file:px-2 file:py-1 file:mr-2 file:text-xs file:font-semibold"
+               />
+               {formErrors.imageFile && <p className="mt-1 text-xs text-red-500">{formErrors.imageFile}</p>}
+             </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <FloatInput
-                type="number"
-                label="Taille (ml) *"
-                placeholder="Taille (ml)"
-                value={form.taille_ml}
-                error={formErrors.taille_ml}
-                onChange={(e) => updateFormField('taille_ml', e.target.value)}
-              />
-              <FloatInput
-                type="number"
-                label="Stock *"
-                placeholder="Stock"
-                value={form.stock_disponible}
-                error={formErrors.stock_disponible}
-                onChange={(e) => updateFormField('stock_disponible', e.target.value)}
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <FloatInput
-                type="number"
-                label="Prix (FCFA) *"
-                placeholder="Prix"
-                value={form.prix}
-                error={formErrors.prix}
-                onChange={(e) => updateFormField('prix', e.target.value)}
-              />
-              <FloatInput
-                type="number"
-                label="Prix Promo"
-                placeholder="Promo"
-                value={form.prix_promotionnel}
-                onChange={(e) => updateFormField('prix_promotionnel', e.target.value)}
-              />
-            </div>
+<div className="grid grid-cols-2 gap-3">
+               <div>
+                 <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">Taille (ml) *</label>
+                 <input
+                   data-field="taille_ml"
+                   type="number"
+                   value={form.taille_ml}
+                   onChange={(e) => updateFormField('taille_ml', e.target.value)}
+                   className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-base text-foreground outline-none focus:border-gold"
+                 />
+                 {formErrors.taille_ml && <p className="mt-1 text-xs text-red-500">{formErrors.taille_ml}</p>}
+               </div>
+               <div>
+                 <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">Stock *</label>
+                 <input
+                   data-field="stock_disponible"
+                   type="number"
+                   value={form.stock_disponible}
+                   onChange={(e) => updateFormField('stock_disponible', e.target.value)}
+                   className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-base text-foreground outline-none focus:border-gold"
+                 />
+                 {formErrors.stock_disponible && <p className="mt-1 text-xs text-red-500">{formErrors.stock_disponible}</p>}
+               </div>
+             </div>
+<div className="grid grid-cols-2 gap-3">
+               <div>
+                 <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">Prix (FCFA) *</label>
+                 <input
+                   data-field="prix"
+                   type="number"
+                   value={form.prix}
+                   onChange={(e) => updateFormField('prix', e.target.value)}
+                   className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-base text-foreground outline-none focus:border-gold"
+                 />
+                 {formErrors.prix && <p className="mt-1 text-xs text-red-500">{formErrors.prix}</p>}
+               </div>
+               <div>
+                 <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">Prix Promo</label>
+                 <input
+                   data-field="prix_promotionnel"
+                   type="number"
+                   value={form.prix_promotionnel}
+                   onChange={(e) => updateFormField('prix_promotionnel', e.target.value)}
+                   className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-base text-foreground outline-none focus:border-gold"
+                 />
+                 {formErrors.prix_promotionnel && <p className="mt-1 text-xs text-red-500">{formErrors.prix_promotionnel}</p>}
+               </div>
+             </div>
 
             {!editing && form.essence && (
               <div className={`rounded-xl border px-4 py-3 text-sm space-y-1 ${stockInsuffisant ? 'border-red-500/30 bg-red-500/10 text-red-300' : 'border-white/10 bg-white/5 text-foreground/70'}`}>
