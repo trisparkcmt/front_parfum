@@ -40,7 +40,7 @@ export default function ProfileEditModal({
     formState: { errors },
     reset,
     setError,
-    focus,
+    setFocus,
   } = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -82,24 +82,24 @@ export default function ProfileEditModal({
         // Map API error to field
         if (errData.first_name?.[0]) {
           setError('firstName', { type: 'manual', message: errData.first_name[0] });
-          focus('firstName');
+          setFocus('firstName');
         } else if (errData.last_name?.[0]) {
           setError('lastName', { type: 'manual', message: errData.last_name[0] });
-          focus('lastName');
+          setFocus('lastName');
         } else if (errData.email?.[0]) {
           setError('email', { type: 'manual', message: errData.email[0] });
-          focus('email');
+          setFocus('email');
         } else if (errData.telephone?.[0]) {
           // Note: the API uses 'telephone' for phone
           setError('phone', { type: 'manual', message: errData.telephone[0] });
-          focus('phone');
+          setFocus('phone');
         } else {
           // If we can't map, focus the first field
-          focus('firstName');
+          setFocus('firstName');
         }
       } else {
         // If we can't determine the field, focus the first field
-        focus('firstName');
+        setFocus('firstName');
       }
     } finally {
       setLoading(false);

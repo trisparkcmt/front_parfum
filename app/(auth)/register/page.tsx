@@ -46,7 +46,7 @@ function RegisterFormContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirectUrl = searchParams.get('redirect') || '/';
-  const { register: registerUser, isLoading } = useAuthStore();
+  const { register: registerUser, isLoading, loginWithGoogle } = useAuthStore();
   const { addToast } = useToastStore();
   const [formError, setFormError] = useState<string | null>(null);
 
@@ -55,7 +55,7 @@ function RegisterFormContent() {
     handleSubmit,
     formState: { errors },
     setError,
-    focus,
+    setFocus,
   } = useForm<RegisterForm>({
     resolver: zodResolver(registerSchema),
   });
@@ -165,10 +165,10 @@ function RegisterFormContent() {
       // Set field-specific error and focus if we have a field
       if (field) {
         setError(field as any, { type: 'manual', message });
-        focus(field as any);
+        setFocus(field as any);
       } else {
         // Fallback: focus first field
-        focus('firstName');
+        setFocus('firstName');
       }
     }
   };

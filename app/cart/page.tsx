@@ -72,6 +72,8 @@ export default function CartPage() {
     deliveryType: 'delivery' as 'delivery' | 'pickup',
   });
 
+  const { deliveryType, paymentMethod, mobileNetwork } = form;
+
   const updateFormField = (field: keyof typeof form, value: any) => {
     setForm(prev => ({ ...prev, [field]: value }));
     // Clear error for this field when user starts typing
@@ -398,14 +400,6 @@ const handleCheckout = async () => {
                      className="bg-black/20"
                      id="field-deliveryPhone"
                    />
-                   {formErrors.deliveryPhone && (
-                     <p className="mt-1 text-xs text-red-500">{formErrors.deliveryPhone}</p>
-                   )}
-                 </div>
-                   {form.deliveryPhone && (
-                     <p className="mt-1 text-xs text-red-500">{form.deliveryPhone}</p>
-                   )}
-                 </div>
                    {formErrors.deliveryPhone && (
                      <p className="mt-1 text-xs text-red-500">{formErrors.deliveryPhone}</p>
                    )}

@@ -196,7 +196,7 @@ const handleSave = async () => {
       else if (isNaN(Number(form.produitFini.stock_disponible)) || Number(form.produitFini.stock_disponible) < 0) 
         errors['produitFini.stock_disponible'] = 'Le stock du format boutique doit être supérieur ou égal à 0';
       
-      if (!form.produitFiniImageFile) errors.produitFiniImageFile = 'Une image est requise pour le format boutique';
+      if (!produitFiniImageFile) errors.produitFiniImageFile = 'Une image est requise pour le format boutique';
       
       // Additional validation: boutique stock should not exceed lot stock
       if (form.produitFini.stock_disponible !== '' && form.lotStockMl !== '') {
@@ -268,8 +268,8 @@ const handleSave = async () => {
           formData.append('produits_finis[0][prix_promotionnel]', form.produitFini.prix_promotionnel || '');
           formData.append('produits_finis[0][stock_disponible]', form.produitFini.stock_disponible);
           
-          if (form.produitFiniImageFile) {
-            formData.append('produits_finis[0][image_principale]', form.produitFiniImageFile);
+          if (produitFiniImageFile) {
+            formData.append('produits_finis[0][image_principale]', produitFiniImageFile);
           }
         }
         
@@ -570,14 +570,14 @@ const handleSave = async () => {
                       <div className="grid grid-cols-2 gap-3">
                         <FloatInput
                           label="Marque / Fournisseur"
-                          value={marque}
-                          onChange={e => setMarque(e.target.value)}
+                          value={form.marque}
+                          onChange={e => updateForm('marque', e.target.value)}
                         />
                         <div>
                           <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Catégorie</label>
                           <select
-                            value={categorie}
-                            onChange={e => setCategorie(e.target.value)}
+                            value={form.categorie}
+                            onChange={e => updateForm('categorie', e.target.value)}
                             className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white outline-none focus:border-gold bg-neutral-900 capitalize"
                           >
                             {STATIC_CATEGORIES.map(cat => (
@@ -591,8 +591,8 @@ const handleSave = async () => {
                         <div>
                           <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Intensité</label>
                           <select
-                            value={intensite}
-                            onChange={e => setIntensite(e.target.value)}
+                            value={form.intensite}
+                            onChange={e => updateForm('intensite', e.target.value)}
                             className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white outline-none focus:border-gold bg-neutral-900"
                           >
                             <option value="légère">Légère</option>
@@ -604,8 +604,8 @@ const handleSave = async () => {
                         <div>
                           <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Genre Cible</label>
                           <select
-                            value={genreCible}
-                            onChange={e => setGenreCible(e.target.value)}
+                            value={form.genreCible}
+                            onChange={e => updateForm('genreCible', e.target.value)}
                             className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white outline-none focus:border-gold bg-neutral-900"
                           >
                             <option value="mixte">Mixte</option>
@@ -681,8 +681,8 @@ const handleSave = async () => {
                             <label className="flex items-center gap-2 cursor-pointer">
                               <input
                                 type="checkbox"
-                                checked={includeProduitsFinis}
-                                onChange={e => setIncludeProduitsFinis(e.target.checked)}
+                                checked={form.includeProduitsFinis}
+                                onChange={e => updateForm('includeProduitsFinis', e.target.checked)}
                                 className="rounded border-white/10 bg-white/5 text-gold focus:ring-gold"
                               />
                               <div>
@@ -690,7 +690,7 @@ const handleSave = async () => {
                                 <p className="text-foreground/40 text-sm">Flacon prêt à la vente dans le shop</p>
                               </div>
                             </label>
-{includeProduitsFinis && (
+{form.includeProduitsFinis && (
                                <div className="grid grid-cols-2 gap-3 pt-2 border-t border-white/5">
                                  <div>
                                    <label className="block text-xs font-bold text-foreground/40 tracking-wider mb-1.5">Taille (ml)</label>
@@ -772,7 +772,7 @@ const handleSave = async () => {
                         </button>
                         <button 
                           onClick={handleSave} 
-                          disabled={saving || !nom || !codeReference}
+                          disabled={saving || !form.nom || !form.codeReference}
                           className="flex-1 px-4 py-2.5 rounded-xl bg-gold text-black font-bold text-sm hover:bg-gold/80 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
                         >
                           {saving && <Loader2 size={14} className="animate-spin" />}

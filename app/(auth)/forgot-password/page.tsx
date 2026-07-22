@@ -23,7 +23,7 @@ export default function ForgotPasswordPage() {
   });
   type FormData = z.infer<typeof schema>;
 
-  const { register, handleSubmit, formState: { errors }, setError, focus } = useForm<FormData>({ resolver: zodResolver(schema) });
+  const { register, handleSubmit, formState: { errors }, setError, setFocus } = useForm<FormData>({ resolver: zodResolver(schema) });
 
   const onSubmit = async (data: FormData) => {
     setIsLoading(true);
@@ -40,7 +40,7 @@ export default function ForgotPasswordPage() {
 
       // Set field-specific error and focus
       setError('email', { type: 'manual', message: errorMsg });
-      focus('email');
+      setFocus('email');
     } finally {
       setIsLoading(false);
     }

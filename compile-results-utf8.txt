@@ -1,0 +1,45 @@
+﻿app/(auth)/forgot-password/page.tsx(26,68): error TS2339: Property 'focus' does not exist on type 'UseFormReturn<{ email: string; }, any, { email: string; }>'.
+app/(auth)/register/page.tsx(58,5): error TS2339: Property 'focus' does not exist on type 'UseFormReturn<{ firstName: string; lastName: string; email: string; phone: string; password: string; passwordConfirm: string; }, any, { firstName: string; lastName: string; email: string; phone: string; password: string; passwordConfirm: string; }>'.
+app/(auth)/register/page.tsx(179,29): error TS2304: Cannot find name 'loginWithGoogle'.
+app/(auth)/resend-verification/page.tsx(35,68): error TS2339: Property 'focus' does not exist on type 'UseFormReturn<{ email: string; }, any, { email: string; }>'.
+app/dashboard/admin/essences/page.tsx(199,17): error TS2339: Property 'produitFiniImageFile' does not exist on type '{ nom: string; marque: string; codeReference: string; categorie: string; description: string; intensite: string; genreCible: string; prixParMl: string; lotStockMl: string; lotSeuilAlerteMl: string; lotReferenceFournisseur: string; includeProduitsFinis: boolean; produitFini: { ...; }; }'.
+app/dashboard/admin/essences/page.tsx(271,20): error TS2339: Property 'produitFiniImageFile' does not exist on type '{ nom: string; marque: string; codeReference: string; categorie: string; description: string; intensite: string; genreCible: string; prixParMl: string; lotStockMl: string; lotSeuilAlerteMl: string; lotReferenceFournisseur: string; includeProduitsFinis: boolean; produitFini: { ...; }; }'.
+app/dashboard/admin/essences/page.tsx(272,73): error TS2339: Property 'produitFiniImageFile' does not exist on type '{ nom: string; marque: string; codeReference: string; categorie: string; description: string; intensite: string; genreCible: string; prixParMl: string; lotStockMl: string; lotSeuilAlerteMl: string; lotReferenceFournisseur: string; includeProduitsFinis: boolean; produitFini: { ...; }; }'.
+app/dashboard/admin/essences/page.tsx(573,34): error TS2304: Cannot find name 'marque'.
+app/dashboard/admin/essences/page.tsx(574,42): error TS2304: Cannot find name 'setMarque'.
+app/dashboard/admin/essences/page.tsx(579,36): error TS2304: Cannot find name 'categorie'.
+app/dashboard/admin/essences/page.tsx(580,44): error TS2304: Cannot find name 'setCategorie'.
+app/dashboard/admin/essences/page.tsx(594,36): error TS2304: Cannot find name 'intensite'.
+app/dashboard/admin/essences/page.tsx(595,44): error TS2304: Cannot find name 'setIntensite'.
+app/dashboard/admin/essences/page.tsx(607,36): error TS2304: Cannot find name 'genreCible'.
+app/dashboard/admin/essences/page.tsx(608,44): error TS2304: Cannot find name 'setGenreCible'.
+app/dashboard/admin/essences/page.tsx(684,42): error TS2304: Cannot find name 'includeProduitsFinis'.
+app/dashboard/admin/essences/page.tsx(685,48): error TS2304: Cannot find name 'setIncludeProduitsFinis'.
+app/dashboard/admin/essences/page.tsx(693,2): error TS2304: Cannot find name 'includeProduitsFinis'.
+app/dashboard/admin/essences/page.tsx(775,48): error TS2304: Cannot find name 'nom'.
+app/dashboard/admin/essences/page.tsx(775,56): error TS2304: Cannot find name 'codeReference'.
+app/numba/atelier/page.tsx(631,7): error TS2304: Cannot find name 'setShowSaveModal'.
+app/numba/atelier/page.tsx(722,16): error TS2304: Cannot find name 'saveModalName'.
+app/numba/atelier/page.tsx(813,5): error TS2304: Cannot find name 'setIsOrderingDirect'.
+app/numba/atelier/page.tsx(843,14): error TS2304: Cannot find name 'saveModalName'.
+app/numba/atelier/page.tsx(858,7): error TS2304: Cannot find name 'setCreatedOrderNumber'.
+app/numba/atelier/page.tsx(859,7): error TS2304: Cannot find name 'setShowDirectOrderModal'.
+app/numba/atelier/page.tsx(860,7): error TS2304: Cannot find name 'setShowSuccessModal'.
+app/numba/atelier/page.tsx(875,7): error TS2304: Cannot find name 'setIsOrderingDirect'.
+app/numba/atelier/page.tsx(1258,32): error TS2304: Cannot find name 'setShowSaveModal'.
+app/numba/atelier/page.tsx(1285,30): error TS2304: Cannot find name 'setShowDirectOrderModal'.
+app/numba/atelier/page.tsx(1286,42): error TS2304: Cannot find name 'isOrderingDirect'.
+app/numba/atelier/page.tsx(1297,9): error TS2304: Cannot find name 'showSaveModal'.
+app/numba/atelier/page.tsx(1322,20): error TS2304: Cannot find name 'setShowSaveModal'.
+app/numba/atelier/page.tsx(1342,8): error TS2304: Cannot find name 'showDirectOrderModal'.
+app/numba/atelier/page.tsx(1356,32): error TS2304: Cannot find name 'setShowDirectOrderModal'.
+app/numba/atelier/page.tsx(1368,66): error TS2304: Cannot find name 'saveModalName'.
+app/numba/atelier/page.tsx(1457,34): error TS2304: Cannot find name 'setShowDirectOrderModal'.
+app/numba/atelier/page.tsx(1464,29): error TS2304: Cannot find name 'isOrderingDirect'.
+app/numba/atelier/page.tsx(1467,20): error TS2304: Cannot find name 'isOrderingDirect'.
+app/numba/atelier/page.tsx(1480,8): error TS2304: Cannot find name 'showSuccessModal'.
+app/numba/atelier/page.tsx(1489,14): error TS2304: Cannot find name 'createdOrderNumber'.
+app/numba/atelier/page.tsx(1492,61): error TS2304: Cannot find name 'createdOrderNumber'.
+app/numba/atelier/page.tsx(1501,32): error TS2304: Cannot find name 'setShowSuccessModal'.
+app/numba/atelier/page.tsx(1501,60): error TS2304: Cannot find name 'setCreatedOrderNumber'.
+components/shared/ProfileEditModal.tsx(43,5): error TS2339: Property 'focus' does not exist on type 'UseFormReturn<{ firstName: string; lastName: string; email: string; phone: string; }, any, { firstName: string; lastName: string; email: string; phone: string; }>'.

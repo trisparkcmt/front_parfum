@@ -119,7 +119,7 @@ export default function CategoriesAdminPage() {
       ordre_affichage: item.ordre_affichage || 0,
       actif: item.actif !== undefined ? item.actif : true,
       taux_reduction: item.taux_reduction || '0.00',
-      date_debur: toDatetimeLocalValue(item.date_debut),
+      date_debut: toDatetimeLocalValue(item.date_debut),
       date_fin: toDatetimeLocalValue(item.date_fin),
       message_promotion: item.message_promotion || '',
     });
@@ -137,7 +137,7 @@ export default function CategoriesAdminPage() {
     if (activeTab === 'perfume_categories' || activeTab === 'accessory_categories') {
       if (!form.nom.trim()) errors.nom = 'Le nom est requis';
       if (!form.slug.trim()) errors.slug = 'Le slug est requis';
-      if (form.ordre_affichage === '') errors.ordre_affichage = "L'ordre d'affichage est requis";
+      if (form.ordre_affichage === undefined || form.ordre_affichage === null) errors.ordre_affichage = "L'ordre d'affichage est requis";
       else if (isNaN(Number(form.ordre_affichage)) || Number(form.ordre_affichage) < 0) errors.ordre_affichage = "L'ordre d'affichage doit être un nombre positif";
       if (!form.taux_reduction) errors.taux_reduction = 'Le taux de réduction est requis';
       else if (isNaN(Number(form.taux_reduction)) || Number(form.taux_reduction) < 0 || Number(form.taux_reduction) > 100) 
@@ -529,7 +529,6 @@ export default function CategoriesAdminPage() {
                                 className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-base text-foreground outline-none focus:border-gold"
                             />
                         </div>
-                    </>
 
                   {/* Image/icon upload for perfume category */}
                   <CompactIconUpload

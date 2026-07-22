@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCartStore } from '@/store/useCartStore';
@@ -102,25 +102,13 @@ const GlassDefs = ({ col, id }: any) => (
    BOTTLE SVG COMPONENTS (WITH DYNAMIC COLORS)
    ═══════════════════════════════════════ */
 function Bottle100({ totalMl, maxMl, quantities, allItems }: any) {
-  const [isAdding, setIsAdding] = useState(false);
-  const prevTotalMl = useRef(totalMl);
-
-  useEffect(() => {
-    if (totalMl > prevTotalMl.current) {
-      setIsAdding(true);
-      const timer = setTimeout(() => setIsAdding(false), 1600);
-      return () => clearTimeout(timer);
-    }
-    prevTotalMl.current = totalMl;
-  }, [totalMl]);
-
   const pct = Math.min(1, totalMl / maxMl);
   const topY = Math.round(420 - pct * 300);
   const col = blendColor(quantities, allItems);
   const isEmpty = totalMl === 0;
 
   return (
-    <svg width="260" height="480" viewBox="0 0 260 480" fill="none" className={`mx-auto transition-all ${isAdding ? 'bottle-glow' : ''}`}>
+    <svg width="260" height="480" viewBox="0 0 260 480" fill="none" className="mx-auto">
       <GlassDefs col={col} id="100" />
       <clipPath id="c-100"><rect x="42" y="118" width="176" height="310" rx="6" ry="6" /></clipPath>
       <rect x="42" y="118" width="176" height="310" rx="6" fill="url(#g-glass-v-100)" stroke="rgba(180,170,155,0.50)" strokeWidth="1" />
@@ -128,24 +116,6 @@ function Bottle100({ totalMl, maxMl, quantities, allItems }: any) {
         <g clipPath="url(#c-100)">
           <rect x="42" y={topY} width="176" height={Math.max(2, 430 - topY)} fill="url(#g-liquid-100)" className="liquid-body" />
           <ellipse cx="130" cy={topY} rx={Math.round(52 + pct * 32)} ry="8" fill="url(#g-surface-100)" />
-          
-          {/* Animated bubbles rising from bottom to current level */}
-          {isAdding && (
-            <g>
-              <circle cx="90" cy="400" r="2.5" fill="rgba(255,255,255,0.35)">
-                <animate attributeName="cy" from="400" to={topY} dur="1.2s" repeatCount="1" fill="freeze" />
-                <animate attributeName="opacity" from="0.7" to="0" dur="1.2s" repeatCount="1" fill="freeze" />
-              </circle>
-              <circle cx="150" cy="410" r="1.5" fill="rgba(255,255,255,0.35)">
-                <animate attributeName="cy" from="410" to={topY} dur="0.9s" repeatCount="1" fill="freeze" />
-                <animate attributeName="opacity" from="0.7" to="0" dur="0.9s" repeatCount="1" fill="freeze" />
-              </circle>
-              <circle cx="120" cy="380" r="2" fill="rgba(255,255,255,0.35)">
-                <animate attributeName="cy" from="380" to={topY} dur="1.4s" repeatCount="1" fill="freeze" />
-                <animate attributeName="opacity" from="0.7" to="0" dur="1.4s" repeatCount="1" fill="freeze" />
-              </circle>
-            </g>
-          )}
         </g>
       )}
       <rect x="42" y="118" width="176" height="310" rx="6" fill="url(#g-glass-100)" opacity="0.60" />
@@ -160,47 +130,22 @@ function Bottle100({ totalMl, maxMl, quantities, allItems }: any) {
       <rect x="88" y="6" width="84" height="36" rx="10" fill="url(#g-glass-v-100)" stroke="rgba(180,170,155,0.55)" strokeWidth="1" />
       <rect x="88" y="6" width="84" height="36" rx="10" fill="url(#g-glass-100)" opacity="0.70" />
       <text x="130" y="29" textAnchor="middle" fontFamily="serif" fontSize="8" fontStyle="italic" fill="rgba(197,160,89,0.80)" letterSpacing="2">N</text>
-      
-      {/* Falling Drop and Surface Ripple Animation */}
-      {isAdding && (
-        <g>
-          {/* Falling drop */}
-          <circle cx="130" cy="50" r="3.5" fill="url(#g-drip-100)">
-            <animate attributeName="cy" from="50" to={topY} dur="0.4s" repeatCount="1" fill="freeze" />
-            <animate attributeName="opacity" from="1" to="0" begin="0.38s" dur="0.02s" repeatCount="1" fill="freeze" />
-          </circle>
-          {/* Expanding surface ripple wave */}
-          <ellipse cx="130" cy={topY} rx="2" ry="0.5" fill="none" stroke="rgba(255,255,255,0.7)" strokeWidth="1">
-            <animate attributeName="rx" from="2" to={Math.round(52 + pct * 32)} begin="0.4s" dur="0.5s" repeatCount="1" fill="freeze" />
-            <animate attributeName="ry" from="0.5" to="8" begin="0.4s" dur="0.5s" repeatCount="1" fill="freeze" />
-            <animate attributeName="opacity" from="0.9" to="0" begin="0.4s" dur="0.5s" repeatCount="1" fill="freeze" />
-          </ellipse>
-        </g>
-      )}
+      <g className="drip-group">
+        <line x1="130" y1="0" x2="130" y2="46" stroke="url(#g-drip-100)" strokeWidth="3.5" strokeLinecap="round" />
+        {!isEmpty && <ellipse cx="130" cy={50} rx={4.5} ry={6} fill={col.mid} opacity="0.90" />}
+      </g>
     </svg>
   );
 }
 
 function Bottle50({ totalMl, maxMl, quantities, allItems }: any) {
-  const [isAdding, setIsAdding] = useState(false);
-  const prevTotalMl = useRef(totalMl);
-
-  useEffect(() => {
-    if (totalMl > prevTotalMl.current) {
-      setIsAdding(true);
-      const timer = setTimeout(() => setIsAdding(false), 1600);
-      return () => clearTimeout(timer);
-    }
-    prevTotalMl.current = totalMl;
-  }, [totalMl]);
-
   const pct = Math.min(1, totalMl / maxMl);
   const col = blendColor(quantities, allItems);
   const topY = Math.round(380 - pct * 240);
   const isEmpty = totalMl === 0;
 
   return (
-    <svg width="260" height="480" viewBox="0 0 260 480" fill="none" className={`mx-auto transition-all ${isAdding ? 'bottle-glow' : ''}`}>
+    <svg width="260" height="480" viewBox="0 0 260 480" fill="none" className="mx-auto">
       <GlassDefs col={col} id="50" />
       <clipPath id="c-50">
         <path d="M130,120 C80,120 45,180 45,280 C45,380 85,415 130,415 C175,415 215,380 215,280 C215,180 180,120 130,120 Z" />
@@ -210,20 +155,6 @@ function Bottle50({ totalMl, maxMl, quantities, allItems }: any) {
         <g clipPath="url(#c-50)">
           <rect x="40" y={topY} width="180" height="300" fill="url(#g-liquid-50)" className="liquid-body" />
           <ellipse cx="130" cy={topY} rx={Math.round(40 + pct * 30)} ry={7} fill="url(#g-surface-50)" />
-          
-          {/* Animated bubbles rising */}
-          {isAdding && (
-            <g>
-              <circle cx="100" cy="360" r="2" fill="rgba(255,255,255,0.35)">
-                <animate attributeName="cy" from="360" to={topY} dur="1.1s" repeatCount="1" fill="freeze" />
-                <animate attributeName="opacity" from="0.7" to="0" dur="1.1s" repeatCount="1" fill="freeze" />
-              </circle>
-              <circle cx="145" cy="370" r="1.5" fill="rgba(255,255,255,0.35)">
-                <animate attributeName="cy" from="370" to={topY} dur="0.8s" repeatCount="1" fill="freeze" />
-                <animate attributeName="opacity" from="0.7" to="0" dur="0.8s" repeatCount="1" fill="freeze" />
-              </circle>
-            </g>
-          )}
         </g>
       )}
       <path d="M130,120 C80,120 45,180 45,280 C45,380 85,415 130,415 C175,415 215,380 215,280 C215,180 180,120 130,120 Z" fill="url(#g-glass-50)" opacity="0.60" />
@@ -232,45 +163,21 @@ function Bottle50({ totalMl, maxMl, quantities, allItems }: any) {
       <circle cx="130" cy="45" r="35" fill="url(#g-glass-v-50)" stroke="rgba(197,160,89,0.5)" strokeWidth="1" />
       <circle cx="130" cy="45" r="35" fill="url(#g-glass-50)" opacity="0.7" />
       <text x="130" y="52" textAnchor="middle" fontFamily="serif" fontSize="14" fill="rgba(197,160,89,0.8)" >N</text>
-      
-      {/* Falling Drop and Surface Ripple Animation */}
-      {isAdding && (
-        <g>
-          <circle cx="130" cy="50" r="3" fill="url(#g-drip-50)">
-            <animate attributeName="cy" from="50" to={topY} dur="0.4s" repeatCount="1" fill="freeze" />
-            <animate attributeName="opacity" from="1" to="0" begin="0.38s" dur="0.02s" repeatCount="1" fill="freeze" />
-          </circle>
-          <ellipse cx="130" cy={topY} rx="2" ry="0.5" fill="none" stroke="rgba(255,255,255,0.7)" strokeWidth="1">
-            <animate attributeName="rx" from="2" to={Math.round(40 + pct * 30)} begin="0.4s" dur="0.5s" repeatCount="1" fill="freeze" />
-            <animate attributeName="ry" from="0.5" to="7" begin="0.4s" dur="0.5s" repeatCount="1" fill="freeze" />
-            <animate attributeName="opacity" from="0.9" to="0" begin="0.4s" dur="0.5s" repeatCount="1" fill="freeze" />
-          </ellipse>
-        </g>
-      )}
+      <g className="drip-group">
+        <line x1="130" y1="0" x2="130" y2="40" stroke="url(#g-drip-50)" strokeWidth="3" strokeLinecap="round" />
+      </g>
     </svg>
   );
 }
 
 function Bottle30({ totalMl, maxMl, quantities, allItems }: any) {
-  const [isAdding, setIsAdding] = useState(false);
-  const prevTotalMl = useRef(totalMl);
-
-  useEffect(() => {
-    if (totalMl > prevTotalMl.current) {
-      setIsAdding(true);
-      const timer = setTimeout(() => setIsAdding(false), 1600);
-      return () => clearTimeout(timer);
-    }
-    prevTotalMl.current = totalMl;
-  }, [totalMl]);
-
   const pct = Math.min(1, totalMl / maxMl);
   const col = blendColor(quantities, allItems);
   const topY = Math.round(400 - pct * 300);
   const isEmpty = totalMl === 0;
 
   return (
-    <svg width="260" height="480" viewBox="0 0 260 480" fill="none" className={`mx-auto transition-all ${isAdding ? 'bottle-glow' : ''}`}>
+    <svg width="260" height="480" viewBox="0 0 260 480" fill="none" className="mx-auto">
       <GlassDefs col={col} id="30" />
       <clipPath id="c-30"><rect x="90" y="100" width="80" height="320" rx="40" /></clipPath>
       <rect x="90" y="100" width="80" height="320" rx="40" fill="url(#g-glass-v-30)" stroke="rgba(180,170,155,0.50)" strokeWidth="1" />
@@ -278,20 +185,6 @@ function Bottle30({ totalMl, maxMl, quantities, allItems }: any) {
         <g clipPath="url(#c-30)">
           <rect x="90" y={topY} width="80" height="330" fill="url(#g-liquid-30)" className="liquid-body" />
           <ellipse cx="130" cy={topY} rx={32} ry="6" fill="url(#g-surface-30)" />
-          
-          {/* Animated bubbles rising */}
-          {isAdding && (
-            <g>
-              <circle cx="115" cy="380" r="1.8" fill="rgba(255,255,255,0.35)">
-                <animate attributeName="cy" from="380" to={topY} dur="1.3s" repeatCount="1" fill="freeze" />
-                <animate attributeName="opacity" from="0.7" to="0" dur="1.3s" repeatCount="1" fill="freeze" />
-              </circle>
-              <circle cx="138" cy="390" r="1.2" fill="rgba(255,255,255,0.35)">
-                <animate attributeName="cy" from="390" to={topY} dur="0.9s" repeatCount="1" fill="freeze" />
-                <animate attributeName="opacity" from="0.7" to="0" dur="0.9s" repeatCount="1" fill="freeze" />
-              </circle>
-            </g>
-          )}
         </g>
       )}
       <rect x="90" y="100" width="80" height="320" rx="40" fill="url(#g-glass-30)" opacity="0.60" />
@@ -299,21 +192,9 @@ function Bottle30({ totalMl, maxMl, quantities, allItems }: any) {
       <rect x="110" y="70" width="40" height="35" rx="2" fill="url(#g-chrome-30)" />
       <rect x="95" y="15" width="70" height="55" rx="5" fill="#111" stroke="#C5A059" strokeWidth="1.5" />
       <text x="130" y="48" textAnchor="middle" fontFamily="serif" fontSize="12" fill="#C5A059">N</text>
-      
-      {/* Falling Drop and Surface Ripple Animation */}
-      {isAdding && (
-        <g>
-          <circle cx="130" cy="50" r="3" fill="url(#g-drip-30)">
-            <animate attributeName="cy" from="50" to={topY} dur="0.4s" repeatCount="1" fill="freeze" />
-            <animate attributeName="opacity" from="1" to="0" begin="0.38s" dur="0.02s" repeatCount="1" fill="freeze" />
-          </circle>
-          <ellipse cx="130" cy={topY} rx="2" ry="0.5" fill="none" stroke="rgba(255,255,255,0.7)" strokeWidth="1">
-            <animate attributeName="rx" from="2" to={32} begin="0.4s" dur="0.5s" repeatCount="1" fill="freeze" />
-            <animate attributeName="ry" from="0.5" to="6" begin="0.4s" dur="0.5s" repeatCount="1" fill="freeze" />
-            <animate attributeName="opacity" from="0.9" to="0" begin="0.4s" dur="0.5s" repeatCount="1" fill="freeze" />
-          </ellipse>
-        </g>
-      )}
+      <g className="drip-group">
+        <line x1="130" y1="0" x2="130" y2="25" stroke="url(#g-drip-30)" strokeWidth="3" strokeLinecap="round" />
+      </g>
     </svg>
   );
 }
@@ -352,38 +233,24 @@ export default function AtelierPage() {
   const [isAddingToCart, setIsAddingToCart] = useState(false);
   const [cartAdded, setCartAdded] = useState(false);
   const [ctaSuccess, setCtaSuccess] = useState(false);
-  const [form, setForm] = useState({
-    saveModalName: '',
-    orderFullName: '',
-    orderPhone: '',
-    orderCity: '',
-    orderQuartier: '',
-  });
+  const [showSaveModal, setShowSaveModal] = useState(false);
+  const [saveModalName, setSaveModalName] = useState('');
 
-  const updateFormField = (field: keyof typeof form, value: string) => {
-    setForm(prev => ({ ...prev, [field]: value }));
-    // Clear error for this field when user starts typing
-    if (formErrors[field]) {
-      setFormErrors(prev => {
-        const newErrors = { ...prev };
-        delete newErrors[field];
-        return newErrors;
-      });
-    }
-  };
+  // Direct Order Workflow states
+  const [showDirectOrderModal, setShowDirectOrderModal] = useState(false);
+  const [orderFullName, setOrderFullName] = useState('');
+  const [orderPhone, setOrderPhone] = useState('');
+  const [orderCity, setOrderCity] = useState('');
+  const [orderQuartier, setOrderQuartier] = useState('');
+  const [isOrderingDirect, setIsOrderingDirect] = useState(false);
+  const [createdOrderNumber, setCreatedOrderNumber] = useState<string | null>(null);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
 
-  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
-
-  // Removed auto-prefilling of name and phone as per requirements
-  // Only set if user explicitly wants to use their profile data
   useEffect(() => {
-    // if (user) {
-    //   setForm(prev => ({
-    //     ...prev,
-    //     orderFullName: `${user.firstName || ''} ${user.lastName || ''}`.trim(),
-    //     orderPhone: user.phone || '',
-    //   }));
-    // }
+    if (user) {
+      setOrderFullName(`${user.firstName || ''} ${user.lastName || ''}`.trim());
+      setOrderPhone(user.phone || '');
+    }
   }, [user]);
 
   useEffect(() => {
@@ -550,34 +417,18 @@ export default function AtelierPage() {
   }, [totalMl, remaining, maxFillMl, i18n.language]);
 
   const handleSaveComposition = async (name: string) => {
-    // Validate name is provided
-    if (!name.trim()) {
-      setFormErrors(prev => ({
-        ...prev,
-        saveModalName: i18n.language === 'en' ? 'Please enter a name for your composition.' : 'Veuillez donner un nom à votre composition.'
-      }));
-      // Focus the name field
-      setTimeout(() => {
-        const element = document.getElementById('field-saveModalName');
-        if (element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement) {
-          element.focus();
-        }
-      }, 0);
+    if (totalMl === 0) {
+      addToast(
+        i18n.language === 'en' ? 'Please select at least one essence/ingredient.' : 'Veuillez sélectionner au moins une essence.',
+        'info'
+      );
       return;
     }
-
-    if (totalMl === 0) {
-      setFormErrors(prev => ({
-        ...prev,
-        saveModalName: i18n.language === 'en' ? 'Please select at least one essence/ingredient.' : 'Veuillez sélectionner au moins une essence.'
-      }));
-      // Focus the name field
-      setTimeout(() => {
-        const element = document.getElementById('field-saveModalName');
-        if (element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement) {
-          element.focus();
-        }
-      }, 0);
+    if (!name.trim()) {
+      addToast(
+        i18n.language === 'en' ? 'Please enter a name for your composition.' : 'Veuillez donner un nom à votre composition.',
+        'error'
+      );
       return;
     }
 
@@ -606,17 +457,10 @@ export default function AtelierPage() {
         .filter(Boolean);
 
       if (!selectedFlaconId) {
-        setFormErrors(prev => ({
-          ...prev,
-          saveModalName: i18n.language === 'en' ? 'Please select a valid bottle size.' : 'Veuillez sélectionner un format de flacon valide.'
-        }));
-        // Focus the name field
-        setTimeout(() => {
-          const element = document.getElementById('field-saveModalName');
-          if (element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement) {
-            element.focus();
-          }
-        }, 0);
+        addToast(
+          i18n.language === 'en' ? 'Please select a valid bottle size.' : 'Veuillez sélectionner un format de flacon valide.',
+          'error'
+        );
         setIsSaving(false);
         return;
       }
@@ -629,7 +473,7 @@ export default function AtelierPage() {
 
       setSavedParfumId(Number(response.id));
       setShowSaveModal(false);
-      setForm(prev => ({ ...prev, saveModalName: '' })); // Clear the form
+      setSaveModalName('');
       addFavorite({
         id: `composition-${response.id}`,
         name,
@@ -654,17 +498,8 @@ export default function AtelierPage() {
       );
     } catch (error: any) {
       const errorMsg = error?.response?.data?.detail || (i18n.language === 'en' ? 'Error saving composition.' : 'Erreur lors de la sauvegarde.');
-      setFormErrors(prev => ({
-        ...prev,
-        saveModalName: errorMsg
-      }));
-      // Focus the name field
-      setTimeout(() => {
-        const element = document.getElementById('field-saveModalName');
-        if (element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement) {
-          element.focus();
-        }
-      }, 0);
+      addToast(errorMsg, 'error');
+    } finally {
       setIsSaving(false);
     }
   };
@@ -776,40 +611,6 @@ export default function AtelierPage() {
       return;
     }
 
-    // Validate form fields (even though they're optional, we'll validate if provided)
-    const errors: Record<string, string> = {};
-    
-    // Only validate if fields have values (they're optional)
-    if (form.orderFullName && form.orderFullName.trim().length < 2) {
-      errors.orderFullName = i18n.language === 'en' ? 'Name must be at least 2 characters' : 'Le nom doit contenir au moins 2 caractères';
-    }
-    
-    if (form.orderPhone && !/^\+?[\d\s\-\(\)]+$/.test(form.orderPhone)) {
-      errors.orderPhone = i18n.language === 'en' ? 'Invalid phone number format' : 'Format de numéro de téléphone invalide';
-    }
-    
-    if (form.orderCity && form.orderCity.trim().length < 2) {
-      errors.orderCity = i18n.language === 'en' ? 'City must be at least 2 characters' : 'La ville doit contenir au moins 2 caractères';
-    }
-    
-    if (form.orderQuartier && form.orderQuartier.trim().length < 2) {
-      errors.orderQuartier = i18n.language === 'en' ? 'District must be at least 2 characters' : 'Le quartier doit contenir au moins 2 caractères';
-    }
-
-    // Set errors and focus first invalid field if any
-    if (Object.keys(errors).length > 0) {
-      setFormErrors(errors);
-      // Focus first invalid field
-      setTimeout(() => {
-        const firstField = Object.keys(errors)[0];
-        const element = document.getElementById(`field-${firstField}`);
-        if (element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement) {
-          element.focus();
-        }
-      }, 0);
-      return;
-    }
-
     setIsOrderingDirect(true);
     try {
       type DirectCompositionLine =
@@ -847,26 +648,18 @@ export default function AtelierPage() {
       const panier_id = cartResponse.id;
 
       // Step 2: Place order using the generated panier_id
-const orderResponse = await orderService.placeOrder({
+      const orderResponse = await orderService.placeOrder({
         panier_id,
-        livraison_nom_complet: form.orderFullName.trim() || undefined,
-        livraison_telephone: form.orderPhone.trim() || undefined,
-        livraison_ville: form.orderCity.trim() || undefined,
-        livraison_quartier: form.orderQuartier.trim() || undefined,
+        livraison_nom_complet: orderFullName.trim() || undefined,
+        livraison_telephone: orderPhone.trim() || undefined,
+        livraison_ville: orderCity.trim() || undefined,
+        livraison_quartier: orderQuartier.trim() || undefined,
       });
 
       setCreatedOrderNumber(orderResponse.numero_commande || `#${orderResponse.id}`);
       setShowDirectOrderModal(false);
       setShowSuccessModal(true);
       setQuantities({}); // Reset composition quantities on success
-      // Reset form after successful submission
-      setForm(prev => ({
-        ...prev,
-        orderFullName: '',
-        orderPhone: '',
-        orderCity: '',
-        orderQuartier: '',
-      }));
       addToast(i18n.language === 'en' ? 'Order placed successfully!' : 'Commande passée avec succès !', 'success');
     } catch (error: any) {
       const errorMsg = error?.response?.data?.detail || (i18n.language === 'en' ? 'Error processing your order.' : 'Erreur lors du traitement de votre commande.');
@@ -1293,50 +1086,46 @@ const orderResponse = await orderService.placeOrder({
         </div>
       </div>
 
-{/* Save Modal */}
-       {showSaveModal && (
-         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-           <div className="bg-background rounded-2xl p-8 w-full max-w-sm shadow-sm border border-white/10 animate-in fade-in zoom-in-95">
-             <h2 className="text-2xl font-extralight text-foreground mb-2">
-               {i18n.language === 'en' ? 'Save Your Composition' : 'Sauvegarder votre Composition'}
-             </h2>
-             <p className="text-xs text-foreground/40 uppercase tracking-widest mb-6">
-               {i18n.language === 'en' ? 'Give your creation a name' : 'Donnez un nom à votre création'}
-             </p>
+      {/* Save Modal */}
+      {showSaveModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-background rounded-2xl p-8 w-full max-w-sm shadow-sm border border-white/10 animate-in fade-in zoom-in-95">
+            <h2 className="text-2xl font-extralight text-foreground mb-2">
+              {i18n.language === 'en' ? 'Save Your Composition' : 'Sauvegarder votre Composition'}
+            </h2>
+            <p className="text-xs text-foreground/40 uppercase tracking-widest mb-6">
+              {i18n.language === 'en' ? 'Give your creation a name' : 'Donnez un nom à votre création'}
+            </p>
 
-             <input
-               id="field-saveModalName"
-               type="text"
-               placeholder={i18n.language === 'en' ? 'e.g. Rose & Oud Evening' : 'ex. Rose & Oud Soirée'}
-               value={form.saveModalName}
-               onChange={(e) => updateFormField('saveModalName', e.target.value)}
-               className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-foreground placeholder-foreground/30 focus:outline-none focus:border-gold/50 mb-6 text-base"
-             />
-             {formErrors.saveModalName && (
-               <p className="mt-1 text-xs text-red-500">{formErrors.saveModalName}</p>
-             )}
+            <input
+              type="text"
+              placeholder={i18n.language === 'en' ? 'e.g. Rose & Oud Evening' : 'ex. Rose & Oud Soirée'}
+              value={saveModalName}
+              onChange={(e) => setSaveModalName(e.target.value)}
+              className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-foreground placeholder-foreground/30 focus:outline-none focus:border-gold/50 mb-6 text-sm"
+            />
 
-             <div className="flex gap-3">
-               <button
-                 onClick={() => {
-                   setShowSaveModal(false);
-                   setForm(prev => ({ ...prev, saveModalName: '' }));
-                 }}
-                 className="flex-1 px-6 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-sm text-foreground/60 transition-colors"
-               >
-                 {i18n.language === 'en' ? 'Cancel' : 'Annuler'}
-               </button>
-               <button
-                 onClick={() => handleSaveComposition(form.saveModalName)}
-                 disabled={isSaving || !form.saveModalName.trim()}
-                 className="flex-1 px-6 py-3 bg-gold text-black hover:bg-cream rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
-               >
-                 {isSaving ? <Loader2 size={14} className="inline animate-spin" /> : (i18n.language === 'en' ? 'Save' : 'Sauvegarder')}
-               </button>
-             </div>
-           </div>
-         </div>
-       )}
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  setShowSaveModal(false);
+                  setSaveModalName('');
+                }}
+                className="flex-1 px-6 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-sm text-foreground/60 transition-colors"
+              >
+                {i18n.language === 'en' ? 'Cancel' : 'Annuler'}
+              </button>
+              <button
+                onClick={() => handleSaveComposition(saveModalName)}
+                disabled={isSaving || !saveModalName.trim()}
+                className="flex-1 px-6 py-3 bg-gold text-black hover:bg-cream rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+              >
+                {isSaving ? <Loader2 size={14} className="inline animate-spin" /> : (i18n.language === 'en' ? 'Save' : 'Sauvegarder')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Direct Order Modal ── */}
       {showDirectOrderModal && (
@@ -1372,79 +1161,60 @@ const orderResponse = await orderService.placeOrder({
               </div>
             </div>
 
-<form onSubmit={handleDirectOrderSubmit} className="space-y-3">
-               {/* Contact fields (optional) */}
-               <div className="grid grid-cols-2 gap-3">
-                 <div>
-                   <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">
-                     {i18n.language === 'en' ? 'Full Name' : 'Nom complet'}
-                   </label>
-                   <input
-                     id="field-orderFullName"
-                     type="text"
-                     value={form.orderFullName}
-                     onChange={e => updateFormField('orderFullName', e.target.value)}
-                     placeholder="ex: Jean Dupont"
-                     className="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-lg text-base text-foreground placeholder-foreground/30 focus:outline-none focus:border-gold/50 transition-colors"
-                   /formErrors.order"
-                   />
-                   {formErrors.orderFullName && (
-                     <p className="mt-1 text-xs text-red-500">{formErrors.orderFullName}</p>
-                   )}
-                 </div>
-                 <div>
-                   <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">
-                     {i18n.language === 'en' ? 'Phone' : 'Téléphone'}
-                   </label>
-                   <input
-                     id="field-orderPhone"
-                     type="tel"
-                     value={form.orderPhone}
-                     onChange={e => updateFormField('orderPhone', e.target.value)}
-                     placeholder="+2250102030405"
-                     className="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-lg text-base text-foreground placeholder-foreground/30 focus:outline-none focus:border-gold/50 transition-colors"
-                   />
-                   {formErrors.orderPhone && (
-                     <p className="mt-1 text-xs text-red-500">{formErrors.orderPhone}</p>
-                   )}
-                 </div>
-               </div>
+            <form onSubmit={handleDirectOrderSubmit} className="space-y-3">
+              {/* Contact fields (optional) */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-foreground/40 block mb-1.5">
+                    {i18n.language === 'en' ? 'Full Name' : 'Nom complet'}
+                  </label>
+                  <input
+                    type="text"
+                    value={orderFullName}
+                    onChange={e => setOrderFullName(e.target.value)}
+                    placeholder="ex: Jean Dupont"
+                    className="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-lg text-sm text-foreground placeholder-foreground/30 focus:outline-none focus:border-gold/50 transition-colors"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-foreground/40 block mb-1.5">
+                    {i18n.language === 'en' ? 'Phone' : 'Téléphone'}
+                  </label>
+                  <input
+                    type="tel"
+                    value={orderPhone}
+                    onChange={e => setOrderPhone(e.target.value)}
+                    placeholder="+2250102030405"
+                    className="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-lg text-sm text-foreground placeholder-foreground/30 focus:outline-none focus:border-gold/50 transition-colors"
+                  />
+                </div>
+              </div>
 
-               <div className="space-y-2">
-                 <div>
-                   <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">
-                     {i18n.language === 'en' ? 'City' : 'Ville'}
-                   </label>
-                   <input
-                     id="field-orderCity"
-                     type="text"
-                     value={form.orderCity}
-                     onChange={e => updateFormField('orderCity', e.target.value)}
-                     placeholder="ex: Abidjan"
-                     className="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-lg text-base text-foreground placeholder-foreground/30 focus:outline-none focus:border-gold/50 transition-colors"
-                   />
-                   {formErrors.orderCity && (
-                     <p className="mt-1 text-xs text-red-500">{formErrors.orderCity}</p>
-                   )}
-                 </div>
+              <div>
+                <label className="text-[10px] font-bold uppercase tracking-widest text-foreground/40 block mb-1.5">
+                  {i18n.language === 'en' ? 'City' : 'Ville'}
+                </label>
+                <input
+                  type="text"
+                  value={orderCity}
+                  onChange={e => setOrderCity(e.target.value)}
+                  placeholder="ex: Abidjan"
+                  className="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-lg text-sm text-foreground placeholder-foreground/30 focus:outline-none focus:border-gold/50 transition-colors"
+                />
+              </div>
 
-                 <div>
-                   <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">
-                     {i18n.language === 'en' ? 'District / Quartier' : 'Quartier'}
-                   </label>
-                   <input
-                     id="field-orderQuartier"
-                     type="text"
-                     value={form.orderQuartier}
-                     onChange={e => updateFormField('orderQuartier', e.target.value)}
-                     placeholder="ex: Cocody, Plateau..."
-                     className="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-lg text-base text-foreground placeholder-foreground/30 focus:outline-none focus:border-gold/50 transition-colors"
-                   />
-                   {formErrors.orderQuartier && (
-                     <p className="mt-1 text-xs text-red-500">{formErrors.orderQuartier}</p>
-                   )}
-                 </div>
-               </div>
+              <div>
+                <label className="text-[10px] font-bold uppercase tracking-widest text-foreground/40 block mb-1.5">
+                  {i18n.language === 'en' ? 'District / Quartier' : 'Quartier'}
+                </label>
+                <input
+                  type="text"
+                  value={orderQuartier}
+                  onChange={e => setOrderQuartier(e.target.value)}
+                  placeholder="ex: Cocody, Plateau..."
+                  className="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-lg text-sm text-foreground placeholder-foreground/30 focus:outline-none focus:border-gold/50 transition-colors"
+                />
+              </div>
 
               <p className="text-[10px] text-foreground/30 italic pt-1">
                 {i18n.language === 'en'
