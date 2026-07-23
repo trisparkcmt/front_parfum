@@ -21,6 +21,7 @@ import {
   YAxis,
 } from 'recharts';
 import GA4AnalyticsDashboard from '@/components/admin/dashboard/GA4AnalyticsDashboard';
+import ProfitAnalyticsDashboard from '@/components/admin/dashboard/ProfitAnalyticsDashboard';
 
 const monthly = [
   { month: 'Jan', parfums: 3200000, accessoires: 1800000, total: 5000000 },
@@ -55,7 +56,7 @@ function CustomTooltip({ active, payload, label }: any) {
 
 export default function RevenuePage() {
   const [isMounted, setIsMounted] = useState(false);
-  const [activeTab, setActiveTab] = useState<'internal' | 'ga4'>('ga4');
+  const [activeTab, setActiveTab] = useState<'benefices' | 'internal' | 'ga4'>('benefices');
 
   // Force client-only render to avoid Recharts hydration errors
   useEffect(() => {
@@ -67,11 +68,21 @@ export default function RevenuePage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Revenus & Analyses</h1>
-          <p className="text-sm text-foreground/40 mt-0.5">Suivi financier et entonnoir e-commerce</p>
+          <p className="text-sm text-foreground/40 mt-0.5">Suivi financier, coûts d'achat, bénéfices et entonnoir e-commerce</p>
         </div>
 
         {/* Tab switchers */}
-        <div className="flex bg-white/5 border border-white/10 rounded-xl p-1 self-start sm:self-auto">
+        <div className="flex bg-white/5 border border-white/10 rounded-xl p-1 self-start sm:self-auto flex-wrap gap-1">
+          <button
+            onClick={() => setActiveTab('benefices')}
+            className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+              activeTab === 'benefices'
+                ? 'bg-gold text-black shadow'
+                : 'text-foreground/60 hover:text-foreground'
+            }`}
+          >
+            Analyse des Bénéfices
+          </button>
           <button
             onClick={() => setActiveTab('ga4')}
             className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition-all ${
@@ -95,7 +106,9 @@ export default function RevenuePage() {
         </div>
       </div>
 
-      {activeTab === 'ga4' ? (
+      {activeTab === 'benefices' ? (
+        <ProfitAnalyticsDashboard />
+      ) : activeTab === 'ga4' ? (
         <GA4AnalyticsDashboard />
       ) : (
         <div className="space-y-6">

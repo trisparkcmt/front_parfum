@@ -300,6 +300,51 @@ export const productService = {
   },
 
   /**
+   * Fetch diffuseurs de parfum from API with optional filters - API ONLY
+   */
+  async getDiffuseurs(filters?: { search?: string; ordering?: string }): Promise<Product[]> {
+    const params: any = {};
+    if (filters) {
+      if (filters.search) params.search = filters.search;
+      if (filters.ordering) params.ordering = filters.ordering;
+    }
+
+    const response = await apiShopService.getDiffuseurs(params);
+    
+    let results: any[] = [];
+    if (response) {
+      if (Array.isArray(response)) {
+        results = response;
+      } else if (Array.isArray(response.results)) {
+        results = response.results;
+      } else if (Array.isArray(response.resultats)) {
+        results = response.resultats;
+      }
+    }
+
+    return results.map((p: any) => {
+      const images = collectProductImages(p);
+      return {
+        id: String(p.id),
+        name: p.nom || 'Diffuseur de Parfum',
+        description: p.description_courte || p.description_longue || '',
+        price: parseFloat(p.prix_unitaire || '0'),
+        originalPrice: parseFloat(p.prix_unitaire || '0'),
+        category: 'accessory',
+        subCategory: 'other',
+        images,
+        brand: 'Exclusif Diffuseurs',
+        inStock: p.stock_quantite > 0 && p.actif !== false,
+        rating: 4.8,
+        reviews: 12,
+        slug: p.slug || String(p.id),
+        createdAt: p.date_creation || new Date().toISOString(),
+        image_principale: p.image_principale || images[0],
+      };
+    });
+  },
+
+  /**
    * Fetch finished essence products from API with optional search and ordering filters
    */
   async getFinishedEssenceProducts(filters?: { search?: string; ordering?: string }): Promise<Product[]> {

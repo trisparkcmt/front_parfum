@@ -134,6 +134,7 @@ export const PUBLIC_NAV_LINKS: NavLink[] = [
   { label: 'Accueil', href: '/' },
   { label: 'Accessoires', href: '/shop/accessories' },
   { label: 'Parfumerie', href: '/shop/perfumes' },
+  { label: 'Diffuseurs', href: '/shop/diffuseurs' },
   { label: 'Atelier Numba', href: '/numba' },
 ];
 

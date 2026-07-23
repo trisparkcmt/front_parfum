@@ -59,6 +59,7 @@ function IngredientsTab() {
     nom: '',
     description: '',
     prix_par_ml: '',
+    prix_achat_par_ml: '',
     stock_ml: '',
     seuil_alerte_ml: '0',
     actif: true,
@@ -85,7 +86,7 @@ function IngredientsTab() {
   const openAdd = () => {
     if (!permissions.canCreate) return;
     setEditing(null);
-    setForm({ nom: '', description: '', prix_par_ml: '', stock_ml: '', seuil_alerte_ml: '0', actif: true });
+    setForm({ nom: '', description: '', prix_par_ml: '', prix_achat_par_ml: '', stock_ml: '', seuil_alerte_ml: '0', actif: true });
     setShowModal(true);
   };
 
@@ -96,6 +97,7 @@ function IngredientsTab() {
       nom: item.nom || '',
       description: item.description || '',
       prix_par_ml: String(item.prix_par_ml || ''),
+      prix_achat_par_ml: item.prix_achat_par_ml ? String(item.prix_achat_par_ml) : '',
       stock_ml: String(item.stock_ml ?? item.stock_disponible ?? ''),
       seuil_alerte_ml: String(item.seuil_alerte_ml ?? '0'),
       actif: item.actif !== undefined ? item.actif : true,
@@ -276,9 +278,10 @@ function IngredientsTab() {
                   />
                 </div>
               ))}
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 {[
-                  { label: 'Prix / ml (FCFA) *', field: 'prix_par_ml', placeholder: '500' },
+                  { label: 'Prix Vente / ml *', field: 'prix_par_ml', placeholder: '500' },
+                  { label: 'Prix Achat / ml', field: 'prix_achat_par_ml', placeholder: '300' },
                   { label: 'Stock (ml) *', field: 'stock_ml', placeholder: '100' },
                   { label: 'Seuil alerte (ml)', field: 'seuil_alerte_ml', placeholder: '0' },
                 ].map(f => (
@@ -324,6 +327,8 @@ function LotsTab() {
 
   const [form, setForm] = useState({
     essence: '',
+    quantite_initiale_ml: '',
+    prix_achat_par_ml: '',
     stock_ml: '',
     seuil_alerte_ml: '',
     reference_fournisseur: '',
@@ -360,7 +365,15 @@ function LotsTab() {
   const openAdd = () => {
     if (!permissions.canCreate) return;
     setEditing(null);
-    setForm({ essence: essences[0]?.id ? String(essences[0].id) : '', stock_ml: '', seuil_alerte_ml: '', reference_fournisseur: '', actif: true });
+    setForm({
+      essence: essences[0]?.id ? String(essences[0].id) : '',
+      quantite_initiale_ml: '',
+      prix_achat_par_ml: '',
+      stock_ml: '',
+      seuil_alerte_ml: '',
+      reference_fournisseur: '',
+      actif: true,
+    });
     setShowModal(true);
   };
 
@@ -369,6 +382,8 @@ function LotsTab() {
     setEditing(item);
     setForm({
       essence: String(item.essence || item.essence_id || ''),
+      quantite_initiale_ml: String(item.quantite_initiale_ml ?? item.quantite_initiale ?? ''),
+      prix_achat_par_ml: item.prix_achat_par_ml ? String(item.prix_achat_par_ml) : '',
       stock_ml: String(item.stock_ml ?? item.quantite_ml ?? ''),
       seuil_alerte_ml: String(item.seuil_alerte_ml ?? ''),
       reference_fournisseur: item.reference_fournisseur || '',
@@ -379,16 +394,18 @@ function LotsTab() {
 
   const handleSave = async () => {
     if (!permissions.canCreate && !permissions.canUpdate) return;
-    if (!form.essence || !form.stock_ml) {
-      addToast('Essence et stock (ml) requis', 'error'); return;
+    if (!form.essence || (!form.stock_ml && !form.quantite_initiale_ml)) {
+      addToast('Essence et quantité requises', 'error'); return;
     }
     try {
       setSaving(true);
       const payload: Record<string, unknown> = {
         essence: Number(form.essence),
-        stock_ml: form.stock_ml,
+        stock_ml: form.stock_ml || form.quantite_initiale_ml,
         actif: form.actif,
       };
+      if (form.quantite_initiale_ml) payload.quantite_initiale_ml = form.quantite_initiale_ml;
+      if (form.prix_achat_par_ml) payload.prix_achat_par_ml = form.prix_achat_par_ml;
       if (form.seuil_alerte_ml) payload.seuil_alerte_ml = form.seuil_alerte_ml;
       if (form.reference_fournisseur) payload.reference_fournisseur = form.reference_fournisseur;
       if (editing) {
@@ -470,48 +487,80 @@ function LotsTab() {
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="border-b border-white/10 bg-white/5">
-                  {['Réf. fournisseur', 'Essence', 'Stock (ml)', 'Seuil alerte', 'Réception', 'Actif', 'Actions'].map(h => (
-                    <th key={h} className="px-5 py-3.5 text-xs font-semibold text-foreground/40 uppercase tracking-wider">{h}</th>
+                  {['Réf. / Lot', 'Essence', 'Stock Restant (ml)', 'Coût d\'Achat Total', 'CA Généré', 'Bénéfice Lot', 'Statut', 'Actions'].map(h => (
+                    <th key={h} className="px-4 py-3.5 text-xs font-semibold text-foreground/40 uppercase tracking-wider">{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
-                {items.map(item => (
-                  <tr key={item.id} className="hover:bg-white/5 transition-colors">
-                    <td className="px-5 py-3 font-mono text-sm text-gold font-bold">{item.reference_fournisseur || item.numero_lot || '—'}</td>
-                    <td className="px-5 py-3 text-sm text-foreground/60">
-                      {item.essence_details?.nom || `ID: ${item.essence || '—'}`}
-                    </td>
-                    <td className="px-5 py-3 font-semibold text-foreground text-sm">{Number(item.stock_ml ?? item.quantite_ml ?? 0).toLocaleString()} ml</td>
-                    <td className="px-5 py-3 text-sm text-foreground/60">{item.seuil_alerte_ml ? `${item.seuil_alerte_ml} ml` : '—'}</td>
-                    <td className="px-5 py-3 text-xs text-foreground/40">
-                      {item.date_reception ? new Date(item.date_reception).toLocaleDateString('fr-FR') : '—'}
-                    </td>
-                    <td className="px-5 py-3">
-                      {item.actif
-                        ? <CheckCircle2 size={15} className="text-emerald-400" />
-                        : <AlertTriangle size={15} className="text-red-400" />
-                      }
-                    </td>
-                    <td className="px-5 py-3">
-                      <div className="flex gap-1.5">
-                        {permissions.canUpdate && (
-                          <button onClick={() => openEdit(item)} className="p-1.5 rounded-lg hover:bg-white/5 text-foreground/40 hover:text-gold transition-colors">
-                            <Edit2 size={14} />
-                          </button>
+                {items.map(item => {
+                  const coutTotal = item.cout_achat_total 
+                    ? parseFloat(item.cout_achat_total) 
+                    : (item.quantite_initiale_ml && item.prix_achat_par_ml 
+                        ? parseFloat(item.quantite_initiale_ml) * parseFloat(item.prix_achat_par_ml) 
+                        : null);
+                  const caGenere = item.chiffre_affaires_genere ? parseFloat(item.chiffre_affaires_genere) : 0;
+                  const beneficeLot = item.benefice_lot !== undefined && item.benefice_lot !== null
+                    ? parseFloat(item.benefice_lot)
+                    : (coutTotal !== null ? caGenere - coutTotal : null);
+                  const isTermine = item.est_termine !== undefined ? item.est_termine : (Number(item.stock_ml ?? item.quantite_ml ?? 0) <= 0);
+
+                  return (
+                    <tr key={item.id} className="hover:bg-white/5 transition-colors">
+                      <td className="px-4 py-3 font-mono text-sm text-gold font-bold">{item.reference_fournisseur || item.numero_lot || item.reference || '—'}</td>
+                      <td className="px-4 py-3 text-sm text-foreground/60">
+                        {item.essence_details?.nom || `ID: ${item.essence || '—'}`}
+                      </td>
+                      <td className="px-4 py-3 font-semibold text-foreground text-sm">
+                        {Number(item.stock_ml ?? item.quantite_ml ?? 0).toLocaleString()} ml
+                        {item.quantite_initiale_ml && (
+                          <span className="text-[10px] text-foreground/40 block">/ {item.quantite_initiale_ml} ml reçus</span>
                         )}
-                        {permissions.canDelete && (
-                          <button onClick={() => handleDelete(item.id)} className="p-1.5 rounded-lg hover:bg-red-500/10 text-foreground/40 hover:text-red-400 transition-colors">
-                            <Trash2 size={14} />
-                          </button>
+                      </td>
+                      <td className="px-4 py-3 text-xs font-mono text-foreground/70">
+                        {coutTotal !== null ? `${coutTotal.toLocaleString()} FCFA` : '—'}
+                      </td>
+                      <td className="px-4 py-3 text-xs font-mono text-sky-400">
+                        {caGenere.toLocaleString()} FCFA
+                      </td>
+                      <td className="px-4 py-3 text-xs font-mono font-bold">
+                        {beneficeLot !== null ? (
+                          <span className={beneficeLot >= 0 ? 'text-emerald-400' : 'text-red-400'}>
+                            {beneficeLot >= 0 ? '+' : ''}{beneficeLot.toLocaleString()} FCFA
+                          </span>
+                        ) : '—'}
+                      </td>
+                      <td className="px-4 py-3">
+                        {isTermine ? (
+                          <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-zinc-500/10 text-zinc-400 border border-zinc-500/10">
+                            Terminé
+                          </span>
+                        ) : (
+                          <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-emerald-500/10 text-emerald-400 border border-emerald-500/10">
+                            En cours
+                          </span>
                         )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex gap-1.5">
+                          {permissions.canUpdate && (
+                            <button onClick={() => openEdit(item)} className="p-1.5 rounded-lg hover:bg-white/5 text-foreground/40 hover:text-gold transition-colors">
+                              <Edit2 size={14} />
+                            </button>
+                          )}
+                          {permissions.canDelete && (
+                            <button onClick={() => handleDelete(item.id)} className="p-1.5 rounded-lg hover:bg-red-500/10 text-foreground/40 hover:text-red-400 transition-colors">
+                              <Trash2 size={14} />
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
                 {items.length === 0 && (
                   <tr>
-                    <td colSpan={7} className="text-center py-16 text-foreground/40 italic text-sm">Aucun lot enregistré.</td>
+                    <td colSpan={8} className="text-center py-16 text-foreground/40 italic text-sm">Aucun lot enregistré.</td>
                   </tr>
                 )}
               </tbody>
@@ -524,7 +573,7 @@ function LotsTab() {
         isOpen={showModal}
         onClose={() => setShowModal(false)}
         title={editing ? 'Modifier le lot' : 'Créer un lot'}
-        description="Gestion détaillée d’un lot d’essence dans un panneau latéral."
+        description="Gestion détaillée d’un lot d’essence avec calcul des coûts d'achat."
         size="lg"
         footer={
           <div className="flex gap-3">
@@ -538,7 +587,7 @@ function LotsTab() {
           </div>
         }
       >
-        <div className="space-y-3">
+        <div className="space-y-4">
               <div>
                 <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Essence *</label>
                 <select
@@ -554,12 +603,34 @@ function LotsTab() {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Stock reçu (ml) *</label>
+                  <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Quantité initiale reçue (ml) *</label>
+                  <input
+                    type="number"
+                    value={form.quantite_initiale_ml}
+                    onChange={e => setForm(p => ({ ...p, quantite_initiale_ml: e.target.value }))}
+                    placeholder="ex: 500"
+                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Prix d'achat par ml (FCFA) *</label>
+                  <input
+                    type="number"
+                    value={form.prix_achat_par_ml}
+                    onChange={e => setForm(p => ({ ...p, prix_achat_par_ml: e.target.value }))}
+                    placeholder="ex: 2.50"
+                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Stock restant (ml)</label>
                   <input
                     type="number"
                     value={form.stock_ml}
                     onChange={e => setForm(p => ({ ...p, stock_ml: e.target.value }))}
-                    placeholder="500"
+                    placeholder="ex: 500"
                     className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
                   />
                 </div>

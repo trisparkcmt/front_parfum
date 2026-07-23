@@ -286,6 +286,31 @@ export const shopService = {
   },
 
   /**
+   * Get paginated list of diffuseurs with filters
+   */
+  getDiffuseurs: async (params?: {
+    search?: string;
+    ordering?: string;
+    page?: number;
+    limit?: number;
+    type_technologie?: string;
+    est_connecte?: boolean;
+    prix_min?: number;
+    prix_max?: number;
+  }) => {
+    const response = await api.get('shop/diffuseurs/', { params });
+    return response.data;
+  },
+
+  /**
+   * Get diffuseur details by slug
+   */
+  getDiffuseurBySlug: async (slug: string) => {
+    const response = await api.get(`shop/diffuseurs/${slug}/`);
+    return response.data;
+  },
+
+  /**
    * Get historical bestsellers perfumes (Top 20)
    */
   getPerfumeBestsellers: async () => {
@@ -1148,10 +1173,74 @@ export const adminService = {
   },
 
   /**
+   * Verify payout transaction status (Admin)
+   */
+  verifyPayout: async (payoutId: number) => {
+    const response = await api.post(`auth/admin/payouts/${payoutId}/verifier/`);
+    return response.data;
+  },
+
+  /**
    * Get global platform statistics (Admin)
    */
   getGlobalStats: async () => {
     const response = await api.get('auth/admin/stats/global/');
+    return response.data;
+  },
+
+  /**
+   * Get profit statistics for admin financial dashboard
+   * Endpoint: GET /api/v1/orders/commandes/statistiques-benefices/
+   */
+  getProfitStats: async (params?: { date_debut?: string; date_fin?: string; statut?: string }) => {
+    const response = await api.get('orders/commandes/statistiques-benefices/', { params });
+    return response.data;
+  },
+
+  /**
+   * Get Lab catalogue financial benefits (Admin/Serveuse)
+   * Endpoint: GET /api/v1/lab/benefices/
+   */
+  getLabBenefices: async (params?: { start_date?: string; end_date?: string }) => {
+    const response = await api.get('lab/benefices/', { params });
+    return response.data;
+  },
+
+  // ── Diffuseurs de Parfum ───────────────────────────────────────────────────
+
+  /**
+   * Get all diffuseurs (Admin serializer with prix_achat + benefice_unitaire)
+   * Endpoint: GET /api/shop/diffuseurs/
+   */
+  getDiffuseurs: async (params?: { search?: string; page?: number; actif?: boolean }) => {
+    const response = await api.get('shop/diffuseurs/', { params });
+    return response.data;
+  },
+
+  /**
+   * Create a new diffuseur (Admin only)
+   * Endpoint: POST /api/shop/diffuseurs/
+   */
+  createDiffuseur: async (data: Record<string, unknown>) => {
+    const response = await api.post('shop/diffuseurs/', data);
+    return response.data;
+  },
+
+  /**
+   * Update a diffuseur (Admin only)
+   * Endpoint: PATCH /api/shop/diffuseurs/:id/
+   */
+  updateDiffuseur: async (id: number, data: Record<string, unknown>) => {
+    const response = await api.patch(`shop/diffuseurs/${id}/`, data);
+    return response.data;
+  },
+
+  /**
+   * Delete a diffuseur (Admin only)
+   * Endpoint: DELETE /api/shop/diffuseurs/:id/
+   */
+  deleteDiffuseur: async (id: number) => {
+    const response = await api.delete(`shop/diffuseurs/${id}/`);
     return response.data;
   },
 
@@ -1461,6 +1550,18 @@ export const cartService = {
     panier_id?: number;
   }) => {
     const response = await api.post('orders/panier/ajouter/accessoire/', data);
+    return response.data;
+  },
+
+  /**
+   * Add diffuseur to cart
+   */
+  addDiffuseur: async (data: {
+    diffuseur_id: number;
+    quantite?: number;
+    panier_id?: number;
+  }) => {
+    const response = await api.post('orders/panier/ajouter/diffuseur-parfum/', data);
     return response.data;
   },
 

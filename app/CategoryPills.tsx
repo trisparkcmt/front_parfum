@@ -104,7 +104,15 @@ export default function CategoryPills() {
           };
         });
 
-        if (mounted) setCategories([...perfumeEntries, ...accessoryEntries]);
+        const diffuseurEntry: CategoryEntry = {
+          key: 'diffuseurs-main',
+          label: 'Diffuseurs',
+          href: '/shop/diffuseurs',
+          image: null,
+          Icon: Sparkles,
+        };
+
+        if (mounted) setCategories([diffuseurEntry, ...perfumeEntries, ...accessoryEntries]);
       } catch (error) {
         console.error("[CategoryPills] Failed to fetch categories:", error);
         if (mounted) setCategories([]);

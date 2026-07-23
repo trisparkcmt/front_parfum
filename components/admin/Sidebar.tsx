@@ -46,6 +46,7 @@ const boutiqueItems: NavItem[] = [
   { label: 'Laboratoire', icon: <Cpu size={18} />, href: '/dashboard/admin/lab' },
   { label: 'Flacons', icon: <Package size={18} />, href: '/dashboard/admin/flacons' },
   { label: 'Accessoires', icon: <Gem size={18} />, href: '/dashboard/admin/accessories' },
+  { label: 'Diffuseurs', icon: <Sparkles size={18} />, href: '/dashboard/admin/diffuseurs' },
   { label: 'Compositions', icon: <Cpu size={18} />, href: '/dashboard/admin/compositions' },
   { label: 'Dépenses', icon: <DollarSign size={18} />, href: '/dashboard/admin/expenses' },
   { label: 'Codes Promo', icon: <Tag size={18} />, href: '/dashboard/admin/promo-codes' },

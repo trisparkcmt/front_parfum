@@ -17,6 +17,7 @@ const BottomNav = () => {
     { href: '/',                  icon: HomeIcon, label: 'Accueil',     action: null },
     { href: '/shop/accessories',  icon: Watch,     label: 'Accessoires', action: null },
     { href: '/shop/perfumes',     icon: Droplets,  label: 'Parfum',      action: null },
+    { href: '/shop/diffuseurs',   icon: Sparkles,  label: 'Diffuseurs',  action: null },
     { href: '/numba',             icon: Sparkles,  label: 'Atelier',     action: null },
     { href: '/cart',              icon: CartIcon,  label: 'Panier',      action: openCartDrawer, badge: itemCount },
   ];

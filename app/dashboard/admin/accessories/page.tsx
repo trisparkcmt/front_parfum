@@ -9,11 +9,14 @@ import CatalogAccessNotice from '@/components/catalog/CatalogAccessNotice';
 import { extractCatalogList } from '@/lib/catalogUtils';
 import { MultiImageUpload } from '@/components/MultiImageUpload';
 import { CreateCategoryModal } from '@/components/CreateCategoryModal';
+import { useAuthStore } from '@/store/useAuthStore';
 import AppImage from '@/components/ui/AppImage';
 import { SlideOver } from '@/components/ui/SlideOver';
 
 export default function AccessoriesPage() {
   const permissions = useCatalogPermissions('accessoires');
+  const { user } = useAuthStore();
+  const isAdmin = Boolean(user?.is_staff || user?.is_superuser || user?.role === 'superadmin');
   const [accessories, setAccessories] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -49,6 +52,7 @@ export default function AccessoriesPage() {
     couleur: '',
     taille: '',
     prix_unitaire: '',
+    prix_achat: '',
     prix_promotionnel: '',
     stock_quantite: '',
     seuil_alerte_stock: '',
@@ -114,6 +118,7 @@ export default function AccessoriesPage() {
       couleur: '',
       taille: '',
       prix_unitaire: '',
+      prix_achat: '',
       prix_promotionnel: '',
       stock_quantite: '',
       seuil_alerte_stock: '',
@@ -146,6 +151,7 @@ export default function AccessoriesPage() {
       couleur: acc.couleur || '',
       taille: acc.taille || '',
       prix_unitaire: String(acc.prix_unitaire || ''),
+      prix_achat: acc.prix_achat ? String(acc.prix_achat) : '',
       prix_promotionnel: acc.prix_promotionnel ? String(acc.prix_promotionnel) : '',
       stock_quantite: String(acc.stock_quantite || ''),
       seuil_alerte_stock: String(acc.seuil_alerte_stock || '3'),
@@ -389,7 +395,10 @@ export default function AccessoriesPage() {
                   </th>
                   <th className="px-6 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider">Accessoire</th>
                   <th className="px-6 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider">Type</th>
-                  <th className="px-6 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider">Prix</th>
+                  <th className="px-6 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider">Prix Vente</th>
+                  {isAdmin && (
+                    <th className="px-6 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider">Bénéfice Unitaire</th>
+                  )}
                   <th className="px-6 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider">Stock</th>
                   <th className="px-6 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider text-right">Actions</th>
                 </tr>
@@ -402,6 +411,12 @@ export default function AccessoriesPage() {
                   const typeName = typeof a.type_accessoire === 'object'
                     ? a.type_accessoire?.nom
                     : (accessoryTypes.find(t => t.id === a.type_accessoire)?.nom || '—');
+
+                  const prixVenteNum = parseFloat(String(aPrice));
+                  const prixAchatNum = parseFloat(String(a.prix_achat || 0));
+                  const beneficeCalc = a.benefice_unitaire !== undefined
+                    ? parseFloat(String(a.benefice_unitaire))
+                    : (a.prix_unitaire && a.prix_achat ? prixVenteNum - prixAchatNum : null);
 
                   return (
                     <tr key={a.slug || a.id} className="hover:bg-white/5 transition-colors group">
@@ -436,6 +451,17 @@ export default function AccessoriesPage() {
                       <td className="px-6 py-4">
                         <p className="font-bold text-foreground text-sm">{Number(aPrice).toLocaleString()} FCFA</p>
                       </td>
+                      {isAdmin && (
+                        <td className="px-6 py-4">
+                          {beneficeCalc !== null ? (
+                            <span className={`px-2 py-0.5 rounded text-xs font-semibold ${beneficeCalc >= 0 ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'}`}>
+                              +{beneficeCalc.toLocaleString()} FCFA
+                            </span>
+                          ) : (
+                            <span className="text-foreground/30 text-xs italic">Non défini</span>
+                          )}
+                        </td>
+                      )}
                       <td className="px-6 py-4">
                         <p className="text-sm text-foreground/60">{aStock} unités</p>
                       </td>
@@ -631,6 +657,26 @@ export default function AccessoriesPage() {
                     {formErrors.prix_promotionnel && <p className="mt-1 text-xs text-red-500">{formErrors.prix_promotionnel}</p>}
                   </div>
                 </div>
+                {isAdmin && (
+                  <div>
+                    <label className="block text-xs font-bold text-amber-400/80 uppercase tracking-wider mb-1.5 flex items-center gap-1">
+                      Prix d'achat (FCFA) <span className="text-[10px] bg-amber-500/10 text-amber-400 px-1 rounded">(Admin)</span>
+                    </label>
+                    <input
+                      data-field="prix_achat"
+                      type="number"
+                      placeholder="ex: 3000"
+                      value={form.prix_achat}
+                      onChange={e => updateForm('prix_achat', e.target.value)}
+                      className="w-full bg-white/5 border border-amber-500/20 rounded-lg px-3 py-2 text-base text-foreground outline-none focus:border-gold"
+                    />
+                    {form.prix_unitaire && form.prix_achat && (
+                      <p className="text-xs text-emerald-400 mt-1">
+                        Bénéfice estimé : +{(parseFloat(form.prix_unitaire) - parseFloat(form.prix_achat)).toLocaleString()} FCFA
+                      </p>
+                    )}
+                  </div>
+                )}
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">Quantité en stock *</label>

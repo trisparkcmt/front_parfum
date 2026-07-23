@@ -30,6 +30,8 @@ export interface User {
   phone: string;
   role: UserRole;
   roles: UserRole[];
+  is_staff?: boolean;
+  is_superuser?: boolean;
   avatarUrl?: string;
   createdAt: string;
 }

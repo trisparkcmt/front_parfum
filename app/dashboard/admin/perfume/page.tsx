@@ -12,10 +12,13 @@ import { fromDatetimeLocalValue, toDatetimeLocalValue } from '@/lib/promotionUti
 import AppImage from '@/components/ui/AppImage';
 import { MultiImageUpload } from '@/components/MultiImageUpload';
 import { CreateCategoryModal } from '@/components/CreateCategoryModal';
+import { useAuthStore } from '@/store/useAuthStore';
 import { FormModal } from '@/components/ui/FormModal';
 
 export default function PerfumeAdminPage() {
   const permissions = useCatalogPermissions('parfums');
+  const { user } = useAuthStore();
+  const isAdmin = Boolean(user?.is_staff || user?.is_superuser || user?.role === 'superadmin');
   const [perfumes, setPerfumes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -39,6 +42,7 @@ export default function PerfumeAdminPage() {
     description_ia: '',
     contenance_ml: '',
     prix_unitaire: '',
+    prix_achat: '',
     prix_promotionnel: '',
     taux_reduction: '',
     date_debut: '',
@@ -172,6 +176,7 @@ export default function PerfumeAdminPage() {
       description_ia: '',
       contenance_ml: '',
       prix_unitaire: '',
+      prix_achat: '',
       prix_promotionnel: '',
       taux_reduction: '',
       date_debut: '',
@@ -213,6 +218,7 @@ export default function PerfumeAdminPage() {
       description_ia: perf.description_ia || '',
       contenance_ml: String(perf.contenance_ml || ''),
       prix_unitaire: String(perf.prix_unitaire || ''),
+      prix_achat: perf.prix_achat ? String(perf.prix_achat) : '',
       prix_promotionnel: perf.prix_promotionnel ? String(perf.prix_promotionnel) : '',
       taux_reduction: perf.taux_reduction ? String(perf.taux_reduction) : '',
       date_debut: toDatetimeLocalValue(perf.date_debut),
@@ -402,7 +408,10 @@ export default function PerfumeAdminPage() {
                   <th className="px-4 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider">Nom</th>
                   <th className="px-4 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider">Stock</th>
                   <th className="px-4 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider">Contenance (ml)</th>
-                  <th className="px-4 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider">Prix</th>
+                  <th className="px-4 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider">Prix Vente</th>
+                  {isAdmin && (
+                    <th className="px-4 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider">Bénéfice Unitaire</th>
+                  )}
                   <th className="px-4 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider text-right">Actions</th>
                 </tr>
               </thead>
@@ -411,6 +420,11 @@ export default function PerfumeAdminPage() {
                   const productImg = p.image_principale || p.image;
                   const slugKey = p.slug || String(p.id);
                   const isSelected = selectedSlugs.includes(slugKey);
+                  const prixVenteNum = parseFloat(String(p.prix_unitaire || 0));
+                  const prixAchatNum = parseFloat(String(p.prix_achat || 0));
+                  const beneficeCalc = p.benefice_unitaire !== undefined 
+                    ? parseFloat(String(p.benefice_unitaire))
+                    : (p.prix_unitaire && p.prix_achat ? prixVenteNum - prixAchatNum : null);
                   return (
                     <tr key={p.id} className="hover:bg-white/5 transition-colors group">
                       <td className="px-4 py-3 whitespace-nowrap">
@@ -451,6 +465,17 @@ export default function PerfumeAdminPage() {
                           )}
                         </div>
                       </td>
+                      {isAdmin && (
+                        <td className="px-4 py-4 text-sm font-medium">
+                          {beneficeCalc !== null ? (
+                            <span className={`px-2 py-0.5 rounded text-xs font-semibold ${beneficeCalc >= 0 ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'}`}>
+                              +{beneficeCalc.toLocaleString()} FCFA
+                            </span>
+                          ) : (
+                            <span className="text-foreground/30 text-xs italic">Non défini</span>
+                          )}
+                        </td>
+                      )}
                       <td className="px-4 py-4 text-right">
                         <div className="flex items-center justify-end gap-2">
                           {permissions.canUpdate && (
@@ -639,6 +664,26 @@ export default function PerfumeAdminPage() {
                     />
                     {formErrors.prix_unitaire && <p className="mt-1 text-xs text-red-500">{formErrors.prix_unitaire}</p>}
                   </div>
+                  {isAdmin && (
+                    <div className="space-y-1">
+                      <label className="block text-xs font-bold text-amber-400/80 uppercase tracking-wider mb-1.5 flex items-center gap-1">
+                        Prix d'achat (FCFA) <span className="text-[10px] bg-amber-500/10 text-amber-400 px-1 rounded">(Admin)</span>
+                      </label>
+                      <input
+                        data-field="prix_achat"
+                        type="number"
+                        placeholder="ex: 15000"
+                        value={form.prix_achat}
+                        onChange={(e) => updateForm('prix_achat', e.target.value)}
+                        className="w-full bg-white/5 border border-amber-500/20 rounded-lg px-3 py-2.5 text-base text-foreground outline-none focus:border-gold"
+                      />
+                      {form.prix_unitaire && form.prix_achat && (
+                        <p className="text-xs text-emerald-400 mt-1">
+                          Bénéfice estimé : +{(parseFloat(form.prix_unitaire) - parseFloat(form.prix_achat)).toLocaleString()} FCFA
+                        </p>
+                      )}
+                    </div>
+                  )}
                   <div className="space-y-1">
                     <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">Stock *</label>
                     <input

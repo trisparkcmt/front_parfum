@@ -11,6 +11,8 @@ export default function ServeusesPage() {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [userIdVal, setUserIdVal] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [userSuggestions, setUserSuggestions] = useState<{ id: number; name: string }[]>([]);
   const { addToast } = useToastStore();
 
   const fetchServeuses = useCallback(async () => {
@@ -29,6 +31,28 @@ export default function ServeusesPage() {
   useEffect(() => {
     fetchServeuses();
   }, [fetchServeuses]);
+
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      setUserSuggestions([]);
+      return;
+    }
+    const timer = setTimeout(async () => {
+      try {
+        const data = await adminService.getUsers({ search: searchQuery });
+        const list: any[] = data.resultats || data.results || (Array.isArray(data) ? data : []);
+        setUserSuggestions(
+          list.map((u: any) => ({
+            id: u.id,
+            name: `${u.first_name || ''} ${u.last_name || ''}`.trim() || u.email || `User #${u.id}`,
+          }))
+        );
+      } catch {
+        setUserSuggestions([]);
+      }
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   const handlePromote = async () => {
     if (!userIdVal) return;
@@ -176,17 +200,37 @@ export default function ServeusesPage() {
         }
       >
         <div className="p-6 lg:p-8">
-          <div className="space-y-3">
+          <div className="space-y-4">
             <div>
-              <label className="text-[10px] font-bold text-foreground/40 uppercase mb-1 block">ID de l'utilisateur</label>
+              <label className="text-[10px] font-bold text-foreground/40 uppercase mb-1 block">Rechercher un utilisateur par nom</label>
               <input
-                type="number"
-                placeholder="Ex: 42"
-                value={userIdVal}
-                onChange={e => setUserIdVal(e.target.value)}
+                type="text"
+                placeholder="Ex: Jean"
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
                 className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
               />
             </div>
+            {userSuggestions.length > 0 && (
+              <div className="space-y-1 p-3 bg-white/5 border border-white/10 rounded-lg max-h-60 overflow-y-auto">
+                {userSuggestions.map((user: { id: number; name: string }) => (
+                  <div
+                    key={user.id}
+                    onClick={() => { setUserIdVal(String(user.id)); setSearchQuery(user.name); setUserSuggestions([]); }}
+                    className={`px-3 py-2 rounded-lg text-sm cursor-pointer transition-colors ${
+                      userIdVal === String(user.id)
+                        ? 'bg-gold/20 text-gold font-semibold'
+                        : 'text-foreground/70 hover:bg-white/5 hover:text-foreground'
+                    }`}
+                  >
+                    {user.name}
+                  </div>
+                ))}
+              </div>
+            )}
+            {userIdVal && (
+              <p className="text-xs text-emerald-400 font-medium">✓ Utilisateur sélectionné : ID #{userIdVal}</p>
+            )}
           </div>
         </div>
       </SlideOver>

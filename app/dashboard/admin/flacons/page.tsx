@@ -7,10 +7,13 @@ import { useToastStore } from '@/store/useToastStore';
 import { useCatalogPermissions } from '@/hooks/useCatalogPermissions';
 import CatalogAccessNotice from '@/components/catalog/CatalogAccessNotice';
 import { extractCatalogList } from '@/lib/catalogUtils';
+import { useAuthStore } from '@/store/useAuthStore';
 import { SlideOver } from '@/components/ui/SlideOver';
 
 export default function FlaconsAdminPage() {
   const permissions = useCatalogPermissions('flacons');
+  const { user } = useAuthStore();
+  const isAdmin = Boolean(user?.is_staff || user?.is_superuser || user?.role === 'superadmin');
   const [bottles, setBottles] = useState<any[]>([]);
   const [bottleTypes, setBottleTypes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -30,6 +33,7 @@ export default function FlaconsAdminPage() {
     largeur_cm: '6.00',
     poids_grammes: 200,
     prix_unitaire: '5000.00',
+    prix_achat: '',
     stock_quantite: 100,
     seuil_alerte_stock: 10,
     actif: true
@@ -81,6 +85,7 @@ export default function FlaconsAdminPage() {
       largeur_cm: '6.00',
       poids_grammes: 200,
       prix_unitaire: '5000.00',
+      prix_achat: '',
       stock_quantite: 100,
       seuil_alerte_stock: 10,
       actif: true
@@ -101,6 +106,7 @@ export default function FlaconsAdminPage() {
       largeur_cm: bot.largeur_cm || '6.00',
       poids_grammes: bot.poids_grammes || 200,
       prix_unitaire: bot.prix_unitaire || '5000.00',
+      prix_achat: bot.prix_achat ? String(bot.prix_achat) : '',
       stock_quantite: bot.stock_quantite || 100,
       seuil_alerte_stock: bot.seuil_alerte_stock || 10,
       actif: bot.actif !== undefined ? bot.actif : true
@@ -228,36 +234,58 @@ export default function FlaconsAdminPage() {
                   <th className="px-6 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider">Nom</th>
                   <th className="px-6 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider">Contenance</th>
                   <th className="px-6 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider">Matière / Couleur</th>
-                  <th className="px-6 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider">Prix</th>
+                  <th className="px-6 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider">Prix Vente</th>
+                  {isAdmin && (
+                    <th className="px-6 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider">Bénéfice Unitaire</th>
+                  )}
                   <th className="px-6 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
-                {bottles.map(b => (
-                  <tr key={b.id} className="hover:bg-white/5 transition-colors group">
-                    <td className="px-6 py-4 font-medium text-foreground">{b.nom}</td>
-                    <td className="px-6 py-4 text-sm text-foreground/60">{b.contenance_ml} ml</td>
-                    <td className="px-6 py-4 text-sm text-foreground/60">{b.matiere} · {b.couleur}</td>
-                    <td className="px-6 py-4 text-sm text-gold font-bold">{b.prix_unitaire} FCFA</td>
-                    <td className="px-6 py-4 text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        {permissions.canUpdate && (
-                          <button onClick={() => handleOpenEdit(b)} className="p-2 rounded-lg hover:bg-white/5 text-foreground/40 hover:text-gold transition-colors">
-                            <Edit2 size={16} />
-                          </button>
-                        )}
-                        {permissions.canDelete && (
-                          <button onClick={() => handleDelete(b.id)} className="p-2 rounded-lg hover:bg-red-500/10 text-foreground/40 hover:text-red-400 transition-colors">
-                            <Trash2 size={16} />
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                {bottles.map(b => {
+                  const prixVenteNum = parseFloat(String(b.prix_unitaire || 0));
+                  const prixAchatNum = parseFloat(String(b.prix_achat || 0));
+                  const beneficeCalc = b.benefice_unitaire !== undefined 
+                    ? parseFloat(String(b.benefice_unitaire))
+                    : (b.prix_unitaire && b.prix_achat ? prixVenteNum - prixAchatNum : null);
+
+                  return (
+                    <tr key={b.id} className="hover:bg-white/5 transition-colors group">
+                      <td className="px-6 py-4 font-medium text-foreground">{b.nom}</td>
+                      <td className="px-6 py-4 text-sm text-foreground/60">{b.contenance_ml} ml</td>
+                      <td className="px-6 py-4 text-sm text-foreground/60">{b.matiere} · {b.couleur}</td>
+                      <td className="px-6 py-4 text-sm text-gold font-bold">{b.prix_unitaire} FCFA</td>
+                      {isAdmin && (
+                        <td className="px-6 py-4 text-sm font-medium">
+                          {beneficeCalc !== null ? (
+                            <span className={`px-2 py-0.5 rounded text-xs font-semibold ${beneficeCalc >= 0 ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'}`}>
+                              +{beneficeCalc.toLocaleString()} FCFA
+                            </span>
+                          ) : (
+                            <span className="text-foreground/30 text-xs italic">Non défini</span>
+                          )}
+                        </td>
+                      )}
+                      <td className="px-6 py-4 text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          {permissions.canUpdate && (
+                            <button onClick={() => handleOpenEdit(b)} className="p-2 rounded-lg hover:bg-white/5 text-foreground/40 hover:text-gold transition-colors">
+                              <Edit2 size={16} />
+                            </button>
+                          )}
+                          {permissions.canDelete && (
+                            <button onClick={() => handleDelete(b.id)} className="p-2 rounded-lg hover:bg-red-500/10 text-foreground/40 hover:text-red-400 transition-colors">
+                              <Trash2 size={16} />
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
                 {bottles.length === 0 && (
                   <tr>
-                    <td colSpan={5} className="text-center py-20 text-foreground/40 italic">Aucun flacon trouvé.</td>
+                    <td colSpan={isAdmin ? 6 : 5} className="text-center py-20 text-foreground/40 italic">Aucun flacon trouvé.</td>
                   </tr>
                 )}
               </tbody>
@@ -330,6 +358,25 @@ export default function FlaconsAdminPage() {
                   <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Prix Unitaire (FCFA)</label>
                   <input value={form.prix_unitaire} onChange={e => updateForm('prix_unitaire', e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-base text-foreground outline-none focus:border-gold" />
                 </div>
+                {isAdmin && (
+                  <div>
+                    <label className="text-[10px] font-bold text-amber-400/80 uppercase block mb-1 flex items-center gap-1">
+                      Prix d'achat (FCFA) <span className="text-[9px] bg-amber-500/10 text-amber-400 px-1 rounded">(Admin)</span>
+                    </label>
+                    <input
+                      type="number"
+                      placeholder="ex: 2500"
+                      value={form.prix_achat}
+                      onChange={e => updateForm('prix_achat', e.target.value)}
+                      className="w-full bg-white/5 border border-amber-500/20 rounded-lg px-3 py-2 text-base text-foreground outline-none focus:border-gold"
+                    />
+                    {form.prix_unitaire && form.prix_achat && (
+                      <p className="text-xs text-emerald-400 mt-1">
+                        Bénéfice estimé : +{(parseFloat(String(form.prix_unitaire)) - parseFloat(String(form.prix_achat))).toLocaleString()} FCFA
+                      </p>
+                    )}
+                  </div>
+                )}
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Stock Initial</label>

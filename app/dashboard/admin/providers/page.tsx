@@ -125,6 +125,7 @@ export default function ProviderDashboardPage() {
   const [payoutAmount, setPayoutAmount] = useState('');
   const [payoutPhone, setPayoutPhone] = useState('');
   const [isInitiatingPayout, setIsInitiatingPayout] = useState(false);
+  const [verifyingPayoutId, setVerifyingPayoutId] = useState<number | null>(null);
 
   // Copy indicator state
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
@@ -321,6 +322,36 @@ export default function ProviderDashboardPage() {
     }
   };
 
+  // Verify transaction status
+  const verifyTransaction = async (payoutId: number) => {
+    try {
+      setVerifyingPayoutId(payoutId);
+      const res = await adminService.verifyPayout(payoutId);
+      const newStatus = res.statut || res.status || 'succes';
+      
+      setData(prev => prev ? {
+        ...prev,
+        payouts_recents: prev.payouts_recents.map(p => 
+          p.id === payoutId 
+            ? { 
+                ...p, 
+                statut: newStatus,
+                ...(res.motif_echec !== undefined ? { motif_echec: res.motif_echec } : {})
+              } 
+            : p
+        )
+      } : null);
+
+      addToast(`Statut de la transaction vérifié : ${newStatus === 'succes' ? 'Réussi' : newStatus === 'echec' ? 'Échoué' : newStatus}`, 'success');
+    } catch (error: any) {
+      console.error('Erreur de vérification:', error);
+      const errMsg = error?.response?.data?.detail || error?.message || 'Erreur lors de la vérification de la transaction';
+      addToast(errMsg, 'error');
+    } finally {
+      setVerifyingPayoutId(null);
+    }
+  };
+
   // 6. Copy link handler
   const handleCopyLink = (code: string) => {
     const text = `exclusif.cm/?ref=${code}`;
@@ -422,12 +453,18 @@ export default function ProviderDashboardPage() {
         ) : (
           <>
             {/* Key Metrics */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
               <MetricCard
                 icon={<TrendingUp className="text-emerald-400" size={20} />}
                 label="Total Gains Historiques"
                 value={`${parseFloat(String(data?.total_gains || 0)).toLocaleString()} FCFA`}
                 sub="Total des commissions"
+              />
+              <MetricCard
+                icon={<ArrowUpRight className="text-sky-400" size={20} />}
+                label="Total Retraits Effectués"
+                value={`${parseFloat(String(data?.total_retraits || 0)).toLocaleString()} FCFA`}
+                sub="Commissions retirées"
               />
               <MetricCard
                 icon={<Calendar className="text-gold" size={20} />}
@@ -558,6 +595,21 @@ export default function ProviderDashboardPage() {
                                     }`}>
                                       {payout.statut === 'succes' ? 'réussi' : payout.statut === 'echec' ? 'échoué' : 'en cours'}
                                     </span>
+                                    {payout.statut !== 'succes' && payout.statut !== 'echec' && (
+                                      <button
+                                        disabled={verifyingPayoutId === payout.id}
+                                        onClick={() => verifyTransaction(payout.id)}
+                                        className="ml-2 px-2.5 py-1 rounded-lg bg-gold/20 hover:bg-gold/30 border border-gold/30 text-gold text-[10px] font-semibold transition-all duration-200 flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
+                                        title="Vérifier le statut de la transaction"
+                                      >
+                                        {verifyingPayoutId === payout.id ? (
+                                          <Loader2 size={12} className="animate-spin" />
+                                        ) : (
+                                          <RefreshCw size={12} />
+                                        )}
+                                        <span>Vérifier</span>
+                                      </button>
+                                    )}
                                   </div>
                                   <p className="text-[10px] text-foreground/40 font-mono mt-1">REF: {payout.reference_unique}</p>
                                   <p className="text-[10px] text-foreground/40 mt-0.5">Dest: {payout.telephone_destination}</p>
