@@ -327,8 +327,11 @@ export const productService = {
       return {
         id: String(p.id),
         name: p.nom || 'Diffuseur de Parfum',
+        nom: p.nom,
         description: p.description_courte || p.description_longue || '',
+        description_courte: p.description_courte,
         price: parseFloat(p.prix_unitaire || '0'),
+        prix_unitaire: p.prix_unitaire,
         originalPrice: parseFloat(p.prix_unitaire || '0'),
         category: 'accessory',
         subCategory: 'other',
@@ -340,6 +343,12 @@ export const productService = {
         slug: p.slug || String(p.id),
         createdAt: p.date_creation || new Date().toISOString(),
         image_principale: p.image_principale || images[0],
+        type_technologie: p.type_technologie,
+        is_new: p.est_nouveau,
+        is_bestseller: p.est_bestseller,
+        capacite_reservoir_ml: p.capacite_reservoir_ml,
+        est_connecte: p.est_connecte,
+        a_jeux_de_lumiere: p.a_jeux_de_lumiere,
       };
     });
   },

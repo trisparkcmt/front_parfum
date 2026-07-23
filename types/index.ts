@@ -109,6 +109,16 @@ export interface Product {
   image_principale?: string;
   image_supp_1?: string;
   isCustomComposition?: boolean;
+  // Diffuseur-specific
+  type_technologie?: string;
+  is_new?: boolean;
+  is_bestseller?: boolean;
+  nom?: string;
+  description_courte?: string;
+  prix_unitaire?: number | string;
+  capacite_reservoir_ml?: number;
+  est_connecte?: boolean;
+  a_jeux_de_lumiere?: boolean;
 }
 
 export interface Accessory extends Product {}
