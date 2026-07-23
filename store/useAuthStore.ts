@@ -156,6 +156,11 @@ export const useAuthStore = create<AuthState>()(
               role: resolvePrimaryRole(roles),
               roles,
               createdAt: meData?.client?.date_creation || userObj.date_creation || new Date().toISOString(),
+              client: meData?.client,
+              preferences: meData?.preferences,
+              favoris: meData?.favoris,
+              commandes: meData?.commandes,
+              parfums_personnalises: meData?.parfums_personnalises,
             };
           };
 
@@ -248,6 +253,11 @@ export const useAuthStore = create<AuthState>()(
               role: resolvePrimaryRole(roles),
               roles,
               createdAt: meData?.client?.date_creation || userObj.date_creation || new Date().toISOString(),
+              client: meData?.client,
+              preferences: meData?.preferences,
+              favoris: meData?.favoris,
+              commandes: meData?.commandes,
+              parfums_personnalises: meData?.parfums_personnalises,
             };
           };
 
@@ -463,6 +473,11 @@ export const useAuthStore = create<AuthState>()(
             role: resolvePrimaryRole(roles),
             roles,
             createdAt: meData.client?.date_creation || userObj.date_creation || new Date().toISOString(),
+            client: meData.client,
+            preferences: meData.preferences,
+            favoris: meData.favoris,
+            commandes: meData.commandes,
+            parfums_personnalises: meData.parfums_personnalises,
           };
 
           set({ user: meUser, isAuthenticated: true });

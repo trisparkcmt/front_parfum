@@ -3,7 +3,8 @@
 import { useMemo, useState } from 'react';
 import { useAuthStore } from '@/store/useAuthStore';
 import { formatPrice } from '@/lib/utils';
-import { Package, Droplets, ShoppingBag, Heart, Calendar, CreditCard, Star, ChevronRight, Palette, ChevronLeft, ChevronRight as ChevronRightIcon, X } from 'lucide-react';
+import { Package, ShoppingBag, Heart, Calendar, CreditCard, Star, ChevronRight, Palette, ChevronLeft, ChevronRight as ChevronRightIcon, X } from 'lucide-react';
+import { PerfumeIcon } from '@/components/icons/CustomIcons';
 import { useTranslation } from 'react-i18next';
 import { useRouter } from 'next/navigation';
 import { BackButton } from '@/components/ui/BackButton';
@@ -66,8 +67,8 @@ export default function ClientDashboard() {
         {[
           { label: t('orders_count'), value: orders.length, icon: <Package size={18} />, color: 'text-gold bg-gold/10' },
           { label: t('delivered_count'), value: deliveredOrders.length, icon: <ShoppingBag size={18} />, color: 'text-emerald-400 bg-emerald-400/10' },
-          { label: t('numba_creations_count'), value: compositionCount, icon: <Droplets size={18} />, color: 'text-purple-400 bg-purple-400/10' },
-          { label: t('total_spent_label'), value: formatPrice(totalSpent), icon: <CreditCard size={18} />, color: 'text-amber-400 bg-amber-400/10' },
+          { label: 'Points fidélité', value: user?.client?.points_fidelite ?? 0, icon: <Star size={18} />, color: 'text-amber-400 bg-amber-400/10' },
+          { label: 'Total dépensé', value: formatPrice(user?.client?.total_depenses ?? totalSpent), icon: <CreditCard size={18} />, color: 'text-blue-400 bg-blue-400/10' },
         ].map(s => (
           <div key={s.label} className="bg-white/5 rounded-2xl border border-white/10 p-5 shadow-sm">
             <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-3 ${s.color}`}>{s.icon}</div>
@@ -222,7 +223,7 @@ export default function ClientDashboard() {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {[
           { label: 'Mes Commandes', desc: 'Voir toutes mes commandes', icon: <Package size={20} />, color: 'from-blue-500 to-blue-700', href: '/dashboard/client/orders' },
-          { label: t('create_perfume_action'), desc: 'Atelier Numba', icon: <Droplets size={20} />, color: 'from-purple-500 to-purple-700', href: '/numba' },
+          { label: t('create_perfume_action'), desc: 'Atelier Numba', icon: <PerfumeIcon size={20} />, color: 'from-purple-500 to-purple-700', href: '/numba' },
           { label: t('my_favorites_action'), desc: 'Produits sauvegardés', icon: <Heart size={20} />, color: 'from-red-400 to-red-600', href: '/dashboard/client/favorites' },
           { label: t('loyalty_program_action'), desc: 'Vos récompenses', icon: <Star size={20} />, color: 'from-amber-400 to-amber-600', href: '#' },
           { label: t('settings_action'), desc: 'Langue, Devise, Apparence', icon: <Palette size={20} />, color: 'from-blue-400 to-blue-600', href: '/dashboard/client/profile' },

@@ -12,7 +12,7 @@ import {
   Package,
   ArrowRight,
 } from "lucide-react";
-import { CartIcon, CategoryIcon, TagIcon } from "@/components/icons/CustomIcons";
+import { CartIcon, CategoryIcon, TagIcon, DiffuseurIcon, PerfumeIcon } from "@/components/icons/CustomIcons";
 import AppImage from "@/components/ui/AppImage";
 import { productService } from "@/services/productService";
 import { AccessorySubCategory } from "@/types";
@@ -32,8 +32,8 @@ const PERFUME_LABELS: Record<string, string> = {
 };
 
 const PERFUME_ICONS: Record<string, React.ComponentType<{ size?: number; className?: string }>> = {
-  "perfume-brand": Crown,
-  "perfume-dupe": Sparkles,
+  "perfume-brand": PerfumeIcon,
+  "perfume-dupe": PerfumeIcon,
   "numba-creation": Gem,
 };
 
@@ -109,7 +109,7 @@ export default function CategoryPills() {
           label: 'Diffuseurs',
           href: '/shop/diffuseurs',
           image: null,
-          Icon: Sparkles,
+          Icon: DiffuseurIcon,
         };
 
         if (mounted) setCategories([diffuseurEntry, ...perfumeEntries, ...accessoryEntries]);

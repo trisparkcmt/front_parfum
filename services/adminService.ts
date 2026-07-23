@@ -15,6 +15,8 @@ export interface BestClient {
   date_naissance?: string;
   genre?: string;
   points_fidelite: number;
+  total_spent?: number;
+  total_paid_orders?: number;
 }
 
 export interface BestProvider {
@@ -35,9 +37,9 @@ export interface PaginatedResponse<T> {
 }
 
 export const adminService = {
-  // Get best clients (by spending or number of orders)
+  // Get best clients (by loyalty points, spending or number of orders)
   async getBestClients(
-    filterBy: 'spent' | 'orders' = 'spent',
+    filterBy: 'spent' | 'orders' | 'points' = 'spent',
     limit?: number,
     page?: number
   ): Promise<BestClient[] | PaginatedResponse<BestClient>> {

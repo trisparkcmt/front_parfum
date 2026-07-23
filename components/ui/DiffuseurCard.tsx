@@ -9,6 +9,7 @@ import { motion } from 'framer-motion';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Wifi, Zap, Flame, Droplets } from 'lucide-react';
+import { DiffuseurIcon } from '@/components/icons/CustomIcons';
 import type { Product } from '@/types';
 
 /* ── Tech badge config ── */
@@ -83,17 +84,8 @@ export function DiffuseurCard({ product, index = 0 }: DiffuseurCardProps) {
               className="object-cover transition-transform duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] group-hover:scale-[1.06]"
             />
           ) : (
-            <div className="absolute inset-0 flex items-center justify-center">
-              <svg
-                width="40"
-                height="40"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="#333"
-                strokeWidth="1"
-              >
-                <path d="M12 2l2.4 7.2h7.6l-6 4.8 2.4 7.2-6-4.8-6 4.8 2.4-7.2-6-4.8h7.6z" />
-              </svg>
+            <div className="absolute inset-0 flex items-center justify-center text-[#333]">
+              <DiffuseurIcon size={40} />
             </div>
           )}
 

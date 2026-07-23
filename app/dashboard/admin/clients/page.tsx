@@ -30,7 +30,7 @@ export default function ClientsPage() {
   // ── Meilleurs clients tab ─────────────────────────────────────────────────
   const [bestClients, setBestClients] = useState<BestClient[]>([]);
   const [bestLoading, setBestLoading] = useState(false);
-  const [filterBy, setFilterBy] = useState<'spent' | 'orders'>('spent');
+  const [filterBy, setFilterBy] = useState<'spent' | 'orders' | 'points'>('spent');
   const [bestPage, setBestPage] = useState(1);
   const [bestTotal, setBestTotal] = useState(0);
   const PAGE_SIZE = 20;
@@ -312,6 +312,12 @@ export default function ClientsPage() {
               >
                 <ShoppingBag size={14} /> Par commandes
               </button>
+              <button
+                onClick={() => { setFilterBy('points'); setBestPage(1); }}
+                className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-all ${filterBy === 'points' ? 'bg-gold text-black' : 'text-foreground/50 hover:text-foreground'}`}
+              >
+                <Star size={14} /> Par points
+              </button>
             </div>
             <p className="text-xs text-foreground/40">
               {bestTotal} client{bestTotal !== 1 ? 's' : ''} classés
@@ -395,10 +401,38 @@ export default function ClientsPage() {
                           </p>
                           <p className="text-[11px] text-foreground/40 truncate">{client.user_details?.email}</p>
                         </div>
-                        {/* Points fidélité */}
+                        {/* Points fidélité / Dépenses / Commandes */}
                         <div className="text-right shrink-0">
-                          <p className="text-sm font-bold text-gold">{(client.points_fidelite ?? 0).toLocaleString('fr-FR')}</p>
-                          <p className="text-[10px] text-foreground/40">pts fidélité</p>
+                          {filterBy === 'points' && (
+                            <>
+                              <p className="text-sm font-bold text-gold">{(client.points_fidelite ?? 0).toLocaleString('fr-FR')}</p>
+                              <p className="text-[10px] text-foreground/40">pts fidélité</p>
+                            </>
+                          )}
+                          {filterBy === 'spent' && client.total_spent !== undefined && (
+                            <>
+                              <p className="text-sm font-bold text-gold">{(client.total_spent ?? 0).toLocaleString('fr-FR')}</p>
+                              <p className="text-[10px] text-foreground/40">FCFA dépensés</p>
+                            </>
+                          )}
+                          {filterBy === 'orders' && client.total_paid_orders !== undefined && (
+                            <>
+                              <p className="text-sm font-bold text-gold">{(client.total_paid_orders ?? 0).toLocaleString('fr-FR')}</p>
+                              <p className="text-[10px] text-foreground/40">commandes payées</p>
+                            </>
+                          )}
+                          {filterBy === 'spent' && client.total_spent === undefined && (
+                            <>
+                              <p className="text-sm font-bold text-gold">{(client.points_fidelite ?? 0).toLocaleString('fr-FR')}</p>
+                              <p className="text-[10px] text-foreground/40">pts fidélité</p>
+                            </>
+                          )}
+                          {filterBy === 'orders' && client.total_paid_orders === undefined && (
+                            <>
+                              <p className="text-sm font-bold text-gold">{(client.points_fidelite ?? 0).toLocaleString('fr-FR')}</p>
+                              <p className="text-[10px] text-foreground/40">pts fidélité</p>
+                            </>
+                          )}
                         </div>
                       </div>
                     );

@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Loader2, Search, Sparkles, Gem, FlaskConical } from 'lucide-react';
+import { Loader2, Search, Gem, FlaskConical } from 'lucide-react';
+import { PerfumeIcon } from '@/components/icons/CustomIcons';
 import { shopService } from '@/services/apiService';
 import { useToastStore } from '@/store/useToastStore';
 import { AppImage } from '@/components/ui/AppImage';
@@ -74,7 +75,7 @@ export default function CategoriesPage() {
 
       <div className="bg-white/5 rounded-2xl border border-white/10 overflow-hidden shadow-sm">
         <div className="flex border-b border-white/10 overflow-x-auto">
-          <TabButton active={activeTab === 'perfume_categories'} onClick={() => setActiveTab('perfume_categories')} icon={<Sparkles size={14} />} label="Catégories Parfums" />
+          <TabButton active={activeTab === 'perfume_categories'} onClick={() => setActiveTab('perfume_categories')} icon={<PerfumeIcon size={14} />} label="Catégories Parfums" />
           <TabButton active={activeTab === 'accessory_categories'} onClick={() => setActiveTab('accessory_categories')} icon={<Gem size={14} />} label="Catégories Accessoires" />
           <TabButton active={activeTab === 'bottle_types'} onClick={() => setActiveTab('bottle_types')} icon={<FlaskConical size={14} />} label="Types Flacons" />
         </div>

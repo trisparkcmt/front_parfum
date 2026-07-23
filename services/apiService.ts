@@ -50,7 +50,7 @@ export const authService = {
   },
 
   /**
-   * Get current user profile with favorites, carts, and orders
+   * Get current user profile with favorites, carts, orders and financial stats
    */
   getMe: async (): Promise<User> => {
     const response = await api.get('auth/me/');
@@ -207,7 +207,7 @@ export const authService = {
   /**
    * Alias for getMe() - Get current user profile
    */
-  getCurrentUser: async () => {
+  getCurrentUser: async (): Promise<User> => {
     const response = await api.get('auth/me/');
     return response.data;
   },

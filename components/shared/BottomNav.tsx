@@ -3,8 +3,8 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence, LayoutGroup } from 'framer-motion';
-import { HomeIcon, CartIcon } from '@/components/icons/CustomIcons';
-import { Watch, Droplets, Sparkles } from 'lucide-react';
+import { HomeIcon, CartIcon, DiffuseurIcon, PerfumeIcon } from '@/components/icons/CustomIcons';
+import { Watch } from 'lucide-react';
 import { useCartStore } from '@/store/useCartStore';
 import { useCartDrawerStore } from '@/store/useCartDrawerStore';
 
@@ -16,9 +16,9 @@ const BottomNav = () => {
   const links = [
     { href: '/',                  icon: HomeIcon, label: 'Accueil',     action: null },
     { href: '/shop/accessories',  icon: Watch,     label: 'Accessoires', action: null },
-    { href: '/shop/perfumes',     icon: Droplets,  label: 'Parfum',      action: null },
-    { href: '/shop/diffuseurs',   icon: Sparkles,  label: 'Diffuseurs',  action: null },
-    { href: '/numba',             icon: Sparkles,  label: 'Atelier',     action: null },
+    { href: '/shop/perfumes',     icon: PerfumeIcon,  label: 'Parfum',      action: null },
+    { href: '/shop/diffuseurs',   icon: DiffuseurIcon, label: 'Diffuseurs',  action: null },
+    { href: '/numba',             icon: DiffuseurIcon, label: 'Atelier',     action: null },
     { href: '/cart',              icon: CartIcon,  label: 'Panier',      action: openCartDrawer, badge: itemCount },
   ];
 

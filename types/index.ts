@@ -22,6 +22,48 @@
 
 export type UserRole = 'client' | 'superadmin' | 'delivery' | 'partner' | 'serveuse';
 
+export interface ClientProfile {
+  id: number;
+  date_naissance?: string;
+  genre?: string;
+  total_depenses: number;
+  points_fidelite: number;
+  reste_pour_prochain_point: number;
+  progression_pourcentage: number;
+  rang_classement: number;
+  date_creation: string;
+}
+
+export interface UserFavorite {
+  id: number;
+  type_produit: string;
+  nom_produit: string;
+  prix_produit: string;
+}
+
+export interface UserPreference {
+  id: number;
+  nom: string;
+  categorie: string;
+  date_ajout: string;
+}
+
+export interface UserCustomPerfume {
+  id: number;
+  nom: string;
+  date_creation: string;
+}
+
+export interface UserOrderSummary {
+  id: number;
+  numero_commande: string;
+  statut: string;
+  statut_livraison: string;
+  statut_paiement: string;
+  total_ttc: string;
+  date_creation: string;
+}
+
 export interface User {
   id: string;
   firstName: string;
@@ -34,6 +76,11 @@ export interface User {
   is_superuser?: boolean;
   avatarUrl?: string;
   createdAt: string;
+  client?: ClientProfile;
+  preferences?: UserPreference[];
+  favoris?: UserFavorite[];
+  commandes?: UserOrderSummary[];
+  parfums_personnalises?: UserCustomPerfume[];
 }
 
 export interface AuthState {

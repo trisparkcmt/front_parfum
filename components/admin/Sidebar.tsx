@@ -6,9 +6,9 @@ import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard, ShoppingCart, BarChart2, Users2,
   TrendingUp, Package, Cpu, DollarSign, Truck,
-  UserCircle, Sparkles, Gem, Tag, X, ChevronDown, ChevronRight, Droplets,
-  Bell, FileText,
+  UserCircle, Sparkles, Gem, Tag, X, ChevronDown, ChevronRight, Bell, FileText,
 } from 'lucide-react';
+import { PerfumeIcon, EssenceIcon, DiffuseurIcon } from '@/components/icons/CustomIcons';
 
 
 interface SidebarProps {
@@ -39,14 +39,14 @@ const menuItems: NavItem[] = [
 
 const boutiqueItems: NavItem[] = [
   { label: 'Gestion des Commandes', icon: <ShoppingCart size={18} />, href: '/dashboard/admin/order' },
-  { label: 'Parfums', icon: <Sparkles size={18} />, href: '/dashboard/admin/perfume' },
+  { label: 'Parfums', icon: <PerfumeIcon size={18} />, href: '/dashboard/admin/perfume' },
   { label: 'Catégories', icon: <Package size={18} />, href: '/dashboard/admin/categories' },
-  { label: 'Essences', icon: <Droplets size={18} />, href: '/dashboard/admin/essences' },
-  { label: 'Produits Essence', icon: <Droplets size={18} />, href: '/dashboard/admin/produits-essence' },
+  { label: 'Essences', icon: <EssenceIcon size={18} />, href: '/dashboard/admin/essences' },
+  { label: 'Produits Essence', icon: <EssenceIcon size={18} />, href: '/dashboard/admin/produits-essence' },
   { label: 'Laboratoire', icon: <Cpu size={18} />, href: '/dashboard/admin/lab' },
   { label: 'Flacons', icon: <Package size={18} />, href: '/dashboard/admin/flacons' },
   { label: 'Accessoires', icon: <Gem size={18} />, href: '/dashboard/admin/accessories' },
-  { label: 'Diffuseurs', icon: <Sparkles size={18} />, href: '/dashboard/admin/diffuseurs' },
+  { label: 'Diffuseurs', icon: <DiffuseurIcon size={18} />, href: '/dashboard/admin/diffuseurs' },
   { label: 'Compositions', icon: <Cpu size={18} />, href: '/dashboard/admin/compositions' },
   { label: 'Dépenses', icon: <DollarSign size={18} />, href: '/dashboard/admin/expenses' },
   { label: 'Codes Promo', icon: <Tag size={18} />, href: '/dashboard/admin/promo-codes' },

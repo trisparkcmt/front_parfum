@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Loader2, Edit2, Trash2, Plus, Search, Sparkles, Gem, FlaskConical } from 'lucide-react';
+import { Loader2, Edit2, Trash2, Plus, Search, Gem, FlaskConical } from 'lucide-react';
+import { PerfumeIcon } from '@/components/icons/CustomIcons';
 import { shopService } from '@/services/apiService';
 import { adminService } from '@/services/apiService';
 import { useToastStore } from '@/store/useToastStore';
@@ -286,7 +287,7 @@ export default function CategoriesAdminPage() {
 
               <div className="bg-white/5 rounded-2xl border border-white/10 overflow-hidden shadow-sm">
                 <div className="flex border-b border-white/10 overflow-x-auto">
-                  <TabButton active={activeTab === 'perfume_categories'} onClick={() => setActiveTab('perfume_categories')} icon={<Sparkles size={14} />} label="Catégories Parfums" />
+                  <TabButton active={activeTab === 'perfume_categories'} onClick={() => setActiveTab('perfume_categories')} icon={<PerfumeIcon size={14} />} label="Catégories Parfums" />
                   <TabButton active={activeTab === 'accessory_categories'} onClick={() => setActiveTab('accessory_categories')} icon={<Gem size={14} />} label="Catégories Accessoires" />
                   <TabButton active={activeTab === 'bottle_types'} onClick={() => setActiveTab('bottle_types')} icon={<FlaskConical size={14} />} label="Types Flacons" />
                 </div>
@@ -350,7 +351,7 @@ export default function CategoriesAdminPage() {
                                       {(c.image || c.icone) ? (
                                         <AppImage src={c.image || c.icone} alt={c.nom || 'Icône'} fill className="object-cover group-hover:scale-105 transition-transform duration-300" />
                                       ) : (
-                                        <Sparkles size={18} className="text-foreground/20" />
+                                         <PerfumeIcon size={18} className="text-foreground/20" />
                                       )}
                                     </div>
                                   </td>

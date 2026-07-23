@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { shopService, orderService } from '@/services/apiService';
 import { useToastStore } from '@/store/useToastStore';
-import { ShoppingBag, Gem, Droplets, Sparkles, Loader2, ArrowUpRight, ShoppingCart } from 'lucide-react';
+import { ShoppingBag, Gem, Loader2, ArrowUpRight, ShoppingCart, Droplets } from 'lucide-react';
+import { PerfumeIcon } from '@/components/icons/CustomIcons';
 
 export default function ServeuseDashboardPage() {
   const [loading, setLoading] = useState(true);
@@ -74,7 +75,7 @@ export default function ServeuseDashboardPage() {
           <>
             {[
               { label: 'Commandes', value: stats.ordersCount, icon: <ShoppingBag size={20} />, color: 'text-purple-400 bg-purple-500/10' },
-              { label: 'Parfums', value: stats.perfumesCount, icon: <Sparkles size={20} />, color: 'text-gold bg-gold/10' },
+              { label: 'Parfums', value: stats.perfumesCount, icon: <PerfumeIcon size={20} />, color: 'text-gold bg-gold/10' },
               { label: 'Accessoires', value: stats.accessoriesCount, icon: <Gem size={20} />, color: 'text-emerald-400 bg-emerald-500/10' },
               { label: 'Flacons', value: stats.bottlesCount, icon: <Droplets size={20} />, color: 'text-blue-400 bg-blue-500/10' },
             ].map((stat) => (
