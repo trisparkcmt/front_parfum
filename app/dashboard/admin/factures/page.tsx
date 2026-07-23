@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
   FileText, Download, Mail, RefreshCw, Loader2, Search,
-  CheckCircle, Clock, ArrowUpRight,
+  CheckCircle, Clock, ArrowUpRight, Link as LinkIcon,
 } from 'lucide-react';
 import { invoiceService } from '@/services/invoiceService';
 import { useToastStore } from '@/store/useToastStore';
@@ -58,8 +58,16 @@ export default function FacturesPage() {
     }
   };
 
+  const getInvoiceOrderNumber = (inv: any) => {
+    if (!inv) return undefined;
+    if (inv.commande?.numero_commande) return inv.commande.numero_commande;
+    if (typeof inv.commande === 'string') return inv.commande;
+    return inv.numero_facture;
+  };
+
   const handleDownload = async (inv: any) => {
-    const num = inv.commande || inv.numero_facture;
+    const num = getInvoiceOrderNumber(inv);
+    if (!num) return;
     setDownloadingId(inv.numero_facture);
     try {
       await invoiceService.downloadInvoiceFile(num, `${inv.numero_facture}.pdf`);
@@ -74,10 +82,13 @@ export default function FacturesPage() {
   const totalPages = Math.ceil(total / PAGE_SIZE);
 
   const filtered = search.trim()
-    ? invoices.filter(inv =>
-        inv.numero_facture?.toLowerCase().includes(search.toLowerCase()) ||
-        inv.commande?.toLowerCase().includes(search.toLowerCase())
-      )
+    ? invoices.filter(inv => {
+        const numeroCommande = inv.commande?.numero_commande || inv.commande;
+        return (
+          inv.numero_facture?.toLowerCase().includes(search.toLowerCase()) ||
+          String(numeroCommande ?? '')?.toLowerCase().includes(search.toLowerCase())
+        );
+      })
     : invoices;
 
   return (
@@ -175,25 +186,31 @@ export default function FacturesPage() {
                       </div>
                     </td>
                     <td className="px-5 py-4">
-                      <span className="text-xs font-mono text-foreground/70">{inv.commande || '—'}</span>
+                      <span className="text-xs font-mono text-foreground/70">
+                        {inv.commande?.numero_commande || inv.commande || '—'}
+                      </span>
+                      {inv.commande?.statut && (
+                        <div className="text-[10px] text-foreground/50 mt-1">
+                          {inv.commande.statut} · {inv.commande.statut_paiement}
+                        </div>
+                      )}
                     </td>
                     <td className="px-5 py-4 text-xs text-foreground/60">{fmtDate(inv.date_emission)}</td>
                     <td className="px-5 py-4">
                       <span className="text-sm font-semibold text-foreground">
-                        {inv.montant_total
-                          ? `${Number(inv.montant_total).toLocaleString('fr-FR')} FCFA`
+                        {inv.montant_total ?? inv.commande?.total_ttc
+                          ? `${Number(inv.montant_total ?? inv.commande?.total_ttc).toLocaleString('fr-FR')} FCFA`
                           : '—'}
                       </span>
                     </td>
                     <td className="px-5 py-4">
-                      {inv.envoye_par_email ? (
-                        <div className="flex items-center gap-1 text-emerald-400 text-xs font-medium">
-                          <CheckCircle size={12} /> Envoyée
-                        </div>
-                      ) : (
-                        <div className="flex items-center gap-1 text-amber-400 text-xs font-medium">
-                          <Clock size={12} /> En attente
-                        </div>
+                      <span className="text-xs text-foreground/50 block">
+                        {inv.commande?.client_email || inv.email_envoye_a || '—'}
+                      </span>
+                      {inv.commande?.client_nom_complet && (
+                        <span className="text-[10px] text-foreground/40">
+                          {inv.commande.client_nom_complet}
+                        </span>
                       )}
                     </td>
                     <td className="px-5 py-4">
@@ -230,6 +247,17 @@ export default function FacturesPage() {
                             title="Ouvrir le PDF"
                           >
                             <ArrowUpRight size={14} />
+                          </a>
+                        )}
+                        {inv.commande?.detail_url && (
+                          <a
+                            href={inv.commande.detail_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="p-1.5 rounded-lg hover:bg-white/10 text-foreground/40 hover:text-emerald-400 transition-colors"
+                            title="Voir la commande"
+                          >
+                            <LinkIcon size={14} />
                           </a>
                         )}
                       </div>

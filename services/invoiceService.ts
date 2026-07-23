@@ -1,14 +1,33 @@
 import { api } from './api';
 
+export interface InvoiceCommandInfo {
+  id: number;
+  numero_commande: string;
+  total_ttc: string;
+  statut: string;
+  statut_paiement: string;
+  statut_livraison: string;
+  date_creation: string;
+  client_id: number;
+  client_email: string;
+  client_nom_complet: string;
+  client_telephone: string;
+  livraison_nom_complet: string;
+  livraison_telephone: string;
+  detail_url: string;
+}
+
 export interface InvoiceDetail {
   numero_facture: string;
   date_emission: string;
   fichier_pdf?: string;
   envoye_par_email?: boolean;
+  email_envoye_a?: string;
   id?: number;
   recipient?: number;
-  commande?: string;
-  montant_total?: number;
+  commande?: string | InvoiceCommandInfo;
+  montant_total?: number | string;
+  total_ttc?: number | string;
   created_at?: string;
   [key: string]: any;
 }

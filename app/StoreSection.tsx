@@ -98,8 +98,8 @@ function LeafletMap() {
   return (
     <div
       ref={mapRef}
-      className="w-full rounded-2xl overflow-hidden border border-white/10"
-      style={{ height: '420px', minHeight: '300px' }}
+      className="w-full rounded-2xl overflow-hidden border border-white/10 relative z-0"
+      style={{ height: '420px', minHeight: '300px', zIndex: 0 }}
     />
   );
 }

@@ -126,7 +126,7 @@ export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
             exit={{ opacity: 0 }}
             transition={{ duration: 0.25 }}
             onClick={onClose}
-            className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm"
+            className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm"
           />
 
           {/* Drawer panel */}
@@ -135,7 +135,7 @@ export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
             transition={{ type: 'spring', damping: 28, stiffness: 280 }}
-            className="fixed right-0 top-0 bottom-0 z-[70] w-full max-w-sm flex flex-col bg-[#0d0d0d]/95 backdrop-blur-2xl border-l border-white/[0.06] shadow-2xl"
+            className="fixed right-0 top-0 bottom-0 z-[110] w-full max-w-sm flex flex-col bg-[#0d0d0d]/95 backdrop-blur-2xl border-l border-white/[0.06] shadow-2xl pb-[calc(env(safe-area-inset-bottom,1rem)+1rem)]"
           >
             {/* Header */}
             <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.06]">
@@ -187,7 +187,7 @@ export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
 
             {/* Footer summary */}
             {lines.length > 0 && (
-              <div className="border-t border-white/[0.06] px-5 py-5 space-y-3">
+              <div className="border-t border-white/[0.06] px-5 pb-[1.25rem] pt-5 space-y-3">
                 {/* Summary rows */}
                 <div className="space-y-1.5 text-xs">
                   <div className="flex justify-between text-foreground/50">
