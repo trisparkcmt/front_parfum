@@ -65,7 +65,7 @@ export function DiffuseurCard({ product, index = 0 }: DiffuseurCardProps) {
       transition={{
         delay: index * 0.06,
         duration: 0.6,
-        ease: [0.23, 1, 0.32, 1],
+        ease: [0.23, 1, 0.32, 1] as const,
       }}
     >
       <Link

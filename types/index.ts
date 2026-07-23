@@ -113,6 +113,8 @@ export interface Product {
   type_technologie?: string;
   is_new?: boolean;
   is_bestseller?: boolean;
+  est_nouveau?: boolean;
+  est_bestseller?: boolean;
   nom?: string;
   description_courte?: string;
   prix_unitaire?: number | string;
