@@ -300,10 +300,33 @@ export interface BackendOrderLine {
   parfum_personnalise?: number;
   essence_personnalisee?: number;
   nom_snapshot: string;
+  nom?: string;
   quantite: number;
   prix_unitaire_snapshot: string;
+  prix_snapshot?: string;
   remise_ligne: string;
   sous_total: string;
+  composition?: {
+    id?: number;
+    nom?: string;
+    description?: string;
+    enregistre?: boolean;
+    flacon?: number | { id?: number; nom?: string; contenance_ml?: number; prix_unitaire?: string };
+    flacon_nom?: string;
+    flacon_contenance_ml?: number;
+    prix_essences?: string;
+    prix_flacon_snapshot?: string;
+    prix_total?: string;
+    statut?: string;
+    lignes?: Array<{
+      essence_nom?: string;
+      quantite_ml?: string;
+      type_essence?: string;
+    }>;
+  };
+  produit_details?: { nom?: string };
+  parfum_details?: { nom?: string };
+  accessoire_details?: { nom?: string };
 }
 
 export interface BackendOrder {
@@ -604,6 +627,7 @@ export interface CategorieParfum {
 export interface Flacon {
   id: number;
   nom: string;
+  slug?: string;
   type_flacon: TypeFlacon | number;
   contenance_ml: number;
   matiere?: string;
@@ -613,6 +637,7 @@ export interface Flacon {
   poids_grammes?: string;
   prix_unitaire: string;
   stock_quantite: number;
+  stock_suffisant?: boolean;
   seuil_alerte_stock: number;
   image_principale?: string;
   actif: boolean;

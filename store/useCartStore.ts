@@ -34,11 +34,38 @@ function extractApiError(error: any, fallback: string): string {
   const data = error?.response?.data;
   if (!data) return fallback;
   if (typeof data.detail === 'string') return data.detail;
+  if (typeof data.message === 'string') return data.message;
   const parts = Object.entries(data).map(([key, val]) => {
     if (Array.isArray(val)) return `${key}: ${val.join(', ')}`;
+    if (val && typeof val === 'object') {
+      return `${key}: ${JSON.stringify(val)}`;
+    }
     return `${key}: ${String(val)}`;
   });
   return parts.length > 0 ? parts.join(' · ') : fallback;
+}
+
+function normalizeCartData(cartData: any): CartData {
+  if (!cartData) return cartData;
+
+  const normalizeLine = (line: any, fallbackType: CartLine['type']) => ({
+    ...line,
+    type: line.type ?? line.type_ligne ?? line.ligne_type ?? fallbackType,
+    id: line.id ?? line.ligne_id ?? 0,
+    nom: line.nom || line.nom_snapshot || line.produit_details?.nom || line.parfum_details?.nom || line.accessoire_details?.nom || 'Produit',
+    quantite: Number(line.quantite ?? 1),
+    prix_unitaire_snapshot: Number(line.prix_unitaire_snapshot ?? line.prix_snapshot ?? 0),
+    sous_total: Number(line.sous_total ?? (Number(line.prix_unitaire_snapshot ?? line.prix_snapshot ?? 0) * Number(line.quantite ?? 1))),
+  });
+
+  return {
+    ...cartData,
+    lignes_parfums: (cartData.lignes_parfums || []).map((line: any) => normalizeLine(line, 'parfum')),
+    lignes_accessoires: (cartData.lignes_accessoires || []).map((line: any) => normalizeLine(line, 'accessoire')),
+    lignes_produit_fini_essence: (cartData.lignes_produit_fini_essence || []).map((line: any) => normalizeLine(line, 'produit-fini-essence')),
+    lignes_parfums_perso: (cartData.lignes_parfums_perso || []).map((line: any) => normalizeLine(line, 'parfum-personnalise')),
+    lignes_essence_personnalisee: (cartData.lignes_essence_personnalisee || []).map((line: any) => normalizeLine(line, 'essence-personnalisee')),
+  };
 }
 
 export interface CartLine {
@@ -142,9 +169,10 @@ export const useCartStore = create<CartState>()(
         const addToast = useToastStore.getState().addToast;
         try {
           const cartData = await cartService.getCart(panierIdOptional);
+          const normalizedCart = normalizeCartData(cartData);
           set({
-            panierId: cartData.id,
-            cart: cartData,
+            panierId: normalizedCart.id,
+            cart: normalizedCart,
             isLoading: false,
           });
         } catch (error: any) {
@@ -165,9 +193,10 @@ export const useCartStore = create<CartState>()(
             quantite,
             panier_id: state.panierId || undefined,
           });
+          const normalizedCart = normalizeCartData(cartData);
           set({
-            panierId: cartData.id,
-            cart: cartData,
+            panierId: normalizedCart.id,
+            cart: normalizedCart,
             isLoading: false,
           });
           addToast('Parfum ajouté au panier', 'success');
@@ -189,9 +218,10 @@ export const useCartStore = create<CartState>()(
             quantite,
             panier_id: state.panierId || undefined,
           });
+          const normalizedCart = normalizeCartData(cartData);
           set({
-            panierId: cartData.id,
-            cart: cartData,
+            panierId: normalizedCart.id,
+            cart: normalizedCart,
             isLoading: false,
           });
           addToast('Accessoire ajouté au panier', 'success');
@@ -213,9 +243,10 @@ export const useCartStore = create<CartState>()(
             quantite,
             panier_id: state.panierId || undefined,
           });
+          const normalizedCart = normalizeCartData(cartData);
           set({
-            panierId: cartData.id,
-            cart: cartData,
+            panierId: normalizedCart.id,
+            cart: normalizedCart,
             isLoading: false,
           });
           addToast('Essence ajoutée au panier', 'success');
@@ -238,9 +269,10 @@ export const useCartStore = create<CartState>()(
             panier_id: state.panierId || undefined,
             note_client: noteClient,
           });
+          const normalizedCart = normalizeCartData(cartData);
           set({
-            panierId: cartData.id,
-            cart: cartData,
+            panierId: normalizedCart.id,
+            cart: normalizedCart,
             isLoading: false,
           });
           if (!options?.silent) {
@@ -265,9 +297,10 @@ export const useCartStore = create<CartState>()(
             ...data,
             panier_id: state.panierId ?? null,
           });
+          const normalizedCart = normalizeCartData(cartData);
           set({
-            panierId: cartData.id,
-            cart: cartData,
+            panierId: normalizedCart.id,
+            cart: normalizedCart,
             isLoading: false,
           });
           if (!options?.silent) {
@@ -294,9 +327,10 @@ export const useCartStore = create<CartState>()(
             quantite,
             panier_id: state.panierId || undefined,
           });
+          const normalizedCart = normalizeCartData(cartData);
           set({
-            panierId: cartData.id,
-            cart: cartData,
+            panierId: normalizedCart.id,
+            cart: normalizedCart,
             isLoading: false,
           });
           addToast('Essence personnalisée ajoutée au panier', 'success');
@@ -321,9 +355,10 @@ export const useCartStore = create<CartState>()(
               panier_id: state.panierId || undefined,
             }
           );
+          const normalizedCart = normalizeCartData(cartData);
           set({
-            panierId: cartData.id,
-            cart: cartData,
+            panierId: normalizedCart.id,
+            cart: normalizedCart,
             isLoading: false,
           });
         } catch (error: any) {
@@ -344,9 +379,10 @@ export const useCartStore = create<CartState>()(
             ligneId,
             state.panierId || undefined
           );
+          const normalizedCart = normalizeCartData(cartData);
           set({
-            panierId: cartData.id,
-            cart: cartData,
+            panierId: normalizedCart.id,
+            cart: normalizedCart,
             isLoading: false,
           });
           addToast('Produit supprimé du panier', 'success');
@@ -367,9 +403,10 @@ export const useCartStore = create<CartState>()(
             code_promo: code,
             panier_id: state.panierId || undefined,
           });
+          const normalizedCart = normalizeCartData(cartData);
           set({
-            panierId: cartData.id,
-            cart: cartData,
+            panierId: normalizedCart.id,
+            cart: normalizedCart,
             isLoading: false,
           });
           addToast(
@@ -392,9 +429,10 @@ export const useCartStore = create<CartState>()(
           const cartData = await cartService.removePromoCode(
             state.panierId || undefined
           );
+          const normalizedCart = normalizeCartData(cartData);
           set({
-            panierId: cartData.id,
-            cart: cartData,
+            panierId: normalizedCart.id,
+            cart: normalizedCart,
             isLoading: false,
           });
           addToast('Code promo retiré', 'success');

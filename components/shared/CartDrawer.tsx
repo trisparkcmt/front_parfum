@@ -55,15 +55,15 @@ function CartLineItem({ line }: { line: CartLine }) {
         {/* Qty controls */}
         <div className="flex items-center gap-2 mt-2">
           <button
-            onClick={() => updateQuantity(line.type, line.id, Math.max(1, line.quantite - 1))}
-            disabled={isLoading || line.quantite <= 1}
+            onClick={() => updateQuantity(line.type, line.id, Math.max(1, Number(line.quantite || 1) - 1))}
+            disabled={isLoading || Number(line.quantite || 1) <= 1}
             className="w-6 h-6 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center transition-colors disabled:opacity-30"
           >
             <Minus size={10} />
           </button>
-          <span className="text-xs font-mono w-4 text-center">{line.quantite}</span>
+          <span className="text-xs font-mono w-4 text-center">{Number(line.quantite || 1)}</span>
           <button
-            onClick={() => updateQuantity(line.type, line.id, line.quantite + 1)}
+            onClick={() => updateQuantity(line.type, line.id, Number(line.quantite || 1) + 1)}
             disabled={isLoading}
             className="w-6 h-6 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center transition-colors disabled:opacity-30"
           >
@@ -178,8 +178,8 @@ export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                     </button>
                   </motion.div>
                 ) : (
-                  lines.map((line) => (
-                    <CartLineItem key={`${line.type}-${line.id}`} line={line} />
+                  lines.map((line, index) => (
+                    <CartLineItem key={`${line.type}-${line.id ?? index}`} line={line} />
                   ))
                 )}
               </AnimatePresence>

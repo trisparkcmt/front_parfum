@@ -42,25 +42,44 @@ export default function ProductDetailPage() {
 
   useEffect(() => {
     if (id) {
+      let isMounted = true;
+
       async function loadProduct() {
         setLoading(true);
-        const p = await productService.getProductById(String(id));
-        setProduct(p);
-        setActiveImage(0);
+        try {
+          const p = await productService.getProductById(String(id));
+          if (!isMounted) return;
+          setProduct(p);
+          setActiveImage(0);
 
-        if (p) {
-          // Load related products dynamically
-          if (p.category === 'accessory') {
-            const list = await productService.getAccessories({ type_accessoire: p.subCategory });
-            setRelatedProducts(list.filter(item => item.id !== p.id).slice(0, 4));
-          } else {
-            const list = await productService.getPerfumes();
-            setRelatedProducts(list.filter(item => item.category === p.category && item.id !== p.id).slice(0, 4));
+          if (p) {
+            try {
+              if (p.category === 'accessory') {
+                const list = await productService.getAccessories({ type_accessoire: p.subCategory });
+                if (isMounted) setRelatedProducts(list.filter(item => item.id !== p.id).slice(0, 4));
+              } else {
+                const list = await productService.getPerfumes();
+                if (isMounted) setRelatedProducts(list.filter(item => item.category === p.category && item.id !== p.id).slice(0, 4));
+              }
+            } catch (relatedError) {
+              console.warn('Failed to load related products:', relatedError);
+              if (isMounted) setRelatedProducts([]);
+            }
+          } else if (isMounted) {
+            setRelatedProducts([]);
           }
+        } catch (error) {
+          console.error('Failed to load product details:', error);
+          if (isMounted) setProduct(null);
+        } finally {
+          if (isMounted) setLoading(false);
         }
-        setLoading(false);
       }
+
       loadProduct();
+      return () => {
+        isMounted = false;
+      };
     }
   }, [id]);
 

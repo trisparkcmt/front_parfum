@@ -9,6 +9,7 @@ import { useThemeStore } from '@/store/useThemeStore';
 import { useCartStore } from '@/store/useCartStore';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useCartDrawerStore } from '@/store/useCartDrawerStore';
+import '@/lib/i18n';
 
 export function LayoutWrapper({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -19,12 +20,7 @@ export function LayoutWrapper({ children }: { children: React.ReactNode }) {
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
-    // Defer i18n initialization until after first paint
-    const timer = setTimeout(() => {
-      import("@/lib/i18n");
-      setHydrated(true);
-    }, 0);
-    return () => clearTimeout(timer);
+    setHydrated(true);
   }, []);
 
   useEffect(() => {

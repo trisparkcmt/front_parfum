@@ -1,9 +1,10 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { FlaskConical, Cpu, Pencil, Eye, Loader2 } from 'lucide-react';
+import { FlaskConical, Pencil, Eye, Loader2 } from 'lucide-react';
 import { labService } from '@/services/apiService';
 import { useToastStore } from '@/store/useToastStore';
+import { LaptopIcon } from '@/components/icons/CustomIcons';
 
 export default function CompositionsPage() {
   const [compositions, setCompositions] = useState<any[]>([]);
@@ -41,7 +42,7 @@ export default function CompositionsPage() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
           { label: 'Total compositions', value: compositions.length, icon: <FlaskConical size={18} />, color: 'text-gold bg-gold/10' },
-          { label: 'Via IA', value: compositions.filter(c => c.type === 'ia' || c.is_ai).length, icon: <Cpu size={18} />, color: 'text-purple-400 bg-purple-500/10' },
+          { label: 'Via IA', value: compositions.filter(c => c.type === 'ia' || c.is_ai).length, icon: <LaptopIcon size={18} />, color: 'text-purple-400 bg-purple-500/10' },
           { label: 'Manuelles', value: compositions.filter(c => !(c.type === 'ia' || c.is_ai)).length, icon: <Pencil size={18} />, color: 'text-amber-400 bg-amber-500/10' },
           { label: 'Prix moyen', value: `${(compositions.reduce((s, c) => s + (c.prix || 0), 0) / (compositions.length || 1)).toFixed(0)} FCFA`, icon: <FlaskConical size={18} />, color: 'text-emerald-400 bg-emerald-500/10' },
         ].map(k => (
@@ -86,7 +87,7 @@ export default function CompositionsPage() {
                         <div className="flex items-center gap-4">
                           <div className={`w-10 h-10 rounded-xl flex items-center justify-center
                             ${isAI ? 'bg-purple-500/10 text-purple-400' : 'bg-amber-500/10 text-amber-400'}`}>
-                            {isAI ? <Cpu size={18} /> : <Pencil size={18} />}
+                            {isAI ? <LaptopIcon size={18} /> : <Pencil size={18} />}
                           </div>
                           <div>
                             <p className="font-semibold text-foreground text-sm">{cName}</p>

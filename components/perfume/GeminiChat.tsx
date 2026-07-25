@@ -52,7 +52,7 @@ interface AiEssence {
 export interface AiResponse {
   message: string;
   quantite_demandee_ml?: number;
-  flacon?: { id: number; nom: string; prix_unitaire: string };
+  flacon?: { id: number; nom: string; prix_unitaire: string; contenance_ml?: number; [key: string]: any };
   parfums_existants?: AiProduct[];
   essences_pre_faites?: AiEssence[];
   ingredients_sur_mesure?: { essenceName: string; quantityMl: number }[];
@@ -563,6 +563,10 @@ export function GeminiChat({ onChatStarted }: GeminiChatProps) {
             isAiGenerated: true,
           }
         : undefined;
+
+      if (response.flacon && response.flacon.contenance_ml) {
+        (composition as any).bottleSizeMl = response.flacon.contenance_ml;
+      }
 
       setMessages(prev => [...prev, { id: generateId(), role: 'ai', text: response.message, aiData: response, composition }]);
     } catch (error: any) {

@@ -5,10 +5,10 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard, ShoppingCart, BarChart2, Users2,
-  TrendingUp, Package, Cpu, DollarSign, Truck,
+  TrendingUp, Package, DollarSign, Truck,
   UserCircle, Sparkles, Gem, Tag, X, ChevronDown, ChevronRight, Bell, FileText,
 } from 'lucide-react';
-import { PerfumeIcon, EssenceIcon, DiffuseurIcon } from '@/components/icons/CustomIcons';
+import { PerfumeIcon, EssenceIcon, DiffuseurIcon, LaptopIcon } from '@/components/icons/CustomIcons';
 
 
 interface SidebarProps {
@@ -43,11 +43,11 @@ const boutiqueItems: NavItem[] = [
   { label: 'Catégories', icon: <Package size={18} />, href: '/dashboard/admin/categories' },
   { label: 'Essences', icon: <EssenceIcon size={18} />, href: '/dashboard/admin/essences' },
   { label: 'Produits Essence', icon: <EssenceIcon size={18} />, href: '/dashboard/admin/produits-essence' },
-  { label: 'Laboratoire', icon: <Cpu size={18} />, href: '/dashboard/admin/lab' },
+  { label: 'Laboratoire', icon: <LaptopIcon size={18} />, href: '/dashboard/admin/lab' },
   { label: 'Flacons', icon: <Package size={18} />, href: '/dashboard/admin/flacons' },
   { label: 'Accessoires', icon: <Gem size={18} />, href: '/dashboard/admin/accessories' },
   { label: 'Diffuseurs', icon: <DiffuseurIcon size={18} />, href: '/dashboard/admin/diffuseurs' },
-  { label: 'Compositions', icon: <Cpu size={18} />, href: '/dashboard/admin/compositions' },
+  { label: 'Compositions', icon: <LaptopIcon size={18} />, href: '/dashboard/admin/compositions' },
   { label: 'Dépenses', icon: <DollarSign size={18} />, href: '/dashboard/admin/expenses' },
   { label: 'Codes Promo', icon: <Tag size={18} />, href: '/dashboard/admin/promo-codes' },
 ];

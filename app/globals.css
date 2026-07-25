@@ -198,8 +198,14 @@
    ============================================================ */
 
 * {
-  scrollbar-width: thin;
-  scrollbar-color: var(--t-scrollbar-thumb) transparent;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+*::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
 }
 
 html {
@@ -213,6 +219,7 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   transition: background-color 0.3s ease, color 0.3s ease;
+  overflow-y: scroll;
 }
 
 ::selection {
@@ -356,25 +363,22 @@ body {
 }
 
 /* ============================================================
-   CUSTOM SCROLLBAR — vertical scrollbars
+   CUSTOM SCROLLBAR — fully hidden
    ============================================================ */
 
-::-webkit-scrollbar {
-  width: 6px;
-  height: 0px; /* hide horizontal scrollbars globally */
+html,
+body,
+* {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
 }
 
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-::-webkit-scrollbar-thumb {
-  background: var(--t-scrollbar-thumb);
-  border-radius: 3px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: var(--t-scrollbar-hover);
+html::-webkit-scrollbar,
+body::-webkit-scrollbar,
+*::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
 }
 
 /* Hide horizontal scrollbars on sliders / carousels */

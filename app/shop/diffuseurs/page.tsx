@@ -7,7 +7,7 @@
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { Search, RotateCcw } from 'lucide-react';
+import { Search, SlidersHorizontal, RotateCcw } from 'lucide-react';
 import { DiffuseurCard } from '@/components/ui/DiffuseurCard';
 import { ProductGridSkeleton } from '@/components/ui/Skeletons';
 import { productService } from '@/services/productService';
@@ -33,6 +33,7 @@ function DiffuseursShopContent() {
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [techFilter, setTechFilter] = useState<string>('all');
   const [ordering, setOrdering] = useState<string>('-date_creation');
+  const [showFilters, setShowFilters] = useState(false);
 
   const searchParams = useSearchParams();
 
@@ -81,7 +82,10 @@ function DiffuseursShopContent() {
     setSearch('');
     setTechFilter('all');
     setOrdering('-date_creation');
+    setShowFilters(false);
   };
+
+  const activeFiltersCount = (techFilter !== 'all' ? 1 : 0) + (ordering !== '-date_creation' ? 1 : 0);
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-[#f5f0e8] font-sans">
@@ -125,54 +129,77 @@ function DiffuseursShopContent() {
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2, duration: 0.6 }}
-        className="max-w-5xl mx-auto px-6 pb-12 flex flex-wrap items-center justify-center gap-4"
+        className="max-w-5xl mx-auto px-4 sm:px-6 pb-8"
       >
-        {/* Search */}
-        <div className="relative flex-1 min-w-[260px] max-w-[360px]">
-          <Search
-            size={16}
-            className="absolute left-4 top-1/2 -translate-y-1/2 text-[#57534e]"
-          />
-          <input
-            type="text"
-            placeholder="Rechercher un diffuseur..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full bg-[#111111] border border-[rgba(201,169,110,0.12)] rounded-xl pl-11 pr-4 py-3 text-[13px] text-[#f5f0e8] placeholder:text-[#57534e] outline-none transition-all duration-300 focus:border-[#c9a96e] focus:shadow-[0_0_0_3px_rgba(201,169,110,0.1)]"
-          />
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+          <div className="relative flex-1 min-w-[220px] max-w-[360px]">
+            <Search
+              size={16}
+              className="absolute left-4 top-1/2 -translate-y-1/2 text-[#57534e]"
+            />
+            <input
+              type="text"
+              placeholder="Rechercher un diffuseur..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full bg-[#111111] border border-[rgba(201,169,110,0.12)] rounded-xl pl-11 pr-4 py-3 text-[13px] text-[#f5f0e8] placeholder:text-[#57534e] outline-none transition-all duration-300 focus:border-[#c9a96e] focus:shadow-[0_0_0_3px_rgba(201,169,110,0.1)]"
+            />
+          </div>
+
+          <button
+            onClick={() => setShowFilters((prev) => !prev)}
+            className={`flex items-center gap-2 rounded-xl border px-3 py-3 text-[13px] font-medium transition-all duration-300 ${
+              showFilters || activeFiltersCount > 0
+                ? 'border-[#c9a96e] bg-[rgba(201,169,110,0.08)] text-[#f5f0e8]'
+                : 'border-[rgba(201,169,110,0.12)] bg-[#111111] text-[#a8a29e] hover:border-[rgba(201,169,110,0.25)] hover:text-[#f5f0e8]'
+            }`}
+          >
+            <SlidersHorizontal size={15} />
+            <span className="whitespace-nowrap">Filtres</span>
+            {activeFiltersCount > 0 && (
+              <span className="ml-1 flex h-5 w-5 items-center justify-center rounded-full bg-[#c9a96e] text-[10px] font-semibold text-[#0a0a0a]">
+                {activeFiltersCount}
+              </span>
+            )}
+          </button>
         </div>
 
-        {/* Tech filter */}
-        <select
-          value={techFilter}
-          onChange={(e) => setTechFilter(e.target.value)}
-          className="appearance-none bg-[#111111] border border-[rgba(201,169,110,0.12)] rounded-xl px-4 py-3 text-[13px] text-[#a8a29e] outline-none cursor-pointer transition-all duration-300 hover:border-[rgba(201,169,110,0.25)] hover:text-[#f5f0e8] focus:border-[#c9a96e] min-w-[180px]"
-        >
-          <option value="all" className="bg-[#0a0a0a]">Toutes les technologies</option>
-          <option value="ultrasons" className="bg-[#0a0a0a]">Ultrasons</option>
-          <option value="nebulisation" className="bg-[#0a0a0a]">Nébulisation</option>
-          <option value="chaleur" className="bg-[#0a0a0a]">Chaleur douce</option>
-        </select>
+        {showFilters && (
+          <motion.div
+            initial={{ opacity: 0, y: -6 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mt-3 flex flex-wrap items-center gap-2"
+          >
+            <select
+              value={techFilter}
+              onChange={(e) => setTechFilter(e.target.value)}
+              className="w-full min-w-[160px] flex-1 appearance-none rounded-xl border border-[rgba(201,169,110,0.12)] bg-[#111111] px-4 py-3 text-[13px] text-[#a8a29e] outline-none transition-all duration-300 hover:border-[rgba(201,169,110,0.25)] hover:text-[#f5f0e8] focus:border-[#c9a96e] sm:max-w-[220px]"
+            >
+              <option value="all" className="bg-[#0a0a0a]">Toutes les technologies</option>
+              <option value="ultrasons" className="bg-[#0a0a0a]">Ultrasons</option>
+              <option value="nebulisation" className="bg-[#0a0a0a]">Nébulisation</option>
+              <option value="chaleur" className="bg-[#0a0a0a]">Chaleur douce</option>
+            </select>
 
-        {/* Ordering */}
-        <select
-          value={ordering}
-          onChange={(e) => setOrdering(e.target.value)}
-          className="appearance-none bg-[#111111] border border-[rgba(201,169,110,0.12)] rounded-xl px-4 py-3 text-[13px] text-[#a8a29e] outline-none cursor-pointer transition-all duration-300 hover:border-[rgba(201,169,110,0.25)] hover:text-[#f5f0e8] focus:border-[#c9a96e] min-w-[160px]"
-        >
-          <option value="-date_creation" className="bg-[#0a0a0a]">Nouveautés</option>
-          <option value="prix_unitaire" className="bg-[#0a0a0a]">Prix : croissant</option>
-          <option value="-prix_unitaire" className="bg-[#0a0a0a]">Prix : décroissant</option>
-        </select>
+            <select
+              value={ordering}
+              onChange={(e) => setOrdering(e.target.value)}
+              className="w-full min-w-[160px] flex-1 appearance-none rounded-xl border border-[rgba(201,169,110,0.12)] bg-[#111111] px-4 py-3 text-[13px] text-[#a8a29e] outline-none transition-all duration-300 hover:border-[rgba(201,169,110,0.25)] hover:text-[#f5f0e8] focus:border-[#c9a96e] sm:max-w-[220px]"
+            >
+              <option value="-date_creation" className="bg-[#0a0a0a]">Nouveautés</option>
+              <option value="prix_unitaire" className="bg-[#0a0a0a]">Prix : croissant</option>
+              <option value="-prix_unitaire" className="bg-[#0a0a0a]">Prix : décroissant</option>
+            </select>
 
-        {/* Reset */}
-        <button
-          onClick={resetFilters}
-          title="Réinitialiser les filtres"
-          className="w-11 h-11 flex items-center justify-center rounded-xl bg-[#111111] border border-[rgba(201,169,110,0.12)] text-[#57534e] transition-all duration-300 hover:border-[#c9a96e] hover:text-[#c9a96e] hover:bg-[rgba(201,169,110,0.05)]"
-        >
-          <RotateCcw size={16} />
-        </button>
+            <button
+              onClick={resetFilters}
+              className="inline-flex items-center gap-2 rounded-xl border border-[rgba(201,169,110,0.12)] bg-[#111111] px-3 py-3 text-[13px] text-[#a8a29e] transition-all duration-300 hover:border-[#c9a96e] hover:text-[#f5f0e8]"
+            >
+              <RotateCcw size={14} />
+              Réinitialiser
+            </button>
+          </motion.div>
+        )}
       </motion.div>
 
       {/* ── Product Grid ── */}

@@ -119,6 +119,88 @@ function collectProductImages(p: any): string[] {
   return images;
 }
 
+function inferCatalogItemKind(item: any): 'perfume' | 'accessory' | 'diffuseur' | 'unknown' {
+  const payload = item?.parfum ?? item?.accessoire ?? item?.produit ?? item;
+  const typeTokens = [
+    item?.type,
+    item?.type_article,
+    item?.type_produit,
+    item?.kind,
+    payload?.type,
+    payload?.type_article,
+    payload?.type_produit,
+    payload?.kind,
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase();
+
+  if (typeTokens.includes('accessoire') || typeTokens.includes('accessory') || payload?.type_accessoire || payload?.type_nom) {
+    return 'accessory';
+  }
+  if (typeTokens.includes('parfum') || typeTokens.includes('perfume')) {
+    return 'perfume';
+  }
+  if (typeTokens.includes('diffuseur')) {
+    return 'diffuseur';
+  }
+
+  if (payload?.notes_tete || payload?.notes_coeur || payload?.notes_fond || payload?.genre_cible || payload?.famille_olfactive || payload?.concentration) {
+    return 'perfume';
+  }
+  if (payload?.type_accessoire || payload?.matiere || payload?.taille || payload?.couleur || payload?.accessoire_details) {
+    return 'accessory';
+  }
+
+  return 'unknown';
+}
+
+function mapBackendCatalogItemToProduct(item: any): Product {
+  const payload = item?.parfum ?? item?.accessoire ?? item?.produit ?? item;
+  const kind = inferCatalogItemKind(item);
+
+  switch (kind) {
+    case 'accessory':
+      return mapBackendAccessoryToProduct(payload);
+    case 'diffuseur':
+      return mapBackendDiffuseurToProduct(payload);
+    case 'perfume':
+    default:
+      return mapBackendPerfumeToProduct(payload);
+  }
+}
+
+function mapBackendDiffuseurToProduct(p: any): Product {
+  const images = collectProductImages(p);
+
+  return {
+    id: String(p.id),
+    name: p.nom || 'Diffuseur de Parfum',
+    nom: p.nom,
+    description: p.description_courte || p.description_longue || '',
+    description_courte: p.description_courte,
+    price: parseFloat(p.prix_unitaire || p.prix_actuel || '0'),
+    prix_unitaire: p.prix_unitaire || p.prix_actuel,
+    originalPrice: parseFloat(p.prix_unitaire || p.prix_actuel || '0'),
+    category: 'accessory',
+    subCategory: 'other',
+    images,
+    brand: p.marque || 'Exclusif Diffuseurs',
+    inStock: p.stock_quantite > 0 && p.actif !== false,
+    rating: 4.8,
+    reviews: 12,
+    slug: p.slug || String(p.id),
+    createdAt: p.date_creation || new Date().toISOString(),
+    image_principale: p.image_principale || images[0],
+    type_technologie: p.type_technologie,
+    is_new: p.est_nouveau,
+    is_bestseller: p.est_bestseller,
+    capacite_reservoir_ml: p.capacite_reservoir_ml,
+    est_connecte: p.est_connecte,
+    a_jeux_de_lumiere: p.a_jeux_de_lumiere,
+  };
+}
+
 // Helper to map backend accessory to frontend Product model
 export function mapBackendAccessoryToProduct(p: any): Product {
   const images = collectProductImages(p);
@@ -384,16 +466,25 @@ export const productService = {
    */
   async getProductById(id: string): Promise<Product | null> {
     try {
-      // Try as perfume by slug first
-      const perfume = await apiShopService.getPerfumeBySlug(id).catch(() => null);
-      if (perfume) {
-        return mapBackendPerfumeToProduct(perfume);
+      const candidates = [id, decodeURIComponent(id)];
+      const uniqueCandidates = Array.from(new Set(candidates.filter(Boolean)));
+
+      for (const candidate of uniqueCandidates) {
+        const perfume = await apiShopService.getPerfumeBySlug(candidate).catch(() => null);
+        if (perfume) {
+          return mapBackendPerfumeToProduct(perfume);
+        }
+
+        const accessory = await apiShopService.getAccessoryBySlug(candidate).catch(() => null);
+        if (accessory) {
+          return mapBackendAccessoryToProduct(accessory);
+        }
       }
 
-      // Try as accessory by slug
-      const accessory = await apiShopService.getAccessoryBySlug(id).catch(() => null);
-      if (accessory) {
-        return mapBackendAccessoryToProduct(accessory);
+      const fallbackById = await apiShopService.getPerfumes({ search: id }).catch(() => []);
+      if (Array.isArray(fallbackById)) {
+        const matched = fallbackById.find((item: any) => String(item.id) === String(id) || item.slug === id || item.slug === decodeURIComponent(id));
+        if (matched) return mapBackendPerfumeToProduct(matched);
       }
 
       return null;
@@ -449,7 +540,7 @@ export const productService = {
       }
     }
 
-    return results.map(mapBackendPerfumeToProduct);
+    return results.map(mapBackendCatalogItemToProduct);
   },
 
   /**
@@ -470,7 +561,7 @@ export const productService = {
       }
     }
 
-    return results.map(mapBackendPerfumeToProduct);
+    return results.map(mapBackendCatalogItemToProduct);
   },
 
   /**

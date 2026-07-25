@@ -272,3 +272,25 @@ export const PerfumeIcon = ({ size = 24, className = '' }: { size?: number; clas
     <rect x="180.804" y="272.247" width="150.391" height="117.696"/>
   </svg>
 );
+
+export const LaptopIcon = ({ size = 24, className = '' }: { size?: number; className?: string }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.5"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <line x1="4.39" y1="1.5" x2="12.02" y2="1.5" />
+    <line x1="1.52" y1="13.91" x2="11.07" y2="13.91" />
+    <path d="M10.11,9.42V1.5H6.3V9.42a6.69,6.69,0,1,0,3.81,0Z" />
+    <path d="M17.75,7.23h3.82a0,0,0,0,1,0,0V20.59a1.91,1.91,0,0,1-1.91,1.91h0a1.91,1.91,0,0,1-1.91-1.91V7.23A0,0,0,0,1,17.75,7.23Z" />
+    <line x1="15.84" y1="7.23" x2="23.48" y2="7.23" />
+    <line x1="17.75" y1="12" x2="21.57" y2="12" />
+  </svg>
+);

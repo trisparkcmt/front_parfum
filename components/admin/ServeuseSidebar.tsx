@@ -5,9 +5,9 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard, ShoppingCart, BarChart2,
-  Package, Cpu, Gem, X, ChevronDown, Sparkles, Bell, DollarSign
+  Package, Gem, X, ChevronDown, Sparkles, Bell, DollarSign
 } from 'lucide-react';
-import { PerfumeIcon, EssenceIcon } from '@/components/icons/CustomIcons';
+import { PerfumeIcon, EssenceIcon, LaptopIcon } from '@/components/icons/CustomIcons';
 
 interface SidebarProps {
   open: boolean;
@@ -34,10 +34,10 @@ const boutiqueItems: NavItem[] = [
   { label: 'Catégories', icon: <Package size={18} />, href: '/dashboard/serveuse/categories' },
   { label: 'Essences', icon: <EssenceIcon size={18} />, href: '/dashboard/serveuse/essences' },
   { label: 'Produits Essence', icon: <EssenceIcon size={18} />, href: '/dashboard/serveuse/produits-essence' },
-  { label: 'Laboratoire', icon: <Cpu size={18} />, href: '/dashboard/serveuse/lab' },
+  { label: 'Laboratoire', icon: <LaptopIcon size={18} />, href: '/dashboard/serveuse/lab' },
   { label: 'Flacons', icon: <Package size={18} />, href: '/dashboard/serveuse/flacons' },
   { label: 'Accessoires', icon: <Gem size={18} />, href: '/dashboard/serveuse/accessories' },
-  { label: 'Compositions', icon: <Cpu size={18} />, href: '/dashboard/serveuse/compositions' },
+  { label: 'Compositions', icon: <LaptopIcon size={18} />, href: '/dashboard/serveuse/compositions' },
 ];
 
 function NavItemComponent({ item, onNavigate }: { item: NavItem; onNavigate: () => void }) {
