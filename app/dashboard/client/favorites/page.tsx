@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { useRouter } from 'next/navigation';
 import { BackButton } from '@/components/ui/BackButton';
 import { useFavoritesStore } from '@/store/useFavoritesStore';
+import { useAuthStore } from '@/store/useAuthStore';
 import { formatPrice } from '@/lib/utils';
 import Image from 'next/image';
 
@@ -16,26 +17,64 @@ interface FavoriteProduct {
   slug?: string;
   category?: string;
   image?: string;
-  type?: 'perfume' | 'accessory';
+  type?: 'perfume' | 'accessory' | 'custom';
+  isCustomComposition?: boolean;
+  description?: string;
+  status?: string;
+  bottleName?: string;
+  lines?: Array<{ essence_nom?: string; quantite_ml?: string; prix_ligne?: string }>;
+  raw?: any;
 }
 
 export default function FavoritesPage() {
   const { t } = useTranslation();
   const router = useRouter();
   const { items: favorites, removeFavorite, clearFavorites } = useFavoritesStore();
+  const user = useAuthStore((state) => state.user);
   const [searchTerm, setSearchTerm] = useState('');
   const [filteredFavorites, setFilteredFavorites] = useState<FavoriteProduct[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [removingId, setRemovingId] = useState<string | null>(null);
+  const [selectedCustom, setSelectedCustom] = useState<FavoriteProduct | null>(null);
 
   useEffect(() => {
     setIsLoading(false);
-    const filtered = favorites.filter((fav: any) =>
-      fav.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      fav.category?.toLowerCase().includes(searchTerm.toLowerCase())
+
+    const mappedFavorites: FavoriteProduct[] = favorites.map((fav: any) => ({
+      id: String(fav.id),
+      name: fav.name || fav.nom_produit || 'Produit',
+      price: Number(fav.price || fav.prix_produit || 0),
+      slug: fav.slug || fav.slug_produit,
+      category: fav.category,
+      image: fav.image || fav.images?.[0] || fav.image_produit,
+      type: fav.category === 'accessory' ? 'accessory' : 'perfume',
+      raw: fav,
+    }));
+
+    const customFavorites: FavoriteProduct[] = (user?.parfums_personnalises || []).map((item: any) => ({
+      id: `custom-${item.id}`,
+      name: item.nom || 'Composition sur mesure',
+      price: Number(item.prix_total || 0),
+      category: 'custom',
+      image: undefined,
+      type: 'custom',
+      isCustomComposition: true,
+      description: item.description || '',
+      status: item.statut,
+      bottleName: item.flacon_nom || '',
+      lines: item.lignes || [],
+      raw: item,
+    }));
+
+    const allItems = [...mappedFavorites, ...customFavorites];
+    const filtered = allItems.filter((item) =>
+      item.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.category?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.bottleName?.toLowerCase().includes(searchTerm.toLowerCase())
     );
+
     setFilteredFavorites(filtered);
-  }, [favorites, searchTerm]);
+  }, [favorites, searchTerm, user?.parfums_personnalises]);
 
   const handleRemoveFavorite = (id: string) => {
     setRemovingId(id);
@@ -49,8 +88,18 @@ export default function FavoritesPage() {
     console.log('Added to cart:', product);
   };
 
-  const handleViewProduct = (slug: string) => {
-    router.push(`/shop/product/${slug}`);
+  const handleViewProduct = (product: FavoriteProduct) => {
+    if (product.isCustomComposition) {
+      setSelectedCustom(product);
+      return;
+    }
+
+    if (product.slug) {
+      router.push(`/shop/product/${product.slug}`);
+      return;
+    }
+
+    router.push(`/shop/product/${product.id}`);
   };
 
   return (
@@ -139,7 +188,7 @@ export default function FavoritesPage() {
                 {/* Image */}
                 <div
                   className="relative aspect-[4/5] cursor-pointer overflow-hidden bg-white/[0.03]"
-                  onClick={() => handleViewProduct(product.slug || product.id)}
+                  onClick={() => handleViewProduct(product)}
                 >
                   {product.image ? (
                     <Image
@@ -154,39 +203,44 @@ export default function FavoritesPage() {
                     </div>
                   )}
 
-                  {/* Remove */}
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleRemoveFavorite(product.id);
-                    }}
-                    aria-label={t('remove', 'Supprimer')}
-                    className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-black/50 text-white/80 backdrop-blur-sm transition-colors hover:bg-black/70 hover:text-white"
-                  >
-                    <X size={13} />
-                  </button>
+                  {!product.isCustomComposition && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleRemoveFavorite(product.id);
+                      }}
+                      aria-label={t('remove', 'Supprimer')}
+                      className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-black/50 text-white/80 backdrop-blur-sm transition-colors hover:bg-black/70 hover:text-white"
+                    >
+                      <X size={13} />
+                    </button>
+                  )}
 
-                  {/* Add to cart — reveals on hover */}
+                  {/* Add to cart / details */}
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      handleAddToCart(product);
+                      if (product.isCustomComposition) {
+                        setSelectedCustom(product);
+                      } else {
+                        handleAddToCart(product);
+                      }
                     }}
                     className="absolute inset-x-0 bottom-0 flex translate-y-full items-center justify-center gap-2 bg-gold py-2.5 text-[11px] font-semibold uppercase tracking-[0.15em] text-black transition-transform duration-300 ease-out group-hover:translate-y-0"
                   >
                     <ShoppingBag size={13} />
-                    {t('add', 'Ajouter')}
+                    {product.isCustomComposition ? t('details', 'Détails') : t('add', 'Ajouter')}
                   </button>
                 </div>
 
                 {/* Info */}
                 <div className="mt-3 space-y-0.5">
                   <p className="text-[10px] font-medium uppercase tracking-[0.15em] text-gold/70">
-                    {product.type === 'perfume' ? 'Parfum' : 'Accessoire'}
+                    {product.type === 'custom' ? 'Parfum sur mesure' : product.type === 'perfume' ? 'Parfum' : 'Accessoire'}
                   </p>
                   <h3
                     className="cursor-pointer truncate font-serif text-[15px] text-foreground/90 transition-colors hover:text-gold"
-                    onClick={() => handleViewProduct(product.slug || product.id)}
+                    onClick={() => handleViewProduct(product)}
                   >
                     {product.name}
                   </h3>
@@ -195,6 +249,63 @@ export default function FavoritesPage() {
               </div>
             ))}
           </div>
+
+          {selectedCustom && (
+            <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/70 px-4 py-6 backdrop-blur-sm">
+              <div className="w-full max-w-lg rounded-3xl border border-white/10 bg-[#111111] p-6 shadow-2xl shadow-black/50">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.25em] text-gold/70">Parfum sur mesure</p>
+                    <h3 className="mt-1 font-serif text-2xl text-foreground">{selectedCustom.name}</h3>
+                  </div>
+                  <button
+                    onClick={() => setSelectedCustom(null)}
+                    className="rounded-full border border-white/10 p-2 text-foreground/50 transition-colors hover:text-foreground"
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+
+                <div className="mt-6 space-y-4 text-sm text-foreground/70">
+                  {selectedCustom.description && (
+                    <p className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-foreground/70">
+                      {selectedCustom.description}
+                    </p>
+                  )}
+
+                  <div className="grid gap-3 rounded-2xl border border-white/10 bg-white/[0.03] p-4 sm:grid-cols-2">
+                    <div>
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-foreground/40">Flacon</p>
+                      <p className="mt-1 text-foreground">{selectedCustom.bottleName || '—'}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-foreground/40">Statut</p>
+                      <p className="mt-1 text-foreground">{selectedCustom.status || '—'}</p>
+                    </div>
+                  </div>
+
+                  {selectedCustom.lines && selectedCustom.lines.length > 0 && (
+                    <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-foreground/40">Composition</p>
+                      <div className="mt-3 space-y-2">
+                        {selectedCustom.lines.map((line, index) => (
+                          <div key={`${line.essence_nom}-${index}`} className="flex items-center justify-between gap-3 rounded-xl bg-black/20 px-3 py-2 text-sm">
+                            <span className="text-foreground">{line.essence_nom || 'Essence'}</span>
+                            <span className="text-foreground/60">{line.quantite_ml || '—'} ml</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="mt-6 flex items-center justify-between border-t border-white/10 pt-4">
+                  <p className="text-sm text-foreground/50">Prix total</p>
+                  <p className="font-serif text-xl text-gold">{formatPrice(selectedCustom.price)}</p>
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="flex justify-center pt-6">
             <button
