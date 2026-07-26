@@ -124,16 +124,18 @@ export const useFavoritesStore = create<FavoritesState>()(
           const backendFavs: any[] = response.data || [];
           const products: Product[] = backendFavs.map((fav: any) => {
             const isAccessory = fav.type_produit === 'accessoire' || fav.type_produit === 'accessory';
+            const isCustom = fav.type_produit === 'parfum-personnalise';
             return {
               id: String(fav.id_produit || fav.id),
               name: fav.nom_produit,
               description: '',
               price: parseFloat(fav.prix_produit),
-              category: isAccessory ? 'accessory' : 'perfume-brand',
+              category: isAccessory ? 'accessory' : isCustom ? 'numba-creation' : 'perfume-brand',
               images: fav.image_produit ? [fav.image_produit] : ['/parfume1.png'],
               inStock: true,
               slug: fav.slug_produit || '',
               createdAt: fav.date_ajout || new Date().toISOString(),
+              isCustomComposition: isCustom ? true : undefined,
             };
           });
 

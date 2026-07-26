@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useMemo, useEffect } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useCartStore } from '@/store/useCartStore';
 import { useFavoritesStore } from '@/store/useFavoritesStore';
 import { useAuthStore } from '@/store/useAuthStore';
@@ -209,6 +209,8 @@ export default function AtelierPage() {
   const { addToast } = useToastStore();
   const { i18n } = useTranslation();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const compositionIdParam = searchParams.get('composition');
 
   const [mounted, setMounted] = useState(false);
   const [activeTab, setActiveTab] = useState<'ingredients' | 'essences' | 'recap'>('ingredients');
@@ -278,6 +280,77 @@ export default function AtelierPage() {
   }, []);
 
   const ALL_ITEMS = useMemo(() => [...ingredients, ...essences], [ingredients, essences]);
+
+  useEffect(() => {
+    if (!mounted || !compositionIdParam || loadingData || ALL_ITEMS.length === 0) return;
+
+    async function loadPrefilledComposition() {
+      try {
+        const comp = await apiLabService.getCustomPerfume(Number(compositionIdParam));
+        if (comp) {
+          setCompositionName(comp.nom || '');
+          setSaveModalName(comp.nom || '');
+          setSavedParfumId(Number(comp.id));
+
+          const flaconData = comp.composition?.flacon || comp.flacon;
+          if (flaconData) {
+            const flaconId = typeof flaconData === 'object' ? flaconData.id : flaconData;
+            if (flaconId) {
+              setSelectedFlaconId(Number(flaconId));
+              const matchingFlacon = flacons.find(f => Number(f.id) === Number(flaconId));
+              if (matchingFlacon) {
+                const cap = Number(matchingFlacon.contenance_ml || matchingFlacon.capacite_ml || matchingFlacon.capacity_ml || matchingFlacon.size_ml || 100);
+                setBottleSize(cap);
+              }
+            }
+          }
+
+          const lines = comp.composition?.lignes || comp.lignes || [];
+          const newQuantities: Record<string, number> = {};
+          
+          for (const line of lines) {
+            const essData = line.essence;
+            const ingData = line.ingredient;
+            
+            const essId = essData ? (typeof essData === 'object' ? essData.id : essData) : null;
+            const ingId = ingData ? (typeof ingData === 'object' ? ingData.id : ingData) : null;
+
+            if (essId) {
+              const matchingItem = ALL_ITEMS.find(item => 
+                item.itemType === 'essence' && 
+                (Number(item.backendId) === Number(essId) || Number(item.id) === Number(essId))
+              );
+              if (matchingItem) {
+                newQuantities[matchingItem.id] = Number(line.quantite_ml || 0);
+              }
+            } else if (ingId) {
+              const matchingItem = ALL_ITEMS.find(item => 
+                item.itemType === 'ingredient' && 
+                (Number(item.backendId) === Number(ingId) || Number(item.id) === Number(ingId))
+              );
+              if (matchingItem) {
+                newQuantities[matchingItem.id] = Number(line.quantite_ml || 0);
+              }
+            }
+          }
+          
+          setQuantities(newQuantities);
+          addToast(
+            i18n.language === 'en' ? 'Composition loaded successfully.' : 'Composition chargée avec succès.',
+            'success'
+          );
+        }
+      } catch (err) {
+        console.error('Error prefilling composition:', err);
+        addToast(
+          i18n.language === 'en' ? 'Could not load the requested composition.' : 'Impossible de charger la composition demandée.',
+          'error'
+        );
+      }
+    }
+
+    loadPrefilledComposition();
+  }, [mounted, compositionIdParam, loadingData, ALL_ITEMS, flacons, i18n.language, addToast]);
 
   const maxMl = bottleSize;
   const maxFillMl = bottleSize * 0.45;
@@ -498,6 +571,64 @@ export default function AtelierPage() {
       );
     } catch (error: any) {
       const errorMsg = error?.response?.data?.detail || (i18n.language === 'en' ? 'Error saving composition.' : 'Erreur lors de la sauvegarde.');
+      addToast(errorMsg, 'error');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleUpdateComposition = async () => {
+    if (totalMl === 0) {
+      addToast(
+        i18n.language === 'en' ? 'Please select at least one essence/ingredient.' : 'Veuillez sélectionner au moins une essence.',
+        'info'
+      );
+      return;
+    }
+    if (!savedParfumId) return;
+
+    setIsSaving(true);
+    try {
+      const lignes = Object.entries(quantities)
+        .filter(([_, qty]) => qty > 0)
+        .map(([essenceId, quantityMl]) => {
+          const item = ALL_ITEMS.find(e => e.id === essenceId);
+          if (!item) return null;
+          if (item.itemType === 'essence') {
+            return {
+              essence: item.lotEssenceId || item.backendId,
+              quantite_ml: quantityMl,
+            };
+          } else {
+            return {
+              ingredient: item.backendId,
+              quantite_ml: quantityMl,
+            };
+          }
+        })
+        .filter(Boolean);
+
+      if (!selectedFlaconId) {
+        addToast(
+          i18n.language === 'en' ? 'Please select a valid bottle size.' : 'Veuillez sélectionner un format de flacon valide.',
+          'error'
+        );
+        setIsSaving(false);
+        return;
+      }
+
+      await apiLabService.updateCustomPerfume(savedParfumId, {
+        nom: compositionName || `Création Numba ${bottleSize}ml`,
+        flacon: selectedFlaconId,
+        lignes: lignes as any[],
+      });
+
+      addToast(
+        i18n.language === 'en' ? 'Composition updated!' : 'Composition modifiée avec succès !',
+        'success'
+      );
+    } catch (error: any) {
+      const errorMsg = error?.response?.data?.detail || (i18n.language === 'en' ? 'Error updating composition.' : 'Erreur lors de la modification.');
       addToast(errorMsg, 'error');
     } finally {
       setIsSaving(false);
@@ -1082,6 +1213,18 @@ export default function AtelierPage() {
                >
                  <Share2 size={14} className="inline mr-1" />
                  {i18n.language === 'en' ? 'Share' : 'Partager'}
+               </button>
+             )}
+
+             {/* Save Changes button (after save/load) */}
+             {isAuthenticated && savedParfumId && (
+               <button 
+                 onClick={handleUpdateComposition}
+                 disabled={totalMl === 0 || isSaving}
+                 className="w-full px-8 py-4 text-[10px] uppercase tracking-[0.2em] font-medium rounded-lg transition-all duration-300 bg-gold/10 border border-gold text-gold hover:bg-gold hover:text-black disabled:opacity-20 flex items-center justify-center gap-1.5"
+               >
+                 {isSaving ? <Loader2 size={14} className="inline animate-spin mr-1" /> : <Save size={14} className="inline mr-1" />}
+                 {i18n.language === 'en' ? 'Save Modifications' : 'Sauvegarder les modifications'}
                </button>
              )}
 

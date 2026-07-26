@@ -788,8 +788,22 @@ export const labService = {
   },
 
   /**
-   * Recalculate prices for custom perfume
+   * Update an existing custom perfume composition
    */
+  updateCustomPerfume: async (id: number, data: {
+    nom?: string;
+    description?: string;
+    flacon?: number;
+    lignes?: Array<{
+      essence?: number;
+      essence_personnalisee?: number;
+      ingredient?: number;
+      quantite_ml: number;
+    }>;
+  }): Promise<CustomComposition> => {
+    const response = await api.patch(`lab/parfums-perso/${id}/`, data);
+    return response.data;
+  },
   recalculateCustomPerfume: async (id: number) => {
     const response = await api.post(`lab/parfums-perso/${id}/recalculer/`);
     return response.data;

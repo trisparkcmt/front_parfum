@@ -1,9 +1,11 @@
-POST https://accessoires-exclusifs-api.onrender.com/api/v1/orders/panier/ajouter/parfum-personnalise/
+POST https://accessoires-exclusifs-api.onrender.com/api/v1/login/
 content-type:Application/json
 
 {
-    "parfum_personnalise_id": 38,
-    "quantite": 1,
-    "panier_id": 388
+   "email":"darrentankam@gmail.com",
+   "password":"Yaounde1234"
 }
+
+//
+POST https:accessoires
 

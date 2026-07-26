@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Heart, ShoppingBag, Search, X, ArrowUpRight, Share2 } from 'lucide-react';
+import { Heart, ShoppingBag, Search, X, ArrowUpRight, Share2, Pencil } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useRouter } from 'next/navigation';
 import { BackButton } from '@/components/ui/BackButton';
@@ -30,7 +30,7 @@ interface FavoriteProduct {
 export default function FavoritesPage() {
   const { t } = useTranslation();
   const router = useRouter();
-  const { items: favorites, removeFavorite, clearFavorites } = useFavoritesStore();
+  const { items: favorites, removeFavorite, clearFavorites, syncWithBackend } = useFavoritesStore();
   const user = useAuthStore((state) => state.user);
   const [searchTerm, setSearchTerm] = useState('');
   const [filteredFavorites, setFilteredFavorites] = useState<FavoriteProduct[]>([]);
@@ -39,8 +39,15 @@ export default function FavoritesPage() {
   const [selectedCustom, setSelectedCustom] = useState<FavoriteProduct | null>(null);
 
   useEffect(() => {
-    setIsLoading(false);
+    const loadFavorites = async () => {
+      setIsLoading(true);
+      await syncWithBackend();
+      setIsLoading(false);
+    };
+    loadFavorites();
+  }, [syncWithBackend]);
 
+  useEffect(() => {
     const mappedFavorites: FavoriteProduct[] = favorites.map((fav: any) => ({
       id: String(fav.id),
       name: fav.name || fav.nom_produit || 'Produit',
@@ -48,7 +55,7 @@ export default function FavoritesPage() {
       slug: fav.slug || fav.slug_produit,
       category: fav.category,
       image: fav.image || fav.images?.[0] || fav.image_produit,
-      type: fav.category === 'accessory' ? 'accessory' : fav.category === 'numba-creation' ? 'custom' : 'perfume',
+      type: fav.category === 'accessory' ? 'accessory' : (fav.isCustomComposition || fav.category === 'numba-creation') ? 'custom' : 'perfume',
       isCustomComposition: !!fav.isCustomComposition,
       raw: fav,
     }));
@@ -62,7 +69,7 @@ export default function FavoritesPage() {
       type: 'custom',
       isCustomComposition: true,
       description: item.description || item.composition?.description || '',
-      status: item.statut || item.composition?.statut || '',
+      status: item.statut || item.composition?.statut || item.composition?.statut_laboratoire || '',
       bottleName: item.flacon_nom || item.composition?.flacon_nom || '',
       lines: item.lignes || item.composition?.lignes || [],
       raw: item,
@@ -200,71 +207,69 @@ export default function FavoritesPage() {
             {filteredFavorites.map((product) => (
               <div
                 key={product.id}
-                className={`group relative transition-all duration-200 ${
+                className={`group relative flex flex-col justify-between transition-all duration-200 ${
                   removingId === product.id ? 'scale-95 opacity-0' : 'opacity-100'
                 }`}
               >
-                {/* Image */}
-                <div
-                  className="relative aspect-[4/5] cursor-pointer overflow-hidden bg-white/[0.03]"
-                  onClick={() => handleViewProduct(product)}
-                >
-                  {product.image ? (
-                    <Image
-                      src={product.image}
-                      alt={product.name}
-                      fill
-                      className="object-cover transition-transform duration-500 ease-out group-hover:scale-[1.04]"
-                    />
-                  ) : (
-                    <div className="flex h-full w-full items-center justify-center">
-                      <ShoppingBag size={20} className="text-foreground/15" />
-                    </div>
-                  )}
-
-                  {!product.isCustomComposition && (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleRemoveFavorite(product.id);
-                      }}
-                      aria-label={t('remove', 'Supprimer')}
-                      className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-black/50 text-white/80 backdrop-blur-sm transition-colors hover:bg-black/70 hover:text-white"
-                    >
-                      <X size={13} />
-                    </button>
-                  )}
-
-                  {/* Add to cart / details */}
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (product.isCustomComposition) {
-                        setSelectedCustom(product);
-                      } else {
-                        handleAddToCart(product);
-                      }
-                    }}
-                    className="absolute inset-x-0 bottom-0 flex translate-y-0 md:translate-y-full md:group-hover:translate-y-0 items-center justify-center gap-2 bg-gold py-2.5 text-[11px] font-semibold uppercase tracking-[0.15em] text-black transition-transform duration-300 ease-out"
-                  >
-                    <ShoppingBag size={13} />
-                    {product.isCustomComposition ? t('details', 'Détails') : t('add', 'Ajouter')}
-                  </button>
-                </div>
-
-                {/* Info */}
-                <div className="mt-3 space-y-0.5">
-                  <p className="text-[10px] font-medium uppercase tracking-[0.15em] text-gold/70">
-                    {product.type === 'custom' ? 'Parfum sur mesure' : product.type === 'perfume' ? 'Parfum' : 'Accessoire'}
-                  </p>
-                  <h3
-                    className="cursor-pointer truncate font-serif text-[15px] text-foreground/90 transition-colors hover:text-gold"
+                <div>
+                  {/* Image */}
+                  <div
+                    className="relative aspect-[4/5] cursor-pointer overflow-hidden bg-white/[0.03]"
                     onClick={() => handleViewProduct(product)}
                   >
-                    {product.name}
-                  </h3>
-                  <p className="text-sm text-foreground/60">{formatPrice(product.price)}</p>
+                    {product.image ? (
+                      <Image
+                        src={product.image}
+                        alt={product.name}
+                        fill
+                        className="object-cover transition-transform duration-500 ease-out group-hover:scale-[1.04]"
+                      />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center">
+                        <ShoppingBag size={20} className="text-foreground/15" />
+                      </div>
+                    )}
+
+                    {!product.isCustomComposition && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleRemoveFavorite(product.id);
+                        }}
+                        aria-label={t('remove', 'Supprimer')}
+                        className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-black/50 text-white/80 backdrop-blur-sm transition-colors hover:bg-black/70 hover:text-white"
+                      >
+                        <X size={13} />
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Info */}
+                  <div className="mt-3 space-y-0.5">
+                    <p className="text-[10px] font-medium uppercase tracking-[0.15em] text-gold/70">
+                      {product.type === 'custom' ? 'Parfum sur mesure' : product.type === 'perfume' ? 'Parfum' : 'Accessoire'}
+                    </p>
+                    <h3
+                      className="cursor-pointer truncate font-serif text-[15px] text-foreground/90 transition-colors hover:text-gold"
+                      onClick={() => handleViewProduct(product)}
+                    >
+                      {product.name}
+                    </h3>
+                    <p className="text-sm text-foreground/60">{formatPrice(product.price)}</p>
+                  </div>
                 </div>
+
+                {/* Add to cart (Always Visible) */}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleAddToCart(product);
+                  }}
+                  className="mt-3.5 w-full flex items-center justify-center gap-2 bg-gold py-2.5 text-[11px] font-semibold uppercase tracking-[0.15em] text-black hover:bg-cream transition-colors"
+                >
+                  <ShoppingBag size={13} />
+                  {t('add', 'Ajouter au Panier')}
+                </button>
               </div>
             ))}
           </div>
@@ -319,8 +324,22 @@ export default function FavoritesPage() {
                 </div>
 
                 <div className="mt-6 flex items-center justify-between border-t border-white/10 pt-4">
-                  <p className="text-sm text-foreground/50">Prix total</p>
-                  <p className="font-serif text-xl text-gold">{formatPrice(selectedCustom.price)}</p>
+                  <div className="flex items-center gap-3">
+                    <p className="text-sm text-foreground/50">Prix total</p>
+                    <p className="font-serif text-xl text-gold">{formatPrice(selectedCustom.price)}</p>
+                  </div>
+                  {selectedCustom.raw?.id && (
+                    <button
+                      onClick={() => {
+                        setSelectedCustom(null);
+                        router.push(`/numba/atelier?composition=${selectedCustom.raw.id}`);
+                      }}
+                      className="flex items-center gap-2 border border-gold/40 px-4 py-2 text-xs font-semibold uppercase tracking-[0.15em] text-gold hover:bg-gold hover:text-black transition-colors"
+                    >
+                      <Pencil size={13} />
+                      Modifier
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
