@@ -34,6 +34,43 @@ export function formatPrice(amount: number): string {
   return `${new Intl.NumberFormat('fr-FR').format(amount)} ${CURRENCY}`;
 }
 
+export function buildAbsoluteUrl(path: string): string {
+  if (typeof window === 'undefined') {
+    return path.startsWith('/') ? path : `/${path}`;
+  }
+
+  const base = window.location.origin;
+  return `${base}${path.startsWith('/') ? path : `/${path}`}`;
+}
+
+export async function sharePage(path: string, title: string, text?: string): Promise<'shared' | 'copied' | 'failed'> {
+  const url = buildAbsoluteUrl(path);
+
+  if (typeof navigator === 'undefined') {
+    return 'failed';
+  }
+
+  if (typeof navigator.share === 'function') {
+    try {
+      await navigator.share({ title, text: text || title, url });
+      return 'shared';
+    } catch {
+      // Fall back to clipboard copy if the share dialog is dismissed
+    }
+  }
+
+  if (typeof navigator.clipboard?.writeText === 'function') {
+    try {
+      await navigator.clipboard.writeText(url);
+      return 'copied';
+    } catch {
+      return 'failed';
+    }
+  }
+
+  return 'failed';
+}
+
 /**
  * A wrapper around the native fetch API to include necessary headers for the backend.
  */

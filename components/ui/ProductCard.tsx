@@ -14,13 +14,14 @@
 
 import Link from 'next/link';
 import AppImage from '@/components/ui/AppImage';
-import { Heart, Star, ShoppingBag, BellRing } from 'lucide-react';
+import { Heart, Star, ShoppingBag, BellRing, Share2 } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { cn, formatPrice } from '@/lib/utils';
+import { cn, formatPrice, sharePage } from '@/lib/utils';
 import type { Product } from '@/types';
 import { useTranslation } from 'react-i18next';
 import { API_ROOT } from '@/services/api';
-import { useState } from 'react';
+import { useState, type MouseEvent } from 'react';
+import { useToastStore } from '@/store/useToastStore';
 
 interface ProductCardProps {
   product: Product;
@@ -47,6 +48,7 @@ export function ProductCard({
   reviewCount = 0,
 }: ProductCardProps) {
   const { t } = useTranslation();
+  const { addToast } = useToastStore();
   const [isHovered, setIsHovered] = useState(false);
 
   const getImageUrl = (url: string) => {
@@ -68,6 +70,25 @@ export function ProductCard({
         )}
       />
     ));
+
+  const handleShare = async (event: MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+
+    const result = await sharePage(
+      `/shop/product/${product.slug || product.id}`,
+      product.name,
+      `Découvrez ${product.name} sur Accessories Exclusif`
+    );
+
+    if (result === 'shared') {
+      addToast('Lien partagé', 'success');
+    } else if (result === 'copied') {
+      addToast('Lien copié dans le presse-papiers', 'success');
+    } else {
+      addToast('Le partage n’est pas disponible sur ce navigateur', 'error');
+    }
+  };
 
   // Get images - handle both image_principale and images array
   const mainImage = product.image_principale || (product.images && product.images[0]) || '';
@@ -156,25 +177,34 @@ export function ProductCard({
           )}
         </div>
         {/* Favorite button */}
-        {onToggleFavorite && (
+        <div className="absolute top-3 right-3 z-20 flex gap-2">
           <button
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              onToggleFavorite(product);
-            }}
-            aria-label="Toggle favourite"
-            className="absolute top-3 right-3 z-20 p-1.5 rounded-full bg-[var(--t-fav-btn-bg)] backdrop-blur-md border border-[var(--t-border)] hover:bg-[var(--t-hover-bg)] transition-colors"
+            onClick={handleShare}
+            aria-label="Partager ce produit"
+            className="p-1.5 rounded-full bg-[var(--t-fav-btn-bg)] backdrop-blur-md border border-[var(--t-border)] hover:bg-[var(--t-hover-bg)] transition-colors"
           >
-            <Heart
-              size={13}
-              className={cn(
-                'transition-all duration-300',
-                isFavorite ? 'fill-red-500 stroke-red-500' : 'stroke-foreground/60'
-              )}
-            />
+            <Share2 size={13} className="stroke-foreground/70" />
           </button>
-        )}
+          {onToggleFavorite && (
+            <button
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onToggleFavorite(product);
+              }}
+              aria-label="Toggle favourite"
+              className="p-1.5 rounded-full bg-[var(--t-fav-btn-bg)] backdrop-blur-md border border-[var(--t-border)] hover:bg-[var(--t-hover-bg)] transition-colors"
+            >
+              <Heart
+                size={13}
+                className={cn(
+                  'transition-all duration-300',
+                  isFavorite ? 'fill-red-500 stroke-red-500' : 'stroke-foreground/60'
+                )}
+              />
+            </button>
+          )}
+        </div>
       </Link>
 
       {/* ─── Info Block ──────────────────────────────────────── */}

@@ -762,6 +762,14 @@ export const labService = {
   },
 
   /**
+   * Get a single custom perfume composition by ID
+   */
+  getCustomPerfume: async (id: number) => {
+    const response = await api.get(`lab/parfums-perso/${id}/`);
+    return response.data;
+  },
+
+  /**
    * Create custom perfume with formulas
    */
   createCustomPerfume: async (data: {

@@ -54,8 +54,8 @@ function normalizeCartData(cartData: any): CartData {
     id: line.id ?? line.ligne_id ?? 0,
     nom: line.nom || line.nom_snapshot || line.produit_details?.nom || line.parfum_details?.nom || line.accessoire_details?.nom || 'Produit',
     quantite: Number(line.quantite ?? 1),
-    prix_unitaire_snapshot: Number(line.prix_unitaire_snapshot ?? line.prix_snapshot ?? 0),
-    sous_total: Number(line.sous_total ?? (Number(line.prix_unitaire_snapshot ?? line.prix_snapshot ?? 0) * Number(line.quantite ?? 1))),
+    prix_unitaire_snapshot: Number(line.prix_unitaire_snapshot ?? line.prix_snapshot ?? line.prix_calcule ?? 0),
+    sous_total: Number(line.sous_total ?? (Number(line.prix_unitaire_snapshot ?? line.prix_snapshot ?? line.prix_calcule ?? 0) * Number(line.quantite ?? 1))),
   });
 
   return {
@@ -400,7 +400,7 @@ export const useCartStore = create<CartState>()(
         const state = get();
         try {
           const cartData = await cartService.applyPromoCode({
-            code_promo: code,
+            code_promo: code.toUpperCase(),
             panier_id: state.panierId || undefined,
           });
           const normalizedCart = normalizeCartData(cartData);

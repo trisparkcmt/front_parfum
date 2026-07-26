@@ -1,13 +1,14 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Heart, ShoppingBag, Search, X, ArrowUpRight } from 'lucide-react';
+import { Heart, ShoppingBag, Search, X, ArrowUpRight, Share2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useRouter } from 'next/navigation';
 import { BackButton } from '@/components/ui/BackButton';
 import { useFavoritesStore } from '@/store/useFavoritesStore';
 import { useAuthStore } from '@/store/useAuthStore';
-import { formatPrice } from '@/lib/utils';
+import { useCartStore } from '@/store/useCartStore';
+import { formatPrice, sharePage } from '@/lib/utils';
 import Image from 'next/image';
 
 interface FavoriteProduct {
@@ -47,22 +48,23 @@ export default function FavoritesPage() {
       slug: fav.slug || fav.slug_produit,
       category: fav.category,
       image: fav.image || fav.images?.[0] || fav.image_produit,
-      type: fav.category === 'accessory' ? 'accessory' : 'perfume',
+      type: fav.category === 'accessory' ? 'accessory' : fav.category === 'numba-creation' ? 'custom' : 'perfume',
+      isCustomComposition: !!fav.isCustomComposition,
       raw: fav,
     }));
 
     const customFavorites: FavoriteProduct[] = (user?.parfums_personnalises || []).map((item: any) => ({
       id: `custom-${item.id}`,
       name: item.nom || 'Composition sur mesure',
-      price: Number(item.prix_total || 0),
+      price: Number(item.prix_total || item.prix || item.composition?.prix_total || 0),
       category: 'custom',
       image: undefined,
       type: 'custom',
       isCustomComposition: true,
-      description: item.description || '',
-      status: item.statut,
-      bottleName: item.flacon_nom || '',
-      lines: item.lignes || [],
+      description: item.description || item.composition?.description || '',
+      status: item.statut || item.composition?.statut || '',
+      bottleName: item.flacon_nom || item.composition?.flacon_nom || '',
+      lines: item.lignes || item.composition?.lignes || [],
       raw: item,
     }));
 
@@ -84,8 +86,25 @@ export default function FavoritesPage() {
     }, 200);
   };
 
-  const handleAddToCart = (product: FavoriteProduct) => {
-    console.log('Added to cart:', product);
+  const handleAddToCart = async (product: FavoriteProduct) => {
+    const cartStore = useCartStore.getState();
+    if (product.isCustomComposition) {
+      const numericId = Number(product.id.replace('custom-', ''));
+      if (!numericId) return;
+      await cartStore.addCustomPerfume(numericId, 1);
+      return;
+    }
+
+    if (product.category === 'accessory') {
+      const numericId = Number(product.id);
+      if (!numericId) return;
+      await cartStore.addAccessory(numericId, 1);
+      return;
+    }
+
+    const numericId = Number(product.id);
+    if (!numericId) return;
+    await cartStore.addPerfume(numericId, 1);
   };
 
   const handleViewProduct = (product: FavoriteProduct) => {
@@ -226,7 +245,7 @@ export default function FavoritesPage() {
                         handleAddToCart(product);
                       }
                     }}
-                    className="absolute inset-x-0 bottom-0 flex translate-y-full items-center justify-center gap-2 bg-gold py-2.5 text-[11px] font-semibold uppercase tracking-[0.15em] text-black transition-transform duration-300 ease-out group-hover:translate-y-0"
+                    className="absolute inset-x-0 bottom-0 flex translate-y-0 md:translate-y-full md:group-hover:translate-y-0 items-center justify-center gap-2 bg-gold py-2.5 text-[11px] font-semibold uppercase tracking-[0.15em] text-black transition-transform duration-300 ease-out"
                   >
                     <ShoppingBag size={13} />
                     {product.isCustomComposition ? t('details', 'Détails') : t('add', 'Ajouter')}

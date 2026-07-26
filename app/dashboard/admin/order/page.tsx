@@ -1266,16 +1266,38 @@ function LinesSection({ title, icon, lines }: { title: string; icon: React.React
         {icon}{title}
       </p>
       <div className="space-y-1.5">
-        {lines.map(line => (
-          <div key={line.id} className="flex items-center justify-between bg-white/5 border border-white/5 rounded-xl px-3 py-2 text-xs">
-            <span className="text-foreground/80 font-medium">{line.nom_snapshot}</span>
-            <div className="flex items-center gap-3 text-foreground/50">
-              <span>{line.quantite} ×</span>
-              <span>{Number(line.prix_unitaire_snapshot).toLocaleString()} FCFA</span>
-              <span className="text-foreground/70 font-semibold">{Number(line.sous_total).toLocaleString()} FCFA</span>
+        {lines.map(line => {
+          const isCustom = !!line.parfum_personnalise || !!line.composition;
+          const name = line.nom_snapshot || line.composition?.nom || line.nom || (isCustom ? 'Parfum personnalisé' : 'Article');
+          return (
+            <div key={line.id} className="bg-white/5 border border-white/5 rounded-xl px-3 py-2 text-xs">
+              <div className="flex items-center justify-between">
+                <span className="text-foreground/80 font-medium">{name}</span>
+                <div className="flex items-center gap-3 text-foreground/50">
+                  <span>{line.quantite} ×</span>
+                  <span>{Number(line.prix_unitaire_snapshot).toLocaleString()} FCFA</span>
+                  <span className="text-foreground/70 font-semibold">{Number(line.sous_total).toLocaleString()} FCFA</span>
+                </div>
+              </div>
+              {isCustom && line.composition?.lignes && line.composition.lignes.length > 0 && (
+                <div className="mt-2 ml-4 space-y-1 border-l border-white/10 pl-3">
+                  {line.composition.lignes.map((essence, i) => (
+                    <div key={i} className="flex justify-between text-foreground/60">
+                      <span>{essence.essence_nom || 'Essence'}</span>
+                      <span>{essence.quantite_ml || '—'} ml</span>
+                    </div>
+                  ))}
+                  {line.composition.flacon_nom && (
+                    <div className="flex justify-between text-foreground/40 mt-1">
+                      <span>Flacon</span>
+                      <span>{line.composition.flacon_nom} {line.composition.flacon_contenance_ml ? `• ${line.composition.flacon_contenance_ml}ml` : ''}</span>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

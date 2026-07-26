@@ -415,7 +415,7 @@ export default function OrdersPage() {
             )}
 
             {/* Order lines */}
-            {(selected.lignes_parfums?.length > 0 || selected.lignes_accessoires?.length > 0) && (
+            {(selected.lignes_parfums?.length > 0 || selected.lignes_accessoires?.length > 0 || selected.lignes_parfums_perso?.length > 0 || selected.lignes_essence_personnalisee?.length > 0) && (
               <div className="mb-5">
                 <p className="text-xs font-semibold text-foreground/40 uppercase mb-2">Articles</p>
                 <div className="space-y-1.5">

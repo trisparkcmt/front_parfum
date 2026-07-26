@@ -14,10 +14,11 @@ import {
   ChevronLeft,
   ShieldCheck,
   Truck,
-  RotateCcw
+  RotateCcw,
+  Share2
 } from 'lucide-react';
 import { productService } from '@/services/productService';
-import { cn, formatPrice } from '@/lib/utils';
+import { cn, formatPrice, sharePage } from '@/lib/utils';
 import { ProductCard } from '@/components/ui/ProductCard';
 import { useCartStore } from '@/store/useCartStore';
 import { useFavoritesStore } from '@/store/useFavoritesStore';
@@ -114,6 +115,22 @@ export default function ProductDetailPage() {
     }
   };
 
+  const handleShare = async () => {
+    const result = await sharePage(
+      `/shop/product/${product.slug || product.id}`,
+      product.name,
+      `Découvrez ${product.name} sur Accessories Exclusif`
+    );
+
+    if (result === 'shared') {
+      addToast('Lien partagé', 'success');
+    } else if (result === 'copied') {
+      addToast('Lien copié dans le presse-papiers', 'success');
+    } else {
+      addToast('Le partage n’est pas disponible sur ce navigateur', 'error');
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background text-foreground pt-28 pb-12 px-4 md:px-8 relative overflow-hidden">
       {/* Subtle background glow */}
@@ -174,17 +191,26 @@ export default function ProductDetailPage() {
                     {product.name}
                   </h1>
                 </div>
-                <button 
-                  onClick={handleToggleFavorite}
-                  className={cn(
-                    "p-3 rounded-full border transition-all",
-                    isFavorite(product.id) 
-                      ? "bg-red-500/10 border-red-500 text-red-500" 
-                      : "bg-foreground/5 border border-[var(--t-border)] text-foreground hover:bg-foreground/10"
-                  )}
-                >
-                  <Heart size={24} fill={isFavorite(product.id) ? "currentColor" : "none"} />
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={handleShare}
+                    className="p-3 rounded-full border border-[var(--t-border)] bg-foreground/5 text-foreground transition-all hover:bg-foreground/10"
+                    aria-label="Partager ce produit"
+                  >
+                    <Share2 size={20} />
+                  </button>
+                  <button 
+                    onClick={handleToggleFavorite}
+                    className={cn(
+                      "p-3 rounded-full border transition-all",
+                      isFavorite(product.id) 
+                        ? "bg-red-500/10 border-red-500 text-red-500" 
+                        : "bg-foreground/5 border border-[var(--t-border)] text-foreground hover:bg-foreground/10"
+                    )}
+                  >
+                    <Heart size={24} fill={isFavorite(product.id) ? "currentColor" : "none"} />
+                  </button>
+                </div>
               </div>
 
               <div className="flex items-center gap-4 mb-6">

@@ -7,9 +7,9 @@ import { useCartStore } from '@/store/useCartStore';
 import { useFavoritesStore } from '@/store/useFavoritesStore';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useToastStore } from '@/store/useToastStore';
-import { generateId } from '@/lib/utils';
+import { generateId, sharePage } from '@/lib/utils';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft, Minus, Plus, ChevronLeft, ChevronRight, RefreshCcw, Loader2, Save, ShoppingCart, X, Send } from 'lucide-react';
+import { ArrowLeft, Minus, Plus, ChevronLeft, ChevronRight, RefreshCcw, Loader2, Save, ShoppingCart, X, Send, Share2 } from 'lucide-react';
 import AppImage from '@/components/ui/AppImage';
 import type { CustomComposition, CompositionEssence, EssenceClient, Product } from '@/types';
 import { labService } from '@/services/labService';
@@ -501,6 +501,23 @@ export default function AtelierPage() {
       addToast(errorMsg, 'error');
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleShareComposition = async () => {
+    if (!savedParfumId) return;
+    const name = saveModalName || compositionName || `Création Numba ${bottleSize}ml`;
+    const result = await sharePage(
+      `/numba/atelier/composition-${savedParfumId}`,
+      name,
+      `Découvrez ma création personnalisée « ${name} » sur Accessories Exclusif`
+    );
+    if (result === 'shared') {
+      addToast('Lien partagé', 'success');
+    } else if (result === 'copied') {
+      addToast('Lien copié dans le presse-papiers', 'success');
+    } else {
+      addToast('Le partage n’est pas disponible sur ce navigateur', 'error');
     }
   };
 
@@ -1045,17 +1062,28 @@ export default function AtelierPage() {
           </div>
           
           <div className="flex flex-col gap-2.5 w-full">
-            {/* Save button (authenticated only) */}
-            {isAuthenticated && !savedParfumId && (
-              <button 
-                onClick={() => setShowSaveModal(true)}
-                disabled={totalMl === 0 || isSaving}
-                className="w-full px-8 py-4 text-[10px] uppercase tracking-[0.2em] font-medium rounded-lg transition-all duration-300 border border-gold/40 text-gold hover:bg-gold/10 disabled:opacity-20"
-              >
-                {isSaving ? <Loader2 size={14} className="inline animate-spin mr-1" /> : <Save size={14} className="inline mr-1" />}
-                {i18n.language === 'en' ? 'Save' : 'Sauvegarder'}
-              </button>
-            )}
+             {/* Save button (authenticated only) */}
+             {isAuthenticated && !savedParfumId && (
+               <button 
+                 onClick={() => setShowSaveModal(true)}
+                 disabled={totalMl === 0 || isSaving}
+                 className="w-full px-8 py-4 text-[10px] uppercase tracking-[0.2em] font-medium rounded-lg transition-all duration-300 border border-gold/40 text-gold hover:bg-gold/10 disabled:opacity-20"
+               >
+                 {isSaving ? <Loader2 size={14} className="inline animate-spin mr-1" /> : <Save size={14} className="inline mr-1" />}
+                 {i18n.language === 'en' ? 'Save' : 'Sauvegarder'}
+               </button>
+             )}
+
+             {/* Share button (after save) */}
+             {isAuthenticated && savedParfumId && (
+               <button 
+                 onClick={handleShareComposition}
+                 className="w-full px-8 py-4 text-[10px] uppercase tracking-[0.2em] font-medium rounded-lg transition-all duration-300 border border-white/20 text-foreground/70 hover:border-gold/50 hover:text-gold"
+               >
+                 <Share2 size={14} className="inline mr-1" />
+                 {i18n.language === 'en' ? 'Share' : 'Partager'}
+               </button>
+             )}
 
             {/* Add to cart button */}
             <button 
