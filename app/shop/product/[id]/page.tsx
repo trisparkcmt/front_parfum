@@ -330,7 +330,7 @@ export default function ProductDetailPage() {
                   className="prose prose-invert max-w-none"
                 >
                   <p className="text-foreground/70 leading-relaxed text-lg">
-                    {product.description} Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
+                    {product.description}
                   </p>
                   <ul className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-4">
                     {product.notes && Object.entries(product.notes).map(([key, val]) => (

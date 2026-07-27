@@ -224,7 +224,7 @@ export function ProductCard({
           <p className="text-[0.8rem] md:text-sm text-start text-foreground/40 font-light  md:mb-4"
           
           >
-            {product.category.includes('perfume') ? `Eau de Parfum • ${product.volume || '100ml'}` : (product.volume || 'N/A')}
+            {product.category.includes('perfume') ? ` • ${product.volume || '100ml'}` : (product.volume || 'N/A')}
           </p>
         )}
 

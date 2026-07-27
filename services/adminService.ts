@@ -53,7 +53,8 @@ export const adminService = {
         params.append('page', page.toString());
       }
 
-      const response = await api.get(`/utilisateur/admin/meilleurs-clients/?${params.toString()}`);
+      // const response = await api.get(`/utilisateur/admin/meilleurs-clients/?${params.toString()}`);
+      const response = await api.get(`/utilisateur/admin/meilleurs-clients/`);
       
       // If limit is provided, response is an array
       // Otherwise, it's a paginated object

@@ -169,6 +169,7 @@ export const useAuthStore = create<AuthState>()(
           try {
             const meResponse = await rawApi.get('auth/me/', {
               headers: { Authorization: `Bearer ${loginData.access}` },
+              withCredentials: true,
             });
             const meData = meResponse.data;
             const userObj = meData.user || meData;
@@ -265,6 +266,7 @@ export const useAuthStore = create<AuthState>()(
           try {
             const meResponse = await rawApi.get('auth/me/', {
               headers: { Authorization: `Bearer ${access}` },
+              withCredentials: true,
             });
             const meData = meResponse.data;
             const userObj = meData.user || meData;
@@ -455,10 +457,11 @@ export const useAuthStore = create<AuthState>()(
           set({ user: null, isAuthenticated: false });
           return null;
         }
-        try {
-          const meResponse = await rawApi.get('auth/me/', {
-            headers: { Authorization: `Bearer ${tokenAtStart}` },
-          });
+          try {
+            const meResponse = await rawApi.get('auth/me/', {
+              headers: { Authorization: `Bearer ${tokenAtStart}` },
+              withCredentials: true,
+            });
           const meData = meResponse.data;
           const userObj = meData.user || meData;
 
