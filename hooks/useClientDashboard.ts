@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useToastStore } from '@/store/useToastStore';
-import { orderService } from '@/services/apiService';
+import { authService } from '@/services/apiService';
 import type { BackendOrder, Order } from '@/types';
 
 export const useClientDashboard = () => {
@@ -32,8 +32,8 @@ export const useClientDashboard = () => {
         setLoading(true);
         setError(null);
 
-        const data = await orderService.getOrders({ page: 1 });
-        const list = (data?.results ?? data?.resultats ?? []) as BackendOrder[];
+        const meData = await authService.getMe();
+        const list = ((meData as any)?.commandes ?? (Array.isArray(meData) ? meData : [])) as BackendOrder[];
 
         const mapped: Order[] = list.map((o) => ({
           id: o.numero_commande, // display-friendly & unique

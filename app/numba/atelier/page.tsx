@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useMemo, useEffect } from 'react';
+import { useState, useCallback, useMemo, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useCartStore } from '@/store/useCartStore';
@@ -202,7 +202,7 @@ function Bottle30({ totalMl, maxMl, quantities, allItems }: any) {
 /* ═══════════════════════════════════════
    MAIN COMPONENT
    ═══════════════════════════════════════ */
-export default function AtelierPage() {
+function AtelierContent() {
   const { addCustomPerfume, addComposition, addDirectComposition } = useCartStore();
   const { addFavorite } = useFavoritesStore();
   const { user, isAuthenticated } = useAuthStore();
@@ -292,6 +292,7 @@ export default function AtelierPage() {
           setSaveModalName(comp.nom || '');
           setSavedParfumId(Number(comp.id));
 
+          // Handle flacon — can be nested object or flat ID
           const flaconData = comp.composition?.flacon || comp.flacon;
           if (flaconData) {
             const flaconId = typeof flaconData === 'object' ? flaconData.id : flaconData;
@@ -305,35 +306,46 @@ export default function AtelierPage() {
             }
           }
 
+          // Handle lignes — backend may return flat IDs (essence_id/ingredient_id)
+          // OR nested objects (essence: {id:...} / ingredient: {id:...})
           const lines = comp.composition?.lignes || comp.lignes || [];
           const newQuantities: Record<string, number> = {};
-          
-          for (const line of lines) {
-            const essData = line.essence;
-            const ingData = line.ingredient;
-            
-            const essId = essData ? (typeof essData === 'object' ? essData.id : essData) : null;
-            const ingId = ingData ? (typeof ingData === 'object' ? ingData.id : ingData) : null;
 
-            if (essId) {
-              const matchingItem = ALL_ITEMS.find(item => 
-                item.itemType === 'essence' && 
+          for (const line of lines) {
+            // Extract essence ID — try nested object first, then flat field
+            const essNested = line.essence;
+            const essId = essNested != null
+              ? (typeof essNested === 'object' ? essNested.id : essNested)
+              : (line.essence_id ?? null);
+
+            // Extract ingredient ID — try nested object first, then flat field
+            const ingNested = line.ingredient;
+            const ingId = ingNested != null
+              ? (typeof ingNested === 'object' ? ingNested.id : ingNested)
+              : (line.ingredient_id ?? null);
+
+            const qtyMl = Number(line.quantite_ml || 0);
+            if (qtyMl <= 0) continue;
+
+            if (essId != null) {
+              const matchingItem = ALL_ITEMS.find(item =>
+                item.itemType === 'essence' &&
                 (Number(item.backendId) === Number(essId) || Number(item.id) === Number(essId))
               );
               if (matchingItem) {
-                newQuantities[matchingItem.id] = Number(line.quantite_ml || 0);
+                newQuantities[matchingItem.id] = qtyMl;
               }
-            } else if (ingId) {
-              const matchingItem = ALL_ITEMS.find(item => 
-                item.itemType === 'ingredient' && 
+            } else if (ingId != null) {
+              const matchingItem = ALL_ITEMS.find(item =>
+                item.itemType === 'ingredient' &&
                 (Number(item.backendId) === Number(ingId) || Number(item.id) === Number(ingId))
               );
               if (matchingItem) {
-                newQuantities[matchingItem.id] = Number(line.quantite_ml || 0);
+                newQuantities[matchingItem.id] = qtyMl;
               }
             }
           }
-          
+
           setQuantities(newQuantities);
           addToast(
             i18n.language === 'en' ? 'Composition loaded successfully.' : 'Composition chargée avec succès.',
@@ -1585,3 +1597,11 @@ export default function AtelierPage() {
     </div>
   );
 }
+
+export default function AtelierPage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center min-h-screen"><Loader2 className="animate-spin text-gold" size={32} /></div>}>
+      <AtelierContent />
+    </Suspense>
+  );
+}

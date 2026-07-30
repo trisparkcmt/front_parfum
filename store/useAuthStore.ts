@@ -132,21 +132,23 @@ export const useAuthStore = create<AuthState>()(
 
           // Use web login with cookies for refresh token (backend sets HttpOnly cookie)
           const loginResponse = await rawApi.post('auth/web/login/', payload, { withCredentials: true });
-          const loginData = loginResponse.data;
+          const loginData = loginResponse.data || {};
+          const access = loginData.access || loginData.access_token || loginData.token;
 
           if (typeof window !== 'undefined') {
-            // Cookie-based web login: the backend sets the session cookie, so we do not rely on a JWT in the response body.
-            if (loginData.access) {
-              localStorage.setItem('auth_token', loginData.access);
-              api.defaults.headers.common['Authorization'] = `Bearer ${loginData.access}`;
+            if (access) {
+              localStorage.setItem('auth_token', access);
+              api.defaults.headers.common['Authorization'] = `Bearer ${access}`;
+              rawApi.defaults.headers.common['Authorization'] = `Bearer ${access}`;
             } else {
               delete api.defaults.headers.common['Authorization'];
+              delete rawApi.defaults.headers.common['Authorization'];
               localStorage.removeItem('auth_token');
             }
           }
 
           const mapUser = (userObj: any, meData?: any): User => {
-            const roles = extractUserRoles(userObj, loginData.access);
+            const roles = extractUserRoles(userObj, access);
             return {
               id: String(userObj.id),
               firstName: userObj.first_name || '',
@@ -167,8 +169,12 @@ export const useAuthStore = create<AuthState>()(
           // Fetch full profile via rawApi to avoid the refresh interceptor during login
           let meUser: User | null = null;
           try {
+            const meHeaders: Record<string, string> = {};
+            if (access) {
+              meHeaders['Authorization'] = `Bearer ${access}`;
+            }
             const meResponse = await rawApi.get('auth/me/', {
-              headers: { Authorization: `Bearer ${loginData.access}` },
+              headers: meHeaders,
               withCredentials: true,
             });
             const meData = meResponse.data;
@@ -241,6 +247,7 @@ export const useAuthStore = create<AuthState>()(
             // Store only access token; refresh token comes via HttpOnly cookie
             localStorage.setItem('auth_token', access);
             api.defaults.headers.common['Authorization'] = `Bearer ${access}`;
+            rawApi.defaults.headers.common['Authorization'] = `Bearer ${access}`;
           }
 
           const mapUser = (userObj: any, meData?: any): User => {

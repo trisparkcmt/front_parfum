@@ -6,7 +6,7 @@ import {
   RefreshCw, MapPin, Phone, Tag, Calendar, User, ChevronLeft, X,
   Download, FileText, Mail,
 } from 'lucide-react';
-import { orderService } from '@/services/apiService';
+import { authService, orderService } from '@/services/apiService';
 import { invoiceService } from '@/services/invoiceService';
 import { useToastStore } from '@/store/useToastStore';
 import { useRouter } from 'next/navigation';
@@ -78,8 +78,8 @@ export default function ClientOrdersPage() {
   const fetchOrders = useCallback(async () => {
     try {
       setLoading(true);
-      const data = await orderService.getOrders({ page: 1 });
-      const list = (data?.results ?? data?.resultats ?? (Array.isArray(data) ? data : [])) as BackendOrder[];
+      const meData = await authService.getMe();
+      const list = ((meData as any)?.commandes ?? (Array.isArray(meData) ? meData : [])) as BackendOrder[];
       setOrders(list);
     } catch (err: any) {
       addToast('Erreur lors du chargement de vos commandes', 'error');
@@ -87,6 +87,7 @@ export default function ClientOrdersPage() {
       setLoading(false);
     }
   }, [addToast]);
+
 
   useEffect(() => {
     fetchOrders();

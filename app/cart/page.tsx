@@ -62,8 +62,6 @@ export default function CartPage() {
 
   // Form state for checkout fields
   const [form, setForm] = useState({
-    deliveryFullName: '',
-    deliveryPhone: '',
     deliveryCity: '',
     deliveryLocation: '',
     noteClient: '',
@@ -86,18 +84,6 @@ export default function CartPage() {
     }
   };
 
-  // Initialize form with user data if available (commented out per requirements)
-  useEffect(() => {
-    // Removed auto-prefilling of name and phone as per requirements
-    // Only set if user explicitly wants to use their profile data
-    // if (user) {
-    //   setForm(prev => ({
-    //     ...prev,
-    //     deliveryFullName: `${user.firstName || ''} ${user.lastName || ''}`.trim(),
-    //     deliveryPhone: user.phone || '',
-    //   }));
-    // }
-  }, [user]);
 
   const subtotal = getSubtotal();
   const total = getTotalPrice();
@@ -152,19 +138,11 @@ export default function CartPage() {
     }
   };
 
-const handleCheckout = async () => {
+  const handleCheckout = async () => {
     if (!cart || allItems.length === 0) return;
 
     // Validate form fields
     const errors: Record<string, string> = {};
-    
-    if (!form.deliveryFullName.trim()) {
-      errors.deliveryFullName = t('name_required', { defaultValue: 'Nom complet requis.' });
-    }
-    
-    if (!form.deliveryPhone.trim()) {
-      errors.deliveryPhone = t('phone_required', { defaultValue: 'Téléphone requis.' });
-    }
     
     if (form.deliveryType === 'delivery' && !form.deliveryCity.trim()) {
       errors.deliveryCity = t('city_required', { defaultValue: 'Ville de livraison requise.' });
@@ -173,14 +151,16 @@ const handleCheckout = async () => {
     // Set errors and focus first invalid field if any
     if (Object.keys(errors).length > 0) {
       setFormErrors(errors);
-      // Focus first invalid field
-      setTimeout(() => {
-        const firstField = Object.keys(errors)[0];
-        const element = document.getElementById(`field-${firstField}`);
-        if (element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement) {
-          element.focus();
-        }
-      }, 0);
+      const firstErrorKey = Object.keys(errors)[0];
+      const element = document.getElementById(`field-${firstErrorKey}`);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        setTimeout(() => {
+          if (element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement) {
+            element.focus();
+          }
+        }, 0);
+      }
       return;
     }
 
@@ -191,11 +171,42 @@ const handleCheckout = async () => {
     }
 
     setIsProcessing(true);
+
+    // Build WhatsApp link BEFORE any async operation so it's ready to use
+    const formattedItems = allItems.map((item: any) => ({
+      id: String(item.id),
+      type: 'product' as const,
+      product: {
+        id: String(item.id),
+        name: item.nom,
+        price: item.prix_unitaire_snapshot,
+        description: '',
+        category: 'accessory' as const,
+        images: [],
+        stock: 99,
+        inStock: true,
+        isActive: true,
+        createdAt: ''
+      },
+      quantity: item.quantite,
+      unitPrice: item.prix_unitaire_snapshot,
+    }));
+
+    const waLink = generateWhatsAppLink(
+      formattedItems,
+      subtotal,
+      total,
+      cart?.code_promo_applique,
+      cart?.remise_pourcentage ? Number(cart.remise_pourcentage) : undefined,
+      form.paymentMethod,
+      form.mobileNetwork || undefined,
+      form.deliveryType,
+      form.deliveryType === 'delivery' ? `${form.deliveryCity.trim()} - ${form.deliveryLocation.trim()}` : 'Retrait magasin'
+    );
+
     try {
       await orderService.placeOrder({
         panier_id: panierId ?? undefined,
-        livraison_nom_complet: form.deliveryFullName.trim(),
-        livraison_telephone: form.deliveryPhone.trim(),
         livraison_quartier: form.deliveryType === 'delivery' ? form.deliveryLocation.trim() || undefined : undefined,
         livraison_ville: form.deliveryType === 'delivery' ? form.deliveryCity.trim() : 'Retrait magasin',
         note_client: form.noteClient.trim() || undefined,
@@ -203,46 +214,15 @@ const handleCheckout = async () => {
         code_promo: cart?.code_promo_applique ?? undefined,
       });
 
-      // Format items to match the CartItem structure expected by generateWhatsAppLink
-      const formattedItems = allItems.map((item: any) => ({
-        id: String(item.id),
-        type: 'product' as const,
-        product: {
-          id: String(item.id),
-          name: item.nom,
-          price: item.prix_unitaire_snapshot,
-          description: '',
-          category: 'accessory' as const,
-          images: [],
-          stock: 99,
-          inStock: true,
-          isActive: true,
-          createdAt: ''
-        },
-        quantity: item.quantite,
-        unitPrice: item.prix_unitaire_snapshot,
-      }));
-
-      const waLink = generateWhatsAppLink(
-        formattedItems,
-        subtotal,
-        total,
-        cart?.code_promo_applique,
-        cart?.remise_pourcentage ? Number(cart.remise_pourcentage) : undefined,
-        form.paymentMethod,
-        form.mobileNetwork || undefined,
-        form.deliveryType,
-        form.deliveryType === 'delivery' ? `${form.deliveryCity.trim()} - ${form.deliveryLocation.trim()}` : 'Retrait magasin'
-      );
-
       addToast(t('order_success', { defaultValue: 'Commande passée avec succès. Redirection vers WhatsApp...' }), 'success');
 
       // The backend will convert the cart -> order and create a new active cart.
       clearCart();
       await syncCart();
       
-      // Redirect client to WhatsApp
-      window.open(waLink, '_blank');
+      // Redirect to WhatsApp — use window.location.href so it works on iOS Safari
+      // (window.open after async is blocked by iOS popup policy)
+      window.location.href = waLink;
     } catch (err: any) {
       const msg =
         err?.response?.data?.detail ||
@@ -375,36 +355,6 @@ const handleCheckout = async () => {
 
 
 
-              {/* Contact Information */}
-              <div className="space-y-3 pt-2">
-                <p className="text-xs font-bold text-foreground/40 uppercase tracking-wider">{t('contact_info', { defaultValue: 'Informations de Contact' })}</p>
-<div className="space-y-2">
-                   <Input
-                     label={t('full_name', { defaultValue: 'Nom complet' })}
-                     placeholder={t('full_name_placeholder', { defaultValue: 'ex: Jean Dupont' })}
-                     value={form.deliveryFullName}
-                     onChange={(e) => updateFormField('deliveryFullName', e.target.value)}
-                     disabled={isLoading || isProcessing}
-                     className="bg-black/20"
-                     id="field-deliveryFullName"
-                   />
-                   {formErrors.deliveryFullName && (
-                     <p className="mt-1 text-xs text-red-500">{formErrors.deliveryFullName}</p>
-                   )}
-                   <Input
-                     label={t('phone', { defaultValue: 'Téléphone' })}
-                     placeholder={t('phone_placeholder', { defaultValue: 'ex: +2250102030405' })}
-                     value={form.deliveryPhone}
-                     onChange={(e) => updateFormField('deliveryPhone', e.target.value)}
-                     disabled={isLoading || isProcessing}
-                     className="bg-black/20"
-                     id="field-deliveryPhone"
-                   />
-                   {formErrors.deliveryPhone && (
-                     <p className="mt-1 text-xs text-red-500">{formErrors.deliveryPhone}</p>
-                   )}
-                 </div>
-              </div>
 
               {/* Delivery Mode Selection */}
               <div className="space-y-3 pt-2">

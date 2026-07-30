@@ -8,6 +8,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { Product } from '@/types';
 import { api } from '@/services/api';
+import { authService } from '@/services/apiService';
 import { useAuthStore } from './useAuthStore';
 
 interface FavoritesState {
@@ -117,36 +118,50 @@ export const useFavoritesStore = create<FavoritesState>()(
         if (!isAuth) return;
 
         try {
-          // Fetch from /api/v1/shop/favoris/
-          const response = await api.get('shop/favoris/');
+          // Fetch enriched user profile directly from /auth/me/
+          const meData = await authService.getMe();
+
+          // Sync user store with fresh profile data (favoris & parfums_personnalises)
+          const currentUser = useAuthStore.getState().user;
+          if (currentUser && meData) {
+            useAuthStore.setState({
+              user: {
+                ...currentUser,
+                favoris: meData.favoris || currentUser.favoris,
+                parfums_personnalises: meData.parfums_personnalises || currentUser.parfums_personnalises,
+                commandes: meData.commandes || currentUser.commandes,
+                preferences: meData.preferences || currentUser.preferences,
+                client: meData.client || currentUser.client,
+              },
+            });
+          }
           
-          // Map backend favoris structure to Products
-          const backendFavs: any[] = response.data || [];
+          // Map backend favoris from /auth/me/ to Products
+          const backendFavs: any[] = meData?.favoris || [];
           const products: Product[] = backendFavs.map((fav: any) => {
             const isAccessory = fav.type_produit === 'accessoire' || fav.type_produit === 'accessory';
-            const isCustom = fav.type_produit === 'parfum-personnalise';
+            const isCustom = fav.type_produit === 'parfum-personnalise' || fav.type_produit === 'custom';
             return {
-              id: String(fav.id_produit || fav.id),
-              name: fav.nom_produit,
+              id: String(fav.produit_id || fav.id_produit || fav.id),
+              name: fav.nom_produit || fav.nom || 'Produit',
               description: '',
-              price: parseFloat(fav.prix_produit),
+              price: parseFloat(fav.prix_produit || fav.price || '0'),
               category: isAccessory ? 'accessory' : isCustom ? 'numba-creation' : 'perfume-brand',
               images: fav.image_produit ? [fav.image_produit] : ['/parfume1.png'],
               inStock: true,
-              slug: fav.slug_produit || '',
+              slug: fav.slug_produit || fav.slug || '',
               createdAt: fav.date_ajout || new Date().toISOString(),
               isCustomComposition: isCustom ? true : undefined,
             };
           });
 
-          if (products.length > 0) {
-            set({ items: products });
-          }
+          set({ items: products });
         } catch (e) {
-          console.warn('Could not pull favorites from backend database, keeping local stored list.', e);
+          console.warn('Could not pull favorites from /auth/me/, keeping local stored list.', e);
         }
       }
     }),
+
     {
       name: 'ae-favorites',
     }

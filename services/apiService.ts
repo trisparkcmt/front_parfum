@@ -832,6 +832,26 @@ export const labService = {
   },
 
   /**
+   * Get active AI conversation history for logged-in user or anonymous session
+   */
+  getIAConversations: async (): Promise<{
+    client: string;
+    total_messages: number;
+    messages: Array<{ id: number; role: 'user' | 'assistant'; content: string; created_at: string }>;
+  }> => {
+    const response = await api.get('lab/ia-conversations/');
+    return response.data;
+  },
+
+  /**
+   * Reset / clear active AI conversation summary (logged-in user or anonymous session)
+   */
+  resetIAChatSummary: async (): Promise<{ detail: string }> => {
+    const response = await api.delete('lab/ia-conversations/resume/');
+    return response.data;
+  },
+
+  /**
    * Create a new essence (Admin)
    */
   createEssence: async (data: any) => {

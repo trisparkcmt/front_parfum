@@ -21,7 +21,7 @@ import {
 } from 'lucide-react';
 import { InputBar } from './InputBar';
 import { API_ROOT } from '@/services/api';
-import { api } from '@/services/apiService';
+import { api, labService as apiLabService } from '@/services/apiService';
 import { labService } from '@/services/labService';
 import { useCartStore } from '@/store/useCartStore';
 import { useAuthStore } from '@/store/useAuthStore';
@@ -486,12 +486,44 @@ export function GeminiChat({ onChatStarted }: GeminiChatProps) {
   }, []);
 
   useEffect(() => {
+    async function fetchHistory() {
+      try {
+        const conv = await apiLabService.getIAConversations();
+        if (conv && conv.messages && conv.messages.length > 0) {
+          const historyMsgs: ChatMessage[] = conv.messages.map((m) => ({
+            id: String(m.id),
+            role: m.role === 'assistant' ? 'ai' : 'user',
+            text: m.content,
+          }));
+          setMessages(historyMsgs);
+          onChatStarted?.(true);
+        }
+      } catch (err) {
+        console.warn('Failed to load AI conversation history:', err);
+      }
+    }
+    fetchHistory();
+  }, [onChatStarted]);
+
+  useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isLoading]);
 
   useEffect(() => {
     return () => { abortControllerRef.current?.abort(); };
   }, []);
+
+  const handleResetConversation = useCallback(async () => {
+    try {
+      const res = await apiLabService.resetIAChatSummary();
+      addToast(res.detail || 'Résumé vidé avec succès.', 'success');
+    } catch (err: any) {
+      console.warn('Failed to reset AI chat summary:', err);
+    } finally {
+      setMessages([]);
+      onChatStarted?.(false);
+    }
+  }, [addToast, onChatStarted]);
 
   const handleAbort = useCallback(() => {
     if (abortControllerRef.current) {
@@ -693,7 +725,7 @@ export function GeminiChat({ onChatStarted }: GeminiChatProps) {
         <div className="flex items-center gap-3 py-3">
           <div className="flex-1 h-px bg-white/5" />
           <button
-            onClick={() => { setMessages([]); onChatStarted?.(false); }}
+            onClick={handleResetConversation}
             className="flex items-center gap-1.5 text-[10px] uppercase tracking-widest text-foreground/30 hover:text-gold transition-colors font-bold"
           >
             <RefreshCw size={10} />
