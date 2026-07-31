@@ -1,3 +1,6 @@
 'use client';
-import ProductDetailPage from '../../product/[id]/page';
-export default ProductDetailPage;
+import ProductDetailClient from '../../product/[id]/ProductDetailClient';
+
+export default function AccessoryDetailPage({ params }: { params: { id: string } }) {
+  return <ProductDetailClient id={params.id} />;
+}

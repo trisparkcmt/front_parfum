@@ -1,4 +1,6 @@
 'use client';
-import ProductDetailPage from '../../product/[id]/page';
+import ProductDetailClient from '../../product/[id]/ProductDetailClient';
 
-export default ProductDetailPage;
+export default function DiffuseurDetailPage({ params }: { params: { id: string } }) {
+  return <ProductDetailClient id={params.id} />;
+}
