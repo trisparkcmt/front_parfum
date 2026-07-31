@@ -121,7 +121,7 @@ export function Footer() {
             © {new Date().getFullYear()} Accessories Exclusif. {t('all_rights_reserved', 'Tous droits réservés.')}
           </p>
           <p className="text-xs text-zinc-500">
-            {t('made_with', 'Fait avec')} ✨ {t('in_cameroon', 'au Cameroun')}
+            {t('made_by', 'Fait par')} {t('darren et ses petits' , 'darren and his petit')} {t('in_cameroon', 'au Cameroun')}
           </p>
         </div>
       </div>

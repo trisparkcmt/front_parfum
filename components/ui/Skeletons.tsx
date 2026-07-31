@@ -1,36 +1,38 @@
 import React from 'react';
-import { motion } from 'framer-motion';
 
 /**
  * Individual Product Card Skeleton
- * Matches the dimensions and layout of components/ui/ProductCard.tsx
+ * Matches the editorial 4:5 ProductCard layout exactly.
  */
 export const ProductCardSkeleton = () => (
-  <div className="w-[165px] sm:w-[280px] flex-shrink-0 flex flex-col gap-4 group">
-    {/* Image Area */}
-    <div className="w-[45vw] sm:w-[280px] h-40 sm:h-55 bg-foreground/15  animate-pulse relative overflow-hidden">
-      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-foreground/10 to-transparent -translate-x-full animate-[shimmer_2s_infinite]" />
+  <div className="flex flex-col">
+    {/* 4:5 image block */}
+    <div className="relative aspect-[4/5] w-full overflow-hidden bg-foreground/10">
+      <div className="absolute inset-0 -translate-x-full animate-[shimmer_1.8s_infinite] bg-gradient-to-r from-transparent via-foreground/[0.07] to-transparent" />
     </div>
-    
-    {/* Content Area */}
-    <div className="space-y-2 px-1">
-      <div className="h-3 w-full bg-foreground/25 rounded animate-pulse" />
-      <div className="h-4 w-2/3 bg-foreground/25 rounded animate-pulse" />
-      <div className="flex justify-between items-center pt-1">
-        <div className= "flex justify-center items-center h-10 w-full bg-foreground/25 border border-[var(--t-btn-ghost-border)]/25 animate-pulse" />
-       
-        
-      </div>
+
+    {/* Info block */}
+    <div className="mt-3 space-y-1.5">
+      {/* Category label */}
+      <div className="h-2.5 w-1/3 animate-pulse rounded-sm bg-gold/20" />
+      {/* Product name */}
+      <div className="h-4 w-5/6 animate-pulse rounded-sm bg-foreground/15" />
+      {/* Price */}
+      <div className="h-3.5 w-1/4 animate-pulse rounded-sm bg-foreground/10" />
     </div>
+
+    {/* CTA button */}
+    <div className="mt-3.5 h-9 w-full animate-pulse bg-gold/20" />
   </div>
 );
 
 /**
- * Grid of Product Skeletons
- * Used in shop listing pages.
+ * Grid of Product Skeletons — renders as a CSS grid so it integrates
+ * seamlessly when placed inside a parent grid (e.g. ProductSection).
+ * When used standalone it also forms its own 2/3/4-col grid.
  */
 export const ProductGridSkeleton = ({ count = 8 }: { count?: number }) => (
-  <div className="flex flex-row flex-wrap justify-center sm:justify-center gap-7 md:gap-6">
+  <div className="col-span-full grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-6 w-full">
     {Array.from({ length: count }).map((_, i) => (
       <ProductCardSkeleton key={i} />
     ))}

@@ -72,13 +72,14 @@ export default function ProductSection({
         {loading ? (
           <ProductGridSkeleton count={skeletonCount} />
         ) : (
-          products.map((product, index) => (
-            <motion.div
-              key={product.id}
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.35, delay: index * 0.04 }}
-            >
+           products.map((product, index) => (
+             <motion.div
+               key={product.id}
+               initial={{ opacity: 0, y: 16 }}
+               animate={{ opacity: 1, y: 0 }}
+               transition={{ duration: 0.35, delay: index * 0.04 }}
+               className="min-w-0"
+             >
               <ProductCard
                 product={product}
                 onAddToCart={onAddToCart}

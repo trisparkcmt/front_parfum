@@ -2,24 +2,32 @@
 
 /**
  * @file components/ui/ProductCard.tsx
- * @description Centralized Catalog Item Visualizer.
+ * @description Editorial product card — matches favorites page design.
  *
- * Redesigned to match editorial product card style:
- * - Full-bleed image with "Sold out" badge overlay
- * - Star rating display
- * - Clean typographic product name + price
- * - Ghost/outline "Add to Cart" button (transparent, border only)
- * - Light & dark theme aware via CSS variables
+ * Layout:
+ * - Full-bleed 4:5 image with hover-zoom & secondary image crossfade
+ * - Small gold category/volume label above name
+ * - Serif product name with hover gold transition
+ * - Price line with optional strikethrough for reductions
+ * - Full-width solid gold "Add to Cart" button (or "Notify me" if sold out)
+ * - Favorite heart + Share icons overlaid top-right on the image
+ *
+ * Sizing is responsive across breakpoints so cards stay legible when
+ * more columns are packed into a row on larger screens.
+ *
+ * NOTE: the Share/Favorite buttons are siblings of the <Link>, not
+ * descendants of it. A <button> nested inside an <a> is invalid HTML and
+ * iOS Safari in particular can fail to register taps on the inner button
+ * (the outer anchor swallows the tap). Keeping them as separately
+ * positioned overlays avoids that class of bug entirely.
  */
 
 import Link from 'next/link';
 import AppImage from '@/components/ui/AppImage';
-import { Heart, Star, ShoppingBag, BellRing, Share2 } from 'lucide-react';
-import { motion } from 'framer-motion';
-import { cn, formatPrice, sharePage } from '@/lib/utils';
+import { Heart, ShoppingBag, BellRing, Share2 } from 'lucide-react';
+import { cn, formatPrice, sharePage, resolveImageUrl } from '@/lib/utils';
 import type { Product } from '@/types';
 import { useTranslation } from 'react-i18next';
-import { API_ROOT } from '@/services/api';
 import { useState, type MouseEvent } from 'react';
 import { useToastStore } from '@/store/useToastStore';
 
@@ -31,10 +39,6 @@ interface ProductCardProps {
   className?: string;
   /** If true, renders a "Notify me" button instead of "Add to Cart" */
   soldOut?: boolean;
-  /** Star rating 0–5 */
-  rating?: number;
-  /** Number of reviews */
-  reviewCount?: number;
 }
 
 export function ProductCard({
@@ -44,247 +48,204 @@ export function ProductCard({
   isFavorite,
   className,
   soldOut = false,
-  rating = 0,
-  reviewCount = 0,
 }: ProductCardProps) {
   const { t } = useTranslation();
   const { addToast } = useToastStore();
   const [isHovered, setIsHovered] = useState(false);
 
-  const getImageUrl = (url: string) => {
-    if (!url) return '';
-    if (url.startsWith('http')) return url;
-    return `${API_ROOT}${url.startsWith('/') ? '' : '/'}${url}`;
-  };
-
-  const renderStars = (score: number) =>
-    Array.from({ length: 5 }, (_, i) => (
-      <Star
-        key={i}
-        size={14}
-        className={cn(
-          'transition-colors',
-          i < Math.round(score)
-            ? 'fill-[var(--t-star-fill)] stroke-[var(--t-star-fill)]'
-            : 'fill-transparent stroke-[var(--t-star-empty)]'
-        )}
-      />
-    ));
-
-  const handleShare = async (event: MouseEvent<HTMLButtonElement>) => {
-    event.preventDefault();
-    event.stopPropagation();
-
-    const result = await sharePage(
-      `/shop/product/${product.slug || product.id}`,
-      product.name,
-      `Découvrez ${product.name} sur Accessories Exclusif`
-    );
-
-    if (result === 'shared') {
-      addToast('Lien partagé', 'success');
-    } else if (result === 'copied') {
-      addToast('Lien copié dans le presse-papiers', 'success');
-    } else {
-      addToast('Le partage n’est pas disponible sur ce navigateur', 'error');
-    }
-  };
-
-  // Get images - handle both image_principale and images array
   const mainImage = product.image_principale || (product.images && product.images[0]) || '';
   const secondImage = product.image_supp_1 || (product.images && product.images[1]) || '';
-  const displayImage = isHovered && secondImage ? secondImage : mainImage;
+
+  const isDiffuseur = !!(product.type_technologie || product.capacite_reservoir_ml);
+
+  const productUrl = isDiffuseur
+    ? `/shop/diffuseurs/${product.id || product.slug}`
+    : `/shop/product/${product.slug || product.id}`;
+
+  // Derive category label
+  const categoryLabel = isDiffuseur
+    ? (product.type_technologie === 'ultrasons' ? 'Ultrasons'
+      : product.type_technologie === 'nebulisation' ? 'Nébulisation'
+      : product.type_technologie === 'chaleur' ? 'Chaleur douce'
+      : product.type_technologie === 'connecte' ? 'Connecté'
+      : 'Diffuseur')
+    : product.category && product.category.includes('perfume')
+    ? `Parfum${product.volume ? ` • ${product.volume}` : ''}`
+    : product.category === 'accessory'
+    ? 'Accessoire'
+    : product.category || '';
+
+  const handleShare = async (e: MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const result = await sharePage(
+      productUrl,
+      product.name,
+      `Découvrez ${product.name} sur Accessories Exclusif`,
+      mainImage ? resolveImageUrl(mainImage) : undefined
+    );
+    if (result === 'shared') addToast('Lien partagé', 'success');
+    else if (result === 'copied') addToast('Lien copié dans le presse-papiers', 'success');
+    else addToast("Le partage n'est pas disponible sur ce navigateur", 'error');
+  };
+
+  const handleToggleFavorite = (e: MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    onToggleFavorite?.(product);
+  };
+
+  const hasReduction = !!(product.originalPrice && product.taux_reduction && parseFloat(product.taux_reduction) > 0);
 
   return (
-    // <motion.div
-    //   //initial={{ opacity: 0, y: 20 }}
-    //   whileInView={{ opacity: 1, y: 0 }}
-    //   viewport={{ once: true }}
-    //   whileHover={{ y: -3 }}
-    //   transition={{ duration: 0.3 }}
-    //   className={cn(
-    //     /* ── Layout ── */
-    //     'w-[45vw] sm:w-[280px] flex flex-col bg-gray-500 rounded-lg',
-    //     /* ── Theming: no card bg, no border, no shadow — just content ── */
-    //     'text-[var(--t-card-text)]',
-    //     className
-    //   )}
-    // >
-    
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true }}
-      whileHover={{ y: -4 }}
-      transition={{ duration: 0.3 }}
-      className={cn(
-        'w-[45vw] sm:w-[280px] h-auto group relative    overflow-hidden transition-all duration-500 ',
-        className
-      )} 
-    >
+    <div className={cn('group relative flex h-full flex-col', className)}>
 
       {/* ─── Image Block ─────────────────────────────────────── */}
-      <Link
-        href={`/shop/product/${product.slug || product.id}`}
-        className="block relative"
-        tabIndex={-1}
-        aria-hidden="true"
+      <div
+        className="relative aspect-[4/5] overflow-hidden bg-white/[0.03]"
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
       >
-        {/* Image Section */} 
-        {product.taux_reduction && parseFloat(product.taux_reduction) > 0 && (
-          <div className="absolute top-3 left-3 z-20 bg-red-600 text-white text-xs font-bold px-2 py-1 rounded-full">
-            -{parseFloat(product.taux_reduction)}%
-          </div>
-        )}
-        <div className="relative h-40 md:h-55 overflow-hidden bg-[var(--t-surface)]"
-          onMouseEnter={() => setIsHovered(true)}
-          onMouseLeave={() => setIsHovered(false)}
-        >
-          <motion.div
-            initial={false}
-            animate={{ opacity: isHovered && secondImage ? 0 : 1 }}
-            transition={{ duration: 0.3 }}
-            className="absolute inset-0"
-          >
+        <Link href={productUrl} className="absolute inset-0 z-0 block cursor-pointer" tabIndex={-1} aria-hidden="true">
+          {/* Discount badge */}
+          {hasReduction && (
+            <div className="absolute top-1.5 left-1.5 sm:top-2 sm:left-2 z-20 bg-red-600 text-white text-[9px] sm:text-[10px] font-bold px-1.5 sm:px-2 py-0.5 uppercase tracking-wider">
+              -{parseFloat(product.taux_reduction!)}%
+            </div>
+          )}
+
+          {/* New badge */}
+          {product.is_new && !hasReduction && (
+            <div className="absolute top-1.5 left-1.5 sm:top-2 sm:left-2 z-20 bg-gold/90 text-black text-[9px] sm:text-[10px] font-bold px-1.5 sm:px-2 py-0.5 uppercase tracking-wider">
+              Nouveau
+            </div>
+          )}
+
+          {/* Main image */}
+          {mainImage ? (
             <AppImage
-              src={getImageUrl(mainImage)}
+              src={resolveImageUrl(mainImage)}
               alt={product.name}
               fill
-              className="object-cover"
+              className={cn(
+                'object-cover transition-all duration-500 ease-out',
+                isHovered && secondImage ? 'opacity-0 scale-[1.04]' : 'opacity-100 scale-100 group-hover:scale-[1.04]'
+              )}
               priority={false}
               loading="lazy"
-              sizes="(max-width: 640px) 45vw, 280px"
+              sizes="(max-width: 480px) 46vw, (max-width: 768px) 31vw, (max-width: 1024px) 23vw, 210px"
             />
-          </motion.div>
-          
-          {secondImage && (
-            <motion.div
-              initial={false}
-              animate={{ opacity: isHovered ? 1 : 0 }}
-              transition={{ duration: 0.3 }}
-              className="absolute inset-0"
-            >
-              <AppImage
-                src={getImageUrl(secondImage)}
-                alt={`${product.name} - second view`}
-                fill
-                className="object-cover"
-                priority={false}
-                loading="lazy"
-                sizes="(max-width: 640px) 45vw, 280px"
-              />
-            </motion.div>
+          ) : (
+            <div className="flex h-full w-full items-center justify-center">
+              <ShoppingBag size={24} className="text-foreground/10" />
+            </div>
           )}
-        </div>
-        {/* Favorite button */}
-        <div className="absolute top-3 right-3 z-20 flex gap-2">
+
+          {/* Secondary image crossfade */}
+          {secondImage && (
+            <AppImage
+              src={resolveImageUrl(secondImage)}
+              alt={`${product.name} - vue 2`}
+              fill
+              className={cn(
+                'object-cover transition-all duration-500 ease-out absolute inset-0',
+                isHovered ? 'opacity-100 scale-[1.04]' : 'opacity-0 scale-100'
+              )}
+              priority={false}
+              loading="lazy"
+              sizes="(max-width: 480px) 46vw, (max-width: 768px) 31vw, (max-width: 1024px) 23vw, 210px"
+            />
+          )}
+        </Link>
+
+        {/* Overlay actions — Share & Favorite. Siblings of the Link, NOT
+            descendants, so taps register reliably on iOS Safari. */}
+        <div className="absolute right-1.5 top-1.5 sm:right-2 sm:top-2 z-30 flex flex-col gap-1 sm:gap-1.5">
           <button
+            type="button"
             onClick={handleShare}
             aria-label="Partager ce produit"
-            className="p-1.5 rounded-full bg-[var(--t-fav-btn-bg)] backdrop-blur-md border border-[var(--t-border)] hover:bg-[var(--t-hover-bg)] transition-colors"
+            className="flex h-6 w-6 sm:h-7 sm:w-7 items-center justify-center rounded-full bg-black/50 text-white/80 backdrop-blur-sm transition-colors hover:bg-black/70 hover:text-white"
           >
-            <Share2 size={13} className="stroke-foreground/70" />
+            <Share2 size={12} className="sm:hidden" />
+            <Share2 size={13} className="hidden sm:block" />
           </button>
           {onToggleFavorite && (
             <button
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                onToggleFavorite(product);
-              }}
+              type="button"
+              onClick={handleToggleFavorite}
               aria-label="Toggle favourite"
-              className="p-1.5 rounded-full bg-[var(--t-fav-btn-bg)] backdrop-blur-md border border-[var(--t-border)] hover:bg-[var(--t-hover-bg)] transition-colors"
+              className="flex h-6 w-6 sm:h-7 sm:w-7 items-center justify-center rounded-full bg-black/50 text-white/80 backdrop-blur-sm transition-colors hover:bg-black/70 hover:text-white"
             >
+              <Heart
+                size={12}
+                className={cn(
+                  'sm:hidden transition-all duration-300',
+                  isFavorite ? 'fill-red-500 stroke-red-500' : 'stroke-white/80'
+                )}
+              />
               <Heart
                 size={13}
                 className={cn(
-                  'transition-all duration-300',
-                  isFavorite ? 'fill-red-500 stroke-red-500' : 'stroke-foreground/60'
+                  'hidden sm:block transition-all duration-300',
+                  isFavorite ? 'fill-red-500 stroke-red-500' : 'stroke-white/80'
                 )}
               />
             </button>
           )}
         </div>
-      </Link>
+      </div>
 
       {/* ─── Info Block ──────────────────────────────────────── */}
-      <div className="flex flex-col  flex-1">
-        {/* Product name */}
+      <div className="mt-2 sm:mt-3 flex flex-1 flex-col">
+
+        {/* Category / volume label — always occupies one line so cards align */}
+        <p className="h-4 text-[9px] sm:text-[10px] font-medium uppercase tracking-[0.12em] sm:tracking-[0.15em] text-gold/70 truncate">
+          {categoryLabel}
+        </p>
+
+        {/* Product name — clamped to 2 lines, fixed min-height reserves space */}
         <Link
-          href={`/shop/product/${product.slug || product.id}`}
-          className=" capitalize text-base sm:text-lg font-medium text-foreground/90 hover:underline underline-offset-2 leading-snug line-clamp-2"
+          href={productUrl}
+          className="mt-0.5 line-clamp-2 min-h-[2.2rem] sm:min-h-[2.6rem] font-serif text-[13px] sm:text-[14px] leading-[1.3] text-foreground/90 transition-colors hover:text-gold"
         >
           {product.name}
         </Link>
 
-        
-
-        
-        {product.volume && (
-          <p className="text-[0.8rem] md:text-sm text-start text-foreground/40 font-light  md:mb-4"
-          
-          >
-            {product.category.includes('perfume') ? ` • ${product.volume || '100ml'}` : (product.volume || 'N/A')}
-          </p>
-        )}
-
-        {/* Price */}
-        <p className="text-sm sm:text-lg font-semibold tracking-wide" style={{ color: '#C5A059' }}>
-          {product.originalPrice && product.taux_reduction && parseFloat(product.taux_reduction) > 0 ? (
+        {/* Price — always one line, mt-auto pushes it away from name */}
+        <p className="mt-1 sm:mt-1.5 text-xs sm:text-sm text-foreground/60">
+          {hasReduction ? (
             <>
-              <span className="line-through text-foreground/50 mr-2">{formatPrice(product.originalPrice)}</span>
-              <span>{formatPrice(product.price)}</span>
+              <span className="line-through text-foreground/40 mr-1 sm:mr-1.5">{formatPrice(product.originalPrice!)}</span>
+              <span className="text-gold">{formatPrice(product.price)}</span>
             </>
           ) : (
-            <span>{formatPrice(product.price)}</span>
+            formatPrice(product.price)
           )}
-          
         </p>
-        
-
-        {/* CTA button */}
-        <div className=" mt-auto pt-1">
-          {soldOut ? (
-            /* ── Notify Me (ghost style) ── */
-            <button
-              className={cn(
-                'w-full flex items-center justify-center gap-2 ',
-                'py-2.5 sm:py-3 px-4',
-                'text-xs sm:text-sm font-semibold uppercase tracking-widest',
-                'rounded-none', // flat/square style matching reference
-                /* Ghost: transparent bg, only border + text */
-                'bg-transparent border border-[var(--t-btn-ghost-border)] text-[var(--t-btn-ghost-text)]',
-                'hover:bg-[var(--t-btn-ghost-hover-bg)] hover:text-[var(--t-btn-ghost-hover-text)]',
-                'transition-colors duration-200',
-                'bg-[var(--t-btn-solid-bg)] text-[var(--t-btn-solid-text)]' // fallback solid for sold-out
-              )}
-            >
-              <BellRing size={14} />
-              {t('notify_when_available') ?? 'Notify me when available'}
-            </button>
-          ) : (
-            /* ── Add to Cart (ghost / outline) ── */
-            onAddToCart && (
-              <button
-                onClick={() => onAddToCart(product)}
-                className={cn(
-                  'w-full flex items-center justify-center gap-2 rounded-sm',
-                  'py-2.5 sm:py-3 px-4',
-                  'text-xs sm:text-sm font-semibold uppercase tracking-widest',
-                  'rounded-none',
-                  /* Ghost: transparent bg, only border + text */
-                  'bg-transparent border border-[var(--t-btn-ghost-border)] text-[var(--t-btn-ghost-text)]',
-                  'hover:bg-[var(--t-btn-ghost-hover-bg)] hover:text-[var(--t-btn-ghost-hover-text)]',
-                  'transition-colors duration-200'
-                )}
-              >
-                <ShoppingBag size={14} />
-                {t('add_to_cart') ?? 'Add to cart'}
-              </button>
-            )
-          )}
-        </div>
       </div>
-    </motion.div>
+
+      {/* ─── CTA Button ──────────────────────────────────────── */}
+      <div className="mt-auto pt-2.5 sm:pt-3.5">
+        {soldOut ? (
+          <button className="w-full flex items-center justify-center gap-1.5 sm:gap-2 border border-foreground/20 py-2 sm:py-2.5 text-[10px] sm:text-[11px] font-semibold uppercase tracking-[0.12em] sm:tracking-[0.15em] text-foreground/50 hover:border-foreground/40 transition-colors">
+            <BellRing size={12} className="sm:hidden" />
+            <BellRing size={13} className="hidden sm:block" />
+            {t('notify_when_available') ?? 'Me notifier'}
+          </button>
+        ) : (
+          onAddToCart && (
+            <button
+              onClick={() => onAddToCart(product)}
+              className="w-full flex items-center justify-center gap-1.5 sm:gap-2 bg-gold py-2 sm:py-2.5 text-[10px] sm:text-[11px] font-semibold uppercase tracking-[0.12em] sm:tracking-[0.15em] text-black hover:bg-[#d4b87a] transition-colors"
+            >
+              <ShoppingBag size={12} className="sm:hidden" />
+              <ShoppingBag size={13} className="hidden sm:block" />
+              {t('add_to_cart') ?? 'Ajouter au Panier'}
+            </button>
+          )
+        )}
+      </div>
+    </div>
   );
 }

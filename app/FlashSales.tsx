@@ -188,13 +188,14 @@ export default function FlashSales() {
             {t("flash_sales_empty", { defaultValue: "Aucun produit dans cette catégorie pour le moment." })}
           </p>
         ) : (
-          visibleProducts.map((product, index) => (
-            <motion.div
-              key={product.id}
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.35, delay: Math.min(index, 8) * 0.04 }}
-            >
+           visibleProducts.map((product, index) => (
+             <motion.div
+               key={product.id}
+               initial={{ opacity: 0, y: 16 }}
+               animate={{ opacity: 1, y: 0 }}
+               transition={{ duration: 0.35, delay: Math.min(index, 8) * 0.04 }}
+               className="min-w-0"
+             >
               <ProductCard
                 product={product}
                 onAddToCart={handleAddToCart}

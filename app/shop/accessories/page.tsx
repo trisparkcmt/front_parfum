@@ -397,8 +397,7 @@ function AccessoriesShop() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.3 }}
-            className="flex flex-row flex-wrap justify-center sm:justify-start -mx-4 gap-2
-             md:gap-6"
+            className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4 md:gap-6"
           >
             {products.map((product, index) => (
               <motion.div
@@ -406,6 +405,7 @@ function AccessoriesShop() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: index * 0.03 }}
+                className="min-w-0"
               >
                 <ProductCard
                   product={product}

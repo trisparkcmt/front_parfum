@@ -2,9 +2,9 @@
  * @file lib/utils.ts
  * @description General Purpose Helper Functions & Logic Utilities.
  *
- * This library contains pure functions and small logic wrappers used across 
+ * This library contains pure functions and small logic wrappers used across
  * various components to ensure code reuse and clean implementation.
- * 
+ *
  * **Key Utilities**:
  * - **`cn(...inputs)`**: A wrapper for `clsx` and `tailwind-merge` to handle conditional class merging and conflict resolution in Tailwind CSS.
  * - **`formatPrice(amount)`**: Formats a numerical value into a localized currency string (FCFA) for consistent pricing display.
@@ -12,12 +12,13 @@
  * - **`generateWhatsAppLink(...)`**: Orchestrates the checkout process by generating a URL that pre-fills a WhatsApp message with order details, items, and totals.
  * - **`generateId()`**: Generates a unique, timestamped ID for entities like custom compositions.
  * - **Date Formatters**: (`formatDate`, `formatDateTime`) Provides localized French date strings for dashboards and order history.
- * 
+ *
  * **Benefit**: Decouples business logic from UI components, making the codebase easier to test and maintain.
  */
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { WHATSAPP_BASE_URL, WHATSAPP_NUMBER, CURRENCY, API_BASE_URL } from './constants';
+import { API_ROOT } from '@/services/api';
 import type { CartItem } from '@/types';
 
 /**
@@ -43,23 +44,91 @@ export function buildAbsoluteUrl(path: string): string {
   return `${base}${path.startsWith('/') ? path : `/${path}`}`;
 }
 
-export async function sharePage(path: string, title: string, text?: string): Promise<'shared' | 'copied' | 'failed'> {
-  const url = buildAbsoluteUrl(path);
+/**
+ * Resolve a possibly-relative product image path into an absolute URL.
+ * Required both for <Image> rendering AND for Open Graph tags / Web Share
+ * file attachments, which can't work with relative paths.
+ */
+export function resolveImageUrl(url?: string | null): string {
+  if (!url) return '';
+  if (url.startsWith('http')) return url;
+  return `${API_ROOT}${url.startsWith('/') ? '' : '/'}${url}`;
+}
 
-  if (typeof navigator === 'undefined') {
-    return 'failed';
+/**
+ * Best-effort fetch of a remote image into a File, for use with
+ * navigator.share({ files }). Returns null if the fetch fails (e.g. the
+ * image host doesn't send CORS headers) so callers can fall back gracefully.
+ */
+async function imageUrlToFile(imageUrl: string): Promise<File | null> {
+  try {
+    const response = await fetch(imageUrl, { mode: 'cors' });
+    if (!response.ok) return null;
+    const blob = await response.blob();
+    if (!blob.type.startsWith('image/')) return null;
+    const extension = blob.type.split('/')[1] || 'jpg';
+    return new File([blob], `product.${extension}`, { type: blob.type });
+  } catch {
+    return null;
   }
+}
 
-  if (typeof navigator.share === 'function') {
+/**
+ * Share a page via the Web Share API.
+ *
+ * Two distinct behaviors are possible on the receiving app:
+ * - Passing `imageUrl` attaches the actual image as a file (like sharing a
+ *   photo) — supported only where `navigator.canShare({ files })` is true.
+ * - A plain link share (title/text/url, no files) lets apps like WhatsApp
+ *   or iMessage fetch the URL themselves and build a rich preview card
+ *   from the page's Open Graph tags — this is what makes a shared link
+ *   show a thumbnail, similar to sharing a TikTok link.
+ *
+ * This function tries the file attachment first (if an image URL is given
+ * and the platform supports it), then falls back to a plain link share,
+ * then to copying the link to the clipboard.
+ */
+export async function sharePage(
+  path: string,
+  title: string,
+  text?: string,
+  imageUrl?: string
+): Promise<'shared' | 'copied' | 'failed'> {
+  const url = buildAbsoluteUrl(path);
+  const canUseShare = typeof navigator !== 'undefined' && typeof navigator.share === 'function';
+
+  if (canUseShare && imageUrl) {
     try {
-      await navigator.share({ title, text: text || title, url });
-      return 'shared';
-    } catch {
-      // Fall back to clipboard copy if the share dialog is dismissed
+      const file = await imageUrlToFile(imageUrl);
+      if (file && navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({ title, text: text || title, url, files: [file] });
+        return 'shared';
+      }
+    } catch (fileError) {
+      const err = fileError as DOMException;
+      if (err?.name === 'AbortError') {
+        // User dismissed the share sheet — don't keep trying other methods.
+        return 'failed';
+      }
+      console.warn('Image attachment share failed, falling back to link share:', fileError);
     }
   }
 
-  if (typeof navigator.clipboard?.writeText === 'function') {
+  if (canUseShare) {
+    try {
+      await navigator.share({ title, text: text || title, url });
+      return 'shared';
+    } catch (error) {
+      const err = error as DOMException;
+      if (err?.name === 'AbortError') {
+        // User dismissed the native share sheet — don't fall back to clipboard.
+        return 'failed';
+      }
+      // Any other error: fall through and try the clipboard instead.
+    }
+  }
+
+  if (typeof navigator !== 'undefined' && typeof navigator.clipboard?.writeText === 'function') {
     try {
       await navigator.clipboard.writeText(url);
       return 'copied';
@@ -75,14 +144,12 @@ export async function sharePage(path: string, title: string, text?: string): Pro
  * A wrapper around the native fetch API to include necessary headers for the backend.
  */
 export async function apiFetch(endpoint: string, options: RequestInit = {}) {
-  // Construct the full URL if only a path is provided
   const url = endpoint.startsWith('http')
     ? endpoint
     : `${API_BASE_URL}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
 
   const headers = new Headers(options.headers);
 
-  // Default to JSON for most API calls if not specified and not sending binary/multipart data
   if (!headers.has('Content-Type') && !(options.body instanceof FormData)) {
     headers.set('Content-Type', 'application/json');
   }

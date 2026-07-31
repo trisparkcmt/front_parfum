@@ -7,10 +7,13 @@
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { Search, SlidersHorizontal, RotateCcw } from 'lucide-react';
+import { Search, SlidersHorizontal, RotateCcw, LayoutGrid, List } from 'lucide-react';
 import { DiffuseurCard } from '@/components/ui/DiffuseurCard';
 import { ProductGridSkeleton } from '@/components/ui/Skeletons';
 import { productService } from '@/services/productService';
+import { useCartStore } from '@/store/useCartStore';
+import { useFavoritesStore } from '@/store/useFavoritesStore';
+import { useToastStore } from '@/store/useToastStore';
 import type { Product } from '@/types';
 
 /* ── Animation variants ── */
@@ -27,6 +30,12 @@ function DiffuseursShopContent() {
   const [mounted, setMounted] = useState(false);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const [viewMode, setViewMode] = useState<'grid' | 'horizontal'>('grid');
+
+  // Stores
+  const { addAccessory } = useCartStore();
+  const { isFavorite, addFavorite, removeFavorite } = useFavoritesStore();
+  const { addToast } = useToastStore();
 
   // Filters
   const [search, setSearch] = useState('');
@@ -85,6 +94,25 @@ function DiffuseursShopContent() {
     setShowFilters(false);
   };
 
+  const handleAddToCart = async (product: Product) => {
+    try {
+      await addAccessory(Number(product.id), 1);
+      addToast(`${product.name} ajouté au panier`, 'success');
+    } catch {
+      addToast('Erreur lors de l’ajout au panier', 'error');
+    }
+  };
+
+  const handleToggleFavorite = (product: Product) => {
+    if (isFavorite(product.id)) {
+      removeFavorite(product.id);
+      addToast(`${product.name} retiré des favoris`, 'info');
+    } else {
+      addFavorite(product);
+      addToast(`${product.name} ajouté aux favoris`, 'success');
+    }
+  };
+
   const activeFiltersCount = (techFilter !== 'all' ? 1 : 0) + (ordering !== '-date_creation' ? 1 : 0);
 
   return (
@@ -124,45 +152,74 @@ function DiffuseursShopContent() {
         </motion.div>
       </section>
 
-      {/* ── Filters ── */}
+      {/* ── Filters & View Toggle ── */}
       <motion.div
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2, duration: 0.6 }}
         className="max-w-5xl mx-auto px-4 sm:px-6 pb-8"
       >
-        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-          <div className="relative flex-1 min-w-[220px] max-w-[360px]">
+        <div className="flex items-center gap-1.5 sm:gap-3 w-full">
+          {/* Search Input */}
+          <div className="relative flex-1 min-w-0">
             <Search
-              size={16}
-              className="absolute left-4 top-1/2 -translate-y-1/2 text-[#57534e]"
+              size={14}
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-[#57534e]"
             />
             <input
               type="text"
-              placeholder="Rechercher un diffuseur..."
+              placeholder="Rechercher..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full bg-[#111111] border border-[rgba(201,169,110,0.12)] rounded-xl pl-11 pr-4 py-3 text-[13px] text-[#f5f0e8] placeholder:text-[#57534e] outline-none transition-all duration-300 focus:border-[#c9a96e] focus:shadow-[0_0_0_3px_rgba(201,169,110,0.1)]"
+              className="w-full bg-[#111111] border border-[rgba(201,169,110,0.12)] rounded-xl pl-8 pr-2 sm:pl-10 sm:pr-4 py-2.5 sm:py-3 text-[12px] sm:text-[13px] text-[#f5f0e8] placeholder:text-[#57534e] outline-none transition-all duration-300 focus:border-[#c9a96e]"
             />
           </div>
 
+          {/* Filter Button */}
           <button
             onClick={() => setShowFilters((prev) => !prev)}
-            className={`flex items-center gap-2 rounded-xl border px-3 py-3 text-[13px] font-medium transition-all duration-300 ${
+            className={`flex items-center justify-center gap-1.5 rounded-xl border px-2.5 sm:px-3.5 py-2.5 sm:py-3 text-[12px] sm:text-[13px] font-medium transition-all duration-300 shrink-0 ${
               showFilters || activeFiltersCount > 0
                 ? 'border-[#c9a96e] bg-[rgba(201,169,110,0.08)] text-[#f5f0e8]'
                 : 'border-[rgba(201,169,110,0.12)] bg-[#111111] text-[#a8a29e] hover:border-[rgba(201,169,110,0.25)] hover:text-[#f5f0e8]'
             }`}
           >
-            <SlidersHorizontal size={15} />
-            <span className="whitespace-nowrap">Filtres</span>
+            <SlidersHorizontal size={14} />
+            <span className="hidden xs:inline">Filtres</span>
             {activeFiltersCount > 0 && (
-              <span className="ml-1 flex h-5 w-5 items-center justify-center rounded-full bg-[#c9a96e] text-[10px] font-semibold text-[#0a0a0a]">
+              <span className="flex h-4 w-4 sm:h-5 sm:w-5 items-center justify-center rounded-full bg-[#c9a96e] text-[9px] sm:text-[10px] font-semibold text-[#0a0a0a]">
                 {activeFiltersCount}
               </span>
             )}
           </button>
+
+          {/* View Toggle Buttons */}
+          <div className="flex items-center p-1 bg-[#111111] border border-[rgba(201,169,110,0.12)] rounded-xl shrink-0">
+            <button
+              onClick={() => setViewMode('grid')}
+              title="Vue grille (Cartes standard)"
+              className={`p-1.5 sm:p-2.5 rounded-lg transition-all ${
+                viewMode === 'grid'
+                  ? 'bg-[#c9a96e] text-[#0a0a0a]'
+                  : 'text-[#a8a29e] hover:text-[#f5f0e8]'
+              }`}
+            >
+              <LayoutGrid size={15} />
+            </button>
+            <button
+              onClick={() => setViewMode('horizontal')}
+              title="Vue horizontale (Pleine largeur avec détails)"
+              className={`p-1.5 sm:p-2.5 rounded-lg transition-all ${
+                viewMode === 'horizontal'
+                  ? 'bg-[#c9a96e] text-[#0a0a0a]'
+                  : 'text-[#a8a29e] hover:text-[#f5f0e8]'
+              }`}
+            >
+              <List size={15} />
+            </button>
+          </div>
         </div>
+
 
         {showFilters && (
           <motion.div
@@ -202,25 +259,42 @@ function DiffuseursShopContent() {
         )}
       </motion.div>
 
-      {/* ── Product Grid ── */}
-      <div className="max-w-6xl mx-auto px-6 pb-24">
+      {/* ── Product Catalog ── */}
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 pb-24">
         {loading ? (
           <ProductGridSkeleton />
         ) : filteredProducts.length > 0 ? (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
-            {filteredProducts.map((product, i) => (
-              <motion.div
-                key={product.id}
-                custom={i}
-                initial="hidden"
-                animate="visible"
-                variants={fadeUp}
-              >
-                <DiffuseurCard product={product} index={i} />
-              </motion.div>
-            ))}
-          </div>
+          viewMode === 'grid' ? (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6 justify-items-center">
+              {filteredProducts.map((product, i) => (
+                <DiffuseurCard
+                  key={product.id}
+                  product={product}
+                  onAddToCart={handleAddToCart}
+                  onToggleFavorite={handleToggleFavorite}
+                  isFavorite={isFavorite(product.id)}
+                  viewMode="grid"
+                  index={i}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="flex flex-col gap-6 w-full">
+              {filteredProducts.map((product, i) => (
+                <DiffuseurCard
+                  key={product.id}
+                  product={product}
+                  onAddToCart={handleAddToCart}
+                  onToggleFavorite={handleToggleFavorite}
+                  isFavorite={isFavorite(product.id)}
+                  viewMode="horizontal"
+                  index={i}
+                />
+              ))}
+            </div>
+          )
         ) : (
+
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}

@@ -125,10 +125,10 @@ export function Navbar() {
               <Gem className="h-8 w-8 text-gold group-hover:rotate-12 transition-transform duration-300" />
             </Link>
 
-            {/* Center Block: Navigation Links — absolutely centered glass pill */}
+            {/* Center Block: Navigation Links — flex centered glass pill */}
             <div className={cn(
               glass,
-              'absolute left-1/2 -translate-x-1/2 flex items-center gap-1 p-1.5'
+              'flex items-center gap-1 p-1.5 mx-auto'
             )}>
               {PUBLIC_NAV_LINKS.map((link) => {
                 const labelKey = link.label === 'Accueil' ? 'nav_home' :

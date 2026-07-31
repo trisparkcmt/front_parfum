@@ -394,13 +394,14 @@ export default function AccessoriesShop() {
             className="flex flex-row flex-wrap justify-center sm:justify-start -mx-4 gap-2
              md:gap-6"
           >
-            {products.map((product, index) => (
-              <motion.div
-                key={product.id}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: index * 0.03 }}
-              >
+             {products.map((product, index) => (
+               <motion.div
+                 key={product.id}
+                 initial={{ opacity: 0 }}
+                 animate={{ opacity: 1 }}
+                 transition={{ delay: index * 0.03 }}
+                 className="min-w-0"
+               >
                 <ProductCard
                   product={product}
                   onAddToCart={handleAddToCart}

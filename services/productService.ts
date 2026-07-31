@@ -470,6 +470,38 @@ export const productService = {
       const uniqueCandidates = Array.from(new Set(candidates.filter(Boolean)));
 
       for (const candidate of uniqueCandidates) {
+        // Try diffuseur endpoint first if requested or available
+        const diffuseur = await apiShopService.getDiffuseurBySlug(candidate).catch(() => null);
+        if (diffuseur) {
+          const images = collectProductImages(diffuseur);
+          return {
+            id: String(diffuseur.id),
+            name: diffuseur.nom || 'Diffuseur de Parfum',
+            nom: diffuseur.nom,
+            description: diffuseur.description_longue || diffuseur.description_courte || '',
+            description_courte: diffuseur.description_courte,
+            price: parseFloat(diffuseur.prix_unitaire || '0'),
+            prix_unitaire: diffuseur.prix_unitaire,
+            originalPrice: parseFloat(diffuseur.prix_unitaire || '0'),
+            category: 'accessory',
+            subCategory: 'other',
+            images,
+            brand: 'Exclusif Diffuseurs',
+            inStock: diffuseur.stock_quantite > 0 && diffuseur.actif !== false,
+            rating: 4.8,
+            reviews: 12,
+            slug: diffuseur.slug || String(diffuseur.id),
+            createdAt: diffuseur.date_creation || new Date().toISOString(),
+            image_principale: diffuseur.image_principale || images[0],
+            type_technologie: diffuseur.type_technologie,
+            is_new: diffuseur.est_nouveau,
+            is_bestseller: diffuseur.est_bestseller,
+            capacite_reservoir_ml: diffuseur.capacite_reservoir_ml,
+            est_connecte: diffuseur.est_connecte,
+            a_jeux_de_lumiere: diffuseur.a_jeux_de_lumiere,
+          };
+        }
+
         const perfume = await apiShopService.getPerfumeBySlug(candidate).catch(() => null);
         if (perfume) {
           return mapBackendPerfumeToProduct(perfume);
@@ -480,6 +512,7 @@ export const productService = {
           return mapBackendAccessoryToProduct(accessory);
         }
       }
+
 
       const fallbackById = await apiShopService.getPerfumes({ search: id }).catch(() => []);
       if (Array.isArray(fallbackById)) {
@@ -492,6 +525,7 @@ export const productService = {
       console.error('Failed to fetch product:', error);
       return null;
     }
+
   },
 
   /**

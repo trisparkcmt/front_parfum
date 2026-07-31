@@ -62,10 +62,7 @@ export default function Home() {
       {/* BEST SELLERS / FLASH */}
       <FlashSales />
 
-      {/* DUAL PROMO BANNERS */}
-      <section className="hidden lg:block">   
-        <DualPromoBanners />
-      </section>
+      
 
       <section className="block ">   
         {/* EDITORIAL / BRAND STATEMENT */}
