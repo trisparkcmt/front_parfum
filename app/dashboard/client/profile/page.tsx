@@ -6,7 +6,7 @@ import { useAuthStore } from '@/store/useAuthStore';
 import { 
   User, Mail, Phone, MapPin, 
   Languages, Banknote, Palette, 
-  ChevronRight, Edit2, Shield, Bell, Loader2, Download
+  ChevronRight, Edit2, Shield, Bell, Loader2, Download, Heart
 } from 'lucide-react';
 import { BackButton } from '@/components/ui/BackButton';
 import { useTranslation } from 'react-i18next';
@@ -162,17 +162,32 @@ export default function ClientProfilePage() {
         <h3 className="text-xs font-bold text-foreground/40 uppercase tracking-widest px-1">{t('information')}</h3>
         <div className="bg-gray-800/5 rounded-2xl border border-white/10 overflow-hidden divide-y divide-white/5 shadow-sm ">
         
-          <Link href='/dashboard/client/'>
-          <div className="flex items-center justify-between px-5 py-4">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-lg bg-white/5 flex items-center justify-center text-foreground/40">
-               
+          <Link href='/dashboard/client/' className="block">
+            <div className="flex items-center justify-between px-5 py-4 hover:bg-white/5 transition-all group">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-lg bg-white/5 flex items-center justify-center text-foreground/40">
+                  <User size={18} />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-foreground">My dashboard</p>
+                </div>
               </div>
-              <div>
-                <p className="text-sm text-foreground">My dashboard</p>
-              </div>
+              <ChevronRight size={16} className="text-foreground/20" />
             </div>
-          </div>
+          </Link>
+          <Link href='/dashboard/client/favorites' className="block">
+            <div className="flex items-center justify-between px-5 py-4 hover:bg-white/5 transition-all group">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-lg bg-white/5 flex items-center justify-center text-foreground/40">
+                  <Heart size={18} />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-foreground">Mes favoris</p>
+                  <p className="text-[11px] text-foreground/40">Produits sauvegardés</p>
+                </div>
+              </div>
+              <ChevronRight size={16} className="text-foreground/20" />
+            </div>
           </Link>
           <button 
             onClick={() => setShowEditModal(true)}

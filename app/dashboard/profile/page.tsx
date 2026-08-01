@@ -7,6 +7,7 @@ import {
   User, Mail, Phone, MapPin, Shield, Calendar, Edit2, Lock,
   Globe, Sun, Moon, Palette, ChevronRight, LogOut, Loader2,
   LayoutGrid, ShoppingCart, Bell, Sparkles, BadgeCheck, Download,
+  Heart,
 } from 'lucide-react';
 
 import { useAuthStore } from '@/store/useAuthStore';
@@ -312,6 +313,20 @@ export default function ProfilePage() {
                   <ChevronRight size={16} className="text-foreground/20 group-hover:text-gold group-hover:translate-x-1 transition-all shrink-0" />
                 </button>
               ))}
+
+              <Link
+                href="/dashboard/client/favorites"
+                className="group relative overflow-hidden flex items-center gap-4 p-4 rounded-2xl border border-rose-500/20 bg-gradient-to-br from-rose-500/10 to-transparent hover:border-rose-400/40 transition-all"
+              >
+                <span className="w-10 h-10 rounded-xl bg-rose-500/15 flex items-center justify-center text-rose-400 shrink-0">
+                  <Heart size={18} />
+                </span>
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-sm text-rose-300 truncate">Mes Favoris</p>
+                  <p className="text-[11px] text-foreground/60 mt-0.5">Retrouvez vos parfums et créations sauvegardées.</p>
+                </div>
+                <ChevronRight size={16} className="text-rose-400/50 group-hover:translate-x-1 transition-all shrink-0" />
+              </Link>
 
               {userRoles.includes('serveuse') && (
                 <Link

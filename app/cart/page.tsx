@@ -91,6 +91,10 @@ export default function CartPage() {
     ? [
         ...cart.lignes_parfums.map((line) => ({ ...line, type: 'parfum' as const })),
         ...cart.lignes_accessoires.map((line) => ({ ...line, type: 'accessoire' as const })),
+        ...(cart.lignes_diffuseurs || []).map((line) => ({
+          ...line,
+          type: 'diffuseur-parfum' as const,
+        })),
         ...cart.lignes_produit_fini_essence.map((line) => ({
           ...line,
           type: 'produit-fini-essence' as const,
@@ -220,9 +224,11 @@ export default function CartPage() {
       clearCart();
       await syncCart();
       
-      // Redirect to WhatsApp — use window.location.href so it works on iOS Safari
-      // (window.open after async is blocked by iOS popup policy)
-      window.location.href = waLink;
+      // Open WhatsApp in a new tab/window when possible, while keeping a fallback for blocked popups.
+      const waWindow = window.open(waLink, '_blank', 'noopener,noreferrer');
+      if (!waWindow) {
+        window.location.href = waLink;
+      }
     } catch (err: any) {
       const msg =
         err?.response?.data?.detail ||

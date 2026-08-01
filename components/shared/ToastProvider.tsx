@@ -38,65 +38,53 @@ export function ToastProvider() {
   const { toasts, removeToast } = useToastStore();
 
   return (
-    <div className="fixed bottom-4 right-4 z-[100] flex flex-col gap-3 max-w-sm w-[330px]">
-      <AnimatePresence>
-        {toasts.map((toast) => {
-          const theme = toastThemes[toast.type] || toastThemes.info;
+    <div className="fixed inset-x-0 bottom-4 z-[100] flex justify-center px-3 pointer-events-none">
+      <div className="w-full max-w-md flex flex-col items-center gap-2">
+        <AnimatePresence>
+          {toasts.map((toast) => {
+            const theme = toastThemes[toast.type] || toastThemes.info;
+            const title = toast.type === 'success' ? 'Succès' : toast.type === 'error' ? 'Erreur' : 'Info';
 
-          return (
-            <motion.div
-              key={toast.id}
-              initial={{ opacity: 0, y: 20, scale: 0.95 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, x: 100, scale: 0.95 }}
-              className={`relative flex items-center gap-[15px] px-[15px] py-[12px] min-h-[80px] rounded-lg overflow-hidden glass-dark border ${theme.borderColor} shadow-sm select-none`}
-            >
-              {/* Decorative Redesigned Wave Graphic */}
-              <svg 
-                className={`absolute w-[80px] rotate-90 -left-[31px] top-[32px] pointer-events-none ${theme.waveColor}`}
-                viewBox="0 0 1440 320" 
-                xmlns="http://www.w3.org/2000/svg"
+            return (
+              <motion.div
+                key={toast.id}
+                initial={{ opacity: 0, y: 18, scale: 0.96 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 12, scale: 0.96 }}
+                className={`pointer-events-auto w-full rounded-2xl border ${theme.borderColor} bg-background/95 px-3 py-2.5 shadow-[0_16px_45px_rgba(0,0,0,0.35)] backdrop-blur-xl`}
               >
-                <path d="M0,256L11.4,240C22.9,224,46,192,69,192C91.4,192,114,224,137,234.7C160,245,183,235,206,213.3C228.6,192,251,160,274,149.3C297.1,139,320,149,343,181.3C365.7,213,389,267,411,282.7C434.3,299,457,277,480,250.7C502.9,224,526,192,549,181.3C571.4,171,594,181,617,208C640,235,663,277,686,256C708.6,235,731,149,754,122.7C777.1,96,800,128,823,165.3C845.7,203,869,245,891,224C914.3,203,937,117,960,112C982.9,107,1006,181,1029,197.3C1051.4,213,1074,171,1097,144C1120,117,1143,107,1166,133.3C1188.6,160,1211,224,1234,218.7C1257.1,213,1280,139,1303,133.3C1325.7,128,1349,192,1371,192C1394.3,192,1417,128,1429,96L1440,64L1440,320L1428.6,320C1417.1,320,1394,320,1371,320C1348.6,320,1326,320,1303,320C1280,320,1257,320,1234,320C1211.4,320,1189,320,1166,320C1142.9,320,1120,320,1097,320C1074.3,320,1051,320,1029,320C1005.7,320,983,320,960,320C937.1,320,914,320,891,320C868.6,320,846,320,823,320C800,320,777,320,754,320C731.4,320,709,320,686,320C662.9,320,640,320,617,320C594.3,320,571,320,549,320C525.7,320,503,320,480,320C457.1,320,434,320,411,320C388.6,320,366,320,343,320C320,320,297,320,274,320C251.4,320,229,320,206,320C182.9,320,160,320,137,320C114.3,320,91,320,69,320C45.7,320,23,320,11,320L0,320Z" />
-              </svg>
-
-              {/* Icon Circular Enclosure */}
-              <div className={`ml-2 w-[35px] h-[35px] flex items-center justify-center rounded-full shrink-0 ${theme.iconBg}`}>
-                {theme.icon}
-              </div>
-
-              {/* Text Layout Block */}
-              <div className="flex-1 flex flex-col justify-center min-w-0 z-10">
-                <p className={`text-[17px] font-bold leading-tight ${theme.titleColor}`}>
-                  {toast.type.charAt(0).toUpperCase() + toast.type.slice(1)} Note
-                </p>
-                <p className="text-[14px] text-cream/80 leading-snug break-words">
-                  {toast.message}
-                </p>
-                
-                {toast.href && (
-                  <Link
-                    href={toast.href}
-                    onClick={() => removeToast(toast.id)}
-                    className="text-xs text-gold hover:underline mt-0.5 inline-block font-medium"
-                  >
-                    {toast.hrefLabel || 'Voir le panier →'}
-                  </Link>
-                )}
-              </div>
-
-              {/* Dismiss Button */}
-              <button 
-                onClick={() => removeToast(toast.id)} 
-                className="p-1 hover:bg-white/10 rounded transition-colors z-10 cursor-pointer"
-                aria-label="Close notification"
-              >
-                <X size={18} className="text-cream/50 hover:text-cream transition-colors" />
-              </button>
-            </motion.div>
-          );
-        })}
-      </AnimatePresence>
+                <div className="flex items-start gap-2.5">
+                  <div className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${theme.iconBg}`}>
+                    {theme.icon}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className={`text-sm font-semibold ${theme.titleColor}`}>{title}</p>
+                      <button
+                        onClick={() => removeToast(toast.id)}
+                        className="rounded-full p-1 text-foreground/40 transition-colors hover:bg-white/10 hover:text-foreground"
+                        aria-label="Fermer la notification"
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                    <p className="mt-0.5 text-sm leading-snug text-foreground/80">{toast.message}</p>
+                    {toast.href && (
+                      <Link
+                        href={toast.href}
+                        onClick={() => removeToast(toast.id)}
+                        className="mt-1 inline-flex text-xs font-semibold text-gold hover:underline"
+                      >
+                        {toast.hrefLabel || 'Voir plus'}
+                      </Link>
+                    )}
+                  </div>
+                </div>
+              </motion.div>
+            );
+          })}
+        </AnimatePresence>
+      </div>
     </div>
   );
 }

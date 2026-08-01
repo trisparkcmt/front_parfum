@@ -11,7 +11,6 @@ import {
 import { orderService, adminService } from '@/services/apiService';
 import { invoiceService } from '@/services/invoiceService';
 import { useToastStore } from '@/store/useToastStore';
-import { FormModal } from '@/components/ui/FormModal';
 import type { BackendOrder, BackendOrderLine } from '@/types';
 import { useOptimisticOrders } from '@/hooks/useOptimisticOrders';
 
@@ -83,6 +82,89 @@ function driverDisplayName(d: any): string {
   return d.user_details?.first_name
     ? `${d.user_details.first_name} ${d.user_details.last_name ?? ''}`.trim()
     : d.name ?? `Livreur #${d.id}`;
+}
+
+// ─── Popup modal for this page only ───────────────────────────────────────
+
+function OrderPopupModal({
+  isOpen,
+  onClose,
+  title,
+  subtitle,
+  children,
+  size = '2xl',
+  footer,
+  showCloseButton = true,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  title?: string;
+  subtitle?: string;
+  children: React.ReactNode;
+  size?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl';
+  footer?: React.ReactNode;
+  showCloseButton?: boolean;
+}) {
+  useEffect(() => {
+    const mainEl = document.querySelector('main');
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+      if (mainEl) mainEl.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+      if (mainEl) mainEl.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+      if (mainEl) mainEl.style.overflow = '';
+    };
+  }, [isOpen]);
+
+  useEffect(() => {
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleEsc);
+    return () => window.removeEventListener('keydown', handleEsc);
+  }, [onClose]);
+
+  if (!isOpen) return null;
+
+  const sizes = {
+    sm: 'max-w-sm',
+    md: 'max-w-md',
+    lg: 'max-w-lg',
+    xl: 'max-w-2xl',
+    '2xl': 'max-w-4xl',
+    '3xl': 'max-w-6xl',
+  } as const;
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 p-3 sm:p-6" onClick={onClose}>
+      <div
+        className={`pointer-events-auto flex max-h-[90vh] w-full ${sizes[size]} flex-col overflow-hidden rounded-[28px] border border-white/10 bg-background/95 shadow-2xl`}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {(title || showCloseButton) && (
+          <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
+            <div>
+              {title && <h3 className="text-lg font-semibold text-foreground">{title}</h3>}
+              {subtitle && <p className="mt-1 text-xs text-foreground/40">{subtitle}</p>}
+            </div>
+            {showCloseButton && (
+              <button onClick={onClose} className="rounded-xl p-2 text-foreground/40 transition-colors hover:bg-white/5 hover:text-foreground">
+                <X size={18} />
+              </button>
+            )}
+          </div>
+        )}
+        <div className="flex-1 overflow-y-auto">
+          <div className="p-5 sm:p-6">{children}</div>
+        </div>
+        {footer ? <div className="border-t border-white/10 bg-background/90 px-5 py-4">{footer}</div> : null}
+      </div>
+    </div>
+  );
 }
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
@@ -813,7 +895,7 @@ export default function OrdersPage() {
           DETAIL MODAL
       ════════════════════════════════════════════════════════════════════════ */}
       {selected && (
-        <FormModal
+        <OrderPopupModal
           isOpen={Boolean(selected)}
           onClose={() => setSelected(null)}
           title={selected.numero_commande}
@@ -887,7 +969,7 @@ export default function OrdersPage() {
                 <p className="text-[10px] font-bold text-foreground/40 uppercase tracking-widest mb-3 flex items-center gap-1.5">
                   <ShoppingBag size={11} />Articles ({allLines(selected).length})
                 </p>
-                <div className="space-y-2">
+                <div className="max-h-[280px] space-y-2 overflow-y-auto pr-2">
                   {selected.lignes_parfums.length > 0 && <LinesSection title="Parfums" icon={<Droplets size={12} />} lines={selected.lignes_parfums} />}
                   {selected.lignes_accessoires.length > 0 && <LinesSection title="Accessoires" icon={<ShoppingBag size={12} />} lines={selected.lignes_accessoires} />}
                   {selected.lignes_produit_fini_essence.length > 0 && <LinesSection title="Essences finies" icon={<Droplets size={12} />} lines={selected.lignes_produit_fini_essence} />}
@@ -982,14 +1064,14 @@ export default function OrdersPage() {
                 </button>
               </div>
           </div>
-        </FormModal>
+        </OrderPopupModal>
       )}
 
       {/* ═══════════════════════════════════════════════════════════════════════
           EDIT / MANAGE MODAL
       ════════════════════════════════════════════════════════════════════════ */}
       {editModal && (
-        <FormModal
+        <OrderPopupModal
           isOpen={Boolean(editModal)}
           onClose={() => setEditModal(null)}
           title="Gérer la commande"
@@ -1126,14 +1208,14 @@ export default function OrdersPage() {
                 </button>
               </div>
             </div>
-          </FormModal>
+          </OrderPopupModal>
       )}
 
       {/* ═══════════════════════════════════════════════════════════════════════
           VALIDATION / DRIVER ASSIGNMENT MODAL
       ════════════════════════════════════════════════════════════════════════ */}
       {validationModal && (
-        <FormModal
+        <OrderPopupModal
           isOpen={Boolean(validationModal)}
           onClose={() => setValidationModal(null)}
           title="Validation & Livraison"
@@ -1193,7 +1275,7 @@ export default function OrdersPage() {
                 </button>
               </div>
             </div>
-          </FormModal>
+          </OrderPopupModal>
       )}
       </div>
     </>

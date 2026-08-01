@@ -18,6 +18,7 @@ import {
   RefreshCw,
   Droplets,
   AlertTriangle,
+  Loader2,
 } from 'lucide-react';
 import { InputBar } from './InputBar';
 import { API_ROOT } from '@/services/api';
@@ -28,6 +29,7 @@ import { useAuthStore } from '@/store/useAuthStore';
 import { useToastStore } from '@/store/useToastStore';
 import { formatPrice, generateId } from '@/lib/utils';
 import type { CustomComposition, CompositionEssence, EssenceClient, Accessory, Product } from '@/types';
+import { productService } from '@/services/productService';
 import axios from 'axios';
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -52,7 +54,7 @@ interface AiEssence {
 export interface AiResponse {
   message: string;
   quantite_demandee_ml?: number;
-  flacon?: { id: number; nom: string; prix_unitaire: string; contenance_ml?: number; [key: string]: any };
+  flacon?: { id: number; nom: string; prix_unitaire: string; contenance_ml?: number; [key: string]: unknown };
   parfums_existants?: AiProduct[];
   essences_pre_faites?: AiEssence[];
   ingredients_sur_mesure?: { essenceName: string; quantityMl: number }[];
@@ -67,8 +69,11 @@ export interface ChatMessage {
   text: string;
   aiData?: AiResponse;
   composition?: CustomComposition;
+  metadata?: Record<string, unknown>;
+  suggestions?: Product[];
   isError503?: boolean;
   retryPayload?: SendPayload;
+  animateText?: boolean;
 }
 
 /** Payload sent from InputBar to handleSend */
@@ -166,11 +171,158 @@ function LoadingBubble() {
   );
 }
 
-function UserBubble({ text }: { text: string }) {
+function getMetadataValue(metadata: Record<string, unknown> | undefined, keys: string[]) {
+  if (!metadata) return null;
+  for (const key of keys) {
+    const value = metadata[key];
+    if (value !== null && value !== undefined && value !== '') return value;
+  }
+  return null;
+}
+
+function normalizeNumericValue(value: unknown): number | null {
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    if (!trimmed) return null;
+
+    if (trimmed.toLowerCase() === 'non spécifié' || trimmed.toLowerCase() === 'non-specifie') return null;
+
+    const normalized = trimmed
+      .replace(/[^\d.,-]/g, '')
+      .replace(/\.(?=\d{3}(?:\D|$))/g, '')
+      .replace(',', '.');
+
+    const numeric = Number(normalized);
+    return Number.isFinite(numeric) ? numeric : null;
+  }
+
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      const numeric = normalizeNumericValue(item);
+      if (numeric !== null) return numeric;
+    }
+    return null;
+  }
+
+  if (value && typeof value === 'object') {
+    const obj = value as Record<string, unknown>;
+    const candidateKeys = ['value', 'amount', 'total', 'prix', 'price', 'quantity', 'quantity_ml', 'quantite_ml', 'budget', 'budget_fcfa', 'montant', 'montant_budget'];
+    for (const key of candidateKeys) {
+      const numeric = normalizeNumericValue(obj[key]);
+      if (numeric !== null) return numeric;
+    }
+  }
+
+  return null;
+}
+
+function normalizeQuantity(metadata: Record<string, unknown> | undefined) {
+  const raw = getMetadataValue(metadata, ['quantity', 'quantity_ml', 'quantityMl', 'quantite_ml', 'quantite', 'volume_ml', 'volume', 'bottleSize', 'bottle_size', 'format', 'taille_flacon']);
+  const numericValue = normalizeNumericValue(raw);
+  if (numericValue === null || numericValue <= 0) return null;
+  return `${Math.round(numericValue)} ml`;
+}
+
+function normalizeBudget(metadata: Record<string, unknown> | undefined) {
+  const raw = getMetadataValue(metadata, ['budget', 'budget_fcfa', 'budget_fcfa_total', 'montant_budget', 'budget_total', 'montant']);
+  const numericBudget = normalizeNumericValue(raw);
+  if (numericBudget === null || numericBudget <= 0) return null;
+  return `${numericBudget.toLocaleString('fr-FR')} FCFA`;
+}
+
+function extractPromptMetadata(text: string, metadata?: Record<string, unknown>) {
+  const normalizedMetadata = metadata ?? {};
+  let cleanedText = text.trim();
+  let quantity = normalizeQuantity(normalizedMetadata);
+  let budget = normalizeBudget(normalizedMetadata);
+
+  const quantityMatch = cleanedText.match(/(?:^|[\s—-])Format:\s*([0-9]+(?:[.,][0-9]+)?)\s*ml/i);
+  if (!quantity && quantityMatch) {
+    const numeric = Number(quantityMatch[1].replace(',', '.'));
+    if (Number.isFinite(numeric) && numeric > 0) {
+      quantity = `${Math.round(numeric)} ml`;
+    }
+  }
+
+  // Budget regex now accepts spaces/dots as thousand separators: "1 000 000" or "1.000.000"
+  const budgetMatch = cleanedText.match(/(?:^|[\s—-])Budget:\s*([0-9]+(?:[\s.][0-9]{3})*)\s*(?:FCFA|f cfa)?/i);
+  if (!budget && budgetMatch) {
+    // Remove spaces and dots used as thousand separators, keep only the number
+    const numeric = Number(budgetMatch[1].replace(/[\s.]/g, ''));
+    if (Number.isFinite(numeric) && numeric > 0) {
+      budget = `${numeric.toLocaleString('fr-FR')} FCFA`;
+    }
+  }
+
+  cleanedText = cleanedText
+    .replace(/\s*(?:—|-|:)?\s*Format:\s*[0-9]+(?:[.,][0-9]+)?\s*ml\s*/gi, ' ')
+    .replace(/\s*(?:—|-|:)?\s*Budget:\s*[0-9]+(?:[\s.][0-9]{3})*\s*(?:FCFA|f cfa)?\s*/gi, ' ')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+
+  return { cleanedText, quantity, budget };
+}
+
+function collectSuggestionIds(value: unknown): string[] {
+  if (!value) return [];
+  if (Array.isArray(value)) {
+    return value.flatMap((item) => collectSuggestionIds(item));
+  }
+  if (typeof value === 'object') {
+    const obj = value as Record<string, unknown>;
+    const directId = obj.id ?? obj.product_id ?? obj.parfum_id ?? obj.accessoire_id ?? obj.produit_id ?? obj.productId ?? obj.parfumId ?? obj.accessoryId ?? obj.item_id;
+    if (directId) return [String(directId)];
+    const nestedKeys = ['products', 'parfums', 'parfums_existants', 'suggestions', 'recommandations', 'recommended_products', 'accessoires', 'diffuseurs', 'items', 'data', 'results', 'suggested_products', 'produits_suggeres'];
+    const nested = nestedKeys.flatMap((key) => collectSuggestionIds(obj[key]));
+    return nested.filter(Boolean);
+  }
+  if (typeof value === 'string' || typeof value === 'number') {
+    const trimmed = String(value).trim();
+    if (!trimmed) return [];
+    const match = trimmed.match(/-?\d+/);
+    return match ? [match[0]] : [trimmed];
+  }
+  return [];
+}
+
+function resolveSuggestionIds(metadata: Record<string, unknown> | undefined) {
+  if (!metadata) return [] as string[];
+
+  const values = [
+    getMetadataValue(metadata, ['parfums_existants_recommandes', 'parfums_existants', 'suggested_products', 'suggestions', 'recommandations', 'recommended_products', 'products', 'produits_suggeres']),
+    getMetadataValue(metadata, ['accessoires', 'accessory_ids', 'accessory_ids_recommandes']),
+    getMetadataValue(metadata, ['diffuseurs', 'diffuser_ids']),
+  ];
+
+  const ids = values.flatMap((value) => collectSuggestionIds(value));
+  return Array.from(new Set(ids.filter(Boolean)));
+}
+
+function UserBubble({ text, metadata }: { text: string; metadata?: Record<string, unknown> }) {
+  const { cleanedText, quantity, budget } = extractPromptMetadata(text, metadata);
+
+  const chips = [
+    quantity ? `Quantité ${quantity}` : null,
+    budget ? `Budget ${budget}` : null,
+  ].filter(Boolean) as string[];
+
   return (
     <div className="flex justify-end">
-      <div className="max-w-xs md:max-w-md bg-gold text-black font-medium rounded-3xl rounded-br-md px-5 py-3.5 shadow-lg shadow-gold/20 text-sm leading-relaxed">
-        {text}
+      <div className="flex flex-col items-end gap-2 max-w-xs md:max-w-md">
+        <div className="bg-gold text-black font-medium rounded-3xl rounded-br-md px-5 py-3.5 shadow-lg shadow-gold/20 text-sm leading-relaxed">
+          {cleanedText || text}
+        </div>
+        {chips.length > 0 && (
+          <div className="flex flex-wrap justify-end gap-2">
+            {chips.map((chip) => (
+              <div key={chip} className="rounded-full border border-gold/20 bg-gold/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-gold">
+                {chip}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -263,7 +415,7 @@ function TypingBubble({ text, onComplete }: { text: string; onComplete?: () => v
       if (index >= text.length) { clearInterval(interval); onComplete?.(); }
     }, 15);
     return () => clearInterval(interval);
-  }, [text]);
+  }, [text, onComplete]);
 
   return (
     <div className="inline-block max-w-xs md:max-w-lg bg-white/5 border border-white/10 rounded-3xl rounded-tl-md px-5 py-4 shadow-sm backdrop-blur-md">
@@ -279,16 +431,23 @@ function AiBubble({
   onAddAllToCart: (aiData: AiResponse, composition?: CustomComposition) => void;
   onRetry: (payload: SendPayload) => void;
 }) {
-  const [isTypingComplete, setIsTypingComplete] = useState(false);
+  const [isTypingComplete, setIsTypingComplete] = useState(Boolean(messageObj.animateText) ? false : true);
   const { addProduct, addComposition } = useCartStore();
   const { addToast } = useToastStore();
-  const { text, aiData, composition, isError503, retryPayload } = messageObj;
+  const { text, aiData, composition, suggestions, isError503, retryPayload, animateText } = messageObj;
+
+  useEffect(() => {
+    if (!animateText) {
+      setIsTypingComplete(true);
+    }
+  }, [animateText]);
 
   const hasProducts = (aiData?.parfums_existants?.length ?? 0) > 0;
   const hasEssences = (aiData?.essences_pre_faites?.length ?? 0) > 0;
   const hasAccessories = (aiData?.accessoires?.length ?? 0) > 0;
   const hasComposition = composition && composition.essences.length > 0;
   const hasAnyItems = hasProducts || hasEssences || hasComposition || hasAccessories;
+  const shouldShowContent = !isError503 && (isTypingComplete || !animateText);
 
   const handleAddProduct = (p: AiProduct) => {
     const product: Product = {
@@ -336,11 +495,15 @@ function AiBubble({
               </button>
             )}
           </div>
+        ) : animateText ? (
+          <TypingBubble key={`${messageObj.id}-${text}`} text={text} onComplete={() => setIsTypingComplete(true)} />
         ) : (
-          <TypingBubble text={text} onComplete={() => setIsTypingComplete(true)} />
+          <div className="max-w-xs md:max-w-lg bg-white/5 border border-white/10 rounded-3xl rounded-tl-md px-5 py-4 shadow-sm backdrop-blur-md">
+            <p className="text-sm text-foreground/85 leading-relaxed">{text}</p>
+          </div>
         )}
 
-        {!isError503 && isTypingComplete && hasComposition && (
+        {!isError503 && shouldShowContent && hasComposition && (
           <div className="flex flex-col sm:flex-row gap-4 max-w-lg">
             <MiniBottleVisual composition={composition!} />
             <div className="flex-1 bg-white/5 border border-gold/15 rounded-2xl p-4 flex flex-col justify-between">
@@ -371,7 +534,7 @@ function AiBubble({
           </div>
         )}
 
-        {!isError503 && isTypingComplete && hasProducts && (
+        {!isError503 && shouldShowContent && hasProducts && (
           <div>
             <p className="text-[10px] text-foreground/40 uppercase tracking-widest font-bold mb-2 ml-1">Parfums suggérés</p>
             <div className="flex gap-3 overflow-x-auto pb-2" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
@@ -382,7 +545,27 @@ function AiBubble({
           </div>
         )}
 
-        {!isError503 && isTypingComplete && hasEssences && (
+        {!isError503 && suggestions && suggestions.length > 0 && (
+          <div>
+            <p className="text-[10px] text-foreground/40 uppercase tracking-widest font-bold mb-2 ml-1">Produits proposés précédemment</p>
+            <div className="flex gap-3 overflow-x-auto pb-2" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+              {suggestions.map((product) => (
+                <ProductCard
+                  key={product.id}
+                  image={product.images?.[0]}
+                  name={product.name}
+                  price={product.price}
+                  onAdd={() => {
+                    addProduct(product);
+                    addToast(`"${product.name}" ajouté au panier`, 'success');
+                  }}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {!isError503 && shouldShowContent && hasEssences && (
           <div>
             <p className="text-[10px] text-foreground/40 uppercase tracking-widest font-bold mb-2 ml-1">Essences recommandées</p>
             <div className="flex gap-3 overflow-x-auto pb-2" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
@@ -400,21 +583,22 @@ function AiBubble({
           </div>
         )}
 
-        {!isError503 && isTypingComplete && hasAccessories && (
+        {!isError503 && shouldShowContent && hasAccessories && (
           <div>
             <p className="text-[10px] text-foreground/40 uppercase tracking-widest font-bold mb-2 ml-1">Accessoires proposés</p>
             <div className="flex gap-3 overflow-x-auto pb-2" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
               {aiData!.accessoires!.map(a => {
-                const image = a.images?.[0] || (a as any).image_principale;
-                const name = a.name || (a as any).nom;
-                const price = a.price || (a as any).prix_unitaire;
+                const accessoryLike = a as unknown as { image_principale?: string; nom?: string; prix_unitaire?: number | string };
+                const image = a.images?.[0] || accessoryLike.image_principale;
+                const name = a.name || String(accessoryLike.nom || '');
+                const price = a.price || Number(accessoryLike.prix_unitaire || 0);
                 return <ProductCard key={a.id} image={image} name={name} price={price} onAdd={() => handleAddAccessory(a)} />;
               })}
             </div>
           </div>
         )}
 
-        {!isError503 && isTypingComplete && hasAnyItems && (
+        {!isError503 && shouldShowContent && hasAnyItems && (
           <div className="flex flex-wrap gap-2">
             {hasComposition && (
               <button
@@ -450,10 +634,28 @@ function AiBubble({
  */
 function buildPrompt({ content, bottleSize, budget }: SendPayload): string {
   const parts: string[] = [content.trim()];
-  if (bottleSize !== null && bottleSize !== "") parts.push(`Format: ${bottleSize}ml`);
-  if (budget !== '' && budget !== null && budget !== undefined) {
-    parts.push(`Budget: ${Number(budget).toLocaleString('fr-FR')} FCFA`);
+  const normalizedBottleSize = (() => {
+    if (bottleSize === null || bottleSize === undefined || bottleSize === '') return null;
+    const raw = String(bottleSize).trim();
+    if (!raw) return null;
+    const normalized = raw.replace(/\s*ml\s*$/i, '').trim();
+    return Number.isFinite(Number(normalized)) ? `${normalized}ml` : raw;
+  })();
+
+  if (normalizedBottleSize) parts.push(`Format: ${normalizedBottleSize}`);
+
+  const parsedBudget = (() => {
+    if (budget === '' || budget === null || budget === undefined) return null;
+    const raw = String(budget).trim();
+    if (!raw) return null;
+    const numericBudget = Number(raw.replace(/[^\d.-]/g, ''));
+    return Number.isFinite(numericBudget) ? numericBudget : null;
+  })();
+
+  if (parsedBudget !== null) {
+    parts.push(`Budget: ${parsedBudget.toLocaleString('fr-FR')} FCFA`);
   }
+
   return parts.join(' — ');
 }
 
@@ -467,12 +669,34 @@ export function GeminiChat({ onChatStarted }: GeminiChatProps) {
   const [mounted, setMounted] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isHistoryLoading, setIsHistoryLoading] = useState(true);
   const [essences, setEssences] = useState<EssenceClient[]>([]);
 
   const abortControllerRef = useRef<AbortController | null>(null);
   const { addProduct, addComposition } = useCartStore();
   const { user } = useAuthStore();
   const { addToast } = useToastStore();
+
+  const resolveSuggestionsFromMetadata = useCallback(async (metadata?: Record<string, unknown>) => {
+    if (!metadata) return [] as Product[];
+
+    const ids = resolveSuggestionIds(metadata);
+
+    if (ids.length === 0) return [] as Product[];
+
+    const resolved = await Promise.all(
+      ids.map(async (id) => {
+        try {
+          const product = await productService.getProductById(id);
+          return product ? product : null;
+        } catch {
+          return null;
+        }
+      })
+    );
+
+    return resolved.filter((product): product is Product => Boolean(product));
+  }, []);
   const bottomRef = useRef<HTMLDivElement>(null);
   const chatAreaRef = useRef<HTMLDivElement>(null);
 
@@ -487,23 +711,48 @@ export function GeminiChat({ onChatStarted }: GeminiChatProps) {
 
   useEffect(() => {
     async function fetchHistory() {
+      setIsHistoryLoading(true);
       try {
         const conv = await apiLabService.getIAConversations();
         if (conv && conv.messages && conv.messages.length > 0) {
-          const historyMsgs: ChatMessage[] = conv.messages.map((m) => ({
-            id: String(m.id),
-            role: m.role === 'assistant' ? 'ai' : 'user',
-            text: m.content,
-          }));
+          const historyMsgs: ChatMessage[] = await Promise.all(
+            conv.messages.map(async (m) => {
+              const displayText = typeof m.content === 'string' ? m.content : '';
+              const baseMessage: ChatMessage = {
+                id: String(m.id),
+                role: m.role === 'assistant' ? 'ai' : 'user',
+                text: displayText,
+                metadata: m.metadata,
+                animateText: false,
+              };
+
+              if (m.role === 'assistant') {
+                const suggestions = await resolveSuggestionsFromMetadata(m.metadata);
+                return {
+                  ...baseMessage,
+                  suggestions: suggestions.length > 0 ? suggestions : undefined,
+                };
+              }
+
+              return baseMessage;
+            })
+          );
           setMessages(historyMsgs);
           onChatStarted?.(true);
+        } else {
+          setMessages([]);
+          onChatStarted?.(false);
         }
       } catch (err) {
         console.warn('Failed to load AI conversation history:', err);
+        setMessages([]);
+        onChatStarted?.(false);
+      } finally {
+        setIsHistoryLoading(false);
       }
     }
     fetchHistory();
-  }, [onChatStarted]);
+  }, [onChatStarted, resolveSuggestionsFromMetadata]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -517,7 +766,7 @@ export function GeminiChat({ onChatStarted }: GeminiChatProps) {
     try {
       const res = await apiLabService.resetIAChatSummary();
       addToast(res.detail || 'Résumé vidé avec succès.', 'success');
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.warn('Failed to reset AI chat summary:', err);
     } finally {
       setMessages([]);
@@ -539,7 +788,12 @@ export function GeminiChat({ onChatStarted }: GeminiChatProps) {
 
     abortControllerRef.current = new AbortController();
 
-    const userMsg: ChatMessage = { id: generateId(), role: 'user', text: data.content.trim() };
+    const userMsg: ChatMessage = {
+      id: generateId(),
+      role: 'user',
+      text: data.content.trim(),
+      metadata: { bottleSize: data.bottleSize, budget: data.budget },
+    };
     setMessages(prev => [...prev, userMsg]);
     setIsLoading(true);
     onChatStarted?.(true);
@@ -562,7 +816,7 @@ export function GeminiChat({ onChatStarted }: GeminiChatProps) {
       if (response.essences_pre_faites && response.essences_pre_faites.length > 0) {
         response.essences_pre_faites.forEach(item => {
           const essence = essences.find(
-            e => e.id === String(item.id) || e.name === item.nom || (e as any).nom === item.nom
+            e => e.id === String(item.id) || e.name === item.nom || String((e as unknown as { nom?: string }).nom || '') === item.nom
           );
           if (essence) {
             compositionEssences.push({ essence, quantityMl: item.quantite_ml });
@@ -597,14 +851,15 @@ export function GeminiChat({ onChatStarted }: GeminiChatProps) {
         : undefined;
 
       if (response.flacon && response.flacon.contenance_ml) {
-        (composition as any).bottleSizeMl = response.flacon.contenance_ml;
+        (composition as CustomComposition & { bottleSizeMl?: number }).bottleSizeMl = response.flacon.contenance_ml;
       }
 
-      setMessages(prev => [...prev, { id: generateId(), role: 'ai', text: response.message, aiData: response, composition }]);
-    } catch (error: any) {
-      if (error.name === 'CanceledError' || error.name === 'AbortError' || axios.isCancel(error)) return;
+      setMessages(prev => [...prev, { id: generateId(), role: 'ai', text: response.message, aiData: response, composition, animateText: true }]);
+    } catch (error: unknown) {
+      const axiosError = error as { name?: string; response?: { status?: number } };
+      if (axiosError.name === 'CanceledError' || axiosError.name === 'AbortError' || axios.isCancel(error)) return;
 
-      if (error.response?.status === 503) {
+      if (axiosError.response?.status === 503) {
         setMessages(prev => [...prev, { id: generateId(), role: 'ai', text: '', isError503: true, retryPayload: data }]);
       } else {
         addToast('Une erreur est survenue avec le Sommelier IA', 'error');
@@ -633,10 +888,11 @@ export function GeminiChat({ onChatStarted }: GeminiChatProps) {
     });
 
     aiData.accessoires?.forEach(a => {
+      const accessoryLike = a as unknown as { image_principale?: string; nom?: string; prix_unitaire?: number | string };
       addProduct({
-        ...a, id: String(a.id), name: a.name || (a as any).nom,
-        price: Number(a.price || (a as any).prix_unitaire), category: 'accessory',
-        images: a.images || ((a as any).image_principale ? [(a as any).image_principale] : []),
+        ...a, id: String(a.id), name: a.name || String(accessoryLike.nom || ''),
+        price: Number(a.price || Number(accessoryLike.prix_unitaire || 0)), category: 'accessory',
+        images: a.images || (accessoryLike.image_principale ? [String(accessoryLike.image_principale)] : []),
       });
       count++;
     });
@@ -647,6 +903,7 @@ export function GeminiChat({ onChatStarted }: GeminiChatProps) {
   if (!mounted) return null;
 
   const isEmpty = messages.length === 0;
+  const showEmptyState = !isHistoryLoading && isEmpty;
 
   return (
     <div className="w-full max-w-3xl mx-auto flex flex-col h-full">
@@ -658,7 +915,24 @@ export function GeminiChat({ onChatStarted }: GeminiChatProps) {
         <style dangerouslySetInnerHTML={{ __html: `div::-webkit-scrollbar { display: none !important; }` }} />
 
         <AnimatePresence>
-          {isEmpty && (
+          {isHistoryLoading && (
+            <motion.div
+              key="history-loading"
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20, transition: { duration: 0.2 } }}
+              className="flex flex-col items-center justify-center h-full text-center py-12 gap-4"
+            >
+              <div className="flex h-14 w-14 items-center justify-center rounded-full border border-gold/20 bg-gold/10 text-gold shadow-sm shadow-gold/10">
+                <Loader2 size={24} className="animate-spin" />
+              </div>
+              <p className="text-sm text-foreground/60">Chargement de votre historique…</p>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <AnimatePresence>
+          {showEmptyState && (
             <motion.div
               key="empty-state"
               initial={{ opacity: 0, y: 12 }}
@@ -686,7 +960,6 @@ export function GeminiChat({ onChatStarted }: GeminiChatProps) {
                 ].map(s => (
                   <button
                     key={s}
-                    // Suggestion chips: bottleSize null, no budget
                     onClick={() => handleSend({ content: s, bottleSize: null, budget: '' })}
                     className="text-xs px-4 py-2 rounded-full bg-white/5 border border-white/10 text-foreground/60 hover:text-gold hover:border-gold/30 hover:bg-gold/5 transition-all"
                   >
@@ -699,10 +972,10 @@ export function GeminiChat({ onChatStarted }: GeminiChatProps) {
         </AnimatePresence>
 
         <AnimatePresence initial={false}>
-          {messages.map(msg => (
-            <motion.div key={msg.id} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }}>
+          {messages.map((msg, index) => (
+            <motion.div key={`${msg.role}-${msg.id}-${index}`} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }}>
               {msg.role === 'user' ? (
-                <UserBubble text={msg.text} />
+                <UserBubble text={msg.text} metadata={msg.metadata} />
               ) : (
                 <AiBubble messageObj={msg} onAddAllToCart={handleAddAll} onRetry={handleSend} />
               )}

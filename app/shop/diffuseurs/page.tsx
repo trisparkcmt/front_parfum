@@ -33,7 +33,7 @@ function DiffuseursShopContent() {
   const [viewMode, setViewMode] = useState<'grid' | 'horizontal'>('grid');
 
   // Stores
-  const { addAccessory } = useCartStore();
+  const { addDiffuseur } = useCartStore();
   const { isFavorite, addFavorite, removeFavorite } = useFavoritesStore();
   const { addToast } = useToastStore();
 
@@ -96,7 +96,7 @@ function DiffuseursShopContent() {
 
   const handleAddToCart = async (product: Product) => {
     try {
-      await addAccessory(Number(product.id), 1);
+      await addDiffuseur(Number(product.id), 1);
       addToast(`${product.name} ajouté au panier`, 'success');
     } catch {
       addToast('Erreur lors de l’ajout au panier', 'error');

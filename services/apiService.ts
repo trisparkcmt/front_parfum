@@ -837,7 +837,7 @@ export const labService = {
   getIAConversations: async (): Promise<{
     client: string;
     total_messages: number;
-    messages: Array<{ id: number; role: 'user' | 'assistant'; content: string; created_at: string }>;
+    messages: Array<{ id: number; role: 'user' | 'assistant'; content: string; created_at: string; metadata?: Record<string, unknown> }>;
   }> => {
     const response = await api.get('lab/ia-conversations/');
     return response.data;
@@ -1686,7 +1686,7 @@ export const cartService = {
    * Update cart line quantity
    */
   updateCartLine: async (
-    typeLigne: 'parfum' | 'accessoire' | 'produit-fini-essence' | 'parfum-personnalise' | 'essence-personnalisee',
+    typeLigne: 'parfum' | 'accessoire' | 'diffuseur-parfum' | 'produit-fini-essence' | 'parfum-personnalise' | 'essence-personnalisee',
     ligneId: number,
     data: { quantite: number; panier_id?: number }
   ) => {
@@ -1701,7 +1701,7 @@ export const cartService = {
    * Remove cart line
    */
   removeCartLine: async (
-    typeLigne: 'parfum' | 'accessoire' | 'produit-fini-essence' | 'parfum-personnalise' | 'essence-personnalisee',
+    typeLigne: 'parfum' | 'accessoire' | 'diffuseur-parfum' | 'produit-fini-essence' | 'parfum-personnalise' | 'essence-personnalisee',
     ligneId: number,
     panierIdOptional?: number
   ) => {

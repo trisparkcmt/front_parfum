@@ -185,7 +185,7 @@ export const InputBar = memo(function InputBar({
   rightActions,
 }: InputBarProps) {
   const [internalInput, setInternalInput] = useState("");
-  const [bottleSize, setBottleSize] = useState("50");
+  const [bottleSize, setBottleSize] = useState("");
   const [budget, setBudget] = useState("");
   
   const isControlled = controlledValue !== undefined;
@@ -216,8 +216,8 @@ export const InputBar = memo(function InputBar({
     onSend?.({ 
       role: "user", 
       content: trimmed,
-      bottleSize: `${bottleSize}ml`,
-      budget: budget ? `${budget}FCFA` : "Non spécifié"
+      bottleSize: bottleSize ? `${bottleSize}ml` : "",
+      budget: budget ? `${budget}FCFA` : ""
     });
     setInput("");
   }, [input, isStreaming, disabled, onSend, setInput, bottleSize, budget]);
@@ -278,6 +278,7 @@ export const InputBar = memo(function InputBar({
                     disabled={disabled}
                     className="appearance-none bg-transparent pl-2.5 pr-6 py-1 text-[14px] font-bold text-neutral-600 dark:text-neutral-300 outline-none cursor-pointer hover:text-gold transition-colors"
                   >
+                    <option value="">0 ml</option>
                     <option value="30">30ml</option>
                     <option value="50">50ml</option>
                     <option value="100">100ml</option>

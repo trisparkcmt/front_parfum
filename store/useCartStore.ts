@@ -45,6 +45,35 @@ function extractApiError(error: any, fallback: string): string {
   return parts.length > 0 ? parts.join(' · ') : fallback;
 }
 
+function isDiffuseurProduct(product: any): boolean {
+  const payload = product ?? {};
+  const haystack = [
+    payload?.type_technologie,
+    payload?.capacite_reservoir_ml,
+    payload?.est_connecte,
+    payload?.a_jeux_de_lumiere,
+    payload?.is_new,
+    payload?.is_bestseller,
+    payload?.nom,
+    payload?.name,
+    payload?.description,
+    payload?.description_courte,
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase();
+
+  return Boolean(
+    payload?.type_technologie ||
+    payload?.capacite_reservoir_ml !== undefined ||
+    payload?.est_connecte !== undefined ||
+    payload?.a_jeux_de_lumiere !== undefined ||
+    payload?.is_new !== undefined ||
+    payload?.is_bestseller !== undefined ||
+    haystack.includes('diffuseur')
+  );
+}
+
 function normalizeCartData(cartData: any): CartData {
   if (!cartData) return cartData;
 
@@ -52,11 +81,17 @@ function normalizeCartData(cartData: any): CartData {
     ...line,
     type: line.type ?? line.type_ligne ?? line.ligne_type ?? fallbackType,
     id: line.id ?? line.ligne_id ?? 0,
-    nom: line.nom || line.nom_snapshot || line.produit_details?.nom || line.parfum_details?.nom || line.accessoire_details?.nom || 'Produit',
+    nom: line.nom || line.nom_snapshot || line.produit_details?.nom || line.parfum_details?.nom || line.accessoire_details?.nom || line.diffuseur_details?.nom || 'Produit',
     quantite: Number(line.quantite ?? 1),
     prix_unitaire_snapshot: Number(line.prix_unitaire_snapshot ?? line.prix_snapshot ?? line.prix_calcule ?? 0),
     sous_total: Number(line.sous_total ?? (Number(line.prix_unitaire_snapshot ?? line.prix_snapshot ?? line.prix_calcule ?? 0) * Number(line.quantite ?? 1))),
   });
+
+  const diffuseurLines = [
+    ...(cartData.lignes_diffuseurs || []),
+    ...(cartData.lignes_diffuseur_parfum || []),
+    ...(cartData.lignes_diffuseurs_parfum || []),
+  ];
 
   return {
     ...cartData,
@@ -65,12 +100,13 @@ function normalizeCartData(cartData: any): CartData {
     lignes_produit_fini_essence: (cartData.lignes_produit_fini_essence || []).map((line: any) => normalizeLine(line, 'produit-fini-essence')),
     lignes_parfums_perso: (cartData.lignes_parfums_perso || []).map((line: any) => normalizeLine(line, 'parfum-personnalise')),
     lignes_essence_personnalisee: (cartData.lignes_essence_personnalisee || []).map((line: any) => normalizeLine(line, 'essence-personnalisee')),
+    lignes_diffuseurs: diffuseurLines.map((line: any) => normalizeLine(line, 'diffuseur-parfum')),
   };
 }
 
 export interface CartLine {
   id: number;
-  type: 'parfum' | 'accessoire' | 'produit-fini-essence' | 'parfum-personnalise' | 'essence-personnalisee';
+  type: 'parfum' | 'accessoire' | 'diffuseur-parfum' | 'produit-fini-essence' | 'parfum-personnalise' | 'essence-personnalisee';
   nom: string;
   image?: string;
   quantite: number;
@@ -99,6 +135,9 @@ export interface CartData {
   lignes_produit_fini_essence: CartLine[];
   lignes_parfums_perso: CartLine[];
   lignes_essence_personnalisee: CartLine[];
+  lignes_diffuseurs?: CartLine[];
+  lignes_diffuseur_parfum?: CartLine[];
+  lignes_diffuseurs_parfum?: CartLine[];
   date_creation: string;
   date_modification: string;
 }
@@ -115,6 +154,7 @@ interface CartState {
   // Product additions
   addPerfume: (parfumId: number, quantite?: number) => Promise<void>;
   addAccessory: (accessoireId: number, quantite?: number) => Promise<void>;
+  addDiffuseur: (diffuseurId: number, quantite?: number) => Promise<void>;
   addFinishedEssence: (produitId: number, quantite?: number) => Promise<void>;
   addCustomPerfume: (parfumPersoId: number, quantite?: number, noteClient?: string, options?: { silent?: boolean }) => Promise<void>;
   addCustomEssence: (essencePersoId: number, quantite?: number) => Promise<void>;
@@ -228,6 +268,30 @@ export const useCartStore = create<CartState>()(
         } catch (error: any) {
           const errorMsg =
             error.response?.data?.detail || 'Erreur lors de l\'ajout de l\'accessoire';
+          set({ error: errorMsg, isLoading: false });
+          addToast(errorMsg, 'error');
+        }
+      },
+
+      addDiffuseur: async (diffuseurId, quantite = 1) => {
+        set({ isLoading: true, error: null });
+        const addToast = useToastStore.getState().addToast;
+        const state = get();
+        try {
+          const cartData = await cartService.addDiffuseur({
+            diffuseur_id: diffuseurId,
+            quantite,
+            panier_id: state.panierId || undefined,
+          });
+          const normalizedCart = normalizeCartData(cartData);
+          set({
+            panierId: normalizedCart.id,
+            cart: normalizedCart,
+            isLoading: false,
+          });
+          addToast('Diffuseur ajouté au panier', 'success');
+        } catch (error: any) {
+          const errorMsg = extractApiError(error, 'Erreur lors de l\'ajout du diffuseur');
           set({ error: errorMsg, isLoading: false });
           addToast(errorMsg, 'error');
         }
@@ -450,6 +514,7 @@ export const useCartStore = create<CartState>()(
         return (
           cart.lignes_parfums.reduce((sum, line) => sum + line.quantite, 0) +
           cart.lignes_accessoires.reduce((sum, line) => sum + line.quantite, 0) +
+          (cart.lignes_diffuseurs || []).reduce((sum, line) => sum + line.quantite, 0) +
           cart.lignes_produit_fini_essence.reduce(
             (sum, line) => sum + line.quantite,
             0
@@ -488,6 +553,7 @@ export const useCartStore = create<CartState>()(
         return [
           ...cart.lignes_parfums,
           ...cart.lignes_accessoires,
+          ...(cart.lignes_diffuseurs || []),
           ...cart.lignes_produit_fini_essence,
           ...cart.lignes_parfums_perso,
           ...cart.lignes_essence_personnalisee,
@@ -500,6 +566,10 @@ export const useCartStore = create<CartState>()(
 
       // Legacy API compatibility - routes Product objects to appropriate endpoints
       addProduct: async (product: any, quantite = 1) => {
+        if (isDiffuseurProduct(product)) {
+          return get().addDiffuseur(Number(product.id), quantite);
+        }
+
         const category = product.category;
         // Route to appropriate endpoint based on product category
         if (category?.includes('perfume')) {

@@ -32,7 +32,7 @@ export default function ProductDetailClient({ id }: { id: string }) {
   const [activeTab, setActiveTab] = useState<'description' | 'details' | 'reviews'>('description');
   const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
 
-  const { addProduct } = useCartStore();
+  const { addProduct, addDiffuseur } = useCartStore();
   const { addFavorite, removeFavorite, isFavorite } = useFavoritesStore();
   const { addToast } = useToastStore();
 
@@ -100,8 +100,24 @@ export default function ProductDetailClient({ id }: { id: string }) {
     );
   }
 
-  const handleAddToCart = () => {
-    addProduct(product, quantity);
+  const handleAddToCart = async () => {
+    const isDiffuseur = Boolean(
+      product.type_technologie ||
+      product.capacite_reservoir_ml !== undefined ||
+      product.est_connecte !== undefined ||
+      product.a_jeux_de_lumiere !== undefined ||
+      product.is_new !== undefined ||
+      product.is_bestseller !== undefined ||
+      (product.name || '').toLowerCase().includes('diffuseur') ||
+      (product.description || '').toLowerCase().includes('diffuseur')
+    );
+
+    if (isDiffuseur) {
+      await addDiffuseur(Number(product.id), quantity);
+    } else {
+      await addProduct(product, quantity);
+    }
+
     addToast(`${product.name} ajouté au panier`);
   };
 
