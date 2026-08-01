@@ -48,13 +48,20 @@ function cx(...classes: (string | boolean | undefined)[]) {
   return classes.filter(Boolean).join(' ');
 }
 
-function StatusChip({ status, label }: { status: 'success' | 'blue' | 'amber' | 'red' | 'purple'; label: string }) {
+function StatusChip({
+  status,
+  label,
+}: {
+  status: 'success' | 'blue' | 'amber' | 'red' | 'purple' | 'gold';
+  label: string;
+}) {
   const colorStyles = {
     success: 'text-emerald-400 bg-emerald-500/10 ring-emerald-500/20',
     blue: 'text-blue-400 bg-blue-500/10 ring-blue-500/20',
     amber: 'text-amber-400 bg-amber-500/10 ring-amber-500/20',
     red: 'text-red-400 bg-red-500/10 ring-red-500/20',
     purple: 'text-purple-400 bg-purple-500/10 ring-purple-500/20',
+    gold: 'text-gold bg-gold/10 ring-gold/20',
   };
 
   const dotStyles = {
@@ -63,10 +70,16 @@ function StatusChip({ status, label }: { status: 'success' | 'blue' | 'amber' | 
     amber: 'bg-amber-400',
     red: 'bg-red-400',
     purple: 'bg-purple-400',
+    gold: 'bg-gold',
   };
 
   return (
-    <span className={cx('inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium ring-1 ring-inset', colorStyles[status])}>
+    <span
+      className={cx(
+        'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium ring-1 ring-inset',
+        colorStyles[status]
+      )}
+    >
       <span className={cx('h-1.5 w-1.5 rounded-full', dotStyles[status])} />
       {label}
     </span>
@@ -168,7 +181,10 @@ export default function POSPage() {
           labService.getEssences(),
           productService.getBottles(),
         ]);
-        const bottles = (bottlesRes as any)?.results || (bottlesRes as any)?.resultats || (Array.isArray(bottlesRes) ? bottlesRes : []);
+        const bottles =
+          (bottlesRes as any)?.results ||
+          (bottlesRes as any)?.resultats ||
+          (Array.isArray(bottlesRes) ? bottlesRes : []);
         setFlacons(bottles);
         setEssences([...ing, ...ess]);
         // Auto-select 100ml flacon
@@ -187,11 +203,15 @@ export default function POSPage() {
     return Object.values(quantities).reduce((a, b) => a + b, 0);
   }, [quantities]);
 
-  const maxOilMl = useMemo(() => Math.max(0, Number((selectedSize * 0.45).toFixed(2))), [selectedSize]);
+  const maxOilMl = useMemo(
+    () => Math.max(0, Number((selectedSize * 0.45).toFixed(2))),
+    [selectedSize]
+  );
   const oilLimitExceeded = totalMl > maxOilMl;
 
   const compositionPrice = useMemo(() => {
-    const basePrice = selectedSize === 30 ? 2000 : selectedSize === 50 ? 5000 : 12000;
+    const basePrice =
+      selectedSize === 30 ? 2000 : selectedSize === 50 ? 5000 : 12000;
     let total = basePrice;
     for (const item of essences) {
       const q = quantities[item.id] || 0;
@@ -206,7 +226,10 @@ export default function POSPage() {
       const totalOther = Object.entries(prev)
         .filter(([key]) => key !== id)
         .reduce((sum, [_, q]) => sum + q, 0);
-      const capped = Math.min(value, Math.min(selectedSize - totalOther, maxOilMl - totalOther));
+      const capped = Math.min(
+        value,
+        Math.min(selectedSize - totalOther, maxOilMl - totalOther)
+      );
       const temp = { ...prev };
       if (capped <= 0) delete temp[id];
       else temp[id] = capped;
@@ -226,7 +249,10 @@ export default function POSPage() {
           .filter(([key]) => key !== id)
           .reduce((sum, [_, q]) => sum + q, 0);
         if (totalOther + next > maxOilMl) {
-          addToast(`Le contenu ne peut dépasser ${maxOilMl} ml pour respecter la règle de 45% du flacon.`, "info");
+          addToast(
+            `Le contenu ne peut dépasser ${maxOilMl} ml pour respecter la règle de 45% du flacon.`,
+            'info'
+          );
           return prev;
         }
         temp[id] = next;
@@ -254,7 +280,10 @@ export default function POSPage() {
     const fId = Number(f.id);
     if (totalMl > cap) {
       setQuantities({});
-      addToast(`Format ${cap}ml sélectionné — composition réinitialisée.`, 'info');
+      addToast(
+        `Format ${cap}ml sélectionné — composition réinitialisée.`,
+        'info'
+      );
     }
     setSelectedSize(cap);
     setSelectedFlaconId(fId);
@@ -263,14 +292,18 @@ export default function POSPage() {
   // Helper to add the composed creation directly to standard POS basket
   const handleAddCompositionToCart = async () => {
     if (totalMl === 0) {
-      addToast("Veuillez composer avec au moins 1ml.", "error");
+      addToast('Veuillez composer avec au moins 1ml.', 'error');
       return;
     }
     if (oilLimitExceeded) {
-      addToast(`Le contenu dépasse la limite de ${maxOilMl} ml pour ce flacon.`, "error");
+      addToast(
+        `Le contenu dépasse la limite de ${maxOilMl} ml pour ce flacon.`,
+        'error'
+      );
       return;
     }
-    const finalName = compositionName.trim() || `Composition Client ${selectedSize}ml`;
+    const finalName =
+      compositionName.trim() || `Composition Client ${selectedSize}ml`;
 
     const lignes = Object.entries(quantities)
       .filter(([_, qty]) => (qty as number) > 0)
@@ -285,7 +318,8 @@ export default function POSPage() {
         }
 
         return {
-          lot_essence_id: details?.lotEssenceId ?? details?.backendId ?? Number(essenceId),
+          lot_essence_id:
+            details?.lotEssenceId ?? details?.backendId ?? Number(essenceId),
           quantite_ml: qty,
         };
       });
@@ -299,7 +333,11 @@ export default function POSPage() {
         note_client: note.trim() || undefined,
       });
     } catch (err: any) {
-      addToast(err?.response?.data?.detail || 'La composition n’a pas pu être ajoutée au panier.', 'error');
+      addToast(
+        err?.response?.data?.detail ||
+          'La composition n’a pas pu être ajoutée au panier.',
+        'error'
+      );
       return;
     }
 
@@ -318,7 +356,7 @@ export default function POSPage() {
     } as any;
 
     setCartItems((prev) => [...prev, { product: simulatedProduct, quantity: 1 }]);
-    addToast("Composition ajoutée au ticket de caisse !", "success");
+    addToast('Composition ajoutée au ticket de caisse !', 'success');
     setQuantities({});
     setCompositionName('');
     setActiveTab('products');
@@ -358,8 +396,14 @@ export default function POSPage() {
         const cleanedPerfumes = extractResults(perfumes);
         const cleanedAccessories = extractResults(accessories);
 
-        const normalizedPerfumes = cleanedPerfumes.map((p: any) => ({ ...p, type: 'parfum' }));
-        const normalizedAccessories = cleanedAccessories.map((p: any) => ({ ...p, type: 'accessoire' }));
+        const normalizedPerfumes = cleanedPerfumes.map((p: any) => ({
+          ...p,
+          type: 'parfum',
+        }));
+        const normalizedAccessories = cleanedAccessories.map((p: any) => ({
+          ...p,
+          type: 'accessoire',
+        }));
 
         [...normalizedPerfumes, ...normalizedAccessories].forEach((p) => {
           if (p && p.id && !uniqueProducts.has(String(p.id))) {
@@ -447,16 +491,25 @@ export default function POSPage() {
 
     setIsValidating(true);
     try {
-      const regularItems = cartItems.filter((item) => !(item.product as any).is_custom);
+      const regularItems = cartItems.filter(
+        (item) => !(item.product as any).is_custom
+      );
       if (regularItems.length === 0) {
-        addToast('Aucun article standard à commander. La composition a été enregistrée via le panier.', 'info');
+        addToast(
+          'Aucun article standard à commander. La composition a été enregistrée via le panier.',
+          'info'
+        );
         setIsValidating(false);
         return;
       }
 
       const lignes = regularItems.map((item) => {
         const p = item.product as any;
-        const isPerfume = p.type === 'parfum' || p.contenance_ml !== undefined || p.genre_cible || p.notes_tete;
+        const isPerfume =
+          p.type === 'parfum' ||
+          p.contenance_ml !== undefined ||
+          p.genre_cible ||
+          p.notes_tete;
         return {
           type: isPerfume ? 'parfum' : 'accessoire',
           id: Number(item.product.id),
@@ -484,11 +537,17 @@ export default function POSPage() {
       setNote('');
       setCodePromo('');
 
-      addToast(`Commande ${order.numero_commande || '#' + order.id} créée avec succès !`, 'success');
+      addToast(
+        `Commande ${order.numero_commande || '#' + order.id} créée avec succès !`,
+        'success'
+      );
       setTimeout(() => setIsSuccess(false), 4000);
     } catch (error: any) {
       console.error('Order creation error:', error);
-      const msg = error?.response?.data?.detail || error?.response?.data?.non_field_errors?.[0] || 'Erreur lors de la création de la commande';
+      const msg =
+        error?.response?.data?.detail ||
+        error?.response?.data?.non_field_errors?.[0] ||
+        'Erreur lors de la création de la commande';
       addToast(msg, 'error');
     } finally {
       setIsValidating(false);
@@ -511,8 +570,12 @@ export default function POSPage() {
             </div>
           </div>
           <div className="space-y-1">
-            <span className="text-[10px] font-semibold uppercase tracking-wider text-foreground/35 block">Confirmation</span>
-            <h1 className="text-xl font-semibold text-foreground">Commande validée</h1>
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-foreground/35 block">
+              Confirmation
+            </span>
+            <h1 className="text-xl font-semibold text-foreground">
+              Commande validée
+            </h1>
             <p className="text-xs font-mono text-gold pt-1">{lastOrderNumber}</p>
           </div>
           <p className="text-xs text-foreground/50 leading-relaxed">
@@ -526,7 +589,6 @@ export default function POSPage() {
   return (
     <div className="h-screen overflow-hidden bg-background flex flex-col font-sans">
       <main className="flex-1 min-h-0 max-w-7xl w-full mx-auto px-4 sm:px-6 pt-4 pb-6 flex flex-col space-y-4">
-        
         {/* Header Strip */}
         <div className="shrink-0 flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
@@ -535,7 +597,9 @@ export default function POSPage() {
               <span className="text-[10px] font-semibold uppercase tracking-wider text-foreground/35 block mb-0.5">
                 Terminal d'encaissement
               </span>
-              <h1 className="text-xl font-semibold text-foreground">Point de vente</h1>
+              <h1 className="text-xl font-semibold text-foreground">
+                Point de vente
+              </h1>
             </div>
           </div>
 
@@ -577,7 +641,6 @@ export default function POSPage() {
 
         {/* Main Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 flex-1 min-h-0">
-          
           {/* Left Panel : Product Catalog / Atelier Builder */}
           <section className="lg:col-span-6 border border-white/10 bg-white/[0.02] rounded-xl flex flex-col min-h-0 overflow-hidden">
             {activeTab === 'products' ? (
@@ -611,14 +674,18 @@ export default function POSPage() {
                 <div className="flex-1 min-h-0 overflow-y-auto">
                   {!searchTerm ? (
                     <EmptyState
-                      icon={<PackageSearch className="size-6 text-foreground/20" />}
+                      icon={
+                        <PackageSearch className="size-6 text-foreground/20" />
+                      }
                       title="Saisissez un terme de recherche"
                       subtitle="Les produits correspondants s'afficheront instantanément."
                     />
                   ) : isLoading ? (
                     <div className="flex flex-col items-center justify-center py-16 gap-2">
                       <Loader2 size={16} className="animate-spin text-gold" />
-                      <span className="text-xs text-foreground/40">Recherche en cours…</span>
+                      <span className="text-xs text-foreground/40">
+                        Recherche en cours…
+                      </span>
                     </div>
                   ) : products.length === 0 ? (
                     <p className="text-sm italic text-foreground/30 text-center py-16">
@@ -631,12 +698,15 @@ export default function POSPage() {
                           key={product.id}
                           product={product}
                           isExpanded={expandedId === String(product.id)}
-                          onToggle={() => handleToggleExpand(String(product.id))}
+                          onToggle={() =>
+                            handleToggleExpand(String(product.id))
+                          }
                           draftQty={draftQty}
                           onDraftQtyChange={setDraftQty}
                           onAdd={(qty) => handleAddToCart(product, qty)}
                           inCartQty={
-                            cartItems.find((c) => c.product.id === product.id)?.quantity
+                            cartItems.find((c) => c.product.id === product.id)
+                              ?.quantity
                           }
                         />
                       ))}
@@ -654,7 +724,10 @@ export default function POSPage() {
                       Composition sur mesure
                     </span>
                     <button
-                      onClick={() => { setQuantities({}); setCompositionName(''); }}
+                      onClick={() => {
+                        setQuantities({});
+                        setCompositionName('');
+                      }}
                       className="text-[10px] font-semibold uppercase tracking-wider text-foreground/40 hover:text-red-400 flex items-center gap-1 transition-colors"
                     >
                       <RefreshCcw size={10} /> Réinitialiser
@@ -676,10 +749,13 @@ export default function POSPage() {
                     <div className="flex flex-wrap gap-1.5">
                       {flacons.length === 0 && (
                         <>
-                          {[30, 50, 100].map(ml => (
+                          {[30, 50, 100].map((ml) => (
                             <button
                               key={ml}
-                              onClick={() => { setSelectedSize(ml); if (totalMl > ml) setQuantities({}); }}
+                              onClick={() => {
+                                setSelectedSize(ml);
+                                if (totalMl > ml) setQuantities({});
+                              }}
                               className={cx(
                                 'px-2.5 py-1 rounded-lg text-[11px] font-medium border transition-colors',
                                 selectedSize === ml
@@ -717,7 +793,15 @@ export default function POSPage() {
                   <div className="space-y-1">
                     <div className="flex justify-between text-[10px] font-semibold uppercase tracking-wider text-foreground/40">
                       <span>Remplissage Huiles</span>
-                      <span className={oilLimitExceeded ? 'text-red-400' : totalMl >= maxOilMl ? 'text-gold' : ''}>
+                      <span
+                        className={
+                          oilLimitExceeded
+                            ? 'text-red-400'
+                            : totalMl >= maxOilMl
+                            ? 'text-gold'
+                            : ''
+                        }
+                      >
                         {totalMl} / {maxOilMl} ml (Max 45%)
                       </span>
                     </div>
@@ -727,7 +811,12 @@ export default function POSPage() {
                           'h-full transition-all duration-300',
                           oilLimitExceeded ? 'bg-red-500' : 'bg-gold'
                         )}
-                        style={{ width: `${Math.min(100, (Math.min(totalMl, maxOilMl) / selectedSize) * 100)}%` }}
+                        style={{
+                          width: `${Math.min(
+                            100,
+                            (Math.min(totalMl, maxOilMl) / selectedSize) * 100
+                          )}%`,
+                        }}
                       />
                     </div>
                   </div>
@@ -745,20 +834,28 @@ export default function POSPage() {
                     />
                   </div>
                   <div className="flex gap-1">
-                    {(['all', 'premium', 'super-premium', 'high'] as const).map(tier => (
-                      <button
-                        key={tier}
-                        onClick={() => setEssenceTier(tier)}
-                        className={cx(
-                          'px-2 py-0.5 rounded-lg text-[10px] font-semibold uppercase tracking-wider transition-colors',
-                          essenceTier === tier
-                            ? 'bg-gold/10 text-gold ring-1 ring-inset ring-gold/20'
-                            : 'text-foreground/40 hover:text-foreground hover:bg-white/5'
-                        )}
-                      >
-                        {tier === 'all' ? 'Tous' : tier === 'super-premium' ? 'S.Premium' : tier === 'high' ? 'High' : 'Premium'}
-                      </button>
-                    ))}
+                    {(['all', 'premium', 'super-premium', 'high'] as const).map(
+                      (tier) => (
+                        <button
+                          key={tier}
+                          onClick={() => setEssenceTier(tier)}
+                          className={cx(
+                            'px-2 py-0.5 rounded-lg text-[10px] font-semibold uppercase tracking-wider transition-colors',
+                            essenceTier === tier
+                              ? 'bg-gold/10 text-gold ring-1 ring-inset ring-gold/20'
+                              : 'text-foreground/40 hover:text-foreground hover:bg-white/5'
+                          )}
+                        >
+                          {tier === 'all'
+                            ? 'Tous'
+                            : tier === 'super-premium'
+                            ? 'S.Premium'
+                            : tier === 'high'
+                            ? 'High'
+                            : 'Premium'}
+                        </button>
+                      )
+                    )}
                   </div>
                 </div>
 
@@ -767,7 +864,9 @@ export default function POSPage() {
                   {loadingEssences ? (
                     <div className="flex items-center justify-center py-8 gap-2">
                       <Loader2 size={14} className="animate-spin text-gold" />
-                      <span className="text-xs text-foreground/40">Chargement du laboratoire…</span>
+                      <span className="text-xs text-foreground/40">
+                        Chargement du laboratoire…
+                      </span>
                     </div>
                   ) : filteredEssences.length === 0 ? (
                     <p className="text-xs italic text-foreground/30 text-center py-8">
@@ -778,13 +877,25 @@ export default function POSPage() {
                       const currentVal = quantities[essence.id] || 0;
                       const maxForThis = selectedSize - (totalMl - currentVal);
                       return (
-                        <div key={essence.id} className="bg-white/[0.02] border border-white/5 p-2.5 rounded-lg space-y-2">
+                        <div
+                          key={essence.id}
+                          className="bg-white/[0.02] border border-white/5 p-2.5 rounded-lg space-y-2"
+                        >
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2 min-w-0">
-                              <span className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: essence.color || '#C5A059' }} />
-                              <span className="truncate text-xs font-medium text-foreground">{essence.name}</span>
+                              <span
+                                className="h-2 w-2 rounded-full shrink-0"
+                                style={{
+                                  backgroundColor: essence.color || '#C5A059',
+                                }}
+                              />
+                              <span className="truncate text-xs font-medium text-foreground">
+                                {essence.name}
+                              </span>
                               {essence.pricePerMl > 0 && (
-                                <span className="text-[10px] font-mono text-foreground/35 shrink-0">{formatXAF(essence.pricePerMl)} CFA/ml</span>
+                                <span className="text-[10px] font-mono text-foreground/35 shrink-0">
+                                  {formatXAF(essence.pricePerMl)} CFA/ml
+                                </span>
                               )}
                             </div>
                             <div className="flex items-center gap-1 shrink-0">
@@ -794,10 +905,14 @@ export default function POSPage() {
                               >
                                 <Minus size={10} />
                               </button>
-                              <span className="w-9 text-center text-xs font-mono font-semibold tabular-nums text-foreground">{currentVal} ml</span>
+                              <span className="w-9 text-center text-xs font-mono font-semibold tabular-nums text-foreground">
+                                {currentVal} ml
+                              </span>
                               <button
                                 onClick={() => updateQuantity(essence.id, 1)}
-                                disabled={totalMl >= selectedSize && currentVal === 0}
+                                disabled={
+                                  totalMl >= selectedSize && currentVal === 0
+                                }
                                 className="h-5 w-5 rounded-md border border-white/10 bg-white/5 flex items-center justify-center text-foreground/60 hover:text-gold disabled:opacity-30 transition-colors"
                               >
                                 <Plus size={10} />
@@ -810,7 +925,12 @@ export default function POSPage() {
                             max={Math.max(maxForThis, currentVal)}
                             step={1}
                             value={currentVal}
-                            onChange={(e) => setQuantityRange(essence.id, Number(e.target.value))}
+                            onChange={(e) =>
+                              setQuantityRange(
+                                essence.id,
+                                Number(e.target.value)
+                              )
+                            }
                             className="w-full h-1 accent-[#C5A059] cursor-pointer bg-white/10 rounded-lg"
                           />
                         </div>
@@ -822,8 +942,12 @@ export default function POSPage() {
                 {/* Confirm Composition Strip */}
                 <div className="shrink-0 p-4 border-t border-white/10 flex items-center justify-between bg-white/[0.02]">
                   <div>
-                    <span className="text-[10px] font-semibold uppercase tracking-wider text-foreground/35 block">Prix Estime</span>
-                    <span className="text-lg font-semibold tabular-nums text-gold">{formatXAF(compositionPrice)} F CFA</span>
+                    <span className="text-[10px] font-semibold uppercase tracking-wider text-foreground/35 block">
+                      Prix Estime
+                    </span>
+                    <span className="text-lg font-semibold tabular-nums text-gold">
+                      {formatXAF(compositionPrice)} F CFA
+                    </span>
                   </div>
                   <button
                     onClick={handleAddCompositionToCart}
@@ -839,7 +963,6 @@ export default function POSPage() {
 
           {/* Right Panel : Ticket Checkout Counter */}
           <section className="lg:col-span-6 border border-white/10 bg-white/[0.02] rounded-xl flex flex-col min-h-0 overflow-hidden">
-            
             {/* Ticket Header */}
             <div className="p-4 flex items-center justify-between border-b border-white/10 shrink-0">
               <div className="flex items-center gap-2">
@@ -871,7 +994,10 @@ export default function POSPage() {
             ) : (
               <ol className="flex-1 min-h-0 overflow-y-auto divide-y divide-white/5 px-4">
                 {cartItems.map((item, index) => (
-                  <li key={item.product.id} className="flex items-center gap-3 py-3">
+                  <li
+                    key={item.product.id}
+                    className="flex items-center gap-3 py-3"
+                  >
                     <span className="text-xs font-mono text-foreground/30 w-4 text-right shrink-0">
                       {index + 1}
                     </span>
@@ -889,7 +1015,12 @@ export default function POSPage() {
 
                     <div className="flex items-center gap-1 border border-white/10 rounded-lg bg-white/[0.03] shrink-0">
                       <button
-                        onClick={() => handleUpdateQuantity(item.product.id, item.quantity - 1)}
+                        onClick={() =>
+                          handleUpdateQuantity(
+                            item.product.id,
+                            item.quantity - 1
+                          )
+                        }
                         className="h-6 w-6 flex items-center justify-center text-foreground/50 hover:text-gold transition-colors"
                       >
                         <Minus size={11} />
@@ -898,7 +1029,12 @@ export default function POSPage() {
                         {item.quantity}
                       </span>
                       <button
-                        onClick={() => handleUpdateQuantity(item.product.id, item.quantity + 1)}
+                        onClick={() =>
+                          handleUpdateQuantity(
+                            item.product.id,
+                            item.quantity + 1
+                          )
+                        }
                         className="h-6 w-6 flex items-center justify-center text-foreground/50 hover:text-gold transition-colors"
                       >
                         <Plus size={11} />
@@ -906,7 +1042,9 @@ export default function POSPage() {
                     </div>
 
                     <p className="text-xs font-semibold text-foreground tabular-nums w-16 text-right shrink-0">
-                      {formatXAF(getProductPrice(item.product) * item.quantity)}
+                      {formatXAF(
+                        getProductPrice(item.product) * item.quantity
+                      )}
                     </p>
 
                     <button
@@ -965,16 +1103,28 @@ export default function POSPage() {
               {/* Stat Strip Totals */}
               <div className="w-full rounded-xl border border-white/10 bg-white/[0.02] flex divide-x divide-white/8">
                 <div className="flex-1 p-3">
-                  <span className="text-[10px] font-semibold uppercase tracking-wider text-foreground/35 block mb-0.5">HT</span>
-                  <span className="text-sm font-semibold tabular-nums text-foreground">{formatXAF(totals.subtotal)} CFA</span>
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-foreground/35 block mb-0.5">
+                    HT
+                  </span>
+                  <span className="text-sm font-semibold tabular-nums text-foreground">
+                    {formatXAF(totals.subtotal)} CFA
+                  </span>
                 </div>
                 <div className="flex-1 p-3">
-                  <span className="text-[10px] font-semibold uppercase tracking-wider text-foreground/35 block mb-0.5">TVA (20%)</span>
-                  <span className="text-sm font-semibold tabular-nums text-foreground/70">{formatXAF(totals.tva)} CFA</span>
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-foreground/35 block mb-0.5">
+                    TVA (20%)
+                  </span>
+                  <span className="text-sm font-semibold tabular-nums text-foreground/70">
+                    {formatXAF(totals.tva)} CFA
+                  </span>
                 </div>
                 <div className="flex-1 p-3">
-                  <span className="text-[10px] font-semibold uppercase tracking-wider text-foreground/35 block mb-0.5">Total TTC</span>
-                  <span className="text-sm font-semibold tabular-nums text-gold">{formatXAF(totals.total)} CFA</span>
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-foreground/35 block mb-0.5">
+                    Total TTC
+                  </span>
+                  <span className="text-sm font-semibold tabular-nums text-gold">
+                    {formatXAF(totals.total)} CFA
+                  </span>
                 </div>
               </div>
 
@@ -995,7 +1145,6 @@ export default function POSPage() {
               </button>
             </div>
           </section>
-
         </div>
       </main>
     </div>
@@ -1019,7 +1168,12 @@ function ProductThumb({
       style={{ width: size, height: size }}
     >
       {url ? (
-        <AppImage fill src={url} alt={getProductName(product)} className="object-cover" />
+        <AppImage
+          fill
+          src={url}
+          alt={getProductName(product)}
+          className="object-cover"
+        />
       ) : (
         <div className="flex h-full w-full items-center justify-center text-foreground/20">
           <ImageOff size={14} />
@@ -1042,7 +1196,11 @@ function EmptyState({
     <div className="flex flex-col items-center justify-center text-center p-8 space-y-1">
       <div className="mb-2">{icon}</div>
       <p className="text-xs font-medium text-foreground/50">{title}</p>
-      {subtitle && <p className="text-[11px] text-foreground/30 max-w-[14rem]">{subtitle}</p>}
+      {subtitle && (
+        <p className="text-[11px] text-foreground/30 max-w-[14rem]">
+          {subtitle}
+        </p>
+      )}
     </div>
   );
 }
@@ -1078,11 +1236,16 @@ function ProductRow({
         <ProductThumb product={product} size={36} />
 
         <div className="flex-1 min-w-0">
-          <p className="text-xs font-semibold text-foreground truncate">{getProductName(product)}</p>
+          <p className="text-xs font-semibold text-foreground truncate">
+            {getProductName(product)}
+          </p>
           <p className="text-[10px] text-foreground/40 font-mono mt-0.5">
             {formatXAF(currentPrice)} F CFA
             {typeof inCartQty === 'number' && (
-              <span className="text-gold font-semibold"> · {inCartQty} en ticket</span>
+              <span className="text-gold font-semibold">
+                {' '}
+                · {inCartQty} en ticket
+              </span>
             )}
           </p>
         </div>
