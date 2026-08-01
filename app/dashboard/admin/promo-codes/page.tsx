@@ -20,6 +20,55 @@ const promoApi = {
 interface PromoCode { id: number; code: string; reduction_pourcentage: string; est_actif: boolean; clients_autorises: number[]; date_creation: string; }
 interface Client { id: number; first_name: string; last_name: string; email: string; telephone?: string; }
 
+// --- Shared UI Primitives ---
+
+function StatusChip({ active }: { active: boolean }) {
+  return (
+    <span
+      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium ring-1 ring-inset ${
+        active
+          ? 'bg-emerald-500/10 text-emerald-400 ring-emerald-500/20'
+          : 'bg-white/5 text-foreground/40 ring-white/10'
+      }`}
+    >
+      <span
+        className={`h-1.5 w-1.5 rounded-full ${
+          active ? 'bg-emerald-400' : 'bg-foreground/40'
+        }`}
+      />
+      {active ? 'Actif' : 'Inactif'}
+    </span>
+  );
+}
+
+function IconButton({
+  onClick,
+  icon: Icon,
+  variant = 'gold',
+  title,
+}: {
+  onClick: () => void;
+  icon: any;
+  variant?: 'gold' | 'red' | 'blue';
+  title?: string;
+}) {
+  const hoverStyles = {
+    gold: 'hover:text-gold hover:bg-gold/10',
+    red: 'hover:text-red-400 hover:bg-red-500/10',
+    blue: 'hover:text-blue-400 hover:bg-blue-500/10',
+  };
+
+  return (
+    <button
+      onClick={onClick}
+      title={title}
+      className={`rounded-md p-1.5 text-foreground/45 transition-colors ${hoverStyles[variant]}`}
+    >
+      <Icon size={14} />
+    </button>
+  );
+}
+
 export default function PromoCodesPage() {
   const { addToast } = useToastStore();
   const [codes, setCodes] = useState<PromoCode[]>([]);
@@ -91,62 +140,110 @@ export default function PromoCodesPage() {
   const fmt = (d: string) => new Date(d).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
 
   return (
-    <div className="space-y-6 animate-fade-in-up">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div className="space-y-6">
+      {/* Page Header */}
+      <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-2xl font-bold text-foreground flex items-center gap-2"><Tag size={22} className="text-gold" /> Codes Promo</h1>
-          <p className="text-sm text-foreground/40 mt-0.5">Creez des codes de reduction personnalises et envoyez-les par email aux clients selectionnes.</p>
+          <h1 className="text-xl font-semibold text-foreground">Codes Promo</h1>
+          <p className="text-sm text-foreground/40 mt-0.5">
+            Creez des codes de reduction personnalises et envoyez-les par email aux clients selectionnes.
+          </p>
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={fetchCodes} className="p-2.5 border border-white/10 rounded-xl text-foreground/40 hover:bg-white/5 hover:text-foreground transition-all">
-            <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
+          <button
+            onClick={fetchCodes}
+            className="flex items-center gap-2 border border-white/10 px-3 py-2 rounded-lg text-xs font-medium text-foreground/60 hover:bg-white/[0.06] transition-colors"
+          >
+            <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
+            Actualiser
           </button>
-          <button onClick={openCreate} className="flex items-center gap-2 bg-gold text-black px-4 py-2.5 rounded-xl text-sm font-semibold hover:bg-gold/80 transition-all">
-            <Plus size={16} /> Creer un code promo
+          <button
+            onClick={openCreate}
+            className="flex items-center gap-2 bg-gold text-black px-3.5 py-2 rounded-lg text-xs font-semibold hover:bg-gold/90 transition-colors"
+          >
+            <Plus size={15} /> Creer un code promo
           </button>
         </div>
       </div>
 
-      <div className="bg-gold/5 border border-gold/20 rounded-2xl px-5 py-4 flex items-start gap-3">
-        <CheckCircle size={18} className="text-gold mt-0.5 flex-shrink-0" />
-        <div>
-          <p className="text-sm font-semibold text-gold">Envoi automatique</p>
-          <p className="text-xs text-foreground/60 mt-0.5">A la creation, le backend envoie automatiquement un email et une notification push aux clients autorises selectionnes.</p>
+      {/* Info Notice Panel */}
+      <div className="bg-white/[0.02] border border-white/10 rounded-xl p-4 flex items-start gap-3">
+        <CheckCircle size={16} className="text-gold mt-0.5 shrink-0" />
+        <div className="text-xs">
+          <p className="font-semibold text-gold">Envoi automatique</p>
+          <p className="text-foreground/60 mt-0.5">
+            A la creation, le backend envoie automatiquement un email et une notification push aux clients autorises selectionnes.
+          </p>
         </div>
       </div>
 
-      <div className="bg-white/5 rounded-2xl border border-white/10 shadow-sm overflow-hidden">
+      {/* Table Container */}
+      <div className="rounded-xl border border-white/10 bg-white/[0.02] overflow-hidden">
         {loading ? (
-          <div className="flex flex-col items-center justify-center py-20 gap-3 text-gold"><Loader2 size={32} className="animate-spin" /><p className="text-sm font-medium">Chargement des codes promo...</p></div>
+          <div className="flex items-center justify-center gap-2 py-20 text-xs text-foreground/40">
+            <Loader2 size={16} className="animate-spin text-gold" />
+            <span>Chargement des codes promo...</span>
+          </div>
         ) : codes.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 gap-4 text-foreground/30">
-            <Tag size={48} className="opacity-20" /><p className="text-sm italic">Aucun code promo cree.</p>
-            <button onClick={openCreate} className="px-4 py-2 bg-gold text-black rounded-xl text-sm font-semibold hover:bg-gold/80 transition-all">Creer le premier code</button>
+          <div className="text-center py-12 text-sm italic text-foreground/30">
+            Aucun code promo cree.
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-white/5 border-b border-white/10">
-                <tr>{['Code', 'Reduction', 'Clients autorises', 'Statut', 'Cree le', 'Actions'].map(h => (
-                  <th key={h} className="text-left text-[10px] font-bold text-foreground/40 uppercase tracking-wider px-5 py-3.5 whitespace-nowrap">{h}</th>
-                ))}</tr>
+            <table className="w-full text-xs text-left">
+              <thead className="bg-white/[0.02] border-b border-white/10 text-[10px] font-semibold uppercase tracking-wider text-foreground/35">
+                <tr>
+                  <th className="px-4 py-3">Code</th>
+                  <th className="px-4 py-3">Reduction</th>
+                  <th className="px-4 py-3">Clients autorises</th>
+                  <th className="px-4 py-3">Statut</th>
+                  <th className="px-4 py-3">Cree le</th>
+                  <th className="px-4 py-3 text-right">Actions</th>
+                </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
                 {codes.map(code => (
-                  <tr key={code.id} className="hover:bg-white/[0.03] transition-colors">
-                    <td className="px-5 py-4"><span className="font-mono text-sm font-bold text-gold tracking-widest bg-gold/10 px-3 py-1 rounded-lg border border-gold/20">{code.code}</span></td>
-                    <td className="px-5 py-4"><span className="flex items-center gap-1 text-emerald-400 font-bold text-sm"><Percent size={13} />{Number(code.reduction_pourcentage).toFixed(0)}%</span></td>
-                    <td className="px-5 py-4"><span className="flex items-center gap-1.5 text-sm text-foreground/70"><Users2 size={14} className="text-foreground/40" />{code.clients_autorises?.length > 0 ? `${code.clients_autorises.length} client(s)` : <span className="text-foreground/30 italic">Tous</span>}</span></td>
-                    <td className="px-5 py-4">
-                      <span className={`inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full border ${code.est_actif ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' : 'text-foreground/40 bg-white/5 border-white/10'}`}>
-                        {code.est_actif ? <Eye size={11} /> : <EyeOff size={11} />}{code.est_actif ? 'Actif' : 'Inactif'}
+                  <tr key={code.id} className="hover:bg-white/[0.02] transition-colors">
+                    <td className="px-4 py-3">
+                      <span className="font-mono font-bold text-gold tracking-wider bg-gold/10 px-2 py-0.5 rounded border border-gold/20 text-xs">
+                        {code.code}
                       </span>
                     </td>
-                    <td className="px-5 py-4 text-xs text-foreground/40 whitespace-nowrap">{fmt(code.date_creation)}</td>
-                    <td className="px-5 py-4"><div className="flex items-center gap-2">
-                      <button onClick={() => openEdit(code)} className="p-1.5 rounded-lg hover:bg-white/5 text-foreground/40 hover:text-gold transition-colors"><Edit2 size={15} /></button>
-                      <button onClick={() => handleDelete(code)} className="p-1.5 rounded-lg hover:bg-red-500/10 text-foreground/40 hover:text-red-400 transition-colors"><Trash2 size={15} /></button>
-                    </div></td>
+                    <td className="px-4 py-3 font-semibold text-emerald-400 tabular-nums">
+                      {Number(code.reduction_pourcentage).toFixed(0)}%
+                    </td>
+                    <td className="px-4 py-3 text-foreground/70">
+                      <span className="inline-flex items-center gap-1.5">
+                        <Users2 size={13} className="text-foreground/40" />
+                        {code.clients_autorises?.length > 0 ? (
+                          `${code.clients_autorises.length} client(s)`
+                        ) : (
+                          <span className="text-foreground/30 italic">Tous</span>
+                        )}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <StatusChip active={code.est_actif} />
+                    </td>
+                    <td className="px-4 py-3 text-foreground/40 whitespace-nowrap">
+                      {fmt(code.date_creation)}
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <div className="inline-flex items-center gap-1">
+                        <IconButton
+                          onClick={() => openEdit(code)}
+                          icon={Edit2}
+                          variant="gold"
+                          title="Modifier"
+                        />
+                        <IconButton
+                          onClick={() => handleDelete(code)}
+                          icon={Trash2}
+                          variant="red"
+                          title="Supprimer"
+                        />
+                      </div>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -155,6 +252,7 @@ export default function PromoCodesPage() {
         )}
       </div>
 
+      {/* Untouched Form Modal */}
       <SlideOver
         isOpen={showModal}
         onClose={() => setShowModal(false)}

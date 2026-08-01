@@ -97,7 +97,7 @@ function DiffuseursShopContent() {
   const handleAddToCart = async (product: Product) => {
     try {
       await addDiffuseur(Number(product.id), 1);
-      addToast(`${product.name} ajouté au panier`, 'success');
+      addToast('Added', 'success');
     } catch {
       addToast('Erreur lors de l’ajout au panier', 'error');
     }

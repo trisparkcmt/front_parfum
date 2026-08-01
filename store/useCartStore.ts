@@ -239,7 +239,7 @@ export const useCartStore = create<CartState>()(
             cart: normalizedCart,
             isLoading: false,
           });
-          addToast('Parfum ajouté au panier', 'success');
+          addToast('Added', 'success');
         } catch (error: any) {
           const errorMsg =
             error.response?.data?.detail || 'Erreur lors de l\'ajout du parfum';
@@ -264,7 +264,7 @@ export const useCartStore = create<CartState>()(
             cart: normalizedCart,
             isLoading: false,
           });
-          addToast('Accessoire ajouté au panier', 'success');
+          addToast('Added', 'success');
         } catch (error: any) {
           const errorMsg =
             error.response?.data?.detail || 'Erreur lors de l\'ajout de l\'accessoire';
@@ -289,7 +289,7 @@ export const useCartStore = create<CartState>()(
             cart: normalizedCart,
             isLoading: false,
           });
-          addToast('Diffuseur ajouté au panier', 'success');
+          addToast('Added', 'success');
         } catch (error: any) {
           const errorMsg = extractApiError(error, 'Erreur lors de l\'ajout du diffuseur');
           set({ error: errorMsg, isLoading: false });
@@ -313,7 +313,7 @@ export const useCartStore = create<CartState>()(
             cart: normalizedCart,
             isLoading: false,
           });
-          addToast('Essence ajoutée au panier', 'success');
+          addToast('Added', 'success');
         } catch (error: any) {
           const errorMsg =
             error.response?.data?.detail || 'Erreur lors de l\'ajout de l\'essence';
@@ -340,10 +340,7 @@ export const useCartStore = create<CartState>()(
             isLoading: false,
           });
           if (!options?.silent) {
-            addToast('Parfum personnalisé ajouté au panier', 'success', {
-              href: '/cart',
-              hrefLabel: 'Voir le panier →',
-            });
+            addToast('Added', 'success');
           }
         } catch (error: any) {
           const errorMsg = extractApiError(error, 'Erreur lors de l\'ajout du parfum personnalisé');
@@ -368,10 +365,7 @@ export const useCartStore = create<CartState>()(
             isLoading: false,
           });
           if (!options?.silent) {
-            addToast('Composition ajoutée au panier', 'success', {
-              href: '/cart',
-              hrefLabel: 'Voir le panier →',
-            });
+            addToast('Added', 'success');
           }
         } catch (error: any) {
           const errorMsg = extractApiError(error, 'Erreur lors de l\'ajout de la composition');
@@ -397,7 +391,7 @@ export const useCartStore = create<CartState>()(
             cart: normalizedCart,
             isLoading: false,
           });
-          addToast('Essence personnalisée ajoutée au panier', 'success');
+          addToast('Added', 'success');
         } catch (error: any) {
           const errorMsg =
             error.response?.data?.detail || 'Erreur lors de l\'ajout de l\'essence personnalisée';
@@ -449,7 +443,7 @@ export const useCartStore = create<CartState>()(
             cart: normalizedCart,
             isLoading: false,
           });
-          addToast('Produit supprimé du panier', 'success');
+          addToast('Removed', 'success');
         } catch (error: any) {
           const errorMsg =
             error.response?.data?.detail || 'Erreur lors de la suppression du produit';

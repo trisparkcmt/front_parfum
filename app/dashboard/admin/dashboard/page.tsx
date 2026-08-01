@@ -6,12 +6,67 @@ import { adminService as adminHelpers, type BestClient, type BestProvider } from
 import { useToastStore } from '@/store/useToastStore';
 import {
   Users, Truck, Store, ShoppingBag, Loader2, ArrowUpRight,
-  Crown, Trophy, TrendingUp, Star, ShoppingCart, BarChart3, Globe
+  Crown, Star, ShoppingCart, BarChart3, Globe
 } from 'lucide-react';
 import Link from 'next/link';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend
 } from 'recharts';
+
+function cx(...classes: (string | boolean | undefined)[]) {
+  return classes.filter(Boolean).join(' ');
+}
+
+function StatusChip({ label, color = 'gold' }: { label: string; color?: 'emerald' | 'blue' | 'amber' | 'red' | 'purple' | 'gold' }) {
+  const colorMap = {
+    emerald: 'text-emerald-400 bg-emerald-500/10 ring-emerald-500/20 dot-emerald-400',
+    blue: 'text-blue-400 bg-blue-500/10 ring-blue-500/20 dot-blue-400',
+    amber: 'text-amber-400 bg-amber-500/10 ring-amber-500/20 dot-amber-400',
+    red: 'text-red-400 bg-red-500/10 ring-red-500/20 dot-red-400',
+    purple: 'text-purple-400 bg-purple-500/10 ring-purple-500/20 dot-purple-400',
+    gold: 'text-gold bg-gold/10 ring-gold/20 dot-gold',
+  };
+
+  const dotColorMap = {
+    emerald: 'bg-emerald-400',
+    blue: 'bg-blue-400',
+    amber: 'bg-amber-400',
+    red: 'bg-red-400',
+    purple: 'bg-purple-400',
+    gold: 'bg-gold',
+  };
+
+  return (
+    <span className={cx(
+      'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium ring-1 ring-inset',
+      colorMap[color]
+    )}>
+      <span className={cx('h-1.5 w-1.5 rounded-full', dotColorMap[color])} />
+      {label}
+    </span>
+  );
+}
+
+function IconButton({ href, icon, hoverColor = 'gold' }: { href: string; icon: React.ReactNode; hoverColor?: 'gold' | 'emerald' | 'blue' | 'red' }) {
+  const hoverMap = {
+    gold: 'hover:text-gold hover:bg-gold/10',
+    emerald: 'hover:text-emerald-400 hover:bg-emerald-500/10',
+    blue: 'hover:text-blue-400 hover:bg-blue-500/10',
+    red: 'hover:text-red-400 hover:bg-red-500/10',
+  };
+
+  return (
+    <Link
+      href={href}
+      className={cx(
+        'rounded-md p-1.5 text-foreground/45 transition-colors inline-flex items-center justify-center',
+        hoverMap[hoverColor]
+      )}
+    >
+      {icon}
+    </Link>
+  );
+}
 
 function RankBadge({ rank }: { rank: number }) {
   if (rank === 1) return <Crown size={14} className="text-gold" />;
@@ -97,173 +152,173 @@ export default function AdminDashboardPage() {
 
   return (
     <div className="space-y-6">
-      {/* ── KPI Cards ─────────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {loading
-          ? Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="h-32 bg-white/5 rounded-2xl border border-white/10 animate-pulse" />
-            ))
-          : [
-              { label: 'Utilisateurs',  value: dashboardData.totalUsers,           icon: <Users size={20} />,       color: 'text-blue-400 bg-blue-500/10',    href: '/dashboard/admin/clients' },
-              { label: 'Prestataires',  value: dashboardData.totalProviders,        icon: <Store size={20} />,       color: 'text-gold bg-gold/10',            href: '/dashboard/admin/providers' },
-              { label: 'Livreurs',      value: dashboardData.totalDeliveryDrivers,  icon: <Truck size={20} />,       color: 'text-emerald-400 bg-emerald-500/10', href: '/dashboard/admin/delivery' },
-              { label: 'Commandes',     value: dashboardData.totalOrders,           icon: <ShoppingBag size={20} />, color: 'text-purple-400 bg-purple-500/10', href: '/dashboard/admin/order' },
-            ].map((stat) => (
-              <Link
-                key={stat.label}
-                href={stat.href}
-                className="bg-white/5 rounded-2xl border border-white/10 p-5 shadow-sm group hover:border-gold/30 transition-all block"
-              >
-                <div className="flex items-center justify-between mb-3">
-                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${stat.color}`}>
-                    {stat.icon}
-                  </div>
-                  <ArrowUpRight size={14} className="text-foreground/20 group-hover:text-gold transition-colors" />
+      {/* ── Page Header ─────────────────────────────────────────────────── */}
+      <div className="border-b border-white/10 pb-4">
+        <h1 className="text-xl font-semibold text-foreground">Vue d'ensemble</h1>
+        <p className="text-sm text-foreground/40 mt-0.5">
+          Suivi des indicateurs clés, classements et données d'audience
+        </p>
+      </div>
+
+      {/* ── KPI Stat Strip ─────────────────────────────────────────────────── */}
+      <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
+        {loading ? (
+          <div className="flex items-center justify-center py-6 text-gold">
+            <Loader2 className="animate-spin" size={20} />
+            <span className="text-xs text-foreground/40 ml-2">Chargement des indicateurs...</span>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 lg:grid-cols-4 divide-y lg:divide-y-0 lg:divide-x divide-white/8 gap-y-4 lg:gap-y-0">
+            {[
+              { label: 'Utilisateurs', value: dashboardData.totalUsers, href: '/dashboard/admin/clients' },
+              { label: 'Prestataires', value: dashboardData.totalProviders, href: '/dashboard/admin/providers' },
+              { label: 'Livreurs', value: dashboardData.totalDeliveryDrivers, href: '/dashboard/admin/delivery' },
+              { label: 'Commandes', value: dashboardData.totalOrders, href: '/dashboard/admin/order' },
+            ].map((stat, index) => (
+              <div key={stat.label} className={cx('px-4', index === 0 && 'pl-0 lg:pl-0', index > 0 && 'pt-4 lg:pt-0')}>
+                <div className="flex items-center justify-between">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-foreground/35">{stat.label}</p>
+                  <IconButton href={stat.href} icon={<ArrowUpRight size={14} />} hoverColor="gold" />
                 </div>
-                <p className="text-2xl font-bold text-foreground">{stat.value}</p>
-                <p className="text-xs text-foreground/40 mt-0.5">{stat.label}</p>
-              </Link>
-            ))
-        }
+                <p className="text-xl font-semibold tabular-nums text-foreground mt-1">{stat.value.toLocaleString()}</p>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* ── Top 5 Clients + Top 5 Prestataires ────────────────────────────── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
-        {/* Top 5 Clients */}
-        <div className="bg-white/5 rounded-2xl border border-white/10 shadow-sm overflow-hidden">
-          <div className="flex items-center justify-between px-5 py-4 border-b border-white/10">
-            <div className="flex items-center gap-2">
-              <Trophy size={16} className="text-gold" />
-              <h2 className="text-sm font-bold text-foreground">Top 5 Clients</h2>
+        {/* Top 5 Clients Table Container */}
+        <div className="rounded-xl border border-white/10 bg-white/[0.02] overflow-hidden flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between px-4 py-3 border-b border-white/10 bg-white/[0.02]">
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-foreground/35">
+                Top 5 Clients
+              </span>
+              <IconButton href="/dashboard/admin/clients" icon={<ArrowUpRight size={14} />} hoverColor="gold" />
             </div>
-            <Link
-              href="/dashboard/admin/clients"
-              className="flex items-center gap-1 text-xs text-foreground/40 hover:text-gold transition-colors"
-            >
-              Voir tout <ArrowUpRight size={12} />
-            </Link>
-          </div>
 
-          {loading ? (
-            <div className="flex items-center justify-center py-12 text-gold">
-              <Loader2 className="animate-spin" size={24} />
-            </div>
-          ) : topClients.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 text-foreground/20 gap-2">
-              <Users size={32} />
-              <p className="text-xs italic">Aucune donnée disponible</p>
-            </div>
-          ) : (
-            <div className="divide-y divide-white/5">
-              {topClients.map((client, i) => (
-                <div key={client.id} className="flex items-center gap-3 px-5 py-3 hover:bg-white/[0.03] transition-colors">
-                  <div className="w-6 flex items-center justify-center shrink-0">
-                    <RankBadge rank={i + 1} />
+            {loading ? (
+              <div className="flex items-center justify-center py-12 text-gold">
+                <Loader2 className="animate-spin" size={20} />
+                <span className="text-xs text-foreground/40 ml-2">Chargement...</span>
+              </div>
+            ) : topClients.length === 0 ? (
+              <div className="py-12 text-center text-sm italic text-foreground/30">
+                Aucune donnée disponible
+              </div>
+            ) : (
+              <div className="divide-y divide-white/5">
+                {topClients.map((client, i) => (
+                  <div key={client.id} className="flex items-center gap-3 px-4 py-3 hover:bg-white/[0.02] transition-colors">
+                    <div className="w-6 flex items-center justify-center shrink-0">
+                      <RankBadge rank={i + 1} />
+                    </div>
+                    <div className="w-7 h-7 rounded-full bg-gold/10 border border-gold/20 flex items-center justify-center text-gold text-xs font-semibold shrink-0">
+                      {(client.user_details?.first_name || 'U').charAt(0).toUpperCase()}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-medium text-foreground truncate">
+                        {client.user_details?.first_name} {client.user_details?.last_name}
+                      </p>
+                      <p className="text-[10px] text-foreground/40 truncate">{client.user_details?.email}</p>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <p className="text-xs font-semibold tabular-nums text-gold">{(client.points_fidelite ?? 0).toLocaleString()}</p>
+                      <p className="text-[10px] text-foreground/35 uppercase tracking-wider">pts</p>
+                    </div>
                   </div>
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-gold/30 to-gold-dark/30 flex items-center justify-center text-gold text-xs font-bold shrink-0">
-                    {(client.user_details?.first_name || 'U').charAt(0).toUpperCase()}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-foreground truncate">
-                      {client.user_details?.first_name} {client.user_details?.last_name}
-                    </p>
-                    <p className="text-[10px] text-foreground/40 truncate">{client.user_details?.email}</p>
-                  </div>
-                  <div className="text-right shrink-0">
-                    <p className="text-sm font-bold text-gold">{(client.points_fidelite ?? 0).toLocaleString()}</p>
-                    <p className="text-[10px] text-foreground/40">pts</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* Top 5 Prestataires */}
-        <div className="bg-white/5 rounded-2xl border border-white/10 shadow-sm overflow-hidden">
-          <div className="flex items-center justify-between px-5 py-4 border-b border-white/10">
-            <div className="flex items-center gap-2">
-              <TrendingUp size={16} className="text-emerald-400" />
-              <h2 className="text-sm font-bold text-foreground">Top 5 Prestataires</h2>
+        {/* Top 5 Prestataires Table Container */}
+        <div className="rounded-xl border border-white/10 bg-white/[0.02] overflow-hidden flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between px-4 py-3 border-b border-white/10 bg-white/[0.02]">
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-foreground/35">
+                Top 5 Prestataires
+              </span>
+              <IconButton href="/dashboard/admin/providers" icon={<ArrowUpRight size={14} />} hoverColor="emerald" />
             </div>
-            <Link
-              href="/dashboard/admin/providers"
-              className="flex items-center gap-1 text-xs text-foreground/40 hover:text-emerald-400 transition-colors"
-            >
-              Voir tout <ArrowUpRight size={12} />
-            </Link>
-          </div>
 
-          {loading ? (
-            <div className="flex items-center justify-center py-12 text-gold">
-              <Loader2 className="animate-spin" size={24} />
-            </div>
-          ) : topProviders.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 text-foreground/20 gap-2">
-              <Store size={32} />
-              <p className="text-xs italic">Aucune donnée disponible</p>
-            </div>
-          ) : (
-            <div className="divide-y divide-white/5">
-              {topProviders.map((provider, i) => (
-                <div key={provider.id} className="flex items-center gap-3 px-5 py-3 hover:bg-white/[0.03] transition-colors">
-                  <div className="w-6 flex items-center justify-center shrink-0">
-                    <RankBadge rank={i + 1} />
+            {loading ? (
+              <div className="flex items-center justify-center py-12 text-gold">
+                <Loader2 className="animate-spin" size={20} />
+                <span className="text-xs text-foreground/40 ml-2">Chargement...</span>
+              </div>
+            ) : topProviders.length === 0 ? (
+              <div className="py-12 text-center text-sm italic text-foreground/30">
+                Aucune donnée disponible
+              </div>
+            ) : (
+              <div className="divide-y divide-white/5">
+                {topProviders.map((provider, i) => (
+                  <div key={provider.id} className="flex items-center gap-3 px-4 py-3 hover:bg-white/[0.02] transition-colors">
+                    <div className="w-6 flex items-center justify-center shrink-0">
+                      <RankBadge rank={i + 1} />
+                    </div>
+                    <div className="w-7 h-7 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 text-xs font-semibold shrink-0">
+                      {(provider.user_details?.first_name || 'P').charAt(0).toUpperCase()}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-medium text-foreground truncate">
+                        {provider.user_details?.first_name} {provider.user_details?.last_name}
+                      </p>
+                      <p className="text-[10px] font-mono text-foreground/40">{provider.code_promo}</p>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <p className="text-xs font-semibold tabular-nums text-emerald-400">
+                        {Number(provider.solde_commission).toLocaleString('fr-FR')}
+                      </p>
+                      <p className="text-[10px] text-foreground/35 uppercase tracking-wider">FCFA</p>
+                    </div>
                   </div>
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-500/30 to-emerald-700/30 flex items-center justify-center text-emerald-400 text-xs font-bold shrink-0">
-                    {(provider.user_details?.first_name || 'P').charAt(0).toUpperCase()}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-foreground truncate">
-                      {provider.user_details?.first_name} {provider.user_details?.last_name}
-                    </p>
-                    <p className="text-[10px] font-mono text-foreground/40">{provider.code_promo}</p>
-                  </div>
-                  <div className="text-right shrink-0">
-                    <p className="text-sm font-bold text-emerald-400">
-                      {Number(provider.solde_commission).toLocaleString('fr-FR')}
-                    </p>
-                    <p className="text-[10px] text-foreground/40">FCFA</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
       {/* ── Google Analytics 4 Section ─────────────────────────────────── */}
-      <div className="bg-white/5 rounded-2xl border border-white/10 shadow-sm overflow-hidden">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between px-5 py-4 border-b border-white/10 gap-3">
-          <div className="flex items-center gap-2">
+      <div className="rounded-xl border border-white/10 bg-white/[0.02] overflow-hidden">
+        {/* Header & Quiet Underline Navigation Tabs */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between px-5 pt-4 border-b border-white/10 gap-3">
+          <div className="flex items-center gap-2 pb-3 sm:pb-4">
             <BarChart3 size={16} className="text-gold" />
-            <h2 className="text-sm font-bold text-foreground">Analyses d'Audience (Google Analytics 4)</h2>
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-foreground">
+              Analyses d'Audience (GA4)
+            </h2>
             {isMockAnalytics && (
-              <span className="text-[10px] bg-gold/10 border border-gold/30 text-gold px-2 py-0.5 rounded-full font-medium">
-                Mode Démo
-              </span>
+              <StatusChip label="Mode Démo" color="gold" />
             )}
           </div>
-          
-          <div className="flex gap-2">
+
+          <div className="flex gap-6 border-b border-white/10 sm:border-b-0 -mb-px sm:mb-0">
             <button
               onClick={() => setActiveAnalyticsTab('custom')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all cursor-pointer ${
+              className={cx(
+                "pb-3 text-xs font-medium transition-colors border-b-2 -mb-px cursor-pointer",
                 activeAnalyticsTab === 'custom'
-                  ? 'bg-gold/10 border-gold/40 text-gold'
-                  : 'bg-white/5 border-white/10 text-foreground/70 hover:text-foreground'
-              }`}
+                  ? "border-gold text-gold font-semibold"
+                  : "border-transparent text-foreground/45 hover:text-foreground"
+              )}
             >
               Graphique personnalisé
             </button>
             <button
               onClick={() => setActiveAnalyticsTab('looker')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all cursor-pointer ${
+              className={cx(
+                "pb-3 text-xs font-medium transition-colors border-b-2 -mb-px cursor-pointer",
                 activeAnalyticsTab === 'looker'
-                  ? 'bg-gold/10 border-gold/40 text-gold'
-                  : 'bg-white/5 border-white/10 text-foreground/70 hover:text-foreground'
-              }`}
+                  ? "border-gold text-gold font-semibold"
+                  : "border-transparent text-foreground/45 hover:text-foreground"
+              )}
             >
               Looker Studio Embed
             </button>
@@ -272,34 +327,41 @@ export default function AdminDashboardPage() {
 
         <div className="p-5">
           {loading ? (
-            <div className="flex items-center justify-center py-24 text-gold">
-              <Loader2 className="animate-spin" size={24} />
+            <div className="flex items-center justify-center py-20 text-gold">
+              <Loader2 className="animate-spin" size={20} />
+              <span className="text-xs text-foreground/40 ml-2">Chargement de l'analyse...</span>
             </div>
           ) : activeAnalyticsTab === 'custom' ? (
             <div>
               {analyticsData.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-16 text-foreground/20 gap-2">
-                  <BarChart3 size={32} />
-                  <p className="text-xs italic">Aucune donnée d'analyse disponible</p>
+                <div className="py-16 text-center text-sm italic text-foreground/30">
+                  Aucune donnée d'analyse disponible
                 </div>
               ) : (
                 <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4 max-w-sm mb-2">
-                    <div className="bg-white/[0.02] border border-white/5 rounded-xl p-3">
-                      <p className="text-[10px] text-foreground/40 uppercase tracking-wider font-semibold">Total Utilisateurs (7j)</p>
-                      <p className="text-xl font-bold text-foreground">
-                        {analyticsData.reduce((acc, cur) => acc + cur.users, 0).toLocaleString()}
-                      </p>
-                    </div>
-                    <div className="bg-white/[0.02] border border-white/5 rounded-xl p-3">
-                      <p className="text-[10px] text-foreground/40 uppercase tracking-wider font-semibold">Total Vues de Page (7j)</p>
-                      <p className="text-xl font-bold text-gold">
-                        {analyticsData.reduce((acc, cur) => acc + cur.views, 0).toLocaleString()}
-                      </p>
+                  {/* Stats Sub-strip */}
+                  <div className="rounded-xl border border-white/10 bg-white/[0.02] p-3 max-w-sm">
+                    <div className="grid grid-cols-2 divide-x divide-white/8">
+                      <div className="pr-3">
+                        <p className="text-[10px] font-semibold uppercase tracking-wider text-foreground/35">
+                          Utilisateurs (7j)
+                        </p>
+                        <p className="text-xl font-semibold tabular-nums text-foreground mt-0.5">
+                          {analyticsData.reduce((acc, cur) => acc + cur.users, 0).toLocaleString()}
+                        </p>
+                      </div>
+                      <div className="pl-3">
+                        <p className="text-[10px] font-semibold uppercase tracking-wider text-foreground/35">
+                          Vues de Page (7j)
+                        </p>
+                        <p className="text-xl font-semibold tabular-nums text-gold mt-0.5">
+                          {analyticsData.reduce((acc, cur) => acc + cur.views, 0).toLocaleString()}
+                        </p>
+                      </div>
                     </div>
                   </div>
 
-                  <div className="h-[300px] w-full mt-4">
+                  <div className="h-[280px] w-full pt-2">
                     <ResponsiveContainer width="100%" height="100%">
                       <AreaChart
                         data={analyticsData}
@@ -307,27 +369,28 @@ export default function AdminDashboardPage() {
                       >
                         <defs>
                           <linearGradient id="colorUsers" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#C5A059" stopOpacity={0.2}/>
+                            <stop offset="5%" stopColor="#C5A059" stopOpacity={0.15}/>
                             <stop offset="95%" stopColor="#C5A059" stopOpacity={0}/>
                           </linearGradient>
                           <linearGradient id="colorViews" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.2}/>
+                            <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.15}/>
                             <stop offset="95%" stopColor="#3B82F6" stopOpacity={0}/>
                           </linearGradient>
                         </defs>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#222" vertical={false} />
+                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
                         <XAxis
                           dataKey="date"
                           tickFormatter={formatDateLabel}
-                          stroke="#666"
+                          stroke="rgba(255,255,255,0.4)"
                           fontSize={11}
+                          axisLine={false}
                           tickLine={false}
                         />
-                        <YAxis stroke="#666" fontSize={11} tickLine={false} />
+                        <YAxis stroke="rgba(255,255,255,0.4)" fontSize={11} axisLine={false} tickLine={false} />
                         <Tooltip
                           contentStyle={{
-                            backgroundColor: '#111',
-                            borderColor: '#333',
+                            backgroundColor: 'var(--background)',
+                            border: '1px solid rgba(255,255,255,0.1)',
                             borderRadius: '8px',
                             color: '#fff',
                             fontSize: '12px'
@@ -360,7 +423,7 @@ export default function AdminDashboardPage() {
               )}
             </div>
           ) : (
-            <div className="relative w-full overflow-hidden rounded-xl border border-white/5 bg-[#111] aspect-[16/10] lg:aspect-[16/9]">
+            <div className="relative w-full overflow-hidden rounded-xl border border-white/10 bg-background aspect-[16/10] lg:aspect-[16/9]">
               <iframe
                 width="100%"
                 height="100%"

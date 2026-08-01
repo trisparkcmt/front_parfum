@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   FlaskConical, Package, Layers, Plus, Edit2, Trash2,
-  Loader2, Search, RefreshCw, AlertTriangle, CheckCircle2
+  Loader2, Search, RefreshCw, AlertTriangle, Filter, X
 } from 'lucide-react';
 import { labService } from '@/services/apiService';
 import { useToastStore } from '@/store/useToastStore';
@@ -12,6 +12,113 @@ import CatalogAccessNotice from '@/components/catalog/CatalogAccessNotice';
 import { extractCatalogList } from '@/lib/catalogUtils';
 import { extractApiError } from '@/lib/apiError';
 import { SlideOver } from '@/components/ui/SlideOver';
+
+// --- Shared Helpers & Primitives ---
+
+function cx(...classes: (string | boolean | undefined | null)[]) {
+  return classes.filter(Boolean).join(' ');
+}
+
+type StatusType = 'emerald' | 'blue' | 'amber' | 'red' | 'purple' | 'neutral';
+
+function StatusChip({
+  status,
+  label,
+}: {
+  status: StatusType;
+  label: string;
+}) {
+  const styles: Record<StatusType, { text: string; bg: string; ring: string; dot: string }> = {
+    emerald: {
+      text: 'text-emerald-400',
+      bg: 'bg-emerald-500/10',
+      ring: 'ring-emerald-500/20',
+      dot: 'bg-emerald-400',
+    },
+    blue: {
+      text: 'text-blue-400',
+      bg: 'bg-blue-500/10',
+      ring: 'ring-blue-500/20',
+      dot: 'bg-blue-400',
+    },
+    amber: {
+      text: 'text-amber-400',
+      bg: 'bg-amber-500/10',
+      ring: 'ring-amber-500/20',
+      dot: 'bg-amber-400',
+    },
+    red: {
+      text: 'text-red-400',
+      bg: 'bg-red-500/10',
+      ring: 'ring-red-500/20',
+      dot: 'bg-red-400',
+    },
+    purple: {
+      text: 'text-purple-400',
+      bg: 'bg-purple-500/10',
+      ring: 'ring-purple-500/20',
+      dot: 'bg-purple-400',
+    },
+    neutral: {
+      text: 'text-foreground/60',
+      bg: 'bg-white/5',
+      ring: 'ring-white/10',
+      dot: 'bg-foreground/40',
+    },
+  };
+
+  const current = styles[status] || styles.blue;
+
+  return (
+    <span
+      className={cx(
+        'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium ring-1 ring-inset',
+        current.text,
+        current.bg,
+        current.ring
+      )}
+    >
+      <span className={cx('h-1.5 w-1.5 rounded-full shrink-0', current.dot)} />
+      {label}
+    </span>
+  );
+}
+
+function IconButton({
+  icon: Icon,
+  onClick,
+  title,
+  tint = 'neutral',
+  disabled = false,
+}: {
+  icon: any;
+  onClick?: () => void;
+  title?: string;
+  tint?: 'gold' | 'red' | 'blue' | 'emerald' | 'neutral';
+  disabled?: boolean;
+}) {
+  const tintStyles = {
+    gold: 'hover:text-gold hover:bg-gold/10',
+    red: 'hover:text-red-400 hover:bg-red-500/10',
+    blue: 'hover:text-blue-400 hover:bg-blue-500/10',
+    emerald: 'hover:text-emerald-400 hover:bg-emerald-500/10',
+    neutral: 'hover:text-foreground hover:bg-white/10',
+  };
+
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className={cx(
+        'rounded-md p-1.5 text-foreground/45 transition-colors disabled:opacity-40 inline-flex items-center justify-center',
+        tintStyles[tint]
+      )}
+      title={title}
+    >
+      <Icon size={14} />
+    </button>
+  );
+}
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -26,16 +133,20 @@ function TabButton({ active, onClick, icon, label, count }: {
   return (
     <button
       onClick={onClick}
-      className={`flex items-center gap-2 px-4 py-3 text-xs font-bold uppercase tracking-wider border-b-2 transition-all duration-200 whitespace-nowrap
-        ${active
-          ? 'border-gold text-gold bg-white/5'
-          : 'border-transparent text-foreground/40 hover:text-foreground/80 hover:border-white/20'
-        }`}
+      className={cx(
+        'flex items-center gap-2 px-4 py-3 text-xs font-semibold border-b-2 transition-all whitespace-nowrap',
+        active
+          ? 'border-gold text-gold'
+          : 'border-transparent text-foreground/45 hover:text-foreground'
+      )}
     >
       {icon}
-      {label}
+      <span>{label}</span>
       {count !== undefined && (
-        <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold ${active ? 'bg-gold/20 text-gold' : 'bg-white/5 text-foreground/40'}`}>
+        <span className={cx(
+          'text-[10px] px-1.5 py-0.5 rounded-full font-bold',
+          active ? 'bg-gold/20 text-gold' : 'bg-white/5 text-foreground/40'
+        )}>
           {count}
         </span>
       )}
@@ -153,90 +264,101 @@ function IngredientsTab() {
   }
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       <CatalogAccessNotice permissions={permissions} resourceLabel="les ingrédients" />
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 max-w-sm flex-1">
-          <Search size={15} className="text-foreground/40" />
+        <div className="relative flex-1 max-w-sm">
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-foreground/40" />
           <input
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Rechercher un ingrédient..."
-            className="text-sm bg-transparent outline-none flex-1 text-foreground placeholder:text-foreground/40"
+            className="w-full bg-white/[0.02] border border-white/10 rounded-lg pl-9 pr-8 py-1.5 text-xs text-foreground placeholder:text-foreground/40 outline-none focus:border-white/20 transition-all"
           />
+          {search && (
+            <button onClick={() => setSearch('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-foreground/40 hover:text-foreground">
+              <X size={12} />
+            </button>
+          )}
         </div>
-        <div className="flex gap-2">
-          <button onClick={fetchItems} className="p-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 text-foreground/60 hover:text-foreground transition-all">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={fetchItems}
+            className="border border-white/10 rounded-lg p-1.5 text-foreground/60 hover:bg-white/5 hover:text-foreground transition-colors"
+            title="Rafraîchir"
+          >
             <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
           </button>
           {permissions.canCreate && (
-            <button onClick={openAdd} className="flex items-center gap-2 bg-gold text-black px-4 py-2.5 rounded-xl text-sm font-bold hover:bg-gold/80 transition-all shadow-lg shadow-gold/10">
-              <Plus size={15} /> Ajouter
+            <button
+              onClick={openAdd}
+              className="bg-gold text-black rounded-lg px-3.5 py-2 text-xs font-semibold hover:bg-gold/80 transition-colors flex items-center gap-1.5"
+            >
+              <Plus size={14} />
+              <span>Ajouter</span>
             </button>
           )}
         </div>
       </div>
 
-      <div className="bg-white/5 rounded-2xl border border-white/10 overflow-hidden min-h-[200px]">
+      <div className="rounded-xl border border-white/10 bg-white/[0.02] overflow-hidden min-h-[200px]">
         {loading ? (
-          <div className="flex items-center justify-center py-16 text-gold gap-2">
-            <Loader2 className="animate-spin" size={24} />
-            <span className="text-sm">Chargement...</span>
+          <div className="flex items-center justify-center py-16 text-foreground/40 gap-2 text-xs">
+            <Loader2 className="animate-spin text-gold" size={16} />
+            <span>Chargement...</span>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="border-b border-white/10 bg-white/5">
-                  {['Ingrédient', 'Prix / ml', 'Stock (ml)', 'Seuil alerte', 'Actif', 'Actions'].map(h => (
-                    <th key={h} className="px-5 py-3.5 text-xs font-semibold text-foreground/40 uppercase tracking-wider">{h}</th>
-                  ))}
+                <tr className="bg-white/[0.02] border-b border-white/10 text-[10px] font-semibold uppercase tracking-wider text-foreground/35">
+                  <th className="pl-4 py-3">Ingrédient</th>
+                  <th className="px-3 py-3">Prix / ml</th>
+                  <th className="px-3 py-3">Stock (ml)</th>
+                  <th className="px-3 py-3">Seuil alerte</th>
+                  <th className="px-3 py-3">Actif</th>
+                  <th className="pr-4 py-3 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-white/5">
-                {items.map(item => (
-                  <tr key={item.id} className="hover:bg-white/5 transition-colors">
-                    <td className="px-5 py-3">
-                      <p className="font-semibold text-foreground text-sm">{item.nom}</p>
-                      {item.description && <p className="text-[11px] text-foreground/40 mt-0.5 truncate max-w-[200px]">{item.description}</p>}
-                    </td>
-                    <td className="px-5 py-3 font-mono text-xs text-foreground/60">{Number(item.prix_par_ml || 0).toLocaleString()} FCFA</td>
-                    <td className="px-5 py-3">
-                      <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${Number(item.stock_ml ?? item.stock_disponible) > 50
-                          ? 'bg-emerald-500/10 text-emerald-400'
-                          : Number(item.stock_ml ?? item.stock_disponible) > 10
-                            ? 'bg-amber-500/10 text-amber-400'
-                            : 'bg-red-500/10 text-red-400'
-                        }`}>
-                        {item.stock_ml ?? item.stock_disponible ?? '—'} ml
-                      </span>
-                    </td>
-                    <td className="px-5 py-3 text-sm text-foreground/60">{item.seuil_alerte_ml ?? '—'} ml</td>
-                    <td className="px-5 py-3">
-                      {item.actif
-                        ? <CheckCircle2 size={15} className="text-emerald-400" />
-                        : <AlertTriangle size={15} className="text-red-400" />
-                      }
-                    </td>
-                    <td className="px-5 py-3">
-                      <div className="flex gap-1.5">
-                        {permissions.canUpdate && (
-                          <button onClick={() => openEdit(item)} className="p-1.5 rounded-lg hover:bg-white/5 text-foreground/40 hover:text-gold transition-colors">
-                            <Edit2 size={14} />
-                          </button>
-                        )}
-                        {permissions.canDelete && (
-                          <button onClick={() => handleDelete(item.id)} className="p-1.5 rounded-lg hover:bg-red-500/10 text-foreground/40 hover:text-red-400 transition-colors">
-                            <Trash2 size={14} />
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+              <tbody className="divide-y divide-white/5 text-xs">
+                {items.map(item => {
+                  const stockVal = Number(item.stock_ml ?? item.stock_disponible ?? 0);
+                  const statusType: StatusType = stockVal > 50 ? 'emerald' : stockVal > 10 ? 'amber' : 'red';
+                  return (
+                    <tr key={item.id} className="hover:bg-white/[0.02] transition-colors">
+                      <td className="pl-4 py-3">
+                        <p className="font-medium text-foreground">{item.nom}</p>
+                        {item.description && <p className="text-[11px] text-foreground/40 truncate max-w-[200px] mt-0.5">{item.description}</p>}
+                      </td>
+                      <td className="px-3 py-3 text-foreground/60 tabular-nums">{Number(item.prix_par_ml || 0).toLocaleString()} FCFA</td>
+                      <td className="px-3 py-3">
+                        <StatusChip status={statusType} label={`${stockVal} ml`} />
+                      </td>
+                      <td className="px-3 py-3 text-foreground/60 tabular-nums">{item.seuil_alerte_ml ?? '—'} ml</td>
+                      <td className="px-3 py-3">
+                        <StatusChip
+                          status={item.actif ? 'emerald' : 'red'}
+                          label={item.actif ? 'Oui' : 'Non'}
+                        />
+                      </td>
+                      <td className="pr-4 py-3 text-right">
+                        <div className="flex items-center justify-end gap-0.5">
+                          {permissions.canUpdate && (
+                            <IconButton icon={Edit2} onClick={() => openEdit(item)} title="Modifier" tint="gold" />
+                          )}
+                          {permissions.canDelete && (
+                            <IconButton icon={Trash2} onClick={() => handleDelete(item.id)} title="Supprimer" tint="red" />
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
                 {items.length === 0 && (
                   <tr>
-                    <td colSpan={6} className="text-center py-16 text-foreground/40 italic text-sm">Aucun ingrédient trouvé.</td>
+                    <td colSpan={6} className="py-16 text-center text-sm italic text-foreground/30">
+                      Aucun ingrédient trouvé.
+                    </td>
                   </tr>
                 )}
               </tbody>
@@ -320,6 +442,7 @@ function LotsTab() {
   const [loading, setLoading] = useState(true);
   const [essenceFilter, setEssenceFilter] = useState('');
   const [actifFilter, setActifFilter] = useState('');
+  const [showFilters, setShowFilters] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState<any | null>(null);
   const [saving, setSaving] = useState(false);
@@ -436,63 +559,129 @@ function LotsTab() {
     }
   };
 
+  const activeFiltersCount = useMemo(() => {
+    let count = 0;
+    if (essenceFilter) count++;
+    if (actifFilter) count++;
+    return count;
+  }, [essenceFilter, actifFilter]);
+
   if (!permissions.canRead) {
     return <CatalogAccessNotice permissions={permissions} resourceLabel="les lots d'essence" />;
   }
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       <CatalogAccessNotice permissions={permissions} resourceLabel="les lots d'essence" />
-      <div className="flex flex-wrap justify-between items-center gap-3">
-        <div className="flex flex-wrap gap-2">
-          <select
-            value={essenceFilter}
-            onChange={e => setEssenceFilter(e.target.value)}
-            className="text-sm bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-foreground outline-none focus:border-gold"
+      
+      {/* Toolbar & Filters */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between gap-2">
+          <button
+            onClick={() => setShowFilters(!showFilters)}
+            className={cx(
+              'flex items-center gap-1.5 rounded-lg border border-white/10 px-3 py-1.5 text-xs font-medium transition-colors',
+              showFilters || activeFiltersCount > 0
+                ? 'bg-white/10 text-foreground'
+                : 'text-foreground/60 hover:bg-white/5'
+            )}
           >
-            <option value="">Toutes les essences</option>
-            {essences.map(e => (
-              <option key={e.id} value={e.id}>{e.nom}</option>
-            ))}
-          </select>
-          <select
-            value={actifFilter}
-            onChange={e => setActifFilter(e.target.value)}
-            className="text-sm bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-foreground outline-none focus:border-gold"
-          >
-            <option value="">Tous les statuts</option>
-            <option value="true">Actifs</option>
-            <option value="false">Inactifs</option>
-          </select>
-        </div>
-        <div className="flex gap-2">
-          <button onClick={fetchItems} className="p-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 text-foreground/60 hover:text-foreground transition-all">
-            <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
+            <Filter size={13} />
+            <span>Filtres</span>
+            {activeFiltersCount > 0 && (
+              <span className="ml-0.5 rounded-full bg-gold px-1.5 py-0.2 text-[10px] font-bold text-black">
+                {activeFiltersCount}
+              </span>
+            )}
           </button>
-          {permissions.canCreate && (
-            <button onClick={openAdd} className="flex items-center gap-2 bg-gold text-black px-4 py-2.5 rounded-xl text-sm font-bold hover:bg-gold/80 transition-all shadow-lg shadow-gold/10">
-              <Plus size={15} /> Nouveau lot
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={fetchItems}
+              className="border border-white/10 rounded-lg p-1.5 text-foreground/60 hover:bg-white/5 hover:text-foreground transition-colors"
+              title="Rafraîchir"
+            >
+              <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
             </button>
-          )}
+            {permissions.canCreate && (
+              <button
+                onClick={openAdd}
+                className="bg-gold text-black rounded-lg px-3.5 py-2 text-xs font-semibold hover:bg-gold/80 transition-colors flex items-center gap-1.5"
+              >
+                <Plus size={14} />
+                <span>Nouveau lot</span>
+              </button>
+            )}
+          </div>
         </div>
+
+        {/* Filter Panel */}
+        {showFilters && (
+          <div className="rounded-xl border border-white/10 bg-white/[0.02] p-3 flex flex-wrap items-center gap-4">
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-foreground/50">Essence :</span>
+              <select
+                value={essenceFilter}
+                onChange={e => setEssenceFilter(e.target.value)}
+                className="text-xs bg-white/5 border border-white/10 rounded-lg px-2.5 py-1 text-foreground outline-none focus:border-white/20"
+              >
+                <option value="" className="bg-background text-foreground">Toutes les essences</option>
+                {essences.map(e => (
+                  <option key={e.id} value={e.id} className="bg-background text-foreground">{e.nom}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-foreground/50">Statut :</span>
+              <select
+                value={actifFilter}
+                onChange={e => setActifFilter(e.target.value)}
+                className="text-xs bg-white/5 border border-white/10 rounded-lg px-2.5 py-1 text-foreground outline-none focus:border-white/20"
+              >
+                <option value="" className="bg-background text-foreground">Tous les statuts</option>
+                <option value="true" className="bg-background text-foreground">Actifs</option>
+                <option value="false" className="bg-background text-foreground">Inactifs</option>
+              </select>
+            </div>
+
+            {activeFiltersCount > 0 && (
+              <button
+                onClick={() => {
+                  setEssenceFilter('');
+                  setActifFilter('');
+                }}
+                className="text-[11px] text-foreground/40 hover:text-foreground underline ml-auto"
+              >
+                Réinitialiser
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
-      <div className="bg-white/5 rounded-2xl border border-white/10 overflow-hidden min-h-[200px]">
+      <div className="rounded-xl border border-white/10 bg-white/[0.02] overflow-hidden min-h-[200px]">
         {loading ? (
-          <div className="flex items-center justify-center py-16 text-gold gap-2">
-            <Loader2 className="animate-spin" size={24} />
+          <div className="flex items-center justify-center py-16 text-foreground/40 gap-2 text-xs">
+            <Loader2 className="animate-spin text-gold" size={16} />
+            <span>Chargement...</span>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="border-b border-white/10 bg-white/5">
-                  {['Réf. / Lot', 'Essence', 'Stock Restant (ml)', 'Coût d\'Achat Total', 'CA Généré', 'Bénéfice Lot', 'Statut', 'Actions'].map(h => (
-                    <th key={h} className="px-4 py-3.5 text-xs font-semibold text-foreground/40 uppercase tracking-wider">{h}</th>
-                  ))}
+                <tr className="bg-white/[0.02] border-b border-white/10 text-[10px] font-semibold uppercase tracking-wider text-foreground/35">
+                  <th className="pl-4 py-3">Réf. / Lot</th>
+                  <th className="px-3 py-3">Essence</th>
+                  <th className="px-3 py-3">Stock Restant (ml)</th>
+                  <th className="px-3 py-3">Coût d'Achat Total</th>
+                  <th className="px-3 py-3">CA Généré</th>
+                  <th className="px-3 py-3">Bénéfice Lot</th>
+                  <th className="px-3 py-3">Statut</th>
+                  <th className="pr-4 py-3 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-white/5">
+              <tbody className="divide-y divide-white/5 text-xs">
                 {items.map(item => {
                   const coutTotal = item.cout_achat_total 
                     ? parseFloat(item.cout_achat_total) 
@@ -506,52 +695,48 @@ function LotsTab() {
                   const isTermine = item.est_termine !== undefined ? item.est_termine : (Number(item.stock_ml ?? item.quantite_ml ?? 0) <= 0);
 
                   return (
-                    <tr key={item.id} className="hover:bg-white/5 transition-colors">
-                      <td className="px-4 py-3 font-mono text-sm text-gold font-bold">{item.reference_fournisseur || item.numero_lot || item.reference || '—'}</td>
-                      <td className="px-4 py-3 text-sm text-foreground/60">
+                    <tr key={item.id} className="hover:bg-white/[0.02] transition-colors">
+                      <td className="pl-4 py-3 font-medium text-gold">
+                        {item.reference_fournisseur || item.numero_lot || item.reference || '—'}
+                      </td>
+                      <td className="px-3 py-3 text-foreground/60">
                         {item.essence_details?.nom || `ID: ${item.essence || '—'}`}
                       </td>
-                      <td className="px-4 py-3 font-semibold text-foreground text-sm">
+                      <td className="px-3 py-3 font-semibold text-foreground tabular-nums">
                         {Number(item.stock_ml ?? item.quantite_ml ?? 0).toLocaleString()} ml
                         {item.quantite_initiale_ml && (
-                          <span className="text-[10px] text-foreground/40 block">/ {item.quantite_initiale_ml} ml reçus</span>
+                          <span className="text-[10px] text-foreground/40 block font-normal">
+                            / {item.quantite_initiale_ml} ml reçus
+                          </span>
                         )}
                       </td>
-                      <td className="px-4 py-3 text-xs font-mono text-foreground/70">
+                      <td className="px-3 py-3 text-foreground/70 tabular-nums">
                         {coutTotal !== null ? `${coutTotal.toLocaleString()} FCFA` : '—'}
                       </td>
-                      <td className="px-4 py-3 text-xs font-mono text-sky-400">
+                      <td className="px-3 py-3 text-blue-400 tabular-nums">
                         {caGenere.toLocaleString()} FCFA
                       </td>
-                      <td className="px-4 py-3 text-xs font-mono font-bold">
+                      <td className="px-3 py-3 tabular-nums">
                         {beneficeLot !== null ? (
-                          <span className={beneficeLot >= 0 ? 'text-emerald-400' : 'text-red-400'}>
-                            {beneficeLot >= 0 ? '+' : ''}{beneficeLot.toLocaleString()} FCFA
-                          </span>
+                          <StatusChip
+                            status={beneficeLot >= 0 ? 'emerald' : 'red'}
+                            label={`${beneficeLot >= 0 ? '+' : ''}${beneficeLot.toLocaleString()} FCFA`}
+                          />
                         ) : '—'}
                       </td>
-                      <td className="px-4 py-3">
-                        {isTermine ? (
-                          <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-zinc-500/10 text-zinc-400 border border-zinc-500/10">
-                            Terminé
-                          </span>
-                        ) : (
-                          <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-emerald-500/10 text-emerald-400 border border-emerald-500/10">
-                            En cours
-                          </span>
-                        )}
+                      <td className="px-3 py-3">
+                        <StatusChip
+                          status={isTermine ? 'neutral' : 'emerald'}
+                          label={isTermine ? 'Terminé' : 'En cours'}
+                        />
                       </td>
-                      <td className="px-4 py-3">
-                        <div className="flex gap-1.5">
+                      <td className="pr-4 py-3 text-right">
+                        <div className="flex items-center justify-end gap-0.5">
                           {permissions.canUpdate && (
-                            <button onClick={() => openEdit(item)} className="p-1.5 rounded-lg hover:bg-white/5 text-foreground/40 hover:text-gold transition-colors">
-                              <Edit2 size={14} />
-                            </button>
+                            <IconButton icon={Edit2} onClick={() => openEdit(item)} title="Modifier" tint="gold" />
                           )}
                           {permissions.canDelete && (
-                            <button onClick={() => handleDelete(item.id)} className="p-1.5 rounded-lg hover:bg-red-500/10 text-foreground/40 hover:text-red-400 transition-colors">
-                              <Trash2 size={14} />
-                            </button>
+                            <IconButton icon={Trash2} onClick={() => handleDelete(item.id)} title="Supprimer" tint="red" />
                           )}
                         </div>
                       </td>
@@ -560,7 +745,9 @@ function LotsTab() {
                 })}
                 {items.length === 0 && (
                   <tr>
-                    <td colSpan={8} className="text-center py-16 text-foreground/40 italic text-sm">Aucun lot enregistré.</td>
+                    <td colSpan={8} className="py-16 text-center text-sm italic text-foreground/30">
+                      Aucun lot enregistré.
+                    </td>
                   </tr>
                 )}
               </tbody>
@@ -734,12 +921,12 @@ function InventoryTab() {
   );
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       {alertItems.length > 0 && (
-        <div className="bg-amber-500/5 border border-amber-500/20 rounded-2xl p-4 flex items-start gap-3">
-          <AlertTriangle size={18} className="text-amber-400 mt-0.5 flex-shrink-0" />
+        <div className="bg-amber-500/5 border border-amber-500/20 rounded-xl p-3.5 flex items-start gap-3">
+          <AlertTriangle size={16} className="text-amber-400 mt-0.5 shrink-0" />
           <div>
-            <p className="text-sm font-bold text-amber-400">Alerte de stock faible</p>
+            <p className="text-xs font-semibold text-amber-400">Alerte de stock faible</p>
             <p className="text-xs text-foreground/50 mt-0.5">
               {alertItems.length} essence(s) en dessous du seuil d'alerte dans le labo.
             </p>
@@ -748,68 +935,71 @@ function InventoryTab() {
       )}
 
       <div className="flex justify-end">
-        <button onClick={fetchItems} className="p-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 text-foreground/60 hover:text-foreground transition-all">
+        <button
+          onClick={fetchItems}
+          className="border border-white/10 rounded-lg p-1.5 text-foreground/60 hover:bg-white/5 hover:text-foreground transition-colors"
+          title="Rafraîchir"
+        >
           <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
         </button>
       </div>
 
-      <div className="bg-white/5 rounded-2xl border border-white/10 overflow-hidden min-h-[200px]">
+      <div className="rounded-xl border border-white/10 bg-white/[0.02] overflow-hidden min-h-[200px]">
         {loading ? (
-          <div className="flex items-center justify-center py-16 text-gold gap-2">
-            <Loader2 className="animate-spin" size={24} />
+          <div className="flex items-center justify-center py-16 text-foreground/40 gap-2 text-xs">
+            <Loader2 className="animate-spin text-gold" size={16} />
+            <span>Chargement...</span>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="border-b border-white/10 bg-white/5">
-                  {['Essence', 'Quantité Disponible (ml)', 'Seuil Alerte (ml)', 'Statut Stock', 'Actions'].map(h => (
-                    <th key={h} className="px-5 py-3.5 text-xs font-semibold text-foreground/40 uppercase tracking-wider">{h}</th>
-                  ))}
+                <tr className="bg-white/[0.02] border-b border-white/10 text-[10px] font-semibold uppercase tracking-wider text-foreground/35">
+                  <th className="pl-4 py-3">Essence</th>
+                  <th className="px-3 py-3">Quantité Disponible (ml)</th>
+                  <th className="px-3 py-3">Seuil Alerte (ml)</th>
+                  <th className="px-3 py-3">Statut Stock</th>
+                  <th className="pr-4 py-3 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-white/5">
+              <tbody className="divide-y divide-white/5 text-xs">
                 {items.map(item => {
                   const qty = Number(item.quantite_disponible_ml || 0);
                   const threshold = Number(item.seuil_alerte_ml || 100);
                   const pct = Math.min((qty / (threshold * 2)) * 100, 100);
                   const isLow = qty <= threshold;
                   return (
-                    <tr key={item.id} className="hover:bg-white/5 transition-colors">
-                      <td className="px-5 py-3">
-                        <p className="font-semibold text-foreground text-sm">
-                          {item.essence_details?.nom || item.essence_nom || `Essence #${item.essence || item.id}`}
-                        </p>
+                    <tr key={item.id} className="hover:bg-white/[0.02] transition-colors">
+                      <td className="pl-4 py-3 font-medium text-foreground">
+                        {item.essence_details?.nom || item.essence_nom || `Essence #${item.essence || item.id}`}
                       </td>
-                      <td className="px-5 py-3">
-                        <div className="flex items-center gap-3">
-                          <div className="flex-1 max-w-[120px] h-1.5 bg-white/10 rounded-full overflow-hidden">
+                      <td className="px-3 py-3">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-20 h-1.5 bg-white/10 rounded-full overflow-hidden">
                             <div
-                              className={`h-full rounded-full transition-all ${isLow ? 'bg-red-400' : 'bg-emerald-400'}`}
+                              className={cx('h-full rounded-full transition-all', isLow ? 'bg-red-400' : 'bg-emerald-400')}
                               style={{ width: `${pct}%` }}
                             />
                           </div>
-                          <span className="text-sm font-bold text-foreground">{qty.toLocaleString()} ml</span>
+                          <span className="font-semibold text-foreground tabular-nums">{qty.toLocaleString()} ml</span>
                         </div>
                       </td>
-                      <td className="px-5 py-3 text-sm text-foreground/60">{threshold.toLocaleString()} ml</td>
-                      <td className="px-5 py-3">
-                        <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${isLow ? 'bg-red-500/10 text-red-400' : 'bg-emerald-500/10 text-emerald-400'
-                          }`}>
-                          {isLow ? '⚠ Critique' : '✓ OK'}
-                        </span>
+                      <td className="px-3 py-3 text-foreground/60 tabular-nums">{threshold.toLocaleString()} ml</td>
+                      <td className="px-3 py-3">
+                        <StatusChip
+                          status={isLow ? 'red' : 'emerald'}
+                          label={isLow ? 'Critique' : 'OK'}
+                        />
                       </td>
-                      <td className="px-5 py-3">
-                        <button onClick={() => openEdit(item)} className="p-1.5 rounded-lg hover:bg-white/5 text-foreground/40 hover:text-gold transition-colors">
-                          <Edit2 size={14} />
-                        </button>
+                      <td className="pr-4 py-3 text-right">
+                        <IconButton icon={Edit2} onClick={() => openEdit(item)} title="Ajuster" tint="gold" />
                       </td>
                     </tr>
                   );
                 })}
                 {items.length === 0 && (
                   <tr>
-                    <td colSpan={5} className="text-center py-16 text-foreground/40 italic text-sm">
+                    <td colSpan={5} className="py-16 text-center text-sm italic text-foreground/30">
                       Aucun inventaire labo disponible.
                     </td>
                   </tr>
@@ -866,44 +1056,44 @@ export default function LabPage() {
   const [activeTab, setActiveTab] = useState<TabKey>('ingredients');
 
   return (
-    <div className="space-y-6 animate-fade-in-up">
+    <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-foreground">Laboratoire</h1>
+        <h1 className="text-xl font-semibold text-foreground">Laboratoire</h1>
         <p className="text-sm text-foreground/40 mt-0.5">
           Gestion des ingrédients, des lots de production et de l'inventaire labo
         </p>
       </div>
 
-      {/* Tabs Panel */}
-      <div className="bg-white/5 rounded-2xl border border-white/10 overflow-hidden shadow-sm">
-        <div className="flex border-b border-white/10 overflow-x-auto">
-                <TabButton
-                  active={activeTab === 'ingredients'}
-                  onClick={() => setActiveTab('ingredients')}
-                  icon={<FlaskConical size={14} />}
-                  label="Ingrédients"
-                />
-                <TabButton
-                  active={activeTab === 'lots'}
-                  onClick={() => setActiveTab('lots')}
-                  icon={<Layers size={14} />}
-                  label="Lots de Production"
-                />
-                <TabButton
-                  active={activeTab === 'inventory'}
-                  onClick={() => setActiveTab('inventory')}
-                  icon={<Package size={14} />}
-                  label="Inventaire Labo"
-                />
-              </div>
+      {/* Tabs & Content Container */}
+      <div className="rounded-xl border border-white/10 bg-white/[0.02] overflow-hidden">
+        <div className="flex border-b border-white/10 overflow-x-auto px-2 pt-1">
+          <TabButton
+            active={activeTab === 'ingredients'}
+            onClick={() => setActiveTab('ingredients')}
+            icon={<FlaskConical size={14} />}
+            label="Ingrédients"
+          />
+          <TabButton
+            active={activeTab === 'lots'}
+            onClick={() => setActiveTab('lots')}
+            icon={<Layers size={14} />}
+            label="Lots de Production"
+          />
+          <TabButton
+            active={activeTab === 'inventory'}
+            onClick={() => setActiveTab('inventory')}
+            icon={<Package size={14} />}
+            label="Inventaire Labo"
+          />
+        </div>
 
-              <div className="p-6">
-                {activeTab === 'ingredients' && <IngredientsTab />}
-                {activeTab === 'lots' && <LotsTab />}
-                {activeTab === 'inventory' && <InventoryTab />}
-              </div>
-            </div>
+        <div className="p-4 sm:p-5">
+          {activeTab === 'ingredients' && <IngredientsTab />}
+          {activeTab === 'lots' && <LotsTab />}
+          {activeTab === 'inventory' && <InventoryTab />}
+        </div>
+      </div>
     </div>
   );
 }

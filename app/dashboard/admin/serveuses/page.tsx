@@ -1,10 +1,69 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-import { Plus, Users, UserCheck, Loader2, RefreshCw, Trash2, Power } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Plus, Loader2, RefreshCw, Trash2, Power } from 'lucide-react';
 import { adminService } from '@/services/apiService';
 import { useToastStore } from '@/store/useToastStore';
 import { SlideOver } from '@/components/ui/SlideOver';
+
+// Helper utilities
+function cx(...classes: (string | boolean | undefined)[]) {
+  return classes.filter(Boolean).join(' ');
+}
+
+// Shared StatusChip Component
+function StatusChip({ status }: { status: string | boolean }) {
+  const isActif = typeof status === 'boolean' ? status : (status || '').toLowerCase() === 'actif' || (status || '').toLowerCase() === 'active';
+  
+  const style = isActif 
+    ? 'bg-emerald-500/10 text-emerald-400 ring-emerald-500/20' 
+    : 'bg-red-500/10 text-red-400 ring-red-500/20';
+  const dotStyle = isActif ? 'bg-emerald-400' : 'bg-red-400';
+  const label = isActif ? 'active' : 'inactive';
+
+  return (
+    <span className={cx("inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium ring-1 ring-inset", style)}>
+      <span className={cx("h-1.5 w-1.5 rounded-full", dotStyle)} />
+      <span className="capitalize">{label}</span>
+    </span>
+  );
+}
+
+// Shared IconButton Primitive
+function IconButton({
+  onClick,
+  icon: Icon,
+  variant = 'gold',
+  title,
+  disabled
+}: {
+  onClick: () => void;
+  icon: any;
+  variant?: 'gold' | 'red' | 'blue';
+  title?: string;
+  disabled?: boolean;
+}) {
+  const hoverStyles = {
+    gold: 'hover:text-gold hover:bg-gold/10',
+    red: 'hover:text-red-400 hover:bg-red-500/10',
+    blue: 'hover:text-blue-400 hover:bg-blue-500/10',
+  };
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      title={title}
+      className={cx(
+        "rounded-md p-1.5 text-foreground/45 transition-colors disabled:opacity-40",
+        hoverStyles[variant]
+      )}
+    >
+      <Icon size={14} />
+    </button>
+  );
+}
 
 export default function ServeusesPage() {
   const [serveuses, setServeuses] = useState<any[]>([]);
@@ -90,102 +149,138 @@ export default function ServeusesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      {/* Header Read-Only */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10 pb-4">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Gestion des Serveuses</h1>
-          <p className="text-sm text-foreground/40 mt-0.5">Promouvoir, désactiver et gérer les serveuses de la boutique</p>
+          <h1 className="text-xl font-semibold text-foreground">Gestion des Serveuses</h1>
+          <p className="text-sm text-foreground/40 mt-0.5">
+            Promouvoir, désactiver et gérer les serveuses de la boutique
+          </p>
         </div>
-        <div className="flex gap-2">
+
+        <div className="flex items-center gap-2 self-start sm:self-auto">
           <button
+            type="button"
             onClick={fetchServeuses}
-            className="flex items-center justify-center p-2.5 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 text-foreground/60 hover:text-foreground transition-all"
+            className="flex items-center gap-2 border border-white/10 px-3 py-2 rounded-lg text-xs font-medium text-foreground/60 hover:bg-white/6 transition-colors"
+            title="Actualiser"
           >
-            <RefreshCw size={18} />
+            <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
+            <span>Actualiser</span>
           </button>
           <button
+            type="button"
             onClick={() => setShowModal(true)}
-            className="flex items-center gap-2 bg-gold text-black px-4 py-2.5 rounded-xl text-sm font-medium hover:bg-gold/80 transition-all shadow-lg"
+            className="flex items-center gap-2 bg-gold text-black px-3.5 py-2 rounded-lg text-xs font-semibold hover:bg-gold/90 transition-colors"
           >
-            <Plus size={16} />
-            Promouvoir une serveuse
+            <Plus size={14} />
+            <span>Promouvoir une serveuse</span>
           </button>
         </div>
       </div>
 
-      <div className="bg-white/5 rounded-2xl border border-white/10 shadow-sm overflow-hidden min-h-[200px]">
+      {/* KPI Stat Strip */}
+      <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
+        <div className="grid grid-cols-3 divide-x divide-white/10">
+          <div className="px-3 first:pl-0">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-foreground/35">Total Serveuses</p>
+            <p className="text-xl font-semibold tabular-nums text-foreground mt-1">{serveuses.length}</p>
+          </div>
+          <div className="px-3">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-foreground/35">Actives</p>
+            <p className="text-xl font-semibold tabular-nums text-emerald-400 mt-1">
+              {serveuses.filter(s => (s.actif !== undefined ? s.actif : true)).length}
+            </p>
+          </div>
+          <div className="px-3">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-foreground/35">Inactives</p>
+            <p className="text-xl font-semibold tabular-nums text-red-400 mt-1">
+              {serveuses.filter(s => !(s.actif !== undefined ? s.actif : true)).length}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Container / Grid */}
+      <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
         {loading ? (
-          <div className="flex flex-col items-center justify-center py-20 text-gold gap-3">
-            <Loader2 className="animate-spin" size={32} />
-            <p className="text-sm font-medium">Chargement des serveuses...</p>
+          <div className="flex items-center justify-center gap-2 py-20 text-xs text-foreground/40">
+            <Loader2 size={16} className="animate-spin text-gold" />
+            <span>Chargement des serveuses...</span>
+          </div>
+        ) : serveuses.length === 0 ? (
+          <div className="text-center py-12 text-sm italic text-foreground/30">
+            Aucune serveuse dans l'équipe actuellement.
           </div>
         ) : (
-          <div className="p-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {serveuses.map(s => {
-                const details = s.user_details || s;
-                const name = `${details.first_name || ''} ${details.last_name || ''}`.trim() || 'Serveuse';
-                const email = details.email || '';
-                const phone = details.telephone || '—';
-                const isActive = s.actif !== undefined ? s.actif : true;
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {serveuses.map(s => {
+              const details = s.user_details || s;
+              const name = `${details.first_name || ''} ${details.last_name || ''}`.trim() || 'Serveuse';
+              const email = details.email || '';
+              const phone = details.telephone || '—';
+              const isActive = s.actif !== undefined ? s.actif : true;
 
-                return (
-                  <div key={s.id} className="bg-white/5 rounded-2xl border border-white/10 p-5 shadow-sm hover:border-gold/30 transition-all flex flex-col justify-between">
-                    <div>
-                      <div className="flex items-start justify-between mb-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-gold to-gold/60 flex items-center justify-center text-black font-bold">
-                            {name.charAt(0).toUpperCase()}
-                          </div>
-                          <div>
-                            <p className="font-semibold text-foreground text-sm">{name}</p>
-                            <p className="text-[11px] text-foreground/40">{email}</p>
-                          </div>
+              return (
+                <div
+                  key={s.id}
+                  className="rounded-xl border border-white/10 bg-white/[0.02] p-4 flex flex-col justify-between hover:bg-white/[0.03] transition-colors"
+                >
+                  <div>
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-full bg-gold/10 border border-gold/20 flex items-center justify-center text-gold text-xs font-semibold">
+                          {name.charAt(0).toUpperCase()}
                         </div>
-                        <div className="flex items-center gap-2">
-                          <span className={`text-[9px] uppercase font-bold px-2 py-1 rounded-full ${
-                            isActive ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'
-                          }`}>
-                            {isActive ? 'active' : 'inactive'}
-                          </span>
-                          <button
-                            onClick={() => handleDelete(s.id)}
-                            className="p-1 rounded-lg hover:bg-red-500/10 text-foreground/40 hover:text-red-400 transition-colors"
-                            title="Supprimer la serveuse"
-                          >
-                            <Trash2 size={14} />
-                          </button>
+                        <div>
+                          <p className="font-semibold text-foreground text-xs">{name}</p>
+                          <p className="text-[11px] font-mono text-foreground/40">{email}</p>
                         </div>
                       </div>
-                      <div className="space-y-1 text-xs text-foreground/60 border-t border-white/5 pt-3 mb-4">
-                        <p><span className="text-foreground/40">Téléphone:</span> {phone}</p>
-                        <p><span className="text-foreground/40">Date Ajout:</span> {s.cree_le ? new Date(s.cree_le).toLocaleDateString('fr-FR') : '—'}</p>
+                      <div className="flex items-center gap-1.5">
+                        <StatusChip status={isActive} />
+                        <IconButton
+                          onClick={() => handleDelete(s.id)}
+                          icon={Trash2}
+                          variant="red"
+                          title="Supprimer la serveuse"
+                        />
                       </div>
                     </div>
-                    
-                    <button
-                      onClick={() => handleToggleStatus(s.id, isActive)}
-                      className={`w-full py-1.5 rounded-lg text-xs font-semibold border transition-all flex items-center justify-center gap-2 ${
-                        isActive 
-                          ? 'border-red-500/20 hover:bg-red-500/10 text-red-400' 
-                          : 'border-green-500/20 hover:bg-green-500/10 text-green-400'
-                      }`}
-                    >
-                      <Power size={12} />
-                      {isActive ? 'Désactiver' : 'Activer'}
-                    </button>
+
+                    <div className="space-y-1.5 text-xs border-t border-white/5 pt-3 mb-4 text-foreground/60">
+                      <p className="flex justify-between items-center">
+                        <span className="text-foreground/40">Téléphone:</span>
+                        <span className="font-mono">{phone}</span>
+                      </p>
+                      <p className="flex justify-between items-center">
+                        <span className="text-foreground/40">Date Ajout:</span>
+                        <span>{s.cree_le ? new Date(s.cree_le).toLocaleDateString('fr-FR') : '—'}</span>
+                      </p>
+                    </div>
                   </div>
-                );
-              })}
-              {serveuses.length === 0 && (
-                <div className="col-span-full py-10 text-center text-foreground/40 italic">
-                  Aucune serveuse dans l'équipe actuellement.
+                  
+                  <button
+                    type="button"
+                    onClick={() => handleToggleStatus(s.id, isActive)}
+                    className={cx(
+                      "w-full py-1.5 rounded-lg text-xs font-semibold border transition-colors flex items-center justify-center gap-1.5",
+                      isActive 
+                        ? "border-red-500/20 text-red-400 hover:bg-red-500/10" 
+                        : "border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/10"
+                    )}
+                  >
+                    <Power size={12} />
+                    <span>{isActive ? 'Désactiver' : 'Activer'}</span>
+                  </button>
                 </div>
-              )}
-            </div>
+              );
+            })}
           </div>
         )}
       </div>
 
+      {/* SlideOver Form Modal - Fields & Logic untouched */}
       <SlideOver
         isOpen={showModal}
         onClose={() => setShowModal(false)}

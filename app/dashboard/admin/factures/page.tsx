@@ -1,25 +1,155 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   FileText, Download, Mail, RefreshCw, Loader2, Search,
-  CheckCircle, Clock, ArrowUpRight, Link as LinkIcon,
+  ArrowUpRight, Link as LinkIcon, Filter, X, Check, Clock
 } from 'lucide-react';
 import { invoiceService } from '@/services/invoiceService';
 import { useToastStore } from '@/store/useToastStore';
 
+// --- Shared Primitives ---
+
+function cx(...classes: (string | boolean | undefined | null)[]) {
+  return classes.filter(Boolean).join(' ');
+}
+
+type StatusType = 'emerald' | 'blue' | 'amber' | 'red' | 'purple';
+
+function StatusChip({
+  status,
+  label,
+}: {
+  status: StatusType;
+  label: string;
+}) {
+  const styles: Record<StatusType, { text: string; bg: string; ring: string; dot: string }> = {
+    emerald: {
+      text: 'text-emerald-400',
+      bg: 'bg-emerald-500/10',
+      ring: 'ring-emerald-500/20',
+      dot: 'bg-emerald-400',
+    },
+    blue: {
+      text: 'text-blue-400',
+      bg: 'bg-blue-500/10',
+      ring: 'ring-blue-500/20',
+      dot: 'bg-blue-400',
+    },
+    amber: {
+      text: 'text-amber-400',
+      bg: 'bg-amber-500/10',
+      ring: 'ring-amber-500/20',
+      dot: 'bg-amber-400',
+    },
+    red: {
+      text: 'text-red-400',
+      bg: 'bg-red-500/10',
+      ring: 'ring-red-500/20',
+      dot: 'bg-red-400',
+    },
+    purple: {
+      text: 'text-purple-400',
+      bg: 'bg-purple-500/10',
+      ring: 'ring-purple-500/20',
+      dot: 'bg-purple-400',
+    },
+  };
+
+  const current = styles[status] || styles.blue;
+
+  return (
+    <span
+      className={cx(
+        'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium ring-1 ring-inset',
+        current.text,
+        current.bg,
+        current.ring
+      )}
+    >
+      <span className={cx('h-1.5 w-1.5 rounded-full shrink-0', current.dot)} />
+      {label}
+    </span>
+  );
+}
+
+function IconButton({
+  icon: Icon,
+  onClick,
+  title,
+  href,
+  tint = 'neutral',
+  disabled = false,
+  loading = false,
+}: {
+  icon: any;
+  onClick?: () => void;
+  title?: string;
+  href?: string;
+  tint?: 'gold' | 'red' | 'blue' | 'emerald' | 'neutral';
+  disabled?: boolean;
+  loading?: boolean;
+}) {
+  const tintStyles = {
+    gold: 'hover:text-gold hover:bg-gold/10',
+    red: 'hover:text-red-400 hover:bg-red-500/10',
+    blue: 'hover:text-blue-400 hover:bg-blue-500/10',
+    emerald: 'hover:text-emerald-400 hover:bg-emerald-500/10',
+    neutral: 'hover:text-foreground hover:bg-white/10',
+  };
+
+  const className = cx(
+    'rounded-md p-1.5 text-foreground/45 transition-colors disabled:opacity-40 inline-flex items-center justify-center',
+    tintStyles[tint]
+  );
+
+  if (href) {
+    return (
+      <a
+        href={href}
+        target="_blank"
+        rel="noopener noreferrer"
+        className={className}
+        title={title}
+      >
+        <Icon size={14} />
+      </a>
+    );
+  }
+
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled || loading}
+      className={className}
+      title={title}
+    >
+      {loading ? <Loader2 size={14} className="animate-spin" /> : <Icon size={14} />}
+    </button>
+  );
+}
+
+// --- Helper Functions ---
+
 function fmtDate(d?: string | null) {
   if (!d) return '—';
   return new Date(d).toLocaleDateString('fr-FR', {
-    day: '2-digit', month: 'short', year: 'numeric',
-    hour: '2-digit', minute: '2-digit',
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
   });
 }
+
+// --- Main Page Component ---
 
 export default function FacturesPage() {
   const [invoices, setInvoices] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'sent' | 'pending'>('all');
+  const [showFilters, setShowFilters] = useState(false);
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [resendingId, setResendingId] = useState<string | null>(null);
@@ -81,196 +211,287 @@ export default function FacturesPage() {
 
   const totalPages = Math.ceil(total / PAGE_SIZE);
 
-  const filtered = search.trim()
-    ? invoices.filter(inv => {
-        const numeroCommande = inv.commande?.numero_commande || inv.commande;
-        return (
-          inv.numero_facture?.toLowerCase().includes(search.toLowerCase()) ||
-          String(numeroCommande ?? '')?.toLowerCase().includes(search.toLowerCase())
-        );
-      })
-    : invoices;
+  const filtered = useMemo(() => {
+    return invoices.filter((inv) => {
+      const numeroCommande = inv.commande?.numero_commande || inv.commande;
+      const matchesSearch = !search.trim()
+        ? true
+        : inv.numero_facture?.toLowerCase().includes(search.toLowerCase()) ||
+          String(numeroCommande ?? '')?.toLowerCase().includes(search.toLowerCase());
+
+      const matchesStatus =
+        statusFilter === 'all'
+          ? true
+          : statusFilter === 'sent'
+          ? inv.envoye_par_email
+          : !inv.envoye_par_email;
+
+      return matchesSearch && matchesStatus;
+    });
+  }, [invoices, search, statusFilter]);
+
+  const activeFiltersCount = useMemo(() => {
+    let count = 0;
+    if (statusFilter !== 'all') count++;
+    return count;
+  }, [statusFilter]);
+
+  const sentCount = useMemo(
+    () => invoices.filter((i) => i.envoye_par_email).length,
+    [invoices]
+  );
+  const pendingCount = useMemo(
+    () => invoices.filter((i) => !i.envoye_par_email).length,
+    [invoices]
+  );
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Factures & Reçus</h1>
+          <h1 className="text-xl font-semibold text-foreground">Factures & Reçus</h1>
           <p className="text-sm text-foreground/40 mt-0.5">
             Gestion de toutes les factures PDF générées
           </p>
         </div>
         <button
           onClick={fetchInvoices}
-          className="flex items-center gap-2 border border-white/10 px-4 py-2.5 rounded-xl text-sm text-foreground/60 hover:bg-white/5 transition-all"
+          className="border border-white/10 text-foreground/60 hover:bg-white/5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors flex items-center gap-1.5 shrink-0 self-start sm:self-auto"
         >
-          <RefreshCw size={15} />
-          Actualiser
+          <RefreshCw size={13} className={loading ? 'animate-spin' : ''} />
+          <span>Actualiser</span>
         </button>
       </div>
 
-      {/* KPIs */}
-      <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
-        {[
-          {
-            label: 'Total factures',
-            value: total,
-            icon: <FileText size={18} />,
-            color: 'text-gold bg-gold/10',
-          },
-          {
-            label: 'Envoyées par email',
-            value: invoices.filter(i => i.envoye_par_email).length,
-            icon: <Mail size={18} />,
-            color: 'text-emerald-400 bg-emerald-500/10',
-          },
-          {
-            label: 'En attente d\'envoi',
-            value: invoices.filter(i => !i.envoye_par_email).length,
-            icon: <Clock size={18} />,
-            color: 'text-amber-400 bg-amber-500/10',
-          },
-        ].map(k => (
-          <div key={k.label} className="bg-white/5 rounded-2xl border border-white/10 p-5 shadow-sm">
-            <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-3 ${k.color}`}>
-              {k.icon}
-            </div>
-            <p className="text-2xl font-bold text-foreground">{k.value}</p>
-            <p className="text-xs text-foreground/40 mt-0.5">{k.label}</p>
-          </div>
-        ))}
-      </div>
+      {/* KPI Bordered Strip */}
+      <div className="rounded-xl border border-white/10 bg-white/[0.02] grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-white/8">
+        <div className="p-4 flex flex-col justify-between">
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-foreground/35">
+            Total factures
+          </span>
+          <span className="text-xl font-semibold tabular-nums text-foreground mt-1">
+            {total}
+          </span>
+        </div>
 
-      {/* Search */}
-      <div className="bg-white/5 rounded-2xl border border-white/10 p-4 shadow-sm">
-        <div className="flex items-center gap-2 border border-white/10 rounded-lg px-3 py-2 max-w-sm">
-          <Search size={15} className="text-foreground/40" />
-          <input
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            placeholder="Rechercher par n° facture ou commande..."
-            className="text-sm bg-transparent outline-none flex-1 text-foreground placeholder:text-foreground/40"
-          />
+        <div className="p-4 flex flex-col justify-between">
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-foreground/35">
+            Envoyées par email
+          </span>
+          <span className="text-xl font-semibold tabular-nums text-emerald-400 mt-1">
+            {sentCount}
+          </span>
+        </div>
+
+        <div className="p-4 flex flex-col justify-between">
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-foreground/35">
+            En attente d'envoi
+          </span>
+          <span className="text-xl font-semibold tabular-nums text-amber-400 mt-1">
+            {pendingCount}
+          </span>
         </div>
       </div>
 
-      {/* Table */}
-      <div className="bg-white/5 rounded-2xl border border-white/10 shadow-sm overflow-hidden min-h-[300px]">
+      {/* Toolbar & Filter Bar */}
+      <div className="space-y-3">
+        <div className="flex items-center gap-2">
+          <div className="relative flex-1 max-w-md">
+            <Search
+              size={14}
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-foreground/40"
+            />
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Rechercher par n° facture ou commande..."
+              className="w-full bg-white/[0.02] border border-white/10 rounded-lg pl-9 pr-8 py-1.5 text-xs text-foreground placeholder:text-foreground/40 outline-none focus:border-white/20 transition-all"
+            />
+            {search && (
+              <button
+                onClick={() => setSearch('')}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-foreground/40 hover:text-foreground"
+              >
+                <X size={12} />
+              </button>
+            )}
+          </div>
+
+          <button
+            onClick={() => setShowFilters(!showFilters)}
+            className={cx(
+              'flex items-center gap-1.5 rounded-lg border border-white/10 px-3 py-1.5 text-xs font-medium transition-colors',
+              showFilters || activeFiltersCount > 0
+                ? 'bg-white/10 text-foreground'
+                : 'text-foreground/60 hover:bg-white/5'
+            )}
+          >
+            <Filter size={13} />
+            <span>Filtres</span>
+            {activeFiltersCount > 0 && (
+              <span className="ml-0.5 rounded-full bg-gold px-1.5 py-0.2 text-[10px] font-bold text-black">
+                {activeFiltersCount}
+              </span>
+            )}
+          </button>
+        </div>
+
+        {/* Expandable Filter Panel */}
+        {showFilters && (
+          <div className="rounded-xl border border-white/10 bg-white/[0.02] p-3 flex flex-wrap items-center gap-4">
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-foreground/50">Statut d'envoi:</span>
+              <div className="flex items-center gap-1">
+                {(
+                  [
+                    { id: 'all', label: 'Tous' },
+                    { id: 'sent', label: 'Envoyés' },
+                    { id: 'pending', label: 'En attente' },
+                  ] as const
+                ).map((f) => (
+                  <button
+                    key={f.id}
+                    onClick={() => setStatusFilter(f.id)}
+                    className={cx(
+                      'px-2.5 py-1 rounded-lg text-xs font-medium transition-colors',
+                      statusFilter === f.id
+                        ? 'bg-white/10 text-foreground'
+                        : 'text-foreground/45 hover:text-foreground hover:bg-white/5'
+                    )}
+                  >
+                    {f.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {activeFiltersCount > 0 && (
+              <button
+                onClick={() => setStatusFilter('all')}
+                className="text-[11px] text-foreground/40 hover:text-foreground underline ml-auto"
+              >
+                Réinitialiser
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Table Section */}
+      <div className="rounded-xl border border-white/10 bg-white/[0.02] overflow-hidden">
         {loading ? (
-          <div className="flex flex-col items-center justify-center py-20 text-gold gap-3">
-            <Loader2 className="animate-spin" size={32} />
-            <p className="text-sm font-medium">Chargement des factures...</p>
+          <div className="flex items-center justify-center py-16 text-foreground/40 gap-2 text-xs">
+            <Loader2 className="animate-spin text-gold" size={16} />
+            <span>Chargement des factures...</span>
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-white/5 border-b border-white/10">
-                <tr>
-                  {['N° Facture', 'Commande', 'Date émission', 'Montant', 'Email', 'Actions'].map(h => (
-                    <th key={h} className="text-left text-xs font-semibold text-foreground/40 uppercase tracking-wider px-5 py-3.5">
-                      {h}
-                    </th>
-                  ))}
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-white/[0.02] border-b border-white/10 text-[10px] font-semibold uppercase tracking-wider text-foreground/35">
+                  <th className="pl-4 py-3">N° Facture</th>
+                  <th className="px-3 py-3">Commande</th>
+                  <th className="px-3 py-3">Statut Email</th>
+                  <th className="px-3 py-3">Date émission</th>
+                  <th className="px-3 py-3">Montant</th>
+                  <th className="px-3 py-3">Client / Email</th>
+                  <th className="pr-4 py-3 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-white/5">
-                {filtered.map(inv => (
-                  <tr key={inv.numero_facture || inv.id} className="hover:bg-white/[0.03] transition-colors">
-                    <td className="px-5 py-4">
-                      <div className="flex items-center gap-2">
-                        <FileText size={14} className="text-gold shrink-0" />
-                        <span className="font-mono text-xs text-foreground font-semibold">
-                          {inv.numero_facture}
-                        </span>
+              <tbody className="divide-y divide-white/5 text-xs">
+                {filtered.map((inv) => (
+                  <tr
+                    key={inv.numero_facture || inv.id}
+                    className="hover:bg-white/[0.02] transition-colors"
+                  >
+                    <td className="pl-4 py-3">
+                      <div className="flex items-center gap-1.5 font-mono text-xs font-semibold text-foreground">
+                        <FileText size={13} className="text-gold shrink-0" />
+                        <span>{inv.numero_facture}</span>
                       </div>
                     </td>
-                    <td className="px-5 py-4">
-                      <span className="text-xs font-mono text-foreground/70">
+                    <td className="px-3 py-3">
+                      <span className="font-mono text-foreground/70">
                         {inv.commande?.numero_commande || inv.commande || '—'}
                       </span>
                       {inv.commande?.statut && (
-                        <div className="text-[10px] text-foreground/50 mt-1">
+                        <div className="text-[10px] text-foreground/40 mt-0.5">
                           {inv.commande.statut} · {inv.commande.statut_paiement}
                         </div>
                       )}
                     </td>
-                    <td className="px-5 py-4 text-xs text-foreground/60">{fmtDate(inv.date_emission)}</td>
-                    <td className="px-5 py-4">
-                      <span className="text-sm font-semibold text-foreground">
-                        {inv.montant_total ?? inv.commande?.total_ttc
-                          ? `${Number(inv.montant_total ?? inv.commande?.total_ttc).toLocaleString('fr-FR')} FCFA`
-                          : '—'}
-                      </span>
+                    <td className="px-3 py-3">
+                      {inv.envoye_par_email ? (
+                        <StatusChip status="emerald" label="Envoyé" />
+                      ) : (
+                        <StatusChip status="amber" label="En attente" />
+                      )}
                     </td>
-                    <td className="px-5 py-4">
-                      <span className="text-xs text-foreground/50 block">
+                    <td className="px-3 py-3 text-foreground/60 tabular-nums">
+                      {fmtDate(inv.date_emission)}
+                    </td>
+                    <td className="px-3 py-3 font-semibold text-foreground tabular-nums">
+                      {inv.montant_total ?? inv.commande?.total_ttc
+                        ? `${Number(
+                            inv.montant_total ?? inv.commande?.total_ttc
+                          ).toLocaleString('fr-FR')} FCFA`
+                        : '—'}
+                    </td>
+                    <td className="px-3 py-3">
+                      <span className="text-foreground/60 block truncate max-w-[180px]">
                         {inv.commande?.client_email || inv.email_envoye_a || '—'}
                       </span>
                       {inv.commande?.client_nom_complet && (
-                        <span className="text-[10px] text-foreground/40">
+                        <span className="text-[10px] text-foreground/35 block">
                           {inv.commande.client_nom_complet}
                         </span>
                       )}
                     </td>
-                    <td className="px-5 py-4">
-                      <div className="flex items-center gap-2">
-                        {/* Download PDF */}
-                        <button
+                    <td className="pr-4 py-3 text-right">
+                      <div className="flex items-center justify-end gap-0.5">
+                        <IconButton
+                          icon={Download}
                           onClick={() => handleDownload(inv)}
-                          disabled={downloadingId === inv.numero_facture}
-                          className="p-1.5 rounded-lg hover:bg-white/10 text-foreground/40 hover:text-gold transition-colors disabled:opacity-50"
                           title="Télécharger PDF"
-                        >
-                          {downloadingId === inv.numero_facture
-                            ? <Loader2 size={14} className="animate-spin" />
-                            : <Download size={14} />}
-                        </button>
-                        {/* Resend email */}
-                        <button
+                          tint="gold"
+                          loading={downloadingId === inv.numero_facture}
+                        />
+                        <IconButton
+                          icon={Mail}
                           onClick={() => handleResend(inv.numero_facture)}
-                          disabled={resendingId === inv.numero_facture}
-                          className="p-1.5 rounded-lg hover:bg-white/10 text-foreground/40 hover:text-emerald-400 transition-colors disabled:opacity-50"
                           title="Renvoyer par email"
-                        >
-                          {resendingId === inv.numero_facture
-                            ? <Loader2 size={14} className="animate-spin" />
-                            : <Mail size={14} />}
-                        </button>
-                        {/* Direct PDF link */}
+                          tint="emerald"
+                          loading={resendingId === inv.numero_facture}
+                        />
                         {inv.fichier_pdf && (
-                          <a
+                          <IconButton
+                            icon={ArrowUpRight}
                             href={inv.fichier_pdf}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="p-1.5 rounded-lg hover:bg-white/10 text-foreground/40 hover:text-blue-400 transition-colors"
                             title="Ouvrir le PDF"
-                          >
-                            <ArrowUpRight size={14} />
-                          </a>
+                            tint="blue"
+                          />
                         )}
                         {inv.commande?.detail_url && (
-                          <a
+                          <IconButton
+                            icon={LinkIcon}
                             href={inv.commande.detail_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="p-1.5 rounded-lg hover:bg-white/10 text-foreground/40 hover:text-emerald-400 transition-colors"
                             title="Voir la commande"
-                          >
-                            <LinkIcon size={14} />
-                          </a>
+                            tint="neutral"
+                          />
                         )}
                       </div>
                     </td>
                   </tr>
                 ))}
+
                 {filtered.length === 0 && (
                   <tr>
-                    <td colSpan={6} className="text-center py-16 text-foreground/30 italic">
-                      <div className="flex flex-col items-center gap-3">
-                        <FileText size={40} className="text-foreground/10" />
-                        <p>Aucune facture trouvée</p>
-                      </div>
+                    <td
+                      colSpan={7}
+                      className="py-12 text-center text-sm italic text-foreground/30"
+                    >
+                      Aucune facture trouvée.
                     </td>
                   </tr>
                 )}
@@ -284,17 +505,19 @@ export default function FacturesPage() {
       {totalPages > 1 && (
         <div className="flex items-center justify-between border-t border-white/10 pt-4">
           <button
-            onClick={() => setPage(p => Math.max(1, p - 1))}
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
             disabled={page === 1}
-            className="px-4 py-2 border border-white/10 rounded-lg text-xs font-semibold hover:bg-white/5 disabled:opacity-40 transition-colors"
+            className="px-3 py-1.5 border border-white/10 rounded-lg text-xs font-medium text-foreground/60 hover:bg-white/5 disabled:opacity-40 transition-colors"
           >
             Précédent
           </button>
-          <span className="text-xs text-foreground/40">Page {page} sur {totalPages}</span>
+          <span className="text-xs text-foreground/40 tabular-nums">
+            Page {page} sur {totalPages}
+          </span>
           <button
-            onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
             disabled={page === totalPages}
-            className="px-4 py-2 border border-white/10 rounded-lg text-xs font-semibold hover:bg-white/5 disabled:opacity-40 transition-colors"
+            className="px-3 py-1.5 border border-white/10 rounded-lg text-xs font-medium text-foreground/60 hover:bg-white/5 disabled:opacity-40 transition-colors"
           >
             Suivant
           </button>

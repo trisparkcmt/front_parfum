@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Loader2, Edit2, Trash2, Plus, Search, Image as ImageIcon } from 'lucide-react';
+import { Loader2, Edit2, Trash2, Plus, Search, Image as ImageIcon, SlidersHorizontal } from 'lucide-react';
 import { shopService } from '@/services/apiService';
 import { adminService } from '@/services/apiService';
 import { useToastStore } from '@/store/useToastStore';
@@ -15,6 +15,115 @@ import { CreateCategoryModal } from '@/components/CreateCategoryModal';
 import { useAuthStore } from '@/store/useAuthStore';
 import { FormModal } from '@/components/ui/FormModal';
 
+/* -------------------------------------------------------------------------- */
+/*                               SHARED PRIMITIVES                            */
+/* -------------------------------------------------------------------------- */
+
+function cx(...classes: (string | boolean | undefined | null)[]) {
+  return classes.filter(Boolean).join(' ');
+}
+
+type StatusType = 'emerald' | 'blue' | 'amber' | 'red' | 'purple' | 'gold' | 'neutral';
+
+interface StatusChipProps {
+  label: string;
+  type?: StatusType;
+}
+
+function StatusChip({ label, type = 'neutral' }: StatusChipProps) {
+  const styles: Record<StatusType, { bg: string; text: string; ring: string; dot: string }> = {
+    emerald: {
+      bg: 'bg-emerald-500/10',
+      text: 'text-emerald-400',
+      ring: 'ring-emerald-500/20',
+      dot: 'bg-emerald-400',
+    },
+    blue: {
+      bg: 'bg-blue-500/10',
+      text: 'text-blue-400',
+      ring: 'ring-blue-500/20',
+      dot: 'bg-blue-400',
+    },
+    amber: {
+      bg: 'bg-amber-500/10',
+      text: 'text-amber-400',
+      ring: 'ring-amber-500/20',
+      dot: 'bg-amber-400',
+    },
+    red: {
+      bg: 'bg-red-500/10',
+      text: 'text-red-400',
+      ring: 'ring-red-500/20',
+      dot: 'bg-red-400',
+    },
+    purple: {
+      bg: 'bg-purple-500/10',
+      text: 'text-purple-400',
+      ring: 'ring-purple-500/20',
+      dot: 'bg-purple-400',
+    },
+    gold: {
+      bg: 'bg-gold/10',
+      text: 'text-gold',
+      ring: 'ring-gold/20',
+      dot: 'bg-gold',
+    },
+    neutral: {
+      bg: 'bg-white/5',
+      text: 'text-foreground/60',
+      ring: 'ring-white/10',
+      dot: 'bg-foreground/40',
+    },
+  };
+
+  const style = styles[type] || styles.neutral;
+
+  return (
+    <span
+      className={cx(
+        'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium ring-1 ring-inset',
+        style.bg,
+        style.text,
+        style.ring
+      )}
+    >
+      <span className={cx('h-1.5 w-1.5 rounded-full', style.dot)} />
+      {label}
+    </span>
+  );
+}
+
+interface IconButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+  variant?: 'gold' | 'red' | 'blue' | 'neutral';
+  children: React.ReactNode;
+}
+
+function IconButton({ variant = 'neutral', children, className, ...props }: IconButtonProps) {
+  const variants = {
+    gold: 'hover:text-gold hover:bg-gold/10',
+    red: 'hover:text-red-400 hover:bg-red-500/10',
+    blue: 'hover:text-blue-400 hover:bg-blue-500/10',
+    neutral: 'hover:text-foreground hover:bg-white/5',
+  };
+
+  return (
+    <button
+      {...props}
+      className={cx(
+        'rounded-md p-1.5 text-foreground/45 transition-colors focus:outline-none',
+        variants[variant],
+        className
+      )}
+    >
+      {children}
+    </button>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/*                                MAIN COMPONENT                              */
+/* -------------------------------------------------------------------------- */
+
 export default function PerfumeAdminPage() {
   const permissions = useCatalogPermissions('parfums');
   const { user } = useAuthStore();
@@ -24,6 +133,7 @@ export default function PerfumeAdminPage() {
   const [search, setSearch] = useState('');
   const [genreFilter, setGenreFilter] = useState('');
   const [estBestsellerFilter, setEstBestsellerFilter] = useState('');
+  const [showFilters, setShowFilters] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [editingPerfume, setEditingPerfume] = useState<any | null>(null);
   const [categories, setCategories] = useState<any[]>([]);
@@ -310,6 +420,7 @@ export default function PerfumeAdminPage() {
   };
 
   const filtered = perfumes;
+  const activeFiltersCount = (genreFilter ? 1 : 0) + (estBestsellerFilter ? 1 : 0);
 
   if (!permissions.canRead) {
     return (
@@ -324,73 +435,147 @@ export default function PerfumeAdminPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Parfums</h1>
-          <p className="text-sm text-foreground/40 mt-0.5">Gestion du catalogue de parfums</p>
+          <h1 className="text-xl font-semibold text-foreground">Parfums</h1>
+          <p className="text-sm text-foreground/40">Gestion du catalogue de parfums</p>
         </div>
         {permissions.canCreate && (
-          <button onClick={handleOpenAdd} className="flex items-center gap-2 bg-gold text-black px-4 py-2.5 rounded-xl text-sm font-medium hover:bg-gold/80 transition-all shadow-lg">
-            <Plus size={16} /> Ajouter
+          <button
+            onClick={handleOpenAdd}
+            className="flex items-center gap-2 rounded-lg bg-gold px-3.5 py-2 text-xs font-semibold text-black transition-opacity hover:opacity-90"
+          >
+            <Plus size={15} />
+            <span>Ajouter</span>
           </button>
         )}
       </div>
 
       <CatalogAccessNotice permissions={permissions} resourceLabel="les parfums" />
 
-      {/* Filters */}
-      <div className="flex flex-wrap gap-3">
-        <div className="bg-white/5 rounded-2xl border border-white/10 p-4 shadow-sm flex items-center gap-2 w-full max-w-md">
-          <Search size={15} className="text-foreground/40" />
-          <input
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            placeholder="Rechercher un parfum..."
-            className="text-sm bg-transparent outline-none flex-1 text-foreground placeholder:text-foreground/40"
-          />
+      {/* KPI Summary Strip */}
+      <div className="flex items-center rounded-xl border border-white/10 bg-white/[0.02] divide-x divide-white/10 overflow-x-auto">
+        <div className="flex-1 min-w-[120px] p-4">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-foreground/35">Total Parfums</p>
+          <p className="text-xl font-semibold tabular-nums text-foreground mt-0.5">{perfumes.length}</p>
         </div>
-        <select
-          value={genreFilter}
-          onChange={(e) => setGenreFilter(e.target.value)}
-          className="bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-foreground outline-none"
-        >
-          <option value="">Tous genres</option>
-          <option value="homme">Homme</option>
-          <option value="femme">Femme</option>
-          <option value="mixte">Mixte</option>
-        </select>
-        <select
-          value={estBestsellerFilter}
-          onChange={(e) => setEstBestsellerFilter(e.target.value)}
-          className="bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-foreground outline-none"
-        >
-          <option value="">Tous</option>
-          <option value="true">Bestsellers</option>
-          <option value="false">Non bestsellers</option>
-        </select>
+        <div className="flex-1 min-w-[120px] p-4">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-foreground/35">Bestsellers</p>
+          <p className="text-xl font-semibold tabular-nums text-foreground mt-0.5">
+            {perfumes.filter(p => p.est_bestseller).length}
+          </p>
+        </div>
+        <div className="flex-1 min-w-[120px] p-4">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-foreground/35">En Rupture</p>
+          <p className="text-xl font-semibold tabular-nums text-foreground mt-0.5">
+            {perfumes.filter(p => Number(p.stock_quantite ?? p.stock ?? 0) === 0).length}
+          </p>
+        </div>
       </div>
 
-      {/* Table */}
-      <div className="bg-white/5 rounded-2xl border border-white/10 shadow-sm overflow-hidden min-h-[300px]">
-        <div className="flex items-center justify-between border-b border-white/10 px-6 py-3">
-          <p className="text-xs uppercase tracking-wider text-foreground/40">
-            {selectedSlugs.length > 0 ? `${selectedSlugs.length} sélectionné(s)` : 'Sélection multiple'}
+      {/* Toolbar / Filters */}
+      <div className="space-y-3">
+        <div className="flex items-center gap-3">
+          <div className="relative flex-1">
+            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-foreground/40" />
+            <input
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Rechercher un parfum..."
+              className="w-full rounded-lg border border-white/10 bg-white/[0.02] pl-9 pr-3 py-2 text-xs text-foreground placeholder:text-foreground/40 outline-none focus:border-white/20"
+            />
+          </div>
+
+          <button
+            onClick={() => setShowFilters(!showFilters)}
+            className={cx(
+              'flex items-center gap-2 rounded-lg border px-3 py-2 text-xs font-medium transition-colors',
+              showFilters || activeFiltersCount > 0
+                ? 'border-gold/40 text-gold bg-gold/5'
+                : 'border-white/10 text-foreground/60 hover:bg-white/[0.03]'
+            )}
+          >
+            <SlidersHorizontal size={14} />
+            <span>Filtres</span>
+            {activeFiltersCount > 0 && (
+              <span className="flex h-4 w-4 items-center justify-center rounded-full bg-gold text-[10px] font-bold text-black">
+                {activeFiltersCount}
+              </span>
+            )}
+          </button>
+        </div>
+
+        {/* Expanded Filters Panel */}
+        {showFilters && (
+          <div className="flex flex-wrap items-center gap-3 rounded-xl border border-white/10 bg-white/[0.02] p-3">
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-foreground/35">Genre:</span>
+              <select
+                value={genreFilter}
+                onChange={(e) => setGenreFilter(e.target.value)}
+                className="rounded-lg border border-white/10 bg-background px-2.5 py-1.5 text-xs text-foreground outline-none"
+              >
+                <option value="">Tous les genres</option>
+                <option value="homme">Homme</option>
+                <option value="femme">Femme</option>
+                <option value="mixte">Mixte</option>
+              </select>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-foreground/35">Bestseller:</span>
+              <select
+                value={estBestsellerFilter}
+                onChange={(e) => setEstBestsellerFilter(e.target.value)}
+                className="rounded-lg border border-white/10 bg-background px-2.5 py-1.5 text-xs text-foreground outline-none"
+              >
+                <option value="">Tous</option>
+                <option value="true">Bestsellers uniquement</option>
+                <option value="false">Non bestsellers</option>
+              </select>
+            </div>
+
+            {activeFiltersCount > 0 && (
+              <button
+                onClick={() => {
+                  setGenreFilter('');
+                  setEstBestsellerFilter('');
+                }}
+                className="ml-auto text-[11px] text-foreground/45 hover:text-foreground"
+              >
+                Réinitialiser
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Table Container */}
+      <div className="rounded-xl border border-white/10 bg-white/[0.02] overflow-hidden min-h-[300px]">
+        {/* Selection Bar */}
+        <div className="flex items-center justify-between border-b border-white/10 px-4 py-2.5 bg-white/[0.01]">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-foreground/35">
+            {selectedSlugs.length > 0 ? `${selectedSlugs.length} sélectionné(s)` : 'Catalogue'}
           </p>
           {selectedSlugs.length > 0 && permissions.canDelete && (
-            <button onClick={handleBulkDelete} className="text-xs font-semibold text-red-400 hover:text-red-300">
+            <button
+              onClick={handleBulkDelete}
+              className="text-xs font-medium text-red-400 hover:text-red-300 transition-colors"
+            >
               Supprimer la sélection
             </button>
           )}
         </div>
+
         {loading ? (
-          <div className="flex flex-col items-center justify-center py-20 text-gold gap-3">
-            <Loader2 className="animate-spin" size={32} />
-            <p className="text-sm font-medium">Chargement des parfums…</p>
+          <div className="flex flex-col items-center justify-center py-20 text-foreground/40 gap-2">
+            <Loader2 className="animate-spin text-gold" size={20} />
+            <p className="text-xs">Chargement des parfums...</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="border-b border-white/10 bg-white/5">
-                  <th className="px-4 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider w-10">
+                <tr className="border-b border-white/10 bg-white/[0.02]">
+                  <th className="px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-foreground/35 w-10">
                     <input
                       type="checkbox"
                       checked={filtered.length > 0 && selectedSlugs.length === filtered.length}
@@ -401,18 +586,19 @@ export default function PerfumeAdminPage() {
                           setSelectedSlugs(filtered.map((p: any) => p.slug || String(p.id)));
                         }
                       }}
-                      className="rounded border-white/10 bg-white/5 text-gold focus:ring-gold"
+                      className="rounded border-white/10 bg-white/5 text-gold focus:ring-0 focus:ring-offset-0"
                     />
                   </th>
-                  <th className="px-4 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider w-16">Image</th>
-                  <th className="px-4 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider">Nom</th>
-                  <th className="px-4 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider">Stock</th>
-                  <th className="px-4 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider">Contenance (ml)</th>
-                  <th className="px-4 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider">Prix Vente</th>
+                  <th className="px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-foreground/35 w-14">Image</th>
+                  <th className="px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-foreground/35">Nom</th>
+                  <th className="px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-foreground/35">Statut</th>
+                  <th className="px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-foreground/35">Stock</th>
+                  <th className="px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-foreground/35">Contenance</th>
+                  <th className="px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-foreground/35">Prix Vente</th>
                   {isAdmin && (
-                    <th className="px-4 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider">Bénéfice Unitaire</th>
+                    <th className="px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-foreground/35">Marge</th>
                   )}
-                  <th className="px-4 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider text-right">Actions</th>
+                  <th className="px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-foreground/35 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
@@ -425,18 +611,20 @@ export default function PerfumeAdminPage() {
                   const beneficeCalc = p.benefice_unitaire !== undefined 
                     ? parseFloat(String(p.benefice_unitaire))
                     : (p.prix_unitaire && p.prix_achat ? prixVenteNum - prixAchatNum : null);
+                  const stockQty = Number(p.stock_quantite ?? p.stock ?? 0);
+
                   return (
-                    <tr key={p.id} className="hover:bg-white/5 transition-colors group">
+                    <tr key={p.id} className="hover:bg-white/[0.02] transition-colors group">
                       <td className="px-4 py-3 whitespace-nowrap">
                         <input
                           type="checkbox"
                           checked={isSelected}
                           onChange={() => toggleSelectedSlug(slugKey)}
-                          className="rounded border-white/10 bg-white/5 text-gold focus:ring-gold"
+                          className="rounded border-white/10 bg-white/5 text-gold focus:ring-0 focus:ring-offset-0"
                         />
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap">
-                        <div className="relative w-12 h-12 rounded-xl bg-white/5 border border-white/10 overflow-hidden flex items-center justify-center">
+                        <div className="relative w-9 h-9 rounded-lg bg-white/5 border border-white/10 overflow-hidden flex items-center justify-center">
                           {productImg ? (
                             <AppImage
                               src={productImg}
@@ -445,57 +633,78 @@ export default function PerfumeAdminPage() {
                               className="object-cover group-hover:scale-105 transition-transform duration-300"
                             />
                           ) : (
-                            <ImageIcon size={18} className="text-foreground/20" />
+                            <ImageIcon size={14} className="text-foreground/20" />
                           )}
                         </div>
                       </td>
-                      <td className="px-4 py-4 font-medium text-foreground">{p.nom || p.name}</td>
-                      <td className="px-4 py-4 text-sm text-foreground/60">{p.stock_quantite ?? p.stock ?? '—'}</td>
-                      <td className="px-4 py-4 text-sm text-foreground/60">{p.contenance_ml}</td>
-                      <td className="px-4 py-4 text-sm font-bold">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          {p.taux_reduction ? (
-                            <>
-                              <span className="text-foreground/40 line-through text-xs">{p.prix_unitaire} FCFA</span>
-                              <span className="text-gold">{p.prix_actuel} FCFA</span>
-                              <span className="text-xs bg-gold/10 text-gold px-1.5 py-0.5 rounded-md">-{p.taux_reduction}%</span>
-                            </>
-                          ) : (
-                            <span className="text-gold">{p.prix_unitaire ? `${p.prix_unitaire} FCFA` : ''}</span>
-                          )}
+                      <td className="px-4 py-3 text-xs font-medium text-foreground whitespace-nowrap">
+                        <div className="flex flex-col">
+                          <span>{p.nom || p.name}</span>
+                          {p.marque && <span className="text-[10px] text-foreground/40">{p.marque}</span>}
                         </div>
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          {stockQty === 0 ? (
+                            <StatusChip label="Rupture" type="red" />
+                          ) : stockQty <= Number(p.seuil_alerte_stock || 5) ? (
+                            <StatusChip label="Stock bas" type="amber" />
+                          ) : (
+                            <StatusChip label="En stock" type="emerald" />
+                          )}
+                          {p.est_bestseller && <StatusChip label="Bestseller" type="gold" />}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-xs tabular-nums text-foreground/60 whitespace-nowrap">
+                        {stockQty}
+                      </td>
+                      <td className="px-4 py-3 text-xs tabular-nums text-foreground/60 whitespace-nowrap">
+                        {p.contenance_ml ? `${p.contenance_ml} ml` : '—'}
+                      </td>
+                      <td className="px-4 py-3 text-xs font-semibold tabular-nums text-foreground whitespace-nowrap">
+                        {p.taux_reduction ? (
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-foreground/40 line-through text-[11px] font-normal">{p.prix_unitaire} FCFA</span>
+                            <span className="text-gold">{p.prix_actuel} FCFA</span>
+                          </div>
+                        ) : (
+                          <span>{p.prix_unitaire ? `${p.prix_unitaire} FCFA` : '—'}</span>
+                        )}
                       </td>
                       {isAdmin && (
-                        <td className="px-4 py-4 text-sm font-medium">
+                        <td className="px-4 py-3 text-xs font-medium tabular-nums whitespace-nowrap">
                           {beneficeCalc !== null ? (
-                            <span className={`px-2 py-0.5 rounded text-xs font-semibold ${beneficeCalc >= 0 ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'}`}>
+                            <span className={beneficeCalc >= 0 ? 'text-emerald-400' : 'text-red-400'}>
                               +{beneficeCalc.toLocaleString()} FCFA
                             </span>
                           ) : (
-                            <span className="text-foreground/30 text-xs italic">Non défini</span>
+                            <span className="text-foreground/30 text-[11px] italic">—</span>
                           )}
                         </td>
                       )}
-                      <td className="px-4 py-4 text-right">
-                        <div className="flex items-center justify-end gap-2">
+                      <td className="px-4 py-3 text-right whitespace-nowrap">
+                        <div className="flex items-center justify-end gap-1">
                           {permissions.canUpdate && (
-                            <button onClick={() => handleOpenEdit(p)} className="p-2 rounded-lg hover:bg-white/5 text-foreground/40 hover:text-gold transition-colors">
-                              <Edit2 size={16} />
-                            </button>
+                            <IconButton variant="gold" onClick={() => handleOpenEdit(p)} title="Modifier">
+                              <Edit2 size={14} />
+                            </IconButton>
                           )}
                           {permissions.canDelete && (
-                            <button onClick={() => handleDelete(p.slug)} className="p-2 rounded-lg hover:bg-red-500/10 text-foreground/40 hover:text-red-400 transition-colors">
-                              <Trash2 size={16} />
-                            </button>
+                            <IconButton variant="red" onClick={() => handleDelete(p.slug)} title="Supprimer">
+                              <Trash2 size={14} />
+                            </IconButton>
                           )}
                         </div>
                       </td>
                     </tr>
                   );
                 })}
+
                 {filtered.length === 0 && (
                   <tr>
-                    <td colSpan={7} className="text-center py-20 text-foreground/40 italic">Aucun parfum trouvé.</td>
+                    <td colSpan={isAdmin ? 9 : 8} className="text-center py-16 text-xs italic text-foreground/30">
+                      Aucun parfum trouvé dans le catalogue.
+                    </td>
                   </tr>
                 )}
               </tbody>
@@ -504,6 +713,7 @@ export default function PerfumeAdminPage() {
         )}
       </div>
 
+      {/* Form Modal (Verbatim copy of form structure & handlers to prevent broken logic) */}
       <FormModal
         isOpen={showModal && (permissions.canCreate || permissions.canUpdate)}
         onClose={() => setShowModal(false)}

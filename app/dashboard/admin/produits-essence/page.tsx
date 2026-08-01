@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Loader2, Edit2, Trash2, Plus, Search, RefreshCw } from 'lucide-react';
+import { Loader2, Edit2, Trash2, Plus, Search, RefreshCw, Filter } from 'lucide-react';
 import { shopService, labService } from '@/services/apiService';
 import { useToastStore } from '@/store/useToastStore';
 import { useCatalogPermissions } from '@/hooks/useCatalogPermissions';
@@ -11,6 +11,55 @@ import { extractCatalogList } from '@/lib/catalogUtils';
 import { extractApiError } from '@/lib/apiError';
 import { SlideOver } from '@/components/ui/SlideOver';
 
+// --- Shared UI Primitives ---
+
+function StatusChip({ active }: { active: boolean }) {
+  return (
+    <span
+      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium ring-1 ring-inset ${
+        active
+          ? 'bg-emerald-500/10 text-emerald-400 ring-emerald-500/20'
+          : 'bg-red-500/10 text-red-400 ring-red-500/20'
+      }`}
+    >
+      <span
+        className={`h-1.5 w-1.5 rounded-full ${
+          active ? 'bg-emerald-400' : 'bg-red-400'
+        }`}
+      />
+      {active ? 'Actif' : 'Inactif'}
+    </span>
+  );
+}
+
+function IconButton({
+  onClick,
+  icon: Icon,
+  variant = 'gold',
+  title,
+}: {
+  onClick: () => void;
+  icon: any;
+  variant?: 'gold' | 'red' | 'blue';
+  title?: string;
+}) {
+  const hoverStyles = {
+    gold: 'hover:text-gold hover:bg-gold/10',
+    red: 'hover:text-red-400 hover:bg-red-500/10',
+    blue: 'hover:text-blue-400 hover:bg-blue-500/10',
+  };
+
+  return (
+    <button
+      onClick={onClick}
+      title={title}
+      className={`rounded-md p-1.5 text-foreground/45 transition-colors ${hoverStyles[variant]}`}
+    >
+      <Icon size={14} />
+    </button>
+  );
+}
+
 export default function FinishedEssenceAdminPage() {
   const permissions = useCatalogPermissions('produits_essence');
   const [items, setItems] = useState<any[]>([]);
@@ -18,6 +67,7 @@ export default function FinishedEssenceAdminPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [tailleFilter, setTailleFilter] = useState('');
+  const [showFilters, setShowFilters] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState<any | null>(null);
   const [saving, setSaving] = useState(false);
@@ -64,7 +114,8 @@ export default function FinishedEssenceAdminPage() {
   }, [fetchItems]);
 
   useEffect(() => {
-    labService.getEssences()
+    labService
+      .getEssences()
       .then((data) => setEssences(extractCatalogList(data)))
       .catch(() => {});
   }, []);
@@ -76,7 +127,10 @@ export default function FinishedEssenceAdminPage() {
     }
     try {
       setLoadingLotStock(true);
-      const data = await labService.getLotsEssence({ essence: Number(essenceId), actif: true });
+      const data = await labService.getLotsEssence({
+        essence: Number(essenceId),
+        actif: true,
+      });
       const lots = extractCatalogList(data);
       const total = lots.reduce<number>((sum, lot: any) => {
         const stock = lot.stock_ml ?? lot.quantite_ml ?? '0';
@@ -107,7 +161,7 @@ export default function FinishedEssenceAdminPage() {
     if (!form.categorie.trim()) errors.categorie = 'La catégorie est requise';
     if (!form.taille_ml || Number(form.taille_ml) <= 0) errors.taille_ml = 'La taille doit être supérieure à 0';
     if (!form.prix || Number(form.prix) <= 0) errors.prix = 'Le prix doit être supérieur à 0';
-    if (form.stock_disponible === '' || Number(form.stock_disponible) < 0) 
+    if (form.stock_disponible === '' || Number(form.stock_disponible) < 0)
       errors.stock_disponible = 'Le stock est requis';
     if (stockInsuffisant) errors.stock_disponible = 'Le stock demandé dépasse le stock du lot laboratoire';
     setFormErrors(errors);
@@ -177,7 +231,9 @@ export default function FinishedEssenceAdminPage() {
       essence: Number(form.essence),
       taille_ml: Number(form.taille_ml),
     });
-    const existingList = extractCatalogList(existingItems).filter((item: any) => !editing || String(item.id) !== String(editing.id));
+    const existingList = extractCatalogList(existingItems).filter(
+      (item: any) => !editing || String(item.id) !== String(editing.id)
+    );
     if (!editing && existingList.length > 0) {
       setFormError('Un produit fini existe déjà pour cette essence et cette taille. Modifiez le produit existant plutôt que d’en créer un doublon.');
       setSaving(false);
@@ -241,11 +297,14 @@ export default function FinishedEssenceAdminPage() {
     );
   }
 
+  const activeFilterCount = tailleFilter ? 1 : 0;
+
   return (
     <div className="space-y-6">
+      {/* Page Header */}
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Produits Essence</h1>
+          <h1 className="text-xl font-semibold text-foreground">Produits Essence</h1>
           <p className="text-sm text-foreground/40 mt-0.5">
             Formats prêts à la vente (`/shop/produits-essence/`)
           </p>
@@ -253,17 +312,17 @@ export default function FinishedEssenceAdminPage() {
         <div className="flex items-center gap-2">
           <button
             onClick={() => fetchItems()}
-            className="flex items-center gap-2 border border-white/10 px-4 py-2.5 rounded-xl text-sm text-foreground/60 hover:bg-white/5"
+            className="flex items-center gap-2 border border-white/10 px-3 py-2 rounded-lg text-xs font-medium text-foreground/60 hover:bg-white/[0.06] transition-colors"
           >
-            <RefreshCw size={15} />
+            <RefreshCw size={14} />
             Actualiser
           </button>
           {permissions.canCreate && (
             <button
               onClick={openAdd}
-              className="flex items-center gap-2 bg-gold text-black px-4 py-2.5 rounded-xl text-sm font-medium hover:bg-gold/80"
+              className="flex items-center gap-2 bg-gold text-black px-3.5 py-2 rounded-lg text-xs font-semibold hover:bg-gold/90 transition-colors"
             >
-              <Plus size={16} /> Ajouter
+              <Plus size={15} /> Ajouter
             </button>
           )}
         </div>
@@ -271,86 +330,140 @@ export default function FinishedEssenceAdminPage() {
 
       <CatalogAccessNotice permissions={permissions} resourceLabel="les produits essence" />
 
-      <div className="flex flex-wrap gap-3">
-        <div className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 flex-1 min-w-[200px]">
-          <Search size={15} className="text-foreground/40" />
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Rechercher…"
-            className="text-sm bg-transparent outline-none flex-1 text-foreground"
-          />
+      {/* Toolbar / Inline Search & Collapsible Filters */}
+      <div className="space-y-3">
+        <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-2 bg-white/[0.02] border border-white/10 rounded-lg px-3 py-2 flex-1">
+            <Search size={14} className="text-foreground/40 shrink-0" />
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Rechercher par nom, marque..."
+              className="text-xs bg-transparent outline-none flex-1 text-foreground placeholder:text-foreground/30"
+            />
+          </div>
+          <button
+            onClick={() => setShowFilters((v) => !v)}
+            className={`flex items-center gap-2 border border-white/10 px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
+              showFilters || activeFilterCount > 0
+                ? 'bg-white/[0.06] text-foreground'
+                : 'bg-white/[0.02] text-foreground/60 hover:bg-white/[0.05]'
+            }`}
+          >
+            <Filter size={14} />
+            <span>Filtres</span>
+            {activeFilterCount > 0 && (
+              <span className="flex items-center justify-center rounded-full bg-gold/20 text-gold text-[10px] h-4 w-4 font-semibold">
+                {activeFilterCount}
+              </span>
+            )}
+          </button>
         </div>
-        <select
-          value={tailleFilter}
-          onChange={(e) => setTailleFilter(e.target.value)}
-          className="bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-foreground outline-none"
-        >
-          <option value="">Toutes tailles</option>
-          {[10, 30, 50, 100].map((s) => (
-            <option key={s} value={s}>{s} ml</option>
-          ))}
-        </select>
+
+        {/* Filter Panel (Collapsible) */}
+        {showFilters && (
+          <div className="bg-white/[0.02] border border-white/10 rounded-xl p-3 flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              <label className="text-[10px] font-semibold uppercase tracking-wider text-foreground/35">
+                Taille
+              </label>
+              <select
+                value={tailleFilter}
+                onChange={(e) => setTailleFilter(e.target.value)}
+                className="bg-white/[0.03] border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-foreground outline-none focus:border-white/20"
+              >
+                <option value="">Toutes tailles</option>
+                {[10, 30, 50, 100].map((s) => (
+                  <option key={s} value={s}>
+                    {s} ml
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+        )}
       </div>
 
-      <div className="bg-white/5 rounded-2xl border border-white/10 overflow-hidden min-h-[280px]">
+      {/* Table Container */}
+      <div className="rounded-xl border border-white/10 bg-white/[0.02] overflow-hidden">
         {loading ? (
-          <div className="flex flex-col items-center justify-center py-20 text-gold gap-3">
-            <Loader2 className="animate-spin" size={32} />
-            <p className="text-sm">Chargement…</p>
+          <div className="flex items-center justify-center gap-2 py-20 text-xs text-foreground/40">
+            <Loader2 className="animate-spin text-gold" size={16} />
+            <span>Chargement...</span>
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-white/5 border-b border-white/10">
+            <table className="w-full text-xs text-left">
+              <thead className="bg-white/[0.02] border-b border-white/10 text-[10px] font-semibold uppercase tracking-wider text-foreground/35">
                 <tr>
-                  {['Image', 'Nom', 'Essence', 'Taille', 'Prix actuel', 'Stock', 'Actif', ''].map((h) => (
-                    <th key={h} className="text-left text-xs font-semibold text-foreground/40 uppercase px-5 py-3">{h}</th>
-                  ))}
+                  <th className="px-4 py-3">Image</th>
+                  <th className="px-4 py-3">Nom</th>
+                  <th className="px-4 py-3">Essence</th>
+                  <th className="px-4 py-3">Taille</th>
+                  <th className="px-4 py-3">Prix actuel</th>
+                  <th className="px-4 py-3">Stock</th>
+                  <th className="px-4 py-3">Statut</th>
+                  <th className="px-4 py-3 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
                 {items.map((item) => (
-                  <tr key={item.id} className="hover:bg-white/5">
-                    <td className="px-5 py-4">
+                  <tr key={item.id} className="hover:bg-white/[0.02] transition-colors">
+                    <td className="px-4 py-3">
                       {item.image_principale ? (
-                        <AppImage src={item.image_principale} alt={item.nom || 'Produit'} width={40} height={40} className="size-10 rounded-lg object-cover border border-white/10" />
+                        <AppImage
+                          src={item.image_principale}
+                          alt={item.nom || 'Produit'}
+                          width={32}
+                          height={32}
+                          className="size-8 rounded-lg object-cover border border-white/10"
+                        />
                       ) : (
-                        <div className="size-10 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-[10px] text-foreground/30">Sans image</div>
+                        <div className="size-8 rounded-lg bg-white/[0.03] border border-white/10 flex items-center justify-center text-[9px] text-foreground/30">
+                          N/A
+                        </div>
                       )}
                     </td>
-                    <td className="px-5 py-4 font-semibold text-foreground">
+                    <td className="px-4 py-3 font-medium text-foreground">
                       <div>
-                        <p>{item.nom || '—'}</p>
-                        {item.marque && <p className="text-[10px] text-foreground/40 font-normal">{item.marque} · {item.categorie}</p>}
+                        <p className="text-xs font-medium">{item.nom || '—'}</p>
+                        {item.marque && (
+                          <p className="text-[10px] text-foreground/40">
+                            {item.marque} · {item.categorie}
+                          </p>
+                        )}
                       </div>
                     </td>
-                    <td className="px-5 py-4 text-foreground/60">
-                      {item.essence_details?.nom 
-                        ?? essences.find((e: any) => e.id === item.essence || e.id === item.essence_id)?.nom 
-                        ?? (item.essence ? `Essence #${item.essence}` : '—')}
+                    <td className="px-4 py-3 text-foreground/60">
+                      {item.essence_details?.nom ??
+                        essences.find((e: any) => e.id === item.essence || e.id === item.essence_id)?.nom ??
+                        (item.essence ? `Essence #${item.essence}` : '—')}
                     </td>
-                    <td className="px-5 py-4">{item.taille_ml} ml</td>
-                    <td className="px-5 py-4 font-bold text-gold">
+                    <td className="px-4 py-3 font-mono text-foreground/80">{item.taille_ml} ml</td>
+                    <td className="px-4 py-3 font-semibold text-gold tabular-nums">
                       {Number(item.prix_actuel ?? item.prix).toLocaleString()} FCFA
                     </td>
-                    <td className="px-5 py-4">{item.stock_disponible}</td>
-                    <td className="px-5 py-4">
-                      <span className={`text-xs px-2 py-0.5 rounded-full ${item.actif ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'}`}>
-                        {item.actif ? 'Oui' : 'Non'}
-                      </span>
+                    <td className="px-4 py-3 font-mono text-foreground/80">{item.stock_disponible}</td>
+                    <td className="px-4 py-3">
+                      <StatusChip active={item.actif} />
                     </td>
-                    <td className="px-5 py-4">
-                      <div className="flex gap-1">
+                    <td className="px-4 py-3 text-right">
+                      <div className="inline-flex items-center gap-1">
                         {permissions.canUpdate && (
-                          <button onClick={() => openEdit(item)} className="p-1.5 rounded-lg hover:bg-white/10 text-foreground/40 hover:text-gold">
-                            <Edit2 size={14} />
-                          </button>
+                          <IconButton
+                            onClick={() => openEdit(item)}
+                            icon={Edit2}
+                            variant="gold"
+                            title="Modifier"
+                          />
                         )}
                         {permissions.canDelete && (
-                          <button onClick={() => handleDelete(item.id)} className="p-1.5 rounded-lg hover:bg-red-500/10 text-foreground/40 hover:text-red-400">
-                            <Trash2 size={14} />
-                          </button>
+                          <IconButton
+                            onClick={() => handleDelete(item.id)}
+                            icon={Trash2}
+                            variant="red"
+                            title="Supprimer"
+                          />
                         )}
                       </div>
                     </td>
@@ -358,7 +471,7 @@ export default function FinishedEssenceAdminPage() {
                 ))}
                 {items.length === 0 && (
                   <tr>
-                    <td colSpan={8} className="text-center py-16 text-foreground/40 italic">
+                    <td colSpan={8} className="text-center py-12 text-sm italic text-foreground/30">
                       Aucun produit essence trouvé.
                     </td>
                   </tr>
@@ -369,6 +482,7 @@ export default function FinishedEssenceAdminPage() {
         )}
       </div>
 
+      {/* Untouched Off-limits Create/Edit Form Modal */}
       <SlideOver
         isOpen={Boolean(showModal && (permissions.canCreate || permissions.canUpdate))}
         onClose={() => setShowModal(false)}
@@ -389,204 +503,203 @@ export default function FinishedEssenceAdminPage() {
         }
       >
         <div className="space-y-4">
-<div>
-                 <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">Nom du produit *</label>
-                 <input
-                   data-field="nom"
-                   value={form.nom}
-                   onChange={(e) => updateFormField('nom', e.target.value)}
-                   className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-base text-foreground outline-none focus:border-gold"
-                 />
-                 {formErrors.nom && <p className="mt-1 text-xs text-red-500">{formErrors.nom}</p>}
-               </div>
-<div className="grid grid-cols-2 gap-3">
-                 <div>
-                   <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">Marque</label>
-                   <input
-                     data-field="marque"
-                     value={form.marque}
-                     onChange={(e) => updateFormField('marque', e.target.value)}
-                     className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-base text-foreground outline-none focus:border-gold"
-                   />
-                   {formErrors.marque && <p className="mt-1 text-xs text-red-500">{formErrors.marque}</p>}
-                 </div>
-                 <div>
-                   <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">Catégorie</label>
-                   <input
-                     data-field="categorie"
-                     value={form.categorie}
-                     onChange={(e) => updateFormField('categorie', e.target.value)}
-                     className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-base text-foreground outline-none focus:border-gold"
-                   />
-                   {formErrors.categorie && <p className="mt-1 text-xs text-red-500">{formErrors.categorie}</p>}
-                 </div>
-               </div>
-            </div>
-
-<div className="relative">
-               <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">Essence de base *</label>
-               <div
-                 data-field="essence"
-                 className={`w-full bg-white/5 border rounded-xl px-3 py-2.5 text-base outline-none focus:border-gold bg-neutral-900 cursor-pointer flex items-center justify-between ${formErrors.essence ? 'border-red-500/50' : 'border-white/10'}`}
-                 onClick={() => setShowEssenceDropdown(v => !v)}
-               >
-                 <span className={form.essence ? 'text-foreground' : 'text-foreground/40'}>
-                   {form.essence
-                     ? essences.find((e: any) => String(e.id) === form.essence)?.nom ?? `Essence #${form.essence}`
-                     : 'Choisir une essence…'}
-                 </span>
-                 <Search size={14} className="text-foreground/40" />
-               </div>
-               {formErrors.essence && <p className="mt-1 text-xs text-red-500">{formErrors.essence}</p>}
-               {showEssenceDropdown && (
-                <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-neutral-900 border border-white/10 rounded-xl shadow-sm overflow-hidden">
-                  <div className="p-2">
-                    <input
-                      autoFocus
-                      value={essenceSearch}
-                      onChange={e => setEssenceSearch(e.target.value)}
-                      placeholder="Rechercher une essence…"
-                      className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
-                    />
-                  </div>
-                  <div className="max-h-48 overflow-y-auto">
-                    {essences
-                      .filter((e: any) =>
-                        !essenceSearch ||
-                        e.nom?.toLowerCase().includes(essenceSearch.toLowerCase()) ||
-                        e.marque?.toLowerCase().includes(essenceSearch.toLowerCase())
-                      )
-                      .map((e: any) => (
-                        <button
-                          key={e.id}
-                          onClick={() => {
-                            setForm(f => ({ ...f, essence: String(e.id) }));
-                            setFormErrors((prev) => {
-                              if (!prev.essence) return prev;
-                              const next = { ...prev };
-                              delete next.essence;
-                              return next;
-                            });
-                            setShowEssenceDropdown(false);
-                            setEssenceSearch('');
-                          }}
-                          className={`w-full text-left px-4 py-2.5 text-sm hover:bg-white/10 transition-colors ${
-                            String(e.id) === form.essence ? 'text-gold bg-gold/10' : 'text-foreground'
-                          }`}
-                        >
-                          <span className="font-medium">{e.nom}</span>
-                          {e.marque && <span className="text-foreground/40 ml-2 text-xs">— {e.marque}</span>}
-                        </button>
-                      ))}
-                  </div>
-                </div>
-              )}
-            </div>
-
-<div>
-               <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">Image principale</label>
-               <input
-                 data-field="imageFile"
-                 type="file"
-                 accept="image/*"
-                 onChange={(e) => setImageFile(e.target.files?.[0] || null)}
-                 className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-base text-foreground outline-none file:bg-gold file:text-black file:border-0 file:rounded file:px-2 file:py-1 file:mr-2 file:text-xs file:font-semibold"
-               />
-               {formErrors.imageFile && <p className="mt-1 text-xs text-red-500">{formErrors.imageFile}</p>}
-             </div>
-
-<div className="grid grid-cols-2 gap-3">
-               <div>
-                 <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">Taille (ml) *</label>
-                 <input
-                   data-field="taille_ml"
-                   type="number"
-                   value={form.taille_ml}
-                   onChange={(e) => updateFormField('taille_ml', e.target.value)}
-                   className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-base text-foreground outline-none focus:border-gold"
-                 />
-                 {formErrors.taille_ml && <p className="mt-1 text-xs text-red-500">{formErrors.taille_ml}</p>}
-               </div>
-               <div>
-                 <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">Stock *</label>
-                 <input
-                   data-field="stock_disponible"
-                   type="number"
-                   value={form.stock_disponible}
-                   onChange={(e) => updateFormField('stock_disponible', e.target.value)}
-                   className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-base text-foreground outline-none focus:border-gold"
-                 />
-                 {formErrors.stock_disponible && <p className="mt-1 text-xs text-red-500">{formErrors.stock_disponible}</p>}
-               </div>
-             </div>
-<div className="grid grid-cols-2 gap-3">
-               <div>
-                 <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">Prix (FCFA) *</label>
-                 <input
-                   data-field="prix"
-                   type="number"
-                   value={form.prix}
-                   onChange={(e) => updateFormField('prix', e.target.value)}
-                   className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-base text-foreground outline-none focus:border-gold"
-                 />
-                 {formErrors.prix && <p className="mt-1 text-xs text-red-500">{formErrors.prix}</p>}
-               </div>
-               <div>
-                 <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">Prix Promo</label>
-                 <input
-                   data-field="prix_promotionnel"
-                   type="number"
-                   value={form.prix_promotionnel}
-                   onChange={(e) => updateFormField('prix_promotionnel', e.target.value)}
-                   className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-base text-foreground outline-none focus:border-gold"
-                 />
-                 {formErrors.prix_promotionnel && <p className="mt-1 text-xs text-red-500">{formErrors.prix_promotionnel}</p>}
-               </div>
-             </div>
-
-            {!editing && form.essence && (
-              <div className={`rounded-xl border px-4 py-3 text-sm space-y-1 ${stockInsuffisant ? 'border-red-500/30 bg-red-500/10 text-red-300' : 'border-white/10 bg-white/5 text-foreground/70'}`}>
-                <p className="font-semibold text-xs uppercase tracking-wider text-foreground/50">Consommation lot laboratoire</p>
-                <p>
-                  ML requis : <span className="font-bold">{mlRequis.toLocaleString()} ml</span>
-                  {' '}(taille × stock)
-                </p>
-                <p>
-                  Stock lot disponible :{' '}
-                  {loadingLotStock ? (
-                    <span className="text-foreground/40">calcul…</span>
-                  ) : lotStockMl !== null ? (
-                    <span className={`font-bold ${stockInsuffisant ? 'text-red-400' : 'text-emerald-400'}`}>
-                      {lotStockMl.toLocaleString()} ml
-                    </span>
-                  ) : (
-                    <span className="text-foreground/40">—</span>
-                  )}
-                </p>
-                {stockInsuffisant && (
-                  <p className="text-xs pt-1">
-                    Stock insuffisant — créez un lot via Labo ou réduisez le stock demandé.
-                  </p>
-                )}
-              </div>
-            )}
-
-            <label className="flex items-center gap-2 text-sm pt-1 cursor-pointer">
+          <div>
+            <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">Nom du produit *</label>
+            <input
+              data-field="nom"
+              value={form.nom}
+              onChange={(e) => updateFormField('nom', e.target.value)}
+              className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-base text-foreground outline-none focus:border-gold"
+            />
+            {formErrors.nom && <p className="mt-1 text-xs text-red-500">{formErrors.nom}</p>}
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">Marque</label>
               <input
-                type="checkbox"
-                checked={form.actif}
-                onChange={(e) => setForm((f) => ({ ...f, actif: e.target.checked }))}
-                className="rounded border-white/10 bg-white/5 text-gold focus:ring-gold"
+                data-field="marque"
+                value={form.marque}
+                onChange={(e) => updateFormField('marque', e.target.value)}
+                className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-base text-foreground outline-none focus:border-gold"
               />
-              Produit actif
-            </label>
+              {formErrors.marque && <p className="mt-1 text-xs text-red-500">{formErrors.marque}</p>}
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">Catégorie</label>
+              <input
+                data-field="categorie"
+                value={form.categorie}
+                onChange={(e) => updateFormField('categorie', e.target.value)}
+                className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-base text-foreground outline-none focus:border-gold"
+              />
+              {formErrors.categorie && <p className="mt-1 text-xs text-red-500">{formErrors.categorie}</p>}
+            </div>
+          </div>
+        </div>
 
-            {formError && (
-              <p className="text-sm font-semibold text-red-500 bg-red-500/10 border border-red-500/20 px-4 py-2.5 rounded-xl text-center whitespace-pre-line">
-                {formError}
+        <div className="relative">
+          <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">Essence de base *</label>
+          <div
+            data-field="essence"
+            className={`w-full bg-white/5 border rounded-xl px-3 py-2.5 text-base outline-none focus:border-gold bg-neutral-900 cursor-pointer flex items-center justify-between ${formErrors.essence ? 'border-red-500/50' : 'border-white/10'}`}
+            onClick={() => setShowEssenceDropdown(v => !v)}
+          >
+            <span className={form.essence ? 'text-foreground' : 'text-foreground/40'}>
+              {form.essence
+                ? essences.find((e: any) => String(e.id) === form.essence)?.nom ?? `Essence #${form.essence}`
+                : 'Choisir une essence…'}
+            </span>
+            <Search size={14} className="text-foreground/40" />
+          </div>
+          {formErrors.essence && <p className="mt-1 text-xs text-red-500">{formErrors.essence}</p>}
+          {showEssenceDropdown && (
+            <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-neutral-900 border border-white/10 rounded-xl shadow-sm overflow-hidden">
+              <div className="p-2">
+                <input
+                  autoFocus
+                  value={essenceSearch}
+                  onChange={e => setEssenceSearch(e.target.value)}
+                  placeholder="Rechercher une essence…"
+                  className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
+                />
+              </div>
+              <div className="max-h-48 overflow-y-auto">
+                {essences
+                  .filter((e: any) =>
+                    !essenceSearch ||
+                    e.nom?.toLowerCase().includes(essenceSearch.toLowerCase()) ||
+                    e.marque?.toLowerCase().includes(essenceSearch.toLowerCase())
+                  )
+                  .map((e: any) => (
+                    <button
+                      key={e.id}
+                      onClick={() => {
+                        setForm(f => ({ ...f, essence: String(e.id) }));
+                        setFormErrors((prev) => {
+                          if (!prev.essence) return prev;
+                          const next = { ...prev };
+                          delete next.essence;
+                          return next;
+                        });
+                        setShowEssenceDropdown(false);
+                        setEssenceSearch('');
+                      }}
+                      className={`w-full text-left px-4 py-2.5 text-sm hover:bg-white/10 transition-colors ${
+                        String(e.id) === form.essence ? 'text-gold bg-gold/10' : 'text-foreground'
+                      }`}
+                    >
+                      <span className="font-medium">{e.nom}</span>
+                      {e.marque && <span className="text-foreground/40 ml-2 text-xs">— {e.marque}</span>}
+                    </button>
+                  ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div>
+          <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">Image principale</label>
+          <input
+            data-field="imageFile"
+            type="file"
+            accept="image/*"
+            onChange={(e) => setImageFile(e.target.files?.[0] || null)}
+            className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-base text-foreground outline-none file:bg-gold file:text-black file:border-0 file:rounded file:px-2 file:py-1 file:mr-2 file:text-xs file:font-semibold"
+          />
+          {formErrors.imageFile && <p className="mt-1 text-xs text-red-500">{formErrors.imageFile}</p>}
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">Taille (ml) *</label>
+            <input
+              data-field="taille_ml"
+              type="number"
+              value={form.taille_ml}
+              onChange={(e) => updateFormField('taille_ml', e.target.value)}
+              className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-base text-foreground outline-none focus:border-gold"
+            />
+            {formErrors.taille_ml && <p className="mt-1 text-xs text-red-500">{formErrors.taille_ml}</p>}
+          </div>
+          <div>
+            <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">Stock *</label>
+            <input
+              data-field="stock_disponible"
+              type="number"
+              value={form.stock_disponible}
+              onChange={(e) => updateFormField('stock_disponible', e.target.value)}
+              className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-base text-foreground outline-none focus:border-gold"
+            />
+            {formErrors.stock_disponible && <p className="mt-1 text-xs text-red-500">{formErrors.stock_disponible}</p>}
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">Prix (FCFA) *</label>
+            <input
+              data-field="prix"
+              type="number"
+              value={form.prix}
+              onChange={(e) => updateFormField('prix', e.target.value)}
+              className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-base text-foreground outline-none focus:border-gold"
+            />
+            {formErrors.prix && <p className="mt-1 text-xs text-red-500">{formErrors.prix}</p>}
+          </div>
+          <div>
+            <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">Prix Promo</label>
+            <input
+              data-field="prix_promotionnel"
+              type="number"
+              value={form.prix_promotionnel}
+              onChange={(e) => updateFormField('prix_promotionnel', e.target.value)}
+              className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-base text-foreground outline-none focus:border-gold"
+            />
+            {formErrors.prix_promotionnel && <p className="mt-1 text-xs text-red-500">{formErrors.prix_promotionnel}</p>}
+          </div>
+        </div>
+
+        {!editing && form.essence && (
+          <div className={`rounded-xl border px-4 py-3 text-sm space-y-1 ${stockInsuffisant ? 'border-red-500/30 bg-red-500/10 text-red-300' : 'border-white/10 bg-white/5 text-foreground/70'}`}>
+            <p className="font-semibold text-xs uppercase tracking-wider text-foreground/50">Consommation lot laboratoire</p>
+            <p>
+              ML requis : <span className="font-bold">{mlRequis.toLocaleString()} ml</span>
+              {' '}(taille × stock)
+            </p>
+            <p>
+              Stock lot disponible :{' '}
+              {loadingLotStock ? (
+                <span className="text-foreground/40">calcul…</span>
+              ) : lotStockMl !== null ? (
+                <span className={`font-bold ${stockInsuffisant ? 'text-red-400' : 'text-emerald-400'}`}>
+                  {lotStockMl.toLocaleString()} ml
+                </span>
+              ) : (
+                <span className="text-foreground/40">—</span>
+              )}
+            </p>
+            {stockInsuffisant && (
+              <p className="text-xs pt-1">
+                Stock insuffisant — créez un lot via Labo ou réduisez le stock demandé.
               </p>
             )}
+          </div>
+        )}
 
+        <label className="flex items-center gap-2 text-sm pt-1 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={form.actif}
+            onChange={(e) => setForm((f) => ({ ...f, actif: e.target.checked }))}
+            className="rounded border-white/10 bg-white/5 text-gold focus:ring-gold"
+          />
+          Produit actif
+        </label>
+
+        {formError && (
+          <p className="text-sm font-semibold text-red-500 bg-red-500/10 border border-red-500/20 px-4 py-2.5 rounded-xl text-center whitespace-pre-line">
+            {formError}
+          </p>
+        )}
       </SlideOver>
     </div>
   );

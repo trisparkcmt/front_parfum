@@ -99,7 +99,7 @@ export default function CompositionViewPage() {
     setIsAddingToCart(true);
     try {
       await addCustomPerfume(composition.id, 1);
-      addToast('Parfum personnalisé ajouté au panier', 'success');
+      addToast('Added', 'success');
     } catch (error) {
       addToast('Erreur lors de l’ajout au panier', 'error');
     } finally {

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Search, Plus, Edit2, Trash2, Loader2 } from 'lucide-react';
+import { Search, Plus, Edit2, Trash2, Loader2, SlidersHorizontal, X } from 'lucide-react';
 import { shopService, adminService } from '@/services/apiService';
 import { useToastStore } from '@/store/useToastStore';
 import { useCatalogPermissions } from '@/hooks/useCatalogPermissions';
@@ -12,6 +12,10 @@ import { CreateCategoryModal } from '@/components/CreateCategoryModal';
 import { useAuthStore } from '@/store/useAuthStore';
 import AppImage from '@/components/ui/AppImage';
 import { SlideOver } from '@/components/ui/SlideOver';
+
+function cx(...parts: Array<string | false | null | undefined>) {
+  return parts.filter(Boolean).join(' ');
+}
 
 export default function AccessoriesPage() {
   const permissions = useCatalogPermissions('accessoires');
@@ -25,6 +29,7 @@ export default function AccessoriesPage() {
   const [matiereFilter, setMatiereFilter] = useState('');
   const [couleurFilter, setCouleurFilter] = useState('');
   const [enStockFilter, setEnStockFilter] = useState('');
+  const [showFilters, setShowFilters] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [editingAccessory, setEditingAccessory] = useState<any | null>(null);
   const [selectedAccessories, setSelectedAccessories] = useState<Set<string>>(new Set());
@@ -279,29 +284,33 @@ export default function AccessoriesPage() {
     );
   }
 
+  const activeFilterCount = [marqueFilter, matiereFilter, couleurFilter, enStockFilter].filter(Boolean).length;
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+
+      {/* Header --------------------------------------------------------- */}
+      <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Accessoires</h1>
-          <p className="text-sm text-foreground/40 mt-0.5">Bijoux, montres et autres accessoires</p>
+          <h1 className="text-xl font-semibold text-foreground">Accessoires</h1>
+          <p className="mt-0.5 text-sm text-foreground/40">Bijoux, montres et autres accessoires</p>
         </div>
         <div className="flex items-center gap-2">
           {selectedAccessories.size > 0 && permissions.canDelete && (
             <button
               onClick={handleBulkDelete}
-              className="flex items-center gap-2 bg-red-500 text-white px-4 py-2.5 rounded-xl text-sm font-medium hover:bg-red-600 transition-all shadow-lg"
+              className="inline-flex items-center gap-2 rounded-lg bg-red-500/90 px-3.5 py-2 text-sm font-medium text-white transition-colors hover:bg-red-500"
             >
-              <Trash2 size={16} />
+              <Trash2 size={14} />
               Supprimer ({selectedAccessories.size})
             </button>
           )}
           {permissions.canCreate && (
             <button
               onClick={handleOpenAdd}
-              className="flex items-center gap-2 bg-gold text-black px-4 py-2.5 rounded-xl text-sm font-medium hover:bg-gold/80 transition-all shadow-lg"
+              className="inline-flex items-center gap-2 rounded-lg bg-gold px-3.5 py-2 text-sm font-semibold text-black transition-colors hover:bg-gold/85"
             >
-              <Plus size={16} />
+              <Plus size={14} />
               Ajouter
             </button>
           )}
@@ -310,76 +319,123 @@ export default function AccessoriesPage() {
 
       <CatalogAccessNotice permissions={permissions} resourceLabel="les accessoires" />
 
-      <div className="bg-white/5 rounded-2xl border border-white/10 p-4 shadow-sm flex flex-wrap items-center gap-3">
-        <div className="flex items-center gap-2 border border-white/10 rounded-lg px-3 py-2 flex-1 min-w-48">
-          <Search size={15} className="text-foreground/40" />
-          <input
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            placeholder="Rechercher par nom..."
-            className="text-sm bg-transparent outline-none flex-1 text-foreground placeholder:text-foreground/40"
-          />
-        </div>
-        <div className="flex gap-2 flex-wrap">
-          <button
-            onClick={() => setFilter('all')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors
-              ${filter === 'all' ? 'bg-gold text-black' : 'border border-white/10 text-foreground/40 hover:bg-white/5'}`}
-          >
-            Tous
-          </button>
-          {accessoryTypes.map(t => (
+      {/* Toolbar ---------------------------------------------------------- */}
+      <div className="space-y-3">
+        <div className="flex flex-wrap items-center gap-2.5">
+          <div className="flex min-w-[220px] flex-1 items-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2">
+            <Search size={14} className="shrink-0 text-foreground/35" />
+            <input
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Rechercher par nom…"
+              className="flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-foreground/35"
+            />
+            {search && (
+              <button onClick={() => setSearch('')} className="text-foreground/30 hover:text-foreground/60">
+                <X size={13} />
+              </button>
+            )}
+          </div>
+
+          <div className="flex flex-wrap gap-1.5">
             <button
-              key={t.id}
-              onClick={() => setFilter(String(t.id))}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors
-                ${filter === String(t.id) ? 'bg-gold text-black' : 'border border-white/10 text-foreground/40 hover:bg-white/5'}`}
+              onClick={() => setFilter('all')}
+              className={cx(
+                'rounded-lg border px-3 py-2 text-xs font-medium transition-colors',
+                filter === 'all' ? 'border-gold/40 bg-gold/15 text-gold' : 'border-white/10 text-foreground/50 hover:border-white/20 hover:text-foreground/80'
+              )}
             >
-              {t.nom}
+              Tous
             </button>
-          ))}
+            {accessoryTypes.map(t => (
+              <button
+                key={t.id}
+                onClick={() => setFilter(String(t.id))}
+                className={cx(
+                  'rounded-lg border px-3 py-2 text-xs font-medium transition-colors',
+                  filter === String(t.id) ? 'border-gold/40 bg-gold/15 text-gold' : 'border-white/10 text-foreground/50 hover:border-white/20 hover:text-foreground/80'
+                )}
+              >
+                {t.nom}
+              </button>
+            ))}
+          </div>
+
+          <button
+            onClick={() => setShowFilters(s => !s)}
+            className={cx(
+              'ml-auto inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-sm transition-colors',
+              showFilters || activeFilterCount
+                ? 'border-gold/30 bg-gold/10 text-gold'
+                : 'border-white/10 text-foreground/55 hover:bg-white/6'
+            )}
+          >
+            <SlidersHorizontal size={14} />
+            Filtres
+            {activeFilterCount > 0 && (
+              <span className="rounded-full bg-gold/25 px-1.5 text-[10px] font-bold text-gold">{activeFilterCount}</span>
+            )}
+          </button>
         </div>
-        <input
-          value={marqueFilter}
-          onChange={e => setMarqueFilter(e.target.value)}
-          placeholder="Marque"
-          className="text-sm bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-foreground placeholder:text-foreground/40 outline-none focus:border-gold"
-        />
-        <input
-          value={matiereFilter}
-          onChange={e => setMatiereFilter(e.target.value)}
-          placeholder="Matière"
-          className="text-sm bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-foreground placeholder:text-foreground/40 outline-none focus:border-gold"
-        />
-        <input
-          value={couleurFilter}
-          onChange={e => setCouleurFilter(e.target.value)}
-          placeholder="Couleur"
-          className="text-sm bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-foreground placeholder:text-foreground/40 outline-none focus:border-gold"
-        />
-        <select
-          value={enStockFilter}
-          onChange={e => setEnStockFilter(e.target.value)}
-          className="text-sm bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-foreground outline-none focus:border-gold"
-        >
-          <option value="">Stock (tous)</option>
-          <option value="true">En stock</option>
-          <option value="false">Stock faible</option>
-        </select>
+
+        {showFilters && (
+          <div className="grid grid-cols-1 gap-3 rounded-xl border border-white/10 bg-white/[0.02] p-4 sm:grid-cols-4">
+            <div>
+              <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-foreground/35">Marque</p>
+              <input
+                value={marqueFilter}
+                onChange={e => setMarqueFilter(e.target.value)}
+                placeholder="Toutes"
+                className="w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/35 focus:border-gold/50"
+              />
+            </div>
+            <div>
+              <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-foreground/35">Matière</p>
+              <input
+                value={matiereFilter}
+                onChange={e => setMatiereFilter(e.target.value)}
+                placeholder="Toutes"
+                className="w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/35 focus:border-gold/50"
+              />
+            </div>
+            <div>
+              <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-foreground/35">Couleur</p>
+              <input
+                value={couleurFilter}
+                onChange={e => setCouleurFilter(e.target.value)}
+                placeholder="Toutes"
+                className="w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/35 focus:border-gold/50"
+              />
+            </div>
+            <div>
+              <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-foreground/35">Stock</p>
+              <select
+                value={enStockFilter}
+                onChange={e => setEnStockFilter(e.target.value)}
+                className="w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-foreground outline-none transition-colors focus:border-gold/50"
+              >
+                <option value="" className="bg-background">Tous</option>
+                <option value="true" className="bg-background">En stock</option>
+                <option value="false" className="bg-background">Stock faible</option>
+              </select>
+            </div>
+          </div>
+        )}
       </div>
 
-      <div className="bg-white/5 rounded-2xl border border-white/10 shadow-sm overflow-hidden min-h-[300px]">
+      {/* Table -------------------------------------------------------------- */}
+      <div className="min-h-[300px] overflow-hidden rounded-xl border border-white/10">
         {loading ? (
-          <div className="flex flex-col items-center justify-center py-20 text-gold gap-3">
-            <Loader2 className="animate-spin" size={32} />
-            <p className="text-sm font-medium">Chargement des accessoires...</p>
+          <div className="flex flex-col items-center justify-center gap-2.5 py-20 text-foreground/40">
+            <Loader2 className="animate-spin text-gold" size={28} />
+            <p className="text-xs">Chargement des accessoires…</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
+            <table className="w-full text-left text-sm">
               <thead>
-                <tr className="border-b border-white/10 bg-white/5">
-                  <th className="px-6 py-4 w-12">
+                <tr className="border-b border-white/10 bg-white/[0.02]">
+                  <th className="w-12 px-4 py-2.5">
                     <input
                       type="checkbox"
                       checked={accessories.length > 0 && selectedAccessories.size === accessories.length}
@@ -393,14 +449,14 @@ export default function AccessoriesPage() {
                       className="rounded border-white/10 bg-white/5 text-gold focus:ring-gold"
                     />
                   </th>
-                  <th className="px-6 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider">Accessoire</th>
-                  <th className="px-6 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider">Type</th>
-                  <th className="px-6 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider">Prix Vente</th>
+                  <th className="px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-foreground/35">Accessoire</th>
+                  <th className="px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-foreground/35">Type</th>
+                  <th className="px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-foreground/35">Prix vente</th>
                   {isAdmin && (
-                    <th className="px-6 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider">Bénéfice Unitaire</th>
+                    <th className="px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-foreground/35">Bénéfice unitaire</th>
                   )}
-                  <th className="px-6 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider">Stock</th>
-                  <th className="px-6 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider text-right">Actions</th>
+                  <th className="px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-foreground/35">Stock</th>
+                  <th className="px-4 py-2.5 text-right text-[10px] font-semibold uppercase tracking-wider text-foreground/35">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
@@ -419,8 +475,8 @@ export default function AccessoriesPage() {
                     : (a.prix_unitaire && a.prix_achat ? prixVenteNum - prixAchatNum : null);
 
                   return (
-                    <tr key={a.slug || a.id} className="hover:bg-white/5 transition-colors group">
-                      <td className="px-6 py-4 w-12">
+                    <tr key={a.slug || a.id} className="group transition-colors hover:bg-white/[0.02]">
+                      <td className="w-12 px-4 py-3">
                         <input
                           type="checkbox"
                           checked={selectedAccessories.has(a.slug || a.id)}
@@ -428,53 +484,54 @@ export default function AccessoriesPage() {
                           className="rounded border-white/10 bg-white/5 text-gold focus:ring-gold"
                         />
                       </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-4">
-                          <div className="relative w-12 h-12 rounded-xl bg-white/5 flex items-center justify-center text-2xl group-hover:scale-105 transition-transform overflow-hidden border border-white/5">
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-3">
+                          <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-lg border border-white/8 bg-white/[0.03]">
                             {a.image_principale ? (
                               <AppImage src={a.image_principale} alt={aName} fill className="object-cover" />
                             ) : (
-                              '👜'
+                              <span className="flex h-full w-full items-center justify-center text-base">👜</span>
                             )}
                           </div>
-                          <div>
-                            <p className="font-semibold text-foreground text-sm">{aName}</p>
-                            <p className="text-[10px] text-foreground/30 font-mono mt-1 uppercase">{a.reference_sku || a.slug}</p>
+                          <div className="min-w-0">
+                            <p className="truncate text-xs font-medium text-foreground">{aName}</p>
+                            <p className="mt-0.5 font-mono text-[10px] uppercase text-foreground/30">{a.reference_sku || a.slug}</p>
                           </div>
                         </div>
                       </td>
-                      <td className="px-6 py-4">
-                        <span className="text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-tight text-slate-400 bg-slate-500/10">
+                      <td className="px-4 py-3">
+                        <span className="rounded-full bg-white/6 px-2.5 py-1 text-[11px] font-medium text-foreground/60">
                           {typeName}
                         </span>
                       </td>
-                      <td className="px-6 py-4">
-                        <p className="font-bold text-foreground text-sm">{Number(aPrice).toLocaleString()} FCFA</p>
+                      <td className="whitespace-nowrap px-4 py-3 font-semibold text-foreground">
+                        {Number(aPrice).toLocaleString()} FCFA
                       </td>
                       {isAdmin && (
-                        <td className="px-6 py-4">
+                        <td className="whitespace-nowrap px-4 py-3">
                           {beneficeCalc !== null ? (
-                            <span className={`px-2 py-0.5 rounded text-xs font-semibold ${beneficeCalc >= 0 ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'}`}>
+                            <span className={cx(
+                              'rounded-full px-2 py-0.5 text-[11px] font-semibold',
+                              beneficeCalc >= 0 ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'
+                            )}>
                               +{beneficeCalc.toLocaleString()} FCFA
                             </span>
                           ) : (
-                            <span className="text-foreground/30 text-xs italic">Non défini</span>
+                            <span className="text-xs italic text-foreground/30">Non défini</span>
                           )}
                         </td>
                       )}
-                      <td className="px-6 py-4">
-                        <p className="text-sm text-foreground/60">{aStock} unités</p>
-                      </td>
-                      <td className="px-6 py-4 text-right">
-                        <div className="flex items-center justify-end gap-2">
+                      <td className="whitespace-nowrap px-4 py-3 text-xs text-foreground/55">{aStock} unités</td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center justify-end gap-1">
                           {permissions.canUpdate && (
-                            <button onClick={() => handleOpenEdit(a)} className="p-2 rounded-lg hover:bg-white/5 text-foreground/40 hover:text-gold transition-colors">
-                              <Edit2 size={16} />
+                            <button onClick={() => handleOpenEdit(a)} title="Modifier" className="rounded-md p-1.5 text-foreground/45 transition-colors hover:bg-gold/10 hover:text-gold">
+                              <Edit2 size={14} />
                             </button>
                           )}
                           {permissions.canDelete && (
-                            <button onClick={() => handleDelete(a.slug)} className="p-2 rounded-lg hover:bg-red-500/10 text-foreground/40 hover:text-red-400 transition-colors">
-                              <Trash2 size={16} />
+                            <button onClick={() => handleDelete(a.slug)} title="Supprimer" className="rounded-md p-1.5 text-foreground/45 transition-colors hover:bg-red-500/10 hover:text-red-400">
+                              <Trash2 size={14} />
                             </button>
                           )}
                         </div>
@@ -484,7 +541,7 @@ export default function AccessoriesPage() {
                 })}
                 {accessories.length === 0 && (
                   <tr>
-                    <td colSpan={5} className="text-center py-20 text-foreground/40 italic">Aucun accessoire trouvé.</td>
+                    <td colSpan={7} className="py-16 text-center text-sm italic text-foreground/30">Aucun accessoire trouvé.</td>
                   </tr>
                 )}
               </tbody>
@@ -493,6 +550,7 @@ export default function AccessoriesPage() {
         )}
       </div>
 
+      {/* ── Form modal — untouched, same open system ─────────────────────── */}
       <SlideOver
         isOpen={showModal}
         onClose={() => setShowModal(false)}

@@ -4,9 +4,66 @@ import { useState, useEffect, useCallback } from 'react';
 import { FlaskConical, Pencil, Eye, Loader2 } from 'lucide-react';
 import { labService } from '@/services/apiService';
 import { useToastStore } from '@/store/useToastStore';
-import { BackButton } from '@/components/ui/BackButton';
 import { SlideOver } from '@/components/ui/SlideOver';
 import { LaptopIcon } from '@/components/icons/CustomIcons';
+
+// --- Shared Primitives & Helpers ---
+
+const cx = (...classes: (string | boolean | undefined)[]) => classes.filter(Boolean).join(' ');
+
+function StatusChip({ isAI }: { isAI: boolean }) {
+  return (
+    <span
+      className={cx(
+        'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium ring-1 ring-inset',
+        isAI
+          ? 'text-purple-400 bg-purple-500/10 ring-purple-500/20'
+          : 'text-amber-400 bg-amber-500/10 ring-amber-500/20'
+      )}
+    >
+      <span
+        className={cx(
+          'h-1.5 w-1.5 rounded-full',
+          isAI ? 'bg-purple-400' : 'bg-amber-400'
+        )}
+      />
+      {isAI ? 'IA' : 'Manuelle'}
+    </span>
+  );
+}
+
+function IconButton({
+  onClick,
+  children,
+  variant = 'gold',
+  title,
+}: {
+  onClick: () => void;
+  children: React.ReactNode;
+  variant?: 'gold' | 'red' | 'blue';
+  title?: string;
+}) {
+  const hoverColors = {
+    gold: 'hover:text-gold hover:bg-gold/10',
+    red: 'hover:text-red-400 hover:bg-red-500/10',
+    blue: 'hover:text-blue-400 hover:bg-blue-500/10',
+  };
+
+  return (
+    <button
+      onClick={onClick}
+      title={title}
+      className={cx(
+        'rounded-md p-1.5 text-foreground/45 transition-colors',
+        hoverColors[variant]
+      )}
+    >
+      {children}
+    </button>
+  );
+}
+
+// --- Main Component ---
 
 export default function CompositionsPage() {
   const [compositions, setCompositions] = useState<any[]>([]);
@@ -31,50 +88,58 @@ export default function CompositionsPage() {
     fetchCompositions();
   }, [fetchCompositions]);
 
+  const iaCount = compositions.filter(c => c.type === 'ia' || c.is_ai).length;
+  const manualCount = compositions.filter(c => !(c.type === 'ia' || c.is_ai)).length;
+  const avgPrice = compositions.length
+    ? Math.round(compositions.reduce((s, c) => s + (c.prix || 0), 0) / compositions.length)
+    : 0;
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Compositions Sur Mesure</h1>
-          <p className="text-sm text-foreground/40 mt-0.5">Créations IA et compositions manuelles des clients</p>
+      {/* Header */}
+      <div>
+        <h1 className="text-xl font-semibold text-foreground">Compositions Sur Mesure</h1>
+        <p className="text-sm text-foreground/40 mt-0.5">Créations IA et compositions manuelles des clients</p>
+      </div>
+
+      {/* KPI Bar */}
+      <div className="rounded-xl border border-white/10 bg-white/[0.02] grid grid-cols-2 md:grid-cols-4 divide-x divide-white/10">
+        <div className="p-4">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-foreground/35">Total compositions</p>
+          <p className="text-xl font-semibold tabular-nums text-foreground mt-1">{compositions.length}</p>
+        </div>
+        <div className="p-4">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-foreground/35">Via IA</p>
+          <p className="text-xl font-semibold tabular-nums text-foreground mt-1">{iaCount}</p>
+        </div>
+        <div className="p-4">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-foreground/35">Manuelles</p>
+          <p className="text-xl font-semibold tabular-nums text-foreground mt-1">{manualCount}</p>
+        </div>
+        <div className="p-4">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-foreground/35">Prix moyen</p>
+          <p className="text-xl font-semibold tabular-nums text-foreground mt-1">{avgPrice.toLocaleString()} FCFA</p>
         </div>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {[
-          { label: 'Total compositions', value: compositions.length, icon: <FlaskConical size={18} />, color: 'text-gold bg-gold/10' },
-          { label: 'Via IA', value: compositions.filter(c => c.type === 'ia' || c.is_ai).length, icon: <LaptopIcon size={18} />, color: 'text-purple-400 bg-purple-500/10' },
-          { label: 'Manuelles', value: compositions.filter(c => !(c.type === 'ia' || c.is_ai)).length, icon: <Pencil size={18} />, color: 'text-amber-400 bg-amber-500/10' },
-          { label: 'Prix moyen', value: `${(compositions.reduce((s, c) => s + (c.prix || 0), 0) / (compositions.length || 1)).toFixed(0)} FCFA`, icon: <FlaskConical size={18} />, color: 'text-emerald-400 bg-emerald-500/10' },
-        ].map(k => (
-          <div key={k.label} className="bg-white/5 rounded-2xl border border-white/10 p-5 shadow-sm">
-            <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-3 ${k.color}`}>
-              {k.icon}
-            </div>
-            <p className="text-2xl font-bold text-foreground">{k.value}</p>
-            <p className="text-xs text-foreground/40 mt-0.5">{k.label}</p>
-          </div>
-        ))}
-      </div>
-
-      {/* List */}
-      <div className="bg-white/5 rounded-2xl border border-white/10 shadow-sm overflow-hidden min-h-[300px]">
+      {/* Table Section */}
+      <div className="rounded-xl border border-white/10 overflow-hidden bg-white/[0.02] min-h-[300px]">
         {loading ? (
-          <div className="flex flex-col items-center justify-center py-20 text-gold gap-3">
-            <Loader2 className="animate-spin" size={32} />
-            <p className="text-sm font-medium">Chargement des compositions...</p>
+          <div className="flex items-center justify-center py-20 text-foreground/40 text-xs gap-2">
+            <Loader2 className="animate-spin text-gold" size={16} />
+            <span>Chargement des compositions...</span>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="border-b border-white/10 bg-white/5">
-                  <th className="px-6 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider">Composition</th>
-                  <th className="px-6 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider">Client / Auteur</th>
-                  <th className="px-6 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider">Flacon</th>
-                  <th className="px-6 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider">Prix</th>
-                  <th className="px-6 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider text-right">Actions</th>
+                <tr className="border-b border-white/10 bg-white/[0.02]">
+                  <th className="px-5 py-3 text-[10px] font-semibold uppercase tracking-wider text-foreground/35">Composition</th>
+                  <th className="px-5 py-3 text-[10px] font-semibold uppercase tracking-wider text-foreground/35">Type</th>
+                  <th className="px-5 py-3 text-[10px] font-semibold uppercase tracking-wider text-foreground/35">Client / Auteur</th>
+                  <th className="px-5 py-3 text-[10px] font-semibold uppercase tracking-wider text-foreground/35">Flacon</th>
+                  <th className="px-5 py-3 text-[10px] font-semibold uppercase tracking-wider text-foreground/35">Prix</th>
+                  <th className="px-5 py-3 text-[10px] font-semibold uppercase tracking-wider text-foreground/35 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
@@ -84,39 +149,38 @@ export default function CompositionsPage() {
                   const author = c.user_details?.first_name || c.user_name || 'Client';
 
                   return (
-                    <tr key={c.id} className="hover:bg-white/5 transition-colors group">
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-4">
-                          <div className={`w-10 h-10 rounded-xl flex items-center justify-center
-                            ${isAI ? 'bg-purple-500/10 text-purple-400' : 'bg-amber-500/10 text-amber-400'}`}>
-                            {isAI ? <LaptopIcon size={18} /> : <Pencil size={18} />}
-                          </div>
-                          <div>
-                            <p className="font-semibold text-foreground text-sm">{cName}</p>
-                            <p className="text-[11px] text-foreground/40">ID: {c.id}</p>
-                          </div>
-                        </div>
+                    <tr key={c.id} className="hover:bg-white/[0.02] transition-colors">
+                      <td className="px-5 py-3.5">
+                        <div className="font-medium text-foreground text-sm">{cName}</div>
+                        <div className="text-[11px] text-foreground/40 font-mono">ID: {c.id}</div>
                       </td>
-                      <td className="px-6 py-4">
-                        <p className="text-sm text-foreground font-medium">{author}</p>
+                      <td className="px-5 py-3.5">
+                        <StatusChip isAI={isAI} />
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-5 py-3.5">
+                        <span className="text-sm text-foreground/80 font-medium">{author}</span>
+                      </td>
+                      <td className="px-5 py-3.5">
                         <span className="text-xs text-foreground/60">Flacon ID: {c.flacon || '—'}</span>
                       </td>
-                      <td className="px-6 py-4">
-                        <span className="font-semibold text-foreground">{(c.prix || 0).toLocaleString()} FCFA</span>
+                      <td className="px-5 py-3.5">
+                        <span className="text-sm font-semibold tabular-nums text-foreground">
+                          {(c.prix || 0).toLocaleString()} FCFA
+                        </span>
                       </td>
-                      <td className="px-6 py-4 text-right">
-                        <button onClick={() => setSelected(c)} className="p-2 rounded-lg hover:bg-white/5 text-foreground/40 hover:text-gold transition-colors">
-                          <Eye size={18} />
-                        </button>
+                      <td className="px-5 py-3.5 text-right">
+                        <IconButton onClick={() => setSelected(c)} variant="gold" title="Voir détails">
+                          <Eye size={16} />
+                        </IconButton>
                       </td>
                     </tr>
                   );
                 })}
                 {compositions.length === 0 && (
                   <tr>
-                    <td colSpan={5} className="text-center py-20 text-foreground/40 italic">Aucune composition trouvée.</td>
+                    <td colSpan={6} className="py-12 text-center text-sm italic text-foreground/30">
+                      Aucune composition trouvée.
+                    </td>
                   </tr>
                 )}
               </tbody>
@@ -125,40 +189,82 @@ export default function CompositionsPage() {
         )}
       </div>
 
-      {/* Detail modal */}
+      {/* Detail Modal */}
       {selected && (
         <SlideOver
           isOpen={!!selected}
           onClose={() => setSelected(null)}
           title={selected.nom || selected.name || `Composition #${selected.id}`}
-          description={`Auteur: ${selected.user_details?.first_name || 'Client'}`}
+          description={`Créé par ${selected.user_details?.first_name || selected.user_name || 'Client'}`}
           size="md"
           footer={
-            <button onClick={() => setSelected(null)} className="w-full border border-white/10 rounded-lg py-2.5 text-sm text-foreground/60 hover:bg-white/5 transition-colors">
-              Fermer
-            </button>
+            <div className="w-full flex justify-end">
+              <button
+                onClick={() => setSelected(null)}
+                className="rounded-lg border border-white/10 px-4 py-2 text-xs font-medium text-foreground/60 hover:bg-white/5 transition-colors"
+              >
+                Fermer
+              </button>
+            </div>
           }
         >
-          {selected.description && (
-            <p className="text-sm text-foreground/60 italic mb-4">"{selected.description}"</p>
-          )}
+          <div className="space-y-6">
+            {/* Status Chip Badge */}
+            <div>
+              <StatusChip isAI={selected.type === 'ia' || selected.is_ai} />
+            </div>
 
-          <div className="space-y-3">
-            <p className="text-xs font-semibold text-foreground/40 uppercase">Ingrédients & Formule</p>
-            {selected.lignes?.map((ligne: any, i: number) => {
-              const name = ligne.essence_details?.nom || ligne.essence_details?.name || `Essence #${ligne.essence_catalogue || ligne.essence_personnalisee}`;
-              return (
-                <div key={i}>
-                  <div className="flex justify-between text-xs mb-1">
-                    <span className="text-foreground font-medium">{name}</span>
-                    <span className="text-foreground/40">{ligne.quantite_ml} ml</span>
-                  </div>
-                </div>
-              );
-            })}
-            {(!selected.lignes || selected.lignes.length === 0) && (
-              <p className="text-xs text-foreground/40 italic">Aucun détail sur les lignes de formulation.</p>
+            {/* Modal Summary Strip */}
+            <div className="rounded-xl border border-white/10 bg-white/[0.02] grid grid-cols-2 divide-x divide-white/10 p-3">
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-foreground/35">Prix Total</p>
+                <p className="text-base font-semibold tabular-nums text-foreground mt-0.5">
+                  {(selected.prix || 0).toLocaleString()} FCFA
+                </p>
+              </div>
+              <div className="pl-3">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-foreground/35">Flacon</p>
+                <p className="text-base font-semibold text-foreground mt-0.5">
+                  {selected.flacon ? `#${selected.flacon}` : '—'}
+                </p>
+              </div>
+            </div>
+
+            {selected.description && (
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-foreground/35 mb-1">Description</p>
+                <p className="text-xs text-foreground/70 italic leading-relaxed">
+                  "{selected.description}"
+                </p>
+              </div>
             )}
+
+            {/* Formula Details */}
+            <div className="space-y-3">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-foreground/35">
+                Ingrédients & Formule
+              </p>
+              <div className="divide-y divide-white/5 border-t border-b border-white/10">
+                {selected.lignes?.map((ligne: any, i: number) => {
+                  const name =
+                    ligne.essence_details?.nom ||
+                    ligne.essence_details?.name ||
+                    `Essence #${ligne.essence_catalogue || ligne.essence_personnalisee}`;
+                  return (
+                    <div key={i} className="py-2.5 flex justify-between items-center text-xs">
+                      <span className="text-foreground/80 font-medium">{name}</span>
+                      <span className="text-foreground/40 tabular-nums font-mono">{ligne.quantite_ml} ml</span>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {(!selected.lignes || selected.lignes.length === 0) && (
+                <p className="text-xs text-foreground/30 italic py-2">
+                  Aucun détail sur les lignes de formulation.
+                </p>
+              )}
+            </div>
           </div>
         </SlideOver>
       )}

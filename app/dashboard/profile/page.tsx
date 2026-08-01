@@ -27,6 +27,42 @@ import ConfirmDialog from '@/components/shared/ConfirmDialog';
 import type { UserRole } from '@/types';
 
 /* ------------------------------------------------------------------ */
+/*  Helpers & Shared Primitives                                       */
+/* ------------------------------------------------------------------ */
+
+function cx(...classes: (string | boolean | undefined)[]) {
+  return classes.filter(Boolean).join(' ');
+}
+
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="flex items-center gap-3 px-1 mb-3">
+      <span className="text-[10px] font-semibold text-foreground/35 uppercase tracking-wider">
+        {children}
+      </span>
+      <span className="h-px flex-1 bg-white/10" />
+    </div>
+  );
+}
+
+function Panel({ children, className }: { children: React.ReactNode; className?: string }) {
+  return (
+    <div className={cx('rounded-xl border border-white/10 bg-white/[0.02]', className)}>
+      {children}
+    </div>
+  );
+}
+
+function StatusBadge({ role }: { role: string }) {
+  return (
+    <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium ring-1 ring-inset text-gold bg-gold/10 ring-gold/20 uppercase tracking-wider">
+      <span className="h-1.5 w-1.5 rounded-full bg-gold" />
+      {role === 'superadmin' ? 'Admin' : role}
+    </span>
+  );
+}
+
+/* ------------------------------------------------------------------ */
 /*  Dashboards                                                        */
 /* ------------------------------------------------------------------ */
 
@@ -46,35 +82,6 @@ const DASHBOARD_OPTIONS: DashboardOption[] = [
   { id: 'serveuse',  title: 'Espace Boutique / Serveuse', description: 'Gestion des commandes, catalogue et laboratoire.',       href: '/dashboard/serveuse/dashboard', icon: '🛒', roles: ['serveuse'] },
   { id: 'admin',     title: 'Administration',            description: 'Gestion globale de la plateforme, utilisateurs et livreurs.', href: '/dashboard/admin/dashboard', icon: '👑', roles: ['superadmin'] },
 ];
-
-/* ------------------------------------------------------------------ */
-/*  Small building blocks                                              */
-/* ------------------------------------------------------------------ */
-
-function SectionLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="flex items-center gap-3 px-1 mb-3">
-      <span className="text-[10px] font-bold text-foreground/40 uppercase tracking-[0.18em]">
-        {children}
-      </span>
-      <span className="h-px flex-1 bg-gradient-to-r from-white/10 to-transparent" />
-    </div>
-  );
-}
-
-function Panel({ children, className = '' }: { children: React.ReactNode; className?: string }) {
-  return (
-    <div
-      className={
-        'relative rounded-2xl border border-white/10 bg-white/[0.03] ' +
-        'backdrop-blur-md shadow-[0_2px_15px_-12px_rgba(0,0,0,0.4)] ' +
-        className
-      }
-    >
-      {children}
-    </div>
-  );
-}
 
 /* ------------------------------------------------------------------ */
 /*  Page                                                              */
@@ -161,10 +168,6 @@ export default function ProfilePage() {
     }
   };
 
-  const handlePWAHelp = () => {
-    setShowPWAHelp(true);
-  };
-
   const handleTestNotification = async () => {
     setIsSendingTestNotification(true);
     try {
@@ -194,161 +197,85 @@ export default function ProfilePage() {
     : null;
 
   return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4 sm:py-6 space-y-6 flex flex-col">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-6 space-y-6">
       <BackButton />
 
-      {/* ============ HERO ============ */}
-      <Panel className="overflow-hidden">
-        {/* decorative cover */}
-        <div className="relative h-28 sm:h-36 bg-gradient-to-br from-gold/25 via-gold/5 to-transparent">
-          <div className="absolute inset-0 opacity-[0.07] bg-[radial-gradient(circle_at_30%_50%,white,transparent_55%)]" />
-          <div className="absolute -bottom-px left-0 right-0 h-px bg-gradient-to-r from-transparent via-gold/40 to-transparent" />
-        </div>
-
-        <div className="px-5 sm:px-8 pb-6 -mt-12 sm:-mt-14">
-          <div className="flex flex-col sm:flex-row sm:items-end gap-5">
-            {/* avatar */}
-            <div className="relative shrink-0">
-              <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl bg-gradient-to-br from-gold to-gold-dark flex items-center justify-center text-black text-3xl sm:text-4xl font-black shadow-sm shadow-gold/30 ring-4 ring-background">
-                {initials}
+      {/* ============ DESKTOP MAIN GRID LAYOUT (12 Columns) ============ */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        
+        {/* ============================================================ */}
+        {/* LEFT / SIDEBAR COLUMN (4 cols on Desktop) - Identity & Profile */}
+        {/* ============================================================ */}
+        <div className="lg:col-span-4 space-y-6 lg:sticky lg:top-6">
+          {/* USER PROFILE CARD */}
+          <Panel className="p-6">
+            <div className="flex flex-col items-center text-center">
+              {/* Avatar */}
+              <div className="relative mb-4">
+                <div className="w-24 h-24 rounded-xl bg-gold/10 border border-gold/20 flex items-center justify-center text-gold text-3xl font-bold">
+                  {initials}
+                </div>
+                <button
+                  onClick={() => setShowEditModal(true)}
+                  className="absolute -bottom-1 -right-1 rounded-lg p-1.5 border border-white/10 bg-background text-foreground/45 hover:text-gold hover:border-gold/30 transition-colors"
+                  aria-label="Edit avatar"
+                >
+                  <Edit2 size={13} />
+                </button>
               </div>
-              <button
-                onClick={() => setShowEditModal(true)}
-                className="absolute -bottom-1 -right-1 w-8 h-8 rounded-xl bg-background border border-white/15 flex items-center justify-center text-foreground/70 hover:text-gold hover:border-gold/40 transition-colors"
-                aria-label="Edit avatar"
-              >
-                <Edit2 size={14} />
-              </button>
-            </div>
 
-            {/* identity */}
-            <div className="flex-1 min-w-0 sm:pb-2">
-              <div className="flex flex-wrap items-center gap-2">
-                <h1 className="text-2xl sm:text-3xl font-bold text-foreground truncate">
+              {/* Identity Info */}
+              <div className="flex items-center gap-1.5 justify-center">
+                <h1 className="text-xl font-semibold text-foreground">
                   {user?.firstName} {user?.lastName}
                 </h1>
-                {isPartner && (
-                  <BadgeCheck size={20} className="text-gold shrink-0" />
-                )}
+                {isPartner && <BadgeCheck size={18} className="text-gold shrink-0" />}
               </div>
-              <p className="text-sm text-foreground/50 mt-1 truncate">{user?.email}</p>
+              <p className="text-xs text-foreground/40 mt-1">{user?.email}</p>
 
-              <div className="flex flex-wrap gap-1.5 mt-3">
+              {/* Roles */}
+              <div className="flex flex-wrap items-center justify-center gap-1.5 mt-4">
                 {userRoles.map((role) => (
-                  <span
-                    key={role}
-                    className="text-[10px] font-semibold text-gold bg-gold/10 border border-gold/20 px-2.5 py-1 rounded-full uppercase tracking-wider"
-                  >
-                    {role === 'superadmin' ? 'Admin' : role}
-                  </span>
+                  <StatusBadge key={role} role={role} />
                 ))}
-                {memberSince && (
-                  <span className="text-[10px] font-medium text-foreground/50 bg-white/5 border border-white/10 px-2.5 py-1 rounded-full flex items-center gap-1">
-                    <Calendar size={11} /> Depuis {memberSince}
-                  </span>
-                )}
               </div>
+
+              {memberSince && (
+                <p className="text-[11px] font-medium text-foreground/35 flex items-center gap-1.5 mt-4">
+                  <Calendar size={12} /> Membre depuis {memberSince}
+                </p>
+              )}
+
+              {/* Become Partner CTA (if applicable) */}
+              {!isPartner && !isStaff && (
+                <button
+                  onClick={handleBecomePartner}
+                  disabled={isApplyingPartner}
+                  className="w-full mt-5 inline-flex items-center justify-center gap-2 rounded-lg bg-gold px-4 py-2 text-sm font-semibold text-black hover:bg-gold/90 transition-colors disabled:opacity-60"
+                >
+                  {isApplyingPartner ? (
+                    <Loader2 size={16} className="animate-spin" />
+                  ) : (
+                    <Sparkles size={16} />
+                  )}
+                  {t('become_partner', 'Devenir Prestataire')}
+                </button>
+              )}
             </div>
+          </Panel>
 
-            {/* CTA: become partner (only if not already partner/staff) */}
-            {!isPartner && !isStaff && (
-              <button
-                onClick={handleBecomePartner}
-                disabled={isApplyingPartner}
-                className="sm:pb-2 group inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-br from-gold to-gold-dark text-black text-sm font-bold shadow-sm shadow-gold/20 hover:shadow-gold/40 hover:-translate-y-0.5 transition-all disabled:opacity-60"
-              >
-                {isApplyingPartner ? (
-                  <Loader2 size={16} className="animate-spin" />
-                ) : (
-                  <Sparkles size={16} className="group-hover:rotate-12 transition-transform" />
-                )}
-                {t('become_partner', 'Devenir Prestataire')}
-              </button>
-            )}
-          </div>
-        </div>
-      </Panel>
-
-      {/* ============ GRID ============ */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        
-        {/* ---------- INFORMATIONS SECTION ---------- */}
-        <div className="order-1 lg:col-span-1 space-y-6">
+          {/* CONTACT INFO PANEL */}
           <div>
             <SectionLabel>{t('information', 'Informations')}</SectionLabel>
             <Panel>
               <div className="divide-y divide-white/5">
-                <InfoRow icon={<Mail size={16} />}  label={t('email', 'Email')}   value={user?.email || '—'} />
+                <InfoRow icon={<Mail size={16} />} label={t('email', 'Email')} value={user?.email || '—'} />
                 <InfoRow icon={<Phone size={16} />} label={t('phone', 'Téléphone')} value={user?.phone || t('not_provided', 'Non fourni')} />
               </div>
             </Panel>
           </div>
-        </div>
 
-        {/* ---------- MY SPACES / DASHBOARDS (2nd section on mobile) ---------- */}
-        {accessibleDashboards.length > 0 && (
-          <div className="order-2 lg:order-none lg:col-span-2">
-            <SectionLabel>
-              <span className="inline-flex items-center gap-1.5">
-                <LayoutGrid size={11} className="text-gold" />
-                {t('your_spaces', 'Vos espaces & tableaux de bord')}
-              </span>
-            </SectionLabel>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {accessibleDashboards.map((opt) => (
-                <button
-                  key={opt.id}
-                  onClick={() => router.push(opt.href)}
-                  className="group relative overflow-hidden flex items-center gap-4 p-4 rounded-2xl border border-white/10 bg-white/[0.03] hover:border-gold/30 hover:bg-gold/[0.04] transition-all text-left"
-                >
-                  <span className="text-2xl shrink-0">{opt.icon}</span>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-sm text-foreground group-hover:text-gold transition-colors truncate">
-                      {opt.title}
-                    </p>
-                    <p className="text-[11px] text-foreground/50 mt-0.5 line-clamp-2">
-                      {opt.description}
-                    </p>
-                  </div>
-                  <ChevronRight size={16} className="text-foreground/20 group-hover:text-gold group-hover:translate-x-1 transition-all shrink-0" />
-                </button>
-              ))}
-
-              <Link
-                href="/dashboard/client/favorites"
-                className="group relative overflow-hidden flex items-center gap-4 p-4 rounded-2xl border border-rose-500/20 bg-gradient-to-br from-rose-500/10 to-transparent hover:border-rose-400/40 transition-all"
-              >
-                <span className="w-10 h-10 rounded-xl bg-rose-500/15 flex items-center justify-center text-rose-400 shrink-0">
-                  <Heart size={18} />
-                </span>
-                <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-sm text-rose-300 truncate">Mes Favoris</p>
-                  <p className="text-[11px] text-foreground/60 mt-0.5">Retrouvez vos parfums et créations sauvegardées.</p>
-                </div>
-                <ChevronRight size={16} className="text-rose-400/50 group-hover:translate-x-1 transition-all shrink-0" />
-              </Link>
-
-              {userRoles.includes('serveuse') && (
-                <Link
-                  href="/dashboard/pos"
-                  className="group relative overflow-hidden flex items-center gap-4 p-4 rounded-2xl border border-gold/20 bg-gradient-to-br from-gold/10 to-transparent hover:border-gold/40 transition-all"
-                >
-                  <span className="w-10 h-10 rounded-xl bg-gold/15 flex items-center justify-center text-gold shrink-0">
-                    <ShoppingCart size={18} />
-                  </span>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-sm text-gold truncate">Point de Vente</p>
-                    <p className="text-[11px] text-foreground/60 mt-0.5">Interface de vente en direct (POS).</p>
-                  </div>
-                  <ChevronRight size={16} className="text-gold/50 group-hover:translate-x-1 transition-all shrink-0" />
-                </Link>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* ---------- ACCOUNT OPTIONS ---------- */}
-        <div className="order-3 lg:col-span-1 space-y-6">
+          {/* QUICK ACCOUNT ACTIONS */}
           <div>
             <SectionLabel>{t('account', 'Compte')}</SectionLabel>
             <Panel>
@@ -368,47 +295,116 @@ export default function ProfilePage() {
               </div>
             </Panel>
           </div>
+
+          {/* LOGOUT BUTTON */}
+          <button
+            onClick={() => setShowLogoutConfirm(true)}
+            disabled={isLoggingOut}
+            className="w-full flex items-center justify-center gap-2 rounded-lg bg-red-500/90 px-4 py-2.5 text-sm font-semibold text-white hover:bg-red-500 transition-colors disabled:opacity-50"
+          >
+            {isLoggingOut ? <Loader2 size={16} className="animate-spin" /> : <LogOut size={16} />}
+            {isLoggingOut ? t('logging_out', 'Déconnexion...') : t('logout', 'Déconnexion')}
+          </button>
         </div>
 
-        {/* ---------- PREFERENCES & SECURITY SETTINGS ---------- */}
-        <div className="order-4 lg:col-span-2 space-y-6">
-          {/* preferences */}
+        {/* ============================================================ */}
+        {/* RIGHT / MAIN CONTENT COLUMN (8 cols on Desktop) - Dashboards & Settings */}
+        {/* ============================================================ */}
+        <div className="lg:col-span-8 space-y-6">
+
+          {/* ---------- ACCESSIBLE DASHBOARDS GRID ---------- */}
+          {accessibleDashboards.length > 0 && (
+            <div>
+              <SectionLabel>{t('your_spaces', 'Vos espaces & tableaux de bord')}</SectionLabel>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {accessibleDashboards.map((opt) => (
+                  <button
+                    key={opt.id}
+                    onClick={() => router.push(opt.href)}
+                    className="group flex items-start gap-3.5 p-4 rounded-xl border border-white/10 bg-white/[0.02] hover:bg-white/[0.03] transition-colors text-left"
+                  >
+                    <span className="text-2xl shrink-0 mt-0.5">{opt.icon}</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-sm text-foreground group-hover:text-gold transition-colors truncate">
+                        {opt.title}
+                      </p>
+                      <p className="text-[11px] text-foreground/40 mt-1 line-clamp-2">
+                        {opt.description}
+                      </p>
+                    </div>
+                    <ChevronRight size={16} className="text-foreground/35 group-hover:text-gold group-hover:translate-x-0.5 transition-all shrink-0 mt-0.5" />
+                  </button>
+                ))}
+
+                {/* FAVORITES CARD */}
+                <Link
+                  href="/dashboard/client/favorites"
+                  className="group flex items-start gap-3.5 p-4 rounded-xl border border-white/10 bg-white/[0.02] hover:bg-white/[0.03] transition-colors"
+                >
+                  <div className="w-8 h-8 rounded-lg border border-white/10 bg-white/5 flex items-center justify-center text-rose-400 shrink-0">
+                    <Heart size={16} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-sm text-foreground group-hover:text-gold transition-colors truncate">Mes Favoris</p>
+                    <p className="text-[11px] text-foreground/40 mt-1 truncate">Créations et parfums sauvegardés</p>
+                  </div>
+                  <ChevronRight size={16} className="text-foreground/35 group-hover:text-gold group-hover:translate-x-0.5 transition-all shrink-0 mt-0.5" />
+                </Link>
+
+                {/* POS CARD (IF SERVEUSE) */}
+                {userRoles.includes('serveuse') && (
+                  <Link
+                    href="/dashboard/pos"
+                    className="group flex items-start gap-3.5 p-4 rounded-xl border border-white/10 bg-white/[0.02] hover:bg-white/[0.03] transition-colors"
+                  >
+                    <div className="w-8 h-8 rounded-lg border border-white/10 bg-white/5 flex items-center justify-center text-gold shrink-0">
+                      <ShoppingCart size={16} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-sm text-foreground group-hover:text-gold transition-colors truncate">Point de Vente</p>
+                      <p className="text-[11px] text-foreground/40 mt-1 truncate">Interface de vente en direct (POS)</p>
+                    </div>
+                    <ChevronRight size={16} className="text-foreground/35 group-hover:text-gold group-hover:translate-x-0.5 transition-all shrink-0 mt-0.5" />
+                  </Link>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* ---------- PREFERENCES ---------- */}
           <div>
             <SectionLabel>{t('settings', 'Préférences')}</SectionLabel>
             <Panel>
               <div className="divide-y divide-white/5">
                 <SettingRow
                   icon={<Globe size={16} />}
-                  iconBg="bg-blue-400/10 text-blue-400"
                   label={t('language', 'Langue')}
                   hint="Choisissez votre langue / Language"
                   control={
-                    <Pill onClick={handleLanguageChange}>
+                    <ButtonPill onClick={handleLanguageChange}>
                       {i18n.language === 'fr' ? 'Français' : 'English'}
-                    </Pill>
+                    </ButtonPill>
                   }
                 />
                 <SettingRow
                   icon={theme === 'dark' ? <Moon size={16} /> : <Sun size={16} />}
-                  iconBg="bg-purple-400/10 text-purple-400"
                   label={t('appearance', 'Apparence')}
                   hint="Mode clair ou sombre"
                   control={
-                    <Pill onClick={toggleTheme}>
+                    <ButtonPill onClick={toggleTheme}>
                       {theme === 'dark' ? 'Sombre' : 'Clair'}
-                    </Pill>
+                    </ButtonPill>
                   }
                 />
                 {typeof window !== 'undefined' && (
                   <SettingRow
                     icon={<Download size={16} />}
-                    iconBg={isPWAInstalled ? 'bg-emerald-400/10 text-emerald-400' : 'bg-gold/10 text-gold'}
-                    label="Installer l’application"
-                    hint={isPWAInstalled ? 'Application déjà installée' : 'Installer l’application PWA pour notifications et accès rapide'}
+                    label="Application PWA"
+                    hint={isPWAInstalled ? 'Application déjà installée' : 'Installer l’application pour accès rapide'}
                     control={
-                      <Pill onClick={handleInstallPWA}>
+                      <ButtonPill onClick={handleInstallPWA}>
                         {isInstallingPWA ? 'Installation...' : isPWAInstalled ? 'Installée' : 'Installer'}
-                      </Pill>
+                      </ButtonPill>
                     }
                   />
                 )}
@@ -416,54 +412,46 @@ export default function ProfilePage() {
             </Panel>
           </div>
 
-          {/* security */}
+          {/* ---------- SECURITY & NOTIFICATIONS ---------- */}
           <div>
             <SectionLabel>{t('security_notifications', 'Sécurité & notifications')}</SectionLabel>
             <Panel>
               <div className="divide-y divide-white/5">
                 <ActionRow
                   icon={<Shield size={16} />}
-                  iconBg="bg-amber-400/10 text-amber-400"
                   label={t('account_security', 'Sécurité du compte')}
-                  hint={t('password_2fa', 'Mot de passe et authentification à deux facteurs')}
+                  hint={t('password_2fa', 'Mot de passe et authentification')}
                   onClick={() => setShowPasswordModal(true)}
                 />
                 <ActionRow
                   icon={<Bell size={16} />}
-                  iconBg="bg-sky-400/10 text-sky-400"
                   label={t('notifications', 'Notifications')}
                   hint={t('notification_channels', 'Canaux de notification')}
                 />
-                <div className="px-5 py-3">
+                <div className="p-4 flex items-center justify-between gap-4">
+                  <div>
+                    <p className="text-sm font-semibold text-foreground">Tester le système Push</p>
+                    <p className="text-xs text-foreground/40">Vérifier le bon fonctionnement des notifications du navigateur</p>
+                  </div>
                   <button
                     onClick={handleTestNotification}
                     disabled={isSendingTestNotification}
-                    className="w-full flex items-center justify-center gap-2 rounded-xl border border-gold/20 bg-gold/10 px-3 py-2.5 text-sm font-semibold text-gold transition-colors hover:bg-gold/20 disabled:cursor-not-allowed disabled:opacity-60"
+                    className="inline-flex items-center gap-2 rounded-lg border border-white/10 px-3 py-1.5 text-xs font-semibold text-foreground/60 hover:bg-white/5 transition-colors disabled:opacity-60 shrink-0"
                   >
                     {isSendingTestNotification ? (
-                      <Loader2 size={16} className="animate-spin" />
+                      <Loader2 size={14} className="animate-spin text-gold" />
                     ) : (
-                      <Bell size={16} />
+                      <Bell size={14} />
                     )}
-                    {isSendingTestNotification ? 'Envoi...' : 'Tester la notification'}
+                    {isSendingTestNotification ? 'Envoi...' : 'Tester'}
                   </button>
                 </div>
               </div>
             </Panel>
           </div>
-        </div>
-      </div>
 
-      {/* ============ BOTTOM LOGOUT BUTTON CONTAINER ============ */}
-      <div className="mt-4">
-        <button
-          onClick={() => setShowLogoutConfirm(true)}
-          disabled={isLoggingOut}
-          className="w-full flex items-center justify-center gap-2 px-4 py-3.5 rounded-2xl border border-red-500/20 bg-red-500/5 text-red-400 text-sm font-bold hover:bg-red-500/10 hover:border-red-500/40 transition-all disabled:opacity-50"
-        >
-          {isLoggingOut ? <Loader2 size={16} className="animate-spin" /> : <LogOut size={16} />}
-          {isLoggingOut ? t('logging_out', 'Déconnexion...') : t('logout', 'Déconnexion')}
-        </button>
+        </div>
+
       </div>
 
       {/* ============ MODALS ============ */}
@@ -490,9 +478,9 @@ export default function ProfilePage() {
           <p>
             Pour installer l’application sur votre téléphone, suivez les étapes ci-dessous selon votre appareil.
           </p>
-          <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+          <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
             <h3 className="text-sm font-semibold text-foreground mb-2">iPhone</h3>
-            <ol className="list-decimal list-inside space-y-2 text-[13px] leading-6">
+            <ol className="list-decimal list-inside space-y-2 text-[13px] leading-6 text-foreground/70">
               <li>Ouvrez Safari et rendez-vous sur ce site.</li>
               <li>Tapez sur l’icône Partager en bas de l’écran.</li>
               <li>Choisissez « Ajouter à l’écran d’accueil ».</li>
@@ -500,16 +488,16 @@ export default function ProfilePage() {
               <li>Ouvrez l’application depuis votre écran d’accueil.</li>
             </ol>
           </div>
-          <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+          <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
             <h3 className="text-sm font-semibold text-foreground mb-2">Android</h3>
-            <ol className="list-decimal list-inside space-y-2 text-[13px] leading-6">
+            <ol className="list-decimal list-inside space-y-2 text-[13px] leading-6 text-foreground/70">
               <li>Ouvrez le menu du navigateur (trois points ou barre de menu).</li>
               <li>Choisissez « Ajouter à l’écran d’accueil » ou « Installer l’application ». </li>
               <li>Confirmez la demande d’ajout.</li>
               <li>Ouvrez l’application depuis votre écran d’accueil.</li>
             </ol>
           </div>
-          <p className="text-xs text-foreground/50">
+          <p className="text-xs text-foreground/40">
             Si votre navigateur ne propose pas d’installation automatique, utilisez le menu de partage ou d’options pour ajouter manuellement ce site à l’écran d’accueil.
           </p>
         </div>
@@ -524,23 +512,22 @@ export default function ProfilePage() {
 
 function InfoRow({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
   return (
-    <div className="flex items-center gap-3 px-5 py-3.5">
-      <div className="w-9 h-9 rounded-lg bg-white/5 border border-white/5 flex items-center justify-center text-foreground/50 shrink-0">
+    <div className="flex items-center gap-3 px-4 py-3">
+      <div className="rounded-md p-1.5 text-foreground/45 shrink-0">
         {icon}
       </div>
       <div className="min-w-0 flex-1">
-        <p className="text-[10px] font-bold text-foreground/40 uppercase tracking-wider">{label}</p>
-        <p className="text-sm text-foreground truncate">{value}</p>
+        <p className="text-[10px] font-semibold text-foreground/35 uppercase tracking-wider">{label}</p>
+        <p className="text-sm font-medium text-foreground truncate">{value}</p>
       </div>
     </div>
   );
 }
 
 function ActionRow({
-  icon, iconBg = 'bg-white/5 text-foreground/60', label, hint, onClick,
+  icon, label, hint, onClick,
 }: {
   icon: React.ReactNode;
-  iconBg?: string;
   label: string;
   hint?: string;
   onClick?: () => void;
@@ -548,59 +535,52 @@ function ActionRow({
   return (
     <button
       onClick={onClick}
-      className="w-full flex items-center gap-3 px-5 py-3.5 hover:bg-white/[0.04] transition-colors text-left group"
+      className="w-full flex items-center gap-3 px-4 py-3 hover:bg-white/[0.02] transition-colors text-left group"
     >
-      <div className={`w-9 h-9 rounded-lg border border-white/5 flex items-center justify-center shrink-0 ${iconBg}`}>
+      <div className="rounded-md p-1.5 text-foreground/45 group-hover:text-gold transition-colors shrink-0">
         {icon}
       </div>
       <div className="flex-1 min-w-0">
         <p className="text-sm font-semibold text-foreground">{label}</p>
-        {hint && <p className="text-[11px] text-foreground/45">{hint}</p>}
+        {hint && <p className="text-xs text-foreground/40">{hint}</p>}
       </div>
-      <ChevronRight size={16} className="text-foreground/20 group-hover:text-gold group-hover:translate-x-0.5 transition-all shrink-0" />
+      <ChevronRight size={16} className="text-foreground/35 group-hover:text-gold group-hover:translate-x-0.5 transition-all shrink-0" />
     </button>
   );
 }
 
 function SettingRow({
-  icon, iconBg, label, hint, control,
+  icon, label, hint, control,
 }: {
   icon: React.ReactNode;
-  iconBg: string;
   label: string;
   hint?: string;
   control: React.ReactNode;
 }) {
   return (
-    <div className="flex items-center gap-3 px-5 py-3.5">
-      <div className={`w-9 h-9 rounded-lg border border-white/5 flex items-center justify-center shrink-0 ${iconBg}`}>
+    <div className="flex items-center gap-3 px-4 py-3">
+      <div className="rounded-md p-1.5 text-foreground/45 shrink-0">
         {icon}
       </div>
       <div className="flex-1 min-w-0">
         <p className="text-sm font-semibold text-foreground">{label}</p>
-        {hint && <p className="text-[11px] text-foreground/45">{hint}</p>}
+        {hint && <p className="text-xs text-foreground/40">{hint}</p>}
       </div>
       <div className="shrink-0">{control}</div>
     </div>
   );
 }
 
-function Pill({
-  children, onClick, active,
+function ButtonPill({
+  children, onClick,
 }: {
   children: React.ReactNode;
   onClick?: () => void;
-  active?: boolean;
 }) {
   return (
     <button
       onClick={onClick}
-      className={
-        'text-xs px-3 py-1.5 rounded-lg font-semibold border transition-colors ' +
-        (active
-          ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20'
-          : 'bg-white/5 text-foreground border-white/10 hover:bg-white/10 hover:border-gold/30')
-      }
+      className="rounded-lg border border-white/10 px-3 py-1.5 text-xs font-semibold text-foreground/60 hover:bg-white/5 transition-colors"
     >
       {children}
     </button>

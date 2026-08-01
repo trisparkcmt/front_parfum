@@ -117,8 +117,6 @@ export default function ProductDetailClient({ id }: { id: string }) {
     } else {
       await addProduct(product, quantity);
     }
-
-    addToast(`${product.name} ajouté au panier`);
   };
 
   const handleToggleFavorite = () => {

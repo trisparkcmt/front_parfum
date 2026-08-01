@@ -456,7 +456,6 @@ function AiBubble({
       inStock: true, createdAt: new Date().toISOString(), slug: p.slug,
     };
     addProduct(product);
-    addToast(`"${p.nom}" ajouté au panier`, 'success');
   };
 
   const handleAddAccessory = (a: Accessory) => {
@@ -467,7 +466,6 @@ function AiBubble({
       images: a.images || (rawAcc.image_principale ? [String(rawAcc.image_principale)] : []),
     };
     addProduct(product);
-    addToast(`"${product.name}" ajouté au panier`, 'success');
   };
 
   return (
@@ -557,7 +555,6 @@ function AiBubble({
                   price={product.price}
                   onAdd={() => {
                     addProduct(product);
-                    addToast(`"${product.name}" ajouté au panier`, 'success');
                   }}
                 />
               ))}
@@ -602,7 +599,7 @@ function AiBubble({
           <div className="flex flex-wrap gap-2">
             {hasComposition && (
               <button
-                onClick={() => { addComposition(composition!); addToast('Composition IA ajoutée au panier !', 'success'); }}
+                onClick={() => { addComposition(composition!); }}
                 className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-gold text-black font-bold text-xs uppercase tracking-wider hover:bg-gold/80 transition-all active:scale-95 shadow-lg shadow-gold/20"
               >
                 <ShoppingCart size={13} />
@@ -897,7 +894,7 @@ export function GeminiChat({ onChatStarted }: GeminiChatProps) {
       count++;
     });
 
-    if (count > 0) addToast(`${count} article(s) ajouté(s) au panier !`, 'success');
+
   }, [addProduct, addComposition, addToast]);
 
   if (!mounted) return null;

@@ -1041,13 +1041,15 @@ export const deliveryService = {
   },
 
   /**
-   * Update delivery status
+   * Update delivery status — PATCH endpoint
+   * @param id Livraison ID
+   * @param data { action: 'livrer' | 'echouer', motif?: string }
    */
   updateDeliveryStatus: async (
     id: number,
     data: { action: 'livrer' | 'echouer'; motif?: string }
   ) => {
-    const response = await api.post(`auth/livreur/livraisons/${id}/statut/`, data);
+    const response = await api.patch(`auth/livreur/livraisons/${id}/statut/`, data);
     return response.data;
   },
 };

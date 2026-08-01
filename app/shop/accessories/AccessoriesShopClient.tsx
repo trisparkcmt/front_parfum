@@ -113,7 +113,6 @@ export default function AccessoriesShop() {
 
   const handleAddToCart = (product: Product) => {
     addProduct(product, 1);
-    addToast(`${product.name} ${t('added_to_cart')}`);
   };
 
   const handleToggleFavorite = (product: Product) => {

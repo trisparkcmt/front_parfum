@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-import { Search, Plus, Edit2, Trash2, Loader2, Sparkles, Wifi, Zap } from 'lucide-react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { Search, Plus, Edit2, Trash2, Loader2, Wifi, Zap } from 'lucide-react';
 import { adminService } from '@/services/apiService';
 import { useToastStore } from '@/store/useToastStore';
 import { useCatalogPermissions } from '@/hooks/useCatalogPermissions';
@@ -11,10 +11,80 @@ import { useAuthStore } from '@/store/useAuthStore';
 import AppImage from '@/components/ui/AppImage';
 import { SlideOver } from '@/components/ui/SlideOver';
 
+// --- Shared Primitives ---
+const cx = (...classes: (string | boolean | undefined)[]) => classes.filter(Boolean).join(' ');
+
+interface StatusChipProps {
+  label: string;
+  variant?: 'emerald' | 'blue' | 'amber' | 'red' | 'purple';
+  icon?: React.ReactNode;
+}
+
+function StatusChip({ label, variant = 'blue', icon }: StatusChipProps) {
+  const styles = {
+    emerald: 'text-emerald-400 bg-emerald-500/10 ring-emerald-500/20 dot-bg-emerald-400',
+    blue: 'text-blue-400 bg-blue-500/10 ring-blue-500/20 dot-bg-blue-400',
+    amber: 'text-amber-400 bg-amber-500/10 ring-amber-500/20 dot-bg-amber-400',
+    red: 'text-red-400 bg-red-500/10 ring-red-500/20 dot-bg-red-400',
+    purple: 'text-purple-400 bg-purple-500/10 ring-purple-500/20 dot-bg-purple-400',
+  }[variant];
+
+  const dotBg = {
+    emerald: 'bg-emerald-400',
+    blue: 'bg-blue-400',
+    amber: 'bg-amber-400',
+    red: 'bg-red-400',
+    purple: 'bg-purple-400',
+  }[variant];
+
+  return (
+    <span
+      className={cx(
+        'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium ring-1 ring-inset',
+        styles
+      )}
+    >
+      {icon ? (
+        icon
+      ) : (
+        <span className={cx('h-1.5 w-1.5 rounded-full', dotBg)} />
+      )}
+      {label}
+    </span>
+  );
+}
+
+interface IconButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+  variant?: 'gold' | 'red' | 'blue' | 'neutral';
+  children: React.ReactNode;
+}
+
+function IconButton({ variant = 'neutral', children, className, ...props }: IconButtonProps) {
+  const hoverStyles = {
+    gold: 'hover:text-gold hover:bg-white/5',
+    red: 'hover:text-red-400 hover:bg-red-500/10',
+    blue: 'hover:text-blue-400 hover:bg-blue-500/10',
+    neutral: 'hover:text-foreground hover:bg-white/5',
+  }[variant];
+
+  return (
+    <button
+      {...props}
+      className={cx(
+        'rounded-md p-1.5 text-foreground/45 transition-colors',
+        hoverStyles,
+        className
+      )}
+    >
+      {children}
+    </button>
+  );
+}
+
 export default function DiffuseursAdminPage() {
   const permissions = useCatalogPermissions('accessoires');
   const { user } = useAuthStore();
-  const isAdmin = Boolean(user?.is_staff || user?.is_superuser || user?.role === 'superadmin');
+  const isAdmin = Boolean(user?.is_staff || user?.role === 'superadmin' || user?.is_superuser);
 
   const [diffuseurs, setDiffuseurs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -145,6 +215,13 @@ export default function DiffuseursAdminPage() {
     }
   };
 
+  const stats = useMemo(() => {
+    const total = diffuseurs.length;
+    const connected = diffuseurs.filter((d) => d.est_connecte).length;
+    const totalStock = diffuseurs.reduce((acc, d) => acc + (parseInt(d.stock_quantite, 10) || 0), 0);
+    return { total, connected, totalStock };
+  }, [diffuseurs]);
+
   if (!permissions.canRead) {
     return (
       <CatalogAccessNotice permissions={permissions} resourceLabel="les diffuseurs" />
@@ -156,8 +233,7 @@ export default function DiffuseursAdminPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-            <Sparkles className="text-gold" size={24} />
+          <h1 className="text-xl font-semibold text-foreground">
             Diffuseurs de Parfum
           </h1>
           <p className="text-sm text-foreground/40 mt-0.5">
@@ -167,7 +243,7 @@ export default function DiffuseursAdminPage() {
         {permissions.canCreate && (
           <button
             onClick={openAdd}
-            className="flex items-center gap-2 bg-gold text-black px-4 py-2.5 rounded-xl text-sm font-semibold hover:bg-gold/80 transition-all shadow-lg self-start sm:self-auto"
+            className="flex items-center gap-2 bg-gold text-black px-3.5 py-2 rounded-lg text-sm font-semibold hover:bg-gold/90 transition-colors self-start sm:self-auto"
           >
             <Plus size={16} />
             Nouveau Diffuseur
@@ -175,40 +251,56 @@ export default function DiffuseursAdminPage() {
         )}
       </div>
 
-      {/* Filter / Search */}
-      <div className="bg-white/5 rounded-2xl border border-white/10 p-4">
-        <div className="relative">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-foreground/40" size={16} />
+      {/* KPI Strip */}
+      <div className="rounded-xl border border-white/10 bg-white/[0.02] grid grid-cols-3 divide-x divide-white/10 py-3.5 px-2">
+        <div className="px-4 text-center sm:text-left">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-foreground/35">Total Références</p>
+          <p className="text-xl font-semibold tabular-nums text-foreground mt-0.5">{stats.total}</p>
+        </div>
+        <div className="px-4 text-center sm:text-left">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-foreground/35">Appareils Connectés</p>
+          <p className="text-xl font-semibold tabular-nums text-foreground mt-0.5">{stats.connected}</p>
+        </div>
+        <div className="px-4 text-center sm:text-left">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-foreground/35">Stock Global</p>
+          <p className="text-xl font-semibold tabular-nums text-foreground mt-0.5">{stats.totalStock} <span className="text-xs font-normal text-foreground/40">unités</span></p>
+        </div>
+      </div>
+
+      {/* Toolbar / Search */}
+      <div className="flex items-center gap-3">
+        <div className="relative flex-1 max-w-md">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-foreground/40" size={15} />
           <input
             type="text"
-            placeholder="Rechercher par nom..."
+            placeholder="Rechercher un diffuseur par nom..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-4 py-2 text-sm text-foreground placeholder:text-foreground/40 outline-none focus:border-gold"
+            className="w-full bg-white/[0.02] border border-white/10 rounded-lg pl-9 pr-3 py-2 text-sm text-foreground placeholder:text-foreground/40 outline-none focus:border-gold/50 transition-colors"
           />
         </div>
       </div>
 
-      {/* Table */}
-      <div className="bg-white/5 rounded-2xl border border-white/10 overflow-hidden shadow-sm min-h-[250px]">
+      {/* Table Section */}
+      <div className="rounded-xl border border-white/10 overflow-hidden bg-white/[0.02] min-h-[250px]">
         {loading ? (
-          <div className="flex flex-col items-center justify-center py-20 text-gold gap-3">
-            <Loader2 className="animate-spin" size={32} />
-            <p className="text-sm font-medium">Chargement des diffuseurs...</p>
+          <div className="flex items-center justify-center py-20 text-foreground/40 gap-2">
+            <Loader2 className="animate-spin text-gold" size={18} />
+            <span className="text-xs">Chargement des diffuseurs...</span>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="border-b border-white/10 bg-white/5">
-                  <th className="px-5 py-3.5 text-xs font-semibold text-foreground/40 uppercase">Diffuseur</th>
-                  <th className="px-5 py-3.5 text-xs font-semibold text-foreground/40 uppercase">Technologie</th>
-                  <th className="px-5 py-3.5 text-xs font-semibold text-foreground/40 uppercase">Réservoir</th>
-                  <th className="px-5 py-3.5 text-xs font-semibold text-foreground/40 uppercase">Prix Vente</th>
-                  {isAdmin && <th className="px-5 py-3.5 text-xs font-semibold text-gold uppercase">Prix Achat</th>}
-                  {isAdmin && <th className="px-5 py-3.5 text-xs font-semibold text-emerald-400 uppercase">Marge / Unité</th>}
-                  <th className="px-5 py-3.5 text-xs font-semibold text-foreground/40 uppercase">Stock</th>
-                  <th className="px-5 py-3.5 text-xs font-semibold text-foreground/40 uppercase">Actions</th>
+                <tr className="border-b border-white/10 bg-white/[0.02]">
+                  <th className="px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-foreground/35">Diffuseur</th>
+                  <th className="px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-foreground/35">Technologie</th>
+                  <th className="px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-foreground/35">Réservoir</th>
+                  <th className="px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-foreground/35">Prix Vente</th>
+                  {isAdmin && <th className="px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-gold/80">Prix Achat</th>}
+                  {isAdmin && <th className="px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-emerald-400/80">Marge / Unité</th>}
+                  <th className="px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-foreground/35">Stock</th>
+                  <th className="px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-foreground/35 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
@@ -222,49 +314,55 @@ export default function DiffuseursAdminPage() {
                     : null;
 
                   return (
-                    <tr key={item.id} className="hover:bg-white/5 transition-colors">
-                      <td className="px-5 py-4 font-bold text-foreground text-sm flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 overflow-hidden relative flex-shrink-0">
-                          {item.image_principale ? (
-                            <AppImage src={item.image_principale} alt={item.nom} fill className="object-cover" />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center text-foreground/20">
-                              <Sparkles size={18} />
+                    <tr key={item.id} className="hover:bg-white/[0.02] transition-colors">
+                      <td className="px-4 py-3 text-sm text-foreground">
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-lg bg-white/5 border border-white/10 overflow-hidden relative flex-shrink-0">
+                            {item.image_principale ? (
+                              <AppImage src={item.image_principale} alt={item.nom} fill className="object-cover" />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center text-foreground/20">
+                                <span className="text-[10px] uppercase font-bold text-foreground/30">Diff</span>
+                              </div>
+                            )}
+                          </div>
+                          <div>
+                            <p className="font-medium text-foreground">{item.nom}</p>
+                            <div className="flex items-center gap-1.5 mt-1">
+                              {item.est_connecte && (
+                                <StatusChip
+                                  variant="blue"
+                                  label="Connecté"
+                                  icon={<Wifi size={10} className="text-blue-400" />}
+                                />
+                              )}
+                              {item.a_jeux_de_lumiere && (
+                                <StatusChip
+                                  variant="purple"
+                                  label="LED"
+                                  icon={<Zap size={10} className="text-purple-400" />}
+                                />
+                              )}
                             </div>
-                          )}
-                        </div>
-                        <div>
-                          <p className="font-semibold text-foreground">{item.nom}</p>
-                          <div className="flex items-center gap-2 mt-0.5">
-                            {item.est_connecte && (
-                              <span className="inline-flex items-center gap-1 text-[10px] text-sky-400 bg-sky-500/10 px-1.5 py-0.5 rounded">
-                                <Wifi size={10} /> Connecté
-                              </span>
-                            )}
-                            {item.a_jeux_de_lumiere && (
-                              <span className="inline-flex items-center gap-1 text-[10px] text-purple-400 bg-purple-500/10 px-1.5 py-0.5 rounded">
-                                <Zap size={10} /> Lumière LED
-                              </span>
-                            )}
                           </div>
                         </div>
                       </td>
-                      <td className="px-5 py-4 text-xs text-foreground/60 capitalize">
+                      <td className="px-4 py-3 text-xs text-foreground/60 capitalize">
                         {item.type_technologie || 'ultrasons'}
                       </td>
-                      <td className="px-5 py-4 text-xs text-foreground/60">
+                      <td className="px-4 py-3 text-xs text-foreground/60 tabular-nums">
                         {item.capacite_reservoir_ml ? `${item.capacite_reservoir_ml} ml` : '—'}
                       </td>
-                      <td className="px-5 py-4 text-xs font-mono font-bold text-foreground">
+                      <td className="px-4 py-3 text-xs font-semibold tabular-nums text-foreground">
                         {pVente.toLocaleString()} FCFA
                       </td>
                       {isAdmin && (
-                        <td className="px-5 py-4 text-xs font-mono text-gold">
+                        <td className="px-4 py-3 text-xs tabular-nums text-gold/90">
                           {pAchat !== null ? `${pAchat.toLocaleString()} FCFA` : '—'}
                         </td>
                       )}
                       {isAdmin && (
-                        <td className="px-5 py-4 text-xs font-mono font-bold">
+                        <td className="px-4 py-3 text-xs tabular-nums font-semibold">
                           {benefice !== null ? (
                             <span className={benefice >= 0 ? 'text-emerald-400' : 'text-red-400'}>
                               {benefice >= 0 ? '+' : ''}{benefice.toLocaleString()} FCFA
@@ -272,28 +370,24 @@ export default function DiffuseursAdminPage() {
                           ) : '—'}
                         </td>
                       )}
-                      <td className="px-5 py-4 text-xs">
-                        <span className={`font-semibold ${item.stock_quantite > 0 ? 'text-foreground' : 'text-red-400'}`}>
-                          {item.stock_quantite ?? 0} unités
-                        </span>
+                      <td className="px-4 py-3 text-xs">
+                        {item.stock_quantite > 0 ? (
+                          <StatusChip variant="emerald" label={`${item.stock_quantite} en stock`} />
+                        ) : (
+                          <StatusChip variant="red" label="Rupture" />
+                        )}
                       </td>
-                      <td className="px-5 py-4">
-                        <div className="flex gap-2">
+                      <td className="px-4 py-3 text-right">
+                        <div className="inline-flex items-center gap-1">
                           {permissions.canUpdate && (
-                            <button
-                              onClick={() => openEdit(item)}
-                              className="p-1.5 rounded-lg hover:bg-white/5 text-foreground/40 hover:text-gold transition-colors"
-                            >
+                            <IconButton variant="gold" onClick={() => openEdit(item)} title="Modifier">
                               <Edit2 size={14} />
-                            </button>
+                            </IconButton>
                           )}
                           {permissions.canDelete && (
-                            <button
-                              onClick={() => handleDelete(item.id)}
-                              className="p-1.5 rounded-lg hover:bg-red-500/10 text-foreground/40 hover:text-red-400 transition-colors"
-                            >
+                            <IconButton variant="red" onClick={() => handleDelete(item.id)} title="Supprimer">
                               <Trash2 size={14} />
-                            </button>
+                            </IconButton>
                           )}
                         </div>
                       </td>
@@ -302,7 +396,7 @@ export default function DiffuseursAdminPage() {
                 })}
                 {diffuseurs.length === 0 && (
                   <tr>
-                    <td colSpan={isAdmin ? 8 : 6} className="text-center py-16 text-foreground/40 italic text-sm">
+                    <td colSpan={isAdmin ? 8 : 6} className="text-center py-12 text-xs italic text-foreground/30">
                       Aucun diffuseur de parfum trouvé.
                     </td>
                   </tr>
@@ -313,7 +407,7 @@ export default function DiffuseursAdminPage() {
         )}
       </div>
 
-      {/* Modal */}
+      {/* SlideOver Form Modal */}
       <SlideOver
         isOpen={showModal}
         onClose={() => setShowModal(false)}
@@ -324,16 +418,16 @@ export default function DiffuseursAdminPage() {
           <div className="flex gap-3">
             <button
               onClick={() => setShowModal(false)}
-              className="flex-1 border border-white/10 rounded-xl py-2.5 text-sm text-foreground/60 hover:bg-white/5 transition-colors"
+              className="flex-1 border border-white/10 rounded-lg py-2 text-xs text-foreground/60 hover:bg-white/5 transition-colors"
             >
               Annuler
             </button>
             <button
               onClick={handleSave}
               disabled={saving}
-              className="flex-1 bg-gold text-black rounded-xl py-2.5 text-sm font-bold hover:bg-gold/80 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+              className="flex-1 bg-gold text-black rounded-lg py-2 text-xs font-semibold hover:bg-gold/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
             >
-              {saving && <Loader2 size={14} className="animate-spin" />}
+              {saving && <Loader2 size={13} className="animate-spin" />}
               Enregistrer
             </button>
           </div>
@@ -347,7 +441,7 @@ export default function DiffuseursAdminPage() {
               value={form.nom}
               onChange={(e) => setForm((p) => ({ ...p, nom: e.target.value }))}
               placeholder="ex: Diffuseur Ultrasonique Zen"
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
+              className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
             />
           </div>
 
@@ -358,7 +452,7 @@ export default function DiffuseursAdminPage() {
               value={form.description_courte}
               onChange={(e) => setForm((p) => ({ ...p, description_courte: e.target.value }))}
               placeholder="ex: Diffusion haute fréquence 300ml avec LED"
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
+              className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
             />
           </div>
 
@@ -370,7 +464,7 @@ export default function DiffuseursAdminPage() {
                 value={form.prix_unitaire}
                 onChange={(e) => setForm((p) => ({ ...p, prix_unitaire: e.target.value }))}
                 placeholder="25000"
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
+                className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
               />
             </div>
             {isAdmin && (
@@ -381,7 +475,7 @@ export default function DiffuseursAdminPage() {
                   value={form.prix_achat}
                   onChange={(e) => setForm((p) => ({ ...p, prix_achat: e.target.value }))}
                   placeholder="12000"
-                  className="w-full bg-white/5 border border-gold/30 rounded-xl px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
+                  className="w-full bg-white/5 border border-gold/30 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
                 />
               </div>
             )}
@@ -395,7 +489,7 @@ export default function DiffuseursAdminPage() {
                 value={form.stock_quantite}
                 onChange={(e) => setForm((p) => ({ ...p, stock_quantite: e.target.value }))}
                 placeholder="15"
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
+                className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
               />
             </div>
             <div>
@@ -405,7 +499,7 @@ export default function DiffuseursAdminPage() {
                 value={form.capacite_reservoir_ml}
                 onChange={(e) => setForm((p) => ({ ...p, capacite_reservoir_ml: e.target.value }))}
                 placeholder="300"
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
+                className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
               />
             </div>
           </div>
@@ -416,7 +510,7 @@ export default function DiffuseursAdminPage() {
               <select
                 value={form.type_technologie}
                 onChange={(e) => setForm((p) => ({ ...p, type_technologie: e.target.value }))}
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
+                className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
               >
                 <option value="ultrasons" className="bg-neutral-900">Ultrasons</option>
                 <option value="nebulisation" className="bg-neutral-900 font-sans">Nébulisation</option>
@@ -429,7 +523,7 @@ export default function DiffuseursAdminPage() {
               <select
                 value={form.type_alimentation}
                 onChange={(e) => setForm((p) => ({ ...p, type_alimentation: e.target.value }))}
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
+                className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
               >
                 <option value="secteur" className="bg-neutral-900">Secteur 220V</option>
                 <option value="usb" className="bg-neutral-900">USB-C</option>

@@ -720,7 +720,7 @@ function AtelierContent() {
       }
 
       setCtaSuccess(true);
-      addToast(i18n.language === 'en' ? 'Added to cart!' : 'Ajouté au panier !', 'success');
+      addToast('Added', 'success');
       setTimeout(() => setCtaSuccess(false), 3000);
     } catch (error: any) {
       const errorMsg = error?.response?.data?.detail || (i18n.language === 'en' ? 'Error adding to cart.' : 'Erreur lors de l\'ajout au panier.');
@@ -1604,4 +1604,4 @@ export default function AtelierPage() {
       <AtelierContent />
     </Suspense>
   );
-}
+}

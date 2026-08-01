@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { 
   Search, Plus, Edit2, Trash2, Droplets, Loader2, 
-  ShoppingBag, RefreshCw, ChevronLeft, ChevronRight 
+  ShoppingBag, RefreshCw, ChevronLeft, ChevronRight, X, AlertCircle, Layers, Filter
 } from 'lucide-react';
 import { labService, adminService } from '@/services/apiService';
 import { useToastStore } from '@/store/useToastStore';
@@ -14,11 +14,72 @@ import { SlideOver } from '@/components/ui/SlideOver';
 
 const STATIC_CATEGORIES = ['super_premium', 'premium', 'high'];
 
-export default function EssencesPage () {
+// Utility function for conditional class names
+function cx(...classes: (string | boolean | undefined | null)[]) {
+  return classes.filter(Boolean).join(' ');
+}
+
+// Reusable Status Chip Primitive
+function StatusChip({ variant, label, icon: Icon }: { variant: 'emerald' | 'blue' | 'amber' | 'red' | 'purple' | 'neutral', label: string, icon?: any }) {
+  const styles = {
+    emerald: 'text-emerald-400 bg-emerald-500/10 ring-emerald-500/20',
+    blue: 'text-blue-400 bg-blue-500/10 ring-blue-500/20',
+    amber: 'text-amber-400 bg-amber-500/10 ring-amber-500/20',
+    red: 'text-red-400 bg-red-500/10 ring-red-500/20',
+    purple: 'text-purple-400 bg-purple-500/10 ring-purple-500/20',
+    neutral: 'text-foreground/50 bg-white/5 ring-white/10',
+  };
+
+  const dotStyles = {
+    emerald: 'bg-emerald-400',
+    blue: 'bg-blue-400',
+    amber: 'bg-amber-400',
+    red: 'bg-red-400',
+    purple: 'bg-purple-400',
+    neutral: 'bg-foreground/40',
+  };
+
+  return (
+    <span className={cx(
+      'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium ring-1 ring-inset',
+      styles[variant]
+    )}>
+      {Icon ? <Icon size={12} /> : <span className={cx('h-1.5 w-1.5 rounded-full', dotStyles[variant])} />}
+      {label}
+    </span>
+  );
+}
+
+// Reusable Action Button Primitive
+function IconButton({ icon: Icon, onClick, title, tint = 'gold' }: { icon: any, onClick?: () => void, title?: string, tint?: 'gold' | 'red' | 'blue' | 'neutral' }) {
+  const tintStyles = {
+    gold: 'hover:text-gold hover:bg-gold/10',
+    red: 'hover:text-red-400 hover:bg-red-500/10',
+    blue: 'hover:text-blue-400 hover:bg-blue-500/10',
+    neutral: 'hover:text-foreground hover:bg-white/10',
+  };
+
+  return (
+    <button
+      onClick={onClick}
+      title={title}
+      className={cx(
+        'rounded-md p-1.5 text-foreground/45 transition-colors',
+        tintStyles[tint]
+      )}
+    >
+      <Icon size={15} />
+    </button>
+  );
+}
+
+export default function EssencesPage() {
   const permissions = useCatalogPermissions('essences');
   const [essences, setEssences] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [showFilters, setShowFilters] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [editingEssence, setEditingEssence] = useState<any | null>(null);
   const [saving, setSaving] = useState(false);
@@ -30,15 +91,15 @@ export default function EssencesPage () {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 20;
 
-  // Form State (Lab / Raw Essence)
+  // Form State
   const [form, setForm] = useState({
     nom: '',
     marque: '',
     codeReference: '',
-    categorie: '',
+    categorie: 'premium',
     description: '',
-    intensite: '',
-    genreCible: '',
+    intensite: 'moyenne',
+    genreCible: 'mixte',
     prixParMl: '',
     lotStockMl: '',
     lotSeuilAlerteMl: '',
@@ -59,6 +120,13 @@ export default function EssencesPage () {
       ...prev,
       [field]: value,
     }));
+    if (formErrors[field]) {
+      setFormErrors(prev => {
+        const updated = { ...prev };
+        delete updated[field];
+        return updated;
+      });
+    }
   };
 
   const resetForm = () => {
@@ -66,10 +134,10 @@ export default function EssencesPage () {
       nom: '',
       marque: '',
       codeReference: '',
-      categorie: '',
+      categorie: 'premium',
       description: '',
-      intensite: '',
-      genreCible: '',
+      intensite: 'moyenne',
+      genreCible: 'mixte',
       prixParMl: '',
       lotStockMl: '',
       lotSeuilAlerteMl: '',
@@ -107,7 +175,7 @@ export default function EssencesPage () {
   // Réinitialiser la page quand la recherche change
   useEffect(() => {
     setCurrentPage(1);
-  }, [search]);
+  }, [search, selectedCategory]);
 
   const openAdd = () => {
     if (!permissions.canCreate) return;
@@ -123,10 +191,10 @@ export default function EssencesPage () {
       nom: item.nom || '',
       marque: item.marque || '',
       codeReference: item.code_reference || '',
-      categorie: item.categorie || '',
+      categorie: item.categorie || 'premium',
       description: item.description || '',
-      intensite: item.intensite || '',
-      genreCible: item.genre_cible || '',
+      intensite: item.intensite || 'moyenne',
+      genreCible: item.genre_cible || 'mixte',
       prixParMl: String(item.prix_par_ml || '0.00'),
       lotStockMl: item.initial_lot?.stock_ml || '',
       lotSeuilAlerteMl: item.initial_lot?.seuil_alerte_ml || '',
@@ -150,13 +218,11 @@ export default function EssencesPage () {
     setShowModal(true);
   };
 
-const handleSave = async () => {
+  const handleSave = async () => {
     if (!permissions.canCreate && !permissions.canUpdate) return;
     
-    // Validate all fields
     const errors: Record<string, string> = {};
     
-    // Basic validation
     if (!form.nom.trim()) errors.nom = 'Le nom est requis';
     if (!form.codeReference.trim()) errors.codeReference = 'Le code de référence est requis';
     if (!form.marque.trim()) errors.marque = 'La marque est requise';
@@ -167,11 +233,9 @@ const handleSave = async () => {
     else if (isNaN(Number(form.prixParMl)) || Number(form.prixParMl) <= 0) 
       errors.prixParMl = 'Le prix par ml doit être supérieur à 0';
     
-    // Description validation (optional but we'll validate if provided)
     if (form.description && form.description.trim().length < 10) 
       errors.description = 'La description doit contenir au moins 10 caractères';
     
-    // Lot Initial validation (only for add)
     if (!editingEssence) {
       if (!form.lotStockMl) errors.lotStockMl = 'Le stock ML est requis';
       else if (isNaN(Number(form.lotStockMl)) || Number(form.lotStockMl) <= 0) 
@@ -182,36 +246,32 @@ const handleSave = async () => {
         errors.lotSeuilAlerteMl = 'Le seuil d\'alerte ML doit être supérieur ou égal à 0';
     }
     
-    // Produit fini validation (only for add and when includeProduitsFinis is true)
     if (!editingEssence && form.includeProduitsFinis) {
       if (!form.produitFini.taille_ml) errors['produitFini.taille_ml'] = 'La taille du format boutique est requise';
       else if (isNaN(Number(form.produitFini.taille_ml)) || Number(form.produitFini.taille_ml) <= 0) 
-        errors['produitFini.taille_ml'] = 'La taille du format boutique doit être supérieure à 0';
+        errors['produitFini.taille_ml'] = 'La taille doit être supérieure à 0';
       
       if (!form.produitFini.prix) errors['produitFini.prix'] = 'Le prix du format boutique est requis';
       else if (isNaN(Number(form.produitFini.prix)) || Number(form.produitFini.prix) <= 0) 
-        errors['produitFini.prix'] = 'Le prix du format boutique doit être supérieur à 0';
+        errors['produitFini.prix'] = 'Le prix doit être supérieur à 0';
       
-      if (form.produitFini.stock_disponible === '') errors['produitFini.stock_disponible'] = 'Le stock du format boutique est requis';
+      if (form.produitFini.stock_disponible === '') errors['produitFini.stock_disponible'] = 'Le stock est requis';
       else if (isNaN(Number(form.produitFini.stock_disponible)) || Number(form.produitFini.stock_disponible) < 0) 
-        errors['produitFini.stock_disponible'] = 'Le stock du format boutique doit être supérieur ou égal à 0';
+        errors['produitFini.stock_disponible'] = 'Le stock doit être supérieur ou égal à 0';
       
       if (!produitFiniImageFile) errors.produitFiniImageFile = 'Une image est requise pour le format boutique';
       
-      // Additional validation: boutique stock should not exceed lot stock
       if (form.produitFini.stock_disponible !== '' && form.lotStockMl !== '') {
         const boutiqueStock = Number(form.produitFini.stock_disponible);
         const lotStock = Number(form.lotStockMl);
         if (!isNaN(boutiqueStock) && !isNaN(lotStock) && boutiqueStock > lotStock) {
-          errors['produitFini.stock_disponible'] = 'Le stock du format boutique doit être inférieur ou égal au stock initial du lot';
+          errors['produitFini.stock_disponible'] = 'Le stock boutique doit être ≤ au stock initial du lot';
         }
       }
     }
     
-    // Set errors and focus first invalid field if any
     if (Object.keys(errors).length > 0) {
       setFormErrors(errors);
-      // Focus first invalid field
       setTimeout(() => {
         const firstField = Object.keys(errors)[0];
         const el = document.querySelector(`[data-field="${firstField}"]`);
@@ -222,12 +282,10 @@ const handleSave = async () => {
       return;
     }
     
-    // No errors, proceed with save
     try {
       setSaving(true);
       
       if (editingEssence) {
-        // Update existing essence
         const payload: Record<string, unknown> = {
           nom: form.nom,
           marque: form.marque,
@@ -242,7 +300,6 @@ const handleSave = async () => {
         await labService.updateEssence(editingEssence.id, payload);
         addToast('Essence mise à jour avec succès', 'success');
       } else {
-        // Create new essence
         const formData = new FormData();
         formData.append('nom', form.nom);
         formData.append('marque', form.marque);
@@ -253,16 +310,11 @@ const handleSave = async () => {
         formData.append('genre_cible', form.genreCible);
         formData.append('prix_par_ml', form.prixParMl);
         
-        // Add lot initial data
         formData.append('initial_lot[stock_ml]', form.lotStockMl);
         formData.append('initial_lot[seuil_alerte_ml]', form.lotSeuilAlerteMl || '0');
         formData.append('initial_lot[reference_fournisseur]', form.lotReferenceFournisseur || '');
         
-        // Add produit fini data if applicable
         if (form.includeProduitsFinis) {
-          const boutiqueStock = Number(form.produitFini.stock_disponible || 0);
-          const lotStock = Number(form.lotStockMl || 0);
-          
           formData.append('produits_finis[0][taille_ml]', form.produitFini.taille_ml);
           formData.append('produits_finis[0][prix]', form.produitFini.prix);
           formData.append('produits_finis[0][prix_promotionnel]', form.produitFini.prix_promotionnel || '');
@@ -295,7 +347,7 @@ const handleSave = async () => {
       addToast('Essence supprimée', 'success');
       fetchData();
     } catch {
-      addToast('Erreur lors du suppression', 'error');
+      addToast('Erreur lors de la suppression', 'error');
     }
   };
 
@@ -330,15 +382,33 @@ const handleSave = async () => {
     }
   };
 
-  const filtered = essences.filter(e =>
-    (e.nom || '').toLowerCase().includes(search.toLowerCase()) ||
-    (e.code_reference || '').toLowerCase().includes(search.toLowerCase()) ||
-    (e.marque || '').toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = useMemo(() => {
+    return essences.filter(e => {
+      const matchesSearch = 
+        (e.nom || '').toLowerCase().includes(search.toLowerCase()) ||
+        (e.code_reference || '').toLowerCase().includes(search.toLowerCase()) ||
+        (e.marque || '').toLowerCase().includes(search.toLowerCase());
+      
+      const matchesCategory = selectedCategory === 'all' || e.categorie === selectedCategory;
 
-  // Logique de pagination synchrone (Max 20 items par page)
+      return matchesSearch && matchesCategory;
+    });
+  }, [essences, search, selectedCategory]);
+
   const totalPages = Math.ceil(filtered.length / itemsPerPage) || 1;
-  const currentItems = filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+  const currentItems = useMemo(() => {
+    return filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+  }, [filtered, currentPage]);
+
+  const boutiqueCount = useMemo(() => {
+    return essences.filter(e => e.vendu_comme_produit_fini).length;
+  }, [essences]);
+
+  const activeFiltersCount = useMemo(() => {
+    let count = 0;
+    if (selectedCategory !== 'all') count++;
+    return count;
+  }, [selectedCategory]);
 
   if (!permissions.canRead) {
     return (
@@ -349,438 +419,527 @@ const handleSave = async () => {
   }
 
   return (
-    <div className="space-y-6 animate-fade-in-up">
-              {/* Header */}
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div>
-                  <h1 className="text-2xl font-bold text-foreground">Essences de Base</h1>
-                  <p className="text-sm text-foreground/40 mt-0.5">
-                    Catalogue des essences de parfums brutes pour le laboratoire et la boutique
-                  </p>
-                </div>
-                <div className="flex items-center gap-2">
-                  {selectedEssences.size > 0 && permissions.canDelete && (
-                    <button
-                      onClick={handleBulkDelete}
-                      className="flex items-center gap-2 bg-red-500 text-white px-4 py-2.5 rounded-xl text-sm font-medium hover:bg-red-600 transition-all shadow-lg"
-                    >
-                      <Trash2 size={16} />
-                      Supprimer ({selectedEssences.size})
-                    </button>
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-xl font-semibold text-foreground">Essences de Base</h1>
+          <p className="text-sm text-foreground/40 mt-0.5">
+            Gestion du catalogue d'essences brutes pour les formulations et la boutique
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          {selectedEssences.size > 0 && permissions.canDelete && (
+            <button
+              onClick={handleBulkDelete}
+              className="bg-red-500/90 hover:bg-red-500 text-white rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors flex items-center gap-1.5"
+            >
+              <Trash2 size={14} />
+              Supprimer ({selectedEssences.size})
+            </button>
+          )}
+          <IconButton 
+            icon={RefreshCw} 
+            onClick={fetchData} 
+            title="Rafraîchir"
+            tint="neutral"
+          />
+          {permissions.canCreate && (
+            <button
+              onClick={openAdd}
+              className="bg-gold text-black font-semibold rounded-lg px-3.5 py-1.5 text-xs hover:bg-gold/90 transition-colors flex items-center gap-1.5"
+            >
+              <Plus size={15} /> Ajouter une essence
+            </button>
+          )}
+        </div>
+      </div>
+
+      <CatalogAccessNotice permissions={permissions} resourceLabel="les essences" />
+
+      {/* KPI Bordered Strip */}
+      <div className="rounded-xl border border-white/10 bg-white/[0.02] grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-white/10">
+        <div className="p-4 flex flex-col justify-between">
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-foreground/35">Total Essences</span>
+          <span className="text-xl font-semibold tabular-nums text-foreground mt-1">{essences.length}</span>
+        </div>
+
+        <div className="p-4 flex flex-col justify-between">
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-foreground/35">Disponibles Boutique</span>
+          <span className="text-xl font-semibold tabular-nums text-emerald-400 mt-1">{boutiqueCount}</span>
+        </div>
+
+        <div className="p-4 flex flex-col justify-between">
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-foreground/35">Usage Labo Exclusif</span>
+          <span className="text-xl font-semibold tabular-nums text-foreground/80 mt-1">{essences.length - boutiqueCount}</span>
+        </div>
+      </div>
+
+      {/* Toolbar / Filters */}
+      <div className="space-y-3">
+        <div className="flex items-center gap-2">
+          <div className="relative flex-1">
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-foreground/40" />
+            <input
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Rechercher par nom, référence, marque..."
+              className="w-full bg-white/[0.02] border border-white/10 rounded-lg pl-9 pr-8 py-1.5 text-xs text-foreground placeholder:text-foreground/40 outline-none focus:border-white/20 transition-all"
+            />
+            {search && (
+              <button 
+                onClick={() => setSearch('')}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-foreground/40 hover:text-foreground"
+              >
+                <X size={12} />
+              </button>
+            )}
+          </div>
+
+          <button
+            onClick={() => setShowFilters(!showFilters)}
+            className={cx(
+              'flex items-center gap-1.5 rounded-lg border border-white/10 px-3 py-1.5 text-xs font-medium transition-colors',
+              showFilters || activeFiltersCount > 0 ? 'bg-white/10 text-foreground' : 'text-foreground/60 hover:bg-white/5'
+            )}
+          >
+            <Filter size={13} />
+            <span>Filtres</span>
+            {activeFiltersCount > 0 && (
+              <span className="ml-0.5 rounded-full bg-gold px-1.5 py-0.2 text-[10px] font-bold text-black">
+                {activeFiltersCount}
+              </span>
+            )}
+          </button>
+        </div>
+
+        {/* Expandable Filter Panel */}
+        {showFilters && (
+          <div className="rounded-xl border border-white/10 bg-white/[0.02] p-3 flex flex-wrap items-center gap-4">
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-foreground/50">Catégorie:</span>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setSelectedCategory('all')}
+                  className={cx(
+                    'rounded-lg px-2.5 py-1 text-xs transition-colors',
+                    selectedCategory === 'all' ? 'bg-white/10 text-foreground font-medium' : 'text-foreground/50 hover:bg-white/5'
                   )}
-                  <button 
-                    onClick={fetchData} 
-                    className="p-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 text-foreground/60 hover:text-foreground transition-all"
+                >
+                  Toutes
+                </button>
+                {STATIC_CATEGORIES.map(cat => (
+                  <button
+                    key={cat}
+                    onClick={() => setSelectedCategory(cat)}
+                    className={cx(
+                      'rounded-lg px-2.5 py-1 text-xs capitalize transition-colors',
+                      selectedCategory === cat ? 'bg-white/10 text-foreground font-medium' : 'text-foreground/50 hover:bg-white/5'
+                    )}
                   >
-                    <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
+                    {cat.replace('_', ' ')}
                   </button>
-                  {permissions.canCreate && (
-                    <button
-                      onClick={openAdd}
-                      className="flex items-center gap-2 bg-gold text-black px-4 py-2.5 rounded-xl text-sm font-bold hover:bg-gold/80 transition-all shadow-lg shadow-gold/10"
-                    >
-                      <Plus size={16} /> Ajouter une essence
-                    </button>
-                  )}
-                </div>
+                ))}
               </div>
+            </div>
+            {activeFiltersCount > 0 && (
+              <button
+                onClick={() => setSelectedCategory('all')}
+                className="text-[11px] text-foreground/40 hover:text-foreground underline ml-auto"
+              >
+                Réinitialiser
+              </button>
+            )}
+          </div>
+        )}
+      </div>
 
-              <CatalogAccessNotice permissions={permissions} resourceLabel="les essences" />
+      {/* Table */}
+      <div className="rounded-xl border border-white/10 overflow-hidden">
+        {loading ? (
+          <div className="flex items-center justify-center py-12 text-foreground/40 gap-2 text-xs">
+            <Loader2 className="animate-spin text-gold" size={16} />
+            <span>Chargement du catalogue...</span>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-white/[0.02] border-b border-white/10 text-[10px] font-semibold uppercase tracking-wider text-foreground/35">
+                  <th className="pl-4 py-3 w-8">
+                    <input
+                      type="checkbox"
+                      checked={currentItems.length > 0 && selectedEssences.size === essences.length && essences.length > 0}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSelectedEssences(new Set(essences.map(e => e.id)));
+                        } else {
+                          setSelectedEssences(new Set());
+                        }
+                      }}
+                      className="rounded border-white/20 bg-white/5 text-gold focus:ring-0 cursor-pointer"
+                    />
+                  </th>
+                  <th className="px-3 py-3">Essence</th>
+                  <th className="px-3 py-3">Code Réf.</th>
+                  <th className="px-3 py-3">Catégorie</th>
+                  <th className="px-3 py-3">Caractéristiques</th>
+                  <th className="px-3 py-3">Prix / ml</th>
+                  <th className="px-3 py-3">Canal</th>
+                  <th className="pr-4 py-3 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/5 text-xs">
+                {currentItems.map(essence => (
+                  <tr key={essence.id} className="hover:bg-white/[0.02] transition-colors">
+                    <td className="pl-4 py-3">
+                      <input
+                        type="checkbox"
+                        checked={selectedEssences.has(essence.id)}
+                        onChange={() => toggleSelectEssence(essence.id)}
+                        className="rounded border-white/20 bg-white/5 text-gold focus:ring-0 cursor-pointer"
+                      />
+                    </td>
+                    <td className="px-3 py-3">
+                      <div>
+                        <p className="font-medium text-foreground">{essence.nom}</p>
+                        <p className="text-[11px] text-foreground/40">{essence.marque || 'Maison'}</p>
+                      </div>
+                    </td>
+                    <td className="px-3 py-3 font-mono text-[11px] text-foreground/60">
+                      {essence.code_reference}
+                    </td>
+                    <td className="px-3 py-3">
+                      <span className="capitalize text-foreground/80">
+                        {essence.categorie?.replace('_', ' ')}
+                      </span>
+                    </td>
+                    <td className="px-3 py-3 text-foreground/60 space-x-2">
+                      <span>Intensité: <strong className="font-medium text-foreground/80 capitalize">{essence.intensite}</strong></span>
+                      <span>•</span>
+                      <span>Cible: <strong className="font-medium text-foreground/80 capitalize">{essence.genre_cible}</strong></span>
+                    </td>
+                    <td className="px-3 py-3 font-medium text-foreground tabular-nums">
+                      {Number(essence.prix_par_ml || 0).toLocaleString()} FCFA
+                    </td>
+                    <td className="px-3 py-3">
+                      {essence.vendu_comme_produit_fini ? (
+                        <StatusChip variant="emerald" label="Boutique" icon={ShoppingBag} />
+                      ) : (
+                        <StatusChip variant="neutral" label="Labo Seul" />
+                      )}
+                    </td>
+                    <td className="pr-4 py-3 text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        {permissions.canUpdate && (
+                          <IconButton 
+                            icon={Edit2} 
+                            onClick={() => openEdit(essence)} 
+                            title="Modifier"
+                            tint="gold"
+                          />
+                        )}
+                        {permissions.canDelete && (
+                          <IconButton 
+                            icon={Trash2} 
+                            onClick={() => handleDelete(essence.id)} 
+                            title="Supprimer"
+                            tint="red"
+                          />
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+                {currentItems.length === 0 && (
+                  <tr>
+                    <td colSpan={8} className="py-10 text-center text-sm italic text-foreground/30">
+                      Aucune essence ne correspond à votre recherche.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
 
-              {/* Recherche */}
-              <div className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 max-w-sm">
-                <Search size={15} className="text-foreground/40" />
-                <input
-                  value={search}
-                  onChange={e => setSearch(e.target.value)}
-                  placeholder="Rechercher par nom, code, marque..."
-                  className="text-sm bg-transparent outline-none flex-1 text-foreground placeholder:text-foreground/40"
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between pt-1">
+          <span className="text-xs text-foreground/40">
+            Page <b className="text-foreground/80">{currentPage}</b> sur <b className="text-foreground/80">{totalPages}</b>
+          </span>
+          <div className="flex items-center gap-1">
+            <IconButton 
+              icon={ChevronLeft}
+              onClick={() => setCurrentPage(p => p - 1)}
+              tint="neutral"
+            />
+            <IconButton 
+              icon={ChevronRight}
+              onClick={() => setCurrentPage(p => p + 1)}
+              tint="neutral"
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Modale d'Ajout / Modification (verbatim off-limits form logic) */}
+      <SlideOver
+        isOpen={showModal}
+        onClose={() => setShowModal(false)}
+        title={editingEssence ? 'Modifier l\'essence' : 'Nouvelle Essence de Parfum'}
+        description="Renseignez les spécifications techniques et commerciales de l'essence."
+        size="xl"
+      >
+        <div className="space-y-6 pt-2">
+          {formError && (
+            <div className="p-3.5 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-xs font-medium flex items-center gap-2">
+              <AlertCircle size={16} className="shrink-0" />
+              <span>{formError}</span>
+            </div>
+          )}
+
+          {/* Section 1: Information Générale */}
+          <div className="space-y-4">
+            <p className="text-xs font-bold text-gold uppercase tracking-wider">Informations Générales</p>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <FloatInput
+                  data-field="nom"
+                  label="Nom de l'essence *"
+                  value={form.nom}
+                  onChange={e => updateForm('nom', e.target.value)}
+                  error={formErrors.nom}
+                />
+              </div>
+              <div>
+                <FloatInput
+                  data-field="codeReference"
+                  label="Code Référence *"
+                  value={form.codeReference}
+                  onChange={e => updateForm('codeReference', e.target.value)}
+                  error={formErrors.codeReference}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <FloatInput
+                data-field="marque"
+                label="Marque / Fournisseur *"
+                value={form.marque}
+                onChange={e => updateForm('marque', e.target.value)}
+                error={formErrors.marque}
+              />
+              <div>
+                <label className="text-[11px] font-bold text-foreground/50 uppercase block mb-1.5">Catégorie *</label>
+                <select
+                  data-field="categorie"
+                  value={form.categorie}
+                  onChange={e => updateForm('categorie', e.target.value)}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-foreground outline-none focus:border-gold/50 bg-neutral-900 capitalize"
+                >
+                  {STATIC_CATEGORIES.map(cat => (
+                    <option key={cat} value={cat}>{cat.replace('_', ' ')}</option>
+                  ))}
+                </select>
+                {formErrors.categorie && <p className="mt-1 text-xs text-red-500">{formErrors.categorie}</p>}
+              </div>
+            </div>
+          </div>
+
+          {/* Section 2: Profil & Prix */}
+          <div className="space-y-4 pt-2 border-t border-white/10">
+            <p className="text-xs font-bold text-gold uppercase tracking-wider">Profil Olfactif & Tarification</p>
+
+            <div className="grid grid-cols-3 gap-3">
+              <div>
+                <label className="text-[11px] font-bold text-foreground/50 uppercase block mb-1.5">Intensité *</label>
+                <select
+                  data-field="intensite"
+                  value={form.intensite}
+                  onChange={e => updateForm('intensite', e.target.value)}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-foreground outline-none focus:border-gold/50 bg-neutral-900"
+                >
+                  <option value="légère">Légère</option>
+                  <option value="moyenne">Moyenne</option>
+                  <option value="forte">Forte</option>
+                  <option value="très forte">Très forte</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-[11px] font-bold text-foreground/50 uppercase block mb-1.5">Cible *</label>
+                <select
+                  data-field="genreCible"
+                  value={form.genreCible}
+                  onChange={e => updateForm('genreCible', e.target.value)}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-foreground outline-none focus:border-gold/50 bg-neutral-900"
+                >
+                  <option value="mixte">Mixte</option>
+                  <option value="homme">Homme</option>
+                  <option value="femme">Femme</option>
+                </select>
+              </div>
+              <div>
+                <FloatInput
+                  data-field="prixParMl"
+                  label="Prix / ml (FCFA) *"
+                  type="number"
+                  value={form.prixParMl}
+                  onChange={e => updateForm('prixParMl', e.target.value)}
+                  error={formErrors.prixParMl}
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-[11px] font-bold text-foreground/50 uppercase tracking-wider mb-1.5">
+                Description / Notes Olfactives
+              </label>
+              <textarea
+                data-field="description"
+                value={form.description}
+                onChange={e => updateForm('description', e.target.value)}
+                placeholder="Ex: Notes de tête bergamote, cœur jasmin, fond bois de santal..."
+                rows={3}
+                className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-sm text-foreground outline-none focus:border-gold/50 resize-none placeholder:text-foreground/30"
+              />
+              {formErrors.description && <p className="mt-1 text-xs text-red-500">{formErrors.description}</p>}
+            </div>
+          </div>
+
+          {/* Section 3: Stock Initial (à la création uniquement) */}
+          {!editingEssence && (
+            <div className="space-y-4 pt-2 border-t border-white/10">
+              <p className="text-xs font-bold text-gold uppercase tracking-wider">Lot Initial (Stock Labo)</p>
+              
+              <div className="bg-white/5 border border-white/10 rounded-2xl p-4 space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <FloatInput
+                    data-field="lotStockMl"
+                    label="Stock ML *"
+                    type="number"
+                    value={form.lotStockMl}
+                    onChange={e => updateForm('lotStockMl', e.target.value)}
+                    error={formErrors.lotStockMl}
+                  />
+                  <FloatInput
+                    data-field="lotSeuilAlerteMl"
+                    label="Seuil d'alerte ML *"
+                    type="number"
+                    value={form.lotSeuilAlerteMl}
+                    onChange={e => updateForm('lotSeuilAlerteMl', e.target.value)}
+                    error={formErrors.lotSeuilAlerteMl}
+                  />
+                </div>
+                <FloatInput
+                  data-field="lotReferenceFournisseur"
+                  label="Réf. Fournisseur (Optionnel)"
+                  value={form.lotReferenceFournisseur}
+                  onChange={e => updateForm('lotReferenceFournisseur', e.target.value)}
+                  error={formErrors.lotReferenceFournisseur}
                 />
               </div>
 
-              {/* Tableau des Essences */}
-              <div className="bg-white/5 rounded-2xl border border-white/10 overflow-hidden min-h-[200px]">
-                {loading ? (
-                  <div className="flex items-center justify-center py-16 text-gold gap-2">
-                    <Loader2 className="animate-spin" size={24} />
-                    <span className="text-sm">Chargement du catalogue...</span>
+              {/* Section 4: Format Boutique */}
+              <div className="bg-white/5 border border-white/10 rounded-2xl p-4 space-y-4">
+                <label className="flex items-start gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={form.includeProduitsFinis}
+                    onChange={e => updateForm('includeProduitsFinis', e.target.checked)}
+                    className="mt-1 rounded border-white/20 bg-white/5 text-gold focus:ring-gold cursor-pointer"
+                  />
+                  <div>
+                    <p className="font-semibold text-sm text-foreground">Activer le format boutique (Produit Fini)</p>
+                    <p className="text-xs text-foreground/50 mt-0.5">Permet de rendre ce produit immédiatement disponible à l'achat dans la boutique.</p>
                   </div>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse">
-                      <thead>
-                        <tr className="border-b border-white/10 bg-white/5">
-                          <th className="px-5 py-3.5 w-12">
-                            <input
-                              type="checkbox"
-                              checked={currentItems.length > 0 && selectedEssences.size === essences.length && essences.length > 0}
-                              onChange={(e) => {
-                                if (e.target.checked) {
-                                  setSelectedEssences(new Set(essences.map(e => e.id)));
-                                } else {
-                                  setSelectedEssences(new Set());
-                                }
-                              }}
-                              className="rounded border-white/10 bg-white/5 text-gold focus:ring-gold"
-                            />
-                          </th>
-                          {['Détails Essence', 'Code Réf.', 'Catégorie', 'Caractéristiques', 'Prix / ml', 'Canal', 'Actions'].map(h => (
-                            <th key={h} className="px-5 py-3.5 text-xs font-semibold text-foreground/40 uppercase tracking-wider">{h}</th>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-white/5">
-                        {currentItems.map(essence => (
-                          <tr key={essence.id} className="hover:bg-white/5 transition-colors">
-                            <td className="px-5 py-3.5 w-12">
-                              <input
-                                type="checkbox"
-                                checked={selectedEssences.has(essence.id)}
-                                onChange={() => toggleSelectEssence(essence.id)}
-                                className="rounded border-white/10 bg-white/5 text-gold focus:ring-gold"
-                              />
-                            </td>
-                            <td className="px-5 py-3.5">
-                              <div className="flex items-center gap-3">
-                                <div className="p-2 rounded-xl bg-gold/10 text-gold hidden sm:block">
-                                  <Droplets size={16} />
-                                </div>
-                                <div>
-                                  <p className="font-semibold text-foreground text-sm">{essence.nom}</p>
-                                  <p className="text-[11px] text-foreground/40 mt-0.5">{essence.marque || 'Maison'}</p>
-                                </div>
-                              </div>
-                            </td>
-                            <td className="px-5 py-3.5 font-mono text-xs text-foreground/60">{essence.code_reference}</td>
-                            <td className="px-5 py-3.5">
-                              <span className="text-[11px] px-2 py-0.5 rounded font-medium bg-white/5 border border-white/10 text-foreground/70 capitalize">
-                                {essence.categorie?.replace('_', ' ')}
-                              </span>
-                            </td>
-                            <td className="px-5 py-3.5">
-                              <div className="flex flex-col gap-0.5 text-xs text-foreground/60">
-                                <span>Intensité : <b className="text-foreground/80 capitalize">{essence.intensite}</b></span>
-                                <span>Cible : <b className="text-foreground/80 capitalize">{essence.genre_cible}</b></span>
-                              </div>
-                            </td>
-                            <td className="px-5 py-3.5 font-semibold text-gold text-sm">
-                              {Number(essence.prix_par_ml || 0).toLocaleString()} FCFA
-                            </td>
-                            <td className="px-5 py-3.5">
-                              {essence.vendu_comme_produit_fini ? (
-                                <span className="inline-flex items-center gap-1 text-[10px] bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded font-bold uppercase border border-emerald-500/10">
-                                  <ShoppingBag size={10} /> + Boutique
-                                </span>
-                              ) : (
-                                <span className="text-[10px] bg-white/5 text-foreground/40 px-2 py-0.5 rounded font-bold uppercase">
-                                  Labo Seul
-                                </span>
-                              )}
-                            </td>
-                            <td className="px-5 py-3.5">
-                              <div className="flex gap-1">
-                                {permissions.canUpdate && (
-                                  <button 
-                                    onClick={() => openEdit(essence)} 
-                                    className="p-1.5 rounded-lg hover:bg-white/5 text-foreground/40 hover:text-gold transition-colors"
-                                  >
-                                    <Edit2 size={14} />
-                                  </button>
-                                )}
-                                {permissions.canDelete && (
-                                  <button 
-                                    onClick={() => handleDelete(essence.id)} 
-                                    className="p-1.5 rounded-lg hover:bg-red-500/10 text-foreground/40 hover:text-red-400 transition-colors"
-                                  >
-                                    <Trash2 size={14} />
-                                  </button>
-                                )}
-                              </div>
-                            </td>
-                          </tr>
-                        ))}
-                        {currentItems.length === 0 && (
-                          <tr>
-                            <td colSpan={8} className="text-center py-16 text-foreground/40 italic text-sm">
-                              Aucune essence enregistrée dans le catalogue.
-                            </td>
-                          </tr>
-                        )}
-                      </tbody>
-                    </table>
+                </label>
+
+                {form.includeProduitsFinis && (
+                  <div className="grid grid-cols-2 gap-4 pt-3 border-t border-white/10">
+                    <FloatInput
+                      data-field="produitFini.taille_ml"
+                      label="Flacon (ml) *"
+                      type="number"
+                      value={form.produitFini.taille_ml}
+                      onChange={e => updateForm('produitFini.taille_ml', e.target.value)}
+                      error={formErrors['produitFini.taille_ml']}
+                    />
+                    <FloatInput
+                      data-field="produitFini.prix"
+                      label="Prix Boutique *"
+                      type="number"
+                      value={form.produitFini.prix}
+                      onChange={e => updateForm('produitFini.prix', e.target.value)}
+                      error={formErrors['produitFini.prix']}
+                    />
+                    <FloatInput
+                      data-field="produitFini.prix_promotionnel"
+                      label="Prix Promo (Optionnel)"
+                      type="number"
+                      value={form.produitFini.prix_promotionnel}
+                      onChange={e => updateForm('produitFini.prix_promotionnel', e.target.value)}
+                      error={formErrors['produitFini.prix_promotionnel']}
+                    />
+                    <FloatInput
+                      data-field="produitFini.stock_disponible"
+                      label="Stock Flacons *"
+                      type="number"
+                      value={form.produitFini.stock_disponible}
+                      onChange={e => updateForm('produitFini.stock_disponible', e.target.value)}
+                      error={formErrors['produitFini.stock_disponible']}
+                    />
+                    
+                    <div className="col-span-2">
+                      <label className="block text-xs font-bold text-foreground/50 uppercase tracking-wider mb-2">
+                        Image Principale *
+                      </label>
+                      <input
+                        data-field="produitFiniImageFile"
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0] || null;
+                          updateForm('produitFiniImageFile', file);
+                          setProduitFiniImageFile(file);
+                        }}
+                        className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs text-foreground/70 outline-none file:bg-gold file:text-black file:border-0 file:rounded-lg file:px-3 file:py-1.5 file:mr-3 file:text-xs file:font-bold file:cursor-pointer cursor-pointer"
+                      />
+                      {formErrors.produitFiniImageFile && (
+                        <p className="mt-1 text-xs text-red-500">{formErrors.produitFiniImageFile}</p>
+                      )}
+                    </div>
                   </div>
                 )}
               </div>
+            </div>
+          )}
 
-              {/* Pagination (Max 20 items par page) */}
-              {totalPages > 1 && (
-                <div className="flex items-center justify-between pt-2">
-                  <span className="text-xs text-foreground/40">Page {currentPage} sur {totalPages}</span>
-                  <div className="flex items-center gap-2">
-                    <button 
-                      disabled={currentPage === 1} 
-                      onClick={() => setCurrentPage(p => p - 1)} 
-                      className="p-2 rounded-xl bg-white/5 border border-white/10 text-white disabled:opacity-20 transition-opacity"
-                    >
-                      <ChevronLeft size={16} />
-                    </button>
-                    <button 
-                      disabled={currentPage === totalPages} 
-                      onClick={() => setCurrentPage(p => p + 1)} 
-                      className="p-2 rounded-xl bg-white/5 border border-white/10 text-white disabled:opacity-20 transition-opacity"
-                    >
-                      <ChevronRight size={16} />
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* Modale d'Ajout / Modification */}
-              <SlideOver
-                isOpen={showModal}
-                onClose={() => setShowModal(false)}
-                title={editingEssence ? 'Modifier l\'essence' : 'Ajouter une nouvelle essence'}
-                description="Formulaire complet, sans popup ni défilement gênant."
-                size="xl"
-              >
-                <div className="space-y-4">
-<div className="grid grid-cols-2 gap-3">
-                         <div>
-                           <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">Nom de l'essence *</label>
-                           <input
-                             data-field="nom"
-                             value={form.nom}
-                             onChange={e => updateForm('nom', e.target.value)}
-                             className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-base text-foreground outline-none focus:border-gold"
-                           />
-                           {formErrors.nom && <p className="mt-1 text-xs text-red-500">{formErrors.nom}</p>}
-                         </div>
-                         <div>
-                           <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">Code Référence *</label>
-                           <input
-                             data-field="codeReference"
-                             value={form.codeReference}
-                             onChange={e => updateForm('codeReference', e.target.value)}
-                             className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-base text-foreground outline-none focus:border-gold"
-                           />
-                           {formErrors.codeReference && <p className="mt-1 text-xs text-red-500">{formErrors.codeReference}</p>}
-                         </div>
-                       </div>
-
-                      <div className="grid grid-cols-2 gap-3">
-                        <FloatInput
-                          label="Marque / Fournisseur"
-                          value={form.marque}
-                          onChange={e => updateForm('marque', e.target.value)}
-                        />
-                        <div>
-                          <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Catégorie</label>
-                          <select
-                            value={form.categorie}
-                            onChange={e => updateForm('categorie', e.target.value)}
-                            className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white outline-none focus:border-gold bg-neutral-900 capitalize"
-                          >
-                            {STATIC_CATEGORIES.map(cat => (
-                              <option key={cat} value={cat}>{cat.replace('_', ' ')}</option>
-                            ))}
-                          </select>
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-3 gap-3">
-                        <div>
-                          <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Intensité</label>
-                          <select
-                            value={form.intensite}
-                            onChange={e => updateForm('intensite', e.target.value)}
-                            className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white outline-none focus:border-gold bg-neutral-900"
-                          >
-                            <option value="légère">Légère</option>
-                            <option value="moyenne">Moyenne</option>
-                            <option value="forte">Forte</option>
-                            <option value="très forte">Très forte</option>
-                          </select>
-                        </div>
-                        <div>
-                          <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Genre Cible</label>
-                          <select
-                            value={form.genreCible}
-                            onChange={e => updateForm('genreCible', e.target.value)}
-                            className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white outline-none focus:border-gold bg-neutral-900"
-                          >
-                            <option value="mixte">Mixte</option>
-                            <option value="homme">Homme</option>
-                            <option value="femme">Femme</option>
-                          </select>
-                        </div>
-<div>
-                           <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">Prix de base / ml</label>
-                           <input
-                             data-field="prixParMl"
-                             value={form.prixParMl}
-                             onChange={e => updateForm('prixParMl', e.target.value)}
-                             className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-base text-white outline-none focus:border-gold bg-neutral-900"
-                           />
-                         </div>
-                      </div>
-
-<div>
-                         <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">Description / Notes Olfactives</label>
-                         <textarea
-                           data-field="description"
-                           value={form.description}
-                           onChange={e => updateForm('description', e.target.value)}
-                           placeholder="Notes de tête, cœur, fond..."
-                           rows={2}
-                           className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-base text-foreground outline-none focus:border-gold resize-none"
-                         />
-                         {formErrors.description && <p className="mt-1 text-xs text-red-500">{formErrors.description}</p>}
-                       </div>
-
-{!editingEssence && (
-                         <>
-                           <div className="bg-white/5 border border-white/10 rounded-xl p-4 space-y-3">
-                             <p className="text-sm font-semibold text-foreground mb-3">Lot Initial (Stock Laboratoire)</p>
-                             <div className="grid grid-cols-2 gap-3">
-                               <div>
-                                 <label className="block text-xs font-bold text-foreground/40 tracking-wider mb-1.5">Stock ML</label>
-                                 <input
-                                   data-field="lotStockMl"
-                                   type="number"
-                                   value={form.lotStockMl}
-                                   onChange={e => updateForm('lotStockMl', e.target.value)}
-                                   className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-base text-white outline-none focus:border-gold bg-neutral-900"
-                                 />
-                                 {formErrors.lotStockMl && <p className="mt-1 text-xs text-red-500">{formErrors.lotStockMl}</p>}
-                               </div>
-                               <div>
-                                 <label className="block text-xs font-bold text-foreground/40 tracking-wider mb-1.5">Seuil d'alerte ML</label>
-                                 <input
-                                   data-field="lotSeuilAlerteMl"
-                                   type="number"
-                                   value={form.lotSeuilAlerteMl}
-                                   onChange={e => updateForm('lotSeuilAlerteMl', e.target.value)}
-                                   className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-base text-white outline-none focus:border-gold bg-neutral-900"
-                                 />
-                                 {formErrors.lotSeuilAlerteMl && <p className="mt-1 text-xs text-red-500">{formErrors.lotSeuilAlerteMl}</p>}
-                               </div>
-                               <div className="col-span-2">
-                                 <label className="block text-xs font-bold text-foreground/40 tracking-wider mb-1.5">Référence Fournisseur (optionnel)</label>
-                                 <input
-                                   data-field="lotReferenceFournisseur"
-                                   value={form.lotReferenceFournisseur}
-                                   onChange={e => updateForm('lotReferenceFournisseur', e.target.value)}
-                                   className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-base text-white outline-none focus:border-gold"
-                                 />
-                                 {formErrors.lotReferenceFournisseur && <p className="mt-1 text-xs text-red-500">{formErrors.lotReferenceFournisseur}</p>}
-                               </div>
-                             </div>
-                           </div>
-
-                          <div className="bg-white/5 border border-white/10 rounded-xl p-4 space-y-3">
-                            <label className="flex items-center gap-2 cursor-pointer">
-                              <input
-                                type="checkbox"
-                                checked={form.includeProduitsFinis}
-                                onChange={e => updateForm('includeProduitsFinis', e.target.checked)}
-                                className="rounded border-white/10 bg-white/5 text-gold focus:ring-gold"
-                              />
-                              <div>
-                                <p className="font-semibold text-foreground">Créer un format boutique (produit fini)</p>
-                                <p className="text-foreground/40 text-sm">Flacon prêt à la vente dans le shop</p>
-                              </div>
-                            </label>
-{form.includeProduitsFinis && (
-                               <div className="grid grid-cols-2 gap-3 pt-2 border-t border-white/5">
-                                 <div>
-                                   <label className="block text-xs font-bold text-foreground/40 tracking-wider mb-1.5">Taille (ml)</label>
-                                   <input
-                                     data-field="produitFini.taille_ml"
-                                     type="number"
-                                     min="1"
-                                     value={form.produitFini.taille_ml}
-                                     onChange={e => updateForm('produitFini.taille_ml', e.target.value)}
-                                     className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-base text-white outline-none focus:border-gold bg-neutral-900"
-                                   />
-                                   {formErrors['produitFini.taille_ml'] && <p className="mt-1 text-xs text-red-500">{formErrors['produitFini.taille_ml']}</p>}
-                                 </div>
-                                 <div>
-                                   <label className="block text-xs font-bold text-foreground/40 tracking-wider mb-1.5">Prix</label>
-                                   <input
-                                     data-field="produitFini.prix"
-                                     type="number"
-                                     value={form.produitFini.prix}
-                                     onChange={e => updateForm('produitFini.prix', e.target.value)}
-                                     className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-base text-white outline-none focus:border-gold bg-neutral-900"
-                                   />
-                                   {formErrors['produitFini.prix'] && <p className="mt-1 text-xs text-red-500">{formErrors['produitFini.prix']}</p>}
-                                 </div>
-                                 <div>
-                                   <label className="block text-xs font-bold text-foreground/40 tracking-wider mb-1.5">Prix Promo</label>
-                                   <input
-                                     data-field="produitFini.prix_promotionnel"
-                                     type="number"
-                                     value={form.produitFini.prix_promotionnel}
-                                     onChange={e => updateForm('produitFini.prix_promotionnel', e.target.value)}
-                                     className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-base text-white outline-none focus:border-gold bg-neutral-900"
-                                   />
-                                   {formErrors['produitFini.prix_promotionnel'] && <p className="mt-1 text-xs text-red-500">{formErrors['produitFini.prix_promotionnel']}</p>}
-                                 </div>
-                                 <div>
-                                   <label className="block text-xs font-bold text-foreground/40 tracking-wider mb-1.5">Stock</label>
-                                   <input
-                                     data-field="produitFini.stock_disponible"
-                                     type="number"
-                                     value={form.produitFini.stock_disponible}
-                                     onChange={e => updateForm('produitFini.stock_disponible', e.target.value)}
-                                     className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-base text-white outline-none focus:border-gold bg-neutral-900"
-                                   />
-                                   {formErrors['produitFini.stock_disponible'] && <p className="mt-1 text-xs text-red-500">{formErrors['produitFini.stock_disponible']}</p>}
-                                 </div>
-                                 <div className="col-span-2">
-                                   <label className="block text-xs font-bold text-foreground/40 tracking-wider mb-1.5">Image du format boutique *</label>
-                                   <input
-                                     data-field="produitFiniImageFile"
-                                     type="file"
-                                     accept="image/*"
-                                     onChange={(e) => {
-                                       updateForm('produitFiniImageFile', e.target.files?.[0] || null);
-                                       setProduitFiniImageFile(e.target.files?.[0] || null);
-                                     }}
-                                     className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-base text-white outline-none file:bg-gold file:text-black file:border-0 file:rounded file:px-2 file:py-1 file:mr-2 file:text-xs file:font-semibold"
-                                   />
-                                   {formErrors.produitFiniImageFile && <p className="mt-1 text-xs text-red-500">{formErrors.produitFiniImageFile}</p>}
-                                 </div>
-                               </div>
-                             )}
-                          </div>
-                        </>
-                      )}
-
-                      {formError && (
-                        <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-xs font-semibold">
-                          {formError}
-                        </div>
-                      )}
-
-                      <div className="flex gap-3 pt-2">
-                        <button 
-                          onClick={() => setShowModal(false)} 
-                          className="flex-1 px-4 py-2.5 rounded-xl bg-white/5 text-foreground font-bold text-sm hover:bg-white/10 transition-all border border-white/10"
-                        >
-                          Annuler
-                        </button>
-                        <button 
-                          onClick={handleSave} 
-                          disabled={saving || !form.nom || !form.codeReference}
-                          className="flex-1 px-4 py-2.5 rounded-xl bg-gold text-black font-bold text-sm hover:bg-gold/80 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
-                        >
-                          {saving && <Loader2 size={14} className="animate-spin" />}
-                          {editingEssence ? 'Mettre à jour' : 'Enregistrer l\'essence'}
-                        </button>
-                      </div>
-                    </div>
-                  </SlideOver>
+          {/* Actions Modale */}
+          <div className="flex gap-3 pt-4 border-t border-white/10">
+            <button 
+              type="button"
+              onClick={() => setShowModal(false)} 
+              className="flex-1 px-4 py-3 rounded-xl bg-white/5 hover:bg-white/10 text-foreground font-semibold text-sm transition-all border border-white/10"
+            >
+              Annuler
+            </button>
+            <button 
+              type="button"
+              onClick={handleSave} 
+              disabled={saving}
+              className="flex-1 px-4 py-3 rounded-xl bg-gold hover:bg-gold/90 text-black font-bold text-sm transition-all flex items-center justify-center gap-2 disabled:opacity-50 shadow-lg shadow-gold/10"
+            >
+              {saving && <Loader2 size={16} className="animate-spin" />}
+              {editingEssence ? 'Mettre à jour' : 'Enregistrer l\'essence'}
+            </button>
+          </div>
+        </div>
+      </SlideOver>
     </div>
   );
 }

@@ -15,6 +15,10 @@ import { extractApiError } from '@/lib/apiError';
 
 type TabKey = 'perfume_categories' | 'accessory_categories' | 'bottle_types';
 
+function cx(...parts: Array<string | false | null | undefined>) {
+  return parts.filter(Boolean).join(' ');
+}
+
 function TabButton({ active, onClick, icon, label }: {
   active: boolean; onClick: () => void;
   icon: React.ReactNode; label: string;
@@ -22,11 +26,10 @@ function TabButton({ active, onClick, icon, label }: {
   return (
     <button
       onClick={onClick}
-      className={`flex items-center gap-2 px-4 py-3 text-xs font-bold uppercase tracking-wider border-b-2 transition-all duration-200 whitespace-nowrap
-        ${active
-          ? 'border-gold text-gold bg-white/5'
-          : 'border-transparent text-foreground/40 hover:text-foreground/80 hover:border-white/20'
-        }`}
+      className={cx(
+        'flex items-center gap-2 whitespace-nowrap border-b-2 px-4 py-3 text-xs font-medium transition-colors',
+        active ? 'border-gold text-gold' : 'border-transparent text-foreground/45 hover:text-foreground/75'
+      )}
     >
       {icon}
       {label}
@@ -275,160 +278,167 @@ export default function CategoriesAdminPage() {
   return (
     <>
     <div className="space-y-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h1 className="text-2xl font-bold text-foreground">Classifications & Catégories</h1>
-                  <p className="text-sm text-foreground/40 mt-0.5">Gérer les types d'accessoires, flacons et catégories de parfums</p>
-                </div>
-                <button onClick={handleOpenAdd} className="flex items-center gap-2 bg-gold text-black px-4 py-2.5 rounded-xl text-sm font-medium hover:bg-gold/80 transition-all shadow-lg">
-                  <Plus size={16} /> Ajouter
-                </button>
-              </div>
 
-              <div className="bg-white/5 rounded-2xl border border-white/10 overflow-hidden shadow-sm">
-                <div className="flex border-b border-white/10 overflow-x-auto">
-                  <TabButton active={activeTab === 'perfume_categories'} onClick={() => setActiveTab('perfume_categories')} icon={<PerfumeIcon size={14} />} label="Catégories Parfums" />
-                  <TabButton active={activeTab === 'accessory_categories'} onClick={() => setActiveTab('accessory_categories')} icon={<Gem size={14} />} label="Catégories Accessoires" />
-                  <TabButton active={activeTab === 'bottle_types'} onClick={() => setActiveTab('bottle_types')} icon={<FlaskConical size={14} />} label="Types Flacons" />
-                </div>
+      {/* Header --------------------------------------------------------- */}
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h1 className="text-xl font-semibold text-foreground">Classifications & catégories</h1>
+          <p className="mt-0.5 text-sm text-foreground/40">Types d'accessoires, flacons et catégories de parfums</p>
+        </div>
+        <button
+          onClick={handleOpenAdd}
+          className="inline-flex items-center gap-2 rounded-lg bg-gold px-3.5 py-2 text-sm font-semibold text-black transition-colors hover:bg-gold/85"
+        >
+          <Plus size={14} />
+          Ajouter
+        </button>
+      </div>
 
-                <div className="p-6">
-                  <div className="bg-white/5 rounded-2xl border border-white/10 p-4 shadow-sm flex items-center gap-2 w-full max-w-md mb-6">
-                    <Search size={15} className="text-foreground/40" />
-                    <input
-                      value={search}
-                      onChange={e => setSearch(e.target.value)}
-                      placeholder="Rechercher..."
-                      className="text-sm bg-transparent outline-none flex-1 text-foreground placeholder:text-foreground/40"
-                    />
-                  </div>
+      {/* Tabs + content ----------------------------------------------------- */}
+      <div className="overflow-hidden rounded-xl border border-white/10">
+        <div className="flex overflow-x-auto border-b border-white/10 bg-white/[0.02]">
+          <TabButton active={activeTab === 'perfume_categories'} onClick={() => setActiveTab('perfume_categories')} icon={<PerfumeIcon size={14} />} label="Catégories parfums" />
+          <TabButton active={activeTab === 'accessory_categories'} onClick={() => setActiveTab('accessory_categories')} icon={<Gem size={14} />} label="Catégories accessoires" />
+          <TabButton active={activeTab === 'bottle_types'} onClick={() => setActiveTab('bottle_types')} icon={<FlaskConical size={14} />} label="Types flacons" />
+        </div>
 
-                  {loading ? (
-                    <div className="flex items-center justify-center py-16 text-gold gap-2">
-                      <Loader2 className="animate-spin" size={24} />
-                      <span className="text-sm">Chargement...</span>
-                    </div>
-                  ) : (
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-left border-collapse">
-                        <thead>
-                          <tr className="border-b border-white/10 bg-white/5">
-                            {activeTab === 'perfume_categories' && (
-                              <>
-                                <th className="px-6 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider w-16">Icône</th>
-                                <th className="px-6 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider">Nom</th>
-                                <th className="px-6 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider">Slug</th>
-                                <th className="px-6 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider">Ordre</th>
-                                <th className="px-6 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider">Taux Réduction</th>
-                                <th className="px-6 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider">Période promo</th>
-                              </>
-                            )}
-                            {activeTab === 'accessory_categories' && (
-                              <>
-                                <th className="px-6 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider w-16">Icône</th>
-                                <th className="px-6 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider">Nom</th>
-                                <th className="px-6 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider">Description</th>
-                                <th className="px-6 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider">Taux Réduction</th>
-                                <th className="px-6 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider">Période promo</th>
-                              </>
-                            )}
-                            {activeTab === 'bottle_types' && (
-                              <>
-                                <th className="px-6 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider">Nom</th>
-                                <th className="px-6 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider">Description</th>
-                              </>
-                            )}
-                            <th className="px-6 py-4 text-xs font-semibold text-foreground/40 uppercase tracking-wider text-right">Actions</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-white/5">
-                          {filtered.map(c => (
-                            <tr key={c.id} className="hover:bg-white/5 transition-colors group">
-                              {activeTab === 'perfume_categories' && (
-                                <>
-                                  <td className="px-6 py-3 whitespace-nowrap">
-                                    <div className="relative w-12 h-12 rounded-xl bg-white/5 border border-white/10 overflow-hidden flex items-center justify-center">
-                                      {(c.image || c.icone) ? (
-                                        <AppImage src={c.image || c.icone} alt={c.nom || 'Icône'} fill className="object-cover group-hover:scale-105 transition-transform duration-300" />
-                                      ) : (
-                                         <PerfumeIcon size={18} className="text-foreground/20" />
-                                      )}
-                                    </div>
-                                  </td>
-                                  <td className="px-6 py-4 font-medium text-foreground">{c.nom}</td>
-                                  <td className="px-6 py-4 text-sm text-foreground/60">{c.slug}</td>
-                                  <td className="px-6 py-4 text-sm text-foreground/60">{c.ordre_affichage}</td>
-                                  <td className="px-6 py-4 text-sm">
-                                    {c.taux_reduction && parseFloat(c.taux_reduction) > 0 ? (
-                                      <span className="bg-gold/10 text-gold px-2 py-0.5 rounded-md text-xs font-bold">-{c.taux_reduction}%</span>
-                                    ) : (
-                                      <span className="text-foreground/30 text-xs">—</span>
-                                    )}
-                                  </td>
-                                  <td className="px-6 py-4 text-xs text-foreground/50 max-w-[180px]">
-                                    {formatPromotionPeriod(c.date_debut, c.date_fin) || '—'}
-                                  </td>
-                                </>
+        <div className="p-5">
+          <div className="mb-5 flex max-w-sm items-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2">
+            <Search size={14} className="shrink-0 text-foreground/35" />
+            <input
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Rechercher…"
+              className="flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-foreground/35"
+            />
+          </div>
+
+          {loading ? (
+            <div className="flex items-center justify-center gap-2.5 py-16 text-foreground/40">
+              <Loader2 className="animate-spin text-gold" size={22} />
+              <span className="text-xs">Chargement…</span>
+            </div>
+          ) : (
+            <div className="overflow-x-auto rounded-lg border border-white/10">
+              <table className="w-full text-left text-sm">
+                <thead>
+                  <tr className="border-b border-white/10 bg-white/[0.02]">
+                    {activeTab === 'perfume_categories' && (
+                      <>
+                        <th className="w-16 px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-foreground/35">Icône</th>
+                        <th className="px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-foreground/35">Nom</th>
+                        <th className="px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-foreground/35">Slug</th>
+                        <th className="px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-foreground/35">Ordre</th>
+                        <th className="px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-foreground/35">Réduction</th>
+                        <th className="px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-foreground/35">Période promo</th>
+                      </>
+                    )}
+                    {activeTab === 'accessory_categories' && (
+                      <>
+                        <th className="w-16 px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-foreground/35">Icône</th>
+                        <th className="px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-foreground/35">Nom</th>
+                        <th className="px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-foreground/35">Description</th>
+                        <th className="px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-foreground/35">Réduction</th>
+                        <th className="px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-foreground/35">Période promo</th>
+                      </>
+                    )}
+                    {activeTab === 'bottle_types' && (
+                      <>
+                        <th className="px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-foreground/35">Nom</th>
+                        <th className="px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-foreground/35">Description</th>
+                      </>
+                    )}
+                    <th className="px-4 py-2.5 text-right text-[10px] font-semibold uppercase tracking-wider text-foreground/35">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/5">
+                  {filtered.map(c => (
+                    <tr key={c.id} className="group transition-colors hover:bg-white/[0.02]">
+                      {activeTab === 'perfume_categories' && (
+                        <>
+                          <td className="whitespace-nowrap px-4 py-2.5">
+                            <div className="relative flex h-9 w-9 items-center justify-center overflow-hidden rounded-lg border border-white/8 bg-white/[0.03]">
+                              {(c.image || c.icone) ? (
+                                <AppImage src={c.image || c.icone} alt={c.nom || 'Icône'} fill className="object-cover" />
+                              ) : (
+                                <PerfumeIcon size={15} className="text-foreground/25" />
                               )}
-                              {activeTab === 'accessory_categories' && (
-                                <>
-                                  <td className="px-6 py-3 whitespace-nowrap">
-                                    <div className="relative w-12 h-12 rounded-xl bg-white/5 border border-white/10 overflow-hidden flex items-center justify-center">
-                                      {c.icone ? (
-                                        <AppImage src={c.icone} alt={c.nom || 'Icône'} fill className="object-cover group-hover:scale-105 transition-transform duration-300" />
-                                      ) : (
-                                        <Gem size={18} className="text-foreground/20" />
-                                      )}
-                                    </div>
-                                  </td>
-                                  <td className="px-6 py-4 font-medium text-foreground">{c.nom}</td>
-                                  <td className="px-6 py-4 text-sm text-foreground/60 max-w-[200px] truncate">{c.description || '—'}</td>
-                                  <td className="px-6 py-4 text-sm">
-                                    {c.taux_reduction && parseFloat(c.taux_reduction) > 0 ? (
-                                      <span className="bg-gold/10 text-gold px-2 py-0.5 rounded-md text-xs font-bold">-{c.taux_reduction}%</span>
-                                    ) : (
-                                      <span className="text-foreground/30 text-xs">—</span>
-                                    )}
-                                  </td>
-                                  <td className="px-6 py-4 text-xs text-foreground/50 max-w-[180px]">
-                                    {formatPromotionPeriod(c.date_debut, c.date_fin) || '—'}
-                                  </td>
-                                </>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 text-xs font-medium text-foreground">{c.nom}</td>
+                          <td className="px-4 py-3 text-xs text-foreground/50">{c.slug}</td>
+                          <td className="px-4 py-3 text-xs text-foreground/50">{c.ordre_affichage}</td>
+                          <td className="px-4 py-3">
+                            {c.taux_reduction && parseFloat(c.taux_reduction) > 0 ? (
+                              <span className="rounded-full bg-gold/10 px-2 py-0.5 text-[11px] font-semibold text-gold">-{c.taux_reduction}%</span>
+                            ) : (
+                              <span className="text-xs text-foreground/25">—</span>
+                            )}
+                          </td>
+                          <td className="max-w-[180px] px-4 py-3 text-[11px] text-foreground/45">
+                            {formatPromotionPeriod(c.date_debut, c.date_fin) || '—'}
+                          </td>
+                        </>
+                      )}
+                      {activeTab === 'accessory_categories' && (
+                        <>
+                          <td className="whitespace-nowrap px-4 py-2.5">
+                            <div className="relative flex h-9 w-9 items-center justify-center overflow-hidden rounded-lg border border-white/8 bg-white/[0.03]">
+                              {c.icone ? (
+                                <AppImage src={c.icone} alt={c.nom || 'Icône'} fill className="object-cover" />
+                              ) : (
+                                <Gem size={15} className="text-foreground/25" />
                               )}
-                              {activeTab === 'bottle_types' && (
-                                <>
-                                  <td className="px-6 py-4 font-medium text-foreground">{c.nom}</td>
-                                  <td className="px-6 py-4 text-sm text-foreground/60">{c.description || '—'}</td>
-                                </>
-                              )}
-                              <td className="px-6 py-4 text-right">
-                                <div className="flex items-center justify-end gap-2">
-                                  <button onClick={() => handleOpenEdit(c)} className="p-1.5 rounded-lg hover:bg-white/5 text-foreground/40 hover:text-gold transition-colors">
-                                    <Edit2 size={14} />
-                                  </button>
-                                  <button onClick={() => handleDelete(c.id)} className="p-1.5 rounded-lg hover:bg-red-500/10 text-foreground/40 hover:text-red-400 transition-colors">
-                                    <Trash2 size={14} />
-                                  </button>
-                                </div>
-                              </td>
-                            </tr>
-                          ))}
-                          {filtered.length === 0 && (
-                            <tr>
-                              <td colSpan={colSpan} className="text-center py-16 text-foreground/40 italic text-sm">
-                                Aucun résultat
-                              </td>
-                            </tr>
-                          )}
-                        </tbody>
-                      </table>
-                    </div>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 text-xs font-medium text-foreground">{c.nom}</td>
+                          <td className="max-w-[200px] truncate px-4 py-3 text-xs text-foreground/50">{c.description || '—'}</td>
+                          <td className="px-4 py-3">
+                            {c.taux_reduction && parseFloat(c.taux_reduction) > 0 ? (
+                              <span className="rounded-full bg-gold/10 px-2 py-0.5 text-[11px] font-semibold text-gold">-{c.taux_reduction}%</span>
+                            ) : (
+                              <span className="text-xs text-foreground/25">—</span>
+                            )}
+                          </td>
+                          <td className="max-w-[180px] px-4 py-3 text-[11px] text-foreground/45">
+                            {formatPromotionPeriod(c.date_debut, c.date_fin) || '—'}
+                          </td>
+                        </>
+                      )}
+                      {activeTab === 'bottle_types' && (
+                        <>
+                          <td className="px-4 py-3 text-xs font-medium text-foreground">{c.nom}</td>
+                          <td className="px-4 py-3 text-xs text-foreground/50">{c.description || '—'}</td>
+                        </>
+                      )}
+                      <td className="px-4 py-3">
+                        <div className="flex items-center justify-end gap-1">
+                          <button onClick={() => handleOpenEdit(c)} title="Modifier" className="rounded-md p-1.5 text-foreground/45 transition-colors hover:bg-gold/10 hover:text-gold">
+                            <Edit2 size={13} />
+                          </button>
+                          <button onClick={() => handleDelete(c.id)} title="Supprimer" className="rounded-md p-1.5 text-foreground/45 transition-colors hover:bg-red-500/10 hover:text-red-400">
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                  {filtered.length === 0 && (
+                    <tr>
+                      <td colSpan={colSpan} className="py-16 text-center text-sm italic text-foreground/30">
+                        Aucun résultat
+                      </td>
+                    </tr>
                   )}
-                </div>
-              </div>
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
 
-      {/* Add/Edit Modal */}
+      {/* Add/Edit Modal — untouched, same open system */}
       <SlideOver
         isOpen={showModal}
         onClose={() => setShowModal(false)}

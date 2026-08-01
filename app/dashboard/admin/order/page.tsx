@@ -4,9 +4,8 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Search, Eye, CheckCircle, Truck, XCircle, Loader2, RefreshCw,
   ChevronLeft, ChevronRight, X, Package, Bike, CreditCard,
-  MapPin, Phone, User, Calendar, Tag, ClipboardList, AlertTriangle,
-  Filter, ShoppingBag, Droplets, Save, SlidersHorizontal,
-  Download, FileText, Mail,
+  MapPin, Phone, Calendar, Tag, ClipboardList, AlertTriangle,
+  SlidersHorizontal, Download, FileText, Mail, ChevronDown,
 } from 'lucide-react';
 import { orderService, adminService } from '@/services/apiService';
 import { invoiceService } from '@/services/invoiceService';
@@ -14,41 +13,43 @@ import { useToastStore } from '@/store/useToastStore';
 import type { BackendOrder, BackendOrderLine } from '@/types';
 import { useOptimisticOrders } from '@/hooks/useOptimisticOrders';
 
-// ─── Status configs ───────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────
+// Config
+// ─────────────────────────────────────────────────────────────────────────
 
 const STATUT_CFG: Record<string, { label: string; color: string; dot: string }> = {
-  en_attente:  { label: 'En attente',   color: 'text-amber-400 bg-amber-500/10 border-amber-500/20',   dot: 'bg-amber-400'   },
-  'validé':    { label: 'Validé',       color: 'text-blue-400 bg-blue-500/10 border-blue-500/20',       dot: 'bg-blue-400'    },
-  'annulée':   { label: 'Annulée',      color: 'text-red-400 bg-red-500/10 border-red-500/20',          dot: 'bg-red-400'     },
-  'remboursée':{ label: 'Remboursée',   color: 'text-purple-400 bg-purple-500/10 border-purple-500/20', dot: 'bg-purple-400'  },
+  en_attente:   { label: 'En attente',  color: 'text-amber-400 bg-amber-500/10 ring-amber-500/20',   dot: 'bg-amber-400'   },
+  'validé':     { label: 'Validé',      color: 'text-blue-400 bg-blue-500/10 ring-blue-500/20',       dot: 'bg-blue-400'    },
+  'annulée':    { label: 'Annulée',     color: 'text-red-400 bg-red-500/10 ring-red-500/20',          dot: 'bg-red-400'     },
+  'remboursée': { label: 'Remboursée',  color: 'text-purple-400 bg-purple-500/10 ring-purple-500/20', dot: 'bg-purple-400'  },
 };
 
-const STATUT_LIVRAISON_CFG: Record<string, { label: string; color: string }> = {
-  en_attente_affectation: { label: 'Non assignée', color: 'text-amber-400 bg-amber-500/10'   },
-  'assignée':             { label: 'Assignée',     color: 'text-blue-400 bg-blue-500/10'     },
-  'livrée':               { label: 'Livrée',       color: 'text-emerald-400 bg-emerald-500/10'},
-  'échouée':              { label: 'Échouée',      color: 'text-red-400 bg-red-500/10'       },
+const STATUT_LIVRAISON_CFG: Record<string, { label: string; color: string; dot: string }> = {
+  en_attente_affectation: { label: 'Non assignée', color: 'text-amber-400 bg-amber-500/10 ring-amber-500/20',    dot: 'bg-amber-400'   },
+  'assignée':              { label: 'Assignée',      color: 'text-blue-400 bg-blue-500/10 ring-blue-500/20',      dot: 'bg-blue-400'    },
+  'livrée':                { label: 'Livrée',        color: 'text-emerald-400 bg-emerald-500/10 ring-emerald-500/20', dot: 'bg-emerald-400' },
+  'échouée':               { label: 'Échouée',       color: 'text-red-400 bg-red-500/10 ring-red-500/20',         dot: 'bg-red-400'     },
 };
 
-const STATUT_PAIEMENT_CFG: Record<string, { label: string; color: string }> = {
-  en_attente: { label: 'En attente', color: 'text-amber-400 bg-amber-500/10'   },
-  'payé':     { label: 'Payé',       color: 'text-emerald-400 bg-emerald-500/10'},
-  'échoué':   { label: 'Échoué',    color: 'text-red-400 bg-red-500/10'       },
+const STATUT_PAIEMENT_CFG: Record<string, { label: string; color: string; dot: string }> = {
+  en_attente: { label: 'En attente', color: 'text-amber-400 bg-amber-500/10 ring-amber-500/20',    dot: 'bg-amber-400'   },
+  'payé':     { label: 'Payé',       color: 'text-emerald-400 bg-emerald-500/10 ring-emerald-500/20', dot: 'bg-emerald-400' },
+  'échoué':   { label: 'Échoué',     color: 'text-red-400 bg-red-500/10 ring-red-500/20',          dot: 'bg-red-400'     },
 };
 
 const STATUT_OPTIONS    = ['', 'en_attente', 'validé', 'annulée', 'remboursée'];
 const LIVRAISON_OPTIONS = ['', 'en_attente_affectation', 'assignée', 'livrée', 'échouée'];
 const PAIEMENT_OPTIONS  = ['', 'en_attente', 'payé', 'échoué'];
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
+const PAGE_SIZE = 100;
+const ROWS_PER_TABLE = 10;
 
-function Badge({ text, cfg }: { text: string; cfg?: { label: string; color: string } }) {
-  if (!cfg) return <span className="text-xs text-foreground/30 italic">—</span>;
-  return (
-    <span className={`inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-0.5 rounded-full border ${cfg.color}`}>
-      {text}
-    </span>
-  );
+// ─────────────────────────────────────────────────────────────────────────
+// Small primitives
+// ─────────────────────────────────────────────────────────────────────────
+
+function cx(...parts: Array<string | false | null | undefined>) {
+  return parts.filter(Boolean).join(' ');
 }
 
 function fmt(v?: string | number | null) {
@@ -75,7 +76,7 @@ function allLines(order: BackendOrder): BackendOrderLine[] {
 }
 
 function getDeliveryMethod(order: BackendOrder): string {
-  return order.livreur ? 'livraison' : 'retrait en boutique';
+  return order.livreur ? 'Livraison' : 'Retrait boutique';
 }
 
 function driverDisplayName(d: any): string {
@@ -84,26 +85,98 @@ function driverDisplayName(d: any): string {
     : d.name ?? `Livreur #${d.id}`;
 }
 
-// ─── Popup modal for this page only ───────────────────────────────────────
+/** Dot + label chip used for every status everywhere on the page. */
+function StatusChip({ cfg, label }: { cfg?: { label: string; color: string; dot: string }; label?: string }) {
+  if (!cfg) return <span className="text-xs text-foreground/25">—</span>;
+  return (
+    <span className={cx('inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium ring-1 ring-inset', cfg.color)}>
+      <span className={cx('h-1.5 w-1.5 rounded-full', cfg.dot)} />
+      {label ?? cfg.label}
+    </span>
+  );
+}
+
+/** Compact segmented control used for status pickers in edit forms. */
+function SegmentedPicker<T extends string>({
+  value, onChange, options, cfg,
+}: {
+  value: T;
+  onChange: (v: T) => void;
+  options: T[];
+  cfg: Record<string, { label: string }>;
+}) {
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {options.map(v => (
+        <button
+          key={v}
+          type="button"
+          onClick={() => onChange(v)}
+          className={cx(
+            'rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors',
+            value === v
+              ? 'border-gold/40 bg-gold/15 text-gold'
+              : 'border-white/10 text-foreground/50 hover:border-white/20 hover:text-foreground/80'
+          )}
+        >
+          {cfg[v]?.label ?? v}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function IconButton({
+  icon, title, onClick, tone = 'default',
+}: { icon: React.ReactNode; title: string; onClick: () => void; tone?: 'default' | 'blue' | 'gold' }) {
+  const tones = {
+    default: 'text-foreground/45 hover:text-foreground hover:bg-white/8',
+    blue: 'text-foreground/45 hover:text-blue-400 hover:bg-blue-500/10',
+    gold: 'text-foreground/45 hover:text-gold hover:bg-gold/10',
+  } as const;
+  return (
+    <button title={title} onClick={onClick} className={cx('rounded-md p-1.5 transition-colors', tones[tone])}>
+      {icon}
+    </button>
+  );
+}
+
+function ActionButton({
+  children, onClick, tone = 'neutral', icon,
+}: { children: React.ReactNode; onClick: () => void; tone?: 'emerald' | 'red' | 'blue' | 'purple' | 'neutral'; icon?: React.ReactNode }) {
+  const tones = {
+    emerald: 'bg-emerald-500/90 hover:bg-emerald-500 text-black',
+    red: 'bg-red-500/90 hover:bg-red-500 text-white',
+    blue: 'bg-blue-500/90 hover:bg-blue-500 text-white',
+    purple: 'bg-purple-500/15 hover:bg-purple-500/25 text-purple-300 ring-1 ring-inset ring-purple-500/25',
+    neutral: 'bg-white/8 hover:bg-white/14 text-foreground/80',
+  } as const;
+  return (
+    <button
+      onClick={onClick}
+      className={cx('inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-[11px] font-semibold transition-colors', tones[tone])}
+    >
+      {icon}
+      {children}
+    </button>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Modal shell — used by all three popups on this page
+// ─────────────────────────────────────────────────────────────────────────
 
 function OrderPopupModal({
-  isOpen,
-  onClose,
-  title,
-  subtitle,
-  children,
-  size = '2xl',
-  footer,
-  showCloseButton = true,
+  isOpen, onClose, title, subtitle, eyebrow, children, size = '2xl', footer,
 }: {
   isOpen: boolean;
   onClose: () => void;
-  title?: string;
+  title?: React.ReactNode;
   subtitle?: string;
+  eyebrow?: string;
   children: React.ReactNode;
   size?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl';
   footer?: React.ReactNode;
-  showCloseButton?: boolean;
 }) {
   useEffect(() => {
     const mainEl = document.querySelector('main');
@@ -121,9 +194,7 @@ function OrderPopupModal({
   }, [isOpen]);
 
   useEffect(() => {
-    const handleEsc = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
+    const handleEsc = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
     window.addEventListener('keydown', handleEsc);
     return () => window.removeEventListener('keydown', handleEsc);
   }, [onClose]);
@@ -131,112 +202,88 @@ function OrderPopupModal({
   if (!isOpen) return null;
 
   const sizes = {
-    sm: 'max-w-sm',
-    md: 'max-w-md',
-    lg: 'max-w-lg',
-    xl: 'max-w-2xl',
-    '2xl': 'max-w-4xl',
-    '3xl': 'max-w-6xl',
+    sm: 'max-w-sm', md: 'max-w-md', lg: 'max-w-lg', xl: 'max-w-2xl', '2xl': 'max-w-3xl', '3xl': 'max-w-5xl',
   } as const;
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 p-3 sm:p-6" onClick={onClose}>
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/75 p-3 sm:p-6" onClick={onClose}>
       <div
-        className={`pointer-events-auto flex max-h-[90vh] w-full ${sizes[size]} flex-col overflow-hidden rounded-[28px] border border-white/10 bg-background/95 shadow-2xl`}
-        onClick={(e) => e.stopPropagation()}
+        className={cx('flex max-h-[88vh] w-full flex-col overflow-hidden rounded-2xl border border-white/10 bg-background shadow-2xl', sizes[size])}
+        onClick={e => e.stopPropagation()}
       >
-        {(title || showCloseButton) && (
-          <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
-            <div>
-              {title && <h3 className="text-lg font-semibold text-foreground">{title}</h3>}
-              {subtitle && <p className="mt-1 text-xs text-foreground/40">{subtitle}</p>}
+        {(title || eyebrow) && (
+          <div className="flex items-start justify-between gap-4 border-b border-white/10 px-6 py-4">
+            <div className="min-w-0">
+              {eyebrow && <p className="text-[10px] font-semibold uppercase tracking-widest text-foreground/35">{eyebrow}</p>}
+              {title && <div className="mt-0.5 flex items-center gap-2 text-[15px] font-semibold text-foreground">{title}</div>}
+              {subtitle && <p className="mt-0.5 text-xs text-foreground/40">{subtitle}</p>}
             </div>
-            {showCloseButton && (
-              <button onClick={onClose} className="rounded-xl p-2 text-foreground/40 transition-colors hover:bg-white/5 hover:text-foreground">
-                <X size={18} />
-              </button>
-            )}
+            <button onClick={onClose} className="shrink-0 rounded-md p-1.5 text-foreground/40 transition-colors hover:bg-white/8 hover:text-foreground">
+              <X size={16} />
+            </button>
           </div>
         )}
-        <div className="flex-1 overflow-y-auto">
-          <div className="p-5 sm:p-6">{children}</div>
-        </div>
-        {footer ? <div className="border-t border-white/10 bg-background/90 px-5 py-4">{footer}</div> : null}
+        <div className="flex-1 overflow-y-auto px-6 py-5">{children}</div>
+        {footer && <div className="border-t border-white/10 bg-background px-6 py-4">{footer}</div>}
       </div>
     </div>
   );
 }
 
-// ─── Main Page ────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────
+// Main page
+// ─────────────────────────────────────────────────────────────────────────
 
 export default function OrdersPage() {
+  const [orders, setOrders] = useState<BackendOrder[]>([]);
+  const [total, setTotal]   = useState(0);
+  const [page, setPage]     = useState(1);
+  const [loading, setLoading] = useState(true);
 
-  // ── list state ──────────────────────────────────────────────────────────────
-  const [orders, setOrders]     = useState<BackendOrder[]>([]);
-  const [total, setTotal]       = useState(0);
-  const [page, setPage]         = useState(1);
-  const [loading, setLoading]   = useState(true);
+  const [search, setSearch]             = useState('');
+  const [nomFilter, setNomFilter]       = useState('');
+  const [statutFilter, setStatutFilter] = useState('');
+  const [livraisonFilter, setLivraisonFilter] = useState('');
+  const [paiementFilter, setPaiementFilter]   = useState('');
+  const [showFilters, setShowFilters]   = useState(false);
 
-  // ── filters ─────────────────────────────────────────────────────────────────
-  const [search,           setSearch]           = useState('');
-  const [nomFilter,        setNomFilter]        = useState('');
-  const [statutFilter,     setStatutFilter]     = useState('');
-  const [livraisonFilter,  setLivraisonFilter]  = useState('');
-  const [paiementFilter,   setPaiementFilter]   = useState('');
-  const [showFilters,      setShowFilters]      = useState(false);
+  const [selected, setSelected]               = useState<BackendOrder | null>(null);
+  const [editModal, setEditModal]             = useState<BackendOrder | null>(null);
+  const [validationModal, setValidationModal] = useState<BackendOrder | null>(null);
 
-  const [selected,         setSelected]         = useState<BackendOrder | null>(null);
-  const [editModal,        setEditModal]        = useState<BackendOrder | null>(null);
-  const [validationModal,  setValidationModal]  = useState<BackendOrder | null>(null);
+  const [drivers, setDrivers] = useState<any[]>([]);
 
-  // ── drivers ─────────────────────────────────────────────────────────────────
-  const [drivers,          setDrivers]          = useState<any[]>([]);
-
-  // ── edit form ───────────────────────────────────────────────────────────────
-  const [editStatut,       setEditStatut]       = useState<'en_attente' | 'validé' | 'annulée' | 'remboursée' | ''>('');
-  const [editLivraison,    setEditLivraison]    = useState<'en_attente_affectation' | 'assignée' | 'livrée' | 'échouée' | ''>('');
-  const [editPaiement,     setEditPaiement]     = useState<'en_attente' | 'payé' | 'échoué' | ''>('');
-  const [editLivreur,      setEditLivreur]      = useState('');
-  const [editDateEst,      setEditDateEst]      = useState('');
-  const [editNote,         setEditNote]         = useState('');
-  const [editFrais,        setEditFrais]        = useState('');
+  const [editStatut, setEditStatut]       = useState<'en_attente' | 'validé' | 'annulée' | 'remboursée' | ''>('');
+  const [editLivraison, setEditLivraison] = useState<'en_attente_affectation' | 'assignée' | 'livrée' | 'échouée' | ''>('');
+  const [editPaiement, setEditPaiement]   = useState<'en_attente' | 'payé' | 'échoué' | ''>('');
+  const [editLivreur, setEditLivreur]     = useState('');
+  const [editDateEst, setEditDateEst]     = useState('');
+  const [editNote, setEditNote]           = useState('');
+  const [editFrais, setEditFrais]         = useState('');
   const [downloadingInvoice, setDownloadingInvoice] = useState(false);
-  const [valDriverId,      setValDriverId]      = useState('');
-  const [valDateEst,       setValDateEst]       = useState('');
+  const [valDriverId, setValDriverId]     = useState('');
+  const [valDateEst, setValDateEst]       = useState('');
 
-  // ── per-table (client-side) pagination ────────────────────────────────────────
-  // The server already paginates the full fetch at PAGE_SIZE below; these two
-  // control paging within each of the two on-screen tables independently.
-  const [ongoingPage,   setOngoingPage]   = useState(1);
+  const [ongoingPage, setOngoingPage]     = useState(1);
   const [completedPage, setCompletedPage] = useState(1);
-  const ROWS_PER_TABLE = 10;
 
   const { addToast } = useToastStore();
   const searchRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const PAGE_SIZE = 100;
 
-  // ── optimistic mutation engine ────────────────────────────────────────────
-  // `runOptimisticUpdate` mutates `orders` in place and fires the API call in
-  // the background — no fetchOrders(), no loading flag, no spinner.
-  // `pendingIds` lets us show a subtle per-row "syncing" hint without
-  // blocking the table.
   const { runOptimisticUpdate, pendingIds } = useOptimisticOrders(setOrders, addToast);
 
-  // ── fetch orders ─────────────────────────────────────────────────────────────
-  // Used only for: initial load, pagination, filters/search, and the manual
-  // "Actualiser" button. Status mutations no longer call this.
   const fetchOrders = useCallback(async (pg = page) => {
     setLoading(true);
     try {
       const params: Record<string, any> = { page: pg };
-      if (statutFilter)    params.statut            = statutFilter;
-      if (livraisonFilter) params.statut_livraison  = livraisonFilter;
-      if (paiementFilter)  params.statut_paiement   = paiementFilter;
-      if (nomFilter)       params.nom               = nomFilter;
-      if (search)          params.search            = search;
+      if (statutFilter)    params.statut = statutFilter;
+      if (livraisonFilter) params.statut_livraison = livraisonFilter;
+      if (paiementFilter)  params.statut_paiement = paiementFilter;
+      if (nomFilter)       params.nom = nomFilter;
+      if (search)          params.search = search;
 
       const data = await orderService.getOrders(params);
-      const list  = data.results ?? data.resultats ?? (Array.isArray(data) ? data : []);
+      const list = data.results ?? data.resultats ?? (Array.isArray(data) ? data : []);
       setOrders(list);
       setTotal(data.count ?? list.length);
       setOngoingPage(1);
@@ -248,7 +295,6 @@ export default function OrdersPage() {
     }
   }, [page, statutFilter, livraisonFilter, paiementFilter, nomFilter, search, addToast]);
 
-  // debounce search
   useEffect(() => {
     if (searchRef.current) clearTimeout(searchRef.current);
     searchRef.current = setTimeout(() => { setPage(1); fetchOrders(1); }, 400);
@@ -257,14 +303,12 @@ export default function OrdersPage() {
 
   useEffect(() => { fetchOrders(page); }, [page]); // eslint-disable-line
 
-  // ── fetch drivers ─────────────────────────────────────────────────────────────
   useEffect(() => {
     adminService.getDeliveryDrivers()
       .then(d => setDrivers(d.results ?? d.resultats ?? (Array.isArray(d) ? d : [])))
       .catch(() => {});
   }, []);
 
-  // ── open edit modal ───────────────────────────────────────────────────────────
   const openEdit = (order: BackendOrder) => {
     setEditModal(order);
     setEditStatut(order.statut);
@@ -276,34 +320,31 @@ export default function OrdersPage() {
     setEditFrais(order.frais_livraison ?? '');
   };
 
-  // ── save patch (optimistic) ──────────────────────────────────────────────────
   const handleSave = async () => {
     if (!editModal) return;
     const order = editModal;
 
     const payload: Record<string, any> = {
-      statut:           editStatut,
+      statut: editStatut,
       statut_livraison: editLivraison,
-      statut_paiement:  editPaiement,
-      note_interne:     editNote,
+      statut_paiement: editPaiement,
+      note_interne: editNote,
     };
-    if (editLivreur)  payload.livreur               = Number(editLivreur);
-    if (editDateEst)  payload.date_livraison_estimee = editDateEst;
-    if (editFrais)    payload.frais_livraison        = parseFloat(editFrais);
+    if (editLivreur) payload.livreur = Number(editLivreur);
+    if (editDateEst) payload.date_livraison_estimee = editDateEst;
+    if (editFrais)   payload.frais_livraison = parseFloat(editFrais);
 
     const driverObj = editLivreur ? drivers.find(d => String(d.id ?? d.user_id) === editLivreur) : null;
 
-    // Close the modal immediately — the row updates instantly in the table,
-    // the request itself happens after, invisibly.
     setEditModal(null);
 
     await runOptimisticUpdate({
       orderId: order.id,
       patch: {
-        statut:           editStatut as any,
+        statut: editStatut as any,
         statut_livraison: editLivraison as any,
-        statut_paiement:  editPaiement as any,
-        note_interne:     editNote,
+        statut_paiement: editPaiement as any,
+        note_interne: editNote,
         ...(driverObj ? { livreur: Number(editLivreur), livreur_nom: driverDisplayName(driverObj) } : {}),
         ...(editDateEst ? { date_livraison_estimee: editDateEst } : {}),
         ...(editFrais ? { frais_livraison: editFrais } : {}),
@@ -335,10 +376,8 @@ export default function OrdersPage() {
     await handleDownloadInvoice(order);
   };
 
-  // ── cancel (optimistic) ──────────────────────────────────────────────────────
   const handleCancel = async (order: BackendOrder) => {
     if (!confirm(`Annuler la commande ${order.numero_commande} ?`)) return;
-
     await runOptimisticUpdate({
       orderId: order.id,
       patch: { statut: 'annulée' },
@@ -348,7 +387,6 @@ export default function OrdersPage() {
     });
   };
 
-  // ── validate click (optimistic for the pickup path) ──────────────────────────
   const handleValidateClick = async (order: BackendOrder) => {
     const isDelivery = !!order.livraison_ville && order.livraison_ville.trim() !== '';
     if (isDelivery) {
@@ -357,22 +395,18 @@ export default function OrdersPage() {
       setValDateEst(order.date_livraison_estimee ?? '');
       return;
     }
-
     if (!confirm(`Valider la commande pickup ${order.numero_commande} ?`)) return;
-
     await runOptimisticUpdate({
       orderId: order.id,
       patch: { statut: 'validé', statut_livraison: 'en_attente_affectation' },
       apiCall: () => orderService.updateOrder(order.numero_commande, {
-        statut: 'validé',
-        statut_livraison: 'en_attente_affectation',
+        statut: 'validé', statut_livraison: 'en_attente_affectation',
       }),
       successMessage: 'Commande pickup validée avec succès',
       errorMessage: 'Erreur lors de la validation',
     });
   };
 
-  // ── confirm validation with driver (optimistic) ──────────────────────────────
   const handleConfirmValidation = async () => {
     if (!validationModal) return;
     const order = validationModal;
@@ -382,11 +416,10 @@ export default function OrdersPage() {
       statut_livraison: valDriverId ? 'assignée' : 'en_attente_affectation',
     };
     if (valDriverId) payload.livreur = Number(valDriverId);
-    if (valDateEst) payload.date_livraison_estimee = valDateEst;
+    if (valDateEst)  payload.date_livraison_estimee = valDateEst;
 
     const driverObj = valDriverId ? drivers.find(d => String(d.id ?? d.user_id) === valDriverId) : null;
 
-    // Close immediately — assignment reflects in the table right away.
     setValidationModal(null);
 
     await runOptimisticUpdate({
@@ -403,123 +436,98 @@ export default function OrdersPage() {
     });
   };
 
-  // ── pagination ────────────────────────────────────────────────────────────────
   const totalPages = Math.ceil(total / PAGE_SIZE) || 1;
 
-  // ── KPI counts ────────────────────────────────────────────────────────────────
   const kpi = [
-    { label: 'Total',      value: total,                                                            color: 'text-foreground' },
-    { label: 'En attente', value: orders.filter(o => o.statut === 'en_attente').length,              color: 'text-amber-400'   },
-    { label: 'Validées',   value: orders.filter(o => o.statut === 'validé').length,                 color: 'text-blue-400'    },
-    { label: 'Payées',     value: orders.filter(o => o.statut_paiement === 'payé').length,           color: 'text-emerald-400' },
-    { label: 'Annulées',   value: orders.filter(o => o.statut === 'annulée').length,                color: 'text-red-400'     },
+    { label: 'Total',      value: total,                                                 color: 'text-foreground' },
+    { label: 'En attente', value: orders.filter(o => o.statut === 'en_attente').length,  color: 'text-amber-400'  },
+    { label: 'Validées',   value: orders.filter(o => o.statut === 'validé').length,      color: 'text-blue-400'   },
+    { label: 'Payées',     value: orders.filter(o => o.statut_paiement === 'payé').length, color: 'text-emerald-400' },
+    { label: 'Annulées',   value: orders.filter(o => o.statut === 'annulée').length,     color: 'text-red-400'    },
   ];
 
-  const isCancellable = (o: BackendOrder) =>
-    o.statut === 'en_attente' || o.statut === 'validé';
+  const isCancellable = (o: BackendOrder) => o.statut === 'en_attente' || o.statut === 'validé';
 
-  // ── mark delivered (optimistic, direct action button) ────────────────────────
-  // Available once an order has been validated. Skips the modal entirely —
-  // one click flips it to delivered + paid and moves it to the completed table.
   const handleMarkDelivered = async (order: BackendOrder) => {
     if (!confirm(`Marquer la commande ${order.numero_commande} comme livrée (et payée) ?`)) return;
-
     await runOptimisticUpdate({
       orderId: order.id,
-      patch: {
-        statut_livraison: 'livrée',
-        statut_paiement: 'payé',
-      },
+      patch: { statut_livraison: 'livrée', statut_paiement: 'payé' },
       apiCall: () => orderService.updateOrder(order.numero_commande, {
-        statut_livraison: 'livrée',
-        statut_paiement: 'payé',
+        statut_livraison: 'livrée', statut_paiement: 'payé',
       }),
       successMessage: 'Commande marquée comme livrée et payée',
       errorMessage: 'Erreur lors de la mise à jour de la livraison',
     });
   };
 
-  // ── refund (optimistic) ───────────────────────────────────────────────────────
   const handleRefund = async (order: BackendOrder) => {
     if (!confirm(`Rembourser la commande ${order.numero_commande} ?`)) return;
-
     await runOptimisticUpdate({
       orderId: order.id,
       patch: { statut: 'remboursée', statut_paiement: 'échoué' },
       apiCall: () => orderService.updateOrder(order.numero_commande, {
-        statut: 'remboursée',
-        statut_paiement: 'échoué',
+        statut: 'remboursée', statut_paiement: 'échoué',
       }),
       successMessage: 'Commande marquée comme remboursée',
       errorMessage: 'Erreur lors du remboursement',
     });
   };
 
-  // These are derived from `orders` on every render, so mutating one order's
-  // `statut` / `statut_livraison` via runOptimisticUpdate automatically moves
-  // it between the two tables below — no extra bookkeeping needed.
-  const ongoingOrders = orders.filter(o => o.statut !== 'remboursée' && o.statut_livraison !== 'livrée' && o.statut !== 'annulée');
+  const ongoingOrders   = orders.filter(o => o.statut !== 'remboursée' && o.statut_livraison !== 'livrée' && o.statut !== 'annulée');
   const completedOrders = orders.filter(o => o.statut === 'remboursée' || o.statut_livraison === 'livrée' || o.statut === 'annulée');
 
   const ongoingTotalPages   = Math.max(1, Math.ceil(ongoingOrders.length / ROWS_PER_TABLE));
   const completedTotalPages = Math.max(1, Math.ceil(completedOrders.length / ROWS_PER_TABLE));
 
-  // If an optimistic move (or a filter change) leaves the current page past
-  // the end of the list, snap back to the last valid page instead of
-  // rendering an empty table.
-  useEffect(() => {
-    if (ongoingPage > ongoingTotalPages) setOngoingPage(ongoingTotalPages);
-  }, [ongoingTotalPages, ongoingPage]);
-
-  useEffect(() => {
-    if (completedPage > completedTotalPages) setCompletedPage(completedTotalPages);
-  }, [completedTotalPages, completedPage]);
+  useEffect(() => { if (ongoingPage > ongoingTotalPages) setOngoingPage(ongoingTotalPages); }, [ongoingTotalPages, ongoingPage]);
+  useEffect(() => { if (completedPage > completedTotalPages) setCompletedPage(completedTotalPages); }, [completedTotalPages, completedPage]);
 
   const visibleOngoingOrders   = ongoingOrders.slice((ongoingPage - 1) * ROWS_PER_TABLE, ongoingPage * ROWS_PER_TABLE);
   const visibleCompletedOrders = completedOrders.slice((completedPage - 1) * ROWS_PER_TABLE, completedPage * ROWS_PER_TABLE);
 
-  return (
-    <>
-      <div className="space-y-6 animate-fade-in-up">
+  const activeFilterCount = [statutFilter, livraisonFilter, paiementFilter].filter(Boolean).length;
 
-      {/* ── Header ─────────────────────────────────────────────────────────── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+  return (
+    <div className="space-y-6">
+
+      {/* Header ------------------------------------------------------------ */}
+      <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Gestion des Commandes</h1>
-          <p className="text-sm text-foreground/40 mt-0.5">
-            {total.toLocaleString()} commande{total > 1 ? 's' : ''} · {PAGE_SIZE} par page
+          <h1 className="text-xl font-semibold text-foreground">Commandes</h1>
+          <p className="mt-0.5 text-sm text-foreground/40">
+            {total.toLocaleString()} commande{total > 1 ? 's' : ''} au total
           </p>
         </div>
         <button
           onClick={() => fetchOrders(page)}
-          className="flex items-center gap-2 border border-white/10 px-4 py-2.5 rounded-xl text-sm text-foreground/60 hover:bg-white/5 transition-all"
+          className="inline-flex items-center gap-2 rounded-lg border border-white/10 px-3.5 py-2 text-sm text-foreground/60 transition-colors hover:bg-white/6 hover:text-foreground"
         >
-          <RefreshCw size={15} className={loading ? 'animate-spin' : ''} />
+          <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
           Actualiser
         </button>
       </div>
 
-      {/* ── KPI Row ────────────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+      {/* KPI strip ----------------------------------------------------------- */}
+      <div className="flex divide-x divide-white/8 overflow-hidden rounded-xl border border-white/10 bg-white/[0.03]">
         {kpi.map(k => (
-          <div key={k.label} className="bg-white/5 rounded-2xl border border-white/10 p-4 shadow-sm backdrop-blur-md">
-            <p className="text-[10px] text-foreground/40 uppercase font-bold tracking-widest mb-1">{k.label}</p>
-            <p className={`text-2xl font-bold ${k.color}`}>{k.value}</p>
+          <div key={k.label} className="flex-1 px-5 py-4">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-foreground/35">{k.label}</p>
+            <p className={cx('mt-1 text-xl font-semibold tabular-nums', k.color)}>{k.value.toLocaleString()}</p>
           </div>
         ))}
       </div>
 
-      {/* ── Filter Bar ─────────────────────────────────────────────────────── */}
-      <div className="bg-white/5 rounded-2xl border border-white/10 p-4 shadow-sm backdrop-blur-md space-y-3">
-        {/* row 1: search + toggle */}
-        <div className="flex gap-3 items-center">
-          <div className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 flex-1">
-            <Search size={15} className="text-foreground/40 shrink-0" />
+      {/* Toolbar --------------------------------------------------------------- */}
+      <div className="space-y-3">
+        <div className="flex flex-wrap items-center gap-2.5">
+          <div className="flex min-w-[220px] flex-1 items-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2">
+            <Search size={14} className="shrink-0 text-foreground/35" />
             <input
               value={search}
               onChange={e => setSearch(e.target.value)}
-              placeholder="Numéro CMD, email, téléphone…"
-              className="text-sm bg-transparent outline-none flex-1 text-foreground placeholder:text-foreground/40"
+              placeholder="N° commande, e-mail, téléphone…"
+              className="flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-foreground/35"
             />
             {search && (
               <button onClick={() => setSearch('')} className="text-foreground/30 hover:text-foreground/60">
@@ -527,341 +535,123 @@ export default function OrdersPage() {
               </button>
             )}
           </div>
-          <div className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 flex-1 max-w-56">
-            <User size={14} className="text-foreground/40 shrink-0" />
+
+          <div className="flex w-56 items-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2">
             <input
               value={nomFilter}
               onChange={e => setNomFilter(e.target.value)}
-              placeholder="Nom client / destinataire"
-              className="text-sm bg-transparent outline-none flex-1 text-foreground placeholder:text-foreground/40"
+              placeholder="Nom client"
+              className="w-full bg-transparent text-sm text-foreground outline-none placeholder:text-foreground/35"
             />
           </div>
+
           <button
             onClick={() => setShowFilters(s => !s)}
-            className={`flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm border transition-all ${
-              showFilters ? 'bg-gold/10 border-gold/30 text-gold' : 'border-white/10 text-foreground/50 hover:bg-white/5'
-            }`}
-          >
-            <SlidersHorizontal size={15} />
-            Filtres
-            {(statutFilter || livraisonFilter || paiementFilter) && (
-              <span className="w-2 h-2 bg-gold rounded-full" />
+            className={cx(
+              'inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-sm transition-colors',
+              showFilters || activeFilterCount
+                ? 'border-gold/30 bg-gold/10 text-gold'
+                : 'border-white/10 text-foreground/55 hover:bg-white/6'
             )}
+          >
+            <SlidersHorizontal size={14} />
+            Filtres
+            {activeFilterCount > 0 && (
+              <span className="rounded-full bg-gold/25 px-1.5 text-[10px] font-bold text-gold">{activeFilterCount}</span>
+            )}
+            <ChevronDown size={13} className={cx('transition-transform', showFilters && 'rotate-180')} />
           </button>
         </div>
 
-        {/* row 2: advanced filters */}
         {showFilters && (
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 border-t border-white/10">
-            {/* Statut commande */}
-            <div>
-              <label className="text-[10px] text-foreground/40 uppercase font-bold tracking-widest mb-1.5 block">Statut commande</label>
-              <div className="flex flex-wrap gap-1.5">
-                {STATUT_OPTIONS.map(v => (
-                  <button
-                    key={v}
-                    onClick={() => { setStatutFilter(v); setPage(1); }}
-                    className={`px-2.5 py-1 rounded-lg text-xs font-medium border transition-all ${
-                      statutFilter === v
-                        ? 'bg-gold text-black border-gold'
-                        : 'border-white/10 text-foreground/50 hover:bg-white/5'
-                    }`}
-                  >
-                    {v === '' ? 'Tous' : STATUT_CFG[v]?.label ?? v}
-                  </button>
-                ))}
-              </div>
-            </div>
-            {/* Statut livraison */}
-            <div>
-              <label className="text-[10px] text-foreground/40 uppercase font-bold tracking-widest mb-1.5 block">Statut livraison</label>
-              <div className="flex flex-wrap gap-1.5">
-                {LIVRAISON_OPTIONS.map(v => (
-                  <button
-                    key={v}
-                    onClick={() => { setLivraisonFilter(v); setPage(1); }}
-                    className={`px-2.5 py-1 rounded-lg text-xs font-medium border transition-all ${
-                      livraisonFilter === v
-                        ? 'bg-gold text-black border-gold'
-                        : 'border-white/10 text-foreground/50 hover:bg-white/5'
-                    }`}
-                  >
-                    {v === '' ? 'Tous' : STATUT_LIVRAISON_CFG[v]?.label ?? v}
-                  </button>
-                ))}
-              </div>
-            </div>
-            {/* Statut paiement */}
-            <div>
-              <label className="text-[10px] text-foreground/40 uppercase font-bold tracking-widest mb-1.5 block">Paiement</label>
-              <div className="flex flex-wrap gap-1.5">
-                {PAIEMENT_OPTIONS.map(v => (
-                  <button
-                    key={v}
-                    onClick={() => { setPaiementFilter(v); setPage(1); }}
-                    className={`px-2.5 py-1 rounded-lg text-xs font-medium border transition-all ${
-                      paiementFilter === v
-                        ? 'bg-gold text-black border-gold'
-                        : 'border-white/10 text-foreground/50 hover:bg-white/5'
-                    }`}
-                  >
-                    {v === '' ? 'Tous' : STATUT_PAIEMENT_CFG[v]?.label ?? v}
-                  </button>
-                ))}
-              </div>
-            </div>
+          <div className="grid grid-cols-1 gap-4 rounded-xl border border-white/10 bg-white/[0.02] p-4 sm:grid-cols-3">
+            <FilterGroup
+              label="Statut commande"
+              options={STATUT_OPTIONS}
+              value={statutFilter}
+              onChange={v => { setStatutFilter(v); setPage(1); }}
+              cfg={STATUT_CFG}
+            />
+            <FilterGroup
+              label="Statut livraison"
+              options={LIVRAISON_OPTIONS}
+              value={livraisonFilter}
+              onChange={v => { setLivraisonFilter(v); setPage(1); }}
+              cfg={STATUT_LIVRAISON_CFG}
+            />
+            <FilterGroup
+              label="Paiement"
+              options={PAIEMENT_OPTIONS}
+              value={paiementFilter}
+              onChange={v => { setPaiementFilter(v); setPage(1); }}
+              cfg={STATUT_PAIEMENT_CFG}
+            />
           </div>
         )}
       </div>
 
-      {/* ── Table 1: Commandes en cours ──────────────────────────────────────────────────────────── */}
-      <div>
-        <h2 className="text-lg font-bold text-foreground mb-3 flex items-center gap-2">
-          <span className="w-2.5 h-2.5 bg-amber-500 rounded-full animate-pulse" />
-          Commandes en cours ({ongoingOrders.length})
-        </h2>
-        <div className="bg-white/5 rounded-3xl border border-white/10 shadow-sm overflow-hidden backdrop-blur-md min-h-[150px]">
-          {loading ? (
-            <div className="flex flex-col items-center justify-center py-20 text-gold gap-3">
-              <Loader2 className="animate-spin" size={36} />
-              <p className="text-sm font-semibold">Chargement des commandes en cours…</p>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="bg-white/5 border-b border-white/10">
-                  <tr>
-                    {['N° Commande', 'Client / Destinataire', 'Total TTC', 'Code Promo', 'Livreur', 'Statut', 'Livraison', 'Date', ''].map(h => (
-                      <th key={h} className="text-left text-[10px] font-bold text-foreground/40 uppercase tracking-wider px-4 py-3.5 whitespace-nowrap">
-                        {h}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-white/5">
-                  {visibleOngoingOrders.map(order => {
-                    const isPending = pendingIds.has(String(order.id));
-                    return (
-                    <tr key={order.id} className={`hover:bg-white/[0.03] transition-all group ${isPending ? 'opacity-60' : ''}`}>
-                      <td className="px-4 py-3.5">
-                        <span className="font-mono text-xs font-bold text-gold tracking-wider inline-flex items-center gap-1.5">
-                          {order.numero_commande}
-                          {isPending && <Loader2 size={11} className="animate-spin text-gold/70" />}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3.5 min-w-[160px]">
-                        <p className="text-xs font-semibold text-foreground leading-tight">{order.livraison_nom_complet}</p>
-                        <p className="text-[10px] text-foreground/40 mt-0.5">{order.client_email}</p>
-                        {order.livraison_ville && (
-                          <p className="text-[10px] text-foreground/30">{order.livraison_ville}{order.livraison_quartier ? `, ${order.livraison_quartier}` : ''}</p>
-                        )}
-                      </td>
-                      <td className="px-4 py-3.5 font-bold text-foreground whitespace-nowrap">
-                        {fmt(order.total_ttc)}
-                      </td>
-                      <td className="px-4 py-3.5">
-                        {order.code_promo_utilise
-                          ? <span className="font-mono text-xs bg-gold/10 text-gold px-2 py-0.5 rounded border border-gold/20">{order.code_promo_utilise}</span>
-                          : <span className="text-foreground/30 text-xs">—</span>}
-                      </td>
-                      <td className="px-4 py-3.5 text-xs text-foreground/60 whitespace-nowrap">
-                        {order.livreur_nom ?? <span className="text-foreground/30">—</span>}
-                      </td>
-                      <td className="px-4 py-3.5">
-                        <Badge text={STATUT_CFG[order.statut]?.label ?? order.statut} cfg={STATUT_CFG[order.statut]} />
-                      </td>
-                      <td className="px-4 py-3.5">
-                        <span className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-full border capitalize inline-flex ${
-                          order.livreur ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' : 'text-amber-400 bg-amber-500/10 border-amber-500/20'
-                        }`}>
-                          {getDeliveryMethod(order)}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3.5 text-[10px] text-foreground/40 whitespace-nowrap">
-                        {fmtDate(order.date_creation)}
-                      </td>
-                      <td className="px-4 py-3.5">
-                        <div className="flex items-center gap-2">
-                          <button
-                            title="Voir le détail"
-                            onClick={() => setSelected(order)}
-                            className="p-1.5 rounded-lg hover:bg-white/10 text-foreground/60 hover:text-gold transition-colors"
-                          >
-                            <Eye size={15} />
-                          </button>
-                          <button
-                            title="Modifier / Gérer"
-                            onClick={() => openEdit(order)}
-                            className="p-1.5 rounded-lg hover:bg-blue-500/10 text-foreground/60 hover:text-blue-400 transition-colors"
-                          >
-                            <ClipboardList size={15} />
-                          </button>
-                          {order.statut === 'en_attente' && (
-                            <button
-                              onClick={() => handleValidateClick(order)}
-                              className="px-2 py-1 bg-emerald-500 hover:bg-emerald-600 text-black rounded-lg text-[10px] font-bold transition-all"
-                            >
-                              Valider
-                            </button>
-                          )}
-                          {order.statut === 'validé' && order.statut_livraison !== 'livrée' && (
-                            <button
-                              onClick={() => handleMarkDelivered(order)}
-                              title="Marquer comme livrée et payée"
-                              className="px-2 py-1 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-[10px] font-bold transition-all flex items-center gap-1"
-                            >
-                              <Truck size={11} />
-                              Livré
-                            </button>
-                          )}
-                          {isCancellable(order) && (
-                            <button
-                              onClick={() => handleCancel(order)}
-                              className="px-2 py-1 bg-red-500 hover:bg-red-600 text-foreground rounded-lg text-[10px] font-bold transition-all"
-                            >
-                              Annuler
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                    );
-                  })}
-                  {ongoingOrders.length === 0 && !loading && (
-                    <tr>
-                      <td colSpan={9} className="text-center py-10 text-foreground/30 italic text-sm">
-                        Aucune commande en cours.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
-        {!loading && ongoingOrders.length > 0 && (
-          <TablePagination page={ongoingPage} totalPages={ongoingTotalPages} onChange={setOngoingPage} totalItems={ongoingOrders.length} />
+      {/* Table: en cours --------------------------------------------------- */}
+      <OrdersTable
+        heading="En cours"
+        accent="bg-amber-400"
+        count={ongoingOrders.length}
+        orders={visibleOngoingOrders}
+        loading={loading}
+        pendingIds={pendingIds}
+        emptyLabel="Aucune commande en cours."
+        onView={setSelected}
+        onEdit={openEdit}
+        renderActions={order => (
+          <>
+            {order.statut === 'en_attente' && (
+              <ActionButton tone="emerald" onClick={() => handleValidateClick(order)}>Valider</ActionButton>
+            )}
+            {order.statut === 'validé' && order.statut_livraison !== 'livrée' && (
+              <ActionButton tone="blue" icon={<Truck size={11} />} onClick={() => handleMarkDelivered(order)}>Livré</ActionButton>
+            )}
+            {isCancellable(order) && (
+              <ActionButton tone="red" onClick={() => handleCancel(order)}>Annuler</ActionButton>
+            )}
+          </>
         )}
-      </div>
+      />
+      {!loading && ongoingOrders.length > 0 && (
+        <TablePagination page={ongoingPage} totalPages={ongoingTotalPages} onChange={setOngoingPage} totalItems={ongoingOrders.length} />
+      )}
 
-      {/* ── Table 2: Commandes complétées / terminées ────────────────────────────────────────────────── */}
-      <div className="pt-4">
-        <h2 className="text-lg font-bold text-foreground mb-3 flex items-center gap-2">
-          <span className="w-2.5 h-2.5 bg-emerald-500 rounded-full" />
-          Commandes complétées / traitées ({completedOrders.length})
-        </h2>
-        <div className="bg-white/5 rounded-3xl border border-white/10 shadow-sm overflow-hidden backdrop-blur-md min-h-[150px]">
-          {loading ? (
-            <div className="flex flex-col items-center justify-center py-20 text-gold gap-3">
-              <Loader2 className="animate-spin" size={36} />
-              <p className="text-sm font-semibold">Chargement des commandes complétées…</p>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="bg-white/5 border-b border-white/10">
-                  <tr>
-                    {['N° Commande', 'Client / Destinataire', 'Total TTC', 'Code Promo', 'Livreur', 'Statut', 'Livraison', 'Date', ''].map(h => (
-                      <th key={h} className="text-left text-[10px] font-bold text-foreground/40 uppercase tracking-wider px-4 py-3.5 whitespace-nowrap">
-                        {h}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-white/5">
-                  {visibleCompletedOrders.map(order => {
-                    const isPending = pendingIds.has(String(order.id));
-                    return (
-                    <tr key={order.id} className={`hover:bg-white/[0.03] transition-all group ${isPending ? 'opacity-60' : ''}`}>
-                      <td className="px-4 py-3.5">
-                        <span className="font-mono text-xs font-bold text-gold tracking-wider inline-flex items-center gap-1.5">
-                          {order.numero_commande}
-                          {isPending && <Loader2 size={11} className="animate-spin text-gold/70" />}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3.5 min-w-[160px]">
-                        <p className="text-xs font-semibold text-foreground leading-tight">{order.livraison_nom_complet}</p>
-                        <p className="text-[10px] text-foreground/40 mt-0.5">{order.client_email}</p>
-                        {order.livraison_ville && (
-                          <p className="text-[10px] text-foreground/30">{order.livraison_ville}{order.livraison_quartier ? `, ${order.livraison_quartier}` : ''}</p>
-                        )}
-                      </td>
-                      <td className="px-4 py-3.5 font-bold text-foreground whitespace-nowrap">
-                        {fmt(order.total_ttc)}
-                      </td>
-                      <td className="px-4 py-3.5">
-                        {order.code_promo_utilise
-                          ? <span className="font-mono text-xs bg-gold/10 text-gold px-2 py-0.5 rounded border border-gold/20">{order.code_promo_utilise}</span>
-                          : <span className="text-foreground/30 text-xs">—</span>}
-                      </td>
-                      <td className="px-4 py-3.5 text-xs text-foreground/60 whitespace-nowrap">
-                        {order.livreur_nom ?? <span className="text-foreground/30">—</span>}
-                      </td>
-                      <td className="px-4 py-3.5">
-                        <Badge text={STATUT_CFG[order.statut]?.label ?? order.statut} cfg={STATUT_CFG[order.statut]} />
-                      </td>
-                      <td className="px-4 py-3.5">
-                        <span className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-full border capitalize inline-flex ${
-                          order.livreur ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' : 'text-amber-400 bg-amber-500/10 border-amber-500/20'
-                        }`}>
-                          {getDeliveryMethod(order)}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3.5 text-[10px] text-foreground/40 whitespace-nowrap">
-                        {fmtDate(order.date_creation)}
-                      </td>
-                      <td className="px-4 py-3.5">
-                        <div className="flex items-center gap-2">
-                          <button
-                            title="Voir le détail"
-                            onClick={() => setSelected(order)}
-                            className="p-1.5 rounded-lg hover:bg-white/10 text-foreground/60 hover:text-gold transition-colors"
-                          >
-                            <Eye size={15} />
-                          </button>
-                          {order.statut !== 'remboursée' && order.statut !== 'annulée' && (
-                            <button
-                              onClick={() => handleRefund(order)}
-                              className="px-2.5 py-1 bg-purple-500/15 hover:bg-purple-500/25 border border-purple-500/30 text-purple-400 rounded-lg text-[10px] font-bold transition-all"
-                            >
-                              Rembourser
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                    );
-                  })}
-                  {completedOrders.length === 0 && !loading && (
-                    <tr>
-                      <td colSpan={9} className="text-center py-10 text-foreground/30 italic text-sm">
-                        Aucune commande complétée.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
+      {/* Table: complétées --------------------------------------------------- */}
+      <div className="pt-2">
+        <OrdersTable
+          heading="Complétées"
+          accent="bg-emerald-400"
+          count={completedOrders.length}
+          orders={visibleCompletedOrders}
+          loading={loading}
+          pendingIds={pendingIds}
+          emptyLabel="Aucune commande complétée."
+          onView={setSelected}
+          renderActions={order => (
+            order.statut !== 'remboursée' && order.statut !== 'annulée' && (
+              <ActionButton tone="purple" onClick={() => handleRefund(order)}>Rembourser</ActionButton>
+            )
           )}
-        </div>
-        {!loading && completedOrders.length > 0 && (
-          <TablePagination page={completedPage} totalPages={completedTotalPages} onChange={setCompletedPage} totalItems={completedOrders.length} />
-        )}
+        />
       </div>
+      {!loading && completedOrders.length > 0 && (
+        <TablePagination page={completedPage} totalPages={completedTotalPages} onChange={setCompletedPage} totalItems={completedOrders.length} />
+      )}
 
-      {/* ── Pagination (server page — which 100-row batch is loaded) ────────── */}
+      {/* Server page control --------------------------------------------------- */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-between">
-          <p className="text-xs text-foreground/40">
-            Page {page} / {totalPages} · {total.toLocaleString()} commandes
-          </p>
+        <div className="flex items-center justify-between border-t border-white/10 pt-4">
+          <p className="text-xs text-foreground/40">Page {page} / {totalPages} · {total.toLocaleString()} commandes</p>
           <div className="flex items-center gap-2">
             <button
               disabled={page <= 1}
               onClick={() => setPage(p => Math.max(1, p - 1))}
-              className="p-2 rounded-xl border border-white/10 text-foreground/60 hover:bg-white/5 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+              className="rounded-lg border border-white/10 p-1.5 text-foreground/60 transition-colors hover:bg-white/6 disabled:cursor-not-allowed disabled:opacity-30"
             >
-              <ChevronLeft size={16} />
+              <ChevronLeft size={15} />
             </button>
             {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
               const start = Math.max(1, Math.min(page - 2, totalPages - 4));
@@ -870,11 +660,10 @@ export default function OrdersPage() {
                 <button
                   key={pg}
                   onClick={() => setPage(pg)}
-                  className={`w-8 h-8 rounded-xl text-xs font-semibold transition-all border ${
-                    pg === page
-                      ? 'bg-gold text-black border-gold'
-                      : 'border-white/10 text-foreground/50 hover:bg-white/5'
-                  }`}
+                  className={cx(
+                    'h-7 w-7 rounded-lg text-xs font-medium transition-colors',
+                    pg === page ? 'bg-gold text-black' : 'text-foreground/50 hover:bg-white/6'
+                  )}
                 >
                   {pg}
                 </button>
@@ -883,423 +672,339 @@ export default function OrdersPage() {
             <button
               disabled={page >= totalPages}
               onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-              className="p-2 rounded-xl border border-white/10 text-foreground/60 hover:bg-white/5 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+              className="rounded-lg border border-white/10 p-1.5 text-foreground/60 transition-colors hover:bg-white/6 disabled:cursor-not-allowed disabled:opacity-30"
             >
-              <ChevronRight size={16} />
+              <ChevronRight size={15} />
             </button>
           </div>
         </div>
       )}
 
-      {/* ═══════════════════════════════════════════════════════════════════════
+      {/* ══════════════════════════════════════════════════════════════════
           DETAIL MODAL
-      ════════════════════════════════════════════════════════════════════════ */}
+      ══════════════════════════════════════════════════════════════════ */}
       {selected && (
-        <OrderPopupModal
-          isOpen={Boolean(selected)}
+        <OrderDetailModal
+          order={selected}
           onClose={() => setSelected(null)}
-          title={selected.numero_commande}
-          subtitle={fmtDate(selected.date_creation, true)}
+          onManage={() => { setSelected(null); openEdit(selected); }}
+          onValidate={() => { handleValidateClick(selected); setSelected(null); }}
+          onCancel={() => { handleCancel(selected); setSelected(null); }}
+          onDownloadInvoice={() => openInvoice(selected)}
+          downloadingInvoice={downloadingInvoice}
+          isCancellable={isCancellable(selected)}
+        />
+      )}
+
+      {/* ══════════════════════════════════════════════════════════════════
+          EDIT / MANAGE MODAL
+      ══════════════════════════════════════════════════════════════════ */}
+      {editModal && (
+        <OrderPopupModal
+          isOpen
+          onClose={() => setEditModal(null)}
+          eyebrow="Gérer la commande"
+          title={<span className="font-mono">{editModal.numero_commande}</span>}
           size="2xl"
+          footer={
+            <div className="flex gap-2.5">
+              <button
+                onClick={handleSave}
+                className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg bg-gold py-2.5 text-sm font-semibold text-black transition-colors hover:bg-gold/85"
+              >
+                Enregistrer les modifications
+              </button>
+              <button
+                onClick={() => setEditModal(null)}
+                className="rounded-lg border border-white/10 px-5 py-2.5 text-sm text-foreground/60 transition-colors hover:bg-white/6"
+              >
+                Annuler
+              </button>
+            </div>
+          }
         >
-          <div className="space-y-6">
-              {/* status badges */}
-              <div className="flex flex-wrap gap-2">
-                <Badge text={STATUT_CFG[selected.statut]?.label ?? selected.statut} cfg={STATUT_CFG[selected.statut]} />
-                {selected.livreur ? (
-                  <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full border text-emerald-400 bg-emerald-500/10 border-emerald-500/20">livraison</span>
-                ) : (
-                  <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full border text-amber-400 bg-amber-500/10 border-amber-500/20">retrait en boutique</span>
-                )}
-                <Badge text={STATUT_PAIEMENT_CFG[selected.statut_paiement]?.label ?? selected.statut_paiement} cfg={STATUT_PAIEMENT_CFG[selected.statut_paiement]} />
-              </div>
+          <div className="space-y-5">
+            <Field label="Statut de la commande">
+              <SegmentedPicker value={editStatut} onChange={setEditStatut} options={STATUT_OPTIONS.filter(v => v) as any} cfg={STATUT_CFG} />
+            </Field>
+            <Field label="Statut de livraison" icon={<Truck size={11} />}>
+              <SegmentedPicker value={editLivraison} onChange={setEditLivraison} options={LIVRAISON_OPTIONS.filter(v => v) as any} cfg={STATUT_LIVRAISON_CFG} />
+            </Field>
+            <Field label="Statut paiement" icon={<CreditCard size={11} />}>
+              <SegmentedPicker value={editPaiement} onChange={setEditPaiement} options={PAIEMENT_OPTIONS.filter(v => v) as any} cfg={STATUT_PAIEMENT_CFG} />
+            </Field>
 
-              {/* info grid */}
-              <div className="grid grid-cols-2 gap-4">
-                {/* delivery info */}
-                <div className="bg-white/5 rounded-2xl border border-white/10 p-4 space-y-2.5">
-                  <p className="text-[10px] font-bold text-foreground/40 uppercase tracking-widest flex items-center gap-1.5"><MapPin size={11} />Livraison</p>
-                  <InfoRow label="Destinataire" value={selected.livraison_nom_complet} />
-                  <InfoRow label="Téléphone"    value={selected.livraison_telephone} />
-                  {selected.livraison_ville && <InfoRow label="Ville" value={`${selected.livraison_ville}${selected.livraison_quartier ? ` – ${selected.livraison_quartier}` : ''}`} />}
-                  <InfoRow label="Livreur"       value={selected.livreur_nom ?? '—'} />
-                  <InfoRow label="Livraison est." value={fmtDate(selected.date_livraison_estimee)} />
-                  <InfoRow label="Livraison réelle" value={fmtDate(selected.date_livraison_reelle)} />
-                  {selected.motif_echec_livraison && (
-                    <div className="text-xs text-red-400 bg-red-500/10 rounded-xl p-2.5 border border-red-500/10 flex gap-1.5">
-                      <AlertTriangle size={13} className="shrink-0 mt-0.5" />
-                      {selected.motif_echec_livraison}
-                    </div>
-                  )}
-                </div>
+            <Field label="Assigner un livreur" icon={<Bike size={11} />}>
+              <select
+                value={editLivreur}
+                onChange={e => setEditLivreur(e.target.value)}
+                className="w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2.5 text-sm text-foreground outline-none transition-colors focus:border-gold/50"
+              >
+                <option value="" className="bg-background">— Aucun —</option>
+                {drivers.map(d => {
+                  const id = d.id ?? d.user_id;
+                  return <option key={id} value={id} className="bg-background">{driverDisplayName(d)}</option>;
+                })}
+              </select>
+            </Field>
 
-                {/* financial info */}
-                <div className="bg-white/5 rounded-2xl border border-white/10 p-4 space-y-2.5">
-                  <p className="text-[10px] font-bold text-foreground/40 uppercase tracking-widest flex items-center gap-1.5"><CreditCard size={11} />Finances</p>
-                  <InfoRow label="Sous-total"   value={fmt(selected.sous_total)} />
-                  <InfoRow label="Frais de livraison" value={fmt(selected.frais_livraison)} />
-                  {Number(selected.remise_code_promo) > 0 && (
-                    <InfoRow label="Remise promo"  value={`-${fmt(selected.remise_code_promo)}`} />
-                  )}
-                  <InfoRow label="Total TTC"    value={fmt(selected.total_ttc)} bold />
-                  {selected.code_promo_utilise && (
-                    <InfoRow label="Code promo"  value={selected.code_promo_utilise} mono />
-                  )}
-                  <InfoRow label="Commission"   value={`${fmt(selected.commission_montant)} (${selected.commission_statut})`} />
-                  <InfoRow label="Prestataire"  value={selected.prestataire_code ?? '—'} />
-                </div>
-              </div>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Date estimée" icon={<Calendar size={11} />}>
+                <input
+                  type="date"
+                  value={editDateEst}
+                  onChange={e => setEditDateEst(e.target.value)}
+                  className="w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2.5 text-sm text-foreground outline-none transition-colors focus:border-gold/50"
+                />
+              </Field>
+              <Field label="Frais de livraison" icon={<Tag size={11} />}>
+                <input
+                  type="number"
+                  value={editFrais}
+                  onChange={e => setEditFrais(e.target.value)}
+                  placeholder={editModal.frais_livraison}
+                  className="w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2.5 text-sm text-foreground outline-none transition-colors focus:border-gold/50"
+                />
+              </Field>
+            </div>
 
-              {/* client notes */}
-              {selected.note_client && (
-                <div className="bg-amber-500/5 border border-amber-500/10 rounded-2xl p-4">
-                  <p className="text-[10px] font-bold text-amber-400/60 uppercase tracking-widest mb-1.5 flex items-center gap-1.5"><Phone size={11} />Note client</p>
-                  <p className="text-sm text-foreground/70">{selected.note_client}</p>
-                </div>
-              )}
-              {selected.note_interne && (
-                <div className="bg-blue-500/5 border border-blue-500/10 rounded-2xl p-4">
-                  <p className="text-[10px] font-bold text-blue-400/60 uppercase tracking-widest mb-1.5 flex items-center gap-1.5"><ClipboardList size={11} />Note interne</p>
-                  <p className="text-sm text-foreground/70">{selected.note_interne}</p>
-                </div>
-              )}
-
-              {/* order lines */}
-              <div>
-                <p className="text-[10px] font-bold text-foreground/40 uppercase tracking-widest mb-3 flex items-center gap-1.5">
-                  <ShoppingBag size={11} />Articles ({allLines(selected).length})
-                </p>
-                <div className="max-h-[280px] space-y-2 overflow-y-auto pr-2">
-                  {selected.lignes_parfums.length > 0 && <LinesSection title="Parfums" icon={<Droplets size={12} />} lines={selected.lignes_parfums} />}
-                  {selected.lignes_accessoires.length > 0 && <LinesSection title="Accessoires" icon={<ShoppingBag size={12} />} lines={selected.lignes_accessoires} />}
-                  {selected.lignes_produit_fini_essence.length > 0 && <LinesSection title="Essences finies" icon={<Droplets size={12} />} lines={selected.lignes_produit_fini_essence} />}
-                  {selected.lignes_parfums_perso.length > 0 && <LinesSection title="Parfums personnalisés" icon={<Package size={12} />} lines={selected.lignes_parfums_perso} />}
-                  {selected.lignes_essence_personnalisee.length > 0 && <LinesSection title="Essences personnalisées" icon={<Droplets size={12} />} lines={selected.lignes_essence_personnalisee} />}
-                  {allLines(selected).length === 0 && (
-                    <p className="text-xs text-foreground/30 italic text-center py-4">Aucun article dans cette commande.</p>
-                  )}
-                </div>
-              </div>
-
-              {/* facture / PDF */}
-              {(selected.facture || selected.statut_paiement === 'payé') && (
-                <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-2xl p-4 space-y-3">
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-2 text-emerald-400 text-xs font-semibold uppercase tracking-widest">
-                      <FileText size={14} /> Facture / Reçu PDF
-                    </div>
-                    {selected.facture?.envoye_par_email && (
-                      <span className="text-[10px] text-emerald-400/70 flex items-center gap-1">
-                        <Mail size={11} /> Envoyée par e-mail
-                      </span>
-                    )}
-                  </div>
-                  {selected.facture?.numero_facture && (
-                    <div className="grid grid-cols-2 gap-2">
-                      <div className="bg-white/5 rounded-xl px-3 py-2">
-                        <p className="text-[10px] text-foreground/40 mb-0.5">N° Facture</p>
-                        <p className="text-xs font-mono font-semibold text-foreground">{selected.facture.numero_facture}</p>
-                      </div>
-                      <div className="bg-white/5 rounded-xl px-3 py-2">
-                        <p className="text-[10px] text-foreground/40 mb-0.5">Date émission</p>
-                        <p className="text-xs font-medium text-foreground">{fmtDate(selected.facture.date_emission)}</p>
-                      </div>
-                    </div>
-                  )}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    {selected.facture?.fichier_pdf && (
-                      <a
-                        href={selected.facture.fichier_pdf}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="w-full inline-flex items-center justify-center gap-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl py-2.5 text-sm font-semibold text-foreground transition-colors"
-                      >
-                        <FileText size={15} /> Ouvrir le PDF
-                      </a>
-                    )}
-                    <button
-                      onClick={() => openInvoice(selected)}
-                      disabled={downloadingInvoice}
-                      className="w-full inline-flex items-center justify-center gap-2 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 rounded-xl py-2.5 text-sm font-semibold transition-colors disabled:opacity-50"
-                    >
-                      {downloadingInvoice ? <Loader2 size={15} className="animate-spin" /> : <Download size={15} />}
-                      Télécharger la facture PDF
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* actions */}
-              <div className="flex flex-wrap gap-2 pt-2 border-t border-white/10">
-                {selected.statut === 'en_attente' && (
-                  <button
-                    onClick={() => { handleValidateClick(selected); setSelected(null); }}
-                    className="flex-1 min-w-[120px] bg-emerald-500 hover:bg-emerald-600 text-black rounded-xl py-2.5 text-xs font-bold flex items-center justify-center gap-1.5 transition-all"
-                  >
-                    <CheckCircle size={14} />
-                    Valider
-                  </button>
-                )}
-                {isCancellable(selected) && (
-                  <button
-                    onClick={() => { handleCancel(selected); setSelected(null); }}
-                    className="flex-1 min-w-[120px] bg-red-500 hover:bg-red-600 text-foreground rounded-xl py-2.5 text-xs font-bold flex items-center justify-center gap-1.5 transition-all"
-                  >
-                    <XCircle size={14} />
-                    Annuler
-                  </button>
-                )}
-                <button
-                  onClick={() => { setSelected(null); openEdit(selected); }}
-                  className="px-4 bg-gold text-black rounded-xl py-2.5 text-xs font-bold flex items-center justify-center gap-1.5 hover:bg-gold/80 transition-all"
-                >
-                  <ClipboardList size={14} />
-                  Gérer
-                </button>
-                <button
-                  onClick={() => setSelected(null)}
-                  className="px-4 border border-white/10 rounded-xl py-2.5 text-xs text-foreground/60 hover:bg-white/5 transition-all"
-                >
-                  Fermer
-                </button>
-              </div>
+            <Field label="Note interne" icon={<ClipboardList size={11} />}>
+              <textarea
+                value={editNote}
+                onChange={e => setEditNote(e.target.value)}
+                rows={3}
+                placeholder="Commentaire interne visible uniquement par l'équipe…"
+                className="w-full resize-none rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2.5 text-sm text-foreground outline-none transition-colors focus:border-gold/50"
+              />
+            </Field>
           </div>
         </OrderPopupModal>
       )}
 
-      {/* ═══════════════════════════════════════════════════════════════════════
-          EDIT / MANAGE MODAL
-      ════════════════════════════════════════════════════════════════════════ */}
-      {editModal && (
-        <OrderPopupModal
-          isOpen={Boolean(editModal)}
-          onClose={() => setEditModal(null)}
-          title="Gérer la commande"
-          subtitle={editModal?.numero_commande}
-          size="2xl"
-        >
-          <div className="space-y-4">
-              {/* Statut commande */}
-              <div>
-                <label className="text-[10px] font-bold text-foreground/40 uppercase tracking-widest mb-2 block">Statut de la commande</label>
-                <div className="flex flex-wrap gap-2">
-                  {STATUT_OPTIONS.filter(v => v !== '').map(v => (
-                    <button
-                      key={v}
-                      onClick={() => setEditStatut(v as any)}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all ${
-                        editStatut === v
-                          ? 'bg-gold text-black border-gold'
-                          : 'border-white/10 text-foreground/50 hover:bg-white/5'
-                      }`}
-                    >
-                      {STATUT_CFG[v]?.label ?? v}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Statut livraison */}
-              <div>
-                <label className="text-[10px] font-bold text-foreground/40 uppercase tracking-widest mb-2 block flex items-center gap-1"><Truck size={10} />Statut de livraison</label>
-                <div className="flex flex-wrap gap-2">
-                  {LIVRAISON_OPTIONS.filter(v => v !== '').map(v => (
-                    <button
-                      key={v}
-                      onClick={() => setEditLivraison(v as any)}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all ${
-                        editLivraison === v
-                          ? 'bg-blue-500 text-white border-blue-500'
-                          : 'border-white/10 text-foreground/50 hover:bg-white/5'
-                      }`}
-                    >
-                      {STATUT_LIVRAISON_CFG[v]?.label ?? v}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Statut paiement */}
-              <div>
-                <label className="text-[10px] font-bold text-foreground/40 uppercase tracking-widest mb-2 block flex items-center gap-1"><CreditCard size={10} />Statut paiement</label>
-                <div className="flex flex-wrap gap-2">
-                  {PAIEMENT_OPTIONS.filter(v => v !== '').map(v => (
-                    <button
-                      key={v}
-                      onClick={() => setEditPaiement(v as any)}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all ${
-                        editPaiement === v
-                          ? 'bg-emerald-500 text-white border-emerald-500'
-                          : 'border-white/10 text-foreground/50 hover:bg-white/5'
-                      }`}
-                    >
-                      {STATUT_PAIEMENT_CFG[v]?.label ?? v}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Assign driver */}
-              <div>
-                <label className="text-[10px] font-bold text-foreground/40 uppercase tracking-widest mb-2 block flex items-center gap-1"><Bike size={10} />Assigner un livreur</label>
-                <select
-                  value={editLivreur}
-                  onChange={e => setEditLivreur(e.target.value)}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-foreground outline-none focus:border-gold transition-all"
-                >
-                  <option value="" className="bg-background">— Aucun —</option>
-                  {drivers.map(d => {
-                    const name = driverDisplayName(d);
-                    const id = d.id ?? d.user_id;
-                    return <option key={id} value={id} className="bg-background">{name}</option>;
-                  })}
-                </select>
-              </div>
-
-              {/* two-col: date + frais */}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-[10px] font-bold text-foreground/40 uppercase tracking-widest mb-2 block flex items-center gap-1"><Calendar size={10} />Date estimée</label>
-                  <input
-                    type="date"
-                    value={editDateEst}
-                    onChange={e => setEditDateEst(e.target.value)}
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-foreground outline-none focus:border-gold transition-all"
-                  />
-                </div>
-                <div>
-                  <label className="text-[10px] font-bold text-foreground/40 uppercase tracking-widest mb-2 block flex items-center gap-1"><Tag size={10} />Frais de livraison (FCFA)</label>
-                  <input
-                    type="number"
-                    value={editFrais}
-                    onChange={e => setEditFrais(e.target.value)}
-                    placeholder={editModal.frais_livraison}
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-foreground outline-none focus:border-gold transition-all"
-                  />
-                </div>
-              </div>
-
-              {/* note interne */}
-              <div>
-                <label className="text-[10px] font-bold text-foreground/40 uppercase tracking-widest mb-2 block flex items-center gap-1"><ClipboardList size={10} />Note interne</label>
-                <textarea
-                  value={editNote}
-                  onChange={e => setEditNote(e.target.value)}
-                  rows={2}
-                  placeholder="Commentaire interne visible uniquement par l'équipe…"
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-foreground outline-none focus:border-gold transition-all resize-none"
-                />
-              </div>
-
-              {/* submit — closes instantly; the row updates and syncs in the background */}
-              <div className="flex gap-3 pt-2 border-t border-white/10">
-                <button
-                  onClick={handleSave}
-                  className="flex-1 bg-gold text-black rounded-xl py-3 text-sm font-bold flex items-center justify-center gap-2 hover:bg-gold/80 transition-all"
-                >
-                  <Save size={16} />
-                  Enregistrer les modifications
-                </button>
-                <button
-                  onClick={() => setEditModal(null)}
-                  className="px-5 border border-white/10 rounded-xl py-3 text-sm text-foreground/60 hover:bg-white/5 transition-all"
-                >
-                  Annuler
-                </button>
-              </div>
-            </div>
-          </OrderPopupModal>
-      )}
-
-      {/* ═══════════════════════════════════════════════════════════════════════
+      {/* ══════════════════════════════════════════════════════════════════
           VALIDATION / DRIVER ASSIGNMENT MODAL
-      ════════════════════════════════════════════════════════════════════════ */}
+      ══════════════════════════════════════════════════════════════════ */}
       {validationModal && (
         <OrderPopupModal
-          isOpen={Boolean(validationModal)}
+          isOpen
           onClose={() => setValidationModal(null)}
-          title="Validation & Livraison"
-          subtitle={validationModal?.numero_commande}
-          size="2xl"
-        >
-          <div className="space-y-4">
-              <div className="bg-white/5 border border-white/5 rounded-2xl p-4 text-xs space-y-2">
-                <p className="text-[10px] font-bold text-foreground/40 uppercase tracking-widest flex items-center gap-1.5"><MapPin size={11} />Destinataire & Adresse</p>
-                <div><span className="text-foreground/40">Nom: </span><span className="text-foreground/85 font-medium">{validationModal.livraison_nom_complet}</span></div>
-                <div><span className="text-foreground/40">Téléphone: </span><span className="text-foreground/85 font-medium">{validationModal.livraison_telephone}</span></div>
-                <div><span className="text-foreground/40">Adresse: </span><span className="text-foreground/85 font-medium">{validationModal.livraison_ville}, {validationModal.livraison_quartier}</span></div>
-              </div>
-
-              {/* Assign driver */}
-              <div>
-                <label className="text-[10px] font-bold text-foreground/40 uppercase tracking-widest mb-2 block flex items-center gap-1"><Bike size={10} />Choisir un livreur</label>
-                <select
-                  value={valDriverId}
-                  onChange={e => setValDriverId(e.target.value)}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-foreground outline-none focus:border-gold transition-all"
-                >
-                  <option value="" className="bg-background">— Aucun / Assigner plus tard —</option>
-                  {drivers.map(d => {
-                    const name = driverDisplayName(d);
-                    const id = d.id ?? d.user_id;
-                    return <option key={id} value={id} className="bg-background">{name}</option>;
-                  })}
-                </select>
-              </div>
-
-              {/* Date estimée */}
-              <div>
-                <label className="text-[10px] font-bold text-foreground/40 uppercase tracking-widest mb-2 block flex items-center gap-1"><Calendar size={10} />Date estimée de livraison</label>
-                <input
-                  type="date"
-                  value={valDateEst}
-                  onChange={e => setValDateEst(e.target.value)}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-foreground outline-none focus:border-gold transition-all"
-                />
-              </div>
-
-              {/* submit — closes instantly; the row moves and syncs in the background */}
-              <div className="flex gap-3 pt-2 border-t border-white/10">
-                <button
-                  onClick={handleConfirmValidation}
-                  className="flex-1 bg-emerald-500 text-black rounded-xl py-3 text-sm font-bold flex items-center justify-center gap-2 hover:bg-emerald-600 transition-all"
-                >
-                  <CheckCircle size={16} />
-                  Confirmer la validation
-                </button>
-                <button
-                  onClick={() => setValidationModal(null)}
-                  className="px-5 border border-white/10 rounded-xl py-3 text-sm text-foreground/60 hover:bg-white/5 transition-all"
-                >
-                  Annuler
-                </button>
-              </div>
+          eyebrow="Validation & livraison"
+          title={<span className="font-mono">{validationModal.numero_commande}</span>}
+          size="xl"
+          footer={
+            <div className="flex gap-2.5">
+              <button
+                onClick={handleConfirmValidation}
+                className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg bg-emerald-500 py-2.5 text-sm font-semibold text-black transition-colors hover:bg-emerald-400"
+              >
+                <CheckCircle size={15} />
+                Confirmer la validation
+              </button>
+              <button
+                onClick={() => setValidationModal(null)}
+                className="rounded-lg border border-white/10 px-5 py-2.5 text-sm text-foreground/60 transition-colors hover:bg-white/6"
+              >
+                Annuler
+              </button>
             </div>
-          </OrderPopupModal>
+          }
+        >
+          <div className="space-y-5">
+            <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
+              <p className="mb-2.5 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-widest text-foreground/35">
+                <MapPin size={11} />Destinataire
+              </p>
+              <dl className="space-y-1.5 text-xs">
+                <RowKV k="Nom" v={validationModal.livraison_nom_complet} />
+                <RowKV k="Téléphone" v={validationModal.livraison_telephone} />
+                <RowKV k="Adresse" v={`${validationModal.livraison_ville}, ${validationModal.livraison_quartier}`} />
+              </dl>
+            </div>
+
+            <Field label="Choisir un livreur" icon={<Bike size={11} />}>
+              <select
+                value={valDriverId}
+                onChange={e => setValDriverId(e.target.value)}
+                className="w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2.5 text-sm text-foreground outline-none transition-colors focus:border-gold/50"
+              >
+                <option value="" className="bg-background">— Assigner plus tard —</option>
+                {drivers.map(d => {
+                  const id = d.id ?? d.user_id;
+                  return <option key={id} value={id} className="bg-background">{driverDisplayName(d)}</option>;
+                })}
+              </select>
+            </Field>
+
+            <Field label="Date estimée de livraison" icon={<Calendar size={11} />}>
+              <input
+                type="date"
+                value={valDateEst}
+                onChange={e => setValDateEst(e.target.value)}
+                className="w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2.5 text-sm text-foreground outline-none transition-colors focus:border-gold/50"
+              />
+            </Field>
+          </div>
+        </OrderPopupModal>
       )}
-      </div>
-    </>
+    </div>
   );
 }
 
-// ─── Sub-components ───────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────
+// Filter group (used inside the collapsible filter panel)
+// ─────────────────────────────────────────────────────────────────────────
+
+function FilterGroup({
+  label, options, value, onChange, cfg,
+}: { label: string; options: string[]; value: string; onChange: (v: string) => void; cfg: Record<string, { label: string }> }) {
+  return (
+    <div>
+      <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-foreground/35">{label}</p>
+      <div className="flex flex-wrap gap-1.5">
+        {options.map(v => (
+          <button
+            key={v}
+            onClick={() => onChange(v)}
+            className={cx(
+              'rounded-md border px-2.5 py-1 text-xs font-medium transition-colors',
+              value === v ? 'border-gold/40 bg-gold/15 text-gold' : 'border-white/10 text-foreground/50 hover:border-white/20'
+            )}
+          >
+            {v === '' ? 'Tous' : cfg[v]?.label ?? v}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function Field({ label, icon, children }: { label: string; icon?: React.ReactNode; children: React.ReactNode }) {
+  return (
+    <div>
+      <label className="mb-2 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-widest text-foreground/35">
+        {icon}{label}
+      </label>
+      {children}
+    </div>
+  );
+}
+
+function RowKV({ k, v }: { k: string; v?: string | null }) {
+  return (
+    <div className="flex justify-between gap-3">
+      <dt className="text-foreground/40">{k}</dt>
+      <dd className="text-right font-medium text-foreground/85">{v || '—'}</dd>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Orders table (shared between "en cours" and "complétées")
+// ─────────────────────────────────────────────────────────────────────────
+
+function OrdersTable({
+  heading, accent, count, orders, loading, pendingIds, emptyLabel, onView, onEdit, renderActions,
+}: {
+  heading: string;
+  accent: string;
+  count: number;
+  orders: BackendOrder[];
+  loading: boolean;
+  pendingIds: Set<string>;
+  emptyLabel: string;
+  onView: (o: BackendOrder) => void;
+  onEdit?: (o: BackendOrder) => void;
+  renderActions: (o: BackendOrder) => React.ReactNode;
+}) {
+  return (
+    <div>
+      <div className="mb-2.5 flex items-center gap-2">
+        <span className={cx('h-1.5 w-1.5 rounded-full', accent)} />
+        <h2 className="text-sm font-semibold text-foreground/85">{heading}</h2>
+        <span className="text-xs text-foreground/35">{count}</span>
+      </div>
+
+      <div className="min-h-[120px] overflow-hidden rounded-xl border border-white/10">
+        {loading ? (
+          <div className="flex flex-col items-center justify-center gap-2.5 py-16 text-foreground/40">
+            <Loader2 className="animate-spin text-gold" size={26} />
+            <p className="text-xs">Chargement…</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-white/10 bg-white/[0.02]">
+                  {['N° Commande', 'Client', 'Total TTC', 'Promo', 'Livreur', 'Statut', 'Livraison', 'Date', ''].map(h => (
+                    <th key={h} className="whitespace-nowrap px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wider text-foreground/35">
+                      {h}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/5">
+                {orders.map(order => {
+                  const isPending = pendingIds.has(String(order.id));
+                  return (
+                    <tr key={order.id} className={cx('transition-colors hover:bg-white/[0.02]', isPending && 'opacity-50')}>
+                      <td className="px-4 py-3">
+                        <span className="inline-flex items-center gap-1.5 font-mono text-xs font-medium text-gold">
+                          {order.numero_commande}
+                          {isPending && <Loader2 size={11} className="animate-spin text-gold/70" />}
+                        </span>
+                      </td>
+                      <td className="min-w-[160px] px-4 py-3">
+                        <p className="text-xs font-medium leading-tight text-foreground">{order.livraison_nom_complet}</p>
+                        <p className="mt-0.5 text-[10px] text-foreground/40">{order.client_email}</p>
+                      </td>
+                      <td className="whitespace-nowrap px-4 py-3 font-semibold text-foreground">{fmt(order.total_ttc)}</td>
+                      <td className="px-4 py-3">
+                        {order.code_promo_utilise
+                          ? <span className="rounded border border-gold/20 bg-gold/10 px-1.5 py-0.5 font-mono text-[11px] text-gold">{order.code_promo_utilise}</span>
+                          : <span className="text-xs text-foreground/25">—</span>}
+                      </td>
+                      <td className="whitespace-nowrap px-4 py-3 text-xs text-foreground/55">{order.livreur_nom ?? '—'}</td>
+                      <td className="px-4 py-3"><StatusChip cfg={STATUT_CFG[order.statut]} /></td>
+                      <td className="whitespace-nowrap px-4 py-3 text-xs text-foreground/55">{getDeliveryMethod(order)}</td>
+                      <td className="whitespace-nowrap px-4 py-3 text-[11px] text-foreground/35">{fmtDate(order.date_creation)}</td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center justify-end gap-1">
+                          <IconButton icon={<Eye size={14} />} title="Voir le détail" onClick={() => onView(order)} tone="gold" />
+                          {onEdit && <IconButton icon={<ClipboardList size={14} />} title="Modifier / gérer" onClick={() => onEdit(order)} tone="blue" />}
+                          {renderActions(order)}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+                {orders.length === 0 && (
+                  <tr>
+                    <td colSpan={9} className="py-10 text-center text-sm italic text-foreground/30">{emptyLabel}</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
 
 function TablePagination({
   page, totalPages, onChange, totalItems,
 }: { page: number; totalPages: number; onChange: (p: number) => void; totalItems: number }) {
   if (totalPages <= 1) return null;
   return (
-    <div className="flex items-center justify-between px-1 pt-3">
-      <p className="text-[11px] text-foreground/40">
-        {totalItems} commande{totalItems > 1 ? 's' : ''} · page {page}/{totalPages}
-      </p>
-      <div className="flex items-center gap-1.5">
+    <div className="flex items-center justify-between px-1">
+      <p className="text-[11px] text-foreground/40">{totalItems} commande{totalItems > 1 ? 's' : ''} · page {page}/{totalPages}</p>
+      <div className="flex items-center gap-1">
         <button
           disabled={page <= 1}
           onClick={() => onChange(Math.max(1, page - 1))}
-          className="p-1.5 rounded-lg border border-white/10 text-foreground/60 hover:bg-white/5 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+          className="rounded-md p-1 text-foreground/50 transition-colors hover:bg-white/6 disabled:cursor-not-allowed disabled:opacity-30"
         >
-          <ChevronLeft size={14} />
+          <ChevronLeft size={13} />
         </button>
         {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
           const start = Math.max(1, Math.min(page - 2, totalPages - 4));
@@ -1308,11 +1013,7 @@ function TablePagination({
             <button
               key={pg}
               onClick={() => onChange(pg)}
-              className={`w-7 h-7 rounded-lg text-[11px] font-semibold transition-all border ${
-                pg === page
-                  ? 'bg-gold text-black border-gold'
-                  : 'border-white/10 text-foreground/50 hover:bg-white/5'
-              }`}
+              className={cx('h-6 w-6 rounded-md text-[11px] font-medium transition-colors', pg === page ? 'bg-gold text-black' : 'text-foreground/45 hover:bg-white/6')}
             >
               {pg}
             </button>
@@ -1321,30 +1022,237 @@ function TablePagination({
         <button
           disabled={page >= totalPages}
           onClick={() => onChange(Math.min(totalPages, page + 1))}
-          className="p-1.5 rounded-lg border border-white/10 text-foreground/60 hover:bg-white/5 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+          className="rounded-md p-1 text-foreground/50 transition-colors hover:bg-white/6 disabled:cursor-not-allowed disabled:opacity-30"
         >
-          <ChevronRight size={14} />
+          <ChevronRight size={13} />
         </button>
       </div>
     </div>
   );
 }
 
-function InfoRow({ label, value, bold, mono }: { label: string; value: string; bold?: boolean; mono?: boolean }) {
+// ─────────────────────────────────────────────────────────────────────────
+// Order detail modal — rebuilt: receipt-style breakdown, quiet sections,
+// sticky action footer, one clear visual hierarchy instead of stacked cards.
+// ─────────────────────────────────────────────────────────────────────────
+
+function OrderDetailModal({
+  order, onClose, onManage, onValidate, onCancel, onDownloadInvoice, downloadingInvoice, isCancellable,
+}: {
+  order: BackendOrder;
+  onClose: () => void;
+  onManage: () => void;
+  onValidate: () => void;
+  onCancel: () => void;
+  onDownloadInvoice: () => void;
+  downloadingInvoice: boolean;
+  isCancellable: boolean;
+}) {
+  const lines = allLines(order);
+  const groups: Array<{ title: string; icon: React.ReactNode; lines: BackendOrderLine[] }> = [
+    { title: 'Parfums', icon: <Package size={12} />, lines: order.lignes_parfums },
+    { title: 'Accessoires', icon: <Package size={12} />, lines: order.lignes_accessoires },
+    { title: 'Essences finies', icon: <Package size={12} />, lines: order.lignes_produit_fini_essence },
+    { title: 'Parfums personnalisés', icon: <Package size={12} />, lines: order.lignes_parfums_perso },
+    { title: 'Essences personnalisées', icon: <Package size={12} />, lines: order.lignes_essence_personnalisee },
+  ].filter(g => g.lines.length > 0);
+
   return (
-    <div className="flex justify-between items-start gap-2 text-xs">
-      <span className="text-foreground/40 shrink-0">{label}</span>
-      <span className={`text-right ${bold ? 'font-bold text-foreground' : 'text-foreground/70'} ${mono ? 'font-mono' : ''}`}>
-        {value}
+    <OrderPopupModal
+      isOpen
+      onClose={onClose}
+      eyebrow={fmtDate(order.date_creation, true)}
+      title={
+        <>
+          <span className="font-mono">{order.numero_commande}</span>
+          <StatusChip cfg={STATUT_CFG[order.statut]} />
+        </>
+      }
+      size="3xl"
+      footer={
+        <div className="flex flex-wrap gap-2.5">
+          {order.statut === 'en_attente' && (
+            <button onClick={onValidate} className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-emerald-500 py-2.5 text-xs font-semibold text-black transition-colors hover:bg-emerald-400">
+              <CheckCircle size={14} />Valider
+            </button>
+          )}
+          {isCancellable && (
+            <button onClick={onCancel} className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-red-500 py-2.5 text-xs font-semibold text-white transition-colors hover:bg-red-400">
+              <XCircle size={14} />Annuler
+            </button>
+          )}
+          <button onClick={onManage} className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-gold px-5 py-2.5 text-xs font-semibold text-black transition-colors hover:bg-gold/85">
+            <ClipboardList size={14} />Gérer
+          </button>
+          <button onClick={onClose} className="rounded-lg border border-white/10 px-5 py-2.5 text-xs text-foreground/60 transition-colors hover:bg-white/6">
+            Fermer
+          </button>
+        </div>
+      }
+    >
+      <div className="space-y-6">
+
+        {/* Summary strip */}
+        <div className="flex flex-wrap items-center gap-x-6 gap-y-2 rounded-xl border border-white/10 bg-white/[0.02] px-4 py-3">
+          <SummaryStat label="Total TTC" value={fmt(order.total_ttc)} emphasize />
+          <div className="h-8 w-px bg-white/10" />
+          <SummaryStat label="Paiement" node={<StatusChip cfg={STATUT_PAIEMENT_CFG[order.statut_paiement]} />} />
+          <div className="h-8 w-px bg-white/10" />
+          <SummaryStat label="Remise" value={getDeliveryMethod(order)} />
+          {order.code_promo_utilise && (
+            <>
+              <div className="h-8 w-px bg-white/10" />
+              <SummaryStat label="Code promo" node={<span className="rounded border border-gold/20 bg-gold/10 px-1.5 py-0.5 font-mono text-xs text-gold">{order.code_promo_utilise}</span>} />
+            </>
+          )}
+        </div>
+
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
+          {/* Left: delivery + notes */}
+          <div className="space-y-5 lg:col-span-2">
+            <section>
+              <SectionLabel icon={<MapPin size={11} />}>Livraison</SectionLabel>
+              <dl className="space-y-1.5 text-xs">
+                <RowKV k="Destinataire" v={order.livraison_nom_complet} />
+                <RowKV k="Téléphone" v={order.livraison_telephone} />
+                {order.livraison_ville && (
+                  <RowKV k="Ville" v={`${order.livraison_ville}${order.livraison_quartier ? ` – ${order.livraison_quartier}` : ''}`} />
+                )}
+                <RowKV k="Livreur" v={order.livreur_nom ?? '—'} />
+                <RowKV k="Date estimée" v={fmtDate(order.date_livraison_estimee)} />
+                <RowKV k="Date réelle" v={fmtDate(order.date_livraison_reelle)} />
+              </dl>
+              {order.motif_echec_livraison && (
+                <div className="mt-3 flex gap-2 rounded-lg bg-red-500/8 p-2.5 text-xs text-red-400">
+                  <AlertTriangle size={13} className="mt-0.5 shrink-0" />
+                  {order.motif_echec_livraison}
+                </div>
+              )}
+            </section>
+
+            {(order.note_client || order.note_interne) && (
+              <section className="space-y-3">
+                {order.note_client && (
+                  <div>
+                    <SectionLabel icon={<Phone size={11} />}>Note client</SectionLabel>
+                    <p className="text-xs leading-relaxed text-foreground/65">{order.note_client}</p>
+                  </div>
+                )}
+                {order.note_interne && (
+                  <div>
+                    <SectionLabel icon={<ClipboardList size={11} />}>Note interne</SectionLabel>
+                    <p className="text-xs leading-relaxed text-foreground/65">{order.note_interne}</p>
+                  </div>
+                )}
+              </section>
+            )}
+
+            {(order.facture || order.statut_paiement === 'payé') && (
+              <section>
+                <SectionLabel icon={<FileText size={11} />}>Facture</SectionLabel>
+                <div className="space-y-2.5 rounded-xl border border-white/10 bg-white/[0.02] p-3.5">
+                  {order.facture?.numero_facture && (
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-foreground/40">N° {order.facture.numero_facture}</span>
+                      <span className="text-foreground/50">{fmtDate(order.facture.date_emission)}</span>
+                    </div>
+                  )}
+                  {order.facture?.envoye_par_email && (
+                    <p className="flex items-center gap-1.5 text-[11px] text-emerald-400/80"><Mail size={11} />Envoyée par e-mail</p>
+                  )}
+                  <div className="flex gap-2">
+                    {order.facture?.fichier_pdf && (
+                      <a
+                        href={order.facture.fichier_pdf}
+                        target="_blank" rel="noreferrer"
+                        className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-white/10 py-2 text-xs font-medium text-foreground/75 transition-colors hover:bg-white/6"
+                      >
+                        <FileText size={13} />Ouvrir
+                      </a>
+                    )}
+                    <button
+                      onClick={onDownloadInvoice}
+                      disabled={downloadingInvoice}
+                      className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-emerald-500/15 py-2 text-xs font-medium text-emerald-400 ring-1 ring-inset ring-emerald-500/25 transition-colors hover:bg-emerald-500/25 disabled:opacity-50"
+                    >
+                      {downloadingInvoice ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} />}
+                      Télécharger
+                    </button>
+                  </div>
+                </div>
+              </section>
+            )}
+          </div>
+
+          {/* Right: items + receipt */}
+          <div className="space-y-5 lg:col-span-3">
+            <section>
+              <SectionLabel icon={<Package size={11} />}>Articles ({lines.length})</SectionLabel>
+              <div className="max-h-[280px] space-y-4 overflow-y-auto pr-1">
+                {groups.map(g => (
+                  <LinesGroup key={g.title} title={g.title} icon={g.icon} lines={g.lines} />
+                ))}
+                {lines.length === 0 && <p className="py-4 text-center text-xs italic text-foreground/30">Aucun article dans cette commande.</p>}
+              </div>
+            </section>
+
+            <section className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
+              <SectionLabel icon={<CreditCard size={11} />}>Récapitulatif</SectionLabel>
+              <div className="space-y-1.5 text-xs">
+                <ReceiptRow k="Sous-total" v={fmt(order.sous_total)} />
+                <ReceiptRow k="Frais de livraison" v={fmt(order.frais_livraison)} />
+                {Number(order.remise_code_promo) > 0 && <ReceiptRow k="Remise promo" v={`-${fmt(order.remise_code_promo)}`} negative />}
+                <div className="my-1.5 border-t border-dashed border-white/10" />
+                <ReceiptRow k="Total TTC" v={fmt(order.total_ttc)} bold />
+                <div className="my-1.5 border-t border-white/10" />
+                <ReceiptRow k="Commission" v={`${fmt(order.commission_montant)} · ${order.commission_statut}`} muted />
+                <ReceiptRow k="Prestataire" v={order.prestataire_code ?? '—'} muted />
+              </div>
+            </section>
+          </div>
+        </div>
+      </div>
+    </OrderPopupModal>
+  );
+}
+
+function SummaryStat({ label, value, node, emphasize }: { label: string; value?: string; node?: React.ReactNode; emphasize?: boolean }) {
+  return (
+    <div>
+      <p className="text-[10px] font-semibold uppercase tracking-wider text-foreground/35">{label}</p>
+      {node ?? <p className={cx('mt-0.5', emphasize ? 'text-base font-semibold text-foreground' : 'text-sm text-foreground/75')}>{value}</p>}
+    </div>
+  );
+}
+
+function SectionLabel({ icon, children }: { icon: React.ReactNode; children: React.ReactNode }) {
+  return (
+    <p className="mb-2.5 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-widest text-foreground/35">
+      {icon}{children}
+    </p>
+  );
+}
+
+function ReceiptRow({ k, v, bold, negative, muted }: { k: string; v: string; bold?: boolean; negative?: boolean; muted?: boolean }) {
+  return (
+    <div className="flex items-center justify-between">
+      <span className={muted ? 'text-foreground/35' : 'text-foreground/50'}>{k}</span>
+      <span className={cx(
+        bold && 'text-sm font-semibold text-foreground',
+        negative && 'text-red-400',
+        muted && 'text-foreground/45',
+        !bold && !negative && !muted && 'text-foreground/80'
+      )}>
+        {v}
       </span>
     </div>
   );
 }
 
-function LinesSection({ title, icon, lines }: { title: string; icon: React.ReactNode; lines: BackendOrderLine[] }) {
+function LinesGroup({ title, icon, lines }: { title: string; icon: React.ReactNode; lines: BackendOrderLine[] }) {
   return (
     <div>
-      <p className="text-[10px] font-semibold text-foreground/30 uppercase tracking-wider flex items-center gap-1 mb-1.5">
+      <p className="mb-1.5 flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-wider text-foreground/30">
         {icon}{title}
       </p>
       <div className="space-y-1.5">
@@ -1352,27 +1260,27 @@ function LinesSection({ title, icon, lines }: { title: string; icon: React.React
           const isCustom = !!line.parfum_personnalise || !!line.composition;
           const name = line.nom_snapshot || line.composition?.nom || line.nom || (isCustom ? 'Parfum personnalisé' : 'Article');
           return (
-            <div key={line.id} className="bg-white/5 border border-white/5 rounded-xl px-3 py-2 text-xs">
-              <div className="flex items-center justify-between">
-                <span className="text-foreground/80 font-medium">{name}</span>
-                <div className="flex items-center gap-3 text-foreground/50">
+            <div key={line.id} className="rounded-lg border border-white/8 bg-white/[0.015] px-3 py-2 text-xs">
+              <div className="flex items-center justify-between gap-3">
+                <span className="font-medium text-foreground/85">{name}</span>
+                <div className="flex shrink-0 items-center gap-3 text-foreground/45">
                   <span>{line.quantite} ×</span>
                   <span>{Number(line.prix_unitaire_snapshot).toLocaleString()} FCFA</span>
-                  <span className="text-foreground/70 font-semibold">{Number(line.sous_total).toLocaleString()} FCFA</span>
+                  <span className="font-semibold text-foreground/75">{Number(line.sous_total).toLocaleString()} FCFA</span>
                 </div>
               </div>
               {isCustom && line.composition?.lignes && line.composition.lignes.length > 0 && (
-                <div className="mt-2 ml-4 space-y-1 border-l border-white/10 pl-3">
+                <div className="mt-2 ml-3 space-y-1 border-l border-white/10 pl-3">
                   {line.composition.lignes.map((essence, i) => (
-                    <div key={i} className="flex justify-between text-foreground/60">
+                    <div key={i} className="flex justify-between text-foreground/50">
                       <span>{essence.essence_nom || 'Essence'}</span>
                       <span>{essence.quantite_ml || '—'} ml</span>
                     </div>
                   ))}
                   {line.composition.flacon_nom && (
-                    <div className="flex justify-between text-foreground/40 mt-1">
+                    <div className="flex justify-between text-foreground/35">
                       <span>Flacon</span>
-                      <span>{line.composition.flacon_nom} {line.composition.flacon_contenance_ml ? `• ${line.composition.flacon_contenance_ml}ml` : ''}</span>
+                      <span>{line.composition.flacon_nom} {line.composition.flacon_contenance_ml ? `· ${line.composition.flacon_contenance_ml}ml` : ''}</span>
                     </div>
                   )}
                 </div>

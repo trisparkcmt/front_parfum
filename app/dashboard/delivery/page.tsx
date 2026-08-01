@@ -327,16 +327,6 @@ export default function DeliveryDashboard() {
           <p className="font-semibold text-sm text-foreground">Mes Livraisons</p>
           <p className="text-xs text-foreground/40 mt-0.5 flex items-center gap-1">Voir toutes mes livraisons <ChevronRight size={12} /></p>
         </button>
-        <button
-          onClick={() => router.push('/dashboard/delivery/profile')}
-          className="bg-white/5 rounded-2xl border border-white/10 p-5 shadow-sm hover:shadow-gold/5 transition-all text-left group"
-        >
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-foreground mb-3 group-hover:scale-110 transition-transform">
-            <Palette size={20} />
-          </div>
-          <p className="font-semibold text-sm text-foreground">{t('settings_action')}</p>
-          <p className="text-xs text-foreground/40 mt-0.5 flex items-center gap-1">Langue, Devise, Apparence <ChevronRight size={12} /></p>
-        </button>
       </div>
 
       {/* ── Detail modal ──────────────────────────────────────────────────────── */}
