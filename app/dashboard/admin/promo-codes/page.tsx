@@ -85,6 +85,7 @@ export default function PromoCodesPage() {
   const [formReduction, setFormReduction] = useState('10.00');
   const [formActif, setFormActif] = useState(true);
   const [formClients, setFormClients] = useState<number[]>([]);
+  const [selectedPromoForDetails, setSelectedPromoForDetails] = useState<PromoCode | null>(null);
 
   const fetchCodes = useCallback(async () => {
     setLoading(true);
@@ -203,7 +204,11 @@ export default function PromoCodesPage() {
               </thead>
               <tbody className="divide-y divide-white/5">
                 {codes.map(code => (
-                  <tr key={code.id} className="hover:bg-white/[0.02] transition-colors">
+                  <tr
+                    key={code.id}
+                    onClick={() => setSelectedPromoForDetails(code)}
+                    className="hover:bg-white/[0.04] transition-colors cursor-pointer"
+                  >
                     <td className="px-4 py-3">
                       <span className="font-mono font-bold text-gold tracking-wider bg-gold/10 px-2 py-0.5 rounded border border-gold/20 text-xs">
                         {code.code}
@@ -228,7 +233,7 @@ export default function PromoCodesPage() {
                     <td className="px-4 py-3 text-foreground/40 whitespace-nowrap">
                       {fmt(code.date_creation)}
                     </td>
-                    <td className="px-4 py-3 text-right">
+                    <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
                       <div className="inline-flex items-center gap-1">
                         <IconButton
                           onClick={() => openEdit(code)}
@@ -331,6 +336,99 @@ export default function PromoCodesPage() {
             )}
           </div>
         </div>
+      </SlideOver>
+      
+      {/* Promo Code Details & User Access SlideOver */}
+      <SlideOver
+        isOpen={selectedPromoForDetails !== null}
+        onClose={() => setSelectedPromoForDetails(null)}
+        title={`Détails du Code Promo : ${selectedPromoForDetails?.code}`}
+        description="Consultez les informations détaillées et la liste des clients ayant accès à ce code promo."
+        size="lg"
+        footer={
+          <div className="flex justify-end w-full">
+            <button
+              onClick={() => setSelectedPromoForDetails(null)}
+              className="px-5 border border-white/10 rounded-xl py-2.5 text-xs font-semibold text-foreground/60 hover:bg-white/5 transition-all"
+            >
+              Fermer
+            </button>
+          </div>
+        }
+      >
+        {selectedPromoForDetails && (
+          <div className="space-y-6">
+            {/* Promo Info Cards */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="bg-white/[0.02] border border-white/10 rounded-xl p-4">
+                <p className="text-[10px] font-bold text-foreground/40 uppercase tracking-widest mb-1.5">Réduction</p>
+                <p className="text-xl font-bold text-emerald-400 tabular-nums">
+                  {Number(selectedPromoForDetails.reduction_pourcentage).toFixed(0)}%
+                </p>
+              </div>
+              <div className="bg-white/[0.02] border border-white/10 rounded-xl p-4">
+                <p className="text-[10px] font-bold text-foreground/40 uppercase tracking-widest mb-1.5">Statut</p>
+                <div className="mt-0.5">
+                  <StatusChip active={selectedPromoForDetails.est_actif} />
+                </div>
+              </div>
+            </div>
+
+            {/* Access Summary & Client List */}
+            <div className="border border-white/10 rounded-xl bg-white/[0.02] p-4 space-y-4">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-foreground/75 flex items-center gap-2 border-b border-white/5 pb-3">
+                <Users2 size={15} className="text-gold" />
+                Clients avec accès
+              </h3>
+              
+              {(!selectedPromoForDetails.clients_autorises || selectedPromoForDetails.clients_autorises.length === 0) ? (
+                <div className="space-y-2">
+                  <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-semibold bg-gold/10 text-gold border border-gold/20">
+                    Tous les clients
+                  </span>
+                  <p className="text-xs text-foreground/50 leading-relaxed">
+                    Ce code promo est public. N'importe quel client enregistré sur la plateforme peut l'utiliser lors du passage de sa commande.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <p className="text-xs text-foreground/50">
+                    Ce code promo est privé. Seuls les {selectedPromoForDetails.clients_autorises.length} client(s) sélectionné(s) ci-dessous peuvent l'utiliser :
+                  </p>
+                  
+                  {/* List of Authorized Users */}
+                  <div className="divide-y divide-white/5 border border-white/10 rounded-xl overflow-hidden bg-black/20 max-h-[350px] overflow-y-auto">
+                    {selectedPromoForDetails.clients_autorises.map(id => {
+                      const client = clients.find(c => c.id === id);
+                      if (!client) {
+                        return (
+                          <div key={id} className="p-3 flex items-center justify-between text-xs text-foreground/30 italic">
+                            <span>Client ID #{id}</span>
+                            <span className="text-[9px] bg-white/5 px-2 py-0.5 rounded text-foreground/40 font-mono">Non chargé dans la session</span>
+                          </div>
+                        );
+                      }
+                      const name = `${client.first_name || ''} ${client.last_name || ''}`.trim() || client.email;
+                      return (
+                        <div key={id} className="p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2 hover:bg-white/[0.01] transition-colors">
+                          <div className="min-w-0">
+                            <p className="text-xs font-semibold text-foreground truncate">{name}</p>
+                            <p className="text-[10px] text-foreground/45 truncate">{client.email}</p>
+                          </div>
+                          {client.telephone && (
+                            <span className="self-start sm:self-center text-[10px] font-mono text-foreground/40 bg-white/5 px-2 py-0.5 rounded border border-white/5">
+                              {client.telephone}
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </SlideOver>
     </div>
   );

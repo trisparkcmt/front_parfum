@@ -8,6 +8,8 @@ import { BackButton } from '@/components/ui/BackButton';
 import { useFavoritesStore } from '@/store/useFavoritesStore';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useCartStore } from '@/store/useCartStore';
+import { useToastStore } from '@/store/useToastStore';
+import { labService } from '@/services/apiService';
 import { formatPrice, sharePage } from '@/lib/utils';
 import Image from 'next/image';
 
@@ -93,6 +95,26 @@ export default function FavoritesPage() {
     }, 200);
   };
 
+  const handleRemoveCustomPerfume = async (customId: string) => {
+    const numericId = Number(customId.replace('custom-', ''));
+    if (!numericId) return;
+
+    setRemovingId(customId);
+    try {
+      await labService.deleteCustomPerfume(numericId);
+      // Refresh user data to update parfums_personnalises
+      await useAuthStore.getState().fetchUser();
+      const { addToast } = useToastStore.getState();
+      addToast('Parfum supprimé avec succès', 'success');
+      setRemovingId(null);
+    } catch (error: any) {
+      console.error('Error deleting custom perfume:', error);
+      const { addToast } = useToastStore.getState();
+      addToast(error?.response?.data?.detail || 'Erreur lors de la suppression', 'error');
+      setRemovingId(null);
+    }
+  };
+
   const handleAddToCart = async (product: FavoriteProduct) => {
     const cartStore = useCartStore.getState();
     if (product.isCustomComposition) {
@@ -146,8 +168,8 @@ export default function FavoritesPage() {
             {t('my_favorites_action', 'Mes Favoris')}
           </h1>
           <span className="mb-1 text-sm text-foreground/50">
-            {favorites.length.toString().padStart(2, '0')}{' '}
-            {favorites.length > 1
+            {(favorites.length + (user?.parfums_personnalises?.length || 0)).toString().padStart(2, '0')}{' '}
+            {(favorites.length + (user?.parfums_personnalises?.length || 0)) > 1
               ? t('pieces_plural', 'pièces')
               : t('pieces_singular', 'pièce')}
           </span>
@@ -156,7 +178,7 @@ export default function FavoritesPage() {
       </div>
 
       {/* Search */}
-      {favorites.length > 0 && (
+      {filteredFavorites.length > 0 && (
         <div className="relative border-b border-white/10 pb-3 transition-colors focus-within:border-gold/50">
           <Search size={16} className="absolute left-0 top-1/2 -translate-y-1/2 text-foreground/30" />
           <input
@@ -175,7 +197,7 @@ export default function FavoritesPage() {
             <Heart size={22} className="text-gold/60" />
           </div>
         </div>
-      ) : favorites.length === 0 ? (
+      ) : favorites.length === 0 && (!user?.parfums_personnalises || user.parfums_personnalises.length === 0) ? (
         <div className="flex flex-col items-center justify-center rounded-2xl border border-white/10 bg-white/[0.02] px-6 py-20 text-center">
           <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-full border border-gold/20">
             <Heart size={20} className="text-gold/50" />
@@ -235,6 +257,19 @@ export default function FavoritesPage() {
                         onClick={(e) => {
                           e.stopPropagation();
                           handleRemoveFavorite(product.id);
+                        }}
+                        aria-label={t('remove', 'Supprimer')}
+                        className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-black/50 text-white/80 backdrop-blur-sm transition-colors hover:bg-black/70 hover:text-white"
+                      >
+                        <X size={13} />
+                      </button>
+                    )}
+
+                    {product.isCustomComposition && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleRemoveCustomPerfume(product.id);
                         }}
                         aria-label={t('remove', 'Supprimer')}
                         className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-black/50 text-white/80 backdrop-blur-sm transition-colors hover:bg-black/70 hover:text-white"

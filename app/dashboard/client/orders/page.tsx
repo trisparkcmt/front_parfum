@@ -244,12 +244,15 @@ export default function ClientOrdersPage() {
                 {/* Items preview */}
                 {lines.length > 0 && (
                   <div className="flex gap-2 flex-wrap mb-4">
-                    {lines.slice(0, 3).map((l: any, i: number) => (
-                      <span key={i} className="text-xs bg-white/5 border border-white/10 rounded-lg px-2.5 py-1 text-foreground/60">
-                        {l.produit_details?.nom ?? l.parfum_details?.nom ?? l.accessoire_details?.nom ?? `Article #${i + 1}`}
-                        {l.quantite > 1 && <span className="text-foreground/40 ml-1">×{l.quantite}</span>}
-                      </span>
-                    ))}
+                    {lines.slice(0, 3).map((l: any, i: number) => {
+                      const name = l.nom_snapshot || l.parfum_personnalise_nom || l.nom || l.produit_details?.nom || l.parfum_details?.nom || l.accessoire_details?.nom || `Article #${i + 1}`;
+                      return (
+                        <span key={i} className="text-xs bg-white/5 border border-white/10 rounded-lg px-2.5 py-1 text-foreground/60">
+                          {name}
+                          {l.quantite > 1 && <span className="text-foreground/40 ml-1">×{l.quantite}</span>}
+                        </span>
+                      );
+                    })}
                     {lines.length > 3 && (
                       <span className="text-xs bg-white/5 border border-white/10 rounded-lg px-2.5 py-1 text-foreground/40">
                         +{lines.length - 3} autre{lines.length - 3 > 1 ? 's' : ''}
@@ -428,19 +431,24 @@ export default function ClientOrdersPage() {
                 <div>
                   <p className="text-xs font-semibold text-foreground/40 uppercase mb-2">Articles commandés</p>
                   <div className="space-y-2">
-                    {allLines(selected).map((l: any, i: number) => (
-                      <div key={i} className="flex justify-between items-center bg-white/5 rounded-xl px-4 py-2.5">
-                        <span className="text-sm text-foreground">
-                          {l.produit_details?.nom ?? l.parfum_details?.nom ?? l.accessoire_details?.nom ?? `Article #${i + 1}`}
-                        </span>
-                        <div className="text-right">
-                          <p className="text-xs text-foreground/40">×{l.quantite}</p>
-                          <p className="text-sm font-semibold text-foreground">
-                            {Number((l.quantite ?? 1) * (l.prix_unitaire ?? 0)).toLocaleString('fr-FR')} FCFA
-                          </p>
+                    {allLines(selected).map((l: any, i: number) => {
+                      const name = l.nom_snapshot || l.parfum_personnalise_nom || l.nom || l.produit_details?.nom || l.parfum_details?.nom || l.accessoire_details?.nom || `Article #${i + 1}`;
+                      const unitPrice = Number(l.prix_unitaire_snapshot || l.prix_snapshot || l.prix_unitaire || 0);
+                      const lineTotal = Number(l.sous_total || (l.quantite ?? 1) * unitPrice);
+                      return (
+                        <div key={i} className="flex justify-between items-center bg-white/5 rounded-xl px-4 py-2.5">
+                          <span className="text-sm text-foreground">
+                            {name}
+                          </span>
+                          <div className="text-right">
+                            <p className="text-xs text-foreground/40">×{l.quantite}</p>
+                            <p className="text-sm font-semibold text-foreground">
+                              {lineTotal.toLocaleString('fr-FR')} FCFA
+                            </p>
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               )}

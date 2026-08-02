@@ -275,6 +275,10 @@ export function mapBackendFinishedEssenceToProduct(p: any): Product {
     createdAt: p.date_creation || new Date().toISOString(),
     image_principale: p.image_principale || images[0],
     image_supp_1: p.image_supp_1 || images[1],
+    // Essence-specific
+    taille_ml: p.taille_ml ? Number(p.taille_ml) : undefined,
+    stock_total_ml: p.stock_total_ml != null ? Number(p.stock_total_ml) : undefined,
+    essence_id: p.essence != null ? Number(p.essence) : undefined,
   };
 }
 
@@ -514,9 +518,12 @@ export const productService = {
       }
 
 
-      const fallbackById = await apiShopService.getPerfumes({ search: id }).catch(() => []);
-      if (Array.isArray(fallbackById)) {
-        const matched = fallbackById.find((item: any) => String(item.id) === String(id) || item.slug === id || item.slug === decodeURIComponent(id));
+      const fallbackResponse = await apiShopService.getPerfumes({ search: id }).catch(() => null);
+      if (fallbackResponse) {
+        const list = Array.isArray(fallbackResponse)
+          ? fallbackResponse
+          : (fallbackResponse.results || fallbackResponse.resultats || []);
+        const matched = list.find((item: any) => String(item.id) === String(id) || item.slug === id || item.slug === decodeURIComponent(id));
         if (matched) return mapBackendPerfumeToProduct(matched);
       }
 

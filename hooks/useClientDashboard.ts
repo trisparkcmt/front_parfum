@@ -35,19 +35,54 @@ export const useClientDashboard = () => {
         const meData = await authService.getMe();
         const list = ((meData as any)?.commandes ?? (Array.isArray(meData) ? meData : [])) as BackendOrder[];
 
+        const mapBackendLines = (o: BackendOrder): Order['items'] => {
+          const lines = [
+            ...(o.lignes_parfums ?? []),
+            ...(o.lignes_accessoires ?? []),
+            ...(o.lignes_produit_fini_essence ?? []),
+            ...(o.lignes_parfums_perso ?? []),
+            ...(o.lignes_essence_personnalisee ?? []),
+          ];
+
+          if (lines.length === 0) {
+            return [{
+              id: `${o.numero_commande}-fallback`,
+              type: 'product',
+              productName: `Commande ${o.numero_commande}`,
+              quantity: 1,
+              unitPrice: Number(o.total_ttc),
+              totalPrice: Number(o.total_ttc),
+            }];
+          }
+
+          return lines.map((l: any, idx: number) => {
+            const name = l.nom_snapshot || l.parfum_personnalise_nom || l.nom || l.produit_details?.nom || l.parfum_details?.nom || l.accessoire_details?.nom || `Article #${idx + 1}`;
+            const unitPrice = Number(l.prix_unitaire_snapshot || l.prix_snapshot || l.prix_unitaire || 0);
+            const qty = Number(l.quantite ?? 1);
+            const totalPrice = Number(l.sous_total || qty * unitPrice);
+
+            let itemType: any = 'product';
+            if (l.parfum_personnalise || l.parfum_personnalise_id || o.lignes_parfums_perso?.includes(l)) {
+              itemType = 'custom-composition';
+            }
+
+            return {
+              id: `${o.numero_commande}-${idx}-${l.id}`,
+              type: itemType,
+              productName: name,
+              quantity: qty,
+              unitPrice: unitPrice,
+              totalPrice: totalPrice,
+            };
+          });
+        };
+
         const mapped: Order[] = list.map((o) => ({
           id: o.numero_commande, // display-friendly & unique
           clientId: String(o.client),
-          clientName: o.client_email,
+          clientName: o.first_name || o.last_name ? `${o.first_name || ''} ${o.last_name || ''}`.trim() : o.client_email,
           clientPhone: o.livraison_telephone,
-          items: Array.from({ length: Math.max(1, getItemsCount(o)) }).map((_, idx) => ({
-            id: `${o.numero_commande}-${idx}`,
-            type: 'product',
-            productName: idx === 0 ? `Commande ${o.numero_commande}` : `Article ${idx + 1}`,
-            quantity: 1,
-            unitPrice: Number(o.total_ttc),
-            totalPrice: Number(o.total_ttc),
-          })),
+          items: mapBackendLines(o),
           subtotal: Number(o.sous_total),
           promoCode: o.code_promo_utilise ?? undefined,
           promoDiscount: Number(o.remise_code_promo),

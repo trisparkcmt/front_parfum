@@ -228,6 +228,11 @@ const performProactiveRefresh = async () => {
       api.defaults.headers.common['Authorization'] = `Bearer ${response.data.access}`;
       // Schedule next refresh
       scheduleTokenRefresh();
+    } else {
+      // Cookie mode: we refreshed but no token is in the JSON body.
+      // Clean up local auth token to ensure future requests rely on cookies.
+      localStorage.removeItem('auth_token');
+      delete api.defaults.headers.common['Authorization'];
     }
   } catch (error) {
     console.error('Proactive token refresh failed:', error);
@@ -274,8 +279,13 @@ api.interceptors.response.use(
               failedQueue.push({ resolve, reject });
             })
               .then((token) => {
-                originalRequest.headers.Authorization = `Bearer ${token}`;
-                originalRequest.withCredentials = false;
+                if (token) {
+                  originalRequest.headers.Authorization = `Bearer ${token}`;
+                  originalRequest.withCredentials = false;
+                } else {
+                  delete originalRequest.headers.Authorization;
+                  originalRequest.withCredentials = true;
+                }
                 return api(originalRequest);
               })
               .catch((err) => Promise.reject(err));
@@ -303,6 +313,13 @@ api.interceptors.response.use(
               api.defaults.headers.common['Authorization'] = `Bearer ${newAccessToken}`;
               originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
               originalRequest.withCredentials = false;
+            } else {
+              // Web mode (cookie refresh):
+              // Remove Bearer token from localStorage and defaults since cookies are used instead
+              localStorage.removeItem('auth_token');
+              delete api.defaults.headers.common['Authorization'];
+              delete originalRequest.headers.Authorization;
+              originalRequest.withCredentials = true;
             }
 
             processQueue(null, newAccessToken);

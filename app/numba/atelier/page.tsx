@@ -413,7 +413,7 @@ function AtelierContent() {
     });
   }, [bottleSize]);
 
-  const handleBottleSizeChange = (size: number) => {
+  const handleBottleSizeChange = (size: number, flaconId?: number) => {
     const limit = size * 0.45;
     if (totalMl > limit) {
       setQuantities({});
@@ -426,12 +426,16 @@ function AtelierContent() {
     }
     setBottleSize(size);
     setSavedParfumId(null);
-    // Find the matching flacon from the loaded list
-    const matched = flacons.find((f: any) => {
-      const cap = Number(f.contenance_ml || f.capacite_ml || f.capacity_ml || f.size_ml || 0);
-      return cap === size;
-    });
-    setSelectedFlaconId(matched ? Number(matched.id) : null);
+    if (flaconId !== undefined && flaconId !== null) {
+      setSelectedFlaconId(flaconId);
+    } else {
+      // Find the matching flacon from the loaded list
+      const matched = flacons.find((f: any) => {
+        const cap = Number(f.contenance_ml || f.capacite_ml || f.capacity_ml || f.size_ml || 0);
+        return cap === size;
+      });
+      setSelectedFlaconId(matched ? Number(matched.id) : null);
+    }
   };
 
   const calcPrice = useMemo(() => {
@@ -1559,7 +1563,7 @@ function AtelierContent() {
                     <button
                       key={f.id}
                       onClick={() => {
-                        handleBottleSizeChange(cap);
+                        handleBottleSizeChange(cap, Number(f.id));
                         setShowFlaconDrawer(false);
                       }}
                       className={`w-full flex items-center justify-between gap-4 p-4 border rounded-2xl text-left transition-all ${

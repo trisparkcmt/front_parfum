@@ -1,6 +1,10 @@
-'use client';
-import ProductDetailClient from '../../product/[id]/ProductDetailClient';
+﻿import ProductDetailClient from '../../product/[id]/ProductDetailClient';
 
-export default function PerfumeDetailPage({ params }: { params: { id: string } }) {
-  return <ProductDetailClient id={params.id} />;
+export default async function PerfumeDetailPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = await params;
+  return <ProductDetailClient id={id} />;
 }

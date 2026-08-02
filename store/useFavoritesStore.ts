@@ -8,7 +8,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { Product } from '@/types';
 import { api } from '@/services/api';
-import { authService } from '@/services/apiService';
+import { authService, shopService } from '@/services/apiService';
 import { useAuthStore } from './useAuthStore';
 
 interface FavoritesState {
@@ -87,17 +87,11 @@ export const useFavoritesStore = create<FavoritesState>()(
         // Sync with backend if authenticated and product is found
         const isAuth = useAuthStore.getState().isAuthenticated;
         if (isAuth && product) {
-          const slug = getProductSlug(product);
-          const isAccessory = product.category === 'accessory';
-          const endpoint = isAccessory
-            ? `shop/accessoires/${slug}/favori/`
-            : `shop/parfums/${slug}/favori/`;
-          
           try {
-            const response = await api.post(endpoint);
-            // If API returned "ajouté" but we removed it, toggle it again to make it "retiré"
-            if (response.data?.status === 'ajouté') {
-              await api.post(endpoint);
+            const numericId = Number(product.id);
+            if (numericId) {
+              // Use ID-based delete endpoint
+              await shopService.deleteFavorite(numericId);
             }
           } catch (e) {
             console.warn('Could not sync removed favorite with backend, retaining local state.', e);

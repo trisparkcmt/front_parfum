@@ -124,7 +124,7 @@ export default function DeliveryPage() {
   const fetchDriversAndDeliveries = useCallback(async () => {
     try {
       setLoading(true);
-      
+
       try {
         const driversData = await adminService.getDeliveryDrivers();
         const processedDrivers: Driver[] = driversData.resultats || driversData.results || (Array.isArray(driversData) ? driversData : []);
@@ -413,18 +413,16 @@ export default function DeliveryPage() {
           </div>
         }
       >
-        <div className="p-6 lg:p-8">
-          <div className="space-y-3">
-            <div>
-              <label className="text-[10px] font-bold text-foreground/40 uppercase mb-1 block">ID de l'utilisateur</label>
-              <input
-                type="number"
-                placeholder="Ex: 42"
-                value={userIdVal}
-                onChange={e => setUserIdVal(e.target.value)}
-                className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
-              />
-            </div>
+        <div className="space-y-3">
+          <div>
+            <label className="text-[10px] font-bold text-foreground/40 uppercase mb-1 block">ID de l'utilisateur</label>
+            <input
+              type="number"
+              placeholder="Ex: 42"
+              value={userIdVal}
+              onChange={e => setUserIdVal(e.target.value)}
+              className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
+            />
           </div>
         </div>
       </SlideOver>

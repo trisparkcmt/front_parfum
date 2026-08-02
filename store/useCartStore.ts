@@ -570,6 +570,8 @@ export const useCartStore = create<CartState>()(
           return get().addPerfume(product.id, quantite);
         } else if (category === 'accessory') {
           return get().addAccessory(product.id, quantite);
+        } else if (category === 'huile' || category === 'produit-fini-essence' || product.taille_ml !== undefined) {
+          return get().addFinishedEssence(Number(product.id), quantite);
         } else {
           // Default to accessory if category unclear
           return get().addAccessory(product.id, quantite);

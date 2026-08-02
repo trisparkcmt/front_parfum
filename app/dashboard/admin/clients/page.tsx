@@ -10,6 +10,8 @@ import { adminService as adminHelpers, type BestClient } from '@/services/adminS
 import { useToastStore } from '@/store/useToastStore';
 import { SlideOver } from '@/components/ui/SlideOver';
 
+// ── Shared UI Primitives ─────────────────────────────────────────────────────
+
 function cx(...parts: Array<string | false | null | undefined>) {
   return parts.filter(Boolean).join(' ');
 }
@@ -21,6 +23,49 @@ function initials(name?: string) {
 function isServeuse(user: { roles?: string[]; role?: string }) {
   const roles = user.roles || (user.role ? [user.role] : []);
   return roles.includes('serveuse');
+}
+
+function StatusChip({ active }: { active: boolean }) {
+  return (
+    <span
+      className={cx(
+        'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium ring-1 ring-inset',
+        active
+          ? 'text-emerald-400 bg-emerald-500/10 ring-emerald-500/20'
+          : 'text-red-400 bg-red-500/10 ring-red-500/20'
+      )}
+    >
+      <span className={cx('h-1.5 w-1.5 rounded-full', active ? 'bg-emerald-400' : 'bg-red-400')} />
+      {active ? 'Actif' : 'Inactif'}
+    </span>
+  );
+}
+
+function IconButton({
+  icon: Icon,
+  onClick,
+  title,
+  variant = 'gold',
+}: {
+  icon: React.ElementType;
+  onClick: () => void;
+  title: string;
+  variant?: 'gold' | 'red';
+}) {
+  return (
+    <button
+      onClick={onClick}
+      title={title}
+      type="button"
+      className={cx(
+        'rounded-md p-2 transition-colors sm:p-1.5',
+        variant === 'gold' && 'text-foreground/45 hover:bg-gold/10 hover:text-gold',
+        variant === 'red' && 'text-foreground/45 hover:bg-red-500/10 hover:text-red-400'
+      )}
+    >
+      <Icon size={14} />
+    </button>
+  );
 }
 
 type Tab = 'clients' | 'meilleurs';
@@ -138,43 +183,51 @@ export default function ClientsPage() {
 
   return (
     <div className="space-y-6">
-
-      {/* Header --------------------------------------------------------- */}
+      {/* Header */}
       <div>
         <h1 className="text-xl font-semibold text-foreground">Clients</h1>
         <p className="mt-0.5 text-sm text-foreground/40">Gestion et classement des comptes clients</p>
       </div>
 
-      {/* Tabs --------------------------------------------------------------- */}
-      <div className="flex gap-1.5">
-        <button
-          onClick={() => setTab('clients')}
-          className={cx(
-            'inline-flex items-center gap-1.5 rounded-lg px-3.5 py-2 text-sm font-medium transition-colors',
-            tab === 'clients' ? 'bg-gold text-black' : 'border border-white/10 text-foreground/50 hover:bg-white/6'
-          )}
-        >
-          <Users size={14} /> Tous les clients
-        </button>
-        <button
-          onClick={() => setTab('meilleurs')}
-          className={cx(
-            'inline-flex items-center gap-1.5 rounded-lg px-3.5 py-2 text-sm font-medium transition-colors',
-            tab === 'meilleurs' ? 'bg-gold text-black' : 'border border-white/10 text-foreground/50 hover:bg-white/6'
-          )}
-        >
-          <Trophy size={14} /> Meilleurs clients
-        </button>
+      {/* Tabs */}
+      <div className="border-b border-white/10">
+        <nav className="-mb-px flex gap-6" aria-label="Tabs">
+          <button
+            onClick={() => setTab('clients')}
+            className={cx(
+              'inline-flex items-center gap-2 border-b-2 py-3 text-sm font-medium transition-colors',
+              tab === 'clients'
+                ? 'border-gold text-gold'
+                : 'border-transparent text-foreground/45 hover:text-foreground/70'
+            )}
+          >
+            <Users size={15} /> Tous les clients
+          </button>
+          <button
+            onClick={() => setTab('meilleurs')}
+            className={cx(
+              'inline-flex items-center gap-2 border-b-2 py-3 text-sm font-medium transition-colors',
+              tab === 'meilleurs'
+                ? 'border-gold text-gold'
+                : 'border-transparent text-foreground/45 hover:text-foreground/70'
+            )}
+          >
+            <Trophy size={15} /> Meilleurs clients
+          </button>
+        </nav>
       </div>
 
       {/* ── TAB: All Clients ──────────────────────────────────────────────── */}
       {tab === 'clients' && (
         <>
           {/* KPIs */}
-          <div className="flex divide-x divide-white/8 overflow-hidden rounded-xl border border-white/10 bg-white/[0.03]">
+          <div className="grid grid-cols-2 gap-3 rounded-xl sm:flex sm:divide-x sm:divide-white/8 sm:border sm:border-white/10 sm:bg-white/[0.03]">
             {kpi.map(k => (
-              <div key={k.label} className="flex-1 px-5 py-4">
-                <p className={cx('mb-1.5 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-foreground/35')}>
+              <div
+                key={k.label}
+                className="rounded-xl border border-white/10 bg-white/[0.03] p-4 sm:flex-1 sm:rounded-none sm:border-none sm:bg-transparent sm:px-5 sm:py-4"
+              >
+                <p className="mb-1.5 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-foreground/35">
                   <span className={k.color}>{k.icon}</span>{k.label}
                 </p>
                 <p className="text-xl font-semibold tabular-nums text-foreground">{k.value.toLocaleString()}</p>
@@ -182,83 +235,121 @@ export default function ClientsPage() {
             ))}
           </div>
 
-          {/* Search */}
-          <div className="flex max-w-sm items-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2">
-            <Search size={14} className="shrink-0 text-foreground/35" />
-            <input
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              placeholder="Rechercher un client…"
-              className="flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-foreground/35"
-            />
+          {/* Search Toolbar */}
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <div className="flex w-full items-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 sm:max-w-sm">
+              <Search size={14} className="shrink-0 text-foreground/35" />
+              <input
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                placeholder="Rechercher un client…"
+                className="w-full bg-transparent text-sm text-foreground outline-none placeholder:text-foreground/35"
+              />
+            </div>
           </div>
 
-          {/* Table */}
+          {/* Data Presentation (Mobile Cards vs Desktop Table) */}
           <div className="min-h-[300px] overflow-hidden rounded-xl border border-white/10">
             {loading ? (
               <div className="flex flex-col items-center justify-center gap-2.5 py-20 text-foreground/40">
-                <Loader2 className="animate-spin text-gold" size={28} />
+                <Loader2 className="animate-spin text-gold" size={24} />
                 <p className="text-xs">Chargement des données…</p>
               </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-white/10 bg-white/[0.02]">
-                      {['Client', 'Contact', 'Téléphone', 'Statut', ''].map(h => (
-                        <th key={h} className="px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wider text-foreground/35">{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-white/5">
-                    {clients.map(c => (
-                      <tr key={c.id} className="transition-colors hover:bg-white/[0.02]">
-                        <td className="px-4 py-3">
-                          <div className="flex items-center gap-3">
-                            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gold/15 text-xs font-semibold text-gold">
-                              {initials(c.first_name || c.email)}
-                            </div>
-                            <div className="min-w-0">
-                              <p className="truncate text-xs font-medium text-foreground">{c.first_name || ''} {c.last_name || ''}</p>
-                              <p className="text-[10px] text-foreground/35">ID {c.id}</p>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-4 py-3 text-xs text-foreground/70">{c.email}</td>
-                        <td className="px-4 py-3 text-xs text-foreground/70">{c.telephone || '—'}</td>
-                        <td className="px-4 py-3">
-                          <span className={cx(
-                            'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium ring-1 ring-inset',
-                            c.is_active ? 'text-emerald-400 bg-emerald-500/10 ring-emerald-500/20' : 'text-red-400 bg-red-500/10 ring-red-500/20'
-                          )}>
-                            <span className={cx('h-1.5 w-1.5 rounded-full', c.is_active ? 'bg-emerald-400' : 'bg-red-400')} />
-                            {c.is_active ? 'Actif' : 'Inactif'}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3">
-                          <div className="flex items-center justify-end gap-1">
-                            <button onClick={() => setSelected(c)} title="Détails" className="rounded-md p-1.5 text-foreground/45 transition-colors hover:bg-gold/10 hover:text-gold">
-                              <Eye size={14} />
-                            </button>
-                            <button onClick={() => handleToggleStatus(c.id)} title={c.is_active ? 'Désactiver' : 'Activer'} className="rounded-md p-1.5 text-foreground/45 transition-colors hover:bg-red-500/10 hover:text-red-400">
-                              <Power size={14} />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                    {clients.length === 0 && (
-                      <tr>
-                        <td colSpan={5} className="py-16 text-center text-sm italic text-foreground/30">Aucun client trouvé.</td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
+            ) : clients.length === 0 ? (
+              <div className="py-16 text-center text-sm italic text-foreground/30">
+                Aucun client trouvé.
               </div>
+            ) : (
+              <>
+                {/* Mobile Cards Layout */}
+                <div className="divide-y divide-white/5 md:hidden">
+                  {clients.map(c => (
+                    <div key={c.id} className="space-y-3 p-4 transition-colors hover:bg-white/[0.02]">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gold/15 text-xs font-semibold text-gold">
+                            {initials(c.first_name || c.email)}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="truncate text-xs font-medium text-foreground">
+                              {c.first_name || ''} {c.last_name || ''}
+                            </p>
+                            <p className="text-[10px] text-foreground/35">ID {c.id}</p>
+                          </div>
+                        </div>
+                        <StatusChip active={c.is_active} />
+                      </div>
+
+                      <div className="space-y-1 text-xs text-foreground/70">
+                        <p className="truncate"><span className="text-foreground/35">Email: </span>{c.email}</p>
+                        <p><span className="text-foreground/35">Tél: </span>{c.telephone || '—'}</p>
+                      </div>
+
+                      <div className="flex items-center justify-end gap-1 border-t border-white/5 pt-2">
+                        <IconButton icon={Eye} onClick={() => setSelected(c)} title="Détails" variant="gold" />
+                        <IconButton
+                          icon={Power}
+                          onClick={() => handleToggleStatus(c.id)}
+                          title={c.is_active ? 'Désactiver' : 'Activer'}
+                          variant="red"
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Desktop Table Layout */}
+                <div className="hidden overflow-x-auto md:block">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-white/10 bg-white/[0.02]">
+                        {['Client', 'Contact', 'Téléphone', 'Statut', ''].map(h => (
+                          <th key={h} className="px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wider text-foreground/35">
+                            {h}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-white/5">
+                      {clients.map(c => (
+                        <tr key={c.id} className="transition-colors hover:bg-white/[0.02]">
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-3">
+                              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gold/15 text-xs font-semibold text-gold">
+                                {initials(c.first_name || c.email)}
+                              </div>
+                              <div className="min-w-0">
+                                <p className="truncate text-xs font-medium text-foreground">{c.first_name || ''} {c.last_name || ''}</p>
+                                <p className="text-[10px] text-foreground/35">ID {c.id}</p>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 text-xs text-foreground/70">{c.email}</td>
+                          <td className="px-4 py-3 text-xs text-foreground/70">{c.telephone || '—'}</td>
+                          <td className="px-4 py-3">
+                            <StatusChip active={c.is_active} />
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className="flex items-center justify-end gap-1">
+                              <IconButton icon={Eye} onClick={() => setSelected(c)} title="Détails" variant="gold" />
+                              <IconButton
+                                icon={Power}
+                                onClick={() => handleToggleStatus(c.id)}
+                                title={c.is_active ? 'Désactiver' : 'Activer'}
+                                variant="red"
+                              />
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </>
             )}
           </div>
 
-          {/* Client detail panel */}
+          {/* Client Detail Read-Only SlideOver */}
           {selected && (
             <SlideOver
               isOpen={!!selected}
@@ -267,49 +358,66 @@ export default function ClientsPage() {
               description={selected.email}
               size="sm"
               footer={
-                <button onClick={() => setSelected(null)} className="w-full rounded-lg border border-white/10 py-2.5 text-sm text-foreground/60 transition-colors hover:bg-white/6">
+                <button
+                  type="button"
+                  onClick={() => setSelected(null)}
+                  className="w-full rounded-lg border border-white/10 py-2.5 text-sm font-medium text-foreground/60 transition-colors hover:bg-white/6"
+                >
                   Fermer
                 </button>
               }
             >
               <div className="space-y-5">
+                {/* Header Profile Summary */}
                 <div className="flex items-center gap-3">
                   <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-gold/15 text-lg font-semibold text-gold">
                     {initials(selected.first_name)}
                   </div>
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-medium text-foreground">{selected.first_name} {selected.last_name}</p>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <p className="truncate text-sm font-medium text-foreground">{selected.first_name} {selected.last_name}</p>
+                      <StatusChip active={selected.is_active} />
+                    </div>
                     <p className="truncate text-xs text-foreground/40">{selected.email}</p>
                   </div>
                 </div>
 
+                {/* Summary Stat Grid */}
                 <div className="grid grid-cols-2 gap-3">
                   {[
                     { label: 'Favoris', value: selected.favorites?.length || 0 },
                     { label: 'Compositions', value: selected.custom_perfumes?.length || 0 },
                   ].map(s => (
                     <div key={s.label} className="rounded-xl border border-white/10 bg-white/[0.02] p-3 text-center">
-                      <p className="text-lg font-semibold text-foreground">{s.value}</p>
-                      <p className="text-[10px] text-foreground/40">{s.label}</p>
+                      <p className="text-lg font-semibold tabular-nums text-foreground">{s.value}</p>
+                      <p className="text-[10px] font-semibold uppercase tracking-wider text-foreground/40">{s.label}</p>
                     </div>
                   ))}
                 </div>
 
-                <dl className="space-y-1.5 rounded-xl border border-white/10 bg-white/[0.02] p-3.5 text-xs">
-                  <div className="flex justify-between">
-                    <dt className="text-foreground/40">Téléphone</dt>
-                    <dd className="font-medium text-foreground/80">{selected.telephone || '—'}</dd>
-                  </div>
-                  <div className="flex justify-between">
-                    <dt className="text-foreground/40">Statut</dt>
-                    <dd className="font-medium text-foreground/80">{selected.is_active ? 'Actif' : 'Inactif'}</dd>
-                  </div>
-                </dl>
+                {/* Details List */}
+                <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
+                  <p className="mb-3 text-[10px] font-semibold uppercase tracking-widest text-foreground/40">
+                    Informations du compte
+                  </p>
+                  <dl className="space-y-2 text-xs">
+                    <div className="flex justify-between">
+                      <dt className="text-foreground/40">Téléphone</dt>
+                      <dd className="font-medium text-foreground/80">{selected.telephone || '—'}</dd>
+                    </div>
+                    <div className="flex justify-between">
+                      <dt className="text-foreground/40">Statut</dt>
+                      <dd className="font-medium text-foreground/80">{selected.is_active ? 'Actif' : 'Inactif'}</dd>
+                    </div>
+                  </dl>
+                </div>
 
+                {/* Action CTA */}
                 {isServeuse(selected) ? (
                   <p className="text-center text-xs font-medium text-emerald-400">Déjà serveuse</p>
                 ) : (
                   <button
+                    type="button"
                     onClick={handlePromoteToServeuse}
                     disabled={promoting}
                     className="flex w-full items-center justify-center gap-2 rounded-lg bg-gold py-2.5 text-sm font-semibold text-black transition-colors hover:bg-gold/85 disabled:opacity-50"
@@ -327,32 +435,35 @@ export default function ClientsPage() {
       {/* ── TAB: Meilleurs Clients ────────────────────────────────────────── */}
       {tab === 'meilleurs' && (
         <>
-          {/* Filter controls */}
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="flex gap-1 rounded-lg border border-white/10 bg-white/[0.03] p-1">
+          {/* Filter Toolbar */}
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex w-full rounded-lg border border-white/10 bg-white/[0.03] p-1 sm:w-auto">
               <button
+                type="button"
                 onClick={() => { setFilterBy('spent'); setBestPage(1); }}
                 className={cx(
-                  'inline-flex items-center gap-1.5 rounded-md px-3.5 py-1.5 text-xs font-medium transition-colors',
-                  filterBy === 'spent' ? 'bg-gold text-black' : 'text-foreground/50 hover:text-foreground/80'
+                  'flex-1 inline-flex items-center justify-center gap-1.5 rounded-md px-3.5 py-1.5 text-xs font-medium transition-colors sm:flex-initial',
+                  filterBy === 'spent' ? 'bg-gold text-black font-semibold' : 'text-foreground/50 hover:text-foreground/80'
                 )}
               >
                 <TrendingUp size={13} /> Par dépenses
               </button>
               <button
+                type="button"
                 onClick={() => { setFilterBy('orders'); setBestPage(1); }}
                 className={cx(
-                  'inline-flex items-center gap-1.5 rounded-md px-3.5 py-1.5 text-xs font-medium transition-colors',
-                  filterBy === 'orders' ? 'bg-gold text-black' : 'text-foreground/50 hover:text-foreground/80'
+                  'flex-1 inline-flex items-center justify-center gap-1.5 rounded-md px-3.5 py-1.5 text-xs font-medium transition-colors sm:flex-initial',
+                  filterBy === 'orders' ? 'bg-gold text-black font-semibold' : 'text-foreground/50 hover:text-foreground/80'
                 )}
               >
                 <ShoppingBag size={13} /> Par commandes
               </button>
               <button
+                type="button"
                 onClick={() => { setFilterBy('points'); setBestPage(1); }}
                 className={cx(
-                  'inline-flex items-center gap-1.5 rounded-md px-3.5 py-1.5 text-xs font-medium transition-colors',
-                  filterBy === 'points' ? 'bg-gold text-black' : 'text-foreground/50 hover:text-foreground/80'
+                  'flex-1 inline-flex items-center justify-center gap-1.5 rounded-md px-3.5 py-1.5 text-xs font-medium transition-colors sm:flex-initial',
+                  filterBy === 'points' ? 'bg-gold text-black font-semibold' : 'text-foreground/50 hover:text-foreground/80'
                 )}
               >
                 <Star size={13} /> Par points
@@ -365,14 +476,14 @@ export default function ClientsPage() {
           <div className="overflow-hidden rounded-xl border border-white/10">
             {bestLoading ? (
               <div className="flex flex-col items-center justify-center gap-2.5 py-20 text-foreground/40">
-                <Loader2 className="animate-spin text-gold" size={28} />
+                <Loader2 className="animate-spin text-gold" size={24} />
                 <p className="text-xs">Calcul du classement…</p>
               </div>
             ) : (
               <>
-                {/* Top 3 podium */}
+                {/* Top 3 Podium */}
                 {bestClients.length >= 3 && (
-                  <div className="grid grid-cols-3 gap-3 border-b border-white/10 bg-white/[0.02] p-6">
+                  <div className="grid grid-cols-3 gap-2 border-b border-white/10 bg-white/[0.02] p-4 sm:gap-3 sm:p-6">
                     {/* 2nd */}
                     <Podium
                       rank={2}
@@ -395,27 +506,27 @@ export default function ClientsPage() {
                   </div>
                 )}
 
-                {/* Full list */}
+                {/* Full Ranking List */}
                 <div className="divide-y divide-white/5">
                   {bestClients.map((client, index) => {
                     const rank = (bestPage - 1) * PAGE_SIZE + index + 1;
                     const style = rank <= 3 ? RANK_STYLES[rank - 1] : null;
                     return (
-                      <div key={client.id} className="flex items-center gap-4 px-4 py-3 transition-colors hover:bg-white/[0.02]">
+                      <div key={client.id} className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-white/[0.02] sm:gap-4">
                         <div className={cx(
                           'flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-xs font-semibold',
                           style ? cx(style.bg, style.text) : 'bg-white/6 text-foreground/35'
                         )}>
                           {style ? <Star size={13} /> : rank}
                         </div>
-                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gold/15 text-sm font-semibold text-gold">
+                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gold/15 text-xs font-semibold text-gold sm:h-9 sm:w-9 sm:text-sm">
                           {initials(client.user_details?.first_name)}
                         </div>
                         <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm font-medium text-foreground">
+                          <p className="truncate text-xs font-medium text-foreground sm:text-sm">
                             {client.user_details?.first_name} {client.user_details?.last_name}
                           </p>
-                          <p className="truncate text-[11px] text-foreground/40">{client.user_details?.email}</p>
+                          <p className="truncate text-[10px] text-foreground/40 sm:text-[11px]">{client.user_details?.email}</p>
                         </div>
                         <div className="shrink-0 text-right">
                           {filterBy === 'points' && <RankMetric value={client.points_fidelite} label="pts fidélité" />}
@@ -428,9 +539,8 @@ export default function ClientsPage() {
                     );
                   })}
                   {bestClients.length === 0 && (
-                    <div className="flex flex-col items-center justify-center gap-3 py-20 text-foreground/30">
-                      <Trophy size={34} className="text-foreground/10" />
-                      <p className="text-sm italic">Aucun classement disponible</p>
+                    <div className="py-16 text-center text-sm italic text-foreground/30">
+                      Aucun classement disponible
                     </div>
                   )}
                 </div>
@@ -439,6 +549,7 @@ export default function ClientsPage() {
                 {totalPages > 1 && (
                   <div className="flex items-center justify-between border-t border-white/10 px-4 py-3">
                     <button
+                      type="button"
                       onClick={() => setBestPage(p => Math.max(1, p - 1))}
                       disabled={bestPage === 1}
                       className="inline-flex items-center gap-1 rounded-lg border border-white/10 px-3 py-1.5 text-xs font-medium text-foreground/60 transition-colors hover:bg-white/6 disabled:cursor-not-allowed disabled:opacity-30"
@@ -447,6 +558,7 @@ export default function ClientsPage() {
                     </button>
                     <span className="text-xs text-foreground/40">Page {bestPage} / {totalPages}</span>
                     <button
+                      type="button"
                       onClick={() => setBestPage(p => Math.min(totalPages, p + 1))}
                       disabled={bestPage === totalPages}
                       className="inline-flex items-center gap-1 rounded-lg border border-white/10 px-3 py-1.5 text-xs font-medium text-foreground/60 transition-colors hover:bg-white/6 disabled:cursor-not-allowed disabled:opacity-30"
@@ -464,42 +576,44 @@ export default function ClientsPage() {
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────────
+// ── Podium Component ─────────────────────────────────────────────────────────
 
 function Podium({ rank, name, sub, lead }: { rank: 1 | 2 | 3; name: string; sub: string; lead?: boolean }) {
   const style = RANK_STYLES[rank - 1];
   return (
-    <div className={cx('flex flex-col items-center gap-2', !lead && 'pt-6')}>
-      {lead && <Crown size={18} className="text-gold" />}
+    <div className={cx('flex flex-col items-center gap-1.5 sm:gap-2', !lead && 'pt-4 sm:pt-6')}>
+      {lead && <Crown size={16} className="text-gold sm:size-[18px]" />}
       <div className="relative">
         <div className={cx(
           'flex items-center justify-center rounded-full font-bold ring-2',
-          lead ? 'h-14 w-14 text-xl' : 'h-11 w-11 text-base',
+          lead ? 'h-11 w-11 text-base sm:h-14 sm:w-14 sm:text-xl' : 'h-9 w-9 text-xs sm:h-11 sm:w-11 sm:text-base',
           style.bg, style.text, style.ring
         )}>
           {name.trim() ? name.trim().charAt(0).toUpperCase() : 'U'}
         </div>
         <span className={cx(
-          'absolute -bottom-1 -right-1 flex items-center justify-center rounded-full text-[10px] font-bold',
-          lead ? 'h-5 w-5' : 'h-4 w-4',
+          'absolute -bottom-1 -right-1 flex items-center justify-center rounded-full text-[9px] font-bold sm:text-[10px]',
+          lead ? 'h-4 w-4 sm:h-5 sm:w-5' : 'h-3.5 w-3.5 sm:h-4 sm:w-4',
           style.badge
         )}>
           {rank}
         </span>
       </div>
-      <p className={cx('text-center leading-tight', lead ? 'text-sm font-bold text-gold' : 'text-xs font-semibold text-foreground')}>
+      <p className={cx('text-center leading-tight truncate max-w-[80px] sm:max-w-[120px]', lead ? 'text-xs font-bold text-gold sm:text-sm' : 'text-[11px] font-semibold text-foreground sm:text-xs')}>
         {name}
       </p>
-      <p className={cx('text-center', lead ? 'text-xs text-gold/60' : 'text-[10px] text-foreground/40')}>{sub}</p>
+      <p className={cx('text-center', lead ? 'text-[11px] text-gold/60 sm:text-xs' : 'text-[9px] text-foreground/40 sm:text-[10px]')}>{sub}</p>
     </div>
   );
 }
 
+// ── Metric Helper Component ──────────────────────────────────────────────────
+
 function RankMetric({ value, label }: { value?: number; label: string }) {
   return (
     <>
-      <p className="text-sm font-semibold text-gold">{(value ?? 0).toLocaleString('fr-FR')}</p>
-      <p className="text-[10px] text-foreground/40">{label}</p>
+      <p className="text-xs font-semibold tabular-nums text-gold sm:text-sm">{(value ?? 0).toLocaleString('fr-FR')}</p>
+      <p className="text-[9px] text-foreground/40 sm:text-[10px]">{label}</p>
     </>
   );
 }

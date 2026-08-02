@@ -207,13 +207,13 @@ export function ProductCard({
         {/* Product name — clamped to 2 lines, fixed min-height reserves space */}
         <Link
           href={productUrl}
-          className="mt-0.5 line-clamp-2 min-h-[2.2rem] sm:min-h-[2.6rem] font-serif text-[13px] sm:text-[14px] leading-[1.3] text-foreground/90 transition-colors hover:text-gold"
+          className="mt-0.5  min-h-[2.2rem] sm:min-h-[2.6rem] font-serif text-[13px] sm:text-[14px] leading-[1.3] text-foreground/90 transition-colors hover:text-gold"
         >
           {product.name}
         </Link>
 
         {/* Price — always one line, mt-auto pushes it away from name */}
-        <p className="mt-1 sm:mt-1.5 text-xs sm:text-sm text-foreground/60">
+        <p className=" text-xs sm:text-sm text-foreground/60">
           {hasReduction ? (
             <>
               <span className="line-through text-foreground/40 mr-1 sm:mr-1.5">{formatPrice(product.originalPrice!)}</span>
@@ -237,7 +237,7 @@ export function ProductCard({
           onAddToCart && (
             <button
               onClick={() => onAddToCart(product)}
-              className="w-full flex items-center justify-center gap-1.5 sm:gap-2 bg-gold py-2 sm:py-2.5 text-[10px] sm:text-[11px] font-semibold uppercase tracking-[0.12em] sm:tracking-[0.15em] text-black hover:bg-[#d4b87a] transition-colors"
+              className="w-full flex items-center justify-center gap-1.5 sm:gap-2 py-2 sm:py-2.5 text-[10px] sm:text-[11px] font-semibold uppercase tracking-[0.12em] sm:tracking-[0.15em] bg-transparent border border-[var(--t-btn-ghost-border)] text-[var(--t-btn-ghost-text)] transition-colors duration-200 hover:bg-[var(--t-btn-ghost-hover-bg)] hover:text-[var(--t-btn-ghost-hover-text)] "
             >
               <ShoppingBag size={12} className="sm:hidden" />
               <ShoppingBag size={13} className="hidden sm:block" />

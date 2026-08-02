@@ -72,7 +72,7 @@ export function FormModal({
         <>
           {/* Overlay - takes full viewport */}
           <div
-            className="fixed inset-0 top-0 left-0 right-0 bottom-0 z-40 bg-black/70 backdrop-blur-sm"
+            className="fixed inset-0 top-0 left-0 right-0 bottom-0 z-40 bg-black/70"
             onClick={onClose}
           />
           {/* Modal - positioned above overlay */}
@@ -81,45 +81,45 @@ export function FormModal({
             onClick={onClose}
           >
             <motion.div
-              initial={{ opacity: 0, x: 100 }}
+              initial={{ opacity: 0, x: 24 }}
               animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 100 }}
-              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+              exit={{ opacity: 0, x: 24 }}
+              transition={{ type: 'spring', damping: 30, stiffness: 320 }}
               onClick={(e) => e.stopPropagation()}
               className={cn(
-                'relative w-full h-screen max-h-screen flex flex-col pointer-events-auto',
-                'bg-background/95 border-l border-white/10 shadow-2xl',
+                'relative flex h-screen max-h-screen w-full flex-col pointer-events-auto',
+                'border-l border-white/10 bg-background',
                 sizes[size],
                 className
               )}
             >
               {/* Sticky Header */}
               {(title || showCloseButton) && (
-                <div className="sticky top-0 z-10 flex items-center justify-between border-b border-white/10 bg-background/90 px-6 py-4 backdrop-blur">
+                <div className="sticky top-0 z-10 flex items-start justify-between gap-4 border-b border-white/10 bg-background px-6 py-4">
                   {title && (
-                    <div>
-                      <h3 className="font-bold text-foreground text-lg">{title}</h3>
-                      {subtitle && <p className="text-xs text-foreground/40 mt-0.5">{subtitle}</p>}
+                    <div className="min-w-0">
+                      <h3 className="truncate text-[15px] font-semibold text-foreground">{title}</h3>
+                      {subtitle && <p className="mt-0.5 text-xs text-foreground/40">{subtitle}</p>}
                     </div>
                   )}
                   {showCloseButton && (
                     <button
                       onClick={onClose}
-                      className="p-2 rounded-xl hover:bg-white/5 text-foreground/40 hover:text-foreground transition-colors ml-auto"
+                      className="ml-auto shrink-0 rounded-md p-1.5 text-foreground/40 transition-colors hover:bg-white/8 hover:text-foreground"
                     >
-                      <X size={18} />
+                      <X size={16} />
                     </button>
                   )}
                 </div>
               )}
 
               {/* Scrollable Content */}
-              <div className="flex-1 flex flex-col overflow-y-hidden">
+              <div className="flex flex-1 flex-col overflow-y-hidden">
                 <div className="flex-1 overflow-y-auto">
-                  <div className="p-6 lg:p-8">{children}</div>
+                  <div className="px-6 py-6">{children}</div>
                 </div>
                 {footer ? (
-                  <div className="border-t border-white/10 bg-background/90 px-6 py-4">{footer}</div>
+                  <div className="border-t border-white/10 bg-background px-6 py-4">{footer}</div>
                 ) : null}
               </div>
             </motion.div>

@@ -114,7 +114,8 @@ export type ProductCategory =
   | 'perfume-brand'
   | 'perfume-dupe'
   | 'numba-creation'
-  | 'huile';
+  | 'huile'
+  | 'produit-fini-essence';
 
 export type AccessorySubCategory =
   | 'watches'
@@ -168,6 +169,10 @@ export interface Product {
   capacite_reservoir_ml?: number;
   est_connecte?: boolean;
   a_jeux_de_lumiere?: boolean;
+  // Essence-specific (ProduitFiniEssence — "vente à la demande")
+  taille_ml?: number;       // fixed bottle size in ml (e.g. 30, 50, 100)
+  stock_total_ml?: number;  // total virtual stock available in ml (from LotEssence FIFO)
+  essence_id?: number;      // backend essence ID
 }
 
 export interface Accessory extends Product {}
@@ -334,6 +339,8 @@ export interface BackendOrder {
   numero_commande: string;
   client: number;
   client_email: string;
+  first_name?: string;
+  last_name?: string;
   prestataire: number | null;
   prestataire_code: string | null;
   livreur: number | null;

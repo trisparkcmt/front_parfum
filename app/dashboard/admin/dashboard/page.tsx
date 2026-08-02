@@ -19,12 +19,12 @@ function cx(...classes: (string | boolean | undefined)[]) {
 
 function StatusChip({ label, color = 'gold' }: { label: string; color?: 'emerald' | 'blue' | 'amber' | 'red' | 'purple' | 'gold' }) {
   const colorMap = {
-    emerald: 'text-emerald-400 bg-emerald-500/10 ring-emerald-500/20 dot-emerald-400',
-    blue: 'text-blue-400 bg-blue-500/10 ring-blue-500/20 dot-blue-400',
-    amber: 'text-amber-400 bg-amber-500/10 ring-amber-500/20 dot-amber-400',
-    red: 'text-red-400 bg-red-500/10 ring-red-500/20 dot-red-400',
-    purple: 'text-purple-400 bg-purple-500/10 ring-purple-500/20 dot-purple-400',
-    gold: 'text-gold bg-gold/10 ring-gold/20 dot-gold',
+    emerald: 'text-emerald-400 bg-emerald-500/10 ring-emerald-500/20',
+    blue: 'text-blue-400 bg-blue-500/10 ring-blue-500/20',
+    amber: 'text-amber-400 bg-amber-500/10 ring-amber-500/20',
+    red: 'text-red-400 bg-red-500/10 ring-red-500/20',
+    purple: 'text-purple-400 bg-purple-500/10 ring-purple-500/20',
+    gold: 'text-gold bg-gold/10 ring-gold/20',
   };
 
   const dotColorMap = {

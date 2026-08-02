@@ -94,6 +94,7 @@ interface AuthState {
   setUser: (user: User) => void;
   hasRole: (role: UserRole) => boolean;
   updateProfile: (data: { firstName?: string; lastName?: string; email?: string; phone?: string }) => Promise<boolean>;
+  fetchUser: () => Promise<User | null>;
   refreshUser: () => Promise<User | null>;
 }
 
@@ -453,6 +454,10 @@ export const useAuthStore = create<AuthState>()(
           addToast(errorMsg, 'error');
           return false;
         }
+      },
+
+      fetchUser: async () => {
+        return get().refreshUser();
       },
 
       refreshUser: async () => {

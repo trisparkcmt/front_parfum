@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Search, Plus, Edit2, Trash2, Loader2, SlidersHorizontal, X } from 'lucide-react';
+import { Search, Plus, Edit2, Trash2, Loader2, SlidersHorizontal, X, Tag, Layers, Palette, DollarSign, Boxes } from 'lucide-react';
 import { shopService, adminService } from '@/services/apiService';
 import { useToastStore } from '@/store/useToastStore';
 import { useCatalogPermissions } from '@/hooks/useCatalogPermissions';
@@ -16,6 +16,37 @@ import { SlideOver } from '@/components/ui/SlideOver';
 function cx(...parts: Array<string | false | null | undefined>) {
   return parts.filter(Boolean).join(' ');
 }
+
+// ─────────────────────────────────────────────────────────────────────────
+// Form primitives — shared visual language for every field in the modal
+// ─────────────────────────────────────────────────────────────────────────
+
+function FormSection({ title, icon, children }: { title: string; icon: React.ReactNode; children: React.ReactNode }) {
+  return (
+    <section className="space-y-4 rounded-xl border border-white/10 bg-white/[0.02] p-4">
+      <p className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-widest text-foreground/40">
+        {icon}{title}
+      </p>
+      {children}
+    </section>
+  );
+}
+
+function Field({
+  label, required, error, children,
+}: { label: React.ReactNode; required?: boolean; error?: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <label className="mb-1.5 block text-xs font-medium text-foreground/55">
+        {label}{required && <span className="ml-0.5 text-gold">*</span>}
+      </label>
+      {children}
+      {error && <p className="mt-1 text-[11px] text-red-400">{error}</p>}
+    </div>
+  );
+}
+
+const inputCls = 'w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-gold/50';
 
 export default function AccessoriesPage() {
   const permissions = useCatalogPermissions('accessoires');
@@ -286,6 +317,10 @@ export default function AccessoriesPage() {
 
   const activeFilterCount = [marqueFilter, matiereFilter, couleurFilter, enStockFilter].filter(Boolean).length;
 
+  const profitPreview = form.prix_unitaire && form.prix_achat
+    ? (parseFloat(form.prix_unitaire) - parseFloat(form.prix_achat))
+    : null;
+
   return (
     <div className="space-y-6">
 
@@ -550,232 +585,217 @@ export default function AccessoriesPage() {
         )}
       </div>
 
-      {/* ── Form modal — untouched, same open system ─────────────────────── */}
+      {/* ── Form modal — now restyled inside too ──────────────────────────── */}
       <SlideOver
         isOpen={showModal}
         onClose={() => setShowModal(false)}
         title={editingAccessory ? "Modifier l'accessoire" : "Ajouter un accessoire"}
-        description="Formulaire complet, sans popup ni défilement gênant."
+        description={editingAccessory ? editingAccessory.nom : 'Nouvel accessoire du catalogue'}
         size="xl"
         footer={
           <div className="flex gap-3">
-            <button onClick={handleSave} className="flex-1 bg-gold text-black rounded-xl py-3 text-sm font-bold hover:bg-gold/80 transition-all">Enregistrer</button>
-            <button onClick={() => setShowModal(false)} className="px-5 border border-white/10 rounded-xl py-3 text-sm text-foreground/60 hover:bg-white/5 transition-all">Annuler</button>
+            <button onClick={handleSave} className="flex-1 rounded-lg bg-gold py-2.5 text-sm font-semibold text-black transition-colors hover:bg-gold/85">
+              Enregistrer
+            </button>
+            <button onClick={() => setShowModal(false)} className="rounded-lg border border-white/10 px-5 py-2.5 text-sm text-foreground/60 transition-colors hover:bg-white/6">
+              Annuler
+            </button>
           </div>
         }
       >
-        <div className="grid grid-cols-1 xl:grid-cols-[1.6fr_0.9fr] gap-6">
-          <div className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">Marque *</label>
+        <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.6fr_0.9fr]">
+          <div className="space-y-4">
+
+            <FormSection title="Identification" icon={<Tag size={11} />}>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <Field label="Marque" required error={formErrors.marque}>
                   <input
                     data-field="marque"
                     value={form.marque}
                     onChange={e => updateForm('marque', e.target.value)}
-                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-base text-foreground outline-none focus:border-gold"
+                    className={inputCls}
                   />
-                  {formErrors.marque && <p className="mt-1 text-xs text-red-500">{formErrors.marque}</p>}
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">Nom de l'accessoire *</label>
+                </Field>
+                <Field label="Nom de l'accessoire" required error={formErrors.nom}>
                   <input
                     data-field="nom"
                     value={form.nom}
                     onChange={e => updateForm('nom', e.target.value)}
-                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-base text-foreground outline-none focus:border-gold"
+                    className={inputCls}
                   />
-                  {formErrors.nom && <p className="mt-1 text-xs text-red-500">{formErrors.nom}</p>}
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">Type d'accessoire *</label>
+                </Field>
+                <Field label="Type d'accessoire" required error={formErrors.type_accessoire}>
                   <select
                     data-field="type_accessoire"
                     value={form.type_accessoire}
                     onChange={e => updateForm('type_accessoire', e.target.value)}
-                    className="flex-1 w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-base text-foreground outline-none focus:border-gold"
+                    className={inputCls}
                   >
-                    <option value="" disabled className="bg-neutral-900">Type d'accessoire</option>
+                    <option value="" disabled className="bg-background">Choisir un type</option>
                     {accessoryTypes.map(t => (
-                      <option key={t.id} value={t.id} className="bg-neutral-900">{t.nom}</option>
+                      <option key={t.id} value={t.id} className="bg-background">{t.nom}</option>
                     ))}
                   </select>
-                  {formErrors.type_accessoire && <p className="mt-1 text-xs text-red-500">{formErrors.type_accessoire}</p>}
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">Slug (optionnel)</label>
-                  <input
-                    data-field="slug"
-                    value={form.slug}
-                    onChange={e => updateForm('slug', e.target.value)}
-                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-base text-foreground outline-none focus:border-gold"
-                  />
-                  {formErrors.slug && <p className="mt-1 text-xs text-red-500">{formErrors.slug}</p>}
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">Référence SKU (optionnel)</label>
+                </Field>
+                <Field label="Référence SKU" error={formErrors.reference_sku}>
                   <input
                     data-field="reference_sku"
                     value={form.reference_sku}
                     onChange={e => updateForm('reference_sku', e.target.value)}
-                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-base text-foreground outline-none focus:border-gold"
+                    placeholder="Optionnel"
+                    className={inputCls}
                   />
-                  {formErrors.reference_sku && <p className="mt-1 text-xs text-red-500">{formErrors.reference_sku}</p>}
+                </Field>
+                <div className="sm:col-span-2">
+                  <Field label="Slug" error={formErrors.slug}>
+                    <input
+                      data-field="slug"
+                      value={form.slug}
+                      onChange={e => updateForm('slug', e.target.value)}
+                      placeholder="Généré automatiquement si vide"
+                      className={inputCls}
+                    />
+                  </Field>
                 </div>
-                <div>
-                  <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">Description courte</label>
+              </div>
+            </FormSection>
+
+            <FormSection title="Descriptions" icon={<Layers size={11} />}>
+              <div className="space-y-4">
+                <Field label="Description courte" error={formErrors.description_courte}>
                   <textarea
                     data-field="description_courte"
                     value={form.description_courte}
                     onChange={e => updateForm('description_courte', e.target.value)}
-                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-base text-foreground outline-none focus:border-gold"
                     rows={2}
+                    className={cx(inputCls, 'resize-none')}
                   />
-                  {formErrors.description_courte && <p className="mt-1 text-xs text-red-500">{formErrors.description_courte}</p>}
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">Description longue</label>
+                </Field>
+                <Field label="Description longue" error={formErrors.description_longue}>
                   <textarea
                     data-field="description_longue"
                     value={form.description_longue}
                     onChange={e => updateForm('description_longue', e.target.value)}
-                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-base text-foreground outline-none focus:border-gold"
                     rows={3}
+                    className={cx(inputCls, 'resize-none')}
                   />
-                  {formErrors.description_longue && <p className="mt-1 text-xs text-red-500">{formErrors.description_longue}</p>}
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">Description IA</label>
+                </Field>
+                <Field label="Description IA" error={formErrors.description_ia}>
                   <textarea
                     data-field="description_ia"
                     value={form.description_ia}
                     onChange={e => updateForm('description_ia', e.target.value)}
-                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-base text-foreground outline-none focus:border-gold"
                     rows={2}
+                    className={cx(inputCls, 'resize-none')}
                   />
-                  {formErrors.description_ia && <p className="mt-1 text-xs text-red-500">{formErrors.description_ia}</p>}
-                </div>
-                <div className="grid grid-cols-3 gap-2">
-                  <div>
-                    <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">Matière</label>
-                    <input
-                      data-field="matiere"
-                      value={form.matiere}
-                      onChange={e => updateForm('matiere', e.target.value)}
-                      className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-base text-foreground outline-none focus:border-gold"
-                    />
-                    {formErrors.matiere && <p className="mt-1 text-xs text-red-500">{formErrors.matiere}</p>}
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">Couleur</label>
-                    <input
-                      data-field="couleur"
-                      value={form.couleur}
-                      onChange={e => updateForm('couleur', e.target.value)}
-                      className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-base text-foreground outline-none focus:border-gold"
-                    />
-                    {formErrors.couleur && <p className="mt-1 text-xs text-red-500">{formErrors.couleur}</p>}
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">Taille</label>
-                    <input
-                      data-field="taille"
-                      value={form.taille}
-                      onChange={e => updateForm('taille', e.target.value)}
-                      className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-base text-foreground outline-none focus:border-gold"
-                    />
-                    {formErrors.taille && <p className="mt-1 text-xs text-red-500">{formErrors.taille}</p>}
-                  </div>
-                </div>
+                </Field>
+              </div>
+            </FormSection>
+
+            <FormSection title="Caractéristiques" icon={<Palette size={11} />}>
+              <div className="grid grid-cols-3 gap-3">
+                <Field label="Matière" error={formErrors.matiere}>
+                  <input data-field="matiere" value={form.matiere} onChange={e => updateForm('matiere', e.target.value)} className={inputCls} />
+                </Field>
+                <Field label="Couleur" error={formErrors.couleur}>
+                  <input data-field="couleur" value={form.couleur} onChange={e => updateForm('couleur', e.target.value)} className={inputCls} />
+                </Field>
+                <Field label="Taille" error={formErrors.taille}>
+                  <input data-field="taille" value={form.taille} onChange={e => updateForm('taille', e.target.value)} className={inputCls} />
+                </Field>
+              </div>
+            </FormSection>
+
+            <FormSection title="Tarification" icon={<DollarSign size={11} />}>
+              <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">Prix unitaire (FCFA) *</label>
+                  <Field label="Prix unitaire (FCFA)" required error={formErrors.prix_unitaire}>
                     <input
                       data-field="prix_unitaire"
                       type="number"
                       value={form.prix_unitaire}
                       onChange={e => updateForm('prix_unitaire', e.target.value)}
-                      className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-base text-foreground outline-none focus:border-gold"
+                      className={inputCls}
                     />
-                    {formErrors.prix_unitaire && <p className="mt-1 text-xs text-red-500">{formErrors.prix_unitaire}</p>}
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">Prix promo (optionnel)</label>
+                  </Field>
+                  <Field label="Prix promo (FCFA)" error={formErrors.prix_promotionnel}>
                     <input
                       data-field="prix_promotionnel"
                       type="number"
                       value={form.prix_promotionnel}
                       onChange={e => updateForm('prix_promotionnel', e.target.value)}
-                      className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-base text-foreground outline-none focus:border-gold"
+                      placeholder="Optionnel"
+                      className={inputCls}
                     />
-                    {formErrors.prix_promotionnel && <p className="mt-1 text-xs text-red-500">{formErrors.prix_promotionnel}</p>}
-                  </div>
+                  </Field>
                 </div>
                 {isAdmin && (
-                  <div>
-                    <label className="block text-xs font-bold text-amber-400/80 uppercase tracking-wider mb-1.5 flex items-center gap-1">
-                      Prix d'achat (FCFA) <span className="text-[10px] bg-amber-500/10 text-amber-400 px-1 rounded">(Admin)</span>
-                    </label>
-                    <input
-                      data-field="prix_achat"
-                      type="number"
-                      placeholder="ex: 3000"
-                      value={form.prix_achat}
-                      onChange={e => updateForm('prix_achat', e.target.value)}
-                      className="w-full bg-white/5 border border-amber-500/20 rounded-lg px-3 py-2 text-base text-foreground outline-none focus:border-gold"
-                    />
-                    {form.prix_unitaire && form.prix_achat && (
-                      <p className="text-xs text-emerald-400 mt-1">
-                        Bénéfice estimé : +{(parseFloat(form.prix_unitaire) - parseFloat(form.prix_achat)).toLocaleString()} FCFA
+                  <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 p-3">
+                    <Field
+                      label={
+                        <span className="flex items-center gap-1.5 text-amber-400/90">
+                          Prix d'achat (FCFA)
+                          <span className="rounded bg-amber-500/15 px-1.5 py-0.5 text-[9px] font-semibold text-amber-400">Admin</span>
+                        </span>
+                      }
+                      error={formErrors.prix_achat}
+                    >
+                      <input
+                        data-field="prix_achat"
+                        type="number"
+                        placeholder="ex : 3000"
+                        value={form.prix_achat}
+                        onChange={e => updateForm('prix_achat', e.target.value)}
+                        className={cx(inputCls, 'border-amber-500/20')}
+                      />
+                    </Field>
+                    {profitPreview !== null && (
+                      <p className={cx('mt-2 text-xs font-medium', profitPreview >= 0 ? 'text-emerald-400' : 'text-red-400')}>
+                        Bénéfice estimé : {profitPreview >= 0 ? '+' : ''}{profitPreview.toLocaleString()} FCFA
                       </p>
                     )}
                   </div>
                 )}
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">Quantité en stock *</label>
-                    <input
-                      data-field="stock_quantite"
-                      type="number"
-                      value={form.stock_quantite}
-                      onChange={e => updateForm('stock_quantite', e.target.value)}
-                      className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-base text-foreground outline-none focus:border-gold"
-                    />
-                    {formErrors.stock_quantite && <p className="mt-1 text-xs text-red-500">{formErrors.stock_quantite}</p>}
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">Seuil d'alerte</label>
-                    <input
-                      data-field="seuil_alerte_stock"
-                      type="number"
-                      value={form.seuil_alerte_stock}
-                      onChange={e => updateForm('seuil_alerte_stock', e.target.value)}
-                      className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-base text-foreground outline-none focus:border-gold"
-                    />
-                    {formErrors.seuil_alerte_stock && <p className="mt-1 text-xs text-red-500">{formErrors.seuil_alerte_stock}</p>}
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">Poids (grammes)</label>
+              </div>
+            </FormSection>
+
+            <FormSection title="Stock & logistique" icon={<Boxes size={11} />}>
+              <div className="grid grid-cols-3 gap-3">
+                <Field label="Quantité en stock" required error={formErrors.stock_quantite}>
+                  <input
+                    data-field="stock_quantite"
+                    type="number"
+                    value={form.stock_quantite}
+                    onChange={e => updateForm('stock_quantite', e.target.value)}
+                    className={inputCls}
+                  />
+                </Field>
+                <Field label="Seuil d'alerte" error={formErrors.seuil_alerte_stock}>
+                  <input
+                    data-field="seuil_alerte_stock"
+                    type="number"
+                    value={form.seuil_alerte_stock}
+                    onChange={e => updateForm('seuil_alerte_stock', e.target.value)}
+                    className={inputCls}
+                  />
+                </Field>
+                <Field label="Poids (g)" error={formErrors.poids_grammes}>
                   <input
                     data-field="poids_grammes"
                     type="number"
                     value={form.poids_grammes}
                     onChange={e => updateForm('poids_grammes', e.target.value)}
-                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-base text-foreground outline-none focus:border-gold"
+                    className={inputCls}
                   />
-                  {formErrors.poids_grammes && <p className="mt-1 text-xs text-red-500">{formErrors.poids_grammes}</p>}
-                </div>
+                </Field>
               </div>
-            </div>
+            </FormSection>
           </div>
 
-          <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-4 xl:sticky xl:top-6">
-            <h3 className="text-sm font-semibold text-foreground mb-4">Images</h3>
+          <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4 xl:sticky xl:top-0">
+            <p className="mb-4 text-[10px] font-semibold uppercase tracking-widest text-foreground/40">
+              Images
+            </p>
             <MultiImageUpload onImagesChange={(images) => setImageFiles(images)} />
           </div>
         </div>

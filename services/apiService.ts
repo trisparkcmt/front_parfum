@@ -810,6 +810,14 @@ export const labService = {
   },
 
   /**
+   * Delete a custom perfume composition
+   */
+  deleteCustomPerfume: async (id: number) => {
+    const response = await api.delete(`lab/parfums-perso/${id}/`);
+    return response.data;
+  },
+
+  /**
    * Create custom essence from raw ingredients
    */
   createCustomEssence: async (data: {

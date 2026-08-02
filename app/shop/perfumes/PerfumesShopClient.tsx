@@ -16,6 +16,7 @@ import { useToastStore } from '@/store/useToastStore';
 import { useTranslation } from 'react-i18next';
 import { productService } from '@/services/productService';
 import type { Product } from '@/types';
+import { EssenceQuantityModal } from '@/components/ui/EssenceQuantityModal';
 
 export default function PerfumesShopClient() {
   const { t, i18n } = useTranslation();
@@ -168,8 +169,24 @@ export default function PerfumesShopClient() {
   const { addFavorite, removeFavorite, isFavorite } = useFavoritesStore();
   const { addToast } = useToastStore();
 
+  const [selectedEssence, setSelectedEssence] = useState<Product | null>(null);
+
   const handleAddToCart = (product: Product) => {
-    addProduct(product, 1);
+    // If it's an essence, open the picker modal to ask for quantities/flacons
+    if (
+      activeTab === 'huile' ||
+      product.category === 'huile' ||
+      product.category === 'produit-fini-essence' ||
+      product.taille_ml !== undefined
+    ) {
+      setSelectedEssence(product);
+    } else {
+      addProduct(product, 1);
+    }
+  };
+
+  const handleConfirmEssenceQty = (product: Product, quantite: number) => {
+    addProduct(product, quantite);
   };
 
   const handleToggleFavorite = (product: Product) => {
@@ -568,6 +585,14 @@ export default function PerfumesShopClient() {
             ? `${totalCount} perfume${totalCount > 1 ? 's' : ''} · page ${currentPage} of ${totalPages}`
             : `${totalCount} parfum${totalCount > 1 ? 's' : ''} · page ${currentPage} sur ${totalPages}`}
         </p>
+      )}
+
+      {selectedEssence && (
+        <EssenceQuantityModal
+          product={selectedEssence}
+          onConfirm={handleConfirmEssenceQty}
+          onClose={() => setSelectedEssence(null)}
+        />
       )}
     </div>
   );
