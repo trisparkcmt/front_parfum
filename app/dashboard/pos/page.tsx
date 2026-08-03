@@ -491,39 +491,54 @@ export default function POSPage() {
 
     setIsValidating(true);
     try {
-      const regularItems = cartItems.filter(
-        (item) => !(item.product as any).is_custom
-      );
-      if (regularItems.length === 0) {
-        addToast(
-          'Aucun article standard à commander. La composition a été enregistrée via le panier.',
-          'info'
-        );
-        setIsValidating(false);
-        return;
-      }
-
-      const lignes = regularItems.map((item) => {
+      // Build payload for POS create endpoint supporting multiple line types
+      const lignes = cartItems.map((item) => {
         const p = item.product as any;
-        const isPerfume =
-          p.type === 'parfum' ||
-          p.contenance_ml !== undefined ||
-          p.genre_cible ||
-          p.notes_tete;
-        return {
-          type: isPerfume ? 'parfum' : 'accessoire',
-          id: Number(item.product.id),
-          quantite: item.quantity,
-        };
+
+        // If the product is a simulated custom composition created in POS
+        if (p.is_custom) {
+          // Create an inline parfum_perso entry with recette when available
+          return {
+            type: 'parfum_perso',
+            quantite: item.quantity,
+            recette: {
+              flacon_id: p.flaconId || p.selectedSize || p.contenance_ml || null,
+              nom: p.nom || p.nom_produit || p.name || `Parfum sur-mesure ${p.selectedSize || ''}`,
+              lignes:
+                p.quantities && typeof p.quantities === 'object'
+                  ? Object.entries(p.quantities).map(([lotId, q]) => ({
+                      lot_essence_id: Number(lotId),
+                      quantite_ml: Number(q),
+                    }))
+                  : [],
+            },
+          };
+        }
+
+        // Determine standard types: parfum, accessoire, essence, diffuseur, essence_perso
+        const normalizedType = (p.type || '').toString();
+        if (normalizedType === 'accessoire' || normalizedType === 'diffuseur') {
+          return { type: normalizedType === 'diffuseur' ? 'diffuseur' : 'accessoire', id: Number(p.id), quantite: item.quantity };
+        }
+
+        if (normalizedType === 'essence' || normalizedType === 'produit-fini-essence' || normalizedType === 'essence_perso') {
+          return { type: normalizedType === 'essence' ? 'essence' : normalizedType === 'essence_perso' ? 'essence_perso' : 'essence', id: Number(p.id), quantite: item.quantity };
+        }
+
+        // Default to parfum
+        return { type: 'parfum', id: Number(p.id), quantite: item.quantity };
       });
 
       const order = await orderService.createPOSOrder({
         lignes,
-        client_nom_complet: nomClient || undefined,
         client_telephone: telephoneClient || undefined,
-        note_interne: note || undefined,
+        client_nom_complet: nomClient || undefined,
+        client_email: undefined,
+        livraison_nom_complet: nomClient || undefined,
+        livraison_telephone: telephoneClient || undefined,
         code_promo: codePromo || undefined,
-      } as any);
+        note_interne: note || undefined,
+      });
 
       setLastOrderNumber(order.numero_commande || `#${order.id}`);
       setIsSuccess(true);

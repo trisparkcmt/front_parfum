@@ -9,7 +9,7 @@ import { useFavoritesStore } from '@/store/useFavoritesStore';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useCartStore } from '@/store/useCartStore';
 import { useToastStore } from '@/store/useToastStore';
-import { labService } from '@/services/apiService';
+import { labService, authService } from '@/services/apiService';
 import { formatPrice, sharePage } from '@/lib/utils';
 import Image from 'next/image';
 
@@ -102,6 +102,7 @@ export default function FavoritesPage() {
     setRemovingId(customId);
     try {
       await labService.deleteCustomPerfume(numericId);
+      await authService.getMe();
       // Refresh user data to update parfums_personnalises
       await useAuthStore.getState().fetchUser();
       const { addToast } = useToastStore.getState();

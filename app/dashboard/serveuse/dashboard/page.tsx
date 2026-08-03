@@ -6,6 +6,7 @@ import { shopService, orderService } from '@/services/apiService';
 import { useToastStore } from '@/store/useToastStore';
 import { ShoppingBag, Gem, Loader2, ArrowUpRight, ShoppingCart, Droplets } from 'lucide-react';
 import { PerfumeIcon } from '@/components/icons/CustomIcons';
+import { DashboardKpiStrip, DashboardPageHeader } from '@/components/admin/dashboard/shared';
 
 export default function ServeuseDashboardPage() {
   const [loading, setLoading] = useState(true);
@@ -50,49 +51,38 @@ export default function ServeuseDashboardPage() {
     loadDashboardData();
   }, [addToast]);
 
+  const kpis = [
+    { label: 'Commandes', value: loading ? '—' : stats.ordersCount, icon: <ShoppingBag size={15} />, color: 'text-purple-400' },
+    { label: 'Parfums', value: loading ? '—' : stats.perfumesCount, icon: <PerfumeIcon size={15} />, color: 'text-gold' },
+    { label: 'Accessoires', value: loading ? '—' : stats.accessoriesCount, icon: <Gem size={15} />, color: 'text-emerald-400' },
+    { label: 'Flacons', value: loading ? '—' : stats.bottlesCount, icon: <Droplets size={15} />, color: 'text-blue-400' },
+  ];
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Espace Serveuse</h1>
-          <p className="text-sm text-foreground/40 mt-0.5">Vue d'ensemble des activités de la boutique</p>
-        </div>
-        <Link
-          href="/dashboard/pos"
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-gold hover:bg-gold-light text-slate-900 font-semibold transition-all"
-        >
-          <ShoppingCart size={18} />
-          <span>Point de Vente</span>
-        </Link>
-      </div>
-
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {loading ? (
-          Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="h-32 bg-white/5 rounded-2xl border border-white/10 animate-pulse" />
-          ))
-        ) : (
-          <>
-            {[
-              { label: 'Commandes', value: stats.ordersCount, icon: <ShoppingBag size={20} />, color: 'text-purple-400 bg-purple-500/10' },
-              { label: 'Parfums', value: stats.perfumesCount, icon: <PerfumeIcon size={20} />, color: 'text-gold bg-gold/10' },
-              { label: 'Accessoires', value: stats.accessoriesCount, icon: <Gem size={20} />, color: 'text-emerald-400 bg-emerald-500/10' },
-              { label: 'Flacons', value: stats.bottlesCount, icon: <Droplets size={20} />, color: 'text-blue-400 bg-blue-500/10' },
-            ].map((stat) => (
-              <div key={stat.label} className="bg-white/5 rounded-2xl border border-white/10 p-5 shadow-sm group hover:border-gold/30 transition-all">
-                <div className="flex items-center justify-between mb-3">
-                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${stat.color}`}>
-                    {stat.icon}
-                  </div>
-                  <ArrowUpRight size={14} className="text-foreground/20 group-hover:text-gold transition-colors" />
-                </div>
-                <p className="text-2xl font-bold text-foreground">{stat.value}</p>
-                <p className="text-xs text-foreground/40 mt-0.5">{stat.label}</p>
-              </div>
-            ))}
-          </>
+      <DashboardPageHeader
+        title="Espace Serveuse"
+        description="Vue d'ensemble des activités de la boutique"
+        actions={(
+          <Link
+            href="/dashboard/pos"
+            className="inline-flex items-center gap-2 self-start rounded-xl bg-gold px-4 py-2.5 font-semibold text-slate-900 transition-all hover:bg-gold/90"
+          >
+            <ShoppingCart size={18} />
+            <span>Point de Vente</span>
+          </Link>
         )}
-      </div>
+      />
+
+      {loading ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="h-32 animate-pulse rounded-2xl border border-white/10 bg-white/5" />
+          ))}
+        </div>
+      ) : (
+        <DashboardKpiStrip items={kpis} />
+      )}
     </div>
   );
 }

@@ -8,7 +8,16 @@ import {
 import { adminService } from '@/services/apiService';
 import { adminService as adminHelpers, type BestClient } from '@/services/adminService';
 import { useToastStore } from '@/store/useToastStore';
-import { SlideOver } from '@/components/ui/SlideOver';
+import { useAuthStore } from '@/store/useAuthStore';
+import {
+  DashboardActionButton,
+  DashboardIconButton,
+  DashboardKpiStrip,
+  DashboardPageHeader,
+  DashboardSearchBar,
+  DashboardSlideOver,
+  DashboardStatusTag,
+} from '@/components/admin/dashboard/shared';
 
 // ── Shared UI Primitives ─────────────────────────────────────────────────────
 
@@ -23,49 +32,6 @@ function initials(name?: string) {
 function isServeuse(user: { roles?: string[]; role?: string }) {
   const roles = user.roles || (user.role ? [user.role] : []);
   return roles.includes('serveuse');
-}
-
-function StatusChip({ active }: { active: boolean }) {
-  return (
-    <span
-      className={cx(
-        'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium ring-1 ring-inset',
-        active
-          ? 'text-emerald-400 bg-emerald-500/10 ring-emerald-500/20'
-          : 'text-red-400 bg-red-500/10 ring-red-500/20'
-      )}
-    >
-      <span className={cx('h-1.5 w-1.5 rounded-full', active ? 'bg-emerald-400' : 'bg-red-400')} />
-      {active ? 'Actif' : 'Inactif'}
-    </span>
-  );
-}
-
-function IconButton({
-  icon: Icon,
-  onClick,
-  title,
-  variant = 'gold',
-}: {
-  icon: React.ElementType;
-  onClick: () => void;
-  title: string;
-  variant?: 'gold' | 'red';
-}) {
-  return (
-    <button
-      onClick={onClick}
-      title={title}
-      type="button"
-      className={cx(
-        'rounded-md p-2 transition-colors sm:p-1.5',
-        variant === 'gold' && 'text-foreground/45 hover:bg-gold/10 hover:text-gold',
-        variant === 'red' && 'text-foreground/45 hover:bg-red-500/10 hover:text-red-400'
-      )}
-    >
-      <Icon size={14} />
-    </button>
-  );
 }
 
 type Tab = 'clients' | 'meilleurs';
@@ -95,6 +61,8 @@ export default function ClientsPage() {
   const PAGE_SIZE = 20;
 
   const { addToast } = useToastStore();
+  const { user } = useAuthStore();
+  const showAdminActions = Boolean(user?.is_staff || user?.is_superuser || user?.role === 'superadmin' || user?.roles?.includes('superadmin'));
 
   // ── Fetch all clients ────────────────────────────────────────────────────
   const fetchClients = useCallback(async () => {
@@ -183,11 +151,10 @@ export default function ClientsPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-xl font-semibold text-foreground">Clients</h1>
-        <p className="mt-0.5 text-sm text-foreground/40">Gestion et classement des comptes clients</p>
-      </div>
+      <DashboardPageHeader
+        title="Clients"
+        description="Gestion et classement des comptes clients"
+      />
 
       {/* Tabs */}
       <div className="border-b border-white/10">
@@ -220,32 +187,10 @@ export default function ClientsPage() {
       {/* ── TAB: All Clients ──────────────────────────────────────────────── */}
       {tab === 'clients' && (
         <>
-          {/* KPIs */}
-          <div className="grid grid-cols-2 gap-3 rounded-xl sm:flex sm:divide-x sm:divide-white/8 sm:border sm:border-white/10 sm:bg-white/[0.03]">
-            {kpi.map(k => (
-              <div
-                key={k.label}
-                className="rounded-xl border border-white/10 bg-white/[0.03] p-4 sm:flex-1 sm:rounded-none sm:border-none sm:bg-transparent sm:px-5 sm:py-4"
-              >
-                <p className="mb-1.5 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-foreground/35">
-                  <span className={k.color}>{k.icon}</span>{k.label}
-                </p>
-                <p className="text-xl font-semibold tabular-nums text-foreground">{k.value.toLocaleString()}</p>
-              </div>
-            ))}
-          </div>
+          <DashboardKpiStrip items={kpi.map(k => ({ label: k.label, value: k.value.toLocaleString(), icon: k.icon, color: k.color }))} />
 
-          {/* Search Toolbar */}
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-            <div className="flex w-full items-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 sm:max-w-sm">
-              <Search size={14} className="shrink-0 text-foreground/35" />
-              <input
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                placeholder="Rechercher un client…"
-                className="w-full bg-transparent text-sm text-foreground outline-none placeholder:text-foreground/35"
-              />
-            </div>
+            <DashboardSearchBar value={search} onChange={setSearch} placeholder="Rechercher un client…" />
           </div>
 
           {/* Data Presentation (Mobile Cards vs Desktop Table) */}
@@ -277,7 +222,7 @@ export default function ClientsPage() {
                             <p className="text-[10px] text-foreground/35">ID {c.id}</p>
                           </div>
                         </div>
-                        <StatusChip active={c.is_active} />
+                        <DashboardStatusTag label={c.is_active ? 'Actif' : 'Inactif'} tone={c.is_active ? 'emerald' : 'red'} />
                       </div>
 
                       <div className="space-y-1 text-xs text-foreground/70">
@@ -286,13 +231,15 @@ export default function ClientsPage() {
                       </div>
 
                       <div className="flex items-center justify-end gap-1 border-t border-white/5 pt-2">
-                        <IconButton icon={Eye} onClick={() => setSelected(c)} title="Détails" variant="gold" />
-                        <IconButton
-                          icon={Power}
-                          onClick={() => handleToggleStatus(c.id)}
-                          title={c.is_active ? 'Désactiver' : 'Activer'}
-                          variant="red"
-                        />
+                        <DashboardIconButton icon={Eye} onClick={() => setSelected(c)} title="Détails" variant="gold" />
+                        {showAdminActions && (
+                          <DashboardIconButton
+                            icon={Power}
+                            onClick={() => handleToggleStatus(c.id)}
+                            title={c.is_active ? 'Désactiver' : 'Activer'}
+                            variant="red"
+                          />
+                        )}
                       </div>
                     </div>
                   ))}
@@ -327,17 +274,19 @@ export default function ClientsPage() {
                           <td className="px-4 py-3 text-xs text-foreground/70">{c.email}</td>
                           <td className="px-4 py-3 text-xs text-foreground/70">{c.telephone || '—'}</td>
                           <td className="px-4 py-3">
-                            <StatusChip active={c.is_active} />
+                            <DashboardStatusTag label={c.is_active ? 'Actif' : 'Inactif'} tone={c.is_active ? 'emerald' : 'red'} />
                           </td>
                           <td className="px-4 py-3">
                             <div className="flex items-center justify-end gap-1">
-                              <IconButton icon={Eye} onClick={() => setSelected(c)} title="Détails" variant="gold" />
-                              <IconButton
-                                icon={Power}
-                                onClick={() => handleToggleStatus(c.id)}
-                                title={c.is_active ? 'Désactiver' : 'Activer'}
-                                variant="red"
-                              />
+                              <DashboardIconButton icon={Eye} onClick={() => setSelected(c)} title="Détails" variant="gold" />
+                              {showAdminActions && (
+                                <DashboardIconButton
+                                  icon={Power}
+                                  onClick={() => handleToggleStatus(c.id)}
+                                  title={c.is_active ? 'Désactiver' : 'Activer'}
+                                  variant="red"
+                                />
+                              )}
                             </div>
                           </td>
                         </tr>
@@ -351,7 +300,7 @@ export default function ClientsPage() {
 
           {/* Client Detail Read-Only SlideOver */}
           {selected && (
-            <SlideOver
+            <DashboardSlideOver
               isOpen={!!selected}
               onClose={() => setSelected(null)}
               title={`${selected.first_name || ''} ${selected.last_name || ''}`}
@@ -376,7 +325,7 @@ export default function ClientsPage() {
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
                       <p className="truncate text-sm font-medium text-foreground">{selected.first_name} {selected.last_name}</p>
-                      <StatusChip active={selected.is_active} />
+                      <DashboardStatusTag label={selected.is_active ? 'Actif' : 'Inactif'} tone={selected.is_active ? 'emerald' : 'red'} />
                     </div>
                     <p className="truncate text-xs text-foreground/40">{selected.email}</p>
                   </div>
@@ -415,19 +364,20 @@ export default function ClientsPage() {
                 {/* Action CTA */}
                 {isServeuse(selected) ? (
                   <p className="text-center text-xs font-medium text-emerald-400">Déjà serveuse</p>
-                ) : (
-                  <button
+                ) : showAdminActions ? (
+                  <DashboardActionButton
                     type="button"
                     onClick={handlePromoteToServeuse}
                     disabled={promoting}
+                    tone="neutral"
                     className="flex w-full items-center justify-center gap-2 rounded-lg bg-gold py-2.5 text-sm font-semibold text-black transition-colors hover:bg-gold/85 disabled:opacity-50"
                   >
                     {promoting ? <Loader2 size={15} className="animate-spin" /> : <UserCheck size={15} />}
                     Convertir en serveuse
-                  </button>
-                )}
+                  </DashboardActionButton>
+                ) : null}
               </div>
-            </SlideOver>
+            </DashboardSlideOver>
           )}
         </>
       )}

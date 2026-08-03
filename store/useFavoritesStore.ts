@@ -52,18 +52,29 @@ export const useFavoritesStore = create<FavoritesState>()(
         // Sync with backend if authenticated
         const isAuth = useAuthStore.getState().isAuthenticated;
         if (isAuth) {
-          const slug = getProductSlug(product);
+          const identifier = product.slug || String(product.id);
           const isAccessory = product.category === 'accessory';
-          const endpoint = isAccessory
-            ? `shop/accessoires/${slug}/favori/`
-            : `shop/parfums/${slug}/favori/`;
-          
+          const isFinishedEssence = product.category === 'huile' || product.category === 'produit-fini-essence' || product.taille_ml !== undefined;
+
           try {
-            const response = await api.post(endpoint);
+            let response;
+            if (isAccessory) {
+              response = await shopService.toggleAccessoryFavorite(identifier);
+            } else if (isFinishedEssence) {
+              response = await shopService.toggleFinishedEssenceFavorite(product.id);
+            } else {
+              response = await shopService.togglePerfumeFavorite(identifier);
+            }
+
             // If API returned "retiré" but we added it, keep it in sync or respect the backend status
-            if (response.data?.status === 'retiré') {
-              // Toggle again to make sure it is "ajouté"
-              await api.post(endpoint);
+            if (response?.status === 'retiré') {
+              if (isAccessory) {
+                await shopService.toggleAccessoryFavorite(identifier);
+              } else if (isFinishedEssence) {
+                await shopService.toggleFinishedEssenceFavorite(product.id);
+              } else {
+                await shopService.togglePerfumeFavorite(identifier);
+              }
             }
           } catch (e) {
             console.warn('Could not sync added favorite with backend, retaining local state.', e);
@@ -88,10 +99,16 @@ export const useFavoritesStore = create<FavoritesState>()(
         const isAuth = useAuthStore.getState().isAuthenticated;
         if (isAuth && product) {
           try {
-            const numericId = Number(product.id);
-            if (numericId) {
-              // Use ID-based delete endpoint
-              await shopService.deleteFavorite(numericId);
+            const identifier = product.slug || String(product.id);
+            const isAccessory = product.category === 'accessory';
+            const isFinishedEssence = product.category === 'huile' || product.category === 'produit-fini-essence' || product.taille_ml !== undefined;
+
+            if (isAccessory) {
+              await shopService.toggleAccessoryFavorite(identifier);
+            } else if (isFinishedEssence) {
+              await shopService.toggleFinishedEssenceFavorite(product.id);
+            } else {
+              await shopService.togglePerfumeFavorite(identifier);
             }
           } catch (e) {
             console.warn('Could not sync removed favorite with backend, retaining local state.', e);
@@ -133,19 +150,22 @@ export const useFavoritesStore = create<FavoritesState>()(
           // Map backend favoris from /auth/me/ to Products
           const backendFavs: any[] = meData?.favoris || [];
           const products: Product[] = backendFavs.map((fav: any) => {
-            const isAccessory = fav.type_produit === 'accessoire' || fav.type_produit === 'accessory';
-            const isCustom = fav.type_produit === 'parfum-personnalise' || fav.type_produit === 'custom';
+            const typeProduit = String(fav.type_produit || fav.type || '').toLowerCase();
+            const isAccessory = typeProduit === 'accessoire' || typeProduit === 'accessory';
+            const isCustom = typeProduit === 'parfum-personnalise' || typeProduit === 'custom' || typeProduit === 'numba-creation';
+            const isFinishedEssence = typeProduit === 'produit-fini-essence' || typeProduit === 'huile' || fav.essence_id || fav.taille_ml;
             return {
               id: String(fav.produit_id || fav.id_produit || fav.id),
               name: fav.nom_produit || fav.nom || 'Produit',
               description: '',
               price: parseFloat(fav.prix_produit || fav.price || '0'),
-              category: isAccessory ? 'accessory' : isCustom ? 'numba-creation' : 'perfume-brand',
+              category: isAccessory ? 'accessory' : isCustom ? 'numba-creation' : isFinishedEssence ? 'produit-fini-essence' : 'perfume-brand',
               images: fav.image_produit ? [fav.image_produit] : ['/parfume1.png'],
               inStock: true,
               slug: fav.slug_produit || fav.slug || '',
               createdAt: fav.date_ajout || new Date().toISOString(),
               isCustomComposition: isCustom ? true : undefined,
+              taille_ml: fav.taille_ml ? Number(fav.taille_ml) : undefined,
             };
           });
 

@@ -332,6 +332,26 @@ export interface BackendOrderLine {
   produit_details?: { nom?: string };
   parfum_details?: { nom?: string };
   accessoire_details?: { nom?: string };
+  // Fields for produit fini essence (shop product snapshot)
+  essence_nom?: string;
+  essence_marque?: string;
+  taille_ml?: number;
+  categorie?: string;
+  prix_actuel?: string;
+  prix_par_ml?: string;
+  detail_produit?: {
+    id?: number;
+    nom?: string;
+    marque?: string;
+    taille_ml?: number;
+    prix?: string;
+    prix_promotionnel?: string | null;
+    prix_actuel?: string;
+    prix_par_ml?: string;
+    categorie?: string;
+    code_reference?: string;
+    actif?: boolean;
+  };
 }
 
 export interface BackendOrder {

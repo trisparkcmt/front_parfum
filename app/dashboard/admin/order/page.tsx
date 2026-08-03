@@ -1249,6 +1249,32 @@ function ReceiptRow({ k, v, bold, negative, muted }: { k: string; v: string; bol
   );
 }
 
+function getOrderLineName(line: BackendOrderLine) {
+  return (
+    line.nom_snapshot ||
+    line.nom ||
+    line.detail_produit?.nom ||
+    line.essence_nom ||
+    line.produit_details?.nom ||
+    line.parfum_details?.nom ||
+    line.accessoire_details?.nom ||
+    line.composition?.nom ||
+    'Article'
+  );
+}
+
+function getOrderLineDetailMeta(line: BackendOrderLine) {
+  const essenceName = line.essence_nom || line.detail_produit?.nom || line.produit_details?.nom || line.nom_snapshot;
+  const marque = line.essence_marque || line.detail_produit?.marque;
+  const tailleMl = line.taille_ml ?? line.detail_produit?.taille_ml;
+  const categorie = line.categorie || line.detail_produit?.categorie;
+  const prixParMl = line.prix_par_ml ?? line.detail_produit?.prix_par_ml;
+  const prixActuel = line.prix_actuel || line.detail_produit?.prix_actuel || line.detail_produit?.prix;
+  const codeReference = line.detail_produit?.code_reference;
+
+  return { essenceName, marque, tailleMl, categorie, prixParMl, prixActuel, codeReference };
+}
+
 function LinesGroup({ title, icon, lines }: { title: string; icon: React.ReactNode; lines: BackendOrderLine[] }) {
   return (
     <div>
@@ -1258,7 +1284,20 @@ function LinesGroup({ title, icon, lines }: { title: string; icon: React.ReactNo
       <div className="space-y-1.5">
         {lines.map(line => {
           const isCustom = !!line.parfum_personnalise || !!line.composition;
-          const name = line.nom_snapshot || line.composition?.nom || line.nom || (isCustom ? 'Parfum personnalisé' : 'Article');
+          const name = getOrderLineName(line);
+          const detailMeta = getOrderLineDetailMeta(line);
+          const hasDetailMeta = Boolean(
+            line.produit_fini_essence ||
+            line.detail_produit ||
+            line.essence_nom ||
+            line.essence_marque ||
+            line.taille_ml ||
+            line.categorie ||
+            line.prix_par_ml ||
+            line.prix_actuel ||
+            line.produit_details?.nom
+          );
+
           return (
             <div key={line.id} className="rounded-lg border border-white/8 bg-white/[0.015] px-3 py-2 text-xs">
               <div className="flex items-center justify-between gap-3">
@@ -1282,6 +1321,27 @@ function LinesGroup({ title, icon, lines }: { title: string; icon: React.ReactNo
                       <span>Flacon</span>
                       <span>{line.composition.flacon_nom} {line.composition.flacon_contenance_ml ? `· ${line.composition.flacon_contenance_ml}ml` : ''}</span>
                     </div>
+                  )}
+                </div>
+              )}
+              {hasDetailMeta && (
+                <div className="mt-2 ml-0 space-y-1 text-[11px] text-foreground/50">
+                  <div className="flex justify-between gap-2">
+                    <span>{[detailMeta.essenceName, detailMeta.marque].filter(Boolean).join(' · ') || 'Produit fini'}</span>
+                    <span>{detailMeta.tailleMl ? `${detailMeta.tailleMl} ml` : ''}</span>
+                  </div>
+                  <div className="flex justify-between gap-2">
+                    <span>Catégorie: {detailMeta.categorie || '—'}</span>
+                    <span>
+                      {detailMeta.prixParMl
+                        ? `${Number(detailMeta.prixParMl).toLocaleString()} FCFA/ml`
+                        : detailMeta.prixActuel
+                          ? `${Number(detailMeta.prixActuel).toLocaleString()} FCFA`
+                          : '—'}
+                    </span>
+                  </div>
+                  {detailMeta.codeReference && (
+                    <div className="text-[10px] text-foreground/35">Réf: {detailMeta.codeReference}</div>
                   )}
                 </div>
               )}

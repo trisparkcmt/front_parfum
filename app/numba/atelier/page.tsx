@@ -240,20 +240,16 @@ function AtelierContent() {
 
   // Direct Order Workflow states
   const [showDirectOrderModal, setShowDirectOrderModal] = useState(false);
-  const [orderFullName, setOrderFullName] = useState('');
-  const [orderPhone, setOrderPhone] = useState('');
-  const [orderCity, setOrderCity] = useState('');
-  const [orderQuartier, setOrderQuartier] = useState('');
   const [isOrderingDirect, setIsOrderingDirect] = useState(false);
   const [createdOrderNumber, setCreatedOrderNumber] = useState<string | null>(null);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
 
-  useEffect(() => {
-    if (user) {
-      setOrderFullName(`${user.firstName || ''} ${user.lastName || ''}`.trim());
-      setOrderPhone(user.phone || '');
-    }
-  }, [user]);
+  const orderProfileDetails = useMemo(() => ({
+    fullName: `${user?.firstName || ''} ${user?.lastName || ''}`.trim(),
+    phone: user?.phone || '',
+    city: '',
+    quartier: '',
+  }), [user]);
 
   useEffect(() => {
     setMounted(true);
@@ -814,10 +810,8 @@ function AtelierContent() {
       // Step 2: Place order using the generated panier_id
       const orderResponse = await orderService.placeOrder({
         panier_id,
-        livraison_nom_complet: orderFullName.trim() || undefined,
-        livraison_telephone: orderPhone.trim() || undefined,
-        livraison_ville: orderCity.trim() || undefined,
-        livraison_quartier: orderQuartier.trim() || undefined,
+        livraison_nom_complet: orderProfileDetails.fullName || undefined,
+        livraison_telephone: orderProfileDetails.phone || undefined,
       });
 
       setCreatedOrderNumber(orderResponse.numero_commande || `#${orderResponse.id}`);
@@ -1348,65 +1342,19 @@ function AtelierContent() {
               </div>
             </div>
 
-            <form onSubmit={handleDirectOrderSubmit} className="space-y-3">
-              {/* Contact fields (optional) */}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-foreground/40 block mb-1.5">
-                    {i18n.language === 'en' ? 'Full Name' : 'Nom complet'}
-                  </label>
-                  <input
-                    type="text"
-                    value={orderFullName}
-                    onChange={e => setOrderFullName(e.target.value)}
-                    placeholder="ex: Jean Dupont"
-                    className="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-lg text-sm text-foreground placeholder-foreground/30 focus:outline-none focus:border-gold/50 transition-colors"
-                  />
-                </div>
-                <div>
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-foreground/40 block mb-1.5">
-                    {i18n.language === 'en' ? 'Phone' : 'Téléphone'}
-                  </label>
-                  <input
-                    type="tel"
-                    value={orderPhone}
-                    onChange={e => setOrderPhone(e.target.value)}
-                    placeholder="+2250102030405"
-                    className="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-lg text-sm text-foreground placeholder-foreground/30 focus:outline-none focus:border-gold/50 transition-colors"
-                  />
-                </div>
+            <div className="space-y-4">
+              <div className="rounded-xl border border-white/10 bg-white/5 p-4 text-sm text-foreground/70">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-foreground/40 mb-2">
+                  {i18n.language === 'en' ? 'Using your profile' : 'Utilisation de votre profil'}
+                </p>
+                <p className="font-medium text-foreground">{orderProfileDetails.fullName || (i18n.language === 'en' ? 'No full name yet' : 'Nom incomplet')}</p>
+                <p className="text-xs text-foreground/50 mt-1">{orderProfileDetails.phone || (i18n.language === 'en' ? 'No phone number yet' : 'Aucun numéro')}</p>
               </div>
 
-              <div>
-                <label className="text-[10px] font-bold uppercase tracking-widest text-foreground/40 block mb-1.5">
-                  {i18n.language === 'en' ? 'City' : 'Ville'}
-                </label>
-                <input
-                  type="text"
-                  value={orderCity}
-                  onChange={e => setOrderCity(e.target.value)}
-                  placeholder="ex: Abidjan"
-                  className="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-lg text-sm text-foreground placeholder-foreground/30 focus:outline-none focus:border-gold/50 transition-colors"
-                />
-              </div>
-
-              <div>
-                <label className="text-[10px] font-bold uppercase tracking-widest text-foreground/40 block mb-1.5">
-                  {i18n.language === 'en' ? 'District / Quartier' : 'Quartier'}
-                </label>
-                <input
-                  type="text"
-                  value={orderQuartier}
-                  onChange={e => setOrderQuartier(e.target.value)}
-                  placeholder="ex: Cocody, Plateau..."
-                  className="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-lg text-sm text-foreground placeholder-foreground/30 focus:outline-none focus:border-gold/50 transition-colors"
-                />
-              </div>
-
-              <p className="text-[10px] text-foreground/30 italic pt-1">
+              <p className="text-[10px] text-foreground/30 italic">
                 {i18n.language === 'en'
-                  ? '* All fields are optional. Our team will contact you to confirm details.'
-                  : '* Tous les champs sont optionnels. Notre équipe vous contactera pour confirmer les détails.'}
+                  ? 'We will use the contact details already saved in your profile for this order.'
+                  : 'Nous utiliserons les coordonnées déjà enregistrées dans votre profil pour cette commande.'}
               </p>
 
               <div className="flex gap-3 pt-2">
@@ -1418,7 +1366,8 @@ function AtelierContent() {
                   {i18n.language === 'en' ? 'Cancel' : 'Annuler'}
                 </button>
                 <button
-                  type="submit"
+                  type="button"
+                  onClick={() => handleDirectOrderSubmit(new Event('submit') as unknown as React.FormEvent)}
                   disabled={isOrderingDirect || totalMl === 0}
                   className="flex-1 px-6 py-3 bg-gold text-black hover:bg-cream rounded-lg text-sm font-bold transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
                 >
@@ -1429,7 +1378,7 @@ function AtelierContent() {
                   )}
                 </button>
               </div>
-            </form>
+            </div>
           </div>
         </div>
       )}

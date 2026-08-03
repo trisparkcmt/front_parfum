@@ -84,7 +84,7 @@ export function EssenceQuantityModal({ product, onConfirm, onClose }: EssenceQua
         exit={{ opacity: 0 }}
         transition={{ duration: 0.2 }}
         onClick={onClose}
-        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
+        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 pb-20 sm:pb-4"
       >
         <motion.div
           key="essence-modal-panel"
@@ -93,7 +93,7 @@ export function EssenceQuantityModal({ product, onConfirm, onClose }: EssenceQua
           exit={{ opacity: 0, y: 60 }}
           transition={{ type: 'spring', damping: 28, stiffness: 300 }}
           onClick={(e) => e.stopPropagation()}
-          className="bg-background border border-white/10 rounded-t-3xl sm:rounded-2xl w-full sm:max-w-md shadow-2xl overflow-hidden"
+          className="bg-background border border-white/10 rounded-t-3xl sm:rounded-2xl w-full sm:max-w-md shadow-2xl overflow-hidden max-h-[90dvh] mb-24 sm:mb-0"
         >
           <div className="flex justify-center pt-3 pb-1 sm:hidden">
             <div className="w-10 h-1 rounded-full bg-white/20" />

@@ -37,6 +37,7 @@ const boutiqueItems: NavItem[] = [
   { label: 'Laboratoire', icon: <LaptopIcon size={18} />, href: '/dashboard/serveuse/lab' },
   { label: 'Flacons', icon: <Package size={18} />, href: '/dashboard/serveuse/flacons' },
   { label: 'Accessoires', icon: <Gem size={18} />, href: '/dashboard/serveuse/accessories' },
+  { label: 'Diffuseurs', icon: <Sparkles size={18} />, href: '/dashboard/serveuse/diffuseurs' },
   { label: 'Compositions', icon: <LaptopIcon size={18} />, href: '/dashboard/serveuse/compositions' },
 ];
 

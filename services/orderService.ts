@@ -130,33 +130,18 @@ export const orderService = {
    * marks the sale as validated and paid — designed for fast in-shop transactions
    * where the serveuse selects items and confirms on the spot.
    */
-  async createPOSOrder(payload: {
-    lignes: Array<{
-      type: 'parfum' | 'accessoire' | 'essence';
-      id?: number;
-      quantite: number;
-      produit_personnalise?: {
-        nom: string;
-        flacon: number;
-        lignes: Array<{
-          essence_catalogue?: number;
-          ingredient_catalogue?: number;
-          quantite_ml: number;
-        }>;
-      };
-    }>;
-    client_nom_complet?: string;
-    client_telephone?: string;
-    note_interne?: string;
-    code_promo?: string;
-  }): Promise<Order> {
+  async createPOSOrder(payload: any): Promise<Order> {
     try {
-      const response = await api.post(`/pos/commandes/creer/`, {
+      // The backend expects a flexible payload described in the POS spec.
+      // Ensure we mark source and immediate validated/paid status for POS.
+      const body = {
         ...payload,
         source: 'pos',
         statut: 'validé',
         statut_paiement: 'payé',
-      });
+      };
+
+      const response = await api.post(`/pos/commandes/creer/`, body);
       return response.data;
     } catch (error) {
       console.error('Error creating POS order:', error);

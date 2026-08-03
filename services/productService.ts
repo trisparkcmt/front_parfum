@@ -564,6 +564,13 @@ export const productService = {
   },
 
   /**
+   * Toggle favorite status for finished essence
+   */
+  async toggleFinishedEssenceFavorite(id: number | string) {
+    return apiShopService.toggleFinishedEssenceFavorite(id);
+  },
+
+  /**
    * Fetch bestseller perfumes from API
    */
   async getBestsellerPerfumes(): Promise<Product[]> {

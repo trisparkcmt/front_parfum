@@ -9,7 +9,7 @@ interface SlideOverProps {
   onClose: () => void;
   title: string;
   description?: string;
-  size?: 'sm' | 'md' | 'lg' | 'xl' | 'full';
+  size?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | 'full';
   className?: string;
   children: React.ReactNode;
   footer?: React.ReactNode;
@@ -19,7 +19,9 @@ const sizeMap: Record<NonNullable<SlideOverProps['size']>, 'sm' | 'md' | 'lg' | 
   sm: 'sm',
   md: 'md',
   lg: 'lg',
-  xl: '3xl',
+  xl: 'xl',
+  '2xl': '2xl',
+  '3xl': '3xl',
   full: 'full',
 };
 

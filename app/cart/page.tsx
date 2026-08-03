@@ -225,8 +225,10 @@ export default function CartPage() {
       await syncCart();
       
       // Open WhatsApp in a new tab/window when possible, while keeping a fallback for blocked popups.
-      const waWindow = window.open(waLink, '_blank', 'noopener,noreferrer');
-      if (!waWindow) {
+      const waWindow = window.open('about:blank', '_blank', 'noopener,noreferrer');
+      if (waWindow) {
+        waWindow.location.href = waLink;
+      } else {
         window.location.href = waLink;
       }
     } catch (err: any) {

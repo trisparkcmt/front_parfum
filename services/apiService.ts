@@ -388,6 +388,14 @@ export const shopService = {
   },
 
   /**
+   * Add/remove finished essence from favorites
+   */
+  toggleFinishedEssenceFavorite: async (id: number | string) => {
+    const response = await api.post(`shop/produits-essence/${id}/favori/`);
+    return response.data;
+  },
+
+  /**
    * Get historical bestsellers accessories
    */
   getAccessoryBestsellers: async () => {

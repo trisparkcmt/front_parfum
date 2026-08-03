@@ -85,6 +85,13 @@ function normalizeCartData(cartData: any): CartData {
     quantite: Number(line.quantite ?? 1),
     prix_unitaire_snapshot: Number(line.prix_unitaire_snapshot ?? line.prix_snapshot ?? line.prix_calcule ?? 0),
     sous_total: Number(line.sous_total ?? (Number(line.prix_unitaire_snapshot ?? line.prix_snapshot ?? line.prix_calcule ?? 0) * Number(line.quantite ?? 1))),
+    // Preserve produit-fini specific snapshot fields so UI can render richer details
+    essence_nom: line.essence_nom ?? line.nom_snapshot ?? undefined,
+    essence_marque: line.essence_marque ?? line.marque ?? undefined,
+    taille_ml: line.taille_ml ?? line.detail_produit?.taille_ml ?? undefined,
+    categorie: line.categorie ?? line.detail_produit?.categorie ?? undefined,
+    prix_par_ml: line.prix_par_ml ?? line.detail_produit?.prix_par_ml ?? undefined,
+    detail_produit: line.detail_produit ?? undefined,
   });
 
   const diffuseurLines = [
@@ -118,6 +125,13 @@ export interface CartLine {
   produit_fini_essence?: number;
   parfum_personnalise?: number;
   essence_personnalisee?: number;
+  // Produit-fini snapshot fields
+  essence_nom?: string;
+  essence_marque?: string;
+  taille_ml?: number;
+  categorie?: string;
+  prix_par_ml?: string | number;
+  detail_produit?: any;
 }
 
 export interface CartData {

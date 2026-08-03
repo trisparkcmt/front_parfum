@@ -1,14 +1,15 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { Loader2, Edit2, Trash2, Plus, Search, Filter, X } from 'lucide-react';
-import { shopService } from '@/services/apiService';
+import { Loader2, Edit2, Trash2, Plus, Search, Filter, X, Image as ImageIcon } from 'lucide-react';
+import { shopService, adminService } from '@/services/apiService';
 import { useToastStore } from '@/store/useToastStore';
 import { useCatalogPermissions } from '@/hooks/useCatalogPermissions';
 import CatalogAccessNotice from '@/components/catalog/CatalogAccessNotice';
 import { extractCatalogList } from '@/lib/catalogUtils';
 import { useAuthStore } from '@/store/useAuthStore';
 import { SlideOver } from '@/components/ui/SlideOver';
+import AppImage from '@/components/ui/AppImage';
 
 // --- Helper Functions & Primitives ---
 
@@ -126,6 +127,8 @@ export default function FlaconsAdminPage() {
   const [showFilters, setShowFilters] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [editingBottle, setEditingBottle] = useState<any | null>(null);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
 
   const [form, setForm] = useState({
     nom: '',
@@ -179,6 +182,8 @@ export default function FlaconsAdminPage() {
   const handleOpenAdd = () => {
     if (!permissions.canCreate) return;
     setEditingBottle(null);
+    setImageFile(null);
+    setImagePreview(null);
     setForm({
       nom: '',
       type_flacon: bottleTypes[0]?.id ? String(bottleTypes[0].id) : '',
@@ -200,6 +205,8 @@ export default function FlaconsAdminPage() {
   const handleOpenEdit = (bot: any) => {
     if (!permissions.canUpdate) return;
     setEditingBottle(bot);
+    setImageFile(null);
+    setImagePreview(bot.image_principale || bot.image || null);
     setForm({
       nom: bot.nom || '',
       type_flacon: bot.type_flacon?.id ? String(bot.type_flacon.id) : String(bot.type_flacon || ''),
@@ -239,12 +246,27 @@ export default function FlaconsAdminPage() {
         seuil_alerte_stock: Number(form.seuil_alerte_stock),
         actif: form.actif,
       };
-      if (editingBottle) {
-        await shopService.updateBottle(editingBottle.id, payload);
-        addToast('Flacon mis à jour', 'success');
+      if (imageFile) {
+        const formData = new FormData();
+        Object.entries(payload).forEach(([key, value]) => {
+          if (value !== null && value !== undefined && value !== '') formData.append(key, String(value));
+        });
+        formData.append('image_principale', imageFile);
+        if (editingBottle) {
+          await adminService.patchFormData(`shop/flacons/${editingBottle.id}/`, formData);
+          addToast('Flacon mis à jour', 'success');
+        } else {
+          await adminService.postFormData('shop/flacons/', formData);
+          addToast('Flacon créé', 'success');
+        }
       } else {
-        await shopService.createBottle(payload);
-        addToast('Flacon créé', 'success');
+        if (editingBottle) {
+          await shopService.updateBottle(editingBottle.id, payload);
+          addToast('Flacon mis à jour', 'success');
+        } else {
+          await shopService.createBottle(payload);
+          addToast('Flacon créé', 'success');
+        }
       }
       setShowModal(false);
       fetchBottlesAndTypes();
@@ -430,8 +452,22 @@ export default function FlaconsAdminPage() {
                       key={b.id}
                       className="hover:bg-white/[0.02] transition-colors"
                     >
-                      <td className="pl-4 py-3 font-medium text-foreground">
-                        {b.nom}
+                      <td className="pl-4 py-3">
+                        <div className="flex items-center gap-3">
+                          <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-lg border border-white/10 bg-white/[0.03]">
+                            {(b.image_principale || b.image) ? (
+                              <AppImage src={b.image_principale || b.image} alt={b.nom} fill className="object-cover" />
+                            ) : (
+                              <div className="flex h-full w-full items-center justify-center text-foreground/25">
+                                <ImageIcon size={16} />
+                              </div>
+                            )}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="truncate font-medium text-foreground">{b.nom}</p>
+                            <p className="mt-0.5 text-[11px] text-foreground/35">{b.type_flacon?.nom || b.type_flacon_nom || 'Sans type'}</p>
+                          </div>
+                        </div>
                       </td>
                       <td className="px-3 py-3 text-foreground/60 tabular-nums">
                         {b.contenance_ml} ml
@@ -621,6 +657,41 @@ export default function FlaconsAdminPage() {
                     onChange={(e) => updateForm('largeur_cm', e.target.value)}
                     className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
                   />
+                </div>
+              </div>
+              <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
+                <label className="mb-2 block text-[10px] font-bold uppercase tracking-wider text-foreground/40">
+                  Image principale
+                </label>
+                <div className="flex flex-col gap-3">
+                  <label className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-white/10 bg-white/5 px-3 py-2 text-sm text-foreground/70 transition-colors hover:border-gold/40 hover:bg-white/10">
+                    <Plus size={14} className="text-gold" />
+                    <span>{imageFile ? 'Changer l’image' : 'Choisir une image'}</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        const nextPreview = URL.createObjectURL(file);
+                        setImagePreview((prev) => {
+                          if (prev?.startsWith('blob:')) URL.revokeObjectURL(prev);
+                          return nextPreview;
+                        });
+                        setImageFile(file);
+                      }}
+                    />
+                  </label>
+                  <div className="relative h-40 overflow-hidden rounded-lg border border-white/10 bg-background/70">
+                    {imagePreview ? (
+                      <AppImage src={imagePreview} alt="Aperçu du flacon" fill className="object-cover" />
+                    ) : (editingBottle?.image_principale || editingBottle?.image) ? (
+                      <AppImage src={editingBottle.image_principale || editingBottle.image} alt={editingBottle.nom} fill className="object-cover" />
+                    ) : (
+                      <div className="flex h-full items-center justify-center text-sm text-foreground/30">Aucune image</div>
+                    )}
+                  </div>
                 </div>
               </div>
               <div>

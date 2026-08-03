@@ -131,7 +131,7 @@ export default function PerfumesShopClient() {
   }, []);
 
   useEffect(() => {
-    if (!mounted || activeTab !== 'huile') return;
+    if (!mounted || (activeTab !== 'huile' && activeTab !== 'all')) return;
 
     async function loadFinishedEssences() {
       setFinishedEssenceLoading(true);
@@ -198,9 +198,15 @@ export default function PerfumesShopClient() {
     }
   };
 
-  // For 'huile' tab, use the dedicated essences list; otherwise use the backend-filtered products directly
-  const activeProducts = activeTab === 'huile' ? finishedEssenceProducts : products;
-  const isActiveLoading = activeTab === 'huile' ? finishedEssenceLoading : loading;
+  // For 'huile' tab, use the dedicated essences list. For 'all', merge regular perfumes with finished essences.
+  const activeProducts = activeTab === 'huile'
+    ? finishedEssenceProducts
+    : activeTab === 'all'
+      ? [...products, ...finishedEssenceProducts]
+      : products;
+  const isActiveLoading = activeTab === 'huile' || activeTab === 'all'
+    ? (loading || finishedEssenceLoading)
+    : loading;
 
   const resetFilters = () => {
     setSearch('');
