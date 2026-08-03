@@ -9,7 +9,6 @@ import { cn } from "@/lib/utils";
 import i18n from "@/lib/i18n";
 import { shopService } from "@/services/apiService";
 import { extractCatalogList } from "@/lib/catalogUtils";
-import type { ShopPromotion } from "@/types";
 import AppImage from "@/components/ui/AppImage";
 
 interface PromoEntry {
@@ -31,75 +30,44 @@ const AUTO_SLIDE_INTERVAL = 5000;
 // Shared glass treatment for floating controls, echoes the navbar's glass pills
 const glass = 'rounded-full border border-white/10 bg-white/[0.06] backdrop-blur-2xl shadow-[0_4px_30px_rgba(0,0,0,0.25)] supports-[backdrop-filter]:bg-white/[0.06]';
 
-/** Build a lookup of category/type slug → icon URL from both accessory types and perfume categories */
-async function fetchCategoryIcons(): Promise<Map<string, string>> {
-  const iconMap = new Map<string, string>();
-  try {
-    const [accTypes, perfCats] = await Promise.allSettled([
-      shopService.getAccessoryTypes(),
-      shopService.getPerfumeCategories(),
-    ]);
-    if (accTypes.status === 'fulfilled') {
-      const list: any[] = extractCatalogList(accTypes.value);
-      list.forEach((t) => {
-        if (t.icone) iconMap.set(t.slug ?? String(t.id), t.icone);
-      });
-    }
-    if (perfCats.status === 'fulfilled') {
-      const list: any[] = extractCatalogList(perfCats.value);
-      list.forEach((c) => {
-        if (c.icone) iconMap.set(c.slug ?? String(c.id), c.icone);
-      });
-    }
-  } catch {
-    /* silent */
+function normalizePromotionValue(value: unknown): number {
+  if (typeof value === 'number') return value;
+  if (typeof value === 'string') {
+    const parsed = Number(value);
+    if (!Number.isNaN(parsed)) return parsed;
   }
-  return iconMap;
+  return 0;
 }
 
-function mapPromotionToEntry(promo: ShopPromotion, iconMap: Map<string, string>): PromoEntry {
-  const isPerfume = promo.type_article === 'parfum';
+function isPromotionActive(item: { date_debut?: string | null; date_fin?: string | null }) {
+  const now = new Date();
+  const start = item.date_debut ? new Date(item.date_debut) : null;
+  const end = item.date_fin ? new Date(item.date_fin) : null;
 
-  // Image resolution priority:
-  // 1. Product image (image_principale) — the actual product photo
-  // 2. Category icon matching the promo slug or a known category mapping
-  // 3. Static fallback
-  const productImage = promo.image_principale || null;
+  if (start && now < start) return false;
+  if (end && now > end) return false;
+  return true;
+}
 
-  // Try to find a category icon by iterating iconMap keys that match part of the promo slug
-  let categoryIcon: string | null = null;
-  if (!productImage) {
-    for (const [slug, icon] of iconMap.entries()) {
-      if (promo.slug?.includes(slug) || slug?.includes(promo.slug?.split('-')[0] ?? '')) {
-        categoryIcon = icon;
-        break;
-      }
-    }
-    // Also try by iterating all icons (first match wins as fallback)
-    if (!categoryIcon && iconMap.size > 0) {
-      const titleLower = (promo.nom || '').toLowerCase();
-      for (const [slug, icon] of iconMap.entries()) {
-        if (titleLower.includes(slug.toLowerCase()) || slug.toLowerCase().includes(titleLower.split(' ')[0])) {
-          categoryIcon = icon;
-          break;
-        }
-      }
-    }
-  }
+function mapCategoryToEntry(category: any, type: 'perfume' | 'accessory'): PromoEntry | null {
+  const discount = normalizePromotionValue(category.taux_reduction);
+  const hasPromotion = discount > 0 || Boolean(category.message_promotion?.trim());
 
-  const resolvedImage = productImage || categoryIcon || null;
+  if (!hasPromotion || !isPromotionActive(category)) return null;
 
   return {
-    key: `${promo.type_article}-${promo.id}`,
-    title: promo.marque ? `${promo.marque} — ${promo.nom}` : promo.nom,
-    discount: promo.taux_reduction ?? 0,
-    description: promo.message_promotion || undefined,
-    link: isPerfume ? `/shop/perfumes/${promo.slug}` : `/shop/accessories/${promo.slug}`,
-    image: resolvedImage,
-    type: isPerfume ? 'perfume' : 'accessory',
-    rawId: String(promo.id),
-    startDate: promo.date_debut || undefined,
-    endDate: promo.date_fin || undefined,
+    key: `${type}-${category.id}`,
+    title: category.nom || (type === 'perfume' ? 'Catégorie parfum' : 'Catégorie accessoire'),
+    discount,
+    description: category.message_promotion || undefined,
+    link: type === 'perfume'
+      ? `/shop/perfumes?categorie=${category.id}`
+      : `/shop/accessories?type=${category.id}`,
+    image: category.icone || category.image || null,
+    type,
+    rawId: String(category.id),
+    startDate: category.date_debut || undefined,
+    endDate: category.date_fin || undefined,
   };
 }
 
@@ -141,38 +109,17 @@ function getPromoMessage(item: PromoEntry): string {
   if (item.discount <= 0) return "";
 
   const isEn = i18n.language === 'en';
-  const titleLower = (item.title || "").toLowerCase();
 
   if (item.type === 'perfume') {
-    if (titleLower.includes('dupe')) {
-      return isEn 
-        ? `Get up to ${item.discount}% off our premium inspired alternative fragrances!` 
-        : `Profitez d'une réduction allant jusqu'à -${item.discount}% sur nos parfums inspirés (dupes) !`;
-    }
-    return isEn 
-      ? `Enjoy up to ${item.discount}% off our authentic brand name perfumes.` 
-      : `Profitez d'une réduction de presque -${item.discount}% sur nos parfums de grande marque.`;
+    return isEn
+      ? `Discover this promoted perfume category and explore the collection.`
+      : `Découvrez cette catégorie de parfums en promotion et explorez la collection.`;
   }
 
   if (item.type === 'accessory') {
-    if (titleLower.includes('lunette') || titleLower.includes('sunglass')) {
-      return isEn 
-        ? `Special promotion on sunglasses! Save up to ${item.discount}% off today.` 
-        : `Promotion sur toutes nos lunettes de soleil ! Jusqu'à -${item.discount}% de réduction à ne pas manquer.`;
-    }
-    if (titleLower.includes('montre') || titleLower.includes('watch')) {
-      return isEn 
-        ? `Elevate your style with up to ${item.discount}% off our luxury watches.` 
-        : `Sublimez votre style avec jusqu'à -${item.discount}% de réduction sur nos montres de luxe.`;
-    }
-    if (titleLower.includes('sac') || titleLower.includes('bag')) {
-      return isEn 
-        ? `Don't miss out on up to ${item.discount}% off our designer handbags.` 
-        : `Offre exceptionnelle : jusqu'à -${item.discount}% sur notre maroquinerie et nos sacs tendance !`;
-    }
-    return isEn 
-      ? `Exclusive discount: Save up to ${item.discount}% off our premium accessories.` 
-      : `Ne manquez pas jusqu'à -${item.discount}% de réduction immédiate sur cette sélection d'accessoires.`;
+    return isEn
+      ? `Browse this promoted accessory category and shop the collection.`
+      : `Parcourez cette catégorie d'accessoires en promotion et découvrez la collection.`;
   }
 
   return "";
@@ -193,18 +140,26 @@ export default function PromoCarousel() {
     let active = true;
     const fetchPromotions = async () => {
       try {
-        const [response, iconMap] = await Promise.all([
-          shopService.getPromotions(),
-          fetchCategoryIcons(),
+        const [perfumeCategoriesResponse, accessoryTypesResponse] = await Promise.all([
+          shopService.getPerfumeCategories(),
+          shopService.getAccessoryTypes(),
         ]);
-        const list = extractCatalogList<ShopPromotion>(response);
-        const entries = list
-          .map((p) => mapPromotionToEntry(p, iconMap))
-          .filter((p) => p.discount > 0 || Boolean(p.description));
+
+        const perfumeCategories = extractCatalogList<any>(perfumeCategoriesResponse);
+        const accessoryTypes = extractCatalogList<any>(accessoryTypesResponse);
+
+        const entries = [
+          ...perfumeCategories
+            .map((category) => mapCategoryToEntry(category, 'perfume'))
+            .filter((entry): entry is PromoEntry => Boolean(entry)),
+          ...accessoryTypes
+            .map((category) => mapCategoryToEntry(category, 'accessory'))
+            .filter((entry): entry is PromoEntry => Boolean(entry)),
+        ];
 
         if (active) setPromos(entries);
       } catch (error) {
-        console.error("[PromoCarousel] Failed to fetch promotional data:", error);
+        console.error("[PromoCarousel] Failed to fetch promotional categories:", error);
         if (active) setPromos([]);
       } finally {
         if (active) setLoading(false);

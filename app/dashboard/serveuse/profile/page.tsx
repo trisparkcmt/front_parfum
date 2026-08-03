@@ -74,7 +74,7 @@ export default function ServeuseProfilePage() {
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
-      <BackButton />
+      <BackButton href="/" />
 
       <div className="flex items-center justify-between mb-2">
         <h1 className="text-2xl font-bold text-foreground">{t('profile')}</h1>

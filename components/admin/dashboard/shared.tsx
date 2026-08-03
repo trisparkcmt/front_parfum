@@ -248,13 +248,15 @@ export function DashboardSlideOver({ isOpen, onClose, title, description, size =
     full: 'full',
   };
 
+  const resolvedSize = sizeMap[size ?? 'xl'];
+
   return (
     <SlideOver
       isOpen={isOpen}
       onClose={onClose}
       title={title}
       description={description}
-      size={sizeMap[size]}
+      size={resolvedSize}
       className={className}
       footer={footer}
     >

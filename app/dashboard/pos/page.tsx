@@ -10,7 +10,6 @@ import { Product, EssenceClient } from '@/types';
 import { productService } from '@/services/productService';
 import { orderService } from '@/services/orderService';
 import { labService } from '@/services/labService';
-import { cartService } from '@/services/apiService';
 import { useToastStore } from '@/store/useToastStore';
 import { CartIcon } from '@/components/icons/CustomIcons';
 import { BackButton } from '@/components/ui/BackButton';
@@ -40,7 +39,6 @@ interface CartItem {
   quantity: number;
 }
 
-const TVA_RATE = 0.2;
 
 // ── Shared Primitives & Helpers ─────────────────────────────────────────────
 
@@ -324,23 +322,6 @@ export default function POSPage() {
         };
       });
 
-    try {
-      await cartService.addDirectComposition({
-        flacon_id: Number(selectedFlaconId || selectedSize),
-        lignes,
-        quantite: 1,
-        nom: finalName,
-        note_client: note.trim() || undefined,
-      });
-    } catch (err: any) {
-      addToast(
-        err?.response?.data?.detail ||
-          'La composition n’a pas pu être ajoutée au panier.',
-        'error'
-      );
-      return;
-    }
-
     const simulatedProduct: Product = {
       id: `custom-${Date.now()}`,
       nom: finalName,
@@ -477,10 +458,9 @@ export default function POSPage() {
       (sum, item) => sum + getProductPrice(item.product) * item.quantity,
       0
     );
-    const tva = subtotal * TVA_RATE;
-    const total = subtotal + tva;
+    const total = subtotal;
 
-    return { itemCount, subtotal, tva, total };
+    return { itemCount, subtotal, total };
   }, [cartItems]);
 
   const handleValidateOrder = async () => {
@@ -491,53 +471,15 @@ export default function POSPage() {
 
     setIsValidating(true);
     try {
-      // Build payload for POS create endpoint supporting multiple line types
-      const lignes = cartItems.map((item) => {
-        const p = item.product as any;
-
-        // If the product is a simulated custom composition created in POS
-        if (p.is_custom) {
-          // Create an inline parfum_perso entry with recette when available
-          return {
-            type: 'parfum_perso',
-            quantite: item.quantity,
-            recette: {
-              flacon_id: p.flaconId || p.selectedSize || p.contenance_ml || null,
-              nom: p.nom || p.nom_produit || p.name || `Parfum sur-mesure ${p.selectedSize || ''}`,
-              lignes:
-                p.quantities && typeof p.quantities === 'object'
-                  ? Object.entries(p.quantities).map(([lotId, q]) => ({
-                      lot_essence_id: Number(lotId),
-                      quantite_ml: Number(q),
-                    }))
-                  : [],
-            },
-          };
-        }
-
-        // Determine standard types: parfum, accessoire, essence, diffuseur, essence_perso
-        const normalizedType = (p.type || '').toString();
-        if (normalizedType === 'accessoire' || normalizedType === 'diffuseur') {
-          return { type: normalizedType === 'diffuseur' ? 'diffuseur' : 'accessoire', id: Number(p.id), quantite: item.quantity };
-        }
-
-        if (normalizedType === 'essence' || normalizedType === 'produit-fini-essence' || normalizedType === 'essence_perso') {
-          return { type: normalizedType === 'essence' ? 'essence' : normalizedType === 'essence_perso' ? 'essence_perso' : 'essence', id: Number(p.id), quantite: item.quantity };
-        }
-
-        // Default to parfum
-        return { type: 'parfum', id: Number(p.id), quantite: item.quantity };
-      });
-
-      const order = await orderService.createPOSOrder({
-        lignes,
-        client_telephone: telephoneClient || undefined,
-        client_nom_complet: nomClient || undefined,
-        client_email: undefined,
-        livraison_nom_complet: nomClient || undefined,
-        livraison_telephone: telephoneClient || undefined,
-        code_promo: codePromo || undefined,
-        note_interne: note || undefined,
+      const order = await orderService.createPOSOrderFromCart({
+        cartItems,
+        clientTelephone: telephoneClient || undefined,
+        clientNom: nomClient || undefined,
+        clientEmail: undefined,
+        livraisonNom: nomClient || undefined,
+        livraisonTelephone: telephoneClient || undefined,
+        codePromo: codePromo || undefined,
+        noteInterne: note || undefined,
       });
 
       setLastOrderNumber(order.numero_commande || `#${order.id}`);
@@ -607,7 +549,7 @@ export default function POSPage() {
         {/* Header Strip */}
         <div className="shrink-0 flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <BackButton />
+            <BackButton href="/dashboard/profile" />
             <div>
               <span className="text-[10px] font-semibold uppercase tracking-wider text-foreground/35 block mb-0.5">
                 Terminal d'encaissement
@@ -827,10 +769,13 @@ export default function POSPage() {
                           oilLimitExceeded ? 'bg-red-500' : 'bg-gold'
                         )}
                         style={{
-                          width: `${Math.min(
-                            100,
-                            (Math.min(totalMl, maxOilMl) / selectedSize) * 100
-                          )}%`,
+                          width: `${
+                            totalMl <= 0
+                              ? 0
+                              : oilLimitExceeded
+                                ? Math.min(100, (Math.min(totalMl, maxOilMl) / maxOilMl) * 100)
+                                : 100
+                          }%`,
                         }}
                       />
                     </div>
@@ -1119,7 +1064,7 @@ export default function POSPage() {
               <div className="w-full rounded-xl border border-white/10 bg-white/[0.02] flex divide-x divide-white/8">
                 <div className="flex-1 p-3">
                   <span className="text-[10px] font-semibold uppercase tracking-wider text-foreground/35 block mb-0.5">
-                    HT
+                    Sous-total
                   </span>
                   <span className="text-sm font-semibold tabular-nums text-foreground">
                     {formatXAF(totals.subtotal)} CFA
@@ -1127,15 +1072,7 @@ export default function POSPage() {
                 </div>
                 <div className="flex-1 p-3">
                   <span className="text-[10px] font-semibold uppercase tracking-wider text-foreground/35 block mb-0.5">
-                    TVA (20%)
-                  </span>
-                  <span className="text-sm font-semibold tabular-nums text-foreground/70">
-                    {formatXAF(totals.tva)} CFA
-                  </span>
-                </div>
-                <div className="flex-1 p-3">
-                  <span className="text-[10px] font-semibold uppercase tracking-wider text-foreground/35 block mb-0.5">
-                    Total TTC
+                    Total
                   </span>
                   <span className="text-sm font-semibold tabular-nums text-gold">
                     {formatXAF(totals.total)} CFA

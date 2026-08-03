@@ -85,7 +85,7 @@ function driverDisplayName(d: any): string {
     : d.name ?? `Livreur #${d.id}`;
 }
 
-/** Dot + label chip used for every status everywhere on the page. */
+/** Shared status chip indicator */
 function StatusChip({ cfg, label }: { cfg?: { label: string; color: string; dot: string }; label?: string }) {
   if (!cfg) return <span className="text-xs text-foreground/25">—</span>;
   return (
@@ -96,7 +96,7 @@ function StatusChip({ cfg, label }: { cfg?: { label: string; color: string; dot:
   );
 }
 
-/** Compact segmented control used for status pickers in edit forms. */
+/** Segmented selector for status choices */
 function SegmentedPicker<T extends string>({
   value, onChange, options, cfg,
 }: {
@@ -135,7 +135,7 @@ function IconButton({
     gold: 'text-foreground/45 hover:text-gold hover:bg-gold/10',
   } as const;
   return (
-    <button title={title} onClick={onClick} className={cx('rounded-md p-1.5 transition-colors', tones[tone])}>
+    <button title={title} onClick={onClick} className={cx('rounded-md p-2 sm:p-1.5 transition-colors', tones[tone])}>
       {icon}
     </button>
   );
@@ -163,7 +163,7 @@ function ActionButton({
 }
 
 // ─────────────────────────────────────────────────────────────────────────
-// Modal shell — used by all three popups on this page
+// Modal shell - Optimized edge-to-edge for mobile
 // ─────────────────────────────────────────────────────────────────────────
 
 function OrderPopupModal({
@@ -202,29 +202,32 @@ function OrderPopupModal({
   if (!isOpen) return null;
 
   const sizes = {
-    sm: 'max-w-sm', md: 'max-w-md', lg: 'max-w-lg', xl: 'max-w-2xl', '2xl': 'max-w-3xl', '3xl': 'max-w-5xl',
+    sm: 'sm:max-w-sm', md: 'sm:max-w-md', lg: 'sm:max-w-lg', xl: 'sm:max-w-2xl', '2xl': 'sm:max-w-3xl', '3xl': 'sm:max-w-5xl',
   } as const;
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/75 p-3 sm:p-6" onClick={onClose}>
+    <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-black/75 p-0 sm:p-6" onClick={onClose}>
       <div
-        className={cx('flex max-h-[88vh] w-full flex-col overflow-hidden rounded-2xl border border-white/10 bg-background shadow-2xl', sizes[size])}
+        className={cx(
+          'flex h-full sm:h-auto max-h-full sm:max-h-[88vh] w-full flex-col overflow-hidden rounded-none sm:rounded-xl border-0 sm:border border-white/10 bg-background',
+          sizes[size]
+        )}
         onClick={e => e.stopPropagation()}
       >
         {(title || eyebrow) && (
-          <div className="flex items-start justify-between gap-4 border-b border-white/10 px-6 py-4">
+          <div className="flex shrink-0 items-start justify-between gap-4 border-b border-white/10 px-4 sm:px-6 py-4">
             <div className="min-w-0">
               {eyebrow && <p className="text-[10px] font-semibold uppercase tracking-widest text-foreground/35">{eyebrow}</p>}
-              {title && <div className="mt-0.5 flex items-center gap-2 text-[15px] font-semibold text-foreground">{title}</div>}
+              {title && <div className="mt-0.5 flex flex-wrap items-center gap-2 text-[15px] font-semibold text-foreground">{title}</div>}
               {subtitle && <p className="mt-0.5 text-xs text-foreground/40">{subtitle}</p>}
             </div>
-            <button onClick={onClose} className="shrink-0 rounded-md p-1.5 text-foreground/40 transition-colors hover:bg-white/8 hover:text-foreground">
+            <button onClick={onClose} className="shrink-0 rounded-md p-2 sm:p-1.5 text-foreground/40 transition-colors hover:bg-white/8 hover:text-foreground">
               <X size={16} />
             </button>
           </div>
         )}
-        <div className="flex-1 overflow-y-auto px-6 py-5">{children}</div>
-        {footer && <div className="border-t border-white/10 bg-background px-6 py-4">{footer}</div>}
+        <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-4 sm:py-5">{children}</div>
+        {footer && <div className="shrink-0 border-t border-white/10 bg-background px-4 sm:px-6 py-3.5 sm:py-4">{footer}</div>}
       </div>
     </div>
   );
@@ -492,7 +495,7 @@ export default function OrdersPage() {
     <div className="space-y-6">
 
       {/* Header ------------------------------------------------------------ */}
-      <div className="flex flex-wrap items-center justify-between gap-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-xl font-semibold text-foreground">Commandes</h1>
           <p className="mt-0.5 text-sm text-foreground/40">
@@ -501,7 +504,7 @@ export default function OrdersPage() {
         </div>
         <button
           onClick={() => fetchOrders(page)}
-          className="inline-flex items-center gap-2 rounded-lg border border-white/10 px-3.5 py-2 text-sm text-foreground/60 transition-colors hover:bg-white/6 hover:text-foreground"
+          className="inline-flex items-center justify-center gap-2 rounded-lg border border-white/10 px-3.5 py-2 text-sm text-foreground/60 transition-colors hover:bg-white/6 hover:text-foreground"
         >
           <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
           Actualiser
@@ -509,9 +512,9 @@ export default function OrdersPage() {
       </div>
 
       {/* KPI strip ----------------------------------------------------------- */}
-      <div className="flex divide-x divide-white/8 overflow-hidden rounded-xl border border-white/10 bg-white/[0.03]">
+      <div className="grid grid-cols-2 gap-2.5 sm:flex sm:divide-x sm:divide-white/8 sm:gap-0 overflow-hidden sm:rounded-xl sm:border sm:border-white/10 sm:bg-white/[0.03]">
         {kpi.map(k => (
-          <div key={k.label} className="flex-1 px-5 py-4">
+          <div key={k.label} className="rounded-xl border border-white/10 bg-white/[0.03] p-3.5 sm:border-none sm:bg-transparent sm:flex-1 sm:px-5 sm:py-4">
             <p className="text-[10px] font-semibold uppercase tracking-wider text-foreground/35">{k.label}</p>
             <p className={cx('mt-1 text-xl font-semibold tabular-nums', k.color)}>{k.value.toLocaleString()}</p>
           </div>
@@ -520,8 +523,8 @@ export default function OrdersPage() {
 
       {/* Toolbar --------------------------------------------------------------- */}
       <div className="space-y-3">
-        <div className="flex flex-wrap items-center gap-2.5">
-          <div className="flex min-w-[220px] flex-1 items-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2">
+        <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center">
+          <div className="flex w-full sm:flex-1 items-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2">
             <Search size={14} className="shrink-0 text-foreground/35" />
             <input
               value={search}
@@ -536,7 +539,7 @@ export default function OrdersPage() {
             )}
           </div>
 
-          <div className="flex w-56 items-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2">
+          <div className="flex w-full sm:w-56 items-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2">
             <input
               value={nomFilter}
               onChange={e => setNomFilter(e.target.value)}
@@ -548,7 +551,7 @@ export default function OrdersPage() {
           <button
             onClick={() => setShowFilters(s => !s)}
             className={cx(
-              'inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-sm transition-colors',
+              'inline-flex items-center justify-center gap-1.5 rounded-lg border px-3 py-2 text-sm transition-colors',
               showFilters || activeFilterCount
                 ? 'border-gold/30 bg-gold/10 text-gold'
                 : 'border-white/10 text-foreground/55 hover:bg-white/6'
@@ -643,7 +646,7 @@ export default function OrdersPage() {
 
       {/* Server page control --------------------------------------------------- */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-between border-t border-white/10 pt-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-t border-white/10 pt-4">
           <p className="text-xs text-foreground/40">Page {page} / {totalPages} · {total.toLocaleString()} commandes</p>
           <div className="flex items-center gap-2">
             <button
@@ -707,68 +710,76 @@ export default function OrdersPage() {
           title={<span className="font-mono">{editModal.numero_commande}</span>}
           size="2xl"
           footer={
-            <div className="flex gap-2.5">
+            <div className="flex flex-col-reverse sm:flex-row gap-2.5">
+              <button
+                onClick={() => setEditModal(null)}
+                className="w-full sm:w-auto rounded-lg border border-white/10 px-5 py-2.5 text-sm text-foreground/60 transition-colors hover:bg-white/6"
+              >
+                Annuler
+              </button>
               <button
                 onClick={handleSave}
                 className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg bg-gold py-2.5 text-sm font-semibold text-black transition-colors hover:bg-gold/85"
               >
                 Enregistrer les modifications
               </button>
-              <button
-                onClick={() => setEditModal(null)}
-                className="rounded-lg border border-white/10 px-5 py-2.5 text-sm text-foreground/60 transition-colors hover:bg-white/6"
-              >
-                Annuler
-              </button>
             </div>
           }
         >
-          <div className="space-y-5">
-            <Field label="Statut de la commande">
-              <SegmentedPicker value={editStatut} onChange={setEditStatut} options={STATUT_OPTIONS.filter(v => v) as any} cfg={STATUT_CFG} />
-            </Field>
-            <Field label="Statut de livraison" icon={<Truck size={11} />}>
-              <SegmentedPicker value={editLivraison} onChange={setEditLivraison} options={LIVRAISON_OPTIONS.filter(v => v) as any} cfg={STATUT_LIVRAISON_CFG} />
-            </Field>
-            <Field label="Statut paiement" icon={<CreditCard size={11} />}>
-              <SegmentedPicker value={editPaiement} onChange={setEditPaiement} options={PAIEMENT_OPTIONS.filter(v => v) as any} cfg={STATUT_PAIEMENT_CFG} />
-            </Field>
-
-            <Field label="Assigner un livreur" icon={<Bike size={11} />}>
-              <select
-                value={editLivreur}
-                onChange={e => setEditLivreur(e.target.value)}
-                className="w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2.5 text-sm text-foreground outline-none transition-colors focus:border-gold/50"
-              >
-                <option value="" className="bg-background">— Aucun —</option>
-                {drivers.map(d => {
-                  const id = d.id ?? d.user_id;
-                  return <option key={id} value={id} className="bg-background">{driverDisplayName(d)}</option>;
-                })}
-              </select>
-            </Field>
-
-            <div className="grid grid-cols-2 gap-3">
-              <Field label="Date estimée" icon={<Calendar size={11} />}>
-                <input
-                  type="date"
-                  value={editDateEst}
-                  onChange={e => setEditDateEst(e.target.value)}
-                  className="w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2.5 text-sm text-foreground outline-none transition-colors focus:border-gold/50"
-                />
+          <FormSection title="Statuts & Assignations" icon={<ClipboardList size={11} />}>
+            <div className="space-y-4">
+              <Field label="Statut de la commande">
+                <SegmentedPicker value={editStatut} onChange={setEditStatut} options={STATUT_OPTIONS.filter(v => v) as any} cfg={STATUT_CFG} />
               </Field>
-              <Field label="Frais de livraison" icon={<Tag size={11} />}>
-                <input
-                  type="number"
-                  value={editFrais}
-                  onChange={e => setEditFrais(e.target.value)}
-                  placeholder={editModal.frais_livraison}
-                  className="w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2.5 text-sm text-foreground outline-none transition-colors focus:border-gold/50"
-                />
+              <Field label="Statut de livraison" icon={<Truck size={11} />}>
+                <SegmentedPicker value={editLivraison} onChange={setEditLivraison} options={LIVRAISON_OPTIONS.filter(v => v) as any} cfg={STATUT_LIVRAISON_CFG} />
+              </Field>
+              <Field label="Statut paiement" icon={<CreditCard size={11} />}>
+                <SegmentedPicker value={editPaiement} onChange={setEditPaiement} options={PAIEMENT_OPTIONS.filter(v => v) as any} cfg={STATUT_PAIEMENT_CFG} />
               </Field>
             </div>
+          </FormSection>
 
-            <Field label="Note interne" icon={<ClipboardList size={11} />}>
+          <FormSection title="Livraison & Logistique" icon={<Bike size={11} />}>
+            <div className="space-y-4">
+              <Field label="Assigner un livreur">
+                <select
+                  value={editLivreur}
+                  onChange={e => setEditLivreur(e.target.value)}
+                  className="w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2.5 text-sm text-foreground outline-none transition-colors focus:border-gold/50"
+                >
+                  <option value="" className="bg-background">— Aucun —</option>
+                  {drivers.map(d => {
+                    const id = d.id ?? d.user_id;
+                    return <option key={id} value={id} className="bg-background">{driverDisplayName(d)}</option>;
+                  })}
+                </select>
+              </Field>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <Field label="Date estimée" icon={<Calendar size={11} />}>
+                  <input
+                    type="date"
+                    value={editDateEst}
+                    onChange={e => setEditDateEst(e.target.value)}
+                    className="w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2.5 text-sm text-foreground outline-none transition-colors focus:border-gold/50"
+                  />
+                </Field>
+                <Field label="Frais de livraison" icon={<Tag size={11} />}>
+                  <input
+                    type="number"
+                    value={editFrais}
+                    onChange={e => setEditFrais(e.target.value)}
+                    placeholder={editModal.frais_livraison}
+                    className="w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2.5 text-sm text-foreground outline-none transition-colors focus:border-gold/50"
+                  />
+                </Field>
+              </div>
+            </div>
+          </FormSection>
+
+          <FormSection title="Notes internes" icon={<ClipboardList size={11} />}>
+            <Field label="Commentaire de gestion">
               <textarea
                 value={editNote}
                 onChange={e => setEditNote(e.target.value)}
@@ -777,7 +788,7 @@ export default function OrdersPage() {
                 className="w-full resize-none rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2.5 text-sm text-foreground outline-none transition-colors focus:border-gold/50"
               />
             </Field>
-          </div>
+          </FormSection>
         </OrderPopupModal>
       )}
 
@@ -792,7 +803,13 @@ export default function OrdersPage() {
           title={<span className="font-mono">{validationModal.numero_commande}</span>}
           size="xl"
           footer={
-            <div className="flex gap-2.5">
+            <div className="flex flex-col-reverse sm:flex-row gap-2.5">
+              <button
+                onClick={() => setValidationModal(null)}
+                className="w-full sm:w-auto rounded-lg border border-white/10 px-5 py-2.5 text-sm text-foreground/60 transition-colors hover:bg-white/6"
+              >
+                Annuler
+              </button>
               <button
                 onClick={handleConfirmValidation}
                 className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg bg-emerald-500 py-2.5 text-sm font-semibold text-black transition-colors hover:bg-emerald-400"
@@ -800,49 +817,44 @@ export default function OrdersPage() {
                 <CheckCircle size={15} />
                 Confirmer la validation
               </button>
-              <button
-                onClick={() => setValidationModal(null)}
-                className="rounded-lg border border-white/10 px-5 py-2.5 text-sm text-foreground/60 transition-colors hover:bg-white/6"
-              >
-                Annuler
-              </button>
             </div>
           }
         >
-          <div className="space-y-5">
-            <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
-              <p className="mb-2.5 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-widest text-foreground/35">
-                <MapPin size={11} />Destinataire
-              </p>
+          <div className="space-y-4">
+            <FormSection title="Destinataire" icon={<MapPin size={11} />}>
               <dl className="space-y-1.5 text-xs">
                 <RowKV k="Nom" v={validationModal.livraison_nom_complet} />
                 <RowKV k="Téléphone" v={validationModal.livraison_telephone} />
                 <RowKV k="Adresse" v={`${validationModal.livraison_ville}, ${validationModal.livraison_quartier}`} />
               </dl>
-            </div>
+            </FormSection>
 
-            <Field label="Choisir un livreur" icon={<Bike size={11} />}>
-              <select
-                value={valDriverId}
-                onChange={e => setValDriverId(e.target.value)}
-                className="w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2.5 text-sm text-foreground outline-none transition-colors focus:border-gold/50"
-              >
-                <option value="" className="bg-background">— Assigner plus tard —</option>
-                {drivers.map(d => {
-                  const id = d.id ?? d.user_id;
-                  return <option key={id} value={id} className="bg-background">{driverDisplayName(d)}</option>;
-                })}
-              </select>
-            </Field>
+            <FormSection title="Paramètres d'expedition" icon={<Bike size={11} />}>
+              <div className="space-y-4">
+                <Field label="Choisir un livreur">
+                  <select
+                    value={valDriverId}
+                    onChange={e => setValDriverId(e.target.value)}
+                    className="w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2.5 text-sm text-foreground outline-none transition-colors focus:border-gold/50"
+                  >
+                    <option value="" className="bg-background">— Assigner plus tard —</option>
+                    {drivers.map(d => {
+                      const id = d.id ?? d.user_id;
+                      return <option key={id} value={id} className="bg-background">{driverDisplayName(d)}</option>;
+                    })}
+                  </select>
+                </Field>
 
-            <Field label="Date estimée de livraison" icon={<Calendar size={11} />}>
-              <input
-                type="date"
-                value={valDateEst}
-                onChange={e => setValDateEst(e.target.value)}
-                className="w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2.5 text-sm text-foreground outline-none transition-colors focus:border-gold/50"
-              />
-            </Field>
+                <Field label="Date estimée de livraison" icon={<Calendar size={11} />}>
+                  <input
+                    type="date"
+                    value={valDateEst}
+                    onChange={e => setValDateEst(e.target.value)}
+                    className="w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2.5 text-sm text-foreground outline-none transition-colors focus:border-gold/50"
+                  />
+                </Field>
+              </div>
+            </FormSection>
           </div>
         </OrderPopupModal>
       )}
@@ -851,8 +863,20 @@ export default function OrdersPage() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────
-// Filter group (used inside the collapsible filter panel)
+// Form Field & Section Wrappers
 // ─────────────────────────────────────────────────────────────────────────
+
+function FormSection({ title, icon, children }: { title: string; icon?: React.ReactNode; children: React.ReactNode }) {
+  return (
+    <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4 space-y-3 mb-4">
+      <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-widest text-foreground/40">
+        {icon}
+        {title}
+      </div>
+      {children}
+    </div>
+  );
+}
 
 function FilterGroup({
   label, options, value, onChange, cfg,
@@ -899,6 +923,71 @@ function RowKV({ k, v }: { k: string; v?: string | null }) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────
+// Mobile Card View - Alternative to Table for Phone screens
+// ─────────────────────────────────────────────────────────────────────────
+
+function CardView({
+  orders, pendingIds, onView, onEdit, renderActions, emptyLabel,
+}: {
+  orders: BackendOrder[];
+  pendingIds: Set<string>;
+  onView: (o: BackendOrder) => void;
+  onEdit?: (o: BackendOrder) => void;
+  renderActions: (o: BackendOrder) => React.ReactNode;
+  emptyLabel: string;
+}) {
+  if (orders.length === 0) {
+    return (
+      <div className="py-10 text-center text-sm italic text-foreground/30 border border-white/10 rounded-xl">
+        {emptyLabel}
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      {orders.map(order => {
+        const isPending = pendingIds.has(String(order.id));
+        return (
+          <div key={order.id} className={cx('rounded-xl border border-white/10 bg-white/[0.02] p-4 space-y-3', isPending && 'opacity-50')}>
+            <div className="flex items-center justify-between">
+              <span className="inline-flex items-center gap-1.5 font-mono text-xs font-medium text-gold">
+                {order.numero_commande}
+                {isPending && <Loader2 size={11} className="animate-spin text-gold/70" />}
+              </span>
+              <StatusChip cfg={STATUT_CFG[order.statut]} />
+            </div>
+
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-xs font-medium text-foreground">{order.livraison_nom_complet}</p>
+                <p className="text-[10px] text-foreground/40">{order.client_email}</p>
+              </div>
+              <p className="font-semibold text-foreground text-sm">{fmt(order.total_ttc)}</p>
+            </div>
+
+            <div className="flex items-center justify-between text-xs text-foreground/50 pt-1 border-t border-white/5">
+              <span>{getDeliveryMethod(order)}</span>
+              <span>{fmtDate(order.date_creation)}</span>
+            </div>
+
+            <div className="flex items-center justify-between pt-2">
+              <div className="flex items-center gap-1">
+                <IconButton icon={<Eye size={16} />} title="Voir le détail" onClick={() => onView(order)} tone="gold" />
+                {onEdit && <IconButton icon={<ClipboardList size={16} />} title="Modifier / gérer" onClick={() => onEdit(order)} tone="blue" />}
+              </div>
+              <div className="flex items-center gap-1.5">
+                {renderActions(order)}
+              </div>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────
 // Orders table (shared between "en cours" and "complétées")
 // ─────────────────────────────────────────────────────────────────────────
 
@@ -924,69 +1013,84 @@ function OrdersTable({
         <span className="text-xs text-foreground/35">{count}</span>
       </div>
 
-      <div className="min-h-[120px] overflow-hidden rounded-xl border border-white/10">
-        {loading ? (
-          <div className="flex flex-col items-center justify-center gap-2.5 py-16 text-foreground/40">
-            <Loader2 className="animate-spin text-gold" size={26} />
-            <p className="text-xs">Chargement…</p>
+      {loading ? (
+        <div className="flex flex-col items-center justify-center gap-2.5 py-16 text-foreground/40 rounded-xl border border-white/10">
+          <Loader2 className="animate-spin text-gold" size={26} />
+          <p className="text-xs">Chargement…</p>
+        </div>
+      ) : (
+        <>
+          {/* Mobile Card List View */}
+          <div className="block md:hidden">
+            <CardView
+              orders={orders}
+              pendingIds={pendingIds}
+              onView={onView}
+              onEdit={onEdit}
+              renderActions={renderActions}
+              emptyLabel={emptyLabel}
+            />
           </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-white/10 bg-white/[0.02]">
-                  {['N° Commande', 'Client', 'Total TTC', 'Promo', 'Livreur', 'Statut', 'Livraison', 'Date', ''].map(h => (
-                    <th key={h} className="whitespace-nowrap px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wider text-foreground/35">
-                      {h}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/5">
-                {orders.map(order => {
-                  const isPending = pendingIds.has(String(order.id));
-                  return (
-                    <tr key={order.id} className={cx('transition-colors hover:bg-white/[0.02]', isPending && 'opacity-50')}>
-                      <td className="px-4 py-3">
-                        <span className="inline-flex items-center gap-1.5 font-mono text-xs font-medium text-gold">
-                          {order.numero_commande}
-                          {isPending && <Loader2 size={11} className="animate-spin text-gold/70" />}
-                        </span>
-                      </td>
-                      <td className="min-w-[160px] px-4 py-3">
-                        <p className="text-xs font-medium leading-tight text-foreground">{order.livraison_nom_complet}</p>
-                        <p className="mt-0.5 text-[10px] text-foreground/40">{order.client_email}</p>
-                      </td>
-                      <td className="whitespace-nowrap px-4 py-3 font-semibold text-foreground">{fmt(order.total_ttc)}</td>
-                      <td className="px-4 py-3">
-                        {order.code_promo_utilise
-                          ? <span className="rounded border border-gold/20 bg-gold/10 px-1.5 py-0.5 font-mono text-[11px] text-gold">{order.code_promo_utilise}</span>
-                          : <span className="text-xs text-foreground/25">—</span>}
-                      </td>
-                      <td className="whitespace-nowrap px-4 py-3 text-xs text-foreground/55">{order.livreur_nom ?? '—'}</td>
-                      <td className="px-4 py-3"><StatusChip cfg={STATUT_CFG[order.statut]} /></td>
-                      <td className="whitespace-nowrap px-4 py-3 text-xs text-foreground/55">{getDeliveryMethod(order)}</td>
-                      <td className="whitespace-nowrap px-4 py-3 text-[11px] text-foreground/35">{fmtDate(order.date_creation)}</td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center justify-end gap-1">
-                          <IconButton icon={<Eye size={14} />} title="Voir le détail" onClick={() => onView(order)} tone="gold" />
-                          {onEdit && <IconButton icon={<ClipboardList size={14} />} title="Modifier / gérer" onClick={() => onEdit(order)} tone="blue" />}
-                          {renderActions(order)}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-                {orders.length === 0 && (
-                  <tr>
-                    <td colSpan={9} className="py-10 text-center text-sm italic text-foreground/30">{emptyLabel}</td>
+
+          {/* Desktop Table View */}
+          <div className="hidden md:block min-h-[120px] overflow-hidden rounded-xl border border-white/10">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-white/10 bg-white/[0.02]">
+                    {['N° Commande', 'Client', 'Total TTC', 'Promo', 'Livreur', 'Statut', 'Livraison', 'Date', ''].map(h => (
+                      <th key={h} className="whitespace-nowrap px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wider text-foreground/35">
+                        {h}
+                      </th>
+                    ))}
                   </tr>
-                )}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-white/5">
+                  {orders.map(order => {
+                    const isPending = pendingIds.has(String(order.id));
+                    return (
+                      <tr key={order.id} className={cx('transition-colors hover:bg-white/[0.02]', isPending && 'opacity-50')}>
+                        <td className="px-4 py-3">
+                          <span className="inline-flex items-center gap-1.5 font-mono text-xs font-medium text-gold">
+                            {order.numero_commande}
+                            {isPending && <Loader2 size={11} className="animate-spin text-gold/70" />}
+                          </span>
+                        </td>
+                        <td className="min-w-[160px] px-4 py-3">
+                          <p className="text-xs font-medium leading-tight text-foreground">{order.livraison_nom_complet}</p>
+                          <p className="mt-0.5 text-[10px] text-foreground/40">{order.client_email}</p>
+                        </td>
+                        <td className="whitespace-nowrap px-4 py-3 font-semibold text-foreground">{fmt(order.total_ttc)}</td>
+                        <td className="px-4 py-3">
+                          {order.code_promo_utilise
+                            ? <span className="rounded border border-gold/20 bg-gold/10 px-1.5 py-0.5 font-mono text-[11px] text-gold">{order.code_promo_utilise}</span>
+                            : <span className="text-xs text-foreground/25">—</span>}
+                        </td>
+                        <td className="whitespace-nowrap px-4 py-3 text-xs text-foreground/55">{order.livreur_nom ?? '—'}</td>
+                        <td className="px-4 py-3"><StatusChip cfg={STATUT_CFG[order.statut]} /></td>
+                        <td className="whitespace-nowrap px-4 py-3 text-xs text-foreground/55">{getDeliveryMethod(order)}</td>
+                        <td className="whitespace-nowrap px-4 py-3 text-[11px] text-foreground/35">{fmtDate(order.date_creation)}</td>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center justify-end gap-1">
+                            <IconButton icon={<Eye size={14} />} title="Voir le détail" onClick={() => onView(order)} tone="gold" />
+                            {onEdit && <IconButton icon={<ClipboardList size={14} />} title="Modifier / gérer" onClick={() => onEdit(order)} tone="blue" />}
+                            {renderActions(order)}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                  {orders.length === 0 && (
+                    <tr>
+                      <td colSpan={9} className="py-10 text-center text-sm italic text-foreground/30">{emptyLabel}</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
-        )}
-      </div>
+        </>
+      )}
     </div>
   );
 }
@@ -1032,8 +1136,7 @@ function TablePagination({
 }
 
 // ─────────────────────────────────────────────────────────────────────────
-// Order detail modal — rebuilt: receipt-style breakdown, quiet sections,
-// sticky action footer, one clear visual hierarchy instead of stacked cards.
+// Order detail modal
 // ─────────────────────────────────────────────────────────────────────────
 
 function OrderDetailModal({
@@ -1070,22 +1173,22 @@ function OrderDetailModal({
       }
       size="3xl"
       footer={
-        <div className="flex flex-wrap gap-2.5">
-          {order.statut === 'en_attente' && (
-            <button onClick={onValidate} className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-emerald-500 py-2.5 text-xs font-semibold text-black transition-colors hover:bg-emerald-400">
-              <CheckCircle size={14} />Valider
-            </button>
-          )}
+        <div className="flex flex-col-reverse sm:flex-row flex-wrap gap-2.5">
+          <button onClick={onClose} className="w-full sm:w-auto rounded-lg border border-white/10 px-5 py-2.5 text-xs text-foreground/60 transition-colors hover:bg-white/6">
+            Fermer
+          </button>
           {isCancellable && (
             <button onClick={onCancel} className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-red-500 py-2.5 text-xs font-semibold text-white transition-colors hover:bg-red-400">
               <XCircle size={14} />Annuler
             </button>
           )}
-          <button onClick={onManage} className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-gold px-5 py-2.5 text-xs font-semibold text-black transition-colors hover:bg-gold/85">
+          {order.statut === 'en_attente' && (
+            <button onClick={onValidate} className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-emerald-500 py-2.5 text-xs font-semibold text-black transition-colors hover:bg-emerald-400">
+              <CheckCircle size={14} />Valider
+            </button>
+          )}
+          <button onClick={onManage} className="inline-flex flex-1 sm:flex-none items-center justify-center gap-1.5 rounded-lg bg-gold px-5 py-2.5 text-xs font-semibold text-black transition-colors hover:bg-gold/85">
             <ClipboardList size={14} />Gérer
-          </button>
-          <button onClick={onClose} className="rounded-lg border border-white/10 px-5 py-2.5 text-xs text-foreground/60 transition-colors hover:bg-white/6">
-            Fermer
           </button>
         </div>
       }
@@ -1093,15 +1196,15 @@ function OrderDetailModal({
       <div className="space-y-6">
 
         {/* Summary strip */}
-        <div className="flex flex-wrap items-center gap-x-6 gap-y-2 rounded-xl border border-white/10 bg-white/[0.02] px-4 py-3">
+        <div className="grid grid-cols-2 gap-3 sm:flex sm:flex-wrap sm:items-center sm:gap-x-6 sm:gap-y-2 rounded-xl border border-white/10 bg-white/[0.02] p-3.5 sm:px-4 sm:py-3">
           <SummaryStat label="Total TTC" value={fmt(order.total_ttc)} emphasize />
-          <div className="h-8 w-px bg-white/10" />
+          <div className="hidden sm:block h-8 w-px bg-white/10" />
           <SummaryStat label="Paiement" node={<StatusChip cfg={STATUT_PAIEMENT_CFG[order.statut_paiement]} />} />
-          <div className="h-8 w-px bg-white/10" />
+          <div className="hidden sm:block h-8 w-px bg-white/10" />
           <SummaryStat label="Remise" value={getDeliveryMethod(order)} />
           {order.code_promo_utilise && (
             <>
-              <div className="h-8 w-px bg-white/10" />
+              <div className="hidden sm:block h-8 w-px bg-white/10" />
               <SummaryStat label="Code promo" node={<span className="rounded border border-gold/20 bg-gold/10 px-1.5 py-0.5 font-mono text-xs text-gold">{order.code_promo_utilise}</span>} />
             </>
           )}
@@ -1110,7 +1213,7 @@ function OrderDetailModal({
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
           {/* Left: delivery + notes */}
           <div className="space-y-5 lg:col-span-2">
-            <section>
+            <section className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
               <SectionLabel icon={<MapPin size={11} />}>Livraison</SectionLabel>
               <dl className="space-y-1.5 text-xs">
                 <RowKV k="Destinataire" v={order.livraison_nom_complet} />
@@ -1131,7 +1234,7 @@ function OrderDetailModal({
             </section>
 
             {(order.note_client || order.note_interne) && (
-              <section className="space-y-3">
+              <section className="space-y-3 rounded-xl border border-white/10 bg-white/[0.02] p-4">
                 {order.note_client && (
                   <div>
                     <SectionLabel icon={<Phone size={11} />}>Note client</SectionLabel>
@@ -1139,7 +1242,7 @@ function OrderDetailModal({
                   </div>
                 )}
                 {order.note_interne && (
-                  <div>
+                  <div className={order.note_client ? 'mt-3 pt-3 border-t border-white/5' : ''}>
                     <SectionLabel icon={<ClipboardList size={11} />}>Note interne</SectionLabel>
                     <p className="text-xs leading-relaxed text-foreground/65">{order.note_interne}</p>
                   </div>
@@ -1186,7 +1289,7 @@ function OrderDetailModal({
 
           {/* Right: items + receipt */}
           <div className="space-y-5 lg:col-span-3">
-            <section>
+            <section className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
               <SectionLabel icon={<Package size={11} />}>Articles ({lines.length})</SectionLabel>
               <div className="max-h-[280px] space-y-4 overflow-y-auto pr-1">
                 {groups.map(g => (
@@ -1299,12 +1402,11 @@ function LinesGroup({ title, icon, lines }: { title: string; icon: React.ReactNo
           );
 
           return (
-            <div key={line.id} className="rounded-lg border border-white/8 bg-white/[0.015] px-3 py-2 text-xs">
-              <div className="flex items-center justify-between gap-3">
+            <div key={line.id} className="rounded-lg border border-white/8 bg-white/[0.015] p-2.5 sm:px-3 sm:py-2 text-xs">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 sm:gap-3">
                 <span className="font-medium text-foreground/85">{name}</span>
-                <div className="flex shrink-0 items-center gap-3 text-foreground/45">
-                  <span>{line.quantite} ×</span>
-                  <span>{Number(line.prix_unitaire_snapshot).toLocaleString()} FCFA</span>
+                <div className="flex shrink-0 items-center justify-between sm:justify-start gap-3 text-foreground/45">
+                  <span>{line.quantite} × {Number(line.prix_unitaire_snapshot).toLocaleString()} FCFA</span>
                   <span className="font-semibold text-foreground/75">{Number(line.sous_total).toLocaleString()} FCFA</span>
                 </div>
               </div>
@@ -1325,7 +1427,7 @@ function LinesGroup({ title, icon, lines }: { title: string; icon: React.ReactNo
                 </div>
               )}
               {hasDetailMeta && (
-                <div className="mt-2 ml-0 space-y-1 text-[11px] text-foreground/50">
+                <div className="mt-2 ml-0 space-y-1 text-[11px] text-foreground/50 border-t border-white/5 pt-1.5">
                   <div className="flex justify-between gap-2">
                     <span>{[detailMeta.essenceName, detailMeta.marque].filter(Boolean).join(' · ') || 'Produit fini'}</span>
                     <span>{detailMeta.tailleMl ? `${detailMeta.tailleMl} ml` : ''}</span>

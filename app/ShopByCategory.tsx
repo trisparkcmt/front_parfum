@@ -6,10 +6,10 @@ import { ArrowRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 const CATEGORIES = [
-  { key: 'women', title: 'Parfums Femme', href: '/shop/perfumes?gender=feminine', img: '/categories/women.jpg' },
-  { key: 'men', title: 'Parfums Homme', href: '/shop/perfumes?gender=masculine', img: '/categories/men.jpg' },
-  { key: 'dupes', title: 'Nos Dupes', href: '/shop/perfumes?type=dupe', img: '/categories/dupes.jpg' },
-  { key: 'access', title: 'Accessoires', href: '/shop/accessories', img: '/categories/access.jpg' },
+  { key: 'women', title: 'Parfums Femme', href: '/shop/perfumes?gender=feminine', img: '/perfumeW.jfif' },
+  { key: 'men', title: 'Parfums Homme', href: '/shop/perfumes?gender=masculine', img: '/perfumeM.jfif' },
+  { key: 'dupes', title: 'Nos Dupes', href: '/shop/perfumes?type=dupe', img: '/dupes.jfif' },
+  { key: 'access', title: 'Accessoires', href: '/shop/accessories', img: '/accesoires.jfif' },
 ];
 
 export default function ShopByCategory() {

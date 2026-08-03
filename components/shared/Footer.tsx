@@ -39,18 +39,18 @@ export function Footer() {
             <Link href="/" className="flex items-center gap-2">
               <Gem className="h-7 w-7 text-gold" />
               <span className="font-display text-lg font-bold">
-                <span className="text-gold">Accessories</span>{' '}
-                <span className="text-zinc-900 dark:text-zinc-100">Exclusif</span>
+                <span className="text-gold">Accessoires</span>{' '}
+                <span className="text-zinc-900 dark:text-zinc-100">Exclusifs</span>
               </span>
             </Link>
             <p className="text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">
               {t('brand_description', 'Votre destination luxe pour accessoires premium et parfums d\'exception.')}
             </p>
             <div className="flex gap-3">
-          <a href="https://www.instagram.com/accessories_exclusif" target="_blank" rel="noopener noreferrer" className="p-2 bg-foreground/5 hover:bg-gold/10 hover:text-gold transition-colors" aria-label="Instagram">
+          <a href="https://www.instagram.com/accessoires_exclusifsoff/" target="_blank" rel="noopener noreferrer" className="p-2 bg-foreground/5 hover:bg-gold/10 hover:text-gold transition-colors" aria-label="Instagram">
                 <Camera size={18} />
               </a>
-          <a href="https://www.facebook.com/accessories.exclusif" target="_blank" rel="noopener noreferrer" className="p-2 bg-foreground/5 hover:bg-gold/10 hover:text-gold transition-colors" aria-label="Facebook">
+          <a href="https://www.facebook.com/p/Accessoires-exclusifsoff-61574572847440/" target="_blank" rel="noopener noreferrer" className="p-2 bg-foreground/5 hover:bg-gold/10 hover:text-gold transition-colors" aria-label="Facebook">
                 <Globe size={18} />
               </a>
               <a href="https://wa.me/237680254243" target="_blank" rel="noopener noreferrer" className="p-2 bg-foreground/5 hover:bg-gold/10 hover:text-gold transition-colors">
@@ -105,11 +105,11 @@ export function Footer() {
               </li>
               <li className="flex items-center gap-2 text-sm">
                 <Mail size={14} className="text-gold" />
-                <a href="mailto:contact@accessoiresexclusif.cm" className="hover:text-gold transition-colors">contact@accessoiresexclusif.cm</a>
+                <a href="mailto:accessoiresexclusifs@gmail.com" className="hover:text-gold transition-colors">accessoiresexclusifs@gmail.com</a>
               </li>
               <li className="flex items-start gap-2 text-sm ">
                 <MapPin size={14} className="text-gold mt-0.5" />
-                <span>Douala, Cameroun</span>
+                <span>Yaounde, Cameroun</span>
               </li>
             </ul>
           </div>
@@ -118,7 +118,7 @@ export function Footer() {
         {/* Bottom */}
         <div className="mt-12 pt-8 border-t border-zinc-200 dark:border-white/10 flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="text-xs text-zinc-500">
-            © {new Date().getFullYear()} Accessories Exclusif. {t('all_rights_reserved', 'Tous droits réservés.')}
+            © {new Date().getFullYear()} Accessoires Exclusif. {t('all_rights_reserved', 'Tous droits réservés.')}
           </p>
           <p className="text-xs text-zinc-500">
             {t('made_by', 'Fait par')} {t('darren et ses petits' , 'darren and his petit')} {t('in_cameroon', 'au Cameroun')}

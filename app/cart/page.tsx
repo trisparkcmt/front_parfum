@@ -176,6 +176,8 @@ export default function CartPage() {
 
     setIsProcessing(true);
 
+    const popupWindow = window.open('', '_blank', 'noopener,noreferrer');
+
     // Build WhatsApp link BEFORE any async operation so it's ready to use
     const formattedItems = allItems.map((item: any) => ({
       id: String(item.id),
@@ -225,13 +227,16 @@ export default function CartPage() {
       await syncCart();
       
       // Open WhatsApp in a new tab/window when possible, while keeping a fallback for blocked popups.
-      const waWindow = window.open('about:blank', '_blank', 'noopener,noreferrer');
-      if (waWindow) {
-        waWindow.location.href = waLink;
+      if (popupWindow) {
+        popupWindow.opener = null;
+        popupWindow.location.href = waLink;
       } else {
-        window.location.href = waLink;
+        window.location.assign(waLink);
       }
     } catch (err: any) {
+      if (popupWindow) {
+        popupWindow.close();
+      }
       const msg =
         err?.response?.data?.detail ||
         err?.response?.data?.message ||

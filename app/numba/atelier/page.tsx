@@ -101,8 +101,8 @@ const GlassDefs = ({ col, id }: any) => (
 /* ═══════════════════════════════════════
    BOTTLE SVG COMPONENTS (WITH DYNAMIC COLORS)
    ═══════════════════════════════════════ */
-function Bottle100({ totalMl, maxMl, quantities, allItems }: any) {
-  const pct = Math.min(1, totalMl / maxMl);
+function Bottle100({ totalMl, maxFillMl, quantities, allItems }: any) {
+  const pct = Math.min(1, totalMl / Math.max(1, maxFillMl));
   const topY = Math.round(420 - pct * 300);
   const col = blendColor(quantities, allItems);
   const isEmpty = totalMl === 0;
@@ -138,8 +138,8 @@ function Bottle100({ totalMl, maxMl, quantities, allItems }: any) {
   );
 }
 
-function Bottle50({ totalMl, maxMl, quantities, allItems }: any) {
-  const pct = Math.min(1, totalMl / maxMl);
+function Bottle50({ totalMl, maxFillMl, quantities, allItems }: any) {
+  const pct = Math.min(1, totalMl / Math.max(1, maxFillMl));
   const col = blendColor(quantities, allItems);
   const topY = Math.round(380 - pct * 240);
   const isEmpty = totalMl === 0;
@@ -170,8 +170,8 @@ function Bottle50({ totalMl, maxMl, quantities, allItems }: any) {
   );
 }
 
-function Bottle30({ totalMl, maxMl, quantities, allItems }: any) {
-  const pct = Math.min(1, totalMl / maxMl);
+function Bottle30({ totalMl, maxFillMl, quantities, allItems }: any) {
+  const pct = Math.min(1, totalMl / Math.max(1, maxFillMl));
   const col = blendColor(quantities, allItems);
   const topY = Math.round(400 - pct * 300);
   const isEmpty = totalMl === 0;
@@ -890,9 +890,9 @@ function AtelierContent() {
 
           <div className="flacon-stage relative transition-all duration-700">
             <div className="bottle-glow" />
-            {bottleSize >= 61 && <Bottle100 totalMl={totalMl} maxMl={bottleSize} quantities={quantities} allItems={ALL_ITEMS} />}
-            {bottleSize >= 31 && bottleSize <= 60 && <Bottle50 totalMl={totalMl} maxMl={bottleSize} quantities={quantities} allItems={ALL_ITEMS} />}
-            {bottleSize <= 30 && <Bottle30 totalMl={totalMl} maxMl={bottleSize} quantities={quantities} allItems={ALL_ITEMS} />}
+            {bottleSize >= 61 && <Bottle100 totalMl={totalMl} maxFillMl={maxFillMl} quantities={quantities} allItems={ALL_ITEMS} />}
+            {bottleSize >= 31 && bottleSize <= 60 && <Bottle50 totalMl={totalMl} maxFillMl={maxFillMl} quantities={quantities} allItems={ALL_ITEMS} />}
+            {bottleSize <= 30 && <Bottle30 totalMl={totalMl} maxFillMl={maxFillMl} quantities={quantities} allItems={ALL_ITEMS} />}
             
             <div className="absolute -right-12 top-1/2 -translate-y-1/2 flex flex-col items-center gap-1 opacity-40">
               <div className="w-[1px] h-20 bg-gold/50" />

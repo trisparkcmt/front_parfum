@@ -7,14 +7,15 @@ import { cn } from '@/lib/utils';
 interface BackButtonProps {
   className?: string;
   label?: string;
+  href?: string;
 }
 
-export function BackButton({ className, label = "Retour" }: BackButtonProps) {
+export function BackButton({ className, label = "Retour", href = '/' }: BackButtonProps) {
   const router = useRouter();
 
   return (
     <button
-      onClick={() => router.back()}
+      onClick={() => router.push(href)}
       className={cn(
         "flex items-center gap-2 text-foreground/60 hover:text-gold transition-colors group mb-6",
         className

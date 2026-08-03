@@ -198,7 +198,7 @@ export default function ProfilePage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-6 space-y-6">
-      <BackButton />
+      <BackButton href="/" />
 
       {/* ============ DESKTOP MAIN GRID LAYOUT (12 Columns) ============ */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">

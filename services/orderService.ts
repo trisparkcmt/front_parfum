@@ -1,5 +1,52 @@
 import { api } from './api';
 
+interface POSCartItemLike {
+  product: any;
+  quantity: number;
+}
+
+function buildPOSOrderLine(item: POSCartItemLike) {
+  const p = item.product as any;
+
+  if (p?.is_custom) {
+    return {
+      type: 'parfum_perso',
+      quantite: item.quantity,
+      recette: {
+        flacon_id: p.flaconId || p.selectedSize || p.contenance_ml || null,
+        nom: p.nom || p.nom_produit || p.name || `Parfum sur-mesure ${p.selectedSize || ''}`,
+        lignes:
+          p.quantities && typeof p.quantities === 'object'
+            ? Object.entries(p.quantities).map(([lotId, q]) => ({
+                lot_essence_id: Number(lotId),
+                quantite_ml: Number(q),
+              }))
+            : [],
+      },
+    };
+  }
+
+  const normalizedType = String(p?.type || '').toLowerCase();
+
+  if (normalizedType === 'accessoire') {
+    return { type: 'accessoire', id: Number(p.id), quantite: item.quantity };
+  }
+
+  if (normalizedType === 'diffuseur') {
+    return { type: 'diffuseur', id: Number(p.id), quantite: item.quantity };
+  }
+
+  if (normalizedType === 'essence' || normalizedType === 'produit-fini-essence') {
+    return { type: 'essence', id: Number(p.id), quantite: item.quantity };
+  }
+
+  if (normalizedType === 'essence_perso' || normalizedType === 'essence-perso') {
+    return { type: 'essence_perso', id: Number(p.id), quantite: item.quantity };
+  }
+
+  return { type: 'parfum', id: Number(p.id), quantite: item.quantity };
+}
+
 export interface Invoice {
   numero_facture: string;
   date_emission: string;
@@ -132,13 +179,8 @@ export const orderService = {
    */
   async createPOSOrder(payload: any): Promise<Order> {
     try {
-      // The backend expects a flexible payload described in the POS spec.
-      // Ensure we mark source and immediate validated/paid status for POS.
       const body = {
         ...payload,
-        source: 'pos',
-        statut: 'validé',
-        statut_paiement: 'payé',
       };
 
       const response = await api.post(`/pos/commandes/creer/`, body);
@@ -147,5 +189,29 @@ export const orderService = {
       console.error('Error creating POS order:', error);
       throw error;
     }
+  },
+
+  async createPOSOrderFromCart(options: {
+    cartItems: POSCartItemLike[];
+    clientTelephone?: string;
+    clientNom?: string;
+    clientEmail?: string;
+    livraisonNom?: string;
+    livraisonTelephone?: string;
+    codePromo?: string;
+    noteInterne?: string;
+  }): Promise<Order> {
+    const lignes = options.cartItems.map(buildPOSOrderLine);
+
+    return this.createPOSOrder({
+      lignes,
+      client_telephone: options.clientTelephone || undefined,
+      client_nom_complet: options.clientNom || undefined,
+      client_email: options.clientEmail || undefined,
+      livraison_nom_complet: options.livraisonNom || options.clientNom || undefined,
+      livraison_telephone: options.livraisonTelephone || options.clientTelephone || undefined,
+      code_promo: options.codePromo || undefined,
+      note_interne: options.noteInterne || undefined,
+    });
   },
 };
