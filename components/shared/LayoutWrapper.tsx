@@ -45,11 +45,9 @@ export function LayoutWrapper({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex flex-col min-h-screen">
       {!shouldHideNav && (
-        <div className="hidden lg:block">
-          <Navbar />
-        </div>
+        <Navbar />
       )}
-      <main className={`flex-1 ${!shouldHideNav ? 'pb-28 lg:pb-0' : ''}`}>
+      <main className={`flex-1 ${!shouldHideNav ? 'pb-32 lg:pb-0' : ''}`}>
         {children}
       </main>
       {!shouldHideNav && (

@@ -6,6 +6,7 @@ import { ShoppingBag, X, Plus, Minus, Trash2, ArrowRight, Package } from 'lucide
 import Link from 'next/link';
 import Image from 'next/image';
 import { useCartStore } from '@/store/useCartStore';
+import { useThemeStore } from '@/store/useThemeStore';
 import type { CartLine } from '@/store/useCartStore';
 
 interface CartDrawerProps {
@@ -19,6 +20,8 @@ function formatPrice(amount: number) {
 
 function CartLineItem({ line }: { line: CartLine }) {
   const { updateQuantity, removeItem, isLoading } = useCartStore();
+  const theme = useThemeStore((s) => s.theme);
+  const isDark = theme === 'dark';
 
   return (
     <motion.div
@@ -26,10 +29,10 @@ function CartLineItem({ line }: { line: CartLine }) {
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, x: 40, transition: { duration: 0.2 } }}
-      className="flex gap-3 py-4 border-b border-white/5"
+      className={`flex gap-3 py-4 border-b ${isDark ? 'border-white/5' : 'border-black/10'}`}
     >
       {/* Thumbnail */}
-      <div className="w-16 h-16 rounded-xl overflow-hidden bg-white/5 flex-shrink-0 flex items-center justify-center">
+      <div className={`w-16 h-16 rounded-xl overflow-hidden ${isDark ? 'bg-white/5' : 'bg-black/5'} flex-shrink-0 flex items-center justify-center`}>
         {line.image ? (
           <Image
             src={line.image}
@@ -57,7 +60,7 @@ function CartLineItem({ line }: { line: CartLine }) {
           <button
             onClick={() => updateQuantity(line.type, line.id, Math.max(1, Number(line.quantite || 1) - 1))}
             disabled={isLoading || Number(line.quantite || 1) <= 1}
-            className="w-6 h-6 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center transition-colors disabled:opacity-30"
+            className={`w-6 h-6 rounded-lg ${isDark ? 'bg-white/5 hover:bg-white/10 border-white/10' : 'bg-black/5 hover:bg-black/10 border-black/10'} border flex items-center justify-center transition-colors disabled:opacity-30`}
           >
             <Minus size={10} />
           </button>
@@ -65,7 +68,7 @@ function CartLineItem({ line }: { line: CartLine }) {
           <button
             onClick={() => updateQuantity(line.type, line.id, Number(line.quantite || 1) + 1)}
             disabled={isLoading}
-            className="w-6 h-6 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center transition-colors disabled:opacity-30"
+            className={`w-6 h-6 rounded-lg ${isDark ? 'bg-white/5 hover:bg-white/10 border-white/10' : 'bg-black/5 hover:bg-black/10 border-black/10'} border flex items-center justify-center transition-colors disabled:opacity-30`}
           >
             <Plus size={10} />
           </button>
@@ -90,6 +93,8 @@ function CartLineItem({ line }: { line: CartLine }) {
 
 export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
   const { getAllLines, getItemCount, getTotalPrice, getSubtotal, getDiscount, getShipping } = useCartStore();
+  const theme = useThemeStore((s) => s.theme);
+  const isDark = theme === 'dark';
 
   const lines = getAllLines();
   const itemCount = getItemCount();
@@ -135,10 +140,10 @@ export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
             transition={{ type: 'spring', damping: 28, stiffness: 280 }}
-            className="fixed right-0 top-0 bottom-0 z-[110] w-full max-w-sm flex flex-col bg-[#0d0d0d]/95 backdrop-blur-2xl border-l border-white/[0.06] shadow-2xl pb-[calc(env(safe-area-inset-bottom,1rem)+1rem)]"
+            className={`fixed right-0 top-0 bottom-0 z-[110] w-full max-w-sm flex flex-col backdrop-blur-2xl border-l pb-[calc(env(safe-area-inset-bottom,1rem)+1rem)] ${isDark ? 'bg-[#0d0d0d]/95 border-white/[0.06] shadow-2xl' : 'bg-white/95 border-black/[0.08] shadow-[0_20px_60px_rgba(0,0,0,0.16)]'}`}
           >
             {/* Header */}
-            <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.06]">
+            <div className={`flex items-center justify-between px-5 py-4 border-b ${isDark ? 'border-white/[0.06]' : 'border-black/[0.08]'}`}>
               <div className="flex items-center gap-3">
                 <ShoppingBag size={18} className="text-gold" />
                 <span className="text-sm font-bold tracking-wide text-foreground">Mon Panier</span>
@@ -150,7 +155,7 @@ export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
               </div>
               <button
                 onClick={onClose}
-                className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center text-foreground/60 hover:text-foreground transition-all"
+                className={`w-8 h-8 rounded-full ${isDark ? 'bg-white/5 hover:bg-white/10 border-white/10' : 'bg-black/5 hover:bg-black/10 border-black/10'} border flex items-center justify-center text-foreground/60 hover:text-foreground transition-all`}
               >
                 <X size={14} />
               </button>
@@ -166,7 +171,7 @@ export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                     animate={{ opacity: 1, y: 0 }}
                     className="flex flex-col items-center justify-center h-full gap-4 py-20 text-center"
                   >
-                    <div className="w-16 h-16 rounded-full bg-white/5 border border-white/10 flex items-center justify-center">
+                    <div className={`w-16 h-16 rounded-full ${isDark ? 'bg-white/5 border-white/10' : 'bg-black/5 border-black/10'} border flex items-center justify-center`}>
                       <ShoppingBag size={24} className="text-foreground/30" />
                     </div>
                     <p className="text-sm text-foreground/40">Votre panier est vide</p>
@@ -187,7 +192,7 @@ export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
 
             {/* Footer summary */}
             {lines.length > 0 && (
-              <div className="border-t border-white/[0.06] px-5 pb-[1.25rem] pt-5 space-y-3">
+              <div className={`border-t px-5 pb-[1.25rem] pt-5 space-y-3 ${isDark ? 'border-white/[0.06]' : 'border-black/[0.08]'}`}>
                 {/* Summary rows */}
                 <div className="space-y-1.5 text-xs">
                   <div className="flex justify-between text-foreground/50">
@@ -204,7 +209,7 @@ export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                     <span>Livraison</span>
                     <span>{shipping > 0 ? formatPrice(shipping) : 'Calculée à la commande'}</span>
                   </div>
-                  <div className="flex justify-between font-bold text-foreground border-t border-white/5 pt-2 mt-2 text-sm">
+                  <div className={`flex justify-between font-bold text-foreground border-t pt-2 mt-2 text-sm ${isDark ? 'border-white/5' : 'border-black/10'}`}>
                     <span>Total</span>
                     <span className="text-gold">{formatPrice(total)}</span>
                   </div>
@@ -221,7 +226,7 @@ export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                 </Link>
                 <button
                   onClick={onClose}
-                  className="w-full py-2.5 rounded-xl border border-white/10 text-xs text-foreground/50 hover:text-foreground hover:border-white/20 transition-all"
+                  className={`w-full py-2.5 rounded-xl border text-xs text-foreground/50 hover:text-foreground transition-all ${isDark ? 'border-white/10 hover:border-white/20' : 'border-black/10 hover:border-black/20'}`}
                 >
                   Continuer mes achats
                 </button>

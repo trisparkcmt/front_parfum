@@ -200,14 +200,14 @@ export function ProductCard({
       <div className="mt-2 sm:mt-3 flex flex-1 flex-col">
 
         {/* Category / volume label — always occupies one line so cards align */}
-        <p className="h-4 text-[9px] sm:text-[10px] font-medium uppercase tracking-[0.12em] sm:tracking-[0.15em] text-gold/70 truncate">
+        <p className="h-4 text-[9px] sm:text-[10px] font-medium uppercase tracking-[0.12em] sm:tracking-[0.15em] text-gold truncate">
           {categoryLabel}
         </p>
 
         {/* Product name — clamped to 2 lines, fixed min-height reserves space */}
         <Link
           href={productUrl}
-          className="mt-0.5  min-h-[2.2rem] sm:min-h-[2.6rem] font-serif text-[13px] sm:text-[14px] leading-[1.3] text-foreground/90 transition-colors hover:text-gold"
+          className="mt-0.5  min-h-[2.2rem] sm:min-h-[2.6rem] font-serif text-[13px] sm:text-[14px] leading-[1.3] text-foreground transition-colors hover:text-gold"
         >
           {product.name}
         </Link>

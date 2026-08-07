@@ -61,6 +61,11 @@ export const useThemeStore = create<ThemeState>((set, get) => ({
     if (typeof window !== 'undefined') {
       localStorage.setItem('ae-theme', theme);
       document.documentElement.setAttribute('data-theme', theme);
+      if (theme === 'dark') {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
       updateViewportThemeColor(theme);
     }
   },
@@ -80,6 +85,11 @@ export const useThemeStore = create<ThemeState>((set, get) => ({
       
       set({ theme });
       document.documentElement.setAttribute('data-theme', theme);
+      if (theme === 'dark') {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
       updateViewportThemeColor(theme);
 
       // Listen to system theme changes
@@ -90,6 +100,11 @@ export const useThemeStore = create<ThemeState>((set, get) => ({
           const newTheme = e.matches ? 'dark' : 'light';
           set({ theme: newTheme });
           document.documentElement.setAttribute('data-theme', newTheme);
+          if (newTheme === 'dark') {
+            document.documentElement.classList.add('dark');
+          } else {
+            document.documentElement.classList.remove('dark');
+          }
           updateViewportThemeColor(newTheme);
         }
       };

@@ -31,7 +31,9 @@ export function Footer() {
   if (!mounted) return <footer className="hidden md:block bg-[var(--t-footer-bg)] h-[400px]" />;
 
   return (
-    <footer className="hidden md:block bg-[var(--t-footer-bg)] text-foreground border-t border-[var(--t-border)]">
+    <>
+      {/* Full footer — hidden on mobile */}
+      <footer className="hidden md:block bg-[var(--t-footer-bg)] text-foreground border-t border-[var(--t-border)]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12">
           {/* Brand */}
@@ -121,10 +123,21 @@ export function Footer() {
             © {new Date().getFullYear()} Accessoires Exclusif. {t('all_rights_reserved', 'Tous droits réservés.')}
           </p>
           <p className="text-xs text-zinc-500">
-            {t('made_by', 'Fait par')} {t('darren et ses petits' , 'darren and his petit')} {t('in_cameroon', 'au Cameroun')}
+            {t('made_by', 'Fait par')} {t('Stak Digital et ses petits' , 'Stak Digital and his petit')} {t('in_cameroon', 'au Cameroun')}
           </p>
         </div>
       </div>
     </footer>
+
+      {/* Mobile-only copyright bar — always visible at page bottom */}
+      <div className="block md:hidden border-t border-foreground/10 bg-[var(--t-footer-bg)] py-3 px-4 pb-24 text-center">
+        <p className="text-xs text-zinc-500">
+          © {new Date().getFullYear()} Accessoires Exclusif. {t('all_rights_reserved', 'Tous droits réservés.')}
+        </p>
+        <p className="text-xs text-zinc-500 mt-0.5">
+          {t('made_by', 'Fait par')} Stak Digital {t('in_cameroon', 'au Cameroun')}
+        </p>
+      </div>
+    </>
   );
 }

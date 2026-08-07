@@ -49,7 +49,6 @@ export default function ShopByCategory() {
                 sizes="(min-width: 1024px) 25vw, 50vw"
                 className="object-cover transition-transform duration-700 group-hover:scale-105"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-deep-black/80 via-deep-black/10 to-transparent" />
               <div className="absolute bottom-0 left-0 right-0 p-4 lg:p-6">
                 <h3 className="font-serif text-lg lg:text-2xl text-white">{c.title}</h3>
                 <span className="mt-2 inline-flex items-center gap-1.5 text-xs lg:text-sm text-gold">

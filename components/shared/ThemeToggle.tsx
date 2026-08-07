@@ -23,6 +23,12 @@ export function ThemeToggle({ className }: { className?: string }) {
 
   if (!mounted) return <div className="w-9 h-9" />;
 
+  const iconClassName = cn(
+    theme === 'dark' ? 'text-white' : 'text-black',
+    'lg:text-white',
+    'group-hover:text-gold transition-colors'
+  );
+
   return (
     <button
       onClick={toggleTheme}
@@ -36,9 +42,9 @@ export function ThemeToggle({ className }: { className?: string }) {
       aria-label={theme === 'dark' ? 'Activer le mode clair' : 'Activer le mode sombre'}
     >
       {theme === 'dark' ? (
-        <Sun size={20} className="text-cream/70 group-hover:text-gold transition-colors" />
+        <Sun size={20} className={iconClassName} />
       ) : (
-        <Moon size={20} className="text-onyx/70 group-hover:text-gold transition-colors" />
+        <Moon size={20} className={iconClassName} />
       )}
     </button>
   );

@@ -5,8 +5,10 @@
  * @description Primary Navigation Header & User Session Manager.
  *
  * Layout Mechanics:
- * - **Mobile (< lg)**: 3-Column Grid. [Theme/Lang glass pill] on Left | [Gem] centered | [Cart/User glass pill] on Right.
- * - **Desktop (≥ lg)**: Three independent floating glass blocks. [Gem, no bg] on Left -> [Links pill] absolutely centered -> [Utilities pill] on Right.
+ * - **Mobile (<lg)**: Full-width flat bar edge-to-edge, same color as page bg.
+ *   [Language + Profile] on Left | [Gem] centered (absolutely) | [ThemeToggle + Cart] on Right.
+ * - **Desktop (≥lg)**: Three independent floating glass blocks.
+ *   [Gem, no bg] on Left -> [Links pill] absolutely centered -> [Utilities pill] on Right.
  */
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
@@ -20,6 +22,7 @@ import { PUBLIC_NAV_LINKS } from '@/lib/constants';
 import { useCartStore } from '@/store/useCartStore';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useCartDrawerStore } from '@/store/useCartDrawerStore';
+import { useThemeStore } from '@/store/useThemeStore';
 import { Button } from '@/components/ui/Button';
 import { LanguageSelector } from './LanguageSelector';
 import { ThemeToggle } from './ThemeToggle';
@@ -31,11 +34,15 @@ export function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [isNavigating, setIsNavigating] = useState(false);
 
-  // Use proper selectors for auth state to ensure re-renders
+  // Auth & cart state
   const user = useAuthStore((s) => s.user);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const itemCount = useCartStore((s) => s.getItemCount());
   const openCartDrawer = useCartDrawerStore((s) => s.open);
+
+  // Theme-reactive icon color — avoids CSS dark: variant issues
+  const theme = useThemeStore((s) => s.theme);
+  const iconColor = theme === 'dark' ? 'text-white' : 'text-black';
 
   useEffect(() => {
     setMounted(true);
@@ -53,8 +60,13 @@ export function Navbar() {
   const isDashboard = pathname.startsWith('/dashboard') || pathname.startsWith('/admin') || pathname.startsWith('/delivery') || pathname.startsWith('/partner') || pathname.startsWith('/client');
   if (isDashboard || !mounted) return null;
 
-  // Shared glass pill treatment for every floating block
-  const glass = 'rounded-full border border-white/10 bg-white/[0.06] backdrop-blur-2xl shadow-[0_4px_30px_rgba(0,0,0,0.25)] supports-[backdrop-filter]:bg-white/[0.06]';
+  // Shared glass pill treatment for desktop floating blocks
+  const glass = cn(
+    'rounded-full border backdrop-blur-xl backdrop-saturate-150 shadow-md shadow-black/5 transition-colors duration-300',
+    scrolled
+      ? 'bg-white/90 border-black/15 shadow-lg dark:bg-zinc-900/70 dark:border-white/10'
+      : 'bg-white/70 border-white/70 dark:bg-zinc-900/60 dark:border-white/10'
+  );
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50">
@@ -64,72 +76,80 @@ export function Navbar() {
         isNavigating ? 'opacity-100' : 'opacity-0'
       )} />
 
+      {/* ================================================================= */}
+      {/* MOBILE & TABLET LAYOUT: Full-width flat bar, no pill, edge-to-edge */}
+      {/* ================================================================= */}
+      <div className="flex items-center lg:hidden bg-background border-b border-foreground/10 px-4 py-2.5 relative">
+
+        {/* Left: Language Selector + Profile Icon */}
+        <div className="flex items-center gap-1 flex-shrink-0">
+          <LanguageSelector />
+          {isAuthenticated && user ? (
+            <Link
+              href="/dashboard/profile"
+              onClick={() => setIsNavigating(true)}
+              className="flex items-center flex-shrink-0"
+              aria-label={t('profile')}
+            >
+              <div className="flex items-center justify-center text-[10px] font-bold hover:scale-105 transition-transform">
+                <ProfileIcon size={18} className={iconColor} />
+              </div>
+            </Link>
+          ) : (
+            <Link
+              href="/login"
+              onClick={() => setIsNavigating(true)}
+              className={cn('flex items-center justify-center hover:text-gold transition-colors flex-shrink-0', iconColor)}
+              aria-label={t('login')}
+            >
+              <ProfileIcon size={20} className={iconColor} />
+            </Link>
+          )}
+        </div>
+
+        {/* Center: Gem Brand Icon — absolutely centered on the bar */}
+        <div className="absolute left-1/2 -translate-x-1/2">
+          <Link href="/" className="flex items-center group">
+            <Gem className="h-6 w-6 text-gold group-hover:rotate-12 transition-transform duration-300" />
+          </Link>
+        </div>
+
+        {/* Right: Theme Toggle + Cart */}
+        <div className="flex items-center gap-0.5 flex-shrink-0 ml-auto">
+          <ThemeToggle />
+          <button
+            onClick={openCartDrawer}
+            className="relative p-1.5 flex items-center hover:bg-foreground/5 rounded-full transition-colors group"
+            aria-label={t('cart')}
+          >
+            <CartIcon size={19} className={cn(iconColor, 'group-hover:text-gold transition-colors')} />
+            {itemCount > 0 && (
+              <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-gold text-deep-black text-[9px] font-bold flex items-center justify-center">
+                {itemCount}
+              </span>
+            )}
+          </button>
+        </div>
+
+      </div>
+
+      {/* ================================================================= */}
+      {/* DESKTOP LAYOUT: Three independent floating glass blocks            */}
+      {/* ================================================================= */}
       <nav className={cn(
-        'transition-all duration-300',
-        scrolled ? 'py-3' : 'py-5'
+        'hidden lg:block transition-all duration-300',
+        scrolled ? 'py-2.5' : 'py-4'
       )}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between relative">
 
-          {/* ========================================================================= */}
-          {/* MOBILE & TABLET LAYOUT: Active under 'lg' width scale                     */}
-          {/* ========================================================================= */}
-          <div className="grid grid-cols-3 items-center lg:hidden">
-            {/* Left utilities — glass pill */}
-            <div className={cn(glass, 'flex items-center gap-0.5 p-1 justify-self-start')}>
-              <ThemeToggle />
-              <LanguageSelector />
-            </div>
-
-            {/* Centralized Identity — no background */}
-            <div className="flex items-center justify-center">
-              <Link href="/" className="flex items-center gap-2 group">
-                <Gem className="h-7 w-7 text-gold group-hover:rotate-12 transition-transform duration-300" />
-              </Link>
-            </div>
-
-            {/* Right utilities — each control is its own glass pill */}
-            <div className="flex items-center gap-1.5 justify-self-end">
-              <button onClick={openCartDrawer} className={cn(glass, 'relative p-2 flex items-center hover:bg-white/10 transition-colors')}>
-                <CartIcon size={18} className="text-foreground/80" />
-                {itemCount > 0 && (
-                  <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-gold text-deep-black text-[9px] font-bold flex items-center justify-center">
-                    {itemCount}
-                  </span>
-                )}
-              </button>
-
-              {isAuthenticated && user ? (
-                <Link
-                  href="/dashboard/profile"
-                  className={cn(glass, 'p-1 flex items-center hover:bg-white/10 transition-colors')}
-                >
-                  <div className="h-7 w-7 rounded-full bg-gold/20 border border-gold/30 flex items-center justify-center text-gold text-[10px] font-bold">
-                    {user.firstName[0]}{user.lastName[0]}
-                  </div>
-                </Link>
-              ) : (
-                <Link href="/login" className={cn(glass, 'flex items-center px-3 py-1.5')}>
-                  <span className="text-xs font-semibold text-gold">{t('login')}</span>
-                </Link>
-              )}
-            </div>
-          </div>
-
-          {/* ========================================================================= */}
-          {/* DESKTOP LAYOUT: Three independent floating glass blocks                    */}
-          {/* ========================================================================= */}
-          <div className="hidden lg:flex items-center justify-between relative">
-
-            {/* Left Block: Brand Logo — no background, no border */}
+            {/* Left Block: Brand Logo */}
             <Link href="/" className="flex items-center gap-2 group flex-shrink-0 z-10">
               <Gem className="h-8 w-8 text-gold group-hover:rotate-12 transition-transform duration-300" />
             </Link>
 
             {/* Center Block: Navigation Links — flex centered glass pill */}
-            <div className={cn(
-              glass,
-              'flex items-center gap-1 p-1.5 mx-auto'
-            )}>
+            <div className={cn(glass, 'flex items-center gap-1 p-1.5 mx-auto')}>
               {PUBLIC_NAV_LINKS.map((link) => {
                 const labelKey = link.label === 'Accueil' ? 'nav_home' :
                   link.label === 'Accessoires' ? 'nav_accessories' :
@@ -142,10 +162,10 @@ export function Navbar() {
                     key={link.href}
                     href={link.href}
                     className={cn(
-                      'relative px-4 py-2 rounded-full text-sm font-medium transition-colors duration-200',
+                      'relative px-4 py-2 rounded-full text-sm font-semibold transition-colors duration-200',
                       isActive
                         ? 'text-gold'
-                        : 'text-zinc-600 dark:text-zinc-400 hover:text-gold'
+                        : 'text-zinc-900 dark:text-zinc-100 hover:text-gold'
                     )}
                   >
                     {isActive && (
@@ -161,7 +181,7 @@ export function Navbar() {
               })}
             </div>
 
-            {/* Right Block: Utilities — each control is its own glass pill */}
+            {/* Right Block: Utilities */}
             <div className="flex items-center gap-2 z-10">
               <div className={cn(glass, 'p-1.5 flex items-center')}>
                 <ThemeToggle />
@@ -170,9 +190,9 @@ export function Navbar() {
               <div className={cn(glass, 'p-1.5 flex items-center gap-0.5')}>
                 <button
                   onClick={() => { openCartDrawer(); }}
-                  className="relative p-1.5 flex items-center rounded-full hover:bg-white/10 transition-colors"
+                  className="relative p-1.5 flex items-center rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
                 >
-                  <CartIcon size={19} className="text-foreground/80" />
+                  <CartIcon size={19} className="text-zinc-900 dark:text-zinc-100 group-hover:text-gold transition-colors" />
                   {itemCount > 0 && (
                     <motion.span
                       initial={{ scale: 0 }}
@@ -186,9 +206,9 @@ export function Navbar() {
 
                 <Link
                   href="/dashboard/client/favorites"
-                  className="p-1.5 flex items-center rounded-full hover:bg-white/10 transition-colors"
+                  className="p-1.5 flex items-center rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
                 >
-                  <Heart size={19} className="text-foreground/80" />
+                  <Heart size={19} className="text-zinc-900 dark:text-zinc-100 hover:text-gold transition-colors" />
                 </Link>
               </div>
 
@@ -200,14 +220,12 @@ export function Navbar() {
                 <Link
                   href="/dashboard/profile"
                   onClick={() => setIsNavigating(true)}
-                  className={cn(glass, 'flex items-center gap-2 pl-1.5 pr-3 py-1.5 hover:bg-white/10 transition-colors group')}
+                  className={cn(glass, 'flex items-center justify-center p-1.5 hover:bg-black/5 dark:hover:bg-white/10 transition-colors group')}
+                  aria-label={t('profile')}
                 >
-                  <div className="h-8 w-8 rounded-full bg-gold/20 border border-gold/30 flex items-center justify-center text-gold text-xs font-bold group-hover:scale-105 transition-transform">
-                    {user.firstName[0]}{user.lastName[0]}
+                  <div className="h-8 w-8 rounded-full bg-foreground/5 border border-foreground/10 dark:bg-white/10 dark:border-white/10 flex items-center justify-center text-foreground/80 group-hover:scale-105 transition-transform">
+                    <ProfileIcon size={18} className="text-zinc-900 dark:text-zinc-100 group-hover:text-gold transition-colors" />
                   </div>
-                  <span className="text-xs font-medium text-foreground/70 group-hover:text-gold transition-colors">
-                    {user.firstName}
-                  </span>
                 </Link>
               ) : (
                 <Link href="/login" onClick={() => setIsNavigating(true)}>

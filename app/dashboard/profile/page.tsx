@@ -296,11 +296,11 @@ export default function ProfilePage() {
             </Panel>
           </div>
 
-          {/* LOGOUT BUTTON */}
+          {/* LOGOUT BUTTON (Desktop only) */}
           <button
             onClick={() => setShowLogoutConfirm(true)}
             disabled={isLoggingOut}
-            className="w-full flex items-center justify-center gap-2 rounded-lg bg-red-500/90 px-4 py-2.5 text-sm font-semibold text-white hover:bg-red-500 transition-colors disabled:opacity-50"
+            className="hidden lg:flex w-full items-center justify-center gap-2 rounded-lg bg-red-500/95 px-4 py-2.5 text-sm font-semibold text-white hover:bg-red-500 transition-colors disabled:opacity-50 mt-4"
           >
             {isLoggingOut ? <Loader2 size={16} className="animate-spin" /> : <LogOut size={16} />}
             {isLoggingOut ? t('logging_out', 'Déconnexion...') : t('logout', 'Déconnexion')}
@@ -449,6 +449,16 @@ export default function ProfilePage() {
               </div>
             </Panel>
           </div>
+
+          {/* LOGOUT BUTTON (Mobile only) */}
+          <button
+            onClick={() => setShowLogoutConfirm(true)}
+            disabled={isLoggingOut}
+            className="lg:hidden w-full flex items-center justify-center gap-2 rounded-lg bg-red-500/95 px-4 py-2.5 text-sm font-semibold text-white hover:bg-red-500 transition-colors disabled:opacity-50 mt-2"
+          >
+            {isLoggingOut ? <Loader2 size={16} className="animate-spin" /> : <LogOut size={16} />}
+            {isLoggingOut ? t('logging_out', 'Déconnexion...') : t('logout', 'Déconnexion')}
+          </button>
 
         </div>
 

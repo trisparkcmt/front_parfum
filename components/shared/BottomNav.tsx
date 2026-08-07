@@ -8,18 +8,25 @@ import { Watch } from 'lucide-react';
 import { useCartStore } from '@/store/useCartStore';
 import { useCartDrawerStore } from '@/store/useCartDrawerStore';
 
+type BottomNavLink = {
+  href: string;
+  icon: typeof HomeIcon | typeof Watch | typeof PerfumeIcon | typeof DiffuseurIcon | typeof LaptopIcon;
+  label: string;
+  badge?: string | number;
+  action?: (() => void) | null;
+};
+
 const BottomNav = () => {
   const pathname = usePathname();
   const itemCount = useCartStore((s) => s.getItemCount());
   const openCartDrawer = useCartDrawerStore((s) => s.open);
 
-  const links = [
+  const links: BottomNavLink[] = [
     { href: '/',                  icon: HomeIcon, label: 'Accueil',     action: null },
     { href: '/shop/accessories',  icon: Watch,     label: 'Accessoires', action: null },
     { href: '/shop/perfumes',     icon: PerfumeIcon,  label: 'Parfum',      action: null },
     { href: '/shop/diffuseurs',   icon: DiffuseurIcon, label: 'Diffuseurs',  action: null },
     { href: '/numba',             icon: LaptopIcon, label: 'Atelier',     action: null },
-    { href: '/cart',              icon: CartIcon,  label: 'Panier',      action: openCartDrawer, badge: itemCount },
   ];
 
   return (
