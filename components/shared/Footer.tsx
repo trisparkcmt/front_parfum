@@ -132,10 +132,10 @@ export function Footer() {
       {/* Mobile-only copyright bar — always visible at page bottom */}
       <div className="block md:hidden border-t border-foreground/10 bg-[var(--t-footer-bg)] py-3 px-4 pb-24 text-center">
         <p className="text-xs text-zinc-500">
-          © {new Date().getFullYear()} Accessoires Exclusif. {t('all_rights_reserved', 'Tous droits réservés.')}
+          © {new Date().getFullYear()} Accessoires Exclusifs. {t('all_rights_reserved', 'Tous droits réservés.')}
         </p>
         <p className="text-xs text-zinc-500 mt-0.5">
-          {t('made_by', 'Fait par')} Stak Digital {t('in_cameroon', 'au Cameroun')}
+          {t('made_by', 'Fait par')} TriSpark Digital {t('in_cameroon', 'au Cameroun')}
         </p>
       </div>
     </>

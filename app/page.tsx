@@ -73,8 +73,7 @@ export default function Home() {
       {/* TRUST FEATURES */}
       <FeatureStrip />
 
-      {/* NEWSLETTER */}
-      <NewsletterBanner />
+      
 
       {/* STORE LOCATION */}
       <StoreSection />

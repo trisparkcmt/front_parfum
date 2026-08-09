@@ -96,13 +96,8 @@ export function Navbar() {
               </div>
             </Link>
           ) : (
-            <Link
-              href="/login"
-              onClick={() => setIsNavigating(true)}
-              className={cn('flex items-center justify-center hover:text-gold transition-colors flex-shrink-0', iconColor)}
-              aria-label={t('login')}
-            >
-              <ProfileIcon size={20} className={iconColor} />
+            <Link href="/login" onClick={() => setIsNavigating(true)} className="flex-shrink-0">
+              <Button className="text-[0.65rem] rounded-full " variant="secondary" size="sm">{t('login')}</Button>
             </Link>
           )}
         </div>

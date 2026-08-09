@@ -7,7 +7,7 @@ import {
   User, Mail, Phone, MapPin, Shield, Calendar, Edit2, Lock,
   Globe, Sun, Moon, Palette, ChevronRight, LogOut, Loader2,
   LayoutGrid, ShoppingCart, Bell, Sparkles, BadgeCheck, Download,
-  Heart,
+  Heart, Info,
 } from 'lucide-react';
 
 import { useAuthStore } from '@/store/useAuthStore';
@@ -402,9 +402,18 @@ export default function ProfilePage() {
                     label="Application PWA"
                     hint={isPWAInstalled ? 'Application déjà installée' : 'Installer l’application pour accès rapide'}
                     control={
-                      <ButtonPill onClick={handleInstallPWA}>
-                        {isInstallingPWA ? 'Installation...' : isPWAInstalled ? 'Installée' : 'Installer'}
-                      </ButtonPill>
+                      <div className="flex items-center gap-2">
+                        <ButtonPill onClick={handleInstallPWA}>
+                          {isInstallingPWA ? 'Installation...' : isPWAInstalled ? 'Installée' : 'Installer'}
+                        </ButtonPill>
+                        <button
+                          onClick={() => setShowPWAHelp(true)}
+                          aria-label="Aide PWA"
+                          className="inline-flex items-center justify-center w-8 h-8 rounded-md border border-foreground/10 text-foreground/45 hover:bg-foreground/5 transition-colors"
+                        >
+                          <Info size={14} />
+                        </button>
+                      </div>
                     }
                   />
                 )}

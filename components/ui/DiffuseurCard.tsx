@@ -5,9 +5,9 @@
  * @description Card component for Diffuseurs with standard ProductCard layout & optional horizontal full-width row layout.
  */
 import React, { useState, type MouseEvent } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
-import { Heart, ShoppingBag, Share2, BellRing, Droplets, Zap, Flame, Wifi } from 'lucide-react';
+import { Heart, ShoppingBag, Share2, Droplets, Zap, Flame, Wifi } from 'lucide-react';
 import AppImage from '@/components/ui/AppImage';
 import { cn, formatPrice, sharePage } from '@/lib/utils';
 import type { Product } from '@/types';
@@ -23,6 +23,17 @@ interface DiffuseurCardProps {
   isFavorite?: boolean;
   viewMode?: 'grid' | 'horizontal';
   index?: number;
+}
+
+// Small technology → icon map. Falls back gracefully for unknown values.
+function getTechIcon(type?: string) {
+  switch (type) {
+    case 'nebulisation': return Zap;
+    case 'chaleur':       return Flame;
+    case 'connecte':      return Wifi;
+    case 'ultrasons':
+    default:               return Droplets;
+  }
 }
 
 export function DiffuseurCard({
@@ -73,6 +84,8 @@ export function DiffuseurCard({
         : product.type_technologie)
     : null;
 
+  const TechIcon = getTechIcon(product.type_technologie);
+
   const handleShare = async (event: MouseEvent<HTMLButtonElement>) => {
     event.preventDefault();
     event.stopPropagation();
@@ -97,14 +110,19 @@ export function DiffuseurCard({
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, delay: index * 0.04 }}
-      className="w-full flex flex-row items-stretch gap-3 sm:gap-4 p-0 rounded-xl sm:rounded-2xl bg-[#111111] border border-white/10 hover:border-[#c9a96e]/40 transition-all duration-300 group relative overflow-hidden"
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      className={cn(
+        'group relative flex w-full flex-row items-stretch gap-3 overflow-hidden rounded-xl border p-0 sm:gap-4 sm:rounded-2xl',
+        'bg-[var(--t-surface-raised)] border-[var(--t-card-border)]',
+        'shadow-sm shadow-black/[0.04] transition-all duration-300',
+        'hover:border-[var(--t-card-hover-border)] hover:shadow-md hover:shadow-black/[0.06]'
+      )}
     >
       {/* Left side: Full Height Image sticking to container edge */}
       <Link
         href={productUrl}
-        className="block relative w-24 sm:w-36 md:w-44 shrink-0 overflow-hidden bg-black/40 self-stretch"
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
+        className="relative block w-24 shrink-0 self-stretch overflow-hidden bg-[var(--t-surface-overlay)] sm:w-36 md:w-44"
       >
         <AppImage
           src={getImageUrl(isHovered && secondImage ? secondImage : mainImage)}
@@ -113,50 +131,55 @@ export function DiffuseurCard({
           className="object-cover transition-transform duration-500 group-hover:scale-105"
         />
 
-        {/* Favorite & Share Buttons */}
-        <div className="absolute top-1.5 left-1.5 sm:top-2 sm:left-2 z-20 flex gap-1 sm:gap-1.5">
+        {/* Scrim so the overlay buttons stay legible over any photo, in any theme */}
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-black/25 via-transparent to-transparent" />
+
+        {/* Favorite & Share Buttons — theme-independent chrome (sit on a photo, not the page bg) */}
+        <div className="absolute left-1.5 top-1.5 z-20 flex gap-1 sm:left-2 sm:top-2 sm:gap-1.5">
           <button
             onClick={handleShare}
             aria-label="Partager ce produit"
-            className="p-1 sm:p-1.5 rounded-full bg-black/60 backdrop-blur-md border border-white/10 hover:border-[#c9a96e] transition-colors"
+            className="rounded-full bg-white/90 p-1 text-neutral-900 backdrop-blur-md transition-colors hover:bg-white sm:p-1.5"
           >
-            <Share2 size={11} className="stroke-white/80" />
+            <Share2 size={11} />
           </button>
           {onToggleFavorite && (
-            <button
+            <motion.button
+              whileTap={{ scale: 0.85 }}
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
                 onToggleFavorite(product);
               }}
               aria-label="Toggle favourite"
-              className="p-1 sm:p-1.5 rounded-full bg-black/60 backdrop-blur-md border border-white/10 hover:border-[#c9a96e] transition-colors"
+              className="rounded-full bg-white/90 p-1 text-neutral-900 backdrop-blur-md transition-colors hover:bg-white sm:p-1.5"
             >
               <Heart
                 size={11}
                 className={cn(
                   'transition-all duration-300',
-                  isFavorite ? 'fill-red-500 stroke-red-500' : 'stroke-white/80'
+                  isFavorite ? 'fill-red-500 stroke-red-500' : 'stroke-current'
                 )}
               />
-            </button>
+            </motion.button>
           )}
         </div>
       </Link>
 
       {/* Right side: Information */}
-      <div className="flex-1 min-w-0 flex flex-col justify-between p-3 sm:p-4 pl-0 sm:pl-0">
+      <div className="flex min-w-0 flex-1 flex-col justify-between p-3 pl-0 sm:p-4 sm:pl-0">
 
         <div>
           {/* Technology Badge & Reservoir */}
-          <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 mb-1">
+          <div className="mb-1.5 flex flex-wrap items-center gap-1.5 sm:gap-2">
             {techLabel && (
-              <span className="px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-medium tracking-wider uppercase bg-[#c9a96e]/10 border border-[#c9a96e]/30 text-[#c9a96e]">
+              <span className="inline-flex items-center gap-1 rounded-full border border-[var(--color-gold)]/35 bg-[var(--color-gold)]/12 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-[var(--color-gold)] sm:text-[10px]">
+                <TechIcon size={10} />
                 {techLabel}
               </span>
             )}
             {product.capacite_reservoir_ml && (
-              <span className="text-[10px] sm:text-xs text-foreground/40 font-light">
+              <span className="inline-flex items-center gap-1 text-[10px] font-light text-foreground/40 sm:text-xs">
                 {product.capacite_reservoir_ml} ml
               </span>
             )}
@@ -164,37 +187,36 @@ export function DiffuseurCard({
 
           <Link
             href={productUrl}
-            className="font-serif text-sm sm:text-base md:text-lg font-medium text-foreground hover:text-[#c9a96e] transition-colors leading-snug block mb-1 truncate"
+            className="mb-1 block truncate font-serif text-sm font-medium leading-snug text-[var(--foreground)] transition-colors hover:text-[var(--color-gold)] sm:text-base md:text-lg"
           >
             {product.name}
           </Link>
 
           {/* Detail text */}
-          <p className="text-[11px] sm:text-xs text-foreground/60 leading-relaxed font-light mb-2 line-clamp-2 sm:line-clamp-3">
+          <p className="mb-2 line-clamp-2 text-[11px] font-light leading-relaxed text-[var(--t-text-muted)] sm:line-clamp-3 sm:text-xs">
             {product.description || product.description_courte || 'Aucune description disponible.'}
           </p>
         </div>
 
         {/* Price & CTA */}
-        <div className="flex items-center justify-between gap-2 pt-2 border-t border-white/10 mt-auto">
-          <span className="text-sm sm:text-base font-semibold tracking-wide text-[#c9a96e]">
+        <div className="mt-auto flex items-center justify-between gap-2 border-t border-[var(--t-card-border)] pt-2">
+          <span className="text-sm font-semibold tracking-wide text-[var(--color-gold)] sm:text-base">
             {formatPrice(product.price)}
           </span>
 
           {onAddToCart && (
-            <button
+            <motion.button
+              whileTap={{ scale: 0.96 }}
               onClick={() => onAddToCart(product)}
-              className="flex items-center justify-center gap-1 sm:gap-1.5 px-2.5 sm:px-4 py-1.5 sm:py-2 bg-[#c9a96e] text-black font-semibold text-[10px] sm:text-xs uppercase tracking-wider rounded-lg hover:bg-[#d4b87a] transition-all shrink-0"
+              className="flex shrink-0 items-center justify-center gap-1 rounded-lg bg-[var(--t-btn-add-bg)] px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-[var(--t-btn-add-text)] transition-all hover:bg-[var(--t-btn-add-hover-bg)] sm:gap-1.5 sm:px-4 sm:py-2 sm:text-xs"
             >
               <ShoppingBag size={12} />
               <span className="hidden xs:inline sm:inline">{t('add_to_cart') ?? 'Ajouter'}</span>
               <span className="inline xs:hidden sm:hidden">+</span>
-            </button>
+            </motion.button>
           )}
         </div>
       </div>
     </motion.div>
   );
-
 }
-

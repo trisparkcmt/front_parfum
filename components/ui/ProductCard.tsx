@@ -207,13 +207,13 @@ export function ProductCard({
         {/* Product name — clamped to 2 lines, fixed min-height reserves space */}
         <Link
           href={productUrl}
-          className="mt-0.5  min-h-[2.2rem] sm:min-h-[2.6rem] font-serif text-[13px] sm:text-[14px] leading-[1.3] text-foreground transition-colors hover:text-gold"
+          className="mt-0.5  min-h-[2.2rem] sm:min-h-[2.6rem] font-serif font-bold text-[13px] sm:text-[14px] leading-[1.3] text-foreground transition-colors hover:text-gold"
         >
           {product.name}
         </Link>
 
         {/* Price — always one line, mt-auto pushes it away from name */}
-        <p className=" text-xs sm:text-sm text-foreground/60">
+        <p className=" text-sm font-medium sm:text-md text-foreground">
           {hasReduction ? (
             <>
               <span className="line-through text-foreground/40 mr-1 sm:mr-1.5">{formatPrice(product.originalPrice!)}</span>

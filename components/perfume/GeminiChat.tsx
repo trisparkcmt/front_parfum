@@ -408,11 +408,15 @@ function TypingBubble({ text, onComplete }: { text: string; onComplete?: () => v
   const [displayedText, setDisplayedText] = useState('');
 
   useEffect(() => {
+    setDisplayedText('');
     let index = 0;
     const interval = setInterval(() => {
       setDisplayedText(prev => prev + text.charAt(index));
       index++;
-      if (index >= text.length) { clearInterval(interval); onComplete?.(); }
+      if (index >= text.length) {
+        clearInterval(interval);
+        onComplete?.();
+      }
     }, 15);
     return () => clearInterval(interval);
   }, [text, onComplete]);
@@ -468,6 +472,10 @@ function AiBubble({
     addProduct(product);
   };
 
+  const handleTypingComplete = useCallback(() => {
+    setIsTypingComplete(true);
+  }, []);
+
   return (
     <div className="flex items-start gap-3 justify-start">
       <div className="w-9 h-9 rounded-full bg-gradient-to-br from-gold/30 to-gold/10 border border-gold/30 flex items-center justify-center flex-shrink-0 shadow-sm mt-1">
@@ -494,7 +502,7 @@ function AiBubble({
             )}
           </div>
         ) : animateText ? (
-          <TypingBubble key={`${messageObj.id}-${text}`} text={text} onComplete={() => setIsTypingComplete(true)} />
+          <TypingBubble key={`${messageObj.id}-${text}`} text={text} onComplete={handleTypingComplete} />
         ) : (
           <div className="max-w-xs md:max-w-lg bg-white/5 border border-white/10 rounded-3xl rounded-tl-md px-5 py-4 shadow-sm backdrop-blur-md">
             <p className="text-sm text-foreground/85 leading-relaxed">{text}</p>

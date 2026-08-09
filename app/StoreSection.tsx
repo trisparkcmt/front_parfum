@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
-import { MapPin, Clock, Phone, Navigation, MessageCircle } from 'lucide-react';
+import { MapPin, Clock, Phone, Navigation, MessageCircle, Loader2 } from 'lucide-react';
 
 const LAT = 3.86484;
 const LNG = 11.52030;
@@ -19,17 +19,20 @@ const STORE_INFO = {
   ],
 };
 
+// Apple Maps doesn't offer turn-by-turn directions in Cameroon, so every
+// platform (iOS included) is routed to Google Maps' universal directions link.
 function getDirectionsUrl() {
-  if (typeof navigator === 'undefined') return `https://maps.google.com/?daddr=${LAT},${LNG}`;
-  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-  return isIOS
-    ? `maps://?daddr=${LAT},${LNG}`
-    : `https://maps.google.com/?daddr=${LAT},${LNG}`;
+  return `https://www.google.com/maps/dir/?api=1&destination=${LAT},${LNG}`;
+}
+
+function cx(...parts: Array<string | false | null | undefined>) {
+  return parts.filter(Boolean).join(' ');
 }
 
 function LeafletMap() {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
+  const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
     if (mapInstanceRef.current || !mapRef.current) return;
@@ -85,6 +88,8 @@ function LeafletMap() {
           </div>
         `)
         .openPopup();
+
+      map.whenReady(() => setIsReady(true));
     });
 
     return () => {
@@ -96,37 +101,57 @@ function LeafletMap() {
   }, []);
 
   return (
-    <div
-      ref={mapRef}
-      className="w-full rounded-2xl overflow-hidden border border-white/10 relative z-0"
-      style={{ height: '420px', minHeight: '300px', zIndex: 0 }}
-    />
+    <div className="relative h-[320px] w-full overflow-hidden rounded-2xl border border-black/[0.06] dark:border-[var(--t-card-border)] sm:h-[420px]">
+      {!isReady && (
+        <div className="absolute inset-0 z-10 flex items-center justify-center gap-2 bg-white text-neutral-400 dark:bg-[var(--t-surface-raised)] dark:text-[var(--t-text-muted)]">
+          <Loader2 size={18} className="animate-spin text-[var(--color-gold)]" />
+          <span className="text-xs">Chargement de la carte…</span>
+        </div>
+      )}
+      <div ref={mapRef} className="relative z-0 h-full w-full" />
+    </div>
+  );
+}
+
+function InfoCard({
+  icon, label, children,
+}: { icon: React.ReactNode; label: string; children: React.ReactNode }) {
+  return (
+    <div className="flex gap-4 rounded-2xl border border-black/[0.08] bg-white p-5 dark:border-white/10 dark:bg-white/[0.03]">
+      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-black/[0.04] dark:bg-white/[0.06]">
+        <div className="text-[var(--color-gold)]">{icon}</div>
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="mb-1 font-mono text-[10px] uppercase tracking-widest text-neutral-400 dark:text-[var(--t-text-muted)]">{label}</p>
+        {children}
+      </div>
+    </div>
   );
 }
 
 export default function StoreSection() {
   const handleGetDirections = () => {
-    window.open(getDirectionsUrl(), '_blank');
+    window.open(getDirectionsUrl(), '_blank', 'noopener,noreferrer');
   };
 
   return (
-    <section className="px-4 lg:px-10 py-16 lg:py-24">
-      <div className="max-w-6xl mx-auto">
+    <section className="px-4 py-7 lg:px-10 lg:py-10">
+      <div className="mx-auto max-w-6xl">
         <motion.div
           initial={{ opacity: 0, y: 24 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.55 }}
-          className="mb-10"
+          className="mb-8 lg:mb-10"
         >
-          <span className="text-[11px] font-mono uppercase tracking-[0.3em] text-gold block mb-3">
+          <span className="mb-3 block font-mono text-[11px] uppercase tracking-[0.3em] text-[var(--color-gold)]">
             Notre Boutique
           </span>
-          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-foreground mb-3">
+          <h2 className="mb-3 text-3xl font-bold tracking-tight text-[var(--foreground)] sm:text-4xl lg:text-5xl">
             Retrouvez-nous à{' '}
             <span className="text-gradient-gold">Yaoundé</span>
           </h2>
-          <p className="text-sm text-foreground/60 max-w-xl">
+          <p className="max-w-xl text-sm text-[var(--t-text-muted)]">
             Venez vivre l'expérience Accessoires Exclusifs en personne — découvrez notre atelier olfactif, essayez nos créations et recevez un conseil personnalisé.
           </p>
         </motion.div>
@@ -136,70 +161,57 @@ export default function StoreSection() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6, delay: 0.15 }}
-          className="grid grid-cols-1 lg:grid-cols-5 gap-6"
+          className="grid grid-cols-1 gap-6 lg:grid-cols-5"
         >
           <div className="lg:col-span-3">
             <LeafletMap />
           </div>
 
-          <div className="lg:col-span-2 flex flex-col gap-4">
-            <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-5 flex gap-4">
-              <div className="w-9 h-9 rounded-xl bg-gold/10 flex items-center justify-center flex-shrink-0">
-                <MapPin size={16} className="text-gold" />
+          <div className="flex flex-col gap-4 lg:col-span-2">
+            <InfoCard icon={<MapPin size={16} />} label="Adresse">
+              <p className="text-sm font-semibold text-[var(--foreground)]">{STORE_INFO.name}</p>
+              <p className="mt-0.5 text-xs text-[var(--t-text-muted)]">{STORE_INFO.address}</p>
+            </InfoCard>
+
+            <InfoCard icon={<Clock size={16} />} label="Horaires">
+              <div className=" space-y-1.5">
+                {STORE_INFO.hours.map(({ day, time }) => (
+                  <div key={day} className="flex justify-between gap-3 text-xs">
+                    <span className="text-[var(--t-text-muted)]">{day}</span>
+                    <span className={cx(
+                      'font-mono font-semibold',
+                      time === 'Fermé' ? 'text-[var(--t-text-muted)]/60' : 'text-[var(--foreground)]'
+                    )}>
+                      {time}
+                    </span>
+                  </div>
+                ))}
               </div>
-              <div>
-                <p className="text-[10px] uppercase tracking-widest text-foreground/40 font-mono mb-1">Adresse</p>
-                <p className="text-sm font-semibold text-foreground">{STORE_INFO.name}</p>
-                <p className="text-xs text-foreground/50 mt-0.5">{STORE_INFO.address}</p>
-              </div>
+            </InfoCard>
+
+            <InfoCard icon={<Phone size={16} />} label="Contact">
+              <p className="text-sm font-semibold text-[var(--foreground)]">{STORE_INFO.phone}</p>
+            </InfoCard>
+
+            <div className="grid grid-cols-1 gap-3 pt-1 sm:grid-cols-2 lg:grid-cols-1">
+              <button
+                onClick={handleGetDirections}
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-[var(--color-gold)] py-3.5 text-sm font-bold text-black transition-all hover:bg-[var(--color-gold)]/90 active:scale-[0.98]"
+              >
+                <Navigation size={16} />
+                Obtenir l'itinéraire
+              </button>
+
+              <a
+                href={`https://wa.me/${STORE_INFO.whatsapp.replace(/\s+/g, '').replace('+', '')}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex w-full items-center justify-center gap-2 rounded-xl border border-black/[0.08] py-3.5 text-sm text-neutral-500 transition-all hover:border-black/20 hover:text-[var(--foreground)] dark:border-[var(--t-card-border)] dark:text-[var(--t-text-muted)] dark:hover:border-[var(--t-card-hover-border)]"
+              >
+                <MessageCircle size={16} className="text-emerald-500" />
+                Contacter via WhatsApp
+              </a>
             </div>
-
-            <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-5 flex gap-4">
-              <div className="w-9 h-9 rounded-xl bg-gold/10 flex items-center justify-center flex-shrink-0">
-                <Clock size={16} className="text-gold" />
-              </div>
-              <div className="flex-1">
-                <p className="text-[10px] uppercase tracking-widest text-foreground/40 font-mono mb-2">Horaires</p>
-                <div className="space-y-1.5">
-                  {STORE_INFO.hours.map(({ day, time }) => (
-                    <div key={day} className="flex justify-between text-xs">
-                      <span className="text-foreground/60">{day}</span>
-                      <span className={`font-mono font-semibold ${time === 'Fermé' ? 'text-foreground/30' : 'text-foreground'}`}>
-                        {time}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-5 flex gap-4">
-              <div className="w-9 h-9 rounded-xl bg-gold/10 flex items-center justify-center flex-shrink-0">
-                <Phone size={16} className="text-gold" />
-              </div>
-              <div>
-                <p className="text-[10px] uppercase tracking-widest text-foreground/40 font-mono mb-1">Contact</p>
-                <p className="text-sm font-semibold text-foreground">{STORE_INFO.phone}</p>
-              </div>
-            </div>
-
-            <button
-              onClick={handleGetDirections}
-              className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl bg-gold text-black font-bold text-sm hover:bg-gold/90 active:scale-[0.98] transition-all"
-            >
-              <Navigation size={16} />
-              Obtenir l'itinéraire
-            </button>
-
-            <a
-              href={`https://wa.me/${STORE_INFO.whatsapp.replace(/\s+/g, '').replace('+', '')}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl border border-white/10 text-sm text-foreground/70 hover:text-foreground hover:border-white/20 transition-all"
-            >
-              <MessageCircle size={16} className="text-emerald-400" />
-              Contacter via WhatsApp
-            </a>
           </div>
         </motion.div>
       </div>
