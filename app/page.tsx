@@ -7,9 +7,9 @@ import PromoCarousel from './PromoCarousel';
 import CategoryPills from './CategoryPills';
 import FlashSales from './FlashSales';
 import ShopByCategory from './ShopByCategory';
-import DualPromoBanners from './DualPromoBanners';
+
 import FeatureStrip from './FeatureStrip';
-import NewsletterBanner from './NewsletterBanner';
+
 import EditorialQuote from './EditorialQuote';
 import WelcomeMessage from './WelcomeMessage';
 import StoreSection from './StoreSection';

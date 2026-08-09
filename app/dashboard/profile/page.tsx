@@ -1,5 +1,9 @@
 'use client';
 
+/**
+ * @file app/profile/page.tsx
+ * @description User profile management, security options, PWA install actions, and role-based dashboard access.
+ */
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -54,10 +58,29 @@ function Panel({ children, className }: { children: React.ReactNode; className?:
 }
 
 function StatusBadge({ role }: { role: string }) {
+  const isEn = i18n.language?.startsWith('en');
+  
+  const getRoleLabel = (r: string) => {
+    switch (r) {
+      case 'superadmin':
+        return 'Admin';
+      case 'client':
+        return isEn ? 'Client' : 'Client';
+      case 'delivery':
+        return isEn ? 'Courier' : 'Livreur';
+      case 'partner':
+        return isEn ? 'Partner' : 'Prestataire';
+      case 'serveuse':
+        return isEn ? 'Store Staff' : 'Boutique';
+      default:
+        return r;
+    }
+  };
+
   return (
     <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium ring-1 ring-inset text-gold bg-gold/10 ring-gold/20 uppercase tracking-wider">
       <span className="h-1.5 w-1.5 rounded-full bg-gold" />
-      {role === 'superadmin' ? 'Admin' : role}
+      {getRoleLabel(role)}
     </span>
   );
 }
@@ -68,19 +91,66 @@ function StatusBadge({ role }: { role: string }) {
 
 interface DashboardOption {
   id: string;
-  title: string;
-  description: string;
+  titleKey: string;
+  defaultTitle: string;
+  descKey: string;
+  defaultDesc: string;
   href: string;
   icon: string;
   roles: UserRole[];
 }
 
 const DASHBOARD_OPTIONS: DashboardOption[] = [
-  { id: 'client',    title: 'Espace Client',             description: 'Suivi de vos commandes, créations et favoris.',          href: '/dashboard/client',          icon: '📦', roles: ['client'] },
-  { id: 'delivery',  title: 'Espace Livreur',            description: 'Suivi et exécution de vos livraisons assignées.',         href: '/dashboard/delivery',         icon: '🚗', roles: ['delivery'] },
-  { id: 'partner',   title: 'Espace Prestataire',        description: 'Suivi de vos commissions et ventes affiliées.',           href: '/dashboard/partner',           icon: '🤝', roles: ['partner'] },
-  { id: 'serveuse',  title: 'Espace Boutique / Serveuse', description: 'Gestion des commandes, catalogue et laboratoire.',       href: '/dashboard/serveuse/dashboard', icon: '🛒', roles: ['serveuse'] },
-  { id: 'admin',     title: 'Administration',            description: 'Gestion globale de la plateforme, utilisateurs et livreurs.', href: '/dashboard/admin/dashboard', icon: '👑', roles: ['superadmin'] },
+  {
+    id: 'client',
+    titleKey: 'dashboard_client_title',
+    defaultTitle: 'Espace Client',
+    descKey: 'dashboard_client_desc',
+    defaultDesc: 'Suivi de vos commandes, créations et favoris.',
+    href: '/dashboard/client',
+    icon: '📦',
+    roles: ['client'],
+  },
+  {
+    id: 'delivery',
+    titleKey: 'dashboard_delivery_title',
+    defaultTitle: 'Espace Livreur',
+    descKey: 'dashboard_delivery_desc',
+    defaultDesc: 'Suivi et exécution de vos livraisons assignées.',
+    href: '/dashboard/delivery',
+    icon: '🚗',
+    roles: ['delivery'],
+  },
+  {
+    id: 'partner',
+    titleKey: 'dashboard_partner_title',
+    defaultTitle: 'Espace Prestataire',
+    descKey: 'dashboard_partner_desc',
+    defaultDesc: 'Suivi de vos commissions et ventes affiliées.',
+    href: '/dashboard/partner',
+    icon: '🤝',
+    roles: ['partner'],
+  },
+  {
+    id: 'serveuse',
+    titleKey: 'dashboard_serveuse_title',
+    defaultTitle: 'Espace Boutique / Serveuse',
+    descKey: 'dashboard_serveuse_desc',
+    defaultDesc: 'Gestion des commandes, catalogue et laboratoire.',
+    href: '/dashboard/serveuse/dashboard',
+    icon: '🛒',
+    roles: ['serveuse'],
+  },
+  {
+    id: 'admin',
+    titleKey: 'dashboard_admin_title',
+    defaultTitle: 'Administration',
+    descKey: 'dashboard_admin_desc',
+    defaultDesc: 'Gestion globale de la plateforme, utilisateurs et livreurs.',
+    href: '/dashboard/admin/dashboard',
+    icon: '👑',
+    roles: ['superadmin'],
+  },
 ];
 
 /* ------------------------------------------------------------------ */
@@ -90,9 +160,11 @@ const DASHBOARD_OPTIONS: DashboardOption[] = [
 export default function ProfilePage() {
   const { user, logout } = useAuthStore();
   const { theme, toggleTheme } = useThemeStore();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { addToast } = useToastStore();
   const router = useRouter();
+
+  const isEn = i18n.language?.startsWith('en');
 
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -110,11 +182,28 @@ export default function ProfilePage() {
     try {
       const result = await attemptPWAInstall();
       if (result === 'accepted') {
-        addToast('Application installée, ouvrez-la depuis l’écran d’accueil', 'success');
+        addToast(
+          t('pwa_install_success', {
+            defaultValue: isEn
+              ? 'App installed! Open it from your home screen.'
+              : 'Application installée, ouvrez-la depuis l’écran d’accueil',
+          }),
+          'success'
+        );
       } else if (result === 'installed') {
-        addToast('L’application est déjà installée', 'info');
+        addToast(
+          t('pwa_already_installed', {
+            defaultValue: isEn ? 'App is already installed' : 'L’application est déjà installée',
+          }),
+          'info'
+        );
       } else if (result === 'dismissed') {
-        addToast('Installation annulée', 'info');
+        addToast(
+          t('pwa_install_cancelled', {
+            defaultValue: isEn ? 'Installation cancelled' : 'Installation annulée',
+          }),
+          'info'
+        );
       } else {
         setShowPWAHelp(true);
       }
@@ -129,10 +218,10 @@ export default function ProfilePage() {
   const userRoles: UserRole[] =
     user?.roles || (user?.role ? [user.role] : (['client'] as UserRole[]));
   const isPartner = userRoles.includes('partner');
-  const isStaff   = userRoles.some((r) => ['serveuse', 'superadmin', 'delivery'].includes(r));
+  const isStaff = userRoles.some((r) => ['serveuse', 'superadmin', 'delivery'].includes(r));
 
   const accessibleDashboards = DASHBOARD_OPTIONS.filter((d) =>
-    d.roles.some((role) => userRoles.includes(role)),
+    d.roles.some((role) => userRoles.includes(role))
   );
 
   /* ----- handlers ----- */
@@ -144,12 +233,24 @@ export default function ProfilePage() {
     setIsApplyingPartner(true);
     try {
       const res = await api.post('/auth/prestataire/apply/');
-      addToast(res.data.detail || t('become_partner_request_sent'), 'success');
+      addToast(
+        res.data.detail ||
+          t('become_partner_request_sent', {
+            defaultValue: isEn
+              ? 'Partner application submitted successfully.'
+              : 'Demande de partenariat envoyée avec succès.',
+          }),
+        'success'
+      );
     } catch (err: any) {
       addToast(
         err.response?.data?.detail ||
-          'Une demande est déjà en cours ou vous êtes déjà prestataire.',
-        'error',
+          t('become_partner_error', {
+            defaultValue: isEn
+              ? 'An application is already pending or you are already a partner.'
+              : 'Une demande est déjà en cours ou vous êtes déjà prestataire.',
+          }),
+        'error'
       );
     } finally {
       setIsApplyingPartner(false);
@@ -163,7 +264,10 @@ export default function ProfilePage() {
       router.push('/');
     } catch (err) {
       console.error(err);
-      addToast(t('logout_error', { defaultValue: 'Erreur lors de la déconnexion' }), 'error');
+      addToast(
+        t('logout_error', { defaultValue: isEn ? 'Error during logout' : 'Erreur lors de la déconnexion' }),
+        'error'
+      );
       setIsLoggingOut(false);
     }
   };
@@ -172,18 +276,39 @@ export default function ProfilePage() {
     setIsSendingTestNotification(true);
     try {
       const sent = await triggerTestNotification(
-        'Test de notification',
-        'Cette notification confirme que l’affichage push est bien prêt.'
+        isEn ? 'Notification Test' : 'Test de notification',
+        isEn
+          ? 'This notification confirms push messaging is correctly configured.'
+          : 'Cette notification confirme que l’affichage push est bien prêt.'
       );
 
       if (sent) {
-        addToast('Notification de test envoyée.', 'success');
+        addToast(
+          t('notification_sent', {
+            defaultValue: isEn ? 'Test notification sent.' : 'Notification de test envoyée.',
+          }),
+          'success'
+        );
       } else {
-        addToast('La permission de notification n’a pas été accordée.', 'error');
+        addToast(
+          t('notification_permission_denied', {
+            defaultValue: isEn
+              ? 'Notification permission was not granted.'
+              : 'La permission de notification n’a pas été accordée.',
+          }),
+          'error'
+        );
       }
     } catch (error) {
       console.error(error);
-      addToast('Impossible d’envoyer la notification de test.', 'error');
+      addToast(
+        t('notification_error', {
+          defaultValue: isEn
+            ? 'Unable to send test notification.'
+            : 'Impossible d’envoyer la notification de test.',
+        }),
+        'error'
+      );
     } finally {
       setIsSendingTestNotification(false);
     }
@@ -193,7 +318,10 @@ export default function ProfilePage() {
   const initials =
     `${user?.firstName?.charAt(0) ?? ''}${user?.lastName?.charAt(0) ?? ''}`.toUpperCase() || 'U';
   const memberSince = user?.createdAt
-    ? new Date(user.createdAt).toLocaleDateString('fr-FR', { year: 'numeric', month: 'long' })
+    ? new Date(user.createdAt).toLocaleDateString(isEn ? 'en-US' : 'fr-FR', {
+        year: 'numeric',
+        month: 'long',
+      })
     : null;
 
   return (
@@ -218,7 +346,7 @@ export default function ProfilePage() {
                 <button
                   onClick={() => setShowEditModal(true)}
                   className="absolute -bottom-1 -right-1 rounded-lg p-1.5 border border-foreground/10 bg-background text-foreground/45 hover:text-gold hover:border-gold/30 transition-colors"
-                  aria-label="Edit avatar"
+                  aria-label={isEn ? 'Edit avatar' : 'Modifier la photo'}
                 >
                   <Edit2 size={13} />
                 </button>
@@ -242,7 +370,7 @@ export default function ProfilePage() {
 
               {memberSince && (
                 <p className="text-[11px] font-medium text-foreground/35 flex items-center gap-1.5 mt-4">
-                  <Calendar size={12} /> Membre depuis {memberSince}
+                  <Calendar size={12} /> {isEn ? `Member since ${memberSince}` : `Membre depuis ${memberSince}`}
                 </p>
               )}
 
@@ -258,7 +386,7 @@ export default function ProfilePage() {
                   ) : (
                     <Sparkles size={16} />
                   )}
-                  {t('become_partner', 'Devenir Prestataire')}
+                  {t('become_partner', { defaultValue: isEn ? 'Become a Partner' : 'Devenir Prestataire' })}
                 </button>
               )}
             </div>
@@ -266,30 +394,38 @@ export default function ProfilePage() {
 
           {/* CONTACT INFO PANEL */}
           <div>
-            <SectionLabel>{t('information', 'Informations')}</SectionLabel>
+            <SectionLabel>{t('information', { defaultValue: isEn ? 'Information' : 'Informations' })}</SectionLabel>
             <Panel>
               <div className="divide-y divide-foreground/10">
-                <InfoRow icon={<Mail size={16} />} label={t('email', 'Email')} value={user?.email || '—'} />
-                <InfoRow icon={<Phone size={16} />} label={t('phone', 'Téléphone')} value={user?.phone || t('not_provided', 'Non fourni')} />
+                <InfoRow
+                  icon={<Mail size={16} />}
+                  label={t('email', { defaultValue: 'Email' })}
+                  value={user?.email || '—'}
+                />
+                <InfoRow
+                  icon={<Phone size={16} />}
+                  label={t('phone', { defaultValue: isEn ? 'Phone Number' : 'Téléphone' })}
+                  value={user?.phone || t('not_provided', { defaultValue: isEn ? 'Not provided' : 'Non fourni' })}
+                />
               </div>
             </Panel>
           </div>
 
           {/* QUICK ACCOUNT ACTIONS */}
           <div>
-            <SectionLabel>{t('account', 'Compte')}</SectionLabel>
+            <SectionLabel>{t('account', { defaultValue: isEn ? 'Account' : 'Compte' })}</SectionLabel>
             <Panel>
               <div className="divide-y divide-foreground/10">
                 <ActionRow
                   icon={<Edit2 size={16} />}
-                  label={t('edit_profile', 'Modifier le profil')}
-                  hint={t('update_information', 'Mettre à jour vos informations')}
+                  label={t('edit_profile', { defaultValue: isEn ? 'Edit Profile' : 'Modifier le profil' })}
+                  hint={t('update_information', { defaultValue: isEn ? 'Update your personal details' : 'Mettre à jour vos informations' })}
                   onClick={() => setShowEditModal(true)}
                 />
                 <ActionRow
                   icon={<Lock size={16} />}
-                  label={t('change_password', 'Changer le mot de passe')}
-                  hint={t('update_security', 'Sécurité de votre compte')}
+                  label={t('change_password', { defaultValue: isEn ? 'Change Password' : 'Changer le mot de passe' })}
+                  hint={t('update_security', { defaultValue: isEn ? 'Account security & credentials' : 'Sécurité de votre compte' })}
                   onClick={() => setShowPasswordModal(true)}
                 />
               </div>
@@ -303,7 +439,9 @@ export default function ProfilePage() {
             className="hidden lg:flex w-full items-center justify-center gap-2 rounded-lg bg-red-500/95 px-4 py-2.5 text-sm font-semibold text-white hover:bg-red-500 transition-colors disabled:opacity-50 mt-4"
           >
             {isLoggingOut ? <Loader2 size={16} className="animate-spin" /> : <LogOut size={16} />}
-            {isLoggingOut ? t('logging_out', 'Déconnexion...') : t('logout', 'Déconnexion')}
+            {isLoggingOut
+              ? t('logging_out', { defaultValue: isEn ? 'Logging out...' : 'Déconnexion...' })
+              : t('logout', { defaultValue: isEn ? 'Log Out' : 'Déconnexion' })}
           </button>
         </div>
 
@@ -315,7 +453,9 @@ export default function ProfilePage() {
           {/* ---------- ACCESSIBLE DASHBOARDS GRID ---------- */}
           {accessibleDashboards.length > 0 && (
             <div>
-              <SectionLabel>{t('your_spaces', 'Vos espaces & tableaux de bord')}</SectionLabel>
+              <SectionLabel>
+                {t('your_spaces', { defaultValue: isEn ? 'Your Workspaces & Dashboards' : 'Vos espaces & tableaux de bord' })}
+              </SectionLabel>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {accessibleDashboards.map((opt) => (
                   <button
@@ -326,10 +466,10 @@ export default function ProfilePage() {
                     <span className="text-2xl shrink-0 mt-0.5">{opt.icon}</span>
                     <div className="flex-1 min-w-0">
                       <p className="font-semibold text-sm text-foreground group-hover:text-gold transition-colors truncate">
-                        {opt.title}
+                        {t(opt.titleKey, { defaultValue: opt.defaultTitle })}
                       </p>
                       <p className="text-[11px] text-foreground/40 mt-1 line-clamp-2">
-                        {opt.description}
+                        {t(opt.descKey, { defaultValue: opt.defaultDesc })}
                       </p>
                     </div>
                     <ChevronRight size={16} className="text-foreground/35 group-hover:text-gold group-hover:translate-x-0.5 transition-all shrink-0 mt-0.5" />
@@ -345,8 +485,12 @@ export default function ProfilePage() {
                     <Heart size={16} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-sm text-foreground group-hover:text-gold transition-colors truncate">Mes Favoris</p>
-                    <p className="text-[11px] text-foreground/40 mt-1 truncate">Créations et parfums sauvegardés</p>
+                    <p className="font-semibold text-sm text-foreground group-hover:text-gold transition-colors truncate">
+                      {isEn ? 'My Wishlist' : 'Mes Favoris'}
+                    </p>
+                    <p className="text-[11px] text-foreground/40 mt-1 truncate">
+                      {isEn ? 'Saved fragrances & creations' : 'Créations et parfums sauvegardés'}
+                    </p>
                   </div>
                   <ChevronRight size={16} className="text-foreground/35 group-hover:text-gold group-hover:translate-x-0.5 transition-all shrink-0 mt-0.5" />
                 </Link>
@@ -361,8 +505,12 @@ export default function ProfilePage() {
                       <ShoppingCart size={16} />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-sm text-foreground group-hover:text-gold transition-colors truncate">Point de Vente</p>
-                      <p className="text-[11px] text-foreground/40 mt-1 truncate">Interface de vente en direct (POS)</p>
+                      <p className="font-semibold text-sm text-foreground group-hover:text-gold transition-colors truncate">
+                        {isEn ? 'Point of Sale (POS)' : 'Point de Vente'}
+                      </p>
+                      <p className="text-[11px] text-foreground/40 mt-1 truncate">
+                        {isEn ? 'In-store checkout interface' : 'Interface de vente en direct (POS)'}
+                      </p>
                     </div>
                     <ChevronRight size={16} className="text-foreground/35 group-hover:text-gold group-hover:translate-x-0.5 transition-all shrink-0 mt-0.5" />
                   </Link>
@@ -373,13 +521,13 @@ export default function ProfilePage() {
 
           {/* ---------- PREFERENCES ---------- */}
           <div>
-            <SectionLabel>{t('settings', 'Préférences')}</SectionLabel>
+            <SectionLabel>{t('settings', { defaultValue: isEn ? 'Preferences' : 'Préférences' })}</SectionLabel>
             <Panel>
               <div className="divide-y divide-foreground/10">
                 <SettingRow
                   icon={<Globe size={16} />}
-                  label={t('language', 'Langue')}
-                  hint="Choisissez votre langue / Language"
+                  label={t('language', { defaultValue: isEn ? 'Language' : 'Langue' })}
+                  hint={isEn ? 'Choose display language' : 'Choisissez votre langue / Language'}
                   control={
                     <ButtonPill onClick={handleLanguageChange}>
                       {i18n.language === 'fr' ? 'Français' : 'English'}
@@ -388,27 +536,45 @@ export default function ProfilePage() {
                 />
                 <SettingRow
                   icon={theme === 'dark' ? <Moon size={16} /> : <Sun size={16} />}
-                  label={t('appearance', 'Apparence')}
-                  hint="Mode clair ou sombre"
+                  label={t('appearance', { defaultValue: isEn ? 'Appearance' : 'Apparence' })}
+                  hint={isEn ? 'Light or dark theme' : 'Mode clair ou sombre'}
                   control={
                     <ButtonPill onClick={toggleTheme}>
-                      {theme === 'dark' ? 'Sombre' : 'Clair'}
+                      {theme === 'dark' ? (isEn ? 'Dark' : 'Sombre') : (isEn ? 'Light' : 'Clair')}
                     </ButtonPill>
                   }
                 />
                 {typeof window !== 'undefined' && (
                   <SettingRow
                     icon={<Download size={16} />}
-                    label="Application PWA"
-                    hint={isPWAInstalled ? 'Application déjà installée' : 'Installer l’application pour accès rapide'}
+                    label={isEn ? 'Web App (PWA)' : 'Application PWA'}
+                    hint={
+                      isPWAInstalled
+                        ? isEn
+                          ? 'App is already installed'
+                          : 'Application déjà installée'
+                        : isEn
+                        ? 'Install application for rapid access'
+                        : 'Installer l’application pour accès rapide'
+                    }
                     control={
                       <div className="flex items-center gap-2">
                         <ButtonPill onClick={handleInstallPWA}>
-                          {isInstallingPWA ? 'Installation...' : isPWAInstalled ? 'Installée' : 'Installer'}
+                          {isInstallingPWA
+                            ? isEn
+                              ? 'Installing...'
+                              : 'Installation...'
+                            : isPWAInstalled
+                            ? isEn
+                              ? 'Installed'
+                              : 'Installée'
+                            : isEn
+                            ? 'Install'
+                            : 'Installer'}
                         </ButtonPill>
                         <button
                           onClick={() => setShowPWAHelp(true)}
-                          aria-label="Aide PWA"
+                          aria-label={isEn ? 'PWA Help' : 'Aide PWA'}
                           className="inline-flex items-center justify-center w-8 h-8 rounded-md border border-foreground/10 text-foreground/45 hover:bg-foreground/5 transition-colors"
                         >
                           <Info size={14} />
@@ -423,24 +589,30 @@ export default function ProfilePage() {
 
           {/* ---------- SECURITY & NOTIFICATIONS ---------- */}
           <div>
-            <SectionLabel>{t('security_notifications', 'Sécurité & notifications')}</SectionLabel>
+            <SectionLabel>
+              {t('security_notifications', { defaultValue: isEn ? 'Security & Push Notifications' : 'Sécurité & notifications' })}
+            </SectionLabel>
             <Panel>
               <div className="divide-y divide-foreground/10">
                 <ActionRow
                   icon={<Shield size={16} />}
-                  label={t('account_security', 'Sécurité du compte')}
-                  hint={t('password_2fa', 'Mot de passe et authentification')}
+                  label={t('account_security', { defaultValue: isEn ? 'Account Security' : 'Sécurité du compte' })}
+                  hint={t('password_2fa', { defaultValue: isEn ? 'Password & credentials' : 'Mot de passe et authentification' })}
                   onClick={() => setShowPasswordModal(true)}
                 />
                 <ActionRow
                   icon={<Bell size={16} />}
-                  label={t('notifications', 'Notifications')}
-                  hint={t('notification_channels', 'Canaux de notification')}
+                  label={t('notifications', { defaultValue: isEn ? 'Notifications' : 'Notifications' })}
+                  hint={t('notification_channels', { defaultValue: isEn ? 'Push messaging channels' : 'Canaux de notification' })}
                 />
                 <div className="p-4 flex items-center justify-between gap-4">
                   <div>
-                    <p className="text-sm font-semibold text-foreground">Tester le système Push</p>
-                    <p className="text-xs text-foreground/40">Vérifier le bon fonctionnement des notifications du navigateur</p>
+                    <p className="text-sm font-semibold text-foreground">
+                      {isEn ? 'Test Push System' : 'Tester le système Push'}
+                    </p>
+                    <p className="text-xs text-foreground/40">
+                      {isEn ? 'Verify browser notification readiness' : 'Vérifier le bon fonctionnement des notifications du navigateur'}
+                    </p>
                   </div>
                   <button
                     onClick={handleTestNotification}
@@ -452,7 +624,7 @@ export default function ProfilePage() {
                     ) : (
                       <Bell size={14} />
                     )}
-                    {isSendingTestNotification ? 'Envoi...' : 'Tester'}
+                    {isSendingTestNotification ? (isEn ? 'Sending...' : 'Envoi...') : (isEn ? 'Test' : 'Tester')}
                   </button>
                 </div>
               </div>
@@ -466,7 +638,9 @@ export default function ProfilePage() {
             className="lg:hidden w-full flex items-center justify-center gap-2 rounded-lg bg-red-500/95 px-4 py-2.5 text-sm font-semibold text-white hover:bg-red-500 transition-colors disabled:opacity-50 mt-2"
           >
             {isLoggingOut ? <Loader2 size={16} className="animate-spin" /> : <LogOut size={16} />}
-            {isLoggingOut ? t('logging_out', 'Déconnexion...') : t('logout', 'Déconnexion')}
+            {isLoggingOut
+              ? t('logging_out', { defaultValue: isEn ? 'Logging out...' : 'Déconnexion...' })
+              : t('logout', { defaultValue: isEn ? 'Log Out' : 'Déconnexion' })}
           </button>
 
         </div>
@@ -475,13 +649,13 @@ export default function ProfilePage() {
 
       {/* ============ MODALS ============ */}
       <PasswordChangeModal isOpen={showPasswordModal} onClose={() => setShowPasswordModal(false)} />
-      <ProfileEditModal    isOpen={showEditModal}     onClose={() => setShowEditModal(false)} />
+      <ProfileEditModal isOpen={showEditModal} onClose={() => setShowEditModal(false)} />
       <ConfirmDialog
         isOpen={showLogoutConfirm}
-        title={t('confirm_logout_title', 'Déconnexion')}
-        message={t('confirm_logout', 'Êtes-vous sûr de vouloir vous déconnecter ?')}
-        confirmText={t('logout_btn', 'Déconnexion')}
-        cancelText={t('cancel', 'Annuler')}
+        title={t('confirm_logout_title', { defaultValue: isEn ? 'Log Out' : 'Déconnexion' })}
+        message={t('confirm_logout', { defaultValue: isEn ? 'Are you sure you want to log out?' : 'Êtes-vous sûr de vouloir vous déconnecter ?' })}
+        confirmText={t('logout_btn', { defaultValue: isEn ? 'Log Out' : 'Déconnexion' })}
+        cancelText={t('cancel', { defaultValue: isEn ? 'Cancel' : 'Annuler' })}
         variant="danger"
         isLoading={isLoggingOut}
         onConfirm={handleLogout}
@@ -490,34 +664,61 @@ export default function ProfilePage() {
       <Modal
         isOpen={showPWAHelp}
         onClose={() => setShowPWAHelp(false)}
-        title="Ajouter à l’écran d’accueil"
+        title={isEn ? 'Add to Home Screen' : 'Ajouter à l’écran d’accueil'}
         size="lg"
       >
         <div className="space-y-4 text-sm text-foreground/90">
           <p>
-            Pour installer l’application sur votre téléphone, suivez les étapes ci-dessous selon votre appareil.
+            {isEn
+              ? 'To install this application on your mobile device, follow the steps for your operating system below.'
+              : 'Pour installer l’application sur votre téléphone, suivez les étapes ci-dessous selon votre appareil.'}
           </p>
           <div className="rounded-xl border border-foreground/10 bg-foreground/[0.03] p-4">
-            <h3 className="text-sm font-semibold text-foreground mb-2">iPhone</h3>
+            <h3 className="text-sm font-semibold text-foreground mb-2">iPhone (iOS)</h3>
             <ol className="list-decimal list-inside space-y-2 text-[13px] leading-6 text-foreground/70">
-              <li>Ouvrez Safari et rendez-vous sur ce site.</li>
-              <li>Tapez sur l’icône Partager en bas de l’écran.</li>
-              <li>Choisissez « Ajouter à l’écran d’accueil ».</li>
-              <li>Confirmez en appuyant sur « Ajouter ».</li>
-              <li>Ouvrez l’application depuis votre écran d’accueil.</li>
+              {isEn ? (
+                <>
+                  <li>Open Safari and visit this website.</li>
+                  <li>Tap the Share icon at the bottom of the screen.</li>
+                  <li>Select "Add to Home Screen".</li>
+                  <li>Confirm by tapping "Add".</li>
+                  <li>Launch the application directly from your home screen.</li>
+                </>
+              ) : (
+                <>
+                  <li>Ouvrez Safari et rendez-vous sur ce site.</li>
+                  <li>Tapez sur l’icône Partager en bas de l’écran.</li>
+                  <li>Choisissez « Ajouter à l’écran d’accueil ».</li>
+                  <li>Confirmez en appuyant sur « Ajouter ».</li>
+                  <li>Ouvrez l’application depuis votre écran d’accueil.</li>
+                </>
+              )}
             </ol>
           </div>
           <div className="rounded-xl border border-foreground/10 bg-foreground/[0.03] p-4">
             <h3 className="text-sm font-semibold text-foreground mb-2">Android</h3>
             <ol className="list-decimal list-inside space-y-2 text-[13px] leading-6 text-foreground/70">
-              <li>Ouvrez le menu du navigateur (trois points ou barre de menu).</li>
-              <li>Choisissez « Ajouter à l’écran d’accueil » ou « Installer l’application ». </li>
-              <li>Confirmez la demande d’ajout.</li>
-              <li>Ouvrez l’application depuis votre écran d’accueil.</li>
+              {isEn ? (
+                <>
+                  <li>Open your browser menu (three dots or menu icon).</li>
+                  <li>Select "Add to Home screen" or "Install app".</li>
+                  <li>Confirm the installation prompt.</li>
+                  <li>Launch the application directly from your home screen.</li>
+                </>
+              ) : (
+                <>
+                  <li>Ouvrez le menu du navigateur (trois points ou barre de menu).</li>
+                  <li>Choisissez « Ajouter à l’écran d’accueil » ou « Installer l’application ».</li>
+                  <li>Confirmez la demande d’ajout.</li>
+                  <li>Ouvrez l’application depuis votre écran d’accueil.</li>
+                </>
+              )}
             </ol>
           </div>
           <p className="text-xs text-foreground/40">
-            Si votre navigateur ne propose pas d’installation automatique, utilisez le menu de partage ou d’options pour ajouter manuellement ce site à l’écran d’accueil.
+            {isEn
+              ? 'If your browser does not trigger an automatic prompt, use the share or browser settings menu to manually add this app to your home screen.'
+              : 'Si votre navigateur ne propose pas d’installation automatique, utilisez le menu de partage ou d’options pour ajouter manuellement ce site à l’écran d’accueil.'}
           </p>
         </div>
       </Modal>
@@ -544,7 +745,10 @@ function InfoRow({ icon, label, value }: { icon: React.ReactNode; label: string;
 }
 
 function ActionRow({
-  icon, label, hint, onClick,
+  icon,
+  label,
+  hint,
+  onClick,
 }: {
   icon: React.ReactNode;
   label: string;
@@ -569,7 +773,10 @@ function ActionRow({
 }
 
 function SettingRow({
-  icon, label, hint, control,
+  icon,
+  label,
+  hint,
+  control,
 }: {
   icon: React.ReactNode;
   label: string;
@@ -591,7 +798,8 @@ function SettingRow({
 }
 
 function ButtonPill({
-  children, onClick,
+  children,
+  onClick,
 }: {
   children: React.ReactNode;
   onClick?: () => void;

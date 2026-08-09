@@ -1,13 +1,11 @@
 'use client';
 
-/**
- * @file app/shop/diffuseurs/page.tsx
- * @description Public E-commerce Catalog for Perfume Diffusers — Redesigned.
- */
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { Search, SlidersHorizontal, RotateCcw, LayoutGrid, List } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+
 import { DiffuseurCard } from '@/components/ui/DiffuseurCard';
 import { ProductGridSkeleton } from '@/components/ui/Skeletons';
 import { productService } from '@/services/productService';
@@ -16,28 +14,19 @@ import { useFavoritesStore } from '@/store/useFavoritesStore';
 import { useToastStore } from '@/store/useToastStore';
 import type { Product } from '@/types';
 
-/* ── Animation variants ── */
-const fadeUp = {
-  hidden: { opacity: 0, y: 24 },
-  visible: (i: number) => ({
-    opacity: 1,
-    y: 0,
-    transition: { delay: i * 0.06, duration: 0.6, ease: [0.23, 1, 0.32, 1] as const },
-  }),
-};
-
 function DiffuseursShopContent() {
+  const { i18n } = useTranslation();
+  const isEn = i18n.language?.startsWith('en');
+
   const [mounted, setMounted] = useState(false);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<'grid' | 'horizontal'>('grid');
 
-  // Stores
   const { addDiffuseur } = useCartStore();
   const { isFavorite, addFavorite, removeFavorite } = useFavoritesStore();
   const { addToast } = useToastStore();
 
-  // Filters
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [techFilter, setTechFilter] = useState<string>('all');
@@ -97,19 +86,28 @@ function DiffuseursShopContent() {
   const handleAddToCart = async (product: Product) => {
     try {
       await addDiffuseur(Number(product.id), 1);
-      addToast('Added', 'success');
+      addToast(isEn ? 'Added to bag' : 'Ajouté au panier', 'success');
     } catch {
-      addToast('Erreur lors de l’ajout au panier', 'error');
+      addToast(
+        isEn ? 'Error adding item to bag' : 'Erreur lors de l’ajout au panier',
+        'error'
+      );
     }
   };
 
   const handleToggleFavorite = (product: Product) => {
     if (isFavorite(product.id)) {
       removeFavorite(product.id);
-      addToast(`${product.name} retiré des favoris`, 'info');
+      addToast(
+        isEn ? `${product.name} removed from wishlist` : `${product.name} retiré des favoris`,
+        'info'
+      );
     } else {
       addFavorite(product);
-      addToast(`${product.name} ajouté aux favoris`, 'success');
+      addToast(
+        isEn ? `${product.name} saved to wishlist` : `${product.name} ajouté aux favoris`,
+        'success'
+      );
     }
   };
 
@@ -117,7 +115,7 @@ function DiffuseursShopContent() {
 
   return (
     <div className="min-h-screen bg-background text-foreground font-sans">
-      {/* ── Hero ── */}
+      {/* Hero */}
       <section className="relative pt-28 pb-16 sm:pt-32 sm:pb-20 text-center overflow-hidden">
         <div
           className="absolute inset-0 pointer-events-none"
@@ -136,23 +134,32 @@ function DiffuseursShopContent() {
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
               <path d="M12 2l2.4 7.2h7.6l-6 4.8 2.4 7.2-6-4.8-6 4.8 2.4-7.2-6-4.8h7.6z" />
             </svg>
-            Collection Exclusive
+            {isEn ? 'Signature Home Scents' : 'Collection Exclusive'}
           </span>
 
           <h1 className="font-serif text-4xl sm:text-5xl lg:text-6xl font-normal tracking-tight leading-[1.05] mb-5">
-            Diffuseurs de{' '}
-            <em className="italic text-gold">Parfum</em>
+            {isEn ? (
+              <>
+                Scent <em className="italic text-gold">Diffusers</em>
+              </>
+            ) : (
+              <>
+                Diffuseurs de <em className="italic text-gold">Parfum</em>
+              </>
+            )}
           </h1>
 
           <p className="text-[15px] text-foreground/60 font-light leading-relaxed max-w-md mx-auto">
-            Transformez votre intérieur avec notre sélection de diffuseurs ultrasoniques et haute technologie d'ambiance.
+            {isEn
+              ? 'Elevate your sanctuary with our ultrasonic and high-performance scenting systems.'
+              : 'Transformez votre intérieur avec notre sélection de diffuseurs ultrasoniques et haute technologie d\'ambiance.'}
           </p>
 
           <div className="w-12 h-px bg-gold mx-auto mt-8 opacity-40" />
         </motion.div>
       </section>
 
-      {/* ── Filters & View Toggle ── */}
+      {/* Filters & View Toggle */}
       <motion.div
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
@@ -160,7 +167,6 @@ function DiffuseursShopContent() {
         className="max-w-5xl mx-auto px-4 sm:px-6 pb-8"
       >
         <div className="flex items-center gap-1.5 sm:gap-3 w-full">
-          {/* Search Input */}
           <div className="relative flex-1 min-w-0">
             <Search
               size={14}
@@ -168,14 +174,13 @@ function DiffuseursShopContent() {
             />
             <input
               type="text"
-              placeholder="Rechercher..."
+              placeholder={isEn ? 'Search diffusers...' : 'Rechercher...'}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full bg-foreground/5 hover:bg-foreground/10 border border-foreground/10 rounded-xl pl-8 pr-2 sm:pl-10 sm:pr-4 py-2.5 sm:py-3 text-[12px] sm:text-[13px] text-foreground placeholder:text-foreground/40 outline-none transition-all duration-300 focus:border-gold focus:bg-foreground/10"
             />
           </div>
 
-          {/* Filter Button */}
           <button
             onClick={() => setShowFilters((prev) => !prev)}
             className={`flex items-center justify-center gap-1.5 rounded-xl border px-2.5 sm:px-3.5 py-2.5 sm:py-3 text-[12px] sm:text-[13px] font-medium transition-all duration-300 shrink-0 ${
@@ -185,7 +190,7 @@ function DiffuseursShopContent() {
             }`}
           >
             <SlidersHorizontal size={14} />
-            <span className="hidden xs:inline">Filtres</span>
+            <span className="hidden xs:inline">{isEn ? 'Filter' : 'Filtres'}</span>
             {activeFiltersCount > 0 && (
               <span className="flex h-4 w-4 sm:h-5 sm:w-5 items-center justify-center rounded-full bg-gold text-[9px] sm:text-[10px] font-semibold text-black">
                 {activeFiltersCount}
@@ -193,11 +198,10 @@ function DiffuseursShopContent() {
             )}
           </button>
 
-          {/* View Toggle Buttons */}
           <div className="flex items-center p-1 bg-foreground/5 border border-foreground/10 rounded-xl shrink-0">
             <button
               onClick={() => setViewMode('grid')}
-              title="Vue grille (Cartes standard)"
+              title={isEn ? 'Grid View' : 'Vue grille'}
               className={`p-1.5 sm:p-2.5 rounded-lg transition-all ${
                 viewMode === 'grid'
                   ? 'bg-gold text-black'
@@ -208,7 +212,7 @@ function DiffuseursShopContent() {
             </button>
             <button
               onClick={() => setViewMode('horizontal')}
-              title="Vue horizontale (Pleine largeur avec détails)"
+              title={isEn ? 'Expanded List View' : 'Vue liste détaillée'}
               className={`p-1.5 sm:p-2.5 rounded-lg transition-all ${
                 viewMode === 'horizontal'
                   ? 'bg-gold text-black'
@@ -219,7 +223,6 @@ function DiffuseursShopContent() {
             </button>
           </div>
         </div>
-
 
         {showFilters && (
           <motion.div
@@ -232,10 +235,18 @@ function DiffuseursShopContent() {
               onChange={(e) => setTechFilter(e.target.value)}
               className="w-full min-w-[160px] flex-1 appearance-none rounded-xl border border-foreground/10 bg-foreground/5 px-4 py-3 text-[13px] text-foreground/60 outline-none transition-all duration-300 hover:border-gold/40 hover:text-foreground focus:border-gold sm:max-w-[220px]"
             >
-              <option value="all" className="bg-background">Toutes les technologies</option>
-              <option value="ultrasons" className="bg-background">Ultrasons</option>
-              <option value="nebulisation" className="bg-background">Nébulisation</option>
-              <option value="chaleur" className="bg-background">Chaleur douce</option>
+              <option value="all" className="bg-background">
+                {isEn ? 'All Technologies' : 'Toutes les technologies'}
+              </option>
+              <option value="ultrasons" className="bg-background">
+                {isEn ? 'Ultrasonic' : 'Ultrasons'}
+              </option>
+              <option value="nebulisation" className="bg-background">
+                {isEn ? 'Cold-Air Nebulization' : 'Nébulisation'}
+              </option>
+              <option value="chaleur" className="bg-background">
+                {isEn ? 'Gentle Heat' : 'Chaleur douce'}
+              </option>
             </select>
 
             <select
@@ -243,9 +254,15 @@ function DiffuseursShopContent() {
               onChange={(e) => setOrdering(e.target.value)}
               className="w-full min-w-[160px] flex-1 appearance-none rounded-xl border border-foreground/10 bg-foreground/5 px-4 py-3 text-[13px] text-foreground/60 outline-none transition-all duration-300 hover:border-gold/40 hover:text-foreground focus:border-gold sm:max-w-[220px]"
             >
-              <option value="-date_creation" className="bg-background">Nouveautés</option>
-              <option value="prix_unitaire" className="bg-background">Prix : croissant</option>
-              <option value="-prix_unitaire" className="bg-background">Prix : décroissant</option>
+              <option value="-date_creation" className="bg-background">
+                {isEn ? 'Newest Arrivals' : 'Nouveautés'}
+              </option>
+              <option value="prix_unitaire" className="bg-background">
+                {isEn ? 'Price: Low to High' : 'Prix : croissant'}
+              </option>
+              <option value="-prix_unitaire" className="bg-background">
+                {isEn ? 'Price: High to Low' : 'Prix : décroissant'}
+              </option>
             </select>
 
             <button
@@ -253,13 +270,13 @@ function DiffuseursShopContent() {
               className="inline-flex items-center gap-2 rounded-xl border border-foreground/10 bg-foreground/5 px-3 py-3 text-[13px] text-foreground/60 transition-all duration-300 hover:border-gold hover:text-foreground"
             >
               <RotateCcw size={14} />
-              Réinitialiser
+              {isEn ? 'Clear Filters' : 'Réinitialiser'}
             </button>
           </motion.div>
         )}
       </motion.div>
 
-      {/* ── Product Catalog ── */}
+      {/* Catalog */}
       <div className="max-w-6xl mx-auto px-4 sm:px-6 pb-24">
         {loading ? (
           <ProductGridSkeleton />
@@ -294,35 +311,25 @@ function DiffuseursShopContent() {
             </div>
           )
         ) : (
-
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             className="text-center py-28"
           >
-            <svg
-              width="56"
-              height="56"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1"
-              className="mx-auto mb-6 text-foreground/40 opacity-50"
-            >
-              <path d="M12 2l2.4 7.2h7.6l-6 4.8 2.4 7.2-6-4.8-6 4.8 2.4-7.2-6-4.8h7.6z" />
-            </svg>
             <h3 className="font-serif text-[22px] font-normal text-foreground mb-2">
-              Aucun résultat
+              {isEn ? 'No Diffusers Found' : 'Aucun résultat'}
             </h3>
             <p className="text-sm text-foreground/60 max-w-xs mx-auto mb-7 leading-relaxed">
-              Essayez de modifier votre recherche ou de réinitialiser les filtres.
+              {isEn
+                ? 'Try broadening your search or resetting active filters.'
+                : 'Essayez de modifier votre recherche ou de réinitialiser les filtres.'}
             </p>
             <button
               onClick={resetFilters}
-              className="inline-flex items-center gap-2 px-7 py-3 rounded-xl bg-gold text-black text-[13px] font-semibold transition-all duration-300 hover:bg-gold/90 hover:-translate-y-0.5 hover:shadow-[0_8px_24px_-6px_rgba(201,169,110,0.3)]"
+              className="inline-flex items-center gap-2 px-7 py-3 rounded-xl bg-gold text-black text-[13px] font-semibold transition-all duration-300 hover:bg-gold/90 hover:-translate-y-0.5"
             >
               <RotateCcw size={14} />
-              Réinitialiser les filtres
+              {isEn ? 'Reset All Filters' : 'Réinitialiser les filtres'}
             </button>
           </motion.div>
         )}

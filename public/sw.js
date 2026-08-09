@@ -9,7 +9,7 @@ const STATIC_ASSETS = [
   '/manifest.webmanifest',
   '/icons/icon-192x192.jpeg',
   '/icons/icon-512x512.jpeg',
-  '/favicon.ico',
+  '/favicon-16x16.png',
 ];
 
 // Install: pre-cache essential static assets

@@ -6,7 +6,6 @@ import { ArrowLeft, ArrowRight, Tag } from "lucide-react";
 import Link from "next/link";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
-import i18n from "@/lib/i18n";
 import { shopService } from "@/services/apiService";
 import { extractCatalogList } from "@/lib/catalogUtils";
 import AppImage from "@/components/ui/AppImage";
@@ -26,9 +25,19 @@ interface PromoEntry {
 
 const FALLBACK_IMAGE = "/promo2.png";
 const AUTO_SLIDE_INTERVAL = 5000;
-
-// Shared glass treatment for floating controls, echoes the navbar's glass pills
 const glass = 'rounded-full border border-white/10 bg-white/[0.06] backdrop-blur-2xl shadow-[0_4px_30px_rgba(0,0,0,0.25)] supports-[backdrop-filter]:bg-white/[0.06]';
+
+const textDict = {
+  createPerfume: { fr: "Créez votre parfum", en: "Create your perfume" },
+  evergreenDesc: { fr: "Une création olfactive unique, conçue pour vous.", en: "A unique scent creation, tailored just for you." },
+  exclusive: { fr: "Exclusif", en: "Exclusive" },
+  exclusiveOffer: { fr: "Offre exclusive", en: "Exclusive offer" },
+  discover: { fr: "Découvrir", en: "Discover" },
+  prev: { fr: "Précédent", en: "Previous" },
+  next: { fr: "Suivant", en: "Next" },
+  categoryPerfume: { fr: "Catégorie parfum", en: "Perfume category" },
+  categoryAccessory: { fr: "Catégorie accessoire", en: "Accessory category" },
+};
 
 function normalizePromotionValue(value: unknown): number {
   if (typeof value === 'number') return value;
@@ -49,15 +58,19 @@ function isPromotionActive(item: { date_debut?: string | null; date_fin?: string
   return true;
 }
 
-function mapCategoryToEntry(category: any, type: 'perfume' | 'accessory'): PromoEntry | null {
+function mapCategoryToEntry(category: any, type: 'perfume' | 'accessory', isEn: boolean): PromoEntry | null {
   const discount = normalizePromotionValue(category.taux_reduction);
   const hasPromotion = discount > 0 || Boolean(category.message_promotion?.trim());
 
   if (!hasPromotion || !isPromotionActive(category)) return null;
 
+  const defaultTitle = type === 'perfume' 
+    ? (isEn ? textDict.categoryPerfume.en : textDict.categoryPerfume.fr)
+    : (isEn ? textDict.categoryAccessory.en : textDict.categoryAccessory.fr);
+
   return {
     key: `${type}-${category.id}`,
-    title: category.nom || (type === 'perfume' ? 'Catégorie parfum' : 'Catégorie accessoire'),
+    title: category.nom || defaultTitle,
     discount,
     description: category.message_promotion || undefined,
     link: type === 'perfume'
@@ -71,11 +84,10 @@ function mapCategoryToEntry(category: any, type: 'perfume' | 'accessory'): Promo
   };
 }
 
-function formatCountdown(item: PromoEntry): string | null {
+function formatCountdown(item: PromoEntry, isEn: boolean): string | null {
   const now = new Date();
   const start = item.startDate ? new Date(item.startDate) : null;
   const end = item.endDate ? new Date(item.endDate) : null;
-  const isEn = i18n.language === 'en';
 
   if (start && now < start) {
     const diffMs = start.getTime() - now.getTime();
@@ -97,36 +109,36 @@ function formatCountdown(item: PromoEntry): string | null {
         : `Encore ${days} jour${days > 1 ? 's' : ''} pour profiter de la promotion`;
     }
     return isEn
-      ? `Remaining ${hours} hour${hours > 1 ? 's' : ''} to benefit from this promotion`
+      ? `${hours} hour${hours > 1 ? 's' : ''} remaining to benefit from this promotion`
       : `Encore ${hours} heure${hours > 1 ? 's' : ''} pour profiter de la promotion`;
   }
 
   return null;
 }
 
-function getPromoMessage(item: PromoEntry): string {
+function getPromoMessage(item: PromoEntry, isEn: boolean): string {
   if (item.description) return item.description;
   if (item.discount <= 0) return "";
 
-  const isEn = i18n.language === 'en';
-
   if (item.type === 'perfume') {
     return isEn
-      ? `Discover this promoted perfume category and explore the collection.`
-      : `Découvrez cette catégorie de parfums en promotion et explorez la collection.`;
+      ? "Discover this promoted perfume category and explore the collection."
+      : "Découvrez cette catégorie de parfums en promotion et explorez la collection.";
   }
 
   if (item.type === 'accessory') {
     return isEn
-      ? `Browse this promoted accessory category and shop the collection.`
-      : `Parcourez cette catégorie d'accessoires en promotion et découvrez la collection.`;
+      ? "Browse this promoted accessory category and shop the collection."
+      : "Parcourez cette catégorie d'accessoires en promotion et découvrez la collection.";
   }
 
   return "";
 }
 
 export default function PromoCarousel() {
-  const { t } = useTranslation();
+  const { i18n } = useTranslation();
+  const isEn = i18n.language?.startsWith('en');
+
   const [promos, setPromos] = useState<PromoEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [slideIndex, setSlideIndex] = useState(0);
@@ -150,10 +162,10 @@ export default function PromoCarousel() {
 
         const entries = [
           ...perfumeCategories
-            .map((category) => mapCategoryToEntry(category, 'perfume'))
+            .map((category) => mapCategoryToEntry(category, 'perfume', isEn))
             .filter((entry): entry is PromoEntry => Boolean(entry)),
           ...accessoryTypes
-            .map((category) => mapCategoryToEntry(category, 'accessory'))
+            .map((category) => mapCategoryToEntry(category, 'accessory', isEn))
             .filter((entry): entry is PromoEntry => Boolean(entry)),
         ];
 
@@ -168,23 +180,20 @@ export default function PromoCarousel() {
 
     fetchPromotions();
     return () => { active = false; };
-  }, []);
+  }, [isEn]);
 
   const items: PromoEntry[] = promos.length > 0 ? promos : [
     {
       key: "atelier-evergreen",
-      title: t("create_my_perfume", { defaultValue: "Créez votre parfum" }),
+      title: isEn ? textDict.createPerfume.en : textDict.createPerfume.fr,
       discount: 0,
-      description: t("atelier_evergreen_desc", {
-        defaultValue: "Une création olfactive unique, conçue pour vous.",
-      }),
-      link: "/numba/atelier",
+      description: isEn ? textDict.evergreenDesc.en : textDict.evergreenDesc.fr,
+      link: "/numba",
       image: FALLBACK_IMAGE,
       type: 'generic'
     },
   ];
 
-  /** Scroll the mobile carousel so that the target card is centered in the viewport */
   const scrollMobileToIndex = (targetIndex: number) => {
     const container = mobileScrollRef.current;
     if (!container) return;
@@ -192,15 +201,11 @@ export default function PromoCarousel() {
     if (cards[targetIndex]) {
       isInternalScrollChange.current = true;
       const card = cards[targetIndex];
-      const containerRect = container.getBoundingClientRect();
-      const cardRect = card.getBoundingClientRect();
       const offset = card.offsetLeft - (container.clientWidth - card.offsetWidth) / 2;
       container.scrollTo({ left: offset, behavior: 'smooth' });
-      void containerRect; void cardRect;
     }
   };
 
-  // Global Auto-Slide Engine
   useEffect(() => {
     if (items.length <= 1 || isPaused) return;
 
@@ -214,13 +219,11 @@ export default function PromoCarousel() {
     return () => clearInterval(interval);
   }, [items.length, slideIndex, isPaused]);
 
-  // Sync index on bounds changes
   useEffect(() => {
     if (slideIndex >= items.length) setSlideIndex(0);
     if (mobileIndex >= items.length) setMobileIndex(0);
   }, [items.length, slideIndex, mobileIndex]);
 
-  // Track manual swiping
   const handleMobileScroll = () => {
     if (!mobileScrollRef.current) return;
     if (isInternalScrollChange.current) {
@@ -265,7 +268,7 @@ export default function PromoCarousel() {
   }
 
   const activeSlide = items[slideIndex] ?? items[0];
-  const activeCountdownMessage = formatCountdown(activeSlide);
+  const activeCountdownMessage = formatCountdown(activeSlide, isEn);
 
   return (
     <section 
@@ -275,7 +278,7 @@ export default function PromoCarousel() {
       onTouchStart={() => setIsPaused(true)}
       onTouchEnd={() => setIsPaused(false)}
     >
-      {/* ================= MOBILE / TABLET (< lg) ================= */}
+      {/* MOBILE / TABLET */}
       <div className="lg:hidden max-w-7xl mx-auto mt-2 px-4 sm:px-6">
         <div
           ref={mobileScrollRef}
@@ -284,8 +287,8 @@ export default function PromoCarousel() {
           style={{ scrollbarWidth: 'none', scrollPaddingInline: '1rem' }}
         >
           {items.map((promo, idx) => {
-            const displayMessage = getPromoMessage(promo);
-            const countdownMessage = formatCountdown(promo);
+            const displayMessage = getPromoMessage(promo, isEn);
+            const countdownMessage = formatCountdown(promo, isEn);
             const isActive = idx === mobileIndex;
             return (
               <motion.div
@@ -316,7 +319,6 @@ export default function PromoCarousel() {
                   </div>
                   <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent z-10" />
 
-                  {/* Active indicator ring */}
                   {isActive && (
                     <div className="absolute inset-0 rounded-2xl ring-2 ring-gold/40 pointer-events-none z-20" />
                   )}
@@ -329,7 +331,7 @@ export default function PromoCarousel() {
                       </span>
                     ) : (
                       <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-gold/20 border border-gold/40 text-gold text-[10px] font-bold uppercase tracking-widest w-fit backdrop-blur-sm">
-                        {t("exclusive_offer", { defaultValue: "Exclusif" })}
+                        {isEn ? textDict.exclusive.en : textDict.exclusive.fr}
                       </span>
                     )}
 
@@ -348,7 +350,7 @@ export default function PromoCarousel() {
                         </p>
                       )}
                       <span className="pt-1 inline-flex items-center gap-1 text-xs font-medium text-gold">
-                        {t("shop_now", { defaultValue: "Découvrir" })}
+                        {isEn ? textDict.discover.en : textDict.discover.fr}
                         <ArrowRight size={13} className="transition-transform group-hover:translate-x-0.5" />
                       </span>
                     </div>
@@ -359,7 +361,6 @@ export default function PromoCarousel() {
           })}
         </div>
 
-        {/* Mobile Dot Indicators */}
         {items.length > 1 && (
           <div className="flex items-center justify-center gap-1.5 mt-4 pb-2">
             {items.map((_, idx) => (
@@ -377,7 +378,7 @@ export default function PromoCarousel() {
         )}
       </div>
 
-      {/* ================= DESKTOP (lg+) — full-bleed hero, sits behind the transparent navbar ================= */}
+      {/* DESKTOP */}
       <div className="hidden lg:block relative w-full h-[620px] overflow-hidden bg-deep-black">
         <AnimatePresence mode="wait">
           <motion.div
@@ -388,7 +389,6 @@ export default function PromoCarousel() {
             transition={{ duration: 0.6 }}
             className="absolute inset-0"
           >
-            {/* Ken Burns — slow, subtle drift on the background image */}
             <motion.div
               className="absolute inset-0"
               initial={{ scale: 1 }}
@@ -404,11 +404,8 @@ export default function PromoCarousel() {
               />
             </motion.div>
 
-            {/* Directional scrim for text legibility */}
             <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/45 to-transparent" />
-            {/* Top scrim so the transparent glass navbar always reads clearly, regardless of image */}
             <div className="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-black/70 to-transparent pointer-events-none" />
-            {/* Bottom scrim to ground the progress indicators */}
             <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-black/50 to-transparent pointer-events-none" />
 
             <div className="relative z-10 max-w-7xl mx-auto h-full px-6 lg:px-8 flex items-center pt-16">
@@ -421,11 +418,11 @@ export default function PromoCarousel() {
                 {activeSlide.discount > 0 ? (
                   <span className={cn(glass, 'inline-flex items-center gap-1.5 px-3.5 py-1.5 text-gold text-xs font-bold uppercase tracking-widest mb-6')}>
                     <Tag size={13} />
-                    -{activeSlide.discount}% {t("exclusive_offer", { defaultValue: "Offre exclusive" })}
+                    -{activeSlide.discount}% {isEn ? textDict.exclusiveOffer.en : textDict.exclusiveOffer.fr}
                   </span>
                 ) : (
                   <span className={cn(glass, 'inline-flex items-center gap-1.5 px-3.5 py-1.5 text-gold text-xs font-bold uppercase tracking-widest mb-6')}>
-                    {t("exclusive_offer", { defaultValue: "Exclusif" })}
+                    {isEn ? textDict.exclusive.en : textDict.exclusive.fr}
                   </span>
                 )}
 
@@ -434,7 +431,7 @@ export default function PromoCarousel() {
                 </h2>
 
                 <p className="text-white/85 text-base leading-relaxed mb-8 line-clamp-2 font-medium">
-                  {getPromoMessage(activeSlide)}
+                  {getPromoMessage(activeSlide, isEn)}
                 </p>
                 {activeCountdownMessage && (
                   <p className="text-white/60 text-sm leading-relaxed mb-8">
@@ -446,7 +443,7 @@ export default function PromoCarousel() {
                   href={activeSlide.link}
                   className="group inline-flex items-center gap-2 px-7 py-3.5 rounded-full bg-gold text-deep-black text-sm font-semibold hover:bg-white transition-colors duration-300"
                 >
-                  {t("shop_now", { defaultValue: "Découvrir" })}
+                  {isEn ? textDict.discover.en : textDict.discover.fr}
                   <ArrowRight size={16} className="transition-transform duration-300 group-hover:translate-x-1" />
                 </Link>
               </motion.div>
@@ -454,12 +451,11 @@ export default function PromoCarousel() {
           </motion.div>
         </AnimatePresence>
 
-        {/* Desktop Prev / Next Nav controls — glass, matches navbar language */}
         {items.length > 1 && (
           <>
             <button
               type="button"
-              aria-label={t("previous", { defaultValue: "Précédent" })}
+              aria-label={isEn ? textDict.prev.en : textDict.prev.fr}
               onClick={() => goTo(slideIndex - 1)}
               className={cn(glass, 'absolute left-6 top-1/2 -translate-y-1/2 z-20 size-12 flex items-center justify-center text-white/80 hover:text-gold hover:bg-white/10 transition-colors cursor-pointer')}
             >
@@ -467,14 +463,13 @@ export default function PromoCarousel() {
             </button>
             <button
               type="button"
-              aria-label={t("next", { defaultValue: "Suivant" })}
+              aria-label={isEn ? textDict.next.en : textDict.next.fr}
               onClick={() => goTo(slideIndex + 1)}
               className={cn(glass, 'absolute right-6 top-1/2 -translate-y-1/2 z-20 size-12 flex items-center justify-center text-white/80 hover:text-gold hover:bg-white/10 transition-colors cursor-pointer')}
             >
               <ArrowRight size={18} />
             </button>
 
-            {/* Desktop progress indicators — each bar fills over the autoplay interval when active */}
             <div className="absolute bottom-7 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2">
               {items.map((_, idx) => (
                 <button

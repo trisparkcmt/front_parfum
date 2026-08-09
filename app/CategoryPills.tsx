@@ -8,42 +8,30 @@ import {
   Gem,
   Watch,
   Glasses,
-  Crown,
   Package,
   ArrowRight,
 } from "lucide-react";
-import { CartIcon, CategoryIcon, TagIcon, DiffuseurIcon, PerfumeIcon } from "@/components/icons/CustomIcons";
+import { CartIcon, TagIcon, DiffuseurIcon } from "@/components/icons/CustomIcons";
 import AppImage from "@/components/ui/AppImage";
 import { productService } from "@/services/productService";
 import { AccessorySubCategory } from "@/types";
 
 interface CategoryEntry {
   key: string;
-  label: string;
+  labelFr: string;
+  labelEn: string;
   href: string;
   image: string | null;
   Icon: React.ComponentType<{ size?: number; className?: string }>;
 }
 
-const PERFUME_LABELS: Record<string, string> = {
-  "perfume-brand": "category_perfume_brand",
-  "perfume-dupe": "category_perfume_dupe",
-  "numba-creation": "category_numba_creation",
-};
-
-const PERFUME_ICONS: Record<string, React.ComponentType<{ size?: number; className?: string }>> = {
-  "perfume-brand": PerfumeIcon,
-  "perfume-dupe": PerfumeIcon,
-  "numba-creation": Gem,
-};
-
-const ACCESSORY_LABELS: Record<AccessorySubCategory, string> = {
-  watches: "category_watches",
-  jewelry: "category_jewelry",
-  bags: "category_bags",
-  sunglasses: "category_sunglasses",
-  belts: "category_belts",
-  other: "category_other",
+const ACCESSORY_TRANSLATIONS: Record<AccessorySubCategory, { fr: string; en: string }> = {
+  watches: { fr: "Montres", en: "Watches" },
+  jewelry: { fr: "Bijoux", en: "Jewelry" },
+  bags: { fr: "Sacs", en: "Bags" },
+  sunglasses: { fr: "Lunettes", en: "Sunglasses" },
+  belts: { fr: "Ceintures", en: "Belts" },
+  other: { fr: "Autres", en: "Others" },
 };
 
 const ACCESSORY_ICONS: Record<AccessorySubCategory, React.ComponentType<{ size?: number; className?: string }>> = {
@@ -55,21 +43,10 @@ const ACCESSORY_ICONS: Record<AccessorySubCategory, React.ComponentType<{ size?:
   other: Package,
 };
 
-/**
- * Category navigation.
- *
- * Mobile (< lg): horizontal scrollable pill row (unchanged from before).
- * Desktop (lg+): circular avatar row styled after a classic
- * "Shop by category" sub-nav — round image/icon, label underneath,
- * horizontally scrollable when there are more categories than fit,
- * with a "View all categories" link on the right.
- *
- * Avatar image priority: real category image (perfume `image` field or
- * accessory `icone` field) when present, otherwise a representative
- * lucide icon so the row never shows a broken/empty circle.
- */
 export default function CategoryPills() {
-  const { t } = useTranslation();
+  const { i18n } = useTranslation();
+  const isEn = i18n.language?.startsWith("en");
+
   const [categories, setCategories] = useState<CategoryEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [active, setActive] = useState<string>("all");
@@ -86,7 +63,8 @@ export default function CategoryPills() {
 
         const perfumeEntries: CategoryEntry[] = perfumeCategories.map((c: any) => ({
           key: `perfume-${c.id}`,
-          label: c.name,
+          labelFr: c.name,
+          labelEn: c.name,
           href: `/shop/perfumes?categorie=${c.id}`,
           image: c.image || c.icone || null,
           Icon: Sparkles,
@@ -94,10 +72,11 @@ export default function CategoryPills() {
 
         const accessoryEntries: CategoryEntry[] = accessoryTypes.map((tp: any) => {
           const subcat = tp.subcategory as AccessorySubCategory;
-          // Map to correct catalog path with selected query type filter
+          const trans = ACCESSORY_TRANSLATIONS[subcat] || { fr: tp.name, en: tp.name };
           return {
             key: `accessory-${tp.id}`,
-            label: t(ACCESSORY_LABELS[subcat] || tp.name, { defaultValue: tp.name }),
+            labelFr: trans.fr,
+            labelEn: trans.en,
             href: `/shop/accessories?type=${tp.id}`,
             image: tp.icone || null,
             Icon: ACCESSORY_ICONS[subcat] || Package,
@@ -105,9 +84,10 @@ export default function CategoryPills() {
         });
 
         const diffuseurEntry: CategoryEntry = {
-          key: 'diffuseurs-main',
-          label: 'Diffuseurs',
-          href: '/shop/diffuseurs',
+          key: "diffuseurs-main",
+          labelFr: "Diffuseurs",
+          labelEn: "Diffusers",
+          href: "/shop/diffuseurs",
           image: null,
           Icon: DiffuseurIcon,
         };
@@ -125,22 +105,21 @@ export default function CategoryPills() {
     return () => {
       mounted = false;
     };
-  }, [t]);
+  }, []);
 
   return (
     <>
-      {/* ================= MOBILE / TABLET (< lg): pill row, normal flow ================= */}
+      {/* MOBILE / TABLET (< lg) */}
       <section className="lg:hidden w-full max-w-7xl mx-auto px-4 sm:px-6 mt-6">
         <div className="flex items-center justify-between mb-3">
           <h2 className="font-display text-lg font-semibold text-foreground">
-            {t("categories", { defaultValue: "Catégories" })}
+            {isEn ? "Categories" : "Catégories"}
           </h2>
           <Link href="/shop" className="text-xs font-medium text-foreground/50 hover:text-gold transition-colors">
-            {t("see_all", { defaultValue: "Voir tout" })}
+            {isEn ? "See all" : "Voir tout"}
           </Link>
         </div>
 
-        {/* Horizontally scrollable pill row for mobile */}
         <div className="relative -mx-4">
           <div
             className="flex items-center gap-2 overflow-x-auto px-4 pb-2"
@@ -152,6 +131,7 @@ export default function CategoryPills() {
                 ))
               : categories.map((cat) => {
                   const { Icon } = cat;
+                  const label = isEn ? cat.labelEn : cat.labelFr;
                   return (
                     <Link
                       key={cat.key}
@@ -165,12 +145,19 @@ export default function CategoryPills() {
                     >
                       <div className="relative size-7 rounded-full overflow-hidden flex items-center justify-center bg-foreground/10 flex-shrink-0">
                         {cat.image ? (
-                          <AppImage src={cat.image} alt={cat.label || 'Catégorie'} fill className="object-cover" loading="lazy" sizes="28px" />
+                          <AppImage
+                            src={cat.image}
+                            alt={label}
+                            fill
+                            className="object-cover"
+                            loading="lazy"
+                            sizes="28px"
+                          />
                         ) : (
                           <Icon size={14} className="text-foreground/60" />
                         )}
                       </div>
-                      {cat.label}
+                      {label}
                     </Link>
                   );
                 })}
@@ -178,25 +165,18 @@ export default function CategoryPills() {
         </div>
       </section>
 
-      {/*
-        ================= DESKTOP (lg+): floating card straddling the seam =================
-        This sits BETWEEN the hero and the section below in markup order, but
-        a negative top margin pulls it up so roughly its top half overlaps the
-        hero's bottom edge and its bottom half overlaps the next section's top
-        edge. z-20 keeps it visually above both neighbors. The hero
-        (PromoCarousel) and the section below it (ProductSection) need no
-        special z-index of their own — normal stacking order already puts
-        this card on top since it comes later in the DOM with `relative`.
-      */}
+      {/* DESKTOP (lg+) */}
       <div className="hidden lg:block relative z-20 max-w-7xl mx-auto px-2 lg:px-8 mt-5 mb-6">
-        <div className="rounded-lg bg-background  px-2 pt-7 pb-2">
+        <div className="rounded-lg bg-background px-2 pt-7 pb-2">
           <div className="flex items-center justify-between mb-5">
-            <h2>Nos categories</h2>
+            <h2 className="font-serif text-2xl text-foreground">
+              {isEn ? "Our categories" : "Nos catégories"}
+            </h2>
             <Link
               href="/shop"
               className="flex items-center gap-1.5 text-sm font-medium text-foreground/50 hover:text-gold transition-colors"
             >
-              {t("view_all_categories", { defaultValue: "Voir toutes les catégories" })}
+              {isEn ? "View all categories" : "Voir toutes les catégories"}
               <ArrowRight size={14} />
             </Link>
           </div>
@@ -211,6 +191,7 @@ export default function CategoryPills() {
                 ))
               : categories.map((cat) => {
                   const { Icon } = cat;
+                  const label = isEn ? cat.labelEn : cat.labelFr;
                   return (
                     <Link
                       key={cat.key}
@@ -226,7 +207,14 @@ export default function CategoryPills() {
                         }`}
                       >
                         {cat.image ? (
-                          <AppImage src={cat.image} alt={cat.label || 'Catégorie'} fill className="object-cover" loading="lazy" sizes="60px" />
+                          <AppImage
+                            src={cat.image}
+                            alt={label}
+                            fill
+                            className="object-cover"
+                            loading="lazy"
+                            sizes="60px"
+                          />
                         ) : (
                           <Icon size={26} className="text-foreground/60 group-hover:text-gold transition-colors" />
                         )}
@@ -236,7 +224,7 @@ export default function CategoryPills() {
                           active === cat.key ? "text-gold" : "text-foreground/70 group-hover:text-gold"
                         }`}
                       >
-                        {cat.label}
+                        {label}
                       </span>
                     </Link>
                   );

@@ -15,6 +15,7 @@ import {
   Minus,
   Plus,
 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 import { cn, formatPrice, sharePage } from '@/lib/utils';
 import { productService } from '@/services/productService';
@@ -26,6 +27,9 @@ import { useToastStore } from '@/store/useToastStore';
 import { Product } from '@/types';
 
 export default function ProductDetailClient({ id }: { id: string }) {
+  const { i18n } = useTranslation();
+  const isEn = i18n.language?.startsWith('en');
+
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeImage, setActiveImage] = useState(0);
@@ -87,7 +91,9 @@ export default function ProductDetailClient({ id }: { id: string }) {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background text-foreground">
-        <div className="animate-pulse text-gold uppercase tracking-[0.2em] text-xs font-bold">Chargement...</div>
+        <div className="animate-pulse text-gold uppercase tracking-[0.2em] text-xs font-bold">
+          {isEn ? 'Loading details...' : 'Chargement...'}
+        </div>
       </div>
     );
   }
@@ -95,7 +101,9 @@ export default function ProductDetailClient({ id }: { id: string }) {
   if (!product) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-background text-foreground gap-4">
-        <div className="text-foreground/40 text-lg uppercase tracking-[0.2em]">Produit introuvable</div>
+        <div className="text-foreground/40 text-lg uppercase tracking-[0.2em]">
+          {isEn ? 'Product not found' : 'Produit introuvable'}
+        </div>
         <BackButton />
       </div>
     );
@@ -118,7 +126,11 @@ export default function ProductDetailClient({ id }: { id: string }) {
     } else {
       await addProduct(product, quantity);
     }
-    addToast(`${product.name} ajouté au panier`, 'success');
+    
+    addToast(
+      isEn ? `${product.name} added to bag` : `${product.name} ajouté au panier`,
+      'success'
+    );
   };
 
   const handleToggleFavorite = () => {
@@ -126,7 +138,10 @@ export default function ProductDetailClient({ id }: { id: string }) {
       removeFavorite(product.id);
     } else {
       addFavorite(product);
-      addToast(`${product.name} ajouté aux favoris`, 'info');
+      addToast(
+        isEn ? `${product.name} added to wishlist` : `${product.name} ajouté aux favoris`,
+        'info'
+      );
     }
   };
 
@@ -134,15 +149,23 @@ export default function ProductDetailClient({ id }: { id: string }) {
     const result = await sharePage(
       `/shop/product/${product.slug || product.id}`,
       product.name,
-      `Découvrez ${product.name} sur Accessories Exclusif`
+      isEn
+        ? `Explore ${product.name} on Accessories Exclusif`
+        : `Découvrez ${product.name} sur Accessories Exclusif`
     );
 
     if (result === 'shared') {
-      addToast('Lien partagé', 'success');
+      addToast(isEn ? 'Link shared' : 'Lien partagé', 'success');
     } else if (result === 'copied') {
-      addToast('Lien copié dans le presse-papiers', 'success');
+      addToast(
+        isEn ? 'Link copied to clipboard' : 'Lien copié dans le presse-papiers',
+        'success'
+      );
     } else {
-      addToast("Le partage n'est pas disponible sur ce navigateur", 'error');
+      addToast(
+        isEn ? 'Sharing is unavailable on this browser' : "Le partage n'est pas disponible sur ce navigateur",
+        'error'
+      );
     }
   };
 
@@ -155,9 +178,11 @@ export default function ProductDetailClient({ id }: { id: string }) {
       <div className="max-w-7xl mx-auto">
         <BackButton />
 
-        {/* ── Breadcrumb ── */}
+        {/* Breadcrumb */}
         <nav className="flex items-center gap-2 text-[11px] text-foreground/40 uppercase tracking-widest mt-6 mb-8 overflow-x-auto whitespace-nowrap scrollbar-hide">
-          <a href="/" className="hover:text-gold transition-colors">Accueil</a>
+          <a href="/" className="hover:text-gold transition-colors">
+            {isEn ? 'Home' : 'Accueil'}
+          </a>
           <ChevronRight size={11} className="shrink-0" />
           <a href={`/shop/${product.category}`} className="hover:text-gold transition-colors capitalize">
             {product.category?.replace('-', ' ')}
@@ -167,7 +192,7 @@ export default function ProductDetailClient({ id }: { id: string }) {
         </nav>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20 mb-24">
-          {/* ── Left: Image Gallery ── */}
+          {/* Gallery */}
           <div className="space-y-4 lg:sticky lg:top-28 lg:self-start">
             <motion.div
               initial={{ opacity: 0, scale: 0.97 }}
@@ -179,12 +204,12 @@ export default function ProductDetailClient({ id }: { id: string }) {
                 <div className="absolute top-4 left-4 z-10 flex gap-2">
                   {product.is_new && (
                     <span className="px-3 py-1.5 rounded-full bg-gold text-black text-[10px] font-bold uppercase tracking-widest">
-                      Nouveau
+                      {isEn ? 'New Arrival' : 'Nouveau'}
                     </span>
                   )}
                   {product.is_bestseller && (
                     <span className="px-3 py-1.5 rounded-full bg-foreground text-background text-[10px] font-bold uppercase tracking-widest">
-                      Best-seller
+                      {isEn ? 'Bestseller' : 'Best-seller'}
                     </span>
                   )}
                 </div>
@@ -233,14 +258,14 @@ export default function ProductDetailClient({ id }: { id: string }) {
                           : 'border-foreground/10 hover:border-foreground/30'
                       )}
                     >
-                      <Image src={img} alt={`${product.name} vue ${idx + 1}`} fill className="object-cover" />
+                      <Image src={img} alt={`${product.name} view ${idx + 1}`} fill className="object-cover" />
                     </motion.button>
                   ))}
               </div>
             )}
           </div>
 
-          {/* ── Right: Product Info ── */}
+          {/* Details */}
           <div className="flex flex-col">
             <motion.div
               initial={{ opacity: 0, x: 20 }}
@@ -260,7 +285,7 @@ export default function ProductDetailClient({ id }: { id: string }) {
                   <button
                     onClick={handleShare}
                     className="p-3 rounded-full border border-foreground/10 bg-foreground/5 text-foreground transition-all hover:bg-foreground/10 hover:border-foreground/20"
-                    aria-label="Partager ce produit"
+                    aria-label="Share product"
                   >
                     <Share2 size={18} />
                   </button>
@@ -272,7 +297,7 @@ export default function ProductDetailClient({ id }: { id: string }) {
                         ? 'bg-red-500/10 border-red-500 text-red-500'
                         : 'bg-foreground/5 border-foreground/10 text-foreground hover:bg-foreground/10 hover:border-foreground/20'
                     )}
-                    aria-label="Ajouter aux favoris"
+                    aria-label="Save to wishlist"
                   >
                     <Heart size={18} fill={isFavorite(product.id) ? 'currentColor' : 'none'} />
                   </button>
@@ -290,7 +315,7 @@ export default function ProductDetailClient({ id }: { id: string }) {
               {product.availableColors && product.availableColors.length > 0 && (
                 <div className="mb-8">
                   <h3 className="text-xs font-bold uppercase tracking-widest text-foreground/60 mb-4">
-                    Couleurs Disponibles
+                    {isEn ? 'Available Finishes' : 'Couleurs Disponibles'}
                   </h3>
                   <div className="flex gap-3">
                     {product.availableColors.map((color, idx) => (
@@ -298,7 +323,7 @@ export default function ProductDetailClient({ id }: { id: string }) {
                         key={idx}
                         className="w-10 h-10 rounded-full border-2 border-foreground/15 hover:border-gold transition-all"
                         style={{ backgroundColor: color }}
-                        aria-label={`Couleur ${idx + 1}`}
+                        aria-label={`Color ${idx + 1}`}
                       />
                     ))}
                   </div>
@@ -310,7 +335,6 @@ export default function ProductDetailClient({ id }: { id: string }) {
                   <button
                     onClick={() => setQuantity(Math.max(1, quantity - 1))}
                     className="w-10 h-10 flex items-center justify-center rounded-lg text-foreground/60 hover:text-gold hover:bg-foreground/5 transition-colors"
-                    aria-label="Diminuer la quantité"
                   >
                     <Minus size={15} />
                   </button>
@@ -318,7 +342,6 @@ export default function ProductDetailClient({ id }: { id: string }) {
                   <button
                     onClick={() => setQuantity(quantity + 1)}
                     className="w-10 h-10 flex items-center justify-center rounded-lg text-foreground/60 hover:text-gold hover:bg-foreground/5 transition-colors"
-                    aria-label="Augmenter la quantité"
                   >
                     <Plus size={15} />
                   </button>
@@ -328,33 +351,33 @@ export default function ProductDetailClient({ id }: { id: string }) {
                   className="flex-1 h-14 bg-foreground text-background font-bold uppercase tracking-widest text-sm rounded-xl hover:bg-gold hover:text-black transition-all duration-300 flex items-center justify-center gap-3 group"
                 >
                   <ShoppingBag size={18} className="group-hover:scale-110 transition-transform" />
-                  Ajouter au panier
+                  {isEn ? 'Add to Shopping Bag' : 'Ajouter au panier'}
                 </button>
               </div>
 
               <div className="grid grid-cols-2 gap-x-4 gap-y-4 border border-foreground/10 rounded-2xl bg-foreground/[0.02] px-5 py-5">
                 <div className="flex items-center gap-3 text-sm text-foreground/60">
                   <Truck size={17} className="text-gold shrink-0" />
-                  Livraison Express
+                  {isEn ? 'Express Worldwide Shipping' : 'Livraison Express'}
                 </div>
                 <div className="flex items-center gap-3 text-sm text-foreground/60">
                   <ShieldCheck size={17} className="text-gold shrink-0" />
-                  Authenticité Garantie
+                  {isEn ? 'Guaranteed Authenticity' : 'Authenticité Garantie'}
                 </div>
                 <div className="flex items-center gap-3 text-sm text-foreground/60">
                   <RotateCcw size={17} className="text-gold shrink-0" />
-                  Retours sous 30 jours
+                  {isEn ? '30-Day Effortless Returns' : 'Retours sous 30 jours'}
                 </div>
                 <div className="flex items-center gap-3 text-sm text-foreground/60">
                   <Check size={17} className="text-gold shrink-0" />
-                  Paiement Sécurisé
+                  {isEn ? 'Encrypted Checkout' : 'Paiement Sécurisé'}
                 </div>
               </div>
             </motion.div>
           </div>
         </div>
 
-        {/* ── Tabs Section ── */}
+        {/* Tabs */}
         <div className="mb-24">
           <div className="flex border-b border-foreground/10 mb-10 overflow-x-auto scrollbar-hide">
             <button
@@ -364,7 +387,7 @@ export default function ProductDetailClient({ id }: { id: string }) {
                 activeTab === 'description' ? 'text-gold' : 'text-foreground/40 hover:text-foreground'
               )}
             >
-              Description
+              {isEn ? 'Overview' : 'Description'}
               {activeTab === 'description' && (
                 <motion.div layoutId="tab-active" className="absolute bottom-0 left-0 right-0 h-0.5 bg-gold" />
               )}
@@ -376,7 +399,7 @@ export default function ProductDetailClient({ id }: { id: string }) {
                 activeTab === 'details' ? 'text-gold' : 'text-foreground/40 hover:text-foreground'
               )}
             >
-              Informations Complémentaires
+              {isEn ? 'Specifications' : 'Informations Complémentaires'}
               {activeTab === 'details' && (
                 <motion.div layoutId="tab-active" className="absolute bottom-0 left-0 right-0 h-0.5 bg-gold" />
               )}
@@ -398,12 +421,10 @@ export default function ProductDetailClient({ id }: { id: string }) {
                     {product.description}
                   </p>
 
-                  {/* Signature element: fragrance pyramid — encodes the real
-                      top → heart → base unfolding of a scent over time. */}
                   {noteEntries.length > 0 && (
                     <div>
                       <h3 className="text-xs font-bold uppercase tracking-widest text-foreground/60 mb-6">
-                        Pyramide Olfactive
+                        {isEn ? 'Olfactory Architecture' : 'Pyramide Olfactive'}
                       </h3>
                       <div className="space-y-6">
                         {noteEntries.map(([key, val], idx) => (
@@ -435,38 +456,52 @@ export default function ProductDetailClient({ id }: { id: string }) {
                   <table className="w-full border-collapse max-w-2xl">
                     <tbody>
                       <tr className="border-b border-foreground/10">
-                        <td className="py-4 text-foreground/40 uppercase text-xs tracking-widest w-1/3">Volume</td>
+                        <td className="py-4 text-foreground/40 uppercase text-xs tracking-widest w-1/3">
+                          {isEn ? 'Volume' : 'Volume'}
+                        </td>
                         <td className="py-4 text-foreground font-medium">{product.volume || 'N/A'}</td>
                       </tr>
                       {product.category?.includes('perfume') && (
                         <>
                           <tr className="border-b border-foreground/10">
-                            <td className="py-4 text-foreground/40 uppercase text-xs tracking-widest">Longévité</td>
+                            <td className="py-4 text-foreground/40 uppercase text-xs tracking-widest">
+                              {isEn ? 'Longevity' : 'Longévité'}
+                            </td>
                             <td className="py-4 text-foreground font-medium">
-                              {product.longevity || 'Longue durée (8-10h)'}
+                              {product.longevity || (isEn ? 'Long-lasting (8-10 hrs)' : 'Longue durée (8-10h)')}
                             </td>
                           </tr>
                           <tr className="border-b border-foreground/10">
-                            <td className="py-4 text-foreground/40 uppercase text-xs tracking-widest">Sillage</td>
-                            <td className="py-4 text-foreground font-medium">{product.sillage || 'Modéré'}</td>
+                            <td className="py-4 text-foreground/40 uppercase text-xs tracking-widest">
+                              {isEn ? 'Sillage' : 'Sillage'}
+                            </td>
+                            <td className="py-4 text-foreground font-medium">
+                              {product.sillage || (isEn ? 'Moderate' : 'Modéré')}
+                            </td>
                           </tr>
                           <tr className="border-b border-foreground/10">
-                            <td className="py-4 text-foreground/40 uppercase text-xs tracking-widest">Genre</td>
+                            <td className="py-4 text-foreground/40 uppercase text-xs tracking-widest">
+                              {isEn ? 'Gender Profile' : 'Genre'}
+                            </td>
                             <td className="py-4 text-foreground font-medium capitalize">
-                              {product.gender || 'Unisexe'}
+                              {product.gender || (isEn ? 'Unisex' : 'Unisexe')}
                             </td>
                           </tr>
                         </>
                       )}
                       <tr className="border-b border-foreground/10">
-                        <td className="py-4 text-foreground/40 uppercase text-xs tracking-widest">Catégorie</td>
+                        <td className="py-4 text-foreground/40 uppercase text-xs tracking-widest">
+                          {isEn ? 'Category' : 'Catégorie'}
+                        </td>
                         <td className="py-4 text-foreground font-medium capitalize">
                           {product.category?.replace('-', ' ')}
                         </td>
                       </tr>
                       {product.brand && (
                         <tr className="border-b border-foreground/10">
-                          <td className="py-4 text-foreground/40 uppercase text-xs tracking-widest">Marque</td>
+                          <td className="py-4 text-foreground/40 uppercase text-xs tracking-widest">
+                            {isEn ? 'House / Brand' : 'Marque'}
+                          </td>
                           <td className="py-4 text-foreground font-medium">{product.brand}</td>
                         </tr>
                       )}
@@ -478,13 +513,13 @@ export default function ProductDetailClient({ id }: { id: string }) {
           </div>
         </div>
 
-        {/* ── Related Products ── */}
+        {/* Related */}
         {relatedProducts.length > 0 && (
           <div>
             <div className="flex items-end justify-between mb-10">
               <div>
                 <h2 className="text-2xl md:text-3xl font-display font-bold text-foreground mb-2">
-                  Produits Similaires
+                  {isEn ? 'You May Also Like' : 'Produits Similaires'}
                 </h2>
                 <div className="w-20 h-1 bg-gold" />
               </div>
@@ -492,7 +527,7 @@ export default function ProductDetailClient({ id }: { id: string }) {
                 href={`/shop/${product.category}`}
                 className="text-gold hover:underline flex items-center gap-2 text-sm shrink-0"
               >
-                Voir tout <ChevronRight size={16} />
+                {isEn ? 'Explore Collection' : 'Voir tout'} <ChevronRight size={16} />
               </a>
             </div>
 
