@@ -116,7 +116,7 @@ function DiffuseursShopContent() {
   const activeFiltersCount = (techFilter !== 'all' ? 1 : 0) + (ordering !== '-date_creation' ? 1 : 0);
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-[#f5f0e8] font-sans">
+    <div className="min-h-screen bg-background text-foreground font-sans">
       {/* ── Hero ── */}
       <section className="relative pt-28 pb-16 sm:pt-32 sm:pb-20 text-center overflow-hidden">
         <div
@@ -132,7 +132,7 @@ function DiffuseursShopContent() {
           transition={{ duration: 0.8, ease: [0.23, 1, 0.32, 1] }}
           className="relative z-10 max-w-2xl mx-auto px-6"
         >
-          <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-[#c9a96e] text-[#c9a96e] text-[11px] font-medium tracking-[0.15em] uppercase mb-8 bg-[rgba(201,169,110,0.05)]">
+          <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-gold text-gold text-[11px] font-medium tracking-[0.15em] uppercase mb-8 bg-gold/5">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
               <path d="M12 2l2.4 7.2h7.6l-6 4.8 2.4 7.2-6-4.8-6 4.8 2.4-7.2-6-4.8h7.6z" />
             </svg>
@@ -141,14 +141,14 @@ function DiffuseursShopContent() {
 
           <h1 className="font-serif text-4xl sm:text-5xl lg:text-6xl font-normal tracking-tight leading-[1.05] mb-5">
             Diffuseurs de{' '}
-            <em className="italic text-[#c9a96e]">Parfum</em>
+            <em className="italic text-gold">Parfum</em>
           </h1>
 
-          <p className="text-[15px] text-[#a8a29e] font-light leading-relaxed max-w-md mx-auto">
+          <p className="text-[15px] text-foreground/60 font-light leading-relaxed max-w-md mx-auto">
             Transformez votre intérieur avec notre sélection de diffuseurs ultrasoniques et haute technologie d'ambiance.
           </p>
 
-          <div className="w-12 h-px bg-[#c9a96e] mx-auto mt-8 opacity-40" />
+          <div className="w-12 h-px bg-gold mx-auto mt-8 opacity-40" />
         </motion.div>
       </section>
 
@@ -164,14 +164,14 @@ function DiffuseursShopContent() {
           <div className="relative flex-1 min-w-0">
             <Search
               size={14}
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-[#57534e]"
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-foreground/40"
             />
             <input
               type="text"
               placeholder="Rechercher..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full bg-[#111111] border border-[rgba(201,169,110,0.12)] rounded-xl pl-8 pr-2 sm:pl-10 sm:pr-4 py-2.5 sm:py-3 text-[12px] sm:text-[13px] text-[#f5f0e8] placeholder:text-[#57534e] outline-none transition-all duration-300 focus:border-[#c9a96e]"
+              className="w-full bg-foreground/5 hover:bg-foreground/10 border border-foreground/10 rounded-xl pl-8 pr-2 sm:pl-10 sm:pr-4 py-2.5 sm:py-3 text-[12px] sm:text-[13px] text-foreground placeholder:text-foreground/40 outline-none transition-all duration-300 focus:border-gold focus:bg-foreground/10"
             />
           </div>
 
@@ -180,28 +180,28 @@ function DiffuseursShopContent() {
             onClick={() => setShowFilters((prev) => !prev)}
             className={`flex items-center justify-center gap-1.5 rounded-xl border px-2.5 sm:px-3.5 py-2.5 sm:py-3 text-[12px] sm:text-[13px] font-medium transition-all duration-300 shrink-0 ${
               showFilters || activeFiltersCount > 0
-                ? 'border-[#c9a96e] bg-[rgba(201,169,110,0.08)] text-[#f5f0e8]'
-                : 'border-[rgba(201,169,110,0.12)] bg-[#111111] text-[#a8a29e] hover:border-[rgba(201,169,110,0.25)] hover:text-[#f5f0e8]'
+                ? 'border-gold bg-gold/10 text-foreground'
+                : 'border-foreground/10 bg-foreground/5 text-foreground/60 hover:border-gold/40 hover:text-foreground'
             }`}
           >
             <SlidersHorizontal size={14} />
             <span className="hidden xs:inline">Filtres</span>
             {activeFiltersCount > 0 && (
-              <span className="flex h-4 w-4 sm:h-5 sm:w-5 items-center justify-center rounded-full bg-[#c9a96e] text-[9px] sm:text-[10px] font-semibold text-[#0a0a0a]">
+              <span className="flex h-4 w-4 sm:h-5 sm:w-5 items-center justify-center rounded-full bg-gold text-[9px] sm:text-[10px] font-semibold text-black">
                 {activeFiltersCount}
               </span>
             )}
           </button>
 
           {/* View Toggle Buttons */}
-          <div className="flex items-center p-1 bg-[#111111] border border-[rgba(201,169,110,0.12)] rounded-xl shrink-0">
+          <div className="flex items-center p-1 bg-foreground/5 border border-foreground/10 rounded-xl shrink-0">
             <button
               onClick={() => setViewMode('grid')}
               title="Vue grille (Cartes standard)"
               className={`p-1.5 sm:p-2.5 rounded-lg transition-all ${
                 viewMode === 'grid'
-                  ? 'bg-[#c9a96e] text-[#0a0a0a]'
-                  : 'text-[#a8a29e] hover:text-[#f5f0e8]'
+                  ? 'bg-gold text-black'
+                  : 'text-foreground/60 hover:text-foreground'
               }`}
             >
               <LayoutGrid size={15} />
@@ -211,8 +211,8 @@ function DiffuseursShopContent() {
               title="Vue horizontale (Pleine largeur avec détails)"
               className={`p-1.5 sm:p-2.5 rounded-lg transition-all ${
                 viewMode === 'horizontal'
-                  ? 'bg-[#c9a96e] text-[#0a0a0a]'
-                  : 'text-[#a8a29e] hover:text-[#f5f0e8]'
+                  ? 'bg-gold text-black'
+                  : 'text-foreground/60 hover:text-foreground'
               }`}
             >
               <List size={15} />
@@ -230,27 +230,27 @@ function DiffuseursShopContent() {
             <select
               value={techFilter}
               onChange={(e) => setTechFilter(e.target.value)}
-              className="w-full min-w-[160px] flex-1 appearance-none rounded-xl border border-[rgba(201,169,110,0.12)] bg-[#111111] px-4 py-3 text-[13px] text-[#a8a29e] outline-none transition-all duration-300 hover:border-[rgba(201,169,110,0.25)] hover:text-[#f5f0e8] focus:border-[#c9a96e] sm:max-w-[220px]"
+              className="w-full min-w-[160px] flex-1 appearance-none rounded-xl border border-foreground/10 bg-foreground/5 px-4 py-3 text-[13px] text-foreground/60 outline-none transition-all duration-300 hover:border-gold/40 hover:text-foreground focus:border-gold sm:max-w-[220px]"
             >
-              <option value="all" className="bg-[#0a0a0a]">Toutes les technologies</option>
-              <option value="ultrasons" className="bg-[#0a0a0a]">Ultrasons</option>
-              <option value="nebulisation" className="bg-[#0a0a0a]">Nébulisation</option>
-              <option value="chaleur" className="bg-[#0a0a0a]">Chaleur douce</option>
+              <option value="all" className="bg-background">Toutes les technologies</option>
+              <option value="ultrasons" className="bg-background">Ultrasons</option>
+              <option value="nebulisation" className="bg-background">Nébulisation</option>
+              <option value="chaleur" className="bg-background">Chaleur douce</option>
             </select>
 
             <select
               value={ordering}
               onChange={(e) => setOrdering(e.target.value)}
-              className="w-full min-w-[160px] flex-1 appearance-none rounded-xl border border-[rgba(201,169,110,0.12)] bg-[#111111] px-4 py-3 text-[13px] text-[#a8a29e] outline-none transition-all duration-300 hover:border-[rgba(201,169,110,0.25)] hover:text-[#f5f0e8] focus:border-[#c9a96e] sm:max-w-[220px]"
+              className="w-full min-w-[160px] flex-1 appearance-none rounded-xl border border-foreground/10 bg-foreground/5 px-4 py-3 text-[13px] text-foreground/60 outline-none transition-all duration-300 hover:border-gold/40 hover:text-foreground focus:border-gold sm:max-w-[220px]"
             >
-              <option value="-date_creation" className="bg-[#0a0a0a]">Nouveautés</option>
-              <option value="prix_unitaire" className="bg-[#0a0a0a]">Prix : croissant</option>
-              <option value="-prix_unitaire" className="bg-[#0a0a0a]">Prix : décroissant</option>
+              <option value="-date_creation" className="bg-background">Nouveautés</option>
+              <option value="prix_unitaire" className="bg-background">Prix : croissant</option>
+              <option value="-prix_unitaire" className="bg-background">Prix : décroissant</option>
             </select>
 
             <button
               onClick={resetFilters}
-              className="inline-flex items-center gap-2 rounded-xl border border-[rgba(201,169,110,0.12)] bg-[#111111] px-3 py-3 text-[13px] text-[#a8a29e] transition-all duration-300 hover:border-[#c9a96e] hover:text-[#f5f0e8]"
+              className="inline-flex items-center gap-2 rounded-xl border border-foreground/10 bg-foreground/5 px-3 py-3 text-[13px] text-foreground/60 transition-all duration-300 hover:border-gold hover:text-foreground"
             >
               <RotateCcw size={14} />
               Réinitialiser
@@ -307,19 +307,19 @@ function DiffuseursShopContent() {
               fill="none"
               stroke="currentColor"
               strokeWidth="1"
-              className="mx-auto mb-6 text-[#57534e] opacity-50"
+              className="mx-auto mb-6 text-foreground/40 opacity-50"
             >
               <path d="M12 2l2.4 7.2h7.6l-6 4.8 2.4 7.2-6-4.8-6 4.8 2.4-7.2-6-4.8h7.6z" />
             </svg>
-            <h3 className="font-serif text-[22px] font-normal text-[#f5f0e8] mb-2">
+            <h3 className="font-serif text-[22px] font-normal text-foreground mb-2">
               Aucun résultat
             </h3>
-            <p className="text-sm text-[#a8a29e] max-w-xs mx-auto mb-7 leading-relaxed">
+            <p className="text-sm text-foreground/60 max-w-xs mx-auto mb-7 leading-relaxed">
               Essayez de modifier votre recherche ou de réinitialiser les filtres.
             </p>
             <button
               onClick={resetFilters}
-              className="inline-flex items-center gap-2 px-7 py-3 rounded-xl bg-[#c9a96e] text-[#0a0a0a] text-[13px] font-semibold transition-all duration-300 hover:bg-[#d4b87a] hover:-translate-y-0.5 hover:shadow-[0_8px_24px_-6px_rgba(201,169,110,0.3)]"
+              className="inline-flex items-center gap-2 px-7 py-3 rounded-xl bg-gold text-black text-[13px] font-semibold transition-all duration-300 hover:bg-gold/90 hover:-translate-y-0.5 hover:shadow-[0_8px_24px_-6px_rgba(201,169,110,0.3)]"
             >
               <RotateCcw size={14} />
               Réinitialiser les filtres

@@ -40,14 +40,14 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
       <span className="text-[10px] font-semibold text-foreground/35 uppercase tracking-wider">
         {children}
       </span>
-      <span className="h-px flex-1 bg-white/10" />
+      <span className="h-px flex-1 bg-foreground/10" />
     </div>
   );
 }
 
 function Panel({ children, className }: { children: React.ReactNode; className?: string }) {
   return (
-    <div className={cx('rounded-xl border border-white/10 bg-white/[0.02]', className)}>
+    <div className={cx('rounded-xl border border-foreground/10 bg-foreground/[0.03]', className)}>
       {children}
     </div>
   );
@@ -217,7 +217,7 @@ export default function ProfilePage() {
                 </div>
                 <button
                   onClick={() => setShowEditModal(true)}
-                  className="absolute -bottom-1 -right-1 rounded-lg p-1.5 border border-white/10 bg-background text-foreground/45 hover:text-gold hover:border-gold/30 transition-colors"
+                  className="absolute -bottom-1 -right-1 rounded-lg p-1.5 border border-foreground/10 bg-background text-foreground/45 hover:text-gold hover:border-gold/30 transition-colors"
                   aria-label="Edit avatar"
                 >
                   <Edit2 size={13} />
@@ -268,7 +268,7 @@ export default function ProfilePage() {
           <div>
             <SectionLabel>{t('information', 'Informations')}</SectionLabel>
             <Panel>
-              <div className="divide-y divide-white/5">
+              <div className="divide-y divide-foreground/10">
                 <InfoRow icon={<Mail size={16} />} label={t('email', 'Email')} value={user?.email || '—'} />
                 <InfoRow icon={<Phone size={16} />} label={t('phone', 'Téléphone')} value={user?.phone || t('not_provided', 'Non fourni')} />
               </div>
@@ -279,7 +279,7 @@ export default function ProfilePage() {
           <div>
             <SectionLabel>{t('account', 'Compte')}</SectionLabel>
             <Panel>
-              <div className="divide-y divide-white/5">
+              <div className="divide-y divide-foreground/10">
                 <ActionRow
                   icon={<Edit2 size={16} />}
                   label={t('edit_profile', 'Modifier le profil')}
@@ -321,7 +321,7 @@ export default function ProfilePage() {
                   <button
                     key={opt.id}
                     onClick={() => router.push(opt.href)}
-                    className="group flex items-start gap-3.5 p-4 rounded-xl border border-white/10 bg-white/[0.02] hover:bg-white/[0.03] transition-colors text-left"
+                    className="group flex items-start gap-3.5 p-4 rounded-xl border border-foreground/10 bg-foreground/[0.03] hover:bg-foreground/[0.05] transition-colors text-left"
                   >
                     <span className="text-2xl shrink-0 mt-0.5">{opt.icon}</span>
                     <div className="flex-1 min-w-0">
@@ -339,9 +339,9 @@ export default function ProfilePage() {
                 {/* FAVORITES CARD */}
                 <Link
                   href="/dashboard/client/favorites"
-                  className="group flex items-start gap-3.5 p-4 rounded-xl border border-white/10 bg-white/[0.02] hover:bg-white/[0.03] transition-colors"
+                  className="group flex items-start gap-3.5 p-4 rounded-xl border border-foreground/10 bg-foreground/[0.03] hover:bg-foreground/[0.05] transition-colors"
                 >
-                  <div className="w-8 h-8 rounded-lg border border-white/10 bg-white/5 flex items-center justify-center text-rose-400 shrink-0">
+                  <div className="w-8 h-8 rounded-lg border border-foreground/10 bg-foreground/5 flex items-center justify-center text-rose-400 shrink-0">
                     <Heart size={16} />
                   </div>
                   <div className="flex-1 min-w-0">
@@ -355,9 +355,9 @@ export default function ProfilePage() {
                 {userRoles.includes('serveuse') && (
                   <Link
                     href="/dashboard/pos"
-                    className="group flex items-start gap-3.5 p-4 rounded-xl border border-white/10 bg-white/[0.02] hover:bg-white/[0.03] transition-colors"
+                    className="group flex items-start gap-3.5 p-4 rounded-xl border border-foreground/10 bg-foreground/[0.03] hover:bg-foreground/[0.05] transition-colors"
                   >
-                    <div className="w-8 h-8 rounded-lg border border-white/10 bg-white/5 flex items-center justify-center text-gold shrink-0">
+                    <div className="w-8 h-8 rounded-lg border border-foreground/10 bg-foreground/5 flex items-center justify-center text-gold shrink-0">
                       <ShoppingCart size={16} />
                     </div>
                     <div className="flex-1 min-w-0">
@@ -375,7 +375,7 @@ export default function ProfilePage() {
           <div>
             <SectionLabel>{t('settings', 'Préférences')}</SectionLabel>
             <Panel>
-              <div className="divide-y divide-white/5">
+              <div className="divide-y divide-foreground/10">
                 <SettingRow
                   icon={<Globe size={16} />}
                   label={t('language', 'Langue')}
@@ -416,7 +416,7 @@ export default function ProfilePage() {
           <div>
             <SectionLabel>{t('security_notifications', 'Sécurité & notifications')}</SectionLabel>
             <Panel>
-              <div className="divide-y divide-white/5">
+              <div className="divide-y divide-foreground/10">
                 <ActionRow
                   icon={<Shield size={16} />}
                   label={t('account_security', 'Sécurité du compte')}
@@ -436,7 +436,7 @@ export default function ProfilePage() {
                   <button
                     onClick={handleTestNotification}
                     disabled={isSendingTestNotification}
-                    className="inline-flex items-center gap-2 rounded-lg border border-white/10 px-3 py-1.5 text-xs font-semibold text-foreground/60 hover:bg-white/5 transition-colors disabled:opacity-60 shrink-0"
+                    className="inline-flex items-center gap-2 rounded-lg border border-foreground/10 px-3 py-1.5 text-xs font-semibold text-foreground/60 hover:bg-foreground/5 transition-colors disabled:opacity-60 shrink-0"
                   >
                     {isSendingTestNotification ? (
                       <Loader2 size={14} className="animate-spin text-gold" />
@@ -488,7 +488,7 @@ export default function ProfilePage() {
           <p>
             Pour installer l’application sur votre téléphone, suivez les étapes ci-dessous selon votre appareil.
           </p>
-          <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
+          <div className="rounded-xl border border-foreground/10 bg-foreground/[0.03] p-4">
             <h3 className="text-sm font-semibold text-foreground mb-2">iPhone</h3>
             <ol className="list-decimal list-inside space-y-2 text-[13px] leading-6 text-foreground/70">
               <li>Ouvrez Safari et rendez-vous sur ce site.</li>
@@ -498,7 +498,7 @@ export default function ProfilePage() {
               <li>Ouvrez l’application depuis votre écran d’accueil.</li>
             </ol>
           </div>
-          <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
+          <div className="rounded-xl border border-foreground/10 bg-foreground/[0.03] p-4">
             <h3 className="text-sm font-semibold text-foreground mb-2">Android</h3>
             <ol className="list-decimal list-inside space-y-2 text-[13px] leading-6 text-foreground/70">
               <li>Ouvrez le menu du navigateur (trois points ou barre de menu).</li>
@@ -545,7 +545,7 @@ function ActionRow({
   return (
     <button
       onClick={onClick}
-      className="w-full flex items-center gap-3 px-4 py-3 hover:bg-white/[0.02] transition-colors text-left group"
+      className="w-full flex items-center gap-3 px-4 py-3 hover:bg-foreground/[0.04] transition-colors text-left group"
     >
       <div className="rounded-md p-1.5 text-foreground/45 group-hover:text-gold transition-colors shrink-0">
         {icon}
@@ -568,13 +568,13 @@ function SettingRow({
   control: React.ReactNode;
 }) {
   return (
-    <div className="flex items-center gap-3 px-4 py-3">
-      <div className="rounded-md p-1.5 text-foreground/45 shrink-0">
+    <div className="flex items-center gap-3 px-4 py-3 hover:bg-foreground/[0.03] transition-colors text-left group">
+      <div className="flex items-center justify-center w-8 h-8 rounded-lg border border-foreground/10 bg-foreground/[0.03] text-foreground/45 group-hover:text-gold group-hover:border-gold/20 transition-colors shrink-0">
         {icon}
       </div>
       <div className="flex-1 min-w-0">
         <p className="text-sm font-semibold text-foreground">{label}</p>
-        {hint && <p className="text-xs text-foreground/40">{hint}</p>}
+        {hint && <p className="text-xs text-foreground/40 mt-0.5">{hint}</p>}
       </div>
       <div className="shrink-0">{control}</div>
     </div>
@@ -590,7 +590,7 @@ function ButtonPill({
   return (
     <button
       onClick={onClick}
-      className="rounded-lg border border-white/10 px-3 py-1.5 text-xs font-semibold text-foreground/60 hover:bg-white/5 transition-colors"
+      className="rounded-lg border border-foreground/10 px-3 py-1.5 text-xs font-semibold text-foreground/60 hover:bg-foreground/5 transition-colors"
     >
       {children}
     </button>

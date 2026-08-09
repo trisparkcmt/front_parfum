@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Star,
   Share2,
   Heart,
   ShoppingBag,
@@ -13,6 +12,8 @@ import {
   RotateCcw,
   Check,
   ChevronRight,
+  Minus,
+  Plus,
 } from 'lucide-react';
 
 import { cn, formatPrice, sharePage } from '@/lib/utils';
@@ -29,7 +30,7 @@ export default function ProductDetailClient({ id }: { id: string }) {
   const [loading, setLoading] = useState(true);
   const [activeImage, setActiveImage] = useState(0);
   const [quantity, setQuantity] = useState(1);
-  const [activeTab, setActiveTab] = useState<'description' | 'details' | 'reviews'>('description');
+  const [activeTab, setActiveTab] = useState<'description' | 'details'>('description');
   const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
 
   const { addProduct, addDiffuseur } = useCartStore();
@@ -117,6 +118,7 @@ export default function ProductDetailClient({ id }: { id: string }) {
     } else {
       await addProduct(product, quantity);
     }
+    addToast(`${product.name} ajouté au panier`, 'success');
   };
 
   const handleToggleFavorite = () => {
@@ -144,34 +146,80 @@ export default function ProductDetailClient({ id }: { id: string }) {
     }
   };
 
+  const noteEntries = product.notes ? Object.entries(product.notes) : [];
+
   return (
-    <div className="min-h-screen bg-background text-foreground pt-28 pb-12 px-4 md:px-8 relative overflow-hidden">
+    <div className="min-h-screen bg-background text-foreground pt-28 pb-24 px-4 md:px-8 relative overflow-hidden">
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full max-w-4xl bg-gold/5 blur-[120px] rounded-full -z-10 opacity-50 pointer-events-none" />
 
       <div className="max-w-7xl mx-auto">
         <BackButton />
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20 mb-20">
-          {/* Left: Image Gallery */}
-          <div className="space-y-4">
+        {/* ── Breadcrumb ── */}
+        <nav className="flex items-center gap-2 text-[11px] text-foreground/40 uppercase tracking-widest mt-6 mb-8 overflow-x-auto whitespace-nowrap scrollbar-hide">
+          <a href="/" className="hover:text-gold transition-colors">Accueil</a>
+          <ChevronRight size={11} className="shrink-0" />
+          <a href={`/shop/${product.category}`} className="hover:text-gold transition-colors capitalize">
+            {product.category?.replace('-', ' ')}
+          </a>
+          <ChevronRight size={11} className="shrink-0" />
+          <span className="text-foreground/60 truncate max-w-[200px]">{product.name}</span>
+        </nav>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20 mb-24">
+          {/* ── Left: Image Gallery ── */}
+          <div className="space-y-4 lg:sticky lg:top-28 lg:self-start">
             <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
+              initial={{ opacity: 0, scale: 0.97 }}
               animate={{ opacity: 1, scale: 1 }}
-              className="relative aspect-square rounded-3xl overflow-hidden bg-foreground/5 border border-[var(--t-border)] group"
+              transition={{ duration: 0.5, ease: [0.23, 1, 0.32, 1] }}
+              className="relative aspect-square rounded-3xl overflow-hidden bg-foreground/5 border border-foreground/10 group"
             >
-              <Image
-                src={product.images[activeImage]}
-                alt={product.name}
-                fill
-                className="object-cover transition-transform duration-700 group-hover:scale-110"
-                priority
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
+              {(product.is_new || product.is_bestseller) && (
+                <div className="absolute top-4 left-4 z-10 flex gap-2">
+                  {product.is_new && (
+                    <span className="px-3 py-1.5 rounded-full bg-gold text-black text-[10px] font-bold uppercase tracking-widest">
+                      Nouveau
+                    </span>
+                  )}
+                  {product.is_bestseller && (
+                    <span className="px-3 py-1.5 rounded-full bg-foreground text-background text-[10px] font-bold uppercase tracking-widest">
+                      Best-seller
+                    </span>
+                  )}
+                </div>
+              )}
+
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={activeImage}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.3 }}
+                  className="absolute inset-0"
+                >
+                  <Image
+                    src={product.images[activeImage]}
+                    alt={product.name}
+                    fill
+                    className="object-cover transition-transform duration-700 group-hover:scale-105"
+                    priority
+                  />
+                </motion.div>
+              </AnimatePresence>
+              <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent pointer-events-none" />
+
+              {product.images && product.images.length > 1 && (
+                <div className="absolute bottom-4 right-4 px-2.5 py-1 rounded-full bg-black/50 backdrop-blur-sm text-white text-[11px] font-medium tabular-nums">
+                  {activeImage + 1} / {product.images.length}
+                </div>
+              )}
             </motion.div>
 
-            <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
-              {product.images &&
-                product.images
+            {product.images && product.images.filter((img) => img).length > 1 && (
+              <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+                {product.images
                   .filter((img) => img)
                   .map((img, idx) => (
                     <motion.button
@@ -182,34 +230,39 @@ export default function ProductDetailClient({ id }: { id: string }) {
                         'relative w-20 h-20 rounded-lg overflow-hidden border-2 transition-all flex-shrink-0',
                         activeImage === idx
                           ? 'border-gold shadow-lg shadow-gold/20'
-                          : 'border-[var(--t-border)] hover:border-foreground/30'
+                          : 'border-foreground/10 hover:border-foreground/30'
                       )}
                     >
-                      <Image src={img} alt={`${product.name} view ${idx}`} fill className="object-cover" />
+                      <Image src={img} alt={`${product.name} vue ${idx + 1}`} fill className="object-cover" />
                     </motion.button>
                   ))}
-            </div>
+              </div>
+            )}
           </div>
 
-          {/* Right: Product Info */}
+          {/* ── Right: Product Info ── */}
           <div className="flex flex-col">
-            <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.2 }}>
-              <div className="flex justify-between items-start mb-4">
-                <div>
-                  <p className="text-gold font-medium tracking-widest uppercase text-xs mb-2">
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.15, duration: 0.5 }}
+            >
+              <div className="flex justify-between items-start gap-4 mb-5">
+                <div className="min-w-0">
+                  <p className="text-gold font-medium tracking-widest uppercase text-xs mb-3">
                     {product.brand || 'Exclusif Collection'}
                   </p>
-                  <h1 className="text-4xl md:text-5xl font-display font-bold text-foreground mb-4">
+                  <h1 className="text-3xl md:text-4xl lg:text-5xl font-display font-bold text-foreground leading-[1.08]">
                     {product.name}
                   </h1>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 shrink-0">
                   <button
                     onClick={handleShare}
-                    className="p-3 rounded-full border border-[var(--t-border)] bg-foreground/5 text-foreground transition-all hover:bg-foreground/10"
+                    className="p-3 rounded-full border border-foreground/10 bg-foreground/5 text-foreground transition-all hover:bg-foreground/10 hover:border-foreground/20"
                     aria-label="Partager ce produit"
                   >
-                    <Share2 size={20} />
+                    <Share2 size={18} />
                   </button>
                   <button
                     onClick={handleToggleFavorite}
@@ -217,84 +270,83 @@ export default function ProductDetailClient({ id }: { id: string }) {
                       'p-3 rounded-full border transition-all',
                       isFavorite(product.id)
                         ? 'bg-red-500/10 border-red-500 text-red-500'
-                        : 'bg-foreground/5 border border-[var(--t-border)] text-foreground hover:bg-foreground/10'
+                        : 'bg-foreground/5 border-foreground/10 text-foreground hover:bg-foreground/10 hover:border-foreground/20'
                     )}
+                    aria-label="Ajouter aux favoris"
                   >
-                    <Heart size={24} fill={isFavorite(product.id) ? 'currentColor' : 'none'} />
+                    <Heart size={18} fill={isFavorite(product.id) ? 'currentColor' : 'none'} />
                   </button>
                 </div>
               </div>
 
-              <div className="flex items-center gap-4 mb-6">
-                <div className="flex text-gold">
-                  {[...Array(5)].map((_, i) => (
-                    <Star key={i} size={18} fill={i < Math.floor(product.rating || 4.5) ? 'currentColor' : 'none'} />
-                  ))}
-                </div>
-                <span className="text-foreground/40 text-sm">({product.reviews || 0} avis clients)</span>
+              <div className="text-2xl md:text-3xl font-light text-foreground mb-7">
+                {formatPrice(product.price)}
               </div>
 
-              <div className="text-3xl font-light text-foreground mb-8">{formatPrice(product.price)}</div>
-
-              <p className="text-foreground/70 leading-relaxed mb-8 text-lg">{product.description}</p>
+              <p className="text-foreground/70 leading-relaxed mb-8 text-[15px] md:text-base max-w-lg">
+                {product.description}
+              </p>
 
               {product.availableColors && product.availableColors.length > 0 && (
                 <div className="mb-8">
-                  <h3 className="text-sm font-bold uppercase tracking-widest text-foreground/60 mb-4">
+                  <h3 className="text-xs font-bold uppercase tracking-widest text-foreground/60 mb-4">
                     Couleurs Disponibles
                   </h3>
                   <div className="flex gap-3">
                     {product.availableColors.map((color, idx) => (
                       <button
                         key={idx}
-                        className="w-10 h-10 rounded-full border-2 border-[var(--t-border)] hover:border-gold transition-all"
+                        className="w-10 h-10 rounded-full border-2 border-foreground/15 hover:border-gold transition-all"
                         style={{ backgroundColor: color }}
+                        aria-label={`Couleur ${idx + 1}`}
                       />
                     ))}
                   </div>
                 </div>
               )}
 
-              <div className="flex flex-col sm:flex-row gap-4 mb-10">
-                <div className="flex items-center border border-[var(--t-border)] rounded-xl bg-foreground/5 px-4 h-14">
+              <div className="flex flex-col sm:flex-row gap-3 mb-10">
+                <div className="flex items-center justify-between sm:justify-start border border-foreground/10 rounded-xl bg-foreground/5 px-2 h-14 sm:w-36">
                   <button
                     onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                    className="w-8 h-8 flex items-center justify-center hover:text-gold transition-colors"
+                    className="w-10 h-10 flex items-center justify-center rounded-lg text-foreground/60 hover:text-gold hover:bg-foreground/5 transition-colors"
+                    aria-label="Diminuer la quantité"
                   >
-                    -
+                    <Minus size={15} />
                   </button>
-                  <span className="w-12 text-center font-bold">{quantity}</span>
+                  <span className="flex-1 text-center font-bold tabular-nums">{quantity}</span>
                   <button
                     onClick={() => setQuantity(quantity + 1)}
-                    className="w-8 h-8 flex items-center justify-center hover:text-gold transition-colors"
+                    className="w-10 h-10 flex items-center justify-center rounded-lg text-foreground/60 hover:text-gold hover:bg-foreground/5 transition-colors"
+                    aria-label="Augmenter la quantité"
                   >
-                    +
+                    <Plus size={15} />
                   </button>
                 </div>
                 <button
                   onClick={handleAddToCart}
-                  className="flex-1 h-14 bg-white text-black font-bold uppercase tracking-widest rounded-xl hover:bg-gold hover:text-white transition-all duration-300 flex items-center justify-center gap-3 group"
+                  className="flex-1 h-14 bg-foreground text-background font-bold uppercase tracking-widest text-sm rounded-xl hover:bg-gold hover:text-black transition-all duration-300 flex items-center justify-center gap-3 group"
                 >
-                  <ShoppingBag size={20} className="group-hover:scale-110 transition-transform" />
+                  <ShoppingBag size={18} className="group-hover:scale-110 transition-transform" />
                   Ajouter au panier
                 </button>
               </div>
 
-              <div className="grid grid-cols-2 gap-4 border-t border-[var(--t-border)] pt-8">
+              <div className="grid grid-cols-2 gap-x-4 gap-y-4 border border-foreground/10 rounded-2xl bg-foreground/[0.02] px-5 py-5">
                 <div className="flex items-center gap-3 text-sm text-foreground/60">
-                  <Truck size={18} className="text-gold" />
+                  <Truck size={17} className="text-gold shrink-0" />
                   Livraison Express
                 </div>
                 <div className="flex items-center gap-3 text-sm text-foreground/60">
-                  <ShieldCheck size={18} className="text-gold" />
+                  <ShieldCheck size={17} className="text-gold shrink-0" />
                   Authenticité Garantie
                 </div>
                 <div className="flex items-center gap-3 text-sm text-foreground/60">
-                  <RotateCcw size={18} className="text-gold" />
+                  <RotateCcw size={17} className="text-gold shrink-0" />
                   Retours sous 30 jours
                 </div>
                 <div className="flex items-center gap-3 text-sm text-foreground/60">
-                  <Check size={18} className="text-gold" />
+                  <Check size={17} className="text-gold shrink-0" />
                   Paiement Sécurisé
                 </div>
               </div>
@@ -302,13 +354,13 @@ export default function ProductDetailClient({ id }: { id: string }) {
           </div>
         </div>
 
-        {/* Tabs Section */}
-        <div className="mb-20">
-          <div className="flex border-b border-[var(--t-border)] mb-8 overflow-x-auto">
+        {/* ── Tabs Section ── */}
+        <div className="mb-24">
+          <div className="flex border-b border-foreground/10 mb-10 overflow-x-auto scrollbar-hide">
             <button
               onClick={() => setActiveTab('description')}
               className={cn(
-                'px-8 py-4 text-sm font-bold uppercase tracking-widest transition-all relative whitespace-nowrap',
+                'px-6 sm:px-8 py-4 text-sm font-bold uppercase tracking-widest transition-all relative whitespace-nowrap',
                 activeTab === 'description' ? 'text-gold' : 'text-foreground/40 hover:text-foreground'
               )}
             >
@@ -320,7 +372,7 @@ export default function ProductDetailClient({ id }: { id: string }) {
             <button
               onClick={() => setActiveTab('details')}
               className={cn(
-                'px-8 py-4 text-sm font-bold uppercase tracking-widest transition-all relative whitespace-nowrap',
+                'px-6 sm:px-8 py-4 text-sm font-bold uppercase tracking-widest transition-all relative whitespace-nowrap',
                 activeTab === 'details' ? 'text-gold' : 'text-foreground/40 hover:text-foreground'
               )}
             >
@@ -339,18 +391,38 @@ export default function ProductDetailClient({ id }: { id: string }) {
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -10 }}
-                  className="prose prose-invert max-w-none"
+                  transition={{ duration: 0.3 }}
+                  className="grid grid-cols-1 md:grid-cols-2 gap-12"
                 >
-                  <p className="text-foreground/70 leading-relaxed text-lg">{product.description}</p>
-                  <ul className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {product.notes &&
-                      Object.entries(product.notes).map(([key, val]) => (
-                        <li key={key} className="flex gap-4">
-                          <span className="text-gold font-bold capitalize w-20">{key}:</span>
-                          <span className="text-foreground/70">{(val as string[]).join(', ')}</span>
-                        </li>
-                      ))}
-                  </ul>
+                  <p className="text-foreground/70 leading-relaxed text-[15px] md:text-base">
+                    {product.description}
+                  </p>
+
+                  {/* Signature element: fragrance pyramid — encodes the real
+                      top → heart → base unfolding of a scent over time. */}
+                  {noteEntries.length > 0 && (
+                    <div>
+                      <h3 className="text-xs font-bold uppercase tracking-widest text-foreground/60 mb-6">
+                        Pyramide Olfactive
+                      </h3>
+                      <div className="space-y-6">
+                        {noteEntries.map(([key, val], idx) => (
+                          <div key={key} className="relative pl-7">
+                            {idx < noteEntries.length - 1 && (
+                              <span className="absolute left-[6px] top-4 bottom-[-24px] w-px bg-gradient-to-b from-gold/50 to-gold/0" />
+                            )}
+                            <span className="absolute left-0 top-1 w-3.5 h-3.5 rounded-full border-2 border-gold bg-background" />
+                            <p className="text-xs font-bold uppercase tracking-widest text-gold mb-1.5">
+                              {key}
+                            </p>
+                            <p className="text-foreground/70 leading-relaxed text-sm">
+                              {(val as string[]).join(' · ')}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </motion.div>
               ) : (
                 <motion.div
@@ -358,37 +430,44 @@ export default function ProductDetailClient({ id }: { id: string }) {
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.3 }}
                 >
-                  <table className="w-full border-collapse">
+                  <table className="w-full border-collapse max-w-2xl">
                     <tbody>
-                      <tr className="border-b border-[var(--t-border)]">
+                      <tr className="border-b border-foreground/10">
                         <td className="py-4 text-foreground/40 uppercase text-xs tracking-widest w-1/3">Volume</td>
-                        <td className="py-4 text-foreground">{product.volume || 'N/A'}</td>
+                        <td className="py-4 text-foreground font-medium">{product.volume || 'N/A'}</td>
                       </tr>
-                      {product.category.includes('perfume') && (
+                      {product.category?.includes('perfume') && (
                         <>
-                          <tr className="border-b border-white/5">
-                            <td className="py-4 text-white/40 uppercase text-xs tracking-widest">Longévité</td>
-                            <td className="py-4 text-white">{product.longevity || 'Longue durée (8-10h)'}</td>
+                          <tr className="border-b border-foreground/10">
+                            <td className="py-4 text-foreground/40 uppercase text-xs tracking-widest">Longévité</td>
+                            <td className="py-4 text-foreground font-medium">
+                              {product.longevity || 'Longue durée (8-10h)'}
+                            </td>
                           </tr>
-                          <tr className="border-b border-white/5">
-                            <td className="py-4 text-white/40 uppercase text-xs tracking-widest">Sillage</td>
-                            <td className="py-4 text-white">{product.sillage || 'Modéré'}</td>
+                          <tr className="border-b border-foreground/10">
+                            <td className="py-4 text-foreground/40 uppercase text-xs tracking-widest">Sillage</td>
+                            <td className="py-4 text-foreground font-medium">{product.sillage || 'Modéré'}</td>
                           </tr>
-                          <tr className="border-b border-white/5">
-                            <td className="py-4 text-white/40 uppercase text-xs tracking-widest">Genre</td>
-                            <td className="py-4 text-white capitalize">{product.gender || 'Unisexe'}</td>
+                          <tr className="border-b border-foreground/10">
+                            <td className="py-4 text-foreground/40 uppercase text-xs tracking-widest">Genre</td>
+                            <td className="py-4 text-foreground font-medium capitalize">
+                              {product.gender || 'Unisexe'}
+                            </td>
                           </tr>
                         </>
                       )}
-                      <tr className="border-b border-white/5">
-                        <td className="py-4 text-white/40 uppercase text-xs tracking-widest">Catégorie</td>
-                        <td className="py-4 text-white capitalize">{product.category.replace('-', ' ')}</td>
+                      <tr className="border-b border-foreground/10">
+                        <td className="py-4 text-foreground/40 uppercase text-xs tracking-widest">Catégorie</td>
+                        <td className="py-4 text-foreground font-medium capitalize">
+                          {product.category?.replace('-', ' ')}
+                        </td>
                       </tr>
                       {product.brand && (
-                        <tr className="border-b border-white/5">
-                          <td className="py-4 text-white/40 uppercase text-xs tracking-widest">Marque</td>
-                          <td className="py-4 text-white">{product.brand}</td>
+                        <tr className="border-b border-foreground/10">
+                          <td className="py-4 text-foreground/40 uppercase text-xs tracking-widest">Marque</td>
+                          <td className="py-4 text-foreground font-medium">{product.brand}</td>
                         </tr>
                       )}
                     </tbody>
@@ -399,30 +478,37 @@ export default function ProductDetailClient({ id }: { id: string }) {
           </div>
         </div>
 
-        {/* Related Products */}
-        <div>
-          <div className="flex items-end justify-between mb-10">
-            <div>
-              <h2 className="text-3xl font-display font-bold text-foreground mb-2">Produits Similaires</h2>
-              <div className="w-20 h-1 bg-gold" />
+        {/* ── Related Products ── */}
+        {relatedProducts.length > 0 && (
+          <div>
+            <div className="flex items-end justify-between mb-10">
+              <div>
+                <h2 className="text-2xl md:text-3xl font-display font-bold text-foreground mb-2">
+                  Produits Similaires
+                </h2>
+                <div className="w-20 h-1 bg-gold" />
+              </div>
+              <a
+                href={`/shop/${product.category}`}
+                className="text-gold hover:underline flex items-center gap-2 text-sm shrink-0"
+              >
+                Voir tout <ChevronRight size={16} />
+              </a>
             </div>
-            <a href="/shop/perfumes" className="text-gold hover:underline flex items-center gap-2">
-              Voir tout <ChevronRight size={16} />
-            </a>
-          </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {relatedProducts.map((p) => (
-              <ProductCard
-                key={p.id}
-                product={p}
-                onAddToCart={addProduct}
-                onToggleFavorite={addFavorite}
-                isFavorite={isFavorite(p.id)}
-              />
-            ))}
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+              {relatedProducts.map((p) => (
+                <ProductCard
+                  key={p.id}
+                  product={p}
+                  onAddToCart={addProduct}
+                  onToggleFavorite={addFavorite}
+                  isFavorite={isFavorite(p.id)}
+                />
+              ))}
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );
