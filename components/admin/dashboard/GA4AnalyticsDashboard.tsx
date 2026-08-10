@@ -12,7 +12,10 @@ import {
   BarChart3,
   Globe,
   Layers,
-  FileText
+  FileText,
+  Monitor,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 import {
   BarChart,
@@ -86,6 +89,9 @@ export default function GA4AnalyticsDashboard() {
   const [data, setData] = useState<GA4BatchResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showAllPages, setShowAllPages] = useState(false);
+  const [showAllGeo, setShowAllGeo] = useState(false);
+  const [showAllAcq, setShowAllAcq] = useState(false);
 
   useEffect(() => {
     async function fetchAnalytics() {
@@ -162,6 +168,16 @@ export default function GA4AnalyticsDashboard() {
     value,
     color: deviceColors[name.toLowerCase()] || '#94a3b8',
   }));
+
+  // Browser aggregation
+  const browserTotals: Record<string, { users: number; sessions: number }> = {};
+  data.tech.forEach(t => {
+    if (!browserTotals[t.browser]) browserTotals[t.browser] = { users: 0, sessions: 0 };
+    browserTotals[t.browser].users += t.users;
+    browserTotals[t.browser].sessions += t.sessions;
+  });
+  const browserRows = Object.entries(browserTotals)
+    .sort((a, b) => b[1].users - a[1].users);
 
   return (
     <div className="space-y-6">
@@ -278,11 +294,14 @@ export default function GA4AnalyticsDashboard() {
 
         <div className="bg-white/5 rounded-2xl border border-white/10 p-6 shadow-sm flex flex-col justify-between">
           <div>
-            <h3 className="font-semibold text-foreground text-sm mb-4">Device Breakdown</h3>
-            <div className="h-[180px] w-full relative flex items-center justify-center">
+            <h3 className="font-semibold text-foreground text-sm mb-4 flex items-center gap-2">
+              <Monitor className="text-gold h-4 w-4" />
+              Device &amp; Browser Breakdown
+            </h3>
+            <div className="h-[160px] w-full relative flex items-center justify-center">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
-                  <Pie data={techChartData} cx="50%" cy="50%" innerRadius={45} outerRadius={65} dataKey="value" paddingAngle={4}>
+                  <Pie data={techChartData} cx="50%" cy="50%" innerRadius={40} outerRadius={60} dataKey="value" paddingAngle={4}>
                     {techChartData.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={entry.color} />
                     ))}
@@ -291,18 +310,71 @@ export default function GA4AnalyticsDashboard() {
                 </PieChart>
               </ResponsiveContainer>
             </div>
-          </div>
-          <div className="space-y-2 mt-4">
-            {techChartData.map(d => (
-              <div key={d.name} className="flex items-center justify-between text-xs">
-                <div className="flex items-center gap-2">
-                  <div className="w-2.5 h-2.5 rounded-sm" style={{ background: d.color }} />
-                  <span className="text-foreground/50 capitalize">{d.name}</span>
+            {/* Device legend */}
+            <div className="space-y-1.5 mt-2">
+              {techChartData.map(d => (
+                <div key={d.name} className="flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2.5 h-2.5 rounded-sm" style={{ background: d.color }} />
+                    <span className="text-foreground/50 capitalize">{d.name}</span>
+                  </div>
+                  <span className="font-semibold text-foreground">{d.value.toLocaleString()} users</span>
                 </div>
-                <span className="font-semibold text-foreground">{d.value.toLocaleString()} users</span>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
+          {/* Browser breakdown */}
+          <div className="mt-4 pt-4 border-t border-white/10">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-foreground/35 mb-2">By Browser</p>
+            <div className="space-y-1.5">
+              {browserRows.map(([browser, stats]) => (
+                <div key={browser} className="flex items-center justify-between text-xs">
+                  <span className="text-foreground/60 truncate max-w-[110px]">{browser}</span>
+                  <div className="flex items-center gap-3 text-right">
+                    <span className="text-foreground/40">{stats.sessions.toLocaleString()} sess.</span>
+                    <span className="font-semibold text-foreground w-12 text-right">{stats.users.toLocaleString()} usr</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Funnel Detail Table */}
+      <div className="bg-white/5 rounded-2xl border border-white/10 p-6 shadow-sm">
+        <h3 className="font-semibold text-foreground text-sm mb-4">Funnel Step Details</h3>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="border-b border-white/5 text-[10px] text-foreground/40 uppercase tracking-wider">
+                <th className="pb-2">Step</th>
+                <th className="pb-2 text-right">Events</th>
+                <th className="pb-2 text-right">Users</th>
+                <th className="pb-2 text-right">Sales</th>
+                <th className="pb-2 text-right">Revenue</th>
+                <th className="pb-2 text-right">Conv. Rate</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-white/5 text-xs text-foreground/80">
+              {data.funnel.map((step, index) => (
+                <tr key={step.step} className={step.step === 'remove_from_cart' ? 'text-red-400/80' : ''}>
+                  <td className="py-2.5 font-medium flex items-center gap-2">
+                    <span
+                      className="inline-block w-2 h-2 rounded-sm flex-shrink-0"
+                      style={{ background: STEP_COLORS[index] }}
+                    />
+                    {STEP_LABELS[step.step] || step.step}
+                  </td>
+                  <td className="py-2.5 text-right">{step.eventCount.toLocaleString()}</td>
+                  <td className="py-2.5 text-right">{step.totalUsers.toLocaleString()}</td>
+                  <td className="py-2.5 text-right">{step.sales.toLocaleString()}</td>
+                  <td className="py-2.5 text-right text-gold">{step.revenue.toLocaleString()} FCFA</td>
+                  <td className="py-2.5 text-right">{step.conversionRate.toFixed(2)}%</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
 
@@ -323,7 +395,7 @@ export default function GA4AnalyticsDashboard() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5 text-xs text-foreground/80">
-                {data.acquisition.slice(0, 5).map((acq, index) => (
+                {(showAllAcq ? data.acquisition : data.acquisition.slice(0, 5)).map((acq, index) => (
                   <tr key={index}>
                     <td className="py-2.5 font-medium truncate max-w-[120px]">{acq.sourceMedium}</td>
                     <td className="py-2.5 text-right">{acq.users.toLocaleString()}</td>
@@ -339,6 +411,15 @@ export default function GA4AnalyticsDashboard() {
               </tbody>
             </table>
           </div>
+          {data.acquisition.length > 5 && (
+            <button
+              onClick={() => setShowAllAcq(v => !v)}
+              className="mt-3 flex items-center gap-1 text-[11px] text-foreground/40 hover:text-gold transition-colors cursor-pointer"
+            >
+              {showAllAcq ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+              {showAllAcq ? 'Show less' : `Show all ${data.acquisition.length} channels`}
+            </button>
+          )}
         </div>
 
         <div className="bg-white/5 rounded-2xl border border-white/10 p-6 shadow-sm">
@@ -356,7 +437,7 @@ export default function GA4AnalyticsDashboard() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5 text-xs text-foreground/80">
-                {data.pages.slice(0, 5).map((page, index) => (
+                {(showAllPages ? data.pages : data.pages.slice(0, 5)).map((page, index) => (
                   <tr key={index}>
                     <td className="py-2.5 font-medium truncate max-w-[150px]" title={page.path}>
                       {page.path}
@@ -373,6 +454,15 @@ export default function GA4AnalyticsDashboard() {
               </tbody>
             </table>
           </div>
+          {data.pages.length > 5 && (
+            <button
+              onClick={() => setShowAllPages(v => !v)}
+              className="mt-3 flex items-center gap-1 text-[11px] text-foreground/40 hover:text-gold transition-colors cursor-pointer"
+            >
+              {showAllPages ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+              {showAllPages ? 'Show less' : `Show all ${data.pages.length} pages`}
+            </button>
+          )}
         </div>
 
         <div className="bg-white/5 rounded-2xl border border-white/10 p-6 shadow-sm">
@@ -386,25 +476,36 @@ export default function GA4AnalyticsDashboard() {
                 <tr className="border-b border-white/5 text-[10px] text-foreground/40 uppercase tracking-wider">
                   <th className="pb-2">Country</th>
                   <th className="pb-2">City</th>
-                  <th className="pb-2 text-right">Active Users</th>
+                  <th className="pb-2 text-right">Users</th>
+                  <th className="pb-2 text-right">New</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5 text-xs text-foreground/80">
-                {data.geo.slice(0, 5).map((geoObj, index) => (
+                {(showAllGeo ? data.geo : data.geo.slice(0, 5)).map((geoObj, index) => (
                   <tr key={index}>
-                    <td className="py-2.5 font-medium truncate max-w-[100px]">{geoObj.country}</td>
-                    <td className="py-2.5 truncate max-w-[100px]">{geoObj.city}</td>
+                    <td className="py-2.5 font-medium truncate max-w-[90px]">{geoObj.country}</td>
+                    <td className="py-2.5 truncate max-w-[90px] text-foreground/60">{geoObj.city}</td>
                     <td className="py-2.5 text-right">{geoObj.users.toLocaleString()}</td>
+                    <td className="py-2.5 text-right text-emerald-400">{geoObj.newUsers.toLocaleString()}</td>
                   </tr>
                 ))}
                 {data.geo.length === 0 && (
                   <tr>
-                    <td colSpan={3} className="py-4 text-center text-foreground/30">No location available</td>
+                    <td colSpan={4} className="py-4 text-center text-foreground/30">No location available</td>
                   </tr>
                 )}
               </tbody>
             </table>
           </div>
+          {data.geo.length > 5 && (
+            <button
+              onClick={() => setShowAllGeo(v => !v)}
+              className="mt-3 flex items-center gap-1 text-[11px] text-foreground/40 hover:text-gold transition-colors cursor-pointer"
+            >
+              {showAllGeo ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+              {showAllGeo ? 'Show less' : `Show all ${data.geo.length} locations`}
+            </button>
+          )}
         </div>
       </div>
     </div>
