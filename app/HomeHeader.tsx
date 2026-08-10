@@ -1,17 +1,19 @@
 "use client";
 
+/**
+ * @file components/home/HomeHeader.tsx
+ * @description Mobile-only search header rendered below the primary navbar on home page.
+ */
 import { Search, SlidersHorizontal } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { SearchDropdown } from "@/components/shared/SearchDropdown";
 
-/**
- * Mobile-only search bar below the global Navbar.
- * Shown only on <lg viewports on the home page.
- */
 export function HomeHeader() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isEn = i18n.language?.startsWith("en");
+
   const router = useRouter();
   const pathname = usePathname();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -51,7 +53,11 @@ export function HomeHeader() {
 
   return (
     <header className="relative lg:hidden w-full max-w-7xl mx-auto px-4 sm:px-6 pt-3 pb-3">
-      <div className={`absolute inset-x-0 top-0 h-0.5 bg-gold transition-opacity duration-200 ${isNavigating ? 'opacity-100' : 'opacity-0'}`} />
+      <div
+        className={`absolute inset-x-0 top-0 h-0.5 bg-gold transition-opacity duration-200 ${
+          isNavigating ? 'opacity-100' : 'opacity-0'
+        }`}
+      />
 
       {/* Search bar with autocomplete dropdown */}
       <div className="relative">
@@ -70,14 +76,22 @@ export function HomeHeader() {
             name="q"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            onFocus={() => { if (debouncedQuery.trim()) setShowDropdown(true); }}
-            placeholder={t("search_placeholder", { defaultValue: "Rechercher un parfum, un accessoire…" })}
+            onFocus={() => {
+              if (debouncedQuery.trim()) setShowDropdown(true);
+            }}
+            placeholder={t("search_placeholder", {
+              defaultValue: isEn
+                ? "Search for a fragrance, accessory..."
+                : "Rechercher un parfum, un accessoire…",
+            })}
             className="flex-1 h-full pl-10 pr-2 bg-transparent text-sm text-foreground placeholder:text-foreground/40 focus:outline-none"
             autoComplete="off"
           />
           <button
             type="submit"
-            aria-label={t("search", { defaultValue: "Rechercher" })}
+            aria-label={t("search", {
+              defaultValue: isEn ? "Search" : "Rechercher",
+            })}
             className="h-8 w-8 mr-2 rounded-full flex items-center justify-center text-foreground/50 flex-shrink-0 hover:text-gold transition-colors"
           >
             <SlidersHorizontal size={16} />

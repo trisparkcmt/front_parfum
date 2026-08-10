@@ -23,21 +23,21 @@ interface NavItem {
 }
 
 const menuItems: NavItem[] = [
-  { label: 'Tableau de Bord', icon: <LayoutDashboard size={18} />, href: '/dashboard/serveuse/dashboard' },
-  { label: 'Dépenses', icon: <DollarSign size={18} />, href: '/dashboard/serveuse/expenses' },
+  { label: 'Dashboard', icon: <LayoutDashboard size={18} />, href: '/dashboard/serveuse/dashboard' },
+  { label: 'Expenses', icon: <DollarSign size={18} />, href: '/dashboard/serveuse/expenses' },
   { label: 'Notifications', icon: <Bell size={18} />, href: '/dashboard/serveuse/notifications' }
 ];
 
 const boutiqueItems: NavItem[] = [
-  { label: 'Commandes', icon: <ShoppingCart size={18} />, href: '/dashboard/serveuse/order' },
-  { label: 'Parfums', icon: <PerfumeIcon size={18} />, href: '/dashboard/serveuse/perfume' },
-  { label: 'Catégories', icon: <Package size={18} />, href: '/dashboard/serveuse/categories' },
+  { label: 'Orders', icon: <ShoppingCart size={18} />, href: '/dashboard/serveuse/order' },
+  { label: 'Perfumes', icon: <PerfumeIcon size={18} />, href: '/dashboard/serveuse/perfume' },
+  { label: 'Categories', icon: <Package size={18} />, href: '/dashboard/serveuse/categories' },
   { label: 'Essences', icon: <EssenceIcon size={18} />, href: '/dashboard/serveuse/essences' },
-  { label: 'Produits Essence', icon: <EssenceIcon size={18} />, href: '/dashboard/serveuse/produits-essence' },
-  { label: 'Laboratoire', icon: <LaptopIcon size={18} />, href: '/dashboard/serveuse/lab' },
+  { label: 'Essence Products', icon: <EssenceIcon size={18} />, href: '/dashboard/serveuse/produits-essence' },
+  { label: 'Laboratory', icon: <LaptopIcon size={18} />, href: '/dashboard/serveuse/lab' },
   { label: 'Flacons', icon: <Package size={18} />, href: '/dashboard/serveuse/flacons' },
-  { label: 'Accessoires', icon: <Gem size={18} />, href: '/dashboard/serveuse/accessories' },
-  { label: 'Diffuseurs', icon: <Sparkles size={18} />, href: '/dashboard/serveuse/diffuseurs' },
+  { label: 'Accessories', icon: <Gem size={18} />, href: '/dashboard/serveuse/accessories' },
+  { label: 'Diffusers', icon: <Sparkles size={18} />, href: '/dashboard/serveuse/diffuseurs' },
   { label: 'Compositions', icon: <LaptopIcon size={18} />, href: '/dashboard/serveuse/compositions' },
 ];
 
@@ -131,7 +131,6 @@ function SectionLabel({ label }: { label: string }) {
 export default function ServeuseSidebar({ open, setOpen }: SidebarProps) {
   return (
     <>
-      {/* Mobile overlay */}
       {open && (
         <div
           className="fixed inset-0 bg-black/50 backdrop-blur-sm z-20 xl:hidden"
@@ -147,33 +146,34 @@ export default function ServeuseSidebar({ open, setOpen }: SidebarProps) {
           ${open ? 'translate-x-0' : '-translate-x-full xl:translate-x-0'}
         `}
       >
-        {/* Logo */}
         <div className="flex items-center justify-between px-5 py-5 border-b border-white/10">
           <Link href="/dashboard/serveuse/dashboard" onClick={() => setOpen(false)} className="flex items-center gap-3 group">
             <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-gold to-gold-dark flex items-center justify-center shadow-lg shadow-gold/20 group-hover:shadow-gold/40 transition-shadow">
               <BarChart2 size={18} className="text-black" />
             </div>
-            <span className="font-bold text-foreground text-lg tracking-tight">Boutique Serveuse</span>
+            <span className="font-bold text-foreground text-lg tracking-tight">Waitstaff Shop</span>
           </Link> 
-          <button className="xl:hidden text-foreground/40 hover:text-foreground transition-colors" onClick={() => setOpen(false)}>
+          <button 
+            className="xl:hidden text-foreground/40 hover:text-foreground transition-colors" 
+            onClick={() => setOpen(false)}
+            aria-label="Close menu"
+          >
             <X size={18} />
           </button>
         </div>
 
-        {/* Nav */}
         <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1 scrollbar-thin">
-          <SectionLabel label="ESPACE" />
+          <SectionLabel label="SPACE" />
           {menuItems.map(item => (
             <NavItemComponent key={item.label} item={item} onNavigate={() => setOpen(false)} />
           ))}
 
-          <SectionLabel label="BOUTIQUE" />
+          <SectionLabel label="SHOP" />
           {boutiqueItems.map(item => (
             <NavItemComponent key={item.label} item={item} onNavigate={() => setOpen(false)} />
           ))}
         </nav>
 
-        {/* Bottom branding */}
         <div className="px-5 py-4 border-t border-white/10">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-lg bg-gold/10 flex items-center justify-center">
@@ -181,7 +181,7 @@ export default function ServeuseSidebar({ open, setOpen }: SidebarProps) {
             </div>
             <div>
               <p className="text-xs font-semibold text-foreground">Accessories Exclusif</p>
-              <p className="text-[10px] text-foreground/40">v1.0 · Panel Serveuse</p>
+              <p className="text-[10px] text-foreground/40">v1.0 · Waitstaff Panel</p>
             </div>
           </div>
         </div>

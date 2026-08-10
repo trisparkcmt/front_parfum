@@ -8,12 +8,30 @@ import {
   useEffect,
   type ReactNode,
 } from "react";
+import i18n from "i18next";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { ChevronDown, Coins } from "lucide-react";
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
+}
+
+// ── In-File Dictionary ─────────────────────────────────────────────────────
+
+const dict = {
+  fr: {
+    placeholder: "Décrivez vos envies olfactives...",
+    budgetPlaceholder: "Budget",
+  },
+  en: {
+    placeholder: "Describe your ideal fragrance...",
+    budgetPlaceholder: "Budget",
+  },
+};
+
+function getLang(): "fr" | "en" {
+  return i18n.language && i18n.language.startsWith("en") ? "en" : "fr";
 }
 
 export type ChatStatus = "ready" | "streaming" | "submitted" | "idle";
@@ -100,40 +118,6 @@ const StopIcon = ({ className = "w-[12px] h-[12px]" }) => (
   </svg>
 );
 
-const XIcon = ({ className = "w-3 h-3" }) => (
-  <svg
-    width="12"
-    height="12"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    className={className}
-  >
-    <line x1="18" y1="6" x2="6" y2="18" />
-    <line x1="6" y1="6" x2="18" y2="18" />
-  </svg>
-);
-
-const FileIcon = ({ className = "w-4 h-4" }) => (
-  <svg
-    width="16"
-    height="16"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    className={className}
-  >
-    <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
-    <polyline points="14 2 14 8 20 8" />
-  </svg>
-);
-
 function AttachmentButton({ onClick, disabled }: { onClick: () => void; disabled?: boolean }) {
   return (
     <button
@@ -170,17 +154,14 @@ export const InputBar = memo(function InputBar({
   onSend,
   onStop,
   status = "ready",
-  placeholder = "Décrivez vos envies olfactives...",
+  placeholder,
   className,
   onAttach,
   attachedImages = [],
   attachedFiles = [],
-  onRemoveImage,
-  onRemoveFile,
   value: controlledValue,
   onChange: controlledOnChange,
   disabled,
-  autoFocus,
   leftActions,
   rightActions,
 }: InputBarProps) {
@@ -188,6 +169,9 @@ export const InputBar = memo(function InputBar({
   const [bottleSize, setBottleSize] = useState("");
   const [budget, setBudget] = useState("");
   
+  const t = dict[getLang()];
+  const activePlaceholder = placeholder || t.placeholder;
+
   const isControlled = controlledValue !== undefined;
   const input = isControlled ? controlledValue : internalInput;
   
@@ -239,38 +223,32 @@ export const InputBar = memo(function InputBar({
     <div className={cn("shrink-0 px-3 pb-3 w-full", className)}>
       <div className="mx-auto max-w-3xl">
         <div className="relative cursor-text rounded-[24px] bg-white dark:bg-neutral-900 shadow-sm ring-1 ring-neutral-200 dark:ring-neutral-800 focus-within:ring-gold/40 transition-shadow">
-          {/* Attachments Area */}
           <div className={cn("grid transition-[grid-template-rows] duration-200 ease-out", hasContextItems ? "grid-rows-[1fr]" : "grid-rows-[0fr]")}>
             <div className="overflow-hidden">
               {hasContextItems && (
-                <div className="flex flex-wrap items-center gap-1.5 px-3 pt-3 pb-1">
-                  {/* Logic for Image/File chips here */}
-                </div>
+                <div className="flex flex-wrap items-center gap-1.5 px-3 pt-3 pb-1" />
               )}
             </div>
           </div>
 
-          {/* Main Input */}
           <div className="pt-4 pb-0 pr-4 pl-4 min-h-[48px]">
             <textarea
               ref={textareaRef}
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder={placeholder}
+              placeholder={activePlaceholder}
               disabled={disabled}
               rows={1}
               className="w-full resize-none bg-transparent border-0 outline-none text-[15px] leading-[1.6] text-neutral-900 dark:text-neutral-100 placeholder:text-neutral-400 dark:placeholder:text-neutral-500 overflow-hidden disabled:opacity-50"
             />
           </div>
 
-          {/* Action Bar */}
           <div className="flex items-center justify-between gap-3 px-3 pt-2 pb-3">
             <div className="flex items-center gap-2 min-w-0">
               {onAttach && <AttachmentButton onClick={onAttach} disabled={disabled} />}
               
-              {/* Numba Specific Actions: Bottle Size & Budget */}
-              <div className="h-15 w-auto  flex flex-row items-center gap-1.5 bg-neutral-50 dark:bg-neutral-800/50 p-1 rounded-full border border-neutral-100 dark:border-neutral-800">
+              <div className="h-15 w-auto flex flex-row items-center gap-1.5 bg-neutral-50 dark:bg-neutral-800/50 p-1 rounded-full border border-neutral-100 dark:border-neutral-800">
                 <div className="relative flex items-center">
                   <select
                     value={bottleSize}
@@ -292,7 +270,7 @@ export const InputBar = memo(function InputBar({
                   <Coins size={15} className="ml-2 text-neutral-400" />
                   <input
                     type="number"
-                    placeholder="Budget"
+                    placeholder={t.budgetPlaceholder}
                     value={budget}
                     onChange={(e) => setBudget(e.target.value)}
                     disabled={disabled}

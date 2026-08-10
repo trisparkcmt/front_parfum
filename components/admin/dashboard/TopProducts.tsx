@@ -15,7 +15,7 @@ const products = [
   },
   {
     rank: 2,
-    name: 'Composition Numba #3',
+    name: 'Numba Custom Blend #3',
     category: 'Atelier',
     sold: 218,
     revenue: '9.1M',
@@ -25,8 +25,8 @@ const products = [
   },
   {
     rank: 3,
-    name: 'Montre Royale Or 18K',
-    category: 'Accessoire',
+    name: 'Royal 18K Gold Watch',
+    category: 'Accessory',
     sold: 156,
     revenue: '28.8M',
     trend: '+8%',
@@ -36,7 +36,7 @@ const products = [
   {
     rank: 4,
     name: 'Chanel N°5 Original',
-    category: 'Grande Marque',
+    category: 'Luxury Brand',
     sold: 124,
     revenue: '30.8M',
     trend: '+5%',
@@ -45,8 +45,8 @@ const products = [
   },
   {
     rank: 5,
-    name: 'Collier Perles d\'Afrique',
-    category: 'Bijoux',
+    name: 'African Pearl Necklace',
+    category: 'Jewelry',
     sold: 98,
     revenue: '9.3M',
     trend: '+12%',
@@ -60,10 +60,10 @@ export default function TopProducts() {
     <div className="bg-white/5 rounded-2xl border border-white/10 p-6 shadow-sm hover:shadow-gold/5 transition-all duration-300">
       <div className="flex items-center justify-between mb-5">
         <div>
-          <h3 className="font-semibold text-foreground">Top Produits</h3>
-          <p className="text-xs text-foreground/40 mt-0.5">Meilleures ventes ce mois</p>
+          <h3 className="font-semibold text-foreground">Top Products</h3>
+          <p className="text-xs text-foreground/40 mt-0.5">Best sellers this month</p>
         </div>
-        <button className="text-xs text-gold font-medium hover:underline">Voir tout</button>
+        <button className="text-xs text-gold font-medium hover:underline">View All</button>
       </div>
 
       <div className="space-y-4">
@@ -89,7 +89,7 @@ export default function TopProducts() {
                 </span>
               </div>
               <div className="flex items-center justify-between mt-1">
-                <span className="text-[11px] text-foreground/40">{p.sold} vendus</span>
+                <span className="text-[11px] text-foreground/40">{p.sold} sold</span>
                 <span className="text-[11px] font-semibold text-foreground">{p.revenue} FCFA</span>
               </div>
               {/* Mini progress bar */}
@@ -106,5 +106,3 @@ export default function TopProducts() {
     </div>
   );
 }
-
-

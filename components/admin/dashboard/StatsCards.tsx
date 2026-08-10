@@ -1,26 +1,26 @@
 'use client';
 
-import { Users, Package, Sparkles, DollarSign, TrendingUp, TrendingDown, ArrowLeft } from 'lucide-react';
+import { Users, Package, Sparkles, DollarSign, TrendingUp, TrendingDown } from 'lucide-react';
 
 const stats = [
   {
-    label: 'Clients',
-    value: '3 782',
+    label: 'Customers',
+    value: '3,782',
     change: '+11.01%',
     positive: true,
     icon: <Users size={22} className="text-gold" />,
     bg: 'bg-gold/10',
   },
   {
-    label: 'Commandes',
-    value: '5 359',
+    label: 'Orders',
+    value: '5,359',
     change: '-9.05%',
     positive: false,
     icon: <Package size={22} className="text-[#F59E0B]" />,
     bg: 'bg-amber-50',
   },
   {
-    label: 'Parfums',
+    label: 'Perfumes',
     value: '847',
     change: '+23.5%',
     positive: true,
@@ -28,7 +28,7 @@ const stats = [
     bg: 'bg-purple-50',
   },
   {
-    label: 'Revenu',
+    label: 'Revenue',
     value: '2.4M',
     change: '+14.2%',
     positive: true,
@@ -68,5 +68,3 @@ export default function StatsCards() {
     </>
   );
 }
-
-

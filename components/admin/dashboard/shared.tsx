@@ -1,7 +1,7 @@
 'use client';
 
 import type { ButtonHTMLAttributes, ElementType, ReactNode } from 'react';
-import { Search, X } from 'lucide-react';
+import { Search } from 'lucide-react';
 import { SlideOver } from '@/components/ui/SlideOver';
 
 export function cx(...parts: Array<string | false | null | undefined>) {
@@ -136,7 +136,7 @@ interface DashboardSearchBarProps extends Omit<ButtonHTMLAttributes<HTMLInputEle
   className?: string;
 }
 
-export function DashboardSearchBar({ value, onChange, placeholder = 'Rechercher…', className, ...props }: DashboardSearchBarProps) {
+export function DashboardSearchBar({ value, onChange, placeholder = 'Search...', className, ...props }: DashboardSearchBarProps) {
   return (
     <div className={cx('flex w-full items-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 sm:max-w-sm', className)}>
       <Search size={14} className="shrink-0 text-foreground/35" />

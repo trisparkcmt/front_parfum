@@ -11,10 +11,8 @@ import {
   AlertCircle,
   BarChart3,
   Globe,
-  Smartphone,
   Layers,
-  FileText,
-  Navigation
+  FileText
 } from 'lucide-react';
 import {
   BarChart,
@@ -74,12 +72,12 @@ interface GA4BatchResponse {
 }
 
 const STEP_LABELS: Record<string, string> = {
-  'view_item_list': '1. Vues Catalogues',
-  'view_item': '2. Vues Produit',
-  'add_to_cart': '3. Ajouts Panier',
-  'remove_from_cart': '4. Abandons',
-  'begin_checkout': '5. Paiement Initié',
-  'purchase': '6. Achats',
+  'view_item_list': '1. Catalog Views',
+  'view_item': '2. Product Views',
+  'add_to_cart': '3. Cart Additions',
+  'remove_from_cart': '4. Cart Abandonments',
+  'begin_checkout': '5. Checkout Initiated',
+  'purchase': '6. Purchases',
 };
 
 const STEP_COLORS = ['#3b82f6', '#06b6d4', '#8b5cf6', '#ef4444', '#ec4899', '#c5a059'];
@@ -104,7 +102,7 @@ export default function GA4AnalyticsDashboard() {
         setData(result);
       } catch (err: any) {
         console.error('Failed to load GA4 metrics:', err);
-        setError(err.message || 'Impossible de charger les données Google Analytics 4');
+        setError(err.message || 'Unable to load Google Analytics 4 data');
       } finally {
         setLoading(false);
       }
@@ -126,28 +124,23 @@ export default function GA4AnalyticsDashboard() {
     return (
       <div className="flex flex-col items-center justify-center min-h-[450px] space-y-4 bg-red-500/5 border border-red-500/10 rounded-2xl p-8 text-center">
         <AlertCircle className="h-10 w-10 text-red-400" />
-        <h3 className="font-semibold text-foreground">Échec de la synchronisation GA4</h3>
-        <p className="text-xs text-foreground/60 max-w-md">{error || 'Erreur inconnue'}</p>
+        <h3 className="font-semibold text-foreground">GA4 Synchronization Failed</h3>
+        <p className="text-xs text-foreground/60 max-w-md">{error || 'Unknown error'}</p>
         <div className="text-[11px] text-foreground/30 mt-2">
-          Vérifiez vos variables d'environnement <code className="bg-white/5 px-1 py-0.5 rounded">GOOGLE_CLIENT_EMAIL</code>, <code className="bg-white/5 px-1 py-0.5 rounded">GOOGLE_PRIVATE_KEY</code>, et <code className="bg-white/5 px-1 py-0.5 rounded">GA_PROPERTY_ID</code>.
+          Check your environment variables <code className="bg-white/5 px-1 py-0.5 rounded">GOOGLE_CLIENT_EMAIL</code>, <code className="bg-white/5 px-1 py-0.5 rounded">GOOGLE_PRIVATE_KEY</code>, and <code className="bg-white/5 px-1 py-0.5 rounded">GA_PROPERTY_ID</code>.
         </div>
       </div>
     );
   }
 
-  // Scorecards Calculations
   const purchaseStep = data.funnel.find(d => d.step === 'purchase');
   const revenueTotal = purchaseStep?.revenue || 0;
   const salesCount = purchaseStep?.sales || 0;
   const conversionRate = purchaseStep?.conversionRate || 0;
   
-  // Overall traffic is the max unique users reaching the top of the funnel (usually view_item_list or view_item)
   const globalTraffic = Math.max(...data.funnel.map(d => d.totalUsers), 0);
-  
-  // Average Order Value (AOV = Revenue / Purchases)
   const aov = salesCount > 0 ? revenueTotal / salesCount : 0;
 
-  // Funnel chart mapping
   const chartData = data.funnel.map((d, index) => ({
     name: STEP_LABELS[d.step] || d.step,
     value: d.eventCount,
@@ -155,7 +148,6 @@ export default function GA4AnalyticsDashboard() {
     color: STEP_COLORS[index] || '#ffffff',
   }));
 
-  // Tech Distribution mapping (Grouped by device category)
   const deviceTotals: Record<string, number> = {};
   data.tech.forEach(t => {
     deviceTotals[t.device] = (deviceTotals[t.device] || 0) + t.users;
@@ -177,9 +169,9 @@ export default function GA4AnalyticsDashboard() {
         <div>
           <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
             <BarChart3 className="text-gold h-5 w-5" />
-            Statistiques Google Analytics 4 (30 derniers jours)
+            Google Analytics 4 Statistics (Last 30 days)
           </h2>
-          <p className="text-xs text-foreground/40 mt-0.5">Analyses avancées traitées par lots avec batchRunReports</p>
+          <p className="text-xs text-foreground/40 mt-0.5">Advanced analytics batch-processed with batchRunReports</p>
         </div>
         <span className="text-[10px] font-semibold px-2 py-1 rounded bg-gold/10 text-gold border border-gold/20 uppercase tracking-wider">
           Batch API Client
@@ -188,67 +180,60 @@ export default function GA4AnalyticsDashboard() {
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
-        {/* Chiffre d'Affaires */}
         <div className="bg-white/5 rounded-2xl border border-white/10 p-5 shadow-sm">
-          <p className="text-xs text-foreground/40 mb-2">Chiffre d'Affaires</p>
+          <p className="text-xs text-foreground/40 mb-2">Revenue</p>
           <p className="text-xl font-bold text-foreground">
             {revenueTotal.toLocaleString()} <span className="text-[10px] font-medium text-foreground/40">FCFA</span>
           </p>
           <div className="text-[10px] text-foreground/30 mt-2 flex items-center gap-1">
-            <DollarSign size={10} className="text-gold" /> Total revenus
+            <DollarSign size={10} className="text-gold" /> Total revenue
           </div>
         </div>
 
-        {/* Nombre de Ventes */}
         <div className="bg-white/5 rounded-2xl border border-white/10 p-5 shadow-sm">
-          <p className="text-xs text-foreground/40 mb-2">Nombre de Ventes</p>
+          <p className="text-xs text-foreground/40 mb-2">Number of Sales</p>
           <p className="text-xl font-bold text-foreground">
             {salesCount.toLocaleString()}
           </p>
           <div className="text-[10px] text-foreground/30 mt-2 flex items-center gap-1">
-            <ShoppingBag size={10} className="text-purple-400" /> Transactions réussies
+            <ShoppingBag size={10} className="text-purple-400" /> Successful transactions
           </div>
         </div>
 
-        {/* conversionRate */}
         <div className="bg-white/5 rounded-2xl border border-white/10 p-5 shadow-sm">
-          <p className="text-xs text-foreground/40 mb-2">Conversion Global</p>
+          <p className="text-xs text-foreground/40 mb-2">Overall Conversion</p>
           <p className="text-xl font-bold text-foreground">
             {conversionRate.toFixed(2)}%
           </p>
           <div className="text-[10px] text-foreground/30 mt-2 flex items-center gap-1">
-            <Percent size={10} className="text-emerald-400" /> Sessions avec achat
+            <Percent size={10} className="text-emerald-400" /> Purchased sessions
           </div>
         </div>
 
-        {/* Trafic */}
         <div className="bg-white/5 rounded-2xl border border-white/10 p-5 shadow-sm">
-          <p className="text-xs text-foreground/40 mb-2">Visiteurs Uniques</p>
+          <p className="text-xs text-foreground/40 mb-2">Unique Visitors</p>
           <p className="text-xl font-bold text-foreground">
             {globalTraffic.toLocaleString()}
           </p>
           <div className="text-[10px] text-foreground/30 mt-2 flex items-center gap-1">
-            <Users size={10} className="text-blue-400" /> Reach global du tunnel
+            <Users size={10} className="text-blue-400" /> Global funnel reach
           </div>
         </div>
 
-        {/* AOV */}
         <div className="bg-white/5 rounded-2xl border border-white/10 p-5 shadow-sm col-span-2 lg:col-span-1">
-          <p className="text-xs text-foreground/40 mb-2">Panier Moyen (AOV)</p>
+          <p className="text-xs text-foreground/40 mb-2">Average Order Value (AOV)</p>
           <p className="text-xl font-bold text-foreground">
             {Math.round(aov).toLocaleString()} <span className="text-[10px] font-medium text-foreground/40">FCFA</span>
           </p>
           <div className="text-[10px] text-foreground/30 mt-2 flex items-center gap-1">
-            <TrendingUp size={10} className="text-gold" /> Revenu moyen / achat
+            <TrendingUp size={10} className="text-gold" /> Avg revenue / purchase
           </div>
         </div>
       </div>
 
-      {/* Main Analysis Panels */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Entonnoir de conversion */}
         <div className="lg:col-span-2 bg-white/5 rounded-2xl border border-white/10 p-6 shadow-sm">
-          <h3 className="font-semibold text-foreground text-sm mb-4">Entonnoir d'Achat Électronique</h3>
+          <h3 className="font-semibold text-foreground text-sm mb-4">E-Commerce Conversion Funnel</h3>
           <div className="h-[280px] w-full">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart
@@ -273,8 +258,8 @@ export default function GA4AnalyticsDashboard() {
                       return (
                         <div className="bg-[#0b0b0b] border border-white/10 text-foreground px-4 py-3 rounded-xl shadow-sm text-xs space-y-1">
                           <p className="font-bold text-gold">{dataObj.name}</p>
-                          <p className="text-foreground/80">Événements: <span className="font-semibold text-foreground">{dataObj.value.toLocaleString()}</span></p>
-                          <p className="text-foreground/80">Utilisateurs uniques: <span className="font-semibold text-foreground">{dataObj.users.toLocaleString()}</span></p>
+                          <p className="text-foreground/80">Events: <span className="font-semibold text-foreground">{dataObj.value.toLocaleString()}</span></p>
+                          <p className="text-foreground/80">Unique Users: <span className="font-semibold text-foreground">{dataObj.users.toLocaleString()}</span></p>
                         </div>
                       );
                     }
@@ -291,10 +276,9 @@ export default function GA4AnalyticsDashboard() {
           </div>
         </div>
 
-        {/* Devices distribution */}
         <div className="bg-white/5 rounded-2xl border border-white/10 p-6 shadow-sm flex flex-col justify-between">
           <div>
-            <h3 className="font-semibold text-foreground text-sm mb-4">Répartition par Appareil</h3>
+            <h3 className="font-semibold text-foreground text-sm mb-4">Device Breakdown</h3>
             <div className="h-[180px] w-full relative flex items-center justify-center">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
@@ -303,7 +287,7 @@ export default function GA4AnalyticsDashboard() {
                       <Cell key={`cell-${index}`} fill={entry.color} />
                     ))}
                   </Pie>
-                  <Tooltip formatter={(value) => `${value} utilisateurs`} contentStyle={{ background: '#0b0b0b', border: 'rgba(255,255,255,0.1) 1px solid', borderRadius: '12px', color: '#fff', fontSize: '11px' }} />
+                  <Tooltip formatter={(value) => `${value} users`} contentStyle={{ background: '#0b0b0b', border: 'rgba(255,255,255,0.1) 1px solid', borderRadius: '12px', color: '#fff', fontSize: '11px' }} />
                 </PieChart>
               </ResponsiveContainer>
             </div>
@@ -322,22 +306,20 @@ export default function GA4AnalyticsDashboard() {
         </div>
       </div>
 
-      {/* Sub-Charts & Tables Row */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Acquisition Channels */}
         <div className="bg-white/5 rounded-2xl border border-white/10 p-6 shadow-sm">
           <div className="flex items-center gap-2 mb-4">
             <Layers className="text-gold h-4 w-4" />
-            <h3 className="font-semibold text-foreground text-sm">Canaux d'Acquisition</h3>
+            <h3 className="font-semibold text-foreground text-sm">Acquisition Channels</h3>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="border-b border-white/5 text-[10px] text-foreground/40 uppercase tracking-wider">
-                  <th className="pb-2">Source / Support</th>
+                  <th className="pb-2">Source / Medium</th>
                   <th className="pb-2 text-right">Users</th>
                   <th className="pb-2 text-right">Sessions</th>
-                  <th className="pb-2 text-right">Revenus</th>
+                  <th className="pb-2 text-right">Revenue</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5 text-xs text-foreground/80">
@@ -351,7 +333,7 @@ export default function GA4AnalyticsDashboard() {
                 ))}
                 {data.acquisition.length === 0 && (
                   <tr>
-                    <td colSpan={4} className="py-4 text-center text-foreground/30">Aucun canal disponible</td>
+                    <td colSpan={4} className="py-4 text-center text-foreground/30">No channels available</td>
                   </tr>
                 )}
               </tbody>
@@ -359,19 +341,18 @@ export default function GA4AnalyticsDashboard() {
           </div>
         </div>
 
-        {/* Top Pages */}
         <div className="bg-white/5 rounded-2xl border border-white/10 p-6 shadow-sm">
           <div className="flex items-center gap-2 mb-4">
             <FileText className="text-gold h-4 w-4" />
-            <h3 className="font-semibold text-foreground text-sm">Pages les plus consultées</h3>
+            <h3 className="font-semibold text-foreground text-sm">Most Viewed Pages</h3>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="border-b border-white/5 text-[10px] text-foreground/40 uppercase tracking-wider">
                   <th className="pb-2">Page</th>
-                  <th className="pb-2 text-right">Vues (PV)</th>
-                  <th className="pb-2 text-right">Utilisateurs</th>
+                  <th className="pb-2 text-right">Views (PV)</th>
+                  <th className="pb-2 text-right">Users</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5 text-xs text-foreground/80">
@@ -386,7 +367,7 @@ export default function GA4AnalyticsDashboard() {
                 ))}
                 {data.pages.length === 0 && (
                   <tr>
-                    <td colSpan={3} className="py-4 text-center text-foreground/30">Aucune page disponible</td>
+                    <td colSpan={3} className="py-4 text-center text-foreground/30">No pages available</td>
                   </tr>
                 )}
               </tbody>
@@ -394,19 +375,18 @@ export default function GA4AnalyticsDashboard() {
           </div>
         </div>
 
-        {/* Geo Distribution */}
         <div className="bg-white/5 rounded-2xl border border-white/10 p-6 shadow-sm">
           <div className="flex items-center gap-2 mb-4">
             <Globe className="text-gold h-4 w-4" />
-            <h3 className="font-semibold text-foreground text-sm">Villes & Régions actives</h3>
+            <h3 className="font-semibold text-foreground text-sm">Active Cities & Regions</h3>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="border-b border-white/5 text-[10px] text-foreground/40 uppercase tracking-wider">
-                  <th className="pb-2">Pays</th>
-                  <th className="pb-2">Ville</th>
-                  <th className="pb-2 text-right">Users Actifs</th>
+                  <th className="pb-2">Country</th>
+                  <th className="pb-2">City</th>
+                  <th className="pb-2 text-right">Active Users</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5 text-xs text-foreground/80">
@@ -419,7 +399,7 @@ export default function GA4AnalyticsDashboard() {
                 ))}
                 {data.geo.length === 0 && (
                   <tr>
-                    <td colSpan={3} className="py-4 text-center text-foreground/30">Aucune localisation disponible</td>
+                    <td colSpan={3} className="py-4 text-center text-foreground/30">No location available</td>
                   </tr>
                 )}
               </tbody>

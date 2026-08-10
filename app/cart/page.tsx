@@ -6,18 +6,6 @@
  *
  * This component manages the final stage of the shopping experience, providing
  * a comprehensive overview of selected items and facilitating the checkout process.
- *
- * **Key Functionalities**:
- * - **Live Cart Synchronization**: Subscribes to the `useCartStore` to display a real-time list of all products and custom Numba compositions currently in the user's session.
- * - **Item Management**: Allows users to increase or decrease item quantities, remove products entirely, and clear the entire cart.
- * - **Custom Composition Display**: Specifically handles the rendering of custom-created perfumes, showing their unique ingredients, volumes, and visual characteristics.
- * - **Promo Code System**: Integrates a promotional code input that communicates with the `cartStore` to apply percentage-based discounts.
- * - **Financial Summary**: Dynamically calculates subtotal, applied discounts, and the final estimated total (FCFA).
- * - **WhatsApp Checkout Integration**: Implements a `handleCheckout` function that generates a structured WhatsApp message using `generateWhatsAppLink`, redirecting the user to finalize the order with a human agent.
- *
- * **UI/UX Features**:
- * - **Animated Transitions**: Uses `AnimatePresence` and `motion.div` from `framer-motion` for smooth list reordering and item removal.
- * - **Empty State**: Provides a dedicated "Empty Cart" UI with quick-access links back to the shop or atelier.
  */
 import { useState } from 'react';
 import Image from 'next/image';
@@ -61,7 +49,9 @@ function itemTypeLabel(type: string) {
 }
 
 export default function CartPage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isEn = i18n.language?.startsWith('en');
+
   const router = useRouter();
   const { isAuthenticated, user } = useAuthStore();
   const {
@@ -141,7 +131,12 @@ export default function CartPage() {
       await applyPromoCode(promoInput);
       setPromoInput('');
     } catch (error) {
-      addToast(t('invalid_promo'), 'error');
+      addToast(
+        t('invalid_promo', {
+          defaultValue: isEn ? 'Invalid promo code' : 'Code promo invalide',
+        }),
+        'error'
+      );
     }
   };
 
@@ -149,7 +144,12 @@ export default function CartPage() {
     try {
       await removeItem(type, lineId);
     } catch (error) {
-      addToast(t('error_removing_item'), 'error');
+      addToast(
+        t('error_removing_item', {
+          defaultValue: isEn ? 'Error removing item' : 'Erreur lors de la suppression de l’article',
+        }),
+        'error'
+      );
     }
   };
 
@@ -161,13 +161,21 @@ export default function CartPage() {
     try {
       await updateQuantity(type, lineId, newQty);
     } catch (error) {
-      addToast(t('error_updating_quantity'), 'error');
+      addToast(
+        t('error_updating_quantity', {
+          defaultValue: isEn ? 'Error updating quantity' : 'Erreur lors de la mise à jour de la quantité',
+        }),
+        'error'
+      );
     }
   };
 
   const handleClearCart = () => {
     if (allItems.length === 0) return;
-    if (window.confirm(t('confirm_clear_cart', { defaultValue: 'Vider entièrement le panier ?' }))) {
+    const confirmMessage = t('confirm_clear_cart', {
+      defaultValue: isEn ? 'Clear the entire shopping cart?' : 'Vider entièrement le panier ?',
+    });
+    if (window.confirm(confirmMessage)) {
       clearCart();
     }
   };
@@ -175,9 +183,17 @@ export default function CartPage() {
   const handleCopyCode = async (code: string) => {
     try {
       await navigator.clipboard.writeText(code);
-      addToast(t('code_copied', { defaultValue: 'Code copié' }), 'success');
+      addToast(
+        t('code_copied', { defaultValue: isEn ? 'Code copied to clipboard' : 'Code copié' }),
+        'success'
+      );
     } catch {
-      addToast(t('code_copy_error', { defaultValue: 'Impossible de copier le code' }), 'error');
+      addToast(
+        t('code_copy_error', {
+          defaultValue: isEn ? 'Unable to copy code' : 'Impossible de copier le code',
+        }),
+        'error'
+      );
     }
   };
 
@@ -187,7 +203,9 @@ export default function CartPage() {
     const errors: Record<string, string> = {};
 
     if (form.deliveryType === 'delivery' && !form.deliveryCity.trim()) {
-      errors.deliveryCity = t('city_required', { defaultValue: 'Ville de livraison requise.' });
+      errors.deliveryCity = t('city_required', {
+        defaultValue: isEn ? 'Delivery city is required.' : 'Ville de livraison requise.',
+      });
     }
 
     if (Object.keys(errors).length > 0) {
@@ -206,7 +224,12 @@ export default function CartPage() {
     }
 
     if (form.paymentMethod === 'mobile_money' && !form.mobileNetwork) {
-      addToast(t('choose_network'), 'error');
+      addToast(
+        t('choose_network', {
+          defaultValue: isEn ? 'Please select a mobile money provider' : 'Veuillez choisir un réseau mobile',
+        }),
+        'error'
+      );
       return;
     }
 
@@ -242,19 +265,36 @@ export default function CartPage() {
       form.paymentMethod,
       form.mobileNetwork || undefined,
       form.deliveryType,
-      form.deliveryType === 'delivery' ? `${form.deliveryCity.trim()} - ${form.deliveryLocation.trim()}` : 'Retrait magasin'
+      form.deliveryType === 'delivery'
+        ? `${form.deliveryCity.trim()} - ${form.deliveryLocation.trim()}`
+        : isEn
+        ? 'In-store pickup'
+        : 'Retrait magasin'
     );
 
     try {
       await orderService.placeOrder({
         panier_id: panierId ?? undefined,
-        livraison_quartier: form.deliveryType === 'delivery' ? form.deliveryLocation.trim() || undefined : undefined,
-        livraison_ville: form.deliveryType === 'delivery' ? form.deliveryCity.trim() : 'Retrait magasin',
+        livraison_quartier:
+          form.deliveryType === 'delivery' ? form.deliveryLocation.trim() || undefined : undefined,
+        livraison_ville:
+          form.deliveryType === 'delivery'
+            ? form.deliveryCity.trim()
+            : isEn
+            ? 'In-store pickup'
+            : 'Retrait magasin',
         note_client: form.noteClient.trim() || undefined,
         code_promo: cart?.code_promo_applique ?? undefined,
       });
 
-      addToast(t('order_success', { defaultValue: 'Commande passée avec succès. Redirection vers WhatsApp...' }), 'success');
+      addToast(
+        t('order_success', {
+          defaultValue: isEn
+            ? 'Order placed successfully. Redirecting to WhatsApp...'
+            : 'Commande passée avec succès. Redirection vers WhatsApp...',
+        }),
+        'success'
+      );
 
       clearCart();
       await syncCart();
@@ -272,7 +312,9 @@ export default function CartPage() {
       const msg =
         err?.response?.data?.detail ||
         err?.response?.data?.message ||
-        t('order_error', { defaultValue: 'Erreur lors du passage de la commande.' });
+        t('order_error', {
+          defaultValue: isEn ? 'An error occurred while placing the order.' : 'Erreur lors du passage de la commande.',
+        });
       addToast(msg, 'error');
     } finally {
       setIsProcessing(false);
@@ -295,14 +337,26 @@ export default function CartPage() {
           <div className="w-20 h-20 rounded-full border border-foreground/10 bg-foreground/5 flex items-center justify-center text-gold/60 mb-6">
             <ShoppingBag size={36} />
           </div>
-          <h1 className="font-display text-2xl sm:text-3xl font-bold mb-3">{t('cart_empty')}</h1>
-          <p className="text-foreground/60 mb-8 text-sm leading-relaxed">{t('cart_empty_desc')}</p>
+          <h1 className="font-display text-2xl sm:text-3xl font-bold mb-3">
+            {t('cart_empty', { defaultValue: isEn ? 'Your Cart is Empty' : 'Votre panier est vide' })}
+          </h1>
+          <p className="text-foreground/60 mb-8 text-sm leading-relaxed">
+            {t('cart_empty_desc', {
+              defaultValue: isEn
+                ? 'Explore our exclusive collection of fragrances or compose a custom perfume in our Atelier.'
+                : 'Découvrez notre catalogue exclusif de parfums ou créez votre propre composition personnalisée dans notre atelier.',
+            })}
+          </p>
           <div className="flex flex-wrap justify-center gap-3">
             <Link href="/shop/accessories">
-              <Button>{t('explore_shop')}</Button>
+              <Button>
+                {t('explore_shop', { defaultValue: isEn ? 'Explore Collection' : 'Explorer le catalogue' })}
+              </Button>
             </Link>
             <Link href="/numba">
-              <Button variant="secondary">{t('nav_atelier')}</Button>
+              <Button variant="secondary">
+                {t('nav_atelier', { defaultValue: isEn ? 'Custom Lab' : 'Atelier Numba' })}
+              </Button>
             </Link>
           </div>
         </motion.div>
@@ -319,9 +373,14 @@ export default function CartPage() {
 
       <div className="flex items-end justify-between gap-4 mt-6 mb-10 border-b border-foreground/10 pb-6">
         <div>
-          <h1 className="font-display text-3xl sm:text-4xl font-bold">{t('your_cart')}</h1>
+          <h1 className="font-display text-3xl sm:text-4xl font-bold">
+            {t('your_cart', { defaultValue: isEn ? 'Your Cart' : 'Votre Panier' })}
+          </h1>
           <p className="text-sm text-foreground/40 mt-1">
-            {itemCount} {itemCount > 1 ? t('items', { defaultValue: 'articles' }) : t('item', { defaultValue: 'article' })}
+            {itemCount}{' '}
+            {itemCount > 1
+              ? t('items', { defaultValue: isEn ? 'items' : 'articles' })
+              : t('item', { defaultValue: isEn ? 'item' : 'article' })}
           </p>
         </div>
         <button
@@ -329,7 +388,7 @@ export default function CartPage() {
           disabled={isLoading}
           className="text-xs font-semibold uppercase tracking-widest text-foreground/40 hover:text-red-500 disabled:opacity-40 transition-colors shrink-0"
         >
-          {t('clear_cart', { defaultValue: 'Vider le panier' })}
+          {t('clear_cart', { defaultValue: isEn ? 'Clear cart' : 'Vider le panier' })}
         </button>
       </div>
 
@@ -376,7 +435,7 @@ export default function CartPage() {
                         onClick={() => handleRemoveItem(item.type, item.id)}
                         disabled={isLoading}
                         className="p-2 -mr-2 -mt-1 rounded-lg text-foreground/35 hover:text-red-500 hover:bg-red-500/10 disabled:opacity-50 transition-colors shrink-0"
-                        aria-label={t('remove_item', { defaultValue: 'Retirer cet article' })}
+                        aria-label={t('remove_item', { defaultValue: isEn ? 'Remove item' : 'Retirer cet article' })}
                       >
                         <Trash2 size={16} />
                       </button>
@@ -388,7 +447,7 @@ export default function CartPage() {
                           onClick={() => handleUpdateQuantity(item.type, item.id, item.quantite - 1)}
                           disabled={isLoading}
                           className="w-7 h-7 flex items-center justify-center rounded-md text-foreground/60 hover:text-gold hover:bg-foreground/5 disabled:opacity-50 transition-colors"
-                          aria-label={t('decrease_quantity', { defaultValue: 'Diminuer la quantité' })}
+                          aria-label={t('decrease_quantity', { defaultValue: isEn ? 'Decrease quantity' : 'Diminuer la quantité' })}
                         >
                           <Minus size={13} />
                         </button>
@@ -397,7 +456,7 @@ export default function CartPage() {
                           onClick={() => handleUpdateQuantity(item.type, item.id, item.quantite + 1)}
                           disabled={isLoading}
                           className="w-7 h-7 flex items-center justify-center rounded-md text-foreground/60 hover:text-gold hover:bg-foreground/5 disabled:opacity-50 transition-colors"
-                          aria-label={t('increase_quantity', { defaultValue: 'Augmenter la quantité' })}
+                          aria-label={t('increase_quantity', { defaultValue: isEn ? 'Increase quantity' : 'Augmenter la quantité' })}
                         >
                           <Plus size={13} />
                         </button>
@@ -417,18 +476,20 @@ export default function CartPage() {
         {/* ── Order Summary ── */}
         <div className="lg:col-span-1">
           <div className="sticky top-28 rounded-2xl border border-foreground/10 bg-foreground/[0.02] p-6">
-            <h2 className="font-display text-xl font-bold mb-6">{t('summary')}</h2>
+            <h2 className="font-display text-xl font-bold mb-6">
+              {t('summary', { defaultValue: isEn ? 'Order Summary' : 'Récapitulatif' })}
+            </h2>
 
             <div className="space-y-5 text-sm">
               <div className="flex justify-between text-foreground/70">
-                <span>{t('subtotal')}</span>
+                <span>{t('subtotal', { defaultValue: isEn ? 'Subtotal' : 'Sous-total' })}</span>
                 <span className="tabular-nums">{formatPrice(subtotal)}</span>
               </div>
 
               {/* Reception mode */}
               <div className="space-y-2.5">
                 <p className="text-[11px] font-bold text-foreground/40 uppercase tracking-widest">
-                  {t('reception_mode')}
+                  {t('reception_mode', { defaultValue: isEn ? 'Fulfillment Method' : 'Mode de réception' })}
                 </p>
                 <div className="grid grid-cols-2 gap-1 p-1 rounded-xl border border-foreground/10 bg-foreground/5">
                   <button
@@ -440,7 +501,8 @@ export default function CartPage() {
                         : 'text-foreground/50 hover:text-foreground'
                     )}
                   >
-                    <Truck size={14} /> {t('delivery_option')}
+                    <Truck size={14} />{' '}
+                    {t('delivery_option', { defaultValue: isEn ? 'Home Delivery' : 'Livraison' })}
                   </button>
                   <button
                     onClick={() => updateFormField('deliveryType', 'pickup')}
@@ -451,7 +513,8 @@ export default function CartPage() {
                         : 'text-foreground/50 hover:text-foreground'
                     )}
                   >
-                    <Store size={14} /> {t('pickup_option')}
+                    <Store size={14} />{' '}
+                    {t('pickup_option', { defaultValue: isEn ? 'Store Pickup' : 'Retrait magasin' })}
                   </button>
                 </div>
 
@@ -465,8 +528,8 @@ export default function CartPage() {
                       className="space-y-2 overflow-hidden pt-1"
                     >
                       <Input
-                        label={t('city', { defaultValue: 'Ville' })}
-                        placeholder={t('city', { defaultValue: 'Ville (ex: Yaoundé)' })}
+                        label={t('city', { defaultValue: isEn ? 'City' : 'Ville' })}
+                        placeholder={t('city_placeholder', { defaultValue: isEn ? 'City (e.g., Yaoundé, Douala)' : 'Ville (ex: Yaoundé)' })}
                         value={form.deliveryCity}
                         onChange={(e) => updateFormField('deliveryCity', e.target.value)}
                         disabled={isLoading || isProcessing}
@@ -479,7 +542,7 @@ export default function CartPage() {
                         <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-foreground/40" size={14} />
                         <input
                           type="text"
-                          placeholder={t('delivery_location_placeholder')}
+                          placeholder={t('delivery_location_placeholder', { defaultValue: isEn ? 'Neighborhood, area, landmark...' : 'Quartier, point de repère...' })}
                           value={form.deliveryLocation}
                           onChange={(e) => updateFormField('deliveryLocation', e.target.value)}
                           className="w-full bg-foreground/5 border border-foreground/10 rounded-xl pl-9 pr-4 py-2.5 text-sm text-foreground outline-none focus:border-gold transition-all"
@@ -498,7 +561,7 @@ export default function CartPage() {
               {/* Payment method */}
               <div className="space-y-2.5">
                 <p className="text-[11px] font-bold text-foreground/40 uppercase tracking-widest">
-                  {t('payment_mode')}
+                  {t('payment_mode', { defaultValue: isEn ? 'Payment Method' : 'Mode de paiement' })}
                 </p>
                 <div className="grid grid-cols-2 gap-1 p-1 rounded-xl border border-foreground/10 bg-foreground/5">
                   <button
@@ -513,7 +576,8 @@ export default function CartPage() {
                         : 'text-foreground/50 hover:text-foreground'
                     )}
                   >
-                    <CreditCard size={14} /> {t('cash_option')}
+                    <CreditCard size={14} />{' '}
+                    {t('cash_option', { defaultValue: isEn ? 'Cash / On Delivery' : 'Espèces' })}
                   </button>
                   <button
                     onClick={() => updateFormField('paymentMethod', 'mobile_money')}
@@ -524,7 +588,8 @@ export default function CartPage() {
                         : 'text-foreground/50 hover:text-foreground'
                     )}
                   >
-                    <Smartphone size={14} /> {t('mobile_money_option')}
+                    <Smartphone size={14} />{' '}
+                    {t('mobile_money_option', { defaultValue: isEn ? 'Mobile Money' : 'Mobile Money' })}
                   </button>
                 </div>
 
@@ -565,7 +630,7 @@ export default function CartPage() {
                       {mobileNetwork && (
                         <div className="p-3 rounded-xl border border-foreground/10 bg-foreground/5 text-center space-y-1.5">
                           <p className="text-[10px] text-foreground/40 uppercase font-bold tracking-wide">
-                            {t('payment_code')}
+                            {t('payment_code', { defaultValue: isEn ? 'USSD Transfer Code' : 'Code USSD de paiement' })}
                           </p>
                           <div className="flex items-center justify-center gap-2">
                             <p className="text-sm font-mono font-bold text-gold tabular-nums">
@@ -578,12 +643,14 @@ export default function CartPage() {
                                 )
                               }
                               className="text-foreground/40 hover:text-gold transition-colors"
-                              aria-label={t('copy_code', { defaultValue: 'Copier le code' })}
+                              aria-label={t('copy_code', { defaultValue: isEn ? 'Copy code' : 'Copier le code' })}
                             >
                               <Copy size={13} />
                             </button>
                           </div>
-                          <p className="text-[10px] text-foreground/40 leading-relaxed">{t('payment_code_notice')}</p>
+                          <p className="text-[10px] text-foreground/40 leading-relaxed">
+                            {t('payment_code_notice', { defaultValue: isEn ? 'Dial this code from your mobile phone to complete payment.' : 'Composez ce code sur votre téléphone mobile pour valider.' })}
+                          </p>
                         </div>
                       )}
                     </motion.div>
@@ -602,14 +669,18 @@ export default function CartPage() {
               )}
 
               <div className="flex justify-between text-foreground/70">
-                <span>{t('delivery')}</span>
-                <span>{deliveryType === 'delivery' ? t('to_be_defined') : t('free')}</span>
+                <span>{t('delivery', { defaultValue: isEn ? 'Delivery Fee' : 'Livraison' })}</span>
+                <span>
+                  {deliveryType === 'delivery'
+                    ? t('to_be_defined', { defaultValue: isEn ? 'Calculated on WhatsApp' : 'À définir' })
+                    : t('free', { defaultValue: isEn ? 'Free' : 'Gratuit' })}
+                </span>
               </div>
 
               {/* Order note */}
               <div>
                 <p className="text-[11px] font-bold text-foreground/40 uppercase tracking-widest mb-2">
-                  {t('order_note', { defaultValue: 'Note de commande' })}
+                  {t('order_note', { defaultValue: isEn ? 'Order Instructions' : 'Note de commande' })}
                 </p>
                 <textarea
                   id="field-noteClient"
@@ -617,7 +688,7 @@ export default function CartPage() {
                   onChange={(e) => updateFormField('noteClient', e.target.value)}
                   className="w-full bg-foreground/5 border border-foreground/10 rounded-xl px-3 py-2.5 text-sm text-foreground outline-none focus:border-gold transition-all resize-none"
                   rows={3}
-                  placeholder={t('order_note_placeholder')}
+                  placeholder={t('order_note_placeholder', { defaultValue: isEn ? 'Special requests, delivery time preferences...' : 'Précisions pour la livraison, demandes particulières...' })}
                   disabled={isLoading || isProcessing}
                 />
                 {formErrors.noteClient && <p className="mt-1 text-xs text-red-500">{formErrors.noteClient}</p>}
@@ -627,12 +698,16 @@ export default function CartPage() {
             {/* Total — dashed "receipt" divider */}
             <div className="border-t border-dashed border-foreground/20 mt-6 pt-5 mb-6">
               <div className="flex justify-between items-end">
-                <span className="text-sm font-medium text-foreground/70">{t('estimated_total')}</span>
+                <span className="text-sm font-medium text-foreground/70">
+                  {t('estimated_total', { defaultValue: isEn ? 'Estimated Total' : 'Total estimé' })}
+                </span>
                 <span className="font-display text-2xl sm:text-3xl font-bold text-gold tabular-nums">
                   {formatPrice(total)}
                 </span>
               </div>
-              <p className="text-[11px] text-foreground/40 mt-1 text-right">{t('taxes_included')}</p>
+              <p className="text-[11px] text-foreground/40 mt-1 text-right">
+                {t('taxes_included', { defaultValue: isEn ? 'Taxes & fees included' : 'Toutes taxes comprises' })}
+              </p>
             </div>
 
             {/* Promo code */}
@@ -640,28 +715,29 @@ export default function CartPage() {
               <form onSubmit={handleApplyPromo} className="flex gap-2 mb-6">
                 <div className="flex-1">
                   <Input
-                    label={t('promo_code', { defaultValue: 'Code promo' })}
-                    placeholder={t('promo_code')}
+                    label={t('promo_code', { defaultValue: isEn ? 'Promo Code' : 'Code promo' })}
+                    placeholder={t('promo_code_placeholder', { defaultValue: isEn ? 'Enter promo code' : 'Code promo' })}
                     value={promoInput}
                     onChange={(e) => setPromoInput(e.target.value.toUpperCase())}
                     disabled={isLoading}
                   />
                 </div>
                 <Button type="submit" variant="secondary" className="px-4 self-end" isLoading={isLoading}>
-                  {t('apply_code')}
+                  {t('apply_code', { defaultValue: isEn ? 'Apply' : 'Appliquer' })}
                 </Button>
               </form>
             ) : (
               <div className="flex items-center justify-between p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 mb-6">
                 <div className="flex items-center gap-2 text-emerald-500 text-sm font-medium">
                   <Tag size={16} />
-                  {cart.code_promo_applique} {t('active')}
+                  {cart.code_promo_applique}{' '}
+                  {t('active', { defaultValue: isEn ? 'Applied' : 'Appliqué' })}
                 </div>
                 <button
                   onClick={() => removePromoCode()}
                   disabled={isLoading}
                   className="text-foreground/40 hover:text-red-500 disabled:opacity-50 transition-colors"
-                  aria-label={t('remove_code', { defaultValue: 'Retirer le code' })}
+                  aria-label={t('remove_code', { defaultValue: isEn ? 'Remove promo code' : 'Retirer le code' })}
                 >
                   <X size={15} />
                 </button>
@@ -675,11 +751,15 @@ export default function CartPage() {
               isLoading={isProcessing}
               rightIcon={<Send size={18} />}
             >
-              {t('place_order', { defaultValue: 'Passer la commande' })}
+              {t('place_order', { defaultValue: isEn ? 'Place Order via WhatsApp' : 'Passer la commande' })}
             </Button>
 
             <p className="text-xs text-center text-foreground/50 mt-4 leading-relaxed">
-              {t('order_backend_notice', { defaultValue: 'Votre commande sera visible dans votre tableau de bord après validation.' })}
+              {t('order_backend_notice', {
+                defaultValue: isEn
+                  ? 'Your order will be logged in your account dashboard and finalized with a sales representative.'
+                  : 'Votre commande sera visible dans votre tableau de bord après validation.',
+              })}
             </p>
           </div>
         </div>

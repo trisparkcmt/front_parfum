@@ -1,10 +1,10 @@
 'use client';
 
 const countries = [
-  { name: 'Cameroun', flag: '🇨🇲', customers: 2879, pct: 72, color: '#3641F5' },
+  { name: 'Cameroon', flag: '🇨🇲', customers: 2879, pct: 72, color: '#3641F5' },
   { name: 'France', flag: '🇫🇷', customers: 589, pct: 18, color: '#6366F1' },
-  { name: 'Côte d\'Ivoire', flag: '🇨🇮', customers: 312, pct: 8, color: '#A5B4FC' },
-  { name: 'Sénégal', flag: '🇸🇳', customers: 180, pct: 5, color: '#C7D2FE' },
+  { name: 'Ivory Coast', flag: '🇨🇮', customers: 312, pct: 8, color: '#A5B4FC' },
+  { name: 'Senegal', flag: '🇸🇳', customers: 180, pct: 5, color: '#C7D2FE' },
   { name: 'Gabon', flag: '🇬🇦', customers: 94, pct: 3, color: '#E0E7FF' },
 ];
 
@@ -13,8 +13,8 @@ export default function CustomersDemographic() {
     <div className="bg-white/5 rounded-2xl border border-white/10 p-6 shadow-sm hover:shadow-gold/5 transition-all duration-300">
       <div className="flex items-center justify-between mb-5">
         <div>
-          <h3 className="font-semibold text-foreground">Démographie Clients</h3>
-          <p className="text-xs text-foreground/40 mt-0.5">Répartition par pays</p>
+          <h3 className="font-semibold text-foreground">Customer Demographics</h3>
+          <p className="text-xs text-foreground/40 mt-0.5">Breakdown by country</p>
         </div>
       </div>
 
@@ -61,12 +61,10 @@ export default function CustomersDemographic() {
                 />
               </div>
             </div>
-            <span className="text-xs text-foreground/40 w-24 text-right tabular-nums">{c.customers.toLocaleString('fr-FR')} clients</span>
+            <span className="text-xs text-foreground/40 w-24 text-right tabular-nums">{c.customers.toLocaleString('en-US')} customers</span>
           </div>
         ))}
       </div>
     </div>
   );
 }
-
-

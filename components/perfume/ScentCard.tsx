@@ -1,29 +1,13 @@
 'use client';
 
-import { motion } from 'framer-motion';
-
 /**
  * @file components/perfume/ScentCard.tsx
- * @description Essence Scent Profile & Interaction Card.
- *
- * This component displays the technical and artistic details of a single perfume 
- * essence and provides the user interface for adding it to a custom mix.
- * 
- * **Key Information Displayed**:
- * - **Olfactive Identity**: Shows the essence name and its associated olfactive family (e.g., Woody, Floral) with a dedicated icon and color badge.
- * - **Artistic Description**: Provides a sensory overview of the ingredient (Top, Heart, or Base note).
- * - **Visual representation**: Features a color-swatch indicator matching the essence's physical color.
- * 
- * **User Interactions**:
- * - **Incremental Control**: Allows users to add or remove liquid in 10ml steps (or the configured `ESSENCE_INCREMENT_ML`).
- * - **Dynamic Disabling**: Automatically disables the "Add" button when the global 100ml limit is reached in the Atelier.
- * 
- * **Props**:
- * - `essence`: The full `Essence` data object.
- * - `currentQuantity`: The volume of this specific essence already in the mix.
- * - `onAdd` / `onRemove`: Callback functions to update the parent Atelier's state.
+ * @description Essence Scent Profile & Interaction Card with in-file translations.
  */
-import { Plus, Minus, Info } from 'lucide-react';
+
+import { motion } from 'framer-motion';
+import i18n from 'i18next';
+import { Plus, Minus } from 'lucide-react';
 import { cn, formatPrice } from '@/lib/utils';
 import type { EssenceClient } from '@/types';
 import { ESSENCE_INCREMENT_ML } from '@/lib/constants';
@@ -41,7 +25,7 @@ export function ScentCard({ essence, currentQuantity, onAdd, onRemove, disabled 
     <motion.div
       whileHover={{ y: -5 }}
       className={cn(
-        "relative  p-4 border transition-all duration-300 overflow-hidden group flex flex-col h-full",
+        "relative p-4 border transition-all duration-300 overflow-hidden group flex flex-col h-full",
         currentQuantity > 0
           ? "bg-charcoal border-gold shadow-lg shadow-gold/10"
           : "bg-white/5 border-white/10 hover:border-white/30"
@@ -72,7 +56,7 @@ export function ScentCard({ essence, currentQuantity, onAdd, onRemove, disabled 
           {formatPrice(essence.pricePerMl * ESSENCE_INCREMENT_ML)} <span className="text-foreground/40 text-xs font-normal">/ {ESSENCE_INCREMENT_ML}ml</span>
         </div>
 
-        <div className="flex items-center gap-3 bg-black/20  p-1 border border-white/5">
+        <div className="flex items-center gap-3 bg-black/20 p-1 border border-white/5">
           <button
             onClick={() => onRemove(ESSENCE_INCREMENT_ML)}
             disabled={currentQuantity === 0}
@@ -93,5 +77,3 @@ export function ScentCard({ essence, currentQuantity, onAdd, onRemove, disabled 
     </motion.div>
   );
 }
-
-

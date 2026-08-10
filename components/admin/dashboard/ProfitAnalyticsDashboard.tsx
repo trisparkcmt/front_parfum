@@ -44,7 +44,7 @@ export default function ProfitAnalyticsDashboard() {
   const [loading, setLoading] = useState(true);
   const [dateDebut, setDateDebut] = useState('');
   const [dateFin, setDateFin] = useState('');
-  const [statut, setStatut] = useState('validé');
+  const [statut, setStatut] = useState('validated');
   const [profitData, setProfitData] = useState<any | null>(null);
   const [labData, setLabData] = useState<any | null>(null);
   const [expandedEssences, setExpandedEssences] = useState<Set<number>>(new Set());
@@ -58,7 +58,7 @@ export default function ProfitAnalyticsDashboard() {
       const params: Record<string, string> = {};
       if (dateDebut) params.date_debut = dateDebut;
       if (dateFin) params.date_fin = dateFin;
-      if (statut && statut !== 'tous') params.statut = statut;
+      if (statut && statut !== 'all') params.statut = statut;
 
       const labParams: Record<string, string> = {};
       if (dateDebut) labParams.start_date = dateDebut;
@@ -85,12 +85,12 @@ export default function ProfitAnalyticsDashboard() {
       } else {
         const status = (labRes.reason as any)?.response?.status;
         if (status === 500) {
-          addToast('Erreur serveur sur l\'endpoint lab/benefices/ (500). Vérifiez la configuration backend.', 'error');
+          addToast('Server error on endpoint lab/benefices/ (500). Please check backend configuration.', 'error');
         }
         setLabData(null);
       }
     } catch {
-      addToast('Erreur inattendue lors du chargement', 'error');
+      addToast('Unexpected error during loading', 'error');
     } finally {
       setLoading(false);
     }
@@ -146,8 +146,8 @@ export default function ProfitAnalyticsDashboard() {
               <TrendingUp size={20} />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-foreground">Tableau de Bord des Bénéfices</h2>
-              <p className="text-xs text-foreground/40">Analyse détaillée du chiffre d'affaires, coûts d'achat et marge nette</p>
+              <h2 className="text-lg font-bold text-foreground">Profit Analytics Dashboard</h2>
+              <p className="text-xs text-foreground/40">Detailed analysis of revenue, purchase costs, and net margin</p>
             </div>
           </div>
           <button
@@ -156,7 +156,7 @@ export default function ProfitAnalyticsDashboard() {
             className="p-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-foreground/70 hover:text-foreground transition-all self-start sm:self-auto flex items-center gap-2 text-xs font-semibold"
           >
             <RefreshCw size={14} className={loading ? 'animate-spin text-gold' : ''} />
-            Actualiser
+            Refresh
           </button>
         </div>
 
@@ -164,7 +164,7 @@ export default function ProfitAnalyticsDashboard() {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 border-t border-white/5">
           <div>
             <label className="block text-[10px] font-bold text-foreground/40 uppercase tracking-wider mb-1.5 flex items-center gap-1">
-              <Calendar size={12} /> Date Début
+              <Calendar size={12} /> Start Date
             </label>
             <input
               type="date"
@@ -175,7 +175,7 @@ export default function ProfitAnalyticsDashboard() {
           </div>
           <div>
             <label className="block text-[10px] font-bold text-foreground/40 uppercase tracking-wider mb-1.5 flex items-center gap-1">
-              <Calendar size={12} /> Date Fin
+              <Calendar size={12} /> End Date
             </label>
             <input
               type="date"
@@ -186,17 +186,17 @@ export default function ProfitAnalyticsDashboard() {
           </div>
           <div>
             <label className="block text-[10px] font-bold text-foreground/40 uppercase tracking-wider mb-1.5 flex items-center gap-1">
-              <Filter size={12} /> Statut Commande
+              <Filter size={12} /> Order Status
             </label>
             <select
               value={statut}
               onChange={e => setStatut(e.target.value)}
               className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs text-foreground outline-none focus:border-gold"
             >
-              <option value="validé" className="bg-neutral-900 text-white">Validées (Recommandé)</option>
-              <option value="livré" className="bg-neutral-900 text-white">Livrées uniquement</option>
-              <option value="payé" className="bg-neutral-900 text-white">Payées uniquement</option>
-              <option value="tous" className="bg-neutral-900 text-white">Tous les statuts</option>
+              <option value="validated" className="bg-neutral-900 text-white">Validated (Recommended)</option>
+              <option value="delivered" className="bg-neutral-900 text-white">Delivered only</option>
+              <option value="paid" className="bg-neutral-900 text-white">Paid only</option>
+              <option value="all" className="bg-neutral-900 text-white">All statuses</option>
             </select>
           </div>
         </div>
@@ -205,23 +205,23 @@ export default function ProfitAnalyticsDashboard() {
       {loading ? (
         <div className="flex flex-col items-center justify-center py-20 text-gold gap-3">
           <Loader2 className="animate-spin" size={32} />
-          <p className="text-sm font-medium">Calcul et analyse des bénéfices en cours...</p>
+          <p className="text-sm font-medium">Calculating and analyzing profit data...</p>
         </div>
       ) : error === 'auth' ? (
         <div className="bg-red-500/5 border border-red-500/20 rounded-2xl p-10 text-center space-y-3">
           <div className="w-14 h-14 rounded-full bg-red-500/10 border border-red-500/20 flex items-center justify-center mx-auto">
             <Award size={24} className="text-red-400" />
           </div>
-          <h3 className="font-bold text-foreground text-base">Accès non autorisé (401)</h3>
+          <h3 className="font-bold text-foreground text-base">Unauthorized Access (401)</h3>
           <p className="text-sm text-foreground/50 max-w-sm mx-auto">
-            Votre session a expiré ou votre compte n'a pas les droits Admin requis pour accéder aux statistiques financières.
-            Reconnectez-vous avec un compte administrateur.
+            Your session has expired or your account lacks the required Admin privileges to access financial analytics.
+            Please sign in with an administrator account.
           </p>
           <a
             href="/login"
             className="inline-block mt-2 px-5 py-2 rounded-xl bg-gold text-black text-xs font-bold hover:bg-gold/80 transition-colors"
           >
-            Se reconnecter
+            Sign In Again
           </a>
         </div>
       ) : (
@@ -230,46 +230,46 @@ export default function ProfitAnalyticsDashboard() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="bg-white/5 rounded-2xl border border-white/10 p-5 shadow-sm">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-semibold text-foreground/40">Chiffre d'Affaires Global</span>
+                <span className="text-xs font-semibold text-foreground/40">Overall Revenue</span>
                 <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-400">
                   <DollarSign size={18} />
                 </div>
               </div>
               <p className="text-2xl font-extrabold text-foreground">{caGlobal.toLocaleString()} <span className="text-xs font-normal text-foreground/40">FCFA</span></p>
-              <p className="text-[11px] text-foreground/40 mt-1">Total des ventes générées</p>
+              <p className="text-[11px] text-foreground/40 mt-1">Total sales generated</p>
             </div>
 
             <div className="bg-white/5 rounded-2xl border border-white/10 p-5 shadow-sm">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-semibold text-foreground/40">Coût d'Achat Total</span>
+                <span className="text-xs font-semibold text-foreground/40">Total Purchase Cost</span>
                 <div className="p-2 rounded-xl bg-amber-500/10 text-amber-400">
                   <Layers size={18} />
                 </div>
               </div>
               <p className="text-2xl font-extrabold text-foreground">{coutTotal.toLocaleString()} <span className="text-xs font-normal text-foreground/40">FCFA</span></p>
-              <p className="text-[11px] text-foreground/40 mt-1">Coût cumulé des produits & lots</p>
+              <p className="text-[11px] text-foreground/40 mt-1">Cumulative cost of products & lots</p>
             </div>
 
             <div className="bg-white/5 rounded-2xl border border-gold/20 p-5 shadow-sm bg-gradient-to-br from-gold/5 to-transparent">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-semibold text-gold">Bénéfice Net Global</span>
+                <span className="text-xs font-semibold text-gold">Overall Net Profit</span>
                 <div className="p-2 rounded-xl bg-gold/10 text-gold">
                   <Award size={18} />
                 </div>
               </div>
               <p className="text-2xl font-extrabold text-gold">{beneficeNet.toLocaleString()} <span className="text-xs font-normal text-gold/60">FCFA</span></p>
-              <p className="text-[11px] text-gold/60 mt-1">Marge nette globale : <span className="font-bold">{margeGlobale}%</span></p>
+              <p className="text-[11px] text-gold/60 mt-1">Overall net margin: <span className="font-bold">{margeGlobale}%</span></p>
             </div>
 
             <div className="bg-white/5 rounded-2xl border border-white/10 p-5 shadow-sm">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-semibold text-foreground/40">Nombre de Commandes</span>
+                <span className="text-xs font-semibold text-foreground/40">Number of Orders</span>
                 <div className="p-2 rounded-xl bg-purple-500/10 text-purple-400">
                   <Package size={18} />
                 </div>
               </div>
               <p className="text-2xl font-extrabold text-foreground">{nbCommandes}</p>
-              <p className="text-[11px] text-foreground/40 mt-1">Commandes comptabilisées</p>
+              <p className="text-[11px] text-foreground/40 mt-1">Completed orders counted</p>
             </div>
           </div>
 
@@ -278,17 +278,17 @@ export default function ProfitAnalyticsDashboard() {
             <div className="flex items-center justify-between">
               <h3 className="font-bold text-foreground text-sm flex items-center gap-2">
                 <PieChartIcon size={16} className="text-gold" />
-                Répartition Financière par Catégorie de Produit
+                Financial Breakdown by Product Category
               </h3>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
               {[
-                { title: 'Essences Catalogues', data: essencesCat, color: 'text-amber-400', bg: 'bg-amber-500/10' },
-                { title: 'Parfums Standards', data: parfumsCat, color: 'text-purple-400', bg: 'bg-purple-500/10' },
-                { title: 'Accessoires', data: accessoiresCat, color: 'text-sky-400', bg: 'bg-sky-500/10' },
-                { title: 'Parfums Personnalisés', data: parfumsPersoCat, color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
-                { title: 'Essences Sur-Mesure', data: essencesSurMesureCat, color: 'text-pink-400', bg: 'bg-pink-500/10' },
+                { title: 'Catalog Essences', data: essencesCat, color: 'text-amber-400' },
+                { title: 'Standard Perfumes', data: parfumsCat, color: 'text-purple-400' },
+                { title: 'Accessories', data: accessoiresCat, color: 'text-sky-400' },
+                { title: 'Custom Perfumes', data: parfumsPersoCat, color: 'text-emerald-400' },
+                { title: 'Tailor-Made Essences', data: essencesSurMesureCat, color: 'text-pink-400' },
               ].map(cat => {
                 const ca = parseFloat(String(cat.data?.chiffre_affaires || 0));
                 const cout = parseFloat(String(cat.data?.cout_total || 0));
@@ -297,11 +297,11 @@ export default function ProfitAnalyticsDashboard() {
                   <div key={cat.title} className="bg-white/5 rounded-xl border border-white/5 p-4 space-y-2">
                     <p className={`text-xs font-bold ${cat.color}`}>{cat.title}</p>
                     <div>
-                      <p className="text-[10px] text-foreground/40 uppercase">Chiffre d'Affaires</p>
+                      <p className="text-[10px] text-foreground/40 uppercase">Revenue</p>
                       <p className="text-sm font-bold text-foreground">{ca.toLocaleString()} FCFA</p>
                     </div>
                     <div>
-                      <p className="text-[10px] text-foreground/40 uppercase">Bénéfice Net</p>
+                      <p className="text-[10px] text-foreground/40 uppercase">Net Profit</p>
                       <p className={`text-sm font-extrabold ${ben >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
                         {ben >= 0 ? '+' : ''}{ben.toLocaleString()} FCFA
                       </p>
@@ -318,9 +318,9 @@ export default function ProfitAnalyticsDashboard() {
               <div>
                 <h3 className="font-bold text-foreground text-sm flex items-center gap-2">
                   <Sparkles size={16} className="text-gold" />
-                  Détail des Ventes & Lots par Essence
+                  Sales & Lots Detail by Essence
                 </h3>
-                <p className="text-xs text-foreground/40 mt-0.5">Cliquez sur une ligne pour afficher la répartition des lots associés</p>
+                <p className="text-xs text-foreground/40 mt-0.5">Click a row to expand associated lots breakdown</p>
               </div>
             </div>
 
@@ -329,10 +329,10 @@ export default function ProfitAnalyticsDashboard() {
                 <thead>
                   <tr className="border-b border-white/10 bg-white/5">
                     <th className="px-5 py-3.5 text-xs font-semibold text-foreground/40 uppercase tracking-wider">Essence</th>
-                    <th className="px-5 py-3.5 text-xs font-semibold text-foreground/40 uppercase tracking-wider">Catégorie</th>
-                    <th className="px-5 py-3.5 text-xs font-semibold text-foreground/40 uppercase tracking-wider">CA Cumulé</th>
-                    <th className="px-5 py-3.5 text-xs font-semibold text-foreground/40 uppercase tracking-wider">Coût Achat Cumulé</th>
-                    <th className="px-5 py-3.5 text-xs font-semibold text-foreground/40 uppercase tracking-wider">Bénéfice Total</th>
+                    <th className="px-5 py-3.5 text-xs font-semibold text-foreground/40 uppercase tracking-wider">Category</th>
+                    <th className="px-5 py-3.5 text-xs font-semibold text-foreground/40 uppercase tracking-wider">Cumulative Revenue</th>
+                    <th className="px-5 py-3.5 text-xs font-semibold text-foreground/40 uppercase tracking-wider">Cumulative Cost</th>
+                    <th className="px-5 py-3.5 text-xs font-semibold text-foreground/40 uppercase tracking-wider">Total Profit</th>
                     <th className="px-5 py-3.5 text-xs font-semibold text-foreground/40 uppercase tracking-wider text-right">Lots</th>
                   </tr>
                 </thead>
@@ -385,7 +385,7 @@ export default function ProfitAnalyticsDashboard() {
                               <div className="space-y-3">
                                 <p className="text-xs font-bold text-gold uppercase tracking-wider flex items-center gap-1.5">
                                   <Layers size={13} />
-                                  Lots d'essence consommés & rentabilité
+                                  Consumed essence lots & profitability
                                 </p>
                                 {lotsList.length > 0 ? (
                                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -403,14 +403,14 @@ export default function ProfitAnalyticsDashboard() {
                                             </span>
                                           </div>
                                           <p className="text-[10px] text-foreground/40">
-                                            Stock restant : <span className="text-foreground/70 font-semibold">{stockRestant} ml</span>
+                                            Remaining stock: <span className="text-foreground/70 font-semibold">{stockRestant} ml</span>
                                           </p>
                                         </div>
                                       );
                                     })}
                                   </div>
                                 ) : (
-                                  <p className="text-xs text-foreground/40 italic">Aucun lot spécifique enregistré pour cette essence.</p>
+                                  <p className="text-xs text-foreground/40 italic">No specific lots recorded for this essence.</p>
                                 )}
                               </div>
                             </td>
@@ -422,7 +422,7 @@ export default function ProfitAnalyticsDashboard() {
                   {detailEssences.length === 0 && (
                     <tr>
                       <td colSpan={6} className="text-center py-16 text-foreground/40 italic text-sm">
-                        Aucune vente d'essence enregistrée sur cette période.
+                        No essence sales recorded for this period.
                       </td>
                     </tr>
                   )}

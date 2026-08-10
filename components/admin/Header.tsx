@@ -1,7 +1,16 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { Menu, Search, Moon, Sun, Bell, User, ArrowLeft, ShoppingCart, Package, Sparkles, Gem, Users2, Check } from 'lucide-react';
+import Link from 'next/link';
+import { useRouter, usePathname } from 'next/navigation';
+import { 
+  Menu, Search, Moon, Sun, Bell, User, ArrowLeft, 
+  ShoppingCart, Package, Sparkles, Gem, Users2, Check 
+} from 'lucide-react';
+
+import { useAuthStore } from '@/store/useAuthStore';
+import { useThemeStore } from '@/store/useThemeStore';
+import { notificationService } from '@/services/apiService';
 
 interface HeaderProps {
   onMenuClick: () => void;
@@ -14,20 +23,12 @@ type Suggestion = {
   icon: React.ReactNode;
 };
 
-import { useRouter } from 'next/navigation';
-import { Button } from '@/components/ui/Button';
-import { useAuthStore } from '@/store/useAuthStore';
-import { notificationService } from '@/services/apiService';
-
-import { useThemeStore } from '@/store/useThemeStore';
-import { usePathname } from 'next/navigation';
-import Link from 'next/link';
-
 export default function Header({ onMenuClick }: HeaderProps) {
   const router = useRouter();
   const pathname = usePathname();
   const { user } = useAuthStore();
   const { theme, toggleTheme, initTheme } = useThemeStore();
+  
   const [search, setSearch] = useState('');
   const [showNotifs, setShowNotifs] = useState(false);
   const [notifications, setNotifications] = useState<any[]>([]);
@@ -35,7 +36,9 @@ export default function Header({ onMenuClick }: HeaderProps) {
   const notifRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLDivElement>(null);
 
-  // Search autocomplete state
+  const isServeuseContext = pathname?.includes('/dashboard/serveuse');
+  const dashboardBasePath = isServeuseContext ? '/dashboard/serveuse' : '/dashboard/admin';
+
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [searchLoading, setSearchLoading] = useState(false);
@@ -46,28 +49,25 @@ export default function Header({ onMenuClick }: HeaderProps) {
     initTheme();
   }, [initTheme]);
 
-  // Build static page suggestions matching the query
   const buildStaticSuggestions = useCallback((q: string): Suggestion[] => {
     const lower = q.toLowerCase();
-    const pages: { label: string; href: string; icon: React.ReactNode; keywords: string[] }[] = [
-      { label: 'Commandes', href: `${dashboardBasePath}/order`, icon: <ShoppingCart size={14} />, keywords: ['commande', 'order', 'cmd'] },
-      { label: 'Parfums', href: `${dashboardBasePath}/perfume`, icon: <Sparkles size={14} />, keywords: ['parfum', 'perfume'] },
-      { label: 'Accessoires', href: `${dashboardBasePath}/accessories`, icon: <Gem size={14} />, keywords: ['accessoire', 'accessory'] },
-      { label: 'Clients', href: `${dashboardBasePath}/clients`, icon: <Users2 size={14} />, keywords: ['client', 'user', 'utilisateur'] },
-      { label: 'Codes Promo', href: `${dashboardBasePath}/promo-codes`, icon: <Package size={14} />, keywords: ['promo', 'code', 'réduction'] },
+    const pages = [
+      { label: 'Orders', href: `${dashboardBasePath}/order`, icon: <ShoppingCart size={14} />, keywords: ['commande', 'order', 'cmd'] },
+      { label: 'Perfumes', href: `${dashboardBasePath}/perfume`, icon: <Sparkles size={14} />, keywords: ['parfum', 'perfume'] },
+      { label: 'Accessories', href: `${dashboardBasePath}/accessories`, icon: <Gem size={14} />, keywords: ['accessoire', 'accessory'] },
+      { label: 'Customers', href: `${dashboardBasePath}/clients`, icon: <Users2 size={14} />, keywords: ['client', 'user', 'customer'] },
+      { label: 'Promo Codes', href: `${dashboardBasePath}/promo-codes`, icon: <Package size={14} />, keywords: ['promo', 'code', 'discount'] },
     ];
     return pages
       .filter(p => p.keywords.some(kw => kw.includes(lower) || lower.includes(kw)))
-      .map(p => ({ label: p.label, href: p.href, icon: p.icon, sub: 'Page admin' }));
-  }, []);
+      .map(p => ({ label: p.label, href: p.href, icon: p.icon, sub: 'Navigation Page' }));
+  }, [dashboardBasePath]);
 
-  // Fetch live search suggestions
   const fetchSuggestions = useCallback(async (q: string) => {
     if (!q || q.length < 2) { setSuggestions([]); setShowSuggestions(false); return; }
     setSearchLoading(true);
     try {
-      const { adminService: adminSvc } = await import('@/services/apiService');
-      const { orderService: orderSvc } = await import('@/services/apiService');
+      const { adminService: adminSvc, orderService: orderSvc } = await import('@/services/apiService');
 
       const [usersData, ordersData] = await Promise.allSettled([
         adminSvc.getUsers({ search: q }),
@@ -76,7 +76,6 @@ export default function Header({ onMenuClick }: HeaderProps) {
 
       const results: Suggestion[] = [];
 
-      // Users
       if (usersData.status === 'fulfilled') {
         const users = usersData.value.results ?? usersData.value.resultats ?? (Array.isArray(usersData.value) ? usersData.value : []);
         users.slice(0, 3).forEach((u: any) => {
@@ -84,26 +83,24 @@ export default function Header({ onMenuClick }: HeaderProps) {
           results.push({
             label: name,
             sub: u.email ?? u.telephone,
-            href: `/dashboard/admin/clients`,
+            href: `${dashboardBasePath}/clients`,
             icon: <User size={14} />,
           });
         });
       }
 
-      // Orders
       if (ordersData.status === 'fulfilled') {
         const orders = ordersData.value.results ?? ordersData.value.resultats ?? (Array.isArray(ordersData.value) ? ordersData.value : []);
         orders.slice(0, 3).forEach((o: any) => {
           results.push({
             label: o.numero_commande,
-            sub: `${o.livraison_nom_complet ?? ''} — ${Number(o.total_ttc ?? 0).toLocaleString('fr-FR')} FCFA`,
-            href: `/dashboard/admin/order`,
+            sub: `${o.livraison_nom_complet ?? ''} — ${Number(o.total_ttc ?? 0).toLocaleString()} FCFA`,
+            href: `${dashboardBasePath}/order`,
             icon: <ShoppingCart size={14} />,
           });
         });
       }
 
-      // Page suggestions
       results.push(...buildStaticSuggestions(q));
 
       setSuggestions(results.slice(0, 8));
@@ -115,9 +112,8 @@ export default function Header({ onMenuClick }: HeaderProps) {
     } finally {
       setSearchLoading(false);
     }
-  }, [buildStaticSuggestions]);
+  }, [buildStaticSuggestions, dashboardBasePath]);
 
-  // Debounce search input
   useEffect(() => {
     if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
     if (search.length >= 2) {
@@ -128,9 +124,6 @@ export default function Header({ onMenuClick }: HeaderProps) {
     }
     return () => { if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current); };
   }, [search, fetchSuggestions]);
-
-  const isServeuseContext = pathname?.includes('/dashboard/serveuse');
-  const dashboardBasePath = isServeuseContext ? '/dashboard/serveuse' : '/dashboard/admin';
 
   const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'ArrowDown') {
@@ -161,12 +154,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
     }
   };
 
-  // Determine profile path based on user role
-  const getProfilePath = () => {
-    return '/dashboard/profile';
-  };
-  
-  const profilePath = getProfilePath();
+  const profilePath = '/dashboard/profile';
   
   const fetchNotifications = async () => {
     try {
@@ -195,7 +183,6 @@ export default function Header({ onMenuClick }: HeaderProps) {
     return () => clearInterval(interval);
   }, []);
 
-  // Close dropdowns on outside click
   useEffect(() => {
     function handleClick(e: MouseEvent) {
       if (notifRef.current && !notifRef.current.contains(e.target as Node)) setShowNotifs(false);
@@ -223,7 +210,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
           className="flex items-center gap-2 text-foreground/60 hover:text-gold transition-colors group"
         >
           <ArrowLeft size={18} className="group-hover:-translate-x-1 transition-transform" />
-          <span className="text-xs font-bold uppercase tracking-wider hidden sm:block">Retour</span>
+          <span className="text-xs font-bold uppercase tracking-wider hidden sm:block">Back</span>
         </button>
       </div>
 
@@ -234,7 +221,6 @@ export default function Header({ onMenuClick }: HeaderProps) {
         <Menu size={20} />
       </button>
 
-      {/* Search with autocomplete */}
       <div ref={searchRef} className="hidden sm:block relative flex-1 max-w-md">
         <div className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-lg px-3 py-2 focus-within:border-gold focus-within:ring-1 focus-within:ring-gold/20 transition-all">
           <Search size={16} className={`transition-colors ${searchLoading ? 'text-gold animate-pulse' : 'text-foreground/40'}`} />
@@ -244,7 +230,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
             onChange={e => { setSearch(e.target.value); setShowSuggestions(true); }}
             onKeyDown={handleSearchKeyDown}
             onFocus={() => { if (suggestions.length > 0) setShowSuggestions(true); }}
-            placeholder="Rechercher commandes, clients, pages…"
+            placeholder="Search orders, customers, pages…"
             className="flex-1 bg-transparent text-sm text-foreground placeholder:text-foreground/40 outline-none"
           />
           {search && (
@@ -255,7 +241,6 @@ export default function Header({ onMenuClick }: HeaderProps) {
           {!search && <span className="text-xs text-foreground/40 bg-white/5 border border-white/10 rounded px-1.5 py-0.5 font-mono flex-shrink-0">⏎</span>}
         </div>
 
-        {/* Dropdown suggestions */}
         {showSuggestions && suggestions.length > 0 && (
           <div className="absolute top-full left-0 right-0 mt-1.5 bg-background border border-white/10 rounded-xl shadow-sm z-50 overflow-hidden">
             <div className="py-1">
@@ -280,16 +265,16 @@ export default function Header({ onMenuClick }: HeaderProps) {
               ))}
             </div>
             <div className="border-t border-white/10 px-4 py-2 flex items-center justify-between">
-              <span className="text-[10px] text-foreground/30">↑↓ naviguer · ↵ sélectionner</span>
+              <span className="text-[10px] text-foreground/30">↑↓ navigate · ↵ select</span>
               <button
                 onClick={() => {
                   const q = search.trim();
-                  if (q) router.push(`/dashboard/admin/order?search=${encodeURIComponent(q)}`);
+                  if (q) router.push(`${dashboardBasePath}/order?search=${encodeURIComponent(q)}`);
                   setShowSuggestions(false);
                 }}
                 className="text-[10px] text-gold hover:underline"
               >
-                Voir tous les résultats →
+                See all results →
               </button>
             </div>
           </div>
@@ -297,7 +282,6 @@ export default function Header({ onMenuClick }: HeaderProps) {
       </div>
 
       <div className="ml-auto flex items-center gap-1 sm:gap-2">
-        {/* Dark mode toggle */}
         <button
           onClick={toggleTheme}
           className="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-white/5 text-foreground/60 transition-colors"
@@ -305,10 +289,9 @@ export default function Header({ onMenuClick }: HeaderProps) {
           {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
         </button>
 
-        {/* Notifications */}
         <div ref={notifRef} className="relative">
           <button
-            onClick={() => { setShowNotifs(!showNotifs); }}
+            onClick={() => setShowNotifs(!showNotifs)}
             className="relative w-9 h-9 flex items-center justify-center rounded-lg hover:bg-white/5 text-foreground/60 transition-colors"
           >
             <Bell size={18} />
@@ -319,19 +302,18 @@ export default function Header({ onMenuClick }: HeaderProps) {
             )}
           </button>
 
-          {/* Notifications dropdown */}
           {showNotifs && (
             <div className="absolute right-0 mt-2 w-80 bg-background rounded-xl border border-white/10 shadow-sm z-50 overflow-hidden">
               <div className="px-4 py-3 border-b border-white/10 flex items-center justify-between">
                 <h3 className="font-semibold text-sm text-foreground">Notifications</h3>
                 <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-red-500/10 text-red-500">
-                  {unreadCount} nouvelle{unreadCount > 1 ? 's' : ''}
+                  {unreadCount} new
                 </span>
               </div>
               <div className="max-h-72 overflow-y-auto">
                 {notifications.map(n => {
                   const dateObj = new Date(n.cree_le || n.date_creation || Date.now());
-                  const timeString = dateObj.toLocaleDateString('fr-FR', {
+                  const timeString = dateObj.toLocaleDateString('en-US', {
                     day: '2-digit',
                     month: 'short',
                     hour: '2-digit',
@@ -342,18 +324,11 @@ export default function Header({ onMenuClick }: HeaderProps) {
                     <div
                       key={n.id}
                       onClick={() => {
+                        const isServeuse = user?.roles?.includes('serveuse');
                         if (n.isOrder) {
-                          if (user?.roles?.includes('serveuse')) {
-                            router.push('/dashboard/serveuse/orders');
-                          } else {
-                            router.push('/dashboard/admin/order');
-                          }
+                          router.push(isServeuse ? '/dashboard/serveuse/order' : '/dashboard/admin/order');
                         } else {
-                          if (user?.roles?.includes('serveuse')) {
-                            router.push('/dashboard/serveuse/notifications');
-                          } else {
-                            router.push('/dashboard/admin/notifications');
-                          }
+                          router.push(isServeuse ? '/dashboard/serveuse/notifications' : '/dashboard/admin/notifications');
                         }
                         setShowNotifs(false);
                       }}
@@ -370,7 +345,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
                           <button
                             onClick={(e) => handleMarkAsRead(n.id, e)}
                             className="p-1 rounded hover:bg-white/10 text-foreground/40 hover:text-foreground transition-colors shrink-0"
-                            title="Marquer comme lue"
+                            title="Mark as read"
                           >
                             <Check size={12} />
                           </button>
@@ -381,7 +356,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
                 })}
                 {notifications.length === 0 && (
                   <div className="px-4 py-8 text-center text-xs text-foreground/40 italic">
-                    Aucune nouvelle notification
+                    No new notifications
                   </div>
                 )}
               </div>
@@ -391,18 +366,17 @@ export default function Header({ onMenuClick }: HeaderProps) {
                   onClick={() => setShowNotifs(false)}
                   className="text-xs font-semibold text-gold hover:text-gold/80 transition-colors inline-block w-full py-1"
                 >
-                  Voir toutes les notifications
+                  View all notifications
                 </Link>
               </div>
             </div>
           )}
         </div>
 
-        {/* Profile Link */}
         <Link 
           href={profilePath}
           className="flex items-center gap-2 cursor-pointer hover:bg-white/5 rounded-lg px-2 py-1.5 transition-colors group"
-          title="Mon Profil"
+          title="My Profile"
         >
           <User size={18} className="text-foreground/60 group-hover:text-gold transition-colors" />
           <div className="w-8 h-8 rounded-full bg-gradient-to-br from-gold to-gold-dark flex items-center justify-center text-black text-xs font-bold shadow-lg shadow-gold/20 group-hover:scale-105 transition-transform">
@@ -414,5 +388,3 @@ export default function Header({ onMenuClick }: HeaderProps) {
     </header>
   );
 }
-
-

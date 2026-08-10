@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Loader2, Edit2, Trash2, Plus, Search, Gem, FlaskConical, Tag, Calendar, Image as ImageIcon, CheckCircle2, XCircle } from 'lucide-react';
+import { Loader2, Edit2, Trash2, Plus, Search, Gem, FlaskConical, Tag, Calendar, Image as ImageIcon } from 'lucide-react';
 import { PerfumeIcon } from '@/components/icons/CustomIcons';
 import { shopService, adminService } from '@/services/apiService';
 import { useToastStore } from '@/store/useToastStore';
@@ -10,6 +10,193 @@ import CompactIconUpload from '@/components/admin/CompactIconUpload';
 import { SlideOver } from '@/components/ui/SlideOver';
 import { fromDatetimeLocalValue, formatPromotionPeriod, toDatetimeLocalValue } from '@/lib/promotionUtils';
 import { extractApiError } from '@/lib/apiError';
+
+/* -------------------------------------------------------------------------- */
+/* Inline Translations Dictionary                                              */
+/* -------------------------------------------------------------------------- */
+
+type Language = 'fr' | 'en';
+
+const dictionary = {
+  fr: {
+    common: {
+      add: 'Ajouter',
+      edit: 'Modifier',
+      delete: 'Supprimer',
+      save: 'Enregistrer',
+      cancel: 'Annuler',
+      loading: 'Chargement…',
+    },
+    categories: {
+      title: 'Classifications & catégories',
+      subtitle: "Types d'accessoires, flacons et catégories de parfums",
+      search_placeholder: 'Rechercher…',
+      no_results: 'Aucun résultat',
+      tabs: {
+        perfume_categories: 'Catégories parfums',
+        accessory_categories: 'Catégories accessoires',
+        bottle_types: 'Types flacons',
+      },
+      table: {
+        icon: 'Icône',
+        name: 'Nom',
+        slug: 'Slug',
+        display_order: 'Ordre',
+        discount: 'Réduction',
+        description: 'Description',
+        promo_period: 'Période promo',
+        actions: 'Actions',
+      },
+      sections: {
+        general: 'Informations générales',
+        promotion: 'Configuration promotion',
+        visual_status: 'Visuel & Statut',
+      },
+      form: {
+        name: 'Nom',
+        slug: 'Slug',
+        display_order: "Ordre d'affichage",
+        discount_rate: 'Réduction (%)',
+        description: 'Description',
+        start_date: 'Date début',
+        end_date: 'Date fin',
+        promo_message: 'Message promotion',
+        category_icon: "Image / Icône de la catégorie",
+        type_icon: 'Icône du type',
+        active: 'Actif',
+      },
+      placeholders: {
+        description: 'Description...',
+      },
+      errors: {
+        name_required: 'Le nom est requis',
+        slug_required: 'Le slug est requis',
+        display_order_required: "L'ordre d'affichage est requis",
+        display_order_positive: "L'ordre d'affichage doit être un nombre positif",
+        discount_rate_required: 'Le taux de réduction est requis',
+        discount_rate_range: 'Le taux de réduction doit être entre 0 et 100',
+        promo_message_required: 'Le message de promotion est requis',
+        start_date_required: 'La date de début est requise',
+        end_date_required: 'La date de fin est requise',
+        end_date_after_start: 'La date de fin doit être après la date de début',
+        description_required: 'La description est requise',
+      },
+      toasts: {
+        load_error: 'Erreur lors du chargement des données',
+        perfume_category_created: 'Catégorie parfum créée',
+        perfume_category_updated: 'Catégorie parfum mise à jour',
+        accessory_type_created: 'Type accessoire créé',
+        accessory_type_updated: 'Type accessoire mis à jour',
+        bottle_type_created: 'Type flacon créé',
+        bottle_type_updated: 'Type flacon mis à jour',
+        save_error: 'Erreur lors de la sauvegarde',
+        delete_success: 'Élément supprimé',
+        delete_error: 'Erreur lors de la suppression',
+      },
+      confirmations: {
+        delete_item: 'Êtes-vous sûr de vouloir supprimer cet élément ?',
+      },
+      modal: {
+        description: 'Renseignez les informations requises pour cette classification.',
+        add_perfume_category: 'Nouvelle catégorie parfum',
+        edit_perfume_category: 'Modifier la catégorie',
+        add_accessory_type: 'Nouveau type accessoire',
+        edit_accessory_type: 'Modifier le type',
+        add_bottle_type: 'Nouveau type flacon',
+        edit_bottle_type: 'Modifier le flacon',
+      },
+    },
+  },
+  en: {
+    common: {
+      add: 'Add',
+      edit: 'Edit',
+      delete: 'Delete',
+      save: 'Save',
+      cancel: 'Cancel',
+      loading: 'Loading…',
+    },
+    categories: {
+      title: 'Classifications & Categories',
+      subtitle: 'Accessory types, bottles, and perfume categories',
+      search_placeholder: 'Search…',
+      no_results: 'No results found',
+      tabs: {
+        perfume_categories: 'Perfume Categories',
+        accessory_categories: 'Accessory Categories',
+        bottle_types: 'Bottle Types',
+      },
+      table: {
+        icon: 'Icon',
+        name: 'Name',
+        slug: 'Slug',
+        display_order: 'Order',
+        discount: 'Discount',
+        description: 'Description',
+        promo_period: 'Promo Period',
+        actions: 'Actions',
+      },
+      sections: {
+        general: 'General Information',
+        promotion: 'Promotion Setup',
+        visual_status: 'Visual & Status',
+      },
+      form: {
+        name: 'Name',
+        slug: 'Slug',
+        display_order: 'Display Order',
+        discount_rate: 'Discount Rate (%)',
+        description: 'Description',
+        start_date: 'Start Date',
+        end_date: 'End Date',
+        promo_message: 'Promo Message',
+        category_icon: 'Category Image / Icon',
+        type_icon: 'Type Icon',
+        active: 'Active',
+      },
+      placeholders: {
+        description: 'Description...',
+      },
+      errors: {
+        name_required: 'Name is required',
+        slug_required: 'Slug is required',
+        display_order_required: 'Display order is required',
+        display_order_positive: 'Display order must be a positive number',
+        discount_rate_required: 'Discount rate is required',
+        discount_rate_range: 'Discount rate must be between 0 and 100',
+        promo_message_required: 'Promo message is required',
+        start_date_required: 'Start date is required',
+        end_date_required: 'End date is required',
+        end_date_after_start: 'End date must be after start date',
+        description_required: 'Description is required',
+      },
+      toasts: {
+        load_error: 'Error loading data',
+        perfume_category_created: 'Perfume category created',
+        perfume_category_updated: 'Perfume category updated',
+        accessory_type_created: 'Accessory type created',
+        accessory_type_updated: 'Accessory type updated',
+        bottle_type_created: 'Bottle type created',
+        bottle_type_updated: 'Bottle type updated',
+        save_error: 'Error saving item',
+        delete_success: 'Item deleted',
+        delete_error: 'Error deleting item',
+      },
+      confirmations: {
+        delete_item: 'Are you sure you want to delete this item?',
+      },
+      modal: {
+        description: 'Provide the required information for this classification.',
+        add_perfume_category: 'New Perfume Category',
+        edit_perfume_category: 'Edit Category',
+        add_accessory_type: 'New Accessory Type',
+        edit_accessory_type: 'Edit Type',
+        add_bottle_type: 'New Bottle Type',
+        edit_bottle_type: 'Edit Bottle Type',
+      },
+    },
+  },
+};
 
 type TabKey = 'perfume_categories' | 'accessory_categories' | 'bottle_types';
 
@@ -66,27 +253,6 @@ function FormSection({
   );
 }
 
-function StatusChip({ active }: { active: boolean }) {
-  return (
-    <span
-      className={cx(
-        'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium ring-1 ring-inset',
-        active
-          ? 'text-emerald-400 bg-emerald-500/10 ring-emerald-500/20'
-          : 'text-foreground/40 bg-white/[0.03] ring-white/10'
-      )}
-    >
-      <span
-        className={cx(
-          'h-1.5 w-1.5 rounded-full',
-          active ? 'bg-emerald-400' : 'bg-foreground/40'
-        )}
-      />
-      {active ? 'Actif' : 'Inactif'}
-    </span>
-  );
-}
-
 function TabButton({
   active,
   onClick,
@@ -119,6 +285,7 @@ function TabButton({
 /* -------------------------------------------------------------------------- */
 
 export default function CategoriesAdminPage() {
+  const [lang, setLang] = useState<Language>('fr');
   const [activeTab, setActiveTab] = useState<TabKey>('perfume_categories');
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -144,6 +311,19 @@ export default function CategoriesAdminPage() {
 
   const { addToast } = useToastStore();
 
+  const t = useCallback((path: string): string => {
+    const keys = path.split('.');
+    let current: any = dictionary[lang];
+    for (const key of keys) {
+      if (current && current[key] !== undefined) {
+        current = current[key];
+      } else {
+        return path;
+      }
+    }
+    return typeof current === 'string' ? current : path;
+  }, [lang]);
+
   const fetchItems = useCallback(async () => {
     try {
       setLoading(true);
@@ -158,11 +338,11 @@ export default function CategoriesAdminPage() {
       const list = data?.results || data?.resultats || (Array.isArray(data) ? data : []);
       setItems(list);
     } catch {
-      addToast('Erreur lors du chargement des données', 'error');
+      addToast(t('categories.toasts.load_error'), 'error');
     } finally {
       setLoading(false);
     }
-  }, [activeTab, addToast]);
+  }, [activeTab, addToast, t]);
 
   useEffect(() => {
     fetchItems();
@@ -215,42 +395,37 @@ export default function CategoriesAdminPage() {
   };
 
   const handleSave = async () => {
-    // Validate all fields
     const errors: Record<string, string> = {};
 
-    // Validate based on active tab
     if (activeTab === 'perfume_categories' || activeTab === 'accessory_categories') {
-      if (!form.nom.trim()) errors.nom = 'Le nom est requis';
-      if (!form.slug.trim()) errors.slug = 'Le slug est requis';
+      if (!form.nom.trim()) errors.nom = t('categories.errors.name_required');
+      if (!form.slug.trim()) errors.slug = t('categories.errors.slug_required');
       if (form.ordre_affichage === undefined || form.ordre_affichage === null)
-        errors.ordre_affichage = "L'ordre d'affichage est requis";
+        errors.ordre_affichage = t('categories.errors.display_order_required');
       else if (isNaN(Number(form.ordre_affichage)) || Number(form.ordre_affichage) < 0)
-        errors.ordre_affichage = "L'ordre d'affichage doit être un nombre positif";
-      if (!form.taux_reduction) errors.taux_reduction = 'Le taux de réduction est requis';
+        errors.ordre_affichage = t('categories.errors.display_order_positive');
+      if (!form.taux_reduction) errors.taux_reduction = t('categories.errors.discount_rate_required');
       else if (
         isNaN(Number(form.taux_reduction)) ||
         Number(form.taux_reduction) < 0 ||
         Number(form.taux_reduction) > 100
       )
-        errors.taux_reduction = 'Le taux de réduction doit être entre 0 et 100';
-      if (!form.message_promotion) errors.message_promotion = 'Le message de promotion est requis';
+        errors.taux_reduction = t('categories.errors.discount_rate_range');
+      if (!form.message_promotion) errors.message_promotion = t('categories.errors.promo_message_required');
     }
 
-    // Date validation (only for perfume and accessory categories)
     if (activeTab === 'perfume_categories' || activeTab === 'accessory_categories') {
-      if (!form.date_debut) errors.date_debut = 'La date de début est requise';
-      if (!form.date_fin) errors.date_fin = 'La date de fin est requise';
+      if (!form.date_debut) errors.date_debut = t('categories.errors.start_date_required');
+      if (!form.date_fin) errors.date_fin = t('categories.errors.end_date_required');
       else if (form.date_debut && form.date_fin && new Date(form.date_fin) < new Date(form.date_debut)) {
-        errors.date_fin = 'La date de fin doit être après la date de début';
+        errors.date_fin = t('categories.errors.end_date_after_start');
       }
     }
 
-    // Description validation (only for accessory and bottle types)
     if (activeTab === 'accessory_categories' || activeTab === 'bottle_types') {
-      if (!form.description.trim()) errors.description = 'La description est requise';
+      if (!form.description.trim()) errors.description = t('categories.errors.description_required');
     }
 
-    // Set errors and focus first invalid field if any
     if (Object.keys(errors).length > 0) {
       setFormErrors(errors);
       setTimeout(() => {
@@ -267,7 +442,6 @@ export default function CategoriesAdminPage() {
       return;
     }
 
-    // No errors, proceed with save
     try {
       if (activeTab === 'perfume_categories') {
         const formData = new FormData();
@@ -287,10 +461,10 @@ export default function CategoriesAdminPage() {
         }
         if (editingItem) {
           await adminService.patchFormData(`shop/categories-parfum/${editingItem.id}/`, formData);
-          addToast('Catégorie parfum mise à jour', 'success');
+          addToast(t('categories.toasts.perfume_category_updated'), 'success');
         } else {
           await adminService.postFormData('shop/categories-parfum/', formData);
-          addToast('Catégorie parfum créée', 'success');
+          addToast(t('categories.toasts.perfume_category_created'), 'success');
         }
       } else if (activeTab === 'accessory_categories') {
         const formData = new FormData();
@@ -309,31 +483,31 @@ export default function CategoriesAdminPage() {
         }
         if (editingItem) {
           await adminService.patchFormData(`shop/types-accessoire/${editingItem.id}/`, formData);
-          addToast('Type accessoire mis à jour', 'success');
+          addToast(t('categories.toasts.accessory_type_updated'), 'success');
         } else {
           await adminService.postFormData('shop/types-accessoire/', formData);
-          addToast('Type accessoire créé', 'success');
+          addToast(t('categories.toasts.accessory_type_created'), 'success');
         }
       } else if (activeTab === 'bottle_types') {
         const payload = { nom: form.nom, description: form.description };
         if (editingItem) {
           await shopService.updateBottleType(editingItem.id, payload);
-          addToast('Type flacon mis à jour', 'success');
+          addToast(t('categories.toasts.bottle_type_updated'), 'success');
         } else {
           await shopService.createBottleType(payload);
-          addToast('Type flacon créé', 'success');
+          addToast(t('categories.toasts.bottle_type_created'), 'success');
         }
       }
 
       setShowModal(false);
       fetchItems();
     } catch (error: any) {
-      setFormError(extractApiError(error, 'Erreur lors de la sauvegarde'));
+      setFormError(extractApiError(error, t('categories.toasts.save_error')));
     }
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm('Êtes-vous sûr de vouloir supprimer cet élément ?')) return;
+    if (!confirm(t('categories.confirmations.delete_item'))) return;
     try {
       if (activeTab === 'perfume_categories') {
         await shopService.deletePerfumeCategory(id);
@@ -342,10 +516,10 @@ export default function CategoriesAdminPage() {
       } else if (activeTab === 'bottle_types') {
         await shopService.deleteBottleType(id);
       }
-      addToast('Élément supprimé', 'success');
+      addToast(t('categories.toasts.delete_success'), 'success');
       fetchItems();
     } catch {
-      addToast('Erreur lors de la suppression', 'error');
+      addToast(t('categories.toasts.delete_error'), 'error');
     }
   };
 
@@ -359,15 +533,15 @@ export default function CategoriesAdminPage() {
 
   const modalTitle = editingItem
     ? activeTab === 'perfume_categories'
-      ? 'Modifier la catégorie'
+      ? t('categories.modal.edit_perfume_category')
       : activeTab === 'accessory_categories'
-      ? 'Modifier le type'
-      : 'Modifier le flacon'
+      ? t('categories.modal.edit_accessory_type')
+      : t('categories.modal.edit_bottle_type')
     : activeTab === 'perfume_categories'
-    ? 'Nouvelle catégorie parfum'
+    ? t('categories.modal.add_perfume_category')
     : activeTab === 'accessory_categories'
-    ? 'Nouveau type accessoire'
-    : 'Nouveau type flacon';
+    ? t('categories.modal.add_accessory_type')
+    : t('categories.modal.add_bottle_type');
 
   return (
     <>
@@ -375,18 +549,26 @@ export default function CategoriesAdminPage() {
         {/* Header Section */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-xl font-semibold text-foreground">Classifications & catégories</h1>
+            <h1 className="text-xl font-semibold text-foreground">{t('categories.title')}</h1>
             <p className="mt-0.5 text-sm text-foreground/40">
-              Types d'accessoires, flacons et catégories de parfums
+              {t('categories.subtitle')}
             </p>
           </div>
-          <button
-            onClick={handleOpenAdd}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-gold px-3.5 py-2 text-xs font-semibold text-black transition-colors hover:bg-gold/85 sm:w-auto"
-          >
-            <Plus size={14} />
-            <span>Ajouter</span>
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setLang(l => (l === 'fr' ? 'en' : 'fr'))}
+              className="rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-xs font-semibold uppercase text-gold transition-colors hover:bg-white/10"
+            >
+              {lang === 'fr' ? 'EN' : 'FR'}
+            </button>
+            <button
+              onClick={handleOpenAdd}
+              className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-gold px-3.5 py-2 text-xs font-semibold text-black transition-colors hover:bg-gold/85 sm:w-auto"
+            >
+              <Plus size={14} />
+              <span>{t('common.add')}</span>
+            </button>
+          </div>
         </div>
 
         {/* Tabs & Content Wrapper */}
@@ -397,19 +579,19 @@ export default function CategoriesAdminPage() {
               active={activeTab === 'perfume_categories'}
               onClick={() => setActiveTab('perfume_categories')}
               icon={<PerfumeIcon size={14} />}
-              label="Catégories parfums"
+              label={t('categories.tabs.perfume_categories')}
             />
             <TabButton
               active={activeTab === 'accessory_categories'}
               onClick={() => setActiveTab('accessory_categories')}
               icon={<Gem size={14} />}
-              label="Catégories accessoires"
+              label={t('categories.tabs.accessory_categories')}
             />
             <TabButton
               active={activeTab === 'bottle_types'}
               onClick={() => setActiveTab('bottle_types')}
               icon={<FlaskConical size={14} />}
-              label="Types flacons"
+              label={t('categories.tabs.bottle_types')}
             />
           </div>
 
@@ -420,7 +602,7 @@ export default function CategoriesAdminPage() {
               <input
                 value={search}
                 onChange={e => setSearch(e.target.value)}
-                placeholder="Rechercher…"
+                placeholder={t('categories.search_placeholder')}
                 className="w-full bg-transparent text-xs text-foreground outline-none placeholder:text-foreground/35"
               />
             </div>
@@ -428,7 +610,7 @@ export default function CategoriesAdminPage() {
             {loading ? (
               <div className="flex items-center justify-center gap-2 py-16 text-foreground/40">
                 <Loader2 className="animate-spin text-gold" size={18} />
-                <span className="text-xs">Chargement…</span>
+                <span className="text-xs">{t('common.loading')}</span>
               </div>
             ) : (
               <>
@@ -440,56 +622,56 @@ export default function CategoriesAdminPage() {
                         {activeTab === 'perfume_categories' && (
                           <>
                             <th className="w-14 px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-foreground/35">
-                              Icône
+                              {t('categories.table.icon')}
                             </th>
                             <th className="px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-foreground/35">
-                              Nom
+                              {t('categories.table.name')}
                             </th>
                             <th className="px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-foreground/35">
-                              Slug
+                              {t('categories.table.slug')}
                             </th>
                             <th className="px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-foreground/35">
-                              Ordre
+                              {t('categories.table.display_order')}
                             </th>
                             <th className="px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-foreground/35">
-                              Réduction
+                              {t('categories.table.discount')}
                             </th>
                             <th className="px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-foreground/35">
-                              Période promo
+                              {t('categories.table.promo_period')}
                             </th>
                           </>
                         )}
                         {activeTab === 'accessory_categories' && (
                           <>
                             <th className="w-14 px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-foreground/35">
-                              Icône
+                              {t('categories.table.icon')}
                             </th>
                             <th className="px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-foreground/35">
-                              Nom
+                              {t('categories.table.name')}
                             </th>
                             <th className="px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-foreground/35">
-                              Description
+                              {t('categories.table.description')}
                             </th>
                             <th className="px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-foreground/35">
-                              Réduction
+                              {t('categories.table.discount')}
                             </th>
                             <th className="px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-foreground/35">
-                              Période promo
+                              {t('categories.table.promo_period')}
                             </th>
                           </>
                         )}
                         {activeTab === 'bottle_types' && (
                           <>
                             <th className="px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-foreground/35">
-                              Nom
+                              {t('categories.table.name')}
                             </th>
                             <th className="px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-foreground/35">
-                              Description
+                              {t('categories.table.description')}
                             </th>
                           </>
                         )}
                         <th className="px-4 py-2.5 text-right text-[10px] font-semibold uppercase tracking-wider text-foreground/35">
-                          Actions
+                          {t('categories.table.actions')}
                         </th>
                       </tr>
                     </thead>
@@ -501,7 +683,7 @@ export default function CategoriesAdminPage() {
                               <td className="whitespace-nowrap px-4 py-2.5">
                                 <div className="relative flex h-8 w-8 items-center justify-center overflow-hidden rounded-lg border border-white/10 bg-white/[0.03]">
                                   {c.image || c.icone ? (
-                                    <AppImage src={c.image || c.icone} alt={c.nom || 'Icône'} fill className="object-cover" />
+                                    <AppImage src={c.image || c.icone} alt={c.nom || t('categories.table.icon')} fill className="object-cover" />
                                   ) : (
                                     <PerfumeIcon size={14} className="text-foreground/25" />
                                   )}
@@ -529,7 +711,7 @@ export default function CategoriesAdminPage() {
                               <td className="whitespace-nowrap px-4 py-2.5">
                                 <div className="relative flex h-8 w-8 items-center justify-center overflow-hidden rounded-lg border border-white/10 bg-white/[0.03]">
                                   {c.icone ? (
-                                    <AppImage src={c.icone} alt={c.nom || 'Icône'} fill className="object-cover" />
+                                    <AppImage src={c.icone} alt={c.nom || t('categories.table.icon')} fill className="object-cover" />
                                   ) : (
                                     <Gem size={14} className="text-foreground/25" />
                                   )}
@@ -561,14 +743,14 @@ export default function CategoriesAdminPage() {
                             <div className="inline-flex items-center gap-1">
                               <button
                                 onClick={() => handleOpenEdit(c)}
-                                title="Modifier"
+                                title={t('common.edit')}
                                 className="rounded-md p-1.5 text-foreground/45 transition-colors hover:text-gold"
                               >
                                 <Edit2 size={13} />
                               </button>
                               <button
                                 onClick={() => handleDelete(c.id)}
-                                title="Supprimer"
+                                title={t('common.delete')}
                                 className="rounded-md p-1.5 text-foreground/45 transition-colors hover:text-red-400"
                               >
                                 <Trash2 size={13} />
@@ -580,7 +762,7 @@ export default function CategoriesAdminPage() {
                       {filtered.length === 0 && (
                         <tr>
                           <td colSpan={colSpan} className="py-12 text-center text-sm italic text-foreground/30">
-                            Aucun résultat
+                            {t('categories.no_results')}
                           </td>
                         </tr>
                       )}
@@ -597,7 +779,7 @@ export default function CategoriesAdminPage() {
                           {activeTab !== 'bottle_types' && (
                             <div className="relative flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-white/10 bg-white/[0.03]">
                               {c.image || c.icone ? (
-                                <AppImage src={c.image || c.icone} alt={c.nom || 'Icône'} fill className="object-cover" />
+                                <AppImage src={c.image || c.icone} alt={c.nom || t('categories.table.icon')} fill className="object-cover" />
                               ) : activeTab === 'perfume_categories' ? (
                                 <PerfumeIcon size={15} className="text-foreground/25" />
                               ) : (
@@ -621,19 +803,19 @@ export default function CategoriesAdminPage() {
                       <div className="space-y-1.5 border-t border-white/5 pt-2 text-[11px]">
                         {activeTab === 'perfume_categories' && (
                           <div className="flex justify-between text-foreground/60">
-                            <span className="text-foreground/40">Ordre d'affichage:</span>
+                            <span className="text-foreground/40">{t('categories.table.display_order')}:</span>
                             <span className="font-medium text-foreground tabular-nums">{c.ordre_affichage}</span>
                           </div>
                         )}
                         {(activeTab === 'accessory_categories' || activeTab === 'bottle_types') && c.description && (
                           <div className="text-foreground/60">
-                            <span className="block text-[10px] font-semibold uppercase text-foreground/40">Description:</span>
+                            <span className="block text-[10px] font-semibold uppercase text-foreground/40">{t('categories.table.description')}:</span>
                             <p className="line-clamp-2 text-foreground/70">{c.description}</p>
                           </div>
                         )}
                         {activeTab !== 'bottle_types' && formatPromotionPeriod(c.date_debut, c.date_fin) && (
                           <div className="flex justify-between text-foreground/60">
-                            <span className="text-foreground/40">Promotion:</span>
+                            <span className="text-foreground/40">{t('categories.table.promo_period')}:</span>
                             <span className="text-foreground/70">{formatPromotionPeriod(c.date_debut, c.date_fin)}</span>
                           </div>
                         )}
@@ -645,14 +827,14 @@ export default function CategoriesAdminPage() {
                           className="flex items-center gap-1.5 rounded-md border border-white/10 px-2.5 py-1.5 text-[11px] font-medium text-foreground/70 hover:text-gold transition-colors"
                         >
                           <Edit2 size={12} />
-                          <span>Modifier</span>
+                          <span>{t('common.edit')}</span>
                         </button>
                         <button
                           onClick={() => handleDelete(c.id)}
                           className="flex items-center gap-1.5 rounded-md border border-white/10 px-2.5 py-1.5 text-[11px] font-medium text-red-400 hover:bg-red-500/10 transition-colors"
                         >
                           <Trash2 size={12} />
-                          <span>Supprimer</span>
+                          <span>{t('common.delete')}</span>
                         </button>
                       </div>
                     </div>
@@ -660,7 +842,7 @@ export default function CategoriesAdminPage() {
 
                   {filtered.length === 0 && (
                     <div className="py-12 text-center text-sm italic text-foreground/30">
-                      Aucun résultat
+                      {t('categories.no_results')}
                     </div>
                   )}
                 </div>
@@ -675,7 +857,7 @@ export default function CategoriesAdminPage() {
         isOpen={showModal}
         onClose={() => setShowModal(false)}
         title={modalTitle}
-        description="Renseignez les informations requises pour cette classification."
+        description={t('categories.modal.description')}
         size="xl"
         footer={
           <div className="flex gap-3">
@@ -683,20 +865,20 @@ export default function CategoriesAdminPage() {
               onClick={() => setShowModal(false)}
               className="flex-1 rounded-lg border border-white/10 px-4 py-2 text-xs font-medium text-foreground/60 transition-colors hover:bg-white/5"
             >
-              Annuler
+              {t('common.cancel')}
             </button>
             <button
               onClick={handleSave}
               className="flex-1 rounded-lg bg-gold px-4 py-2 text-xs font-semibold text-black transition-colors hover:bg-gold/85"
             >
-              Enregistrer
+              {t('common.save')}
             </button>
           </div>
         }
       >
         <div className="space-y-4">
-          <FormSection title="Informations générales" icon={Tag}>
-            <Field label="Nom" required error={formErrors.nom}>
+          <FormSection title={t('categories.sections.general')} icon={Tag}>
+            <Field label={t('categories.form.name')} required error={formErrors.nom}>
               <input
                 data-field="nom"
                 value={form.nom}
@@ -707,7 +889,7 @@ export default function CategoriesAdminPage() {
 
             {activeTab === 'perfume_categories' && (
               <>
-                <Field label="Slug" required error={formErrors.slug}>
+                <Field label={t('categories.form.slug')} required error={formErrors.slug}>
                   <input
                     data-field="slug"
                     value={form.slug}
@@ -717,7 +899,7 @@ export default function CategoriesAdminPage() {
                 </Field>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <Field label="Ordre d'affichage" required error={formErrors.ordre_affichage}>
+                  <Field label={t('categories.form.display_order')} required error={formErrors.ordre_affichage}>
                     <input
                       data-field="ordre_affichage"
                       type="number"
@@ -726,7 +908,7 @@ export default function CategoriesAdminPage() {
                       className={inputClassName}
                     />
                   </Field>
-                  <Field label="Réduction (%)" required error={formErrors.taux_reduction}>
+                  <Field label={t('categories.form.discount_rate')} required error={formErrors.taux_reduction}>
                     <input
                       data-field="taux_reduction"
                       value={form.taux_reduction}
@@ -740,7 +922,7 @@ export default function CategoriesAdminPage() {
 
             {(activeTab === 'accessory_categories' || activeTab === 'bottle_types') && (
               <Field
-                label="Description"
+                label={t('categories.form.description')}
                 required={activeTab === 'accessory_categories' || activeTab === 'bottle_types'}
                 error={formErrors.description}
               >
@@ -748,7 +930,7 @@ export default function CategoriesAdminPage() {
                   data-field="description"
                   value={form.description}
                   onChange={e => updateForm('description', e.target.value)}
-                  placeholder="Description..."
+                  placeholder={t('categories.placeholders.description')}
                   rows={2}
                   className={cx(inputClassName, 'resize-none')}
                 />
@@ -756,7 +938,7 @@ export default function CategoriesAdminPage() {
             )}
 
             {activeTab === 'accessory_categories' && (
-              <Field label="Taux réduction (%)" required error={formErrors.taux_reduction}>
+              <Field label={t('categories.form.discount_rate')} required error={formErrors.taux_reduction}>
                 <input
                   data-field="taux_reduction"
                   value={form.taux_reduction}
@@ -768,9 +950,9 @@ export default function CategoriesAdminPage() {
           </FormSection>
 
           {(activeTab === 'perfume_categories' || activeTab === 'accessory_categories') && (
-            <FormSection title="Configuration promotion" icon={Calendar}>
+            <FormSection title={t('categories.sections.promotion')} icon={Calendar}>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <Field label="Date début" required error={formErrors.date_debut}>
+                <Field label={t('categories.form.start_date')} required error={formErrors.date_debut}>
                   <input
                     data-field="date_debut"
                     type="datetime-local"
@@ -779,7 +961,7 @@ export default function CategoriesAdminPage() {
                     className={inputClassName}
                   />
                 </Field>
-                <Field label="Date fin" required error={formErrors.date_fin}>
+                <Field label={t('categories.form.end_date')} required error={formErrors.date_fin}>
                   <input
                     data-field="date_fin"
                     type="datetime-local"
@@ -789,7 +971,7 @@ export default function CategoriesAdminPage() {
                   />
                 </Field>
               </div>
-              <Field label="Message promotion" required error={formErrors.message_promotion}>
+              <Field label={t('categories.form.promo_message')} required error={formErrors.message_promotion}>
                 <input
                   data-field="message_promotion"
                   value={form.message_promotion}
@@ -801,14 +983,14 @@ export default function CategoriesAdminPage() {
           )}
 
           {activeTab !== 'bottle_types' && (
-            <FormSection title="Visuel & Statut" icon={ImageIcon}>
+            <FormSection title={t('categories.sections.visual_status')} icon={ImageIcon}>
               <CompactIconUpload
                 onFileSelect={setIconFile}
                 initialImage={editingItem?.icone}
                 label={
                   activeTab === 'perfume_categories'
-                    ? 'Image / Icône de la catégorie'
-                    : 'Icône du type'
+                    ? t('categories.form.category_icon')
+                    : t('categories.form.type_icon')
                 }
               />
               <label className="flex items-center gap-2.5 cursor-pointer pt-2">
@@ -818,7 +1000,7 @@ export default function CategoriesAdminPage() {
                   onChange={e => updateForm('actif', e.target.checked)}
                   className="rounded border-white/10 bg-white/5 text-gold focus:ring-gold h-4 w-4"
                 />
-                <span className="text-xs text-foreground/70 font-medium">Actif</span>
+                <span className="text-xs text-foreground/70 font-medium">{t('categories.form.active')}</span>
               </label>
             </FormSection>
           )}

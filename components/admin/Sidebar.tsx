@@ -1,15 +1,19 @@
 'use client';
 
+/**
+ * @file components/dashboard/admin/Sidebar.tsx
+ * @description Admin dashboard navigation sidebar component.
+ */
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useTranslation } from 'react-i18next';
 import {
   LayoutDashboard, ShoppingCart, BarChart2, Users2,
   TrendingUp, Package, DollarSign, Truck,
-  UserCircle, Sparkles, Gem, Tag, X, ChevronDown, ChevronRight, Bell, FileText,
+  Sparkles, Gem, Tag, X, ChevronDown, Bell, FileText,
 } from 'lucide-react';
 import { PerfumeIcon, EssenceIcon, DiffuseurIcon, LaptopIcon } from '@/components/icons/CustomIcons';
-
 
 interface SidebarProps {
   open: boolean;
@@ -23,44 +27,6 @@ interface NavItem {
   badge?: string;
   children?: { label: string; href: string; badge?: string }[];
 }
-
-const menuItems: NavItem[] = [
-  {
-    label: 'Dashboard', icon: <LayoutDashboard size={18} />,
-    children: [
-      { label: 'Ecommerce', href: '/dashboard/admin/dashboard' },
-      { label: 'Revenus', href: '/dashboard/admin/revenue' },
-    ]
-  },
-  {
-    label: 'Notifications', icon: <Bell size={18} />, href: '/dashboard/admin/notifications'
-  }
-];
-
-const boutiqueItems: NavItem[] = [
-  { label: 'Gestion des Commandes', icon: <ShoppingCart size={18} />, href: '/dashboard/admin/order' },
-  { label: 'Parfums', icon: <PerfumeIcon size={18} />, href: '/dashboard/admin/perfume' },
-  { label: 'Catégories', icon: <Package size={18} />, href: '/dashboard/admin/categories' },
-  { label: 'Essences', icon: <EssenceIcon size={18} />, href: '/dashboard/admin/essences' },
-  { label: 'Produits Essence', icon: <EssenceIcon size={18} />, href: '/dashboard/admin/produits-essence' },
-  { label: 'Laboratoire', icon: <LaptopIcon size={18} />, href: '/dashboard/admin/lab' },
-  { label: 'Flacons', icon: <Package size={18} />, href: '/dashboard/admin/flacons' },
-  { label: 'Accessoires', icon: <Gem size={18} />, href: '/dashboard/admin/accessories' },
-  { label: 'Diffuseurs', icon: <DiffuseurIcon size={18} />, href: '/dashboard/admin/diffuseurs' },
-  { label: 'Compositions', icon: <LaptopIcon size={18} />, href: '/dashboard/admin/compositions' },
-  { label: 'Dépenses', icon: <DollarSign size={18} />, href: '/dashboard/admin/expenses' },
-  { label: 'Codes Promo', icon: <Tag size={18} />, href: '/dashboard/admin/promo-codes' },
-];
-
-const gestionItems: NavItem[] = [
-  { label: 'Clients', icon: <Users2 size={18} />, href: '/dashboard/admin/clients' },
-  { label: 'Prestataires', icon: <TrendingUp size={18} />, href: '/dashboard/admin/providers' },
-  { label: 'Livreurs', icon: <Truck size={18} />, href: '/dashboard/admin/delivery' },
-  { label: 'Serveuses', icon: <Users2 size={18} />, href: '/dashboard/admin/serveuses' },
-  { label: 'Factures', icon: <FileText size={18} />, href: '/dashboard/admin/factures' },
-];
-
-const profilItems: NavItem[] = [];
 
 function NavItemComponent({ item, onNavigate }: { item: NavItem; onNavigate: () => void }) {
   const pathname = usePathname();
@@ -76,11 +42,16 @@ function NavItemComponent({ item, onNavigate }: { item: NavItem; onNavigate: () 
       <div>
         <button
           onClick={() => setExpanded(!expanded)}
-          className={`w-full flex items-center justify-between px-4 py-2.5 rounded-lg text-sm transition-all duration-200 group
-            ${expanded ? 'text-gold' : 'text-foreground/60 hover:text-foreground hover:bg-white/5'}`}
+          className={`w-full flex items-center justify-between px-4 py-2.5 rounded-lg text-sm transition-all duration-200 group ${
+            expanded ? 'text-gold' : 'text-foreground/60 hover:text-foreground hover:bg-white/5'
+          }`}
         >
           <span className="flex items-center gap-3">
-            <span className={`transition-colors ${expanded ? 'text-gold' : 'text-foreground/40 group-hover:text-foreground/60'}`}>
+            <span
+              className={`transition-colors ${
+                expanded ? 'text-gold' : 'text-foreground/40 group-hover:text-foreground/60'
+              }`}
+            >
               {item.icon}
             </span>
             {item.label}
@@ -89,18 +60,22 @@ function NavItemComponent({ item, onNavigate }: { item: NavItem; onNavigate: () 
             <ChevronDown size={14} />
           </span>
         </button>
-        <div className={`overflow-hidden transition-all duration-200 ${expanded ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'}`}>
+        <div
+          className={`overflow-hidden transition-all duration-200 ${
+            expanded ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
+          }`}
+        >
           <div className="ml-4 pl-4 border-l border-white/10 mt-1 space-y-0.5">
             {item.children!.map((child) => (
               <Link
                 key={child.href}
                 href={child.href}
                 onClick={onNavigate}
-                className={`flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-all duration-200
-                  ${pathname === child.href
+                className={`flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-all duration-200 ${
+                  pathname === child.href
                     ? 'bg-gold/10 text-gold font-medium'
                     : 'text-foreground/60 hover:text-foreground hover:bg-white/5'
-                  }`}
+                }`}
               >
                 {child.label}
                 {child.badge && (
@@ -120,14 +95,18 @@ function NavItemComponent({ item, onNavigate }: { item: NavItem; onNavigate: () 
     <Link
       href={item.href || '#'}
       onClick={onNavigate}
-      className={`flex items-center justify-between px-4 py-2.5 rounded-lg text-sm transition-all duration-200 group
-        ${isActive
+      className={`flex items-center justify-between px-4 py-2.5 rounded-lg text-sm transition-all duration-200 group ${
+        isActive
           ? 'bg-gold/10 text-gold font-medium'
           : 'text-foreground/60 hover:text-foreground hover:bg-white/5'
-        }`}
+      }`}
     >
       <span className="flex items-center gap-3">
-        <span className={`transition-colors ${isActive ? 'text-gold' : 'text-foreground/40 group-hover:text-foreground/60'}`}>
+        <span
+          className={`transition-colors ${
+            isActive ? 'text-gold' : 'text-foreground/40 group-hover:text-foreground/60'
+          }`}
+        >
           {item.icon}
         </span>
         {item.label}
@@ -144,12 +123,130 @@ function NavItemComponent({ item, onNavigate }: { item: NavItem; onNavigate: () 
 function SectionLabel({ label }: { label: string }) {
   return (
     <div className="pt-4 pb-1">
-      <p className="text-[10px] font-semibold text-foreground/40 uppercase tracking-widest px-4 mb-2">{label}</p>
+      <p className="text-[10px] font-semibold text-foreground/40 uppercase tracking-widest px-4 mb-2">
+        {label}
+      </p>
     </div>
   );
 }
 
 export default function Sidebar({ open, setOpen }: SidebarProps) {
+  const { t, i18n } = useTranslation();
+  const isEn = i18n.language?.startsWith('en');
+
+  const menuItems: NavItem[] = [
+    {
+      label: 'Dashboard',
+      icon: <LayoutDashboard size={18} />,
+      children: [
+        {
+          label: t('admin_nav_ecommerce', { defaultValue: 'Ecommerce' }),
+          href: '/dashboard/admin/dashboard',
+        },
+        {
+          label: t('admin_nav_revenue', { defaultValue: isEn ? 'Revenue' : 'Revenus' }),
+          href: '/dashboard/admin/revenue',
+        },
+      ],
+    },
+    {
+      label: t('admin_nav_notifications', { defaultValue: 'Notifications' }),
+      icon: <Bell size={18} />,
+      href: '/dashboard/admin/notifications',
+    },
+  ];
+
+  const boutiqueItems: NavItem[] = [
+    {
+      label: t('admin_nav_orders', { defaultValue: isEn ? 'Orders Management' : 'Gestion des Commandes' }),
+      icon: <ShoppingCart size={18} />,
+      href: '/dashboard/admin/order',
+    },
+    {
+      label: t('admin_nav_perfumes', { defaultValue: isEn ? 'Perfumes' : 'Parfums' }),
+      icon: <PerfumeIcon size={18} />,
+      href: '/dashboard/admin/perfume',
+    },
+    {
+      label: t('admin_nav_categories', { defaultValue: isEn ? 'Categories' : 'Catégories' }),
+      icon: <Package size={18} />,
+      href: '/dashboard/admin/categories',
+    },
+    {
+      label: t('admin_nav_essences', { defaultValue: 'Essences' }),
+      icon: <EssenceIcon size={18} />,
+      href: '/dashboard/admin/essences',
+    },
+    {
+      label: t('admin_nav_essence_products', { defaultValue: isEn ? 'Essence Products' : 'Produits Essence' }),
+      icon: <EssenceIcon size={18} />,
+      href: '/dashboard/admin/produits-essence',
+    },
+    {
+      label: t('admin_nav_lab', { defaultValue: isEn ? 'Laboratory' : 'Laboratoire' }),
+      icon: <LaptopIcon size={18} />,
+      href: '/dashboard/admin/lab',
+    },
+    {
+      label: t('admin_nav_bottles', { defaultValue: isEn ? 'Bottles' : 'Flacons' }),
+      icon: <Package size={18} />,
+      href: '/dashboard/admin/flacons',
+    },
+    {
+      label: t('admin_nav_accessories', { defaultValue: isEn ? 'Accessories' : 'Accessoires' }),
+      icon: <Gem size={18} />,
+      href: '/dashboard/admin/accessories',
+    },
+    {
+      label: t('admin_nav_diffusers', { defaultValue: isEn ? 'Diffusers' : 'Diffuseurs' }),
+      icon: <DiffuseurIcon size={18} />,
+      href: '/dashboard/admin/diffuseurs',
+    },
+    {
+      label: t('admin_nav_compositions', { defaultValue: 'Compositions' }),
+      icon: <LaptopIcon size={18} />,
+      href: '/dashboard/admin/compositions',
+    },
+    {
+      label: t('admin_nav_expenses', { defaultValue: isEn ? 'Expenses' : 'Dépenses' }),
+      icon: <DollarSign size={18} />,
+      href: '/dashboard/admin/expenses',
+    },
+    {
+      label: t('admin_nav_promo_codes', { defaultValue: isEn ? 'Promo Codes' : 'Codes Promo' }),
+      icon: <Tag size={18} />,
+      href: '/dashboard/admin/promo-codes',
+    },
+  ];
+
+  const gestionItems: NavItem[] = [
+    {
+      label: t('admin_nav_clients', { defaultValue: isEn ? 'Clients' : 'Clients' }),
+      icon: <Users2 size={18} />,
+      href: '/dashboard/admin/clients',
+    },
+    {
+      label: t('admin_nav_providers', { defaultValue: isEn ? 'Providers' : 'Prestataires' }),
+      icon: <TrendingUp size={18} />,
+      href: '/dashboard/admin/providers',
+    },
+    {
+      label: t('admin_nav_delivery', { defaultValue: isEn ? 'Delivery Agents' : 'Livreurs' }),
+      icon: <Truck size={18} />,
+      href: '/dashboard/admin/delivery',
+    },
+    {
+      label: t('admin_nav_waitstaff', { defaultValue: isEn ? 'Waitstaff' : 'Serveuses' }),
+      icon: <Users2 size={18} />,
+      href: '/dashboard/admin/serveuses',
+    },
+    {
+      label: t('admin_nav_invoices', { defaultValue: isEn ? 'Invoices' : 'Factures' }),
+      icon: <FileText size={18} />,
+      href: '/dashboard/admin/factures',
+    },
+  ];
+
   return (
     <>
       {/* Mobile overlay */}
@@ -161,40 +258,46 @@ export default function Sidebar({ open, setOpen }: SidebarProps) {
       )}
 
       <aside
-        className={`
-          fixed xl:static inset-y-0 left-0 z-30
-          flex flex-col w-[260px] bg-background border-r border-white/10
-          transition-transform duration-300 ease-in-out
-          ${open ? 'translate-x-0' : '-translate-x-full xl:translate-x-0'}
-        `}
+        className={`fixed xl:static inset-y-0 left-0 z-30 flex flex-col w-[260px] bg-background border-r border-white/10 transition-transform duration-300 ease-in-out ${
+          open ? 'translate-x-0' : '-translate-x-full xl:translate-x-0'
+        }`}
       >
         {/* Logo */}
         <div className="flex items-center justify-between px-5 py-5 border-b border-white/10">
-          <Link href="/dashboard/admin/dashboard" onClick={() => setOpen(false)} className="flex items-center gap-3 group">
+          <Link
+            href="/dashboard/admin/dashboard"
+            onClick={() => setOpen(false)}
+            className="flex items-center gap-3 group"
+          >
             <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-gold to-gold-dark flex items-center justify-center shadow-lg shadow-gold/20 group-hover:shadow-gold/40 transition-shadow">
               <BarChart2 size={18} className="text-black" />
             </div>
-            <span className="font-bold text-foreground text-lg tracking-tight">Accessoire Exclusif admin</span>
+            <span className="font-bold text-foreground text-lg tracking-tight">
+              Accessoires Exclusifs Admin
+            </span>
           </Link>
-          <button className="xl:hidden text-foreground/40 hover:text-foreground transition-colors" onClick={() => setOpen(false)}>
+          <button
+            className="xl:hidden text-foreground/40 hover:text-foreground transition-colors"
+            onClick={() => setOpen(false)}
+          >
             <X size={18} />
           </button>
         </div>
 
         {/* Nav */}
         <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1 scrollbar-thin">
-          <SectionLabel label="MENU" />
-          {menuItems.map(item => (
+          <SectionLabel label={t('admin_nav_menu', { defaultValue: 'MENU' })} />
+          {menuItems.map((item) => (
             <NavItemComponent key={item.label} item={item} onNavigate={() => setOpen(false)} />
           ))}
 
-          <SectionLabel label="BOUTIQUE" />
-          {boutiqueItems.map(item => (
+          <SectionLabel label={t('admin_nav_shop', { defaultValue: isEn ? 'SHOP' : 'BOUTIQUE' })} />
+          {boutiqueItems.map((item) => (
             <NavItemComponent key={item.label} item={item} onNavigate={() => setOpen(false)} />
           ))}
 
-          <SectionLabel label="GESTION" />
-          {gestionItems.map(item => (
+          <SectionLabel label={t('admin_nav_management', { defaultValue: isEn ? 'MANAGEMENT' : 'GESTION' })} />
+          {gestionItems.map((item) => (
             <NavItemComponent key={item.label} item={item} onNavigate={() => setOpen(false)} />
           ))}
         </nav>
@@ -206,8 +309,10 @@ export default function Sidebar({ open, setOpen }: SidebarProps) {
               <Sparkles size={14} className="text-gold" />
             </div>
             <div>
-              <p className="text-xs font-semibold text-foreground">Accessories Exclusif</p>
-              <p className="text-[10px] text-foreground/40">v1.0 · Panel Admin</p>
+              <p className="text-xs font-semibold text-foreground">Accessoires Exclusifs</p>
+              <p className="text-[10px] text-foreground/40">
+                v1.0 · {t('admin_panel_title', { defaultValue: isEn ? 'Admin Panel' : 'Panel Admin' })}
+              </p>
             </div>
           </div>
         </div>
@@ -215,5 +320,3 @@ export default function Sidebar({ open, setOpen }: SidebarProps) {
     </>
   );
 }
-
-

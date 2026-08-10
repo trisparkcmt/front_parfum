@@ -13,7 +13,7 @@ interface CompactIconUploadProps {
 export default function CompactIconUpload({
   onFileSelect,
   initialImage,
-  label = 'Icône',
+  label = 'Icon',
 }: CompactIconUploadProps) {
   const [preview, setPreview] = useState<string>(initialImage || '');
   const uid = useId();
@@ -41,7 +41,9 @@ export default function CompactIconUpload({
 
   return (
     <div className="space-y-1.5">
-      <label className="block text-xs font-medium text-foreground/60">{label}</label>
+      <label htmlFor={uid} className="block text-xs font-medium text-foreground/60 cursor-pointer">
+        {label}
+      </label>
       <div
         className="relative border border-dashed border-white/20 rounded-lg bg-white/[0.02] hover:border-white/30 hover:bg-white/5 transition-colors cursor-pointer overflow-hidden"
         style={{ width: 80, height: 80 }}
@@ -59,6 +61,7 @@ export default function CompactIconUpload({
             <button
               type="button"
               onClick={handleRemove}
+              aria-label="Remove image"
               className="absolute -top-1.5 -right-1.5 bg-red-500 text-white p-0.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity z-10"
             >
               <X size={10} />
@@ -76,7 +79,7 @@ export default function CompactIconUpload({
             className="flex flex-col items-center justify-center w-full h-full cursor-pointer"
           >
             <Upload className="text-foreground/30 mb-0.5" size={16} />
-            <span className="text-[10px] text-foreground/30 text-center px-1">Ajouter</span>
+            <span className="text-[10px] text-foreground/30 text-center px-1">Add</span>
           </label>
         )}
       </div>

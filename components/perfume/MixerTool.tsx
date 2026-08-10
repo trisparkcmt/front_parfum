@@ -2,28 +2,32 @@
 
 /**
  * @file components/perfume/MixerTool.tsx
- * @description Visual Liquid Blending & Bottle Simulation.
- *
- * This component provides a highly visual, interactive representation of a perfume 
- * bottle being filled with various essences in the Numba Atelier. 
- * 
- * **Key Visual Logic**:
- * - **Liquid Level Simulation**: Uses `framer-motion` to animate the height of the liquid container (`percentage`), which is calculated based on the `totalMl` relative to `MAX_COMPOSITION_ML`.
- * - **Dynamic Color Blending**: Integrates the `blendColors` utility. It calculates the resulting liquid color by weighting the HEX codes of each added essence by its specific milliliter volume.
- * - **Glass Aesthetic**: Implements a multi-layered design with a `deep-black` background and semi-transparent borders to simulate a luxury glass flacon.
- * - **Interactive Feedback**: Includes a real-time capacity progress bar and status text that changes when the bottle reaches 100% capacity.
- * 
- * **Props**:
- * - `essences`: Array of `CompositionEssence` objects containing the ingredient data.
- * - `totalMl`: The cumulative volume of all essences added to the mix.
- * 
- * **Technical Implementation**: Leverages CSS `mix-blend-mode` for realistic lighting effects and `spring` transitions for smooth volume changes.
+ * @description Visual Liquid Blending & Bottle Simulation with in-file translations.
  */
+
 import { motion } from 'framer-motion';
+import i18n from 'i18next';
 import { Droplets } from 'lucide-react';
 import { MAX_COMPOSITION_ML } from '@/lib/constants';
 import { blendColors } from '@/lib/utils';
 import type { CompositionEssence } from '@/types';
+
+// ── In-File Dictionary ─────────────────────────────────────────────────────
+
+const dict = {
+  fr: {
+    full: 'Flacon plein — Prêt à créer !',
+    addEssences: 'Ajoutez des essences pour remplir votre flacon',
+  },
+  en: {
+    full: 'Bottle full — Ready to craft!',
+    addEssences: 'Add essences to fill your bottle',
+  },
+};
+
+function getLang(): 'fr' | 'en' {
+  return i18n.language && i18n.language.startsWith('en') ? 'en' : 'fr';
+}
 
 interface MixerToolProps {
   essences: CompositionEssence[];
@@ -31,6 +35,7 @@ interface MixerToolProps {
 }
 
 export function MixerTool({ essences, totalMl }: MixerToolProps) {
+  const t = dict[getLang()];
   const percentage = Math.min(100, Math.round((totalMl / MAX_COMPOSITION_ML) * 100));
   
   const colorsToBlend = essences.map(e => ({
@@ -42,17 +47,14 @@ export function MixerTool({ essences, totalMl }: MixerToolProps) {
 
   return (
     <div className="relative flex flex-col items-center justify-center p-8 bg-charcoal rounded-3xl border border-white/10 w-full max-w-sm mx-auto">
-      {/* Background glow based on blended color */}
       <div 
         className="absolute inset-0 rounded-3xl opacity-20 blur-2xl transition-colors duration-1000"
         style={{ backgroundColor: blendedColor }}
       />
       
       <div className="relative z-10 w-48 h-64 border-4 border-white/20 rounded-b-3xl rounded-t-xl bg-deep-black overflow-hidden flex flex-col justify-end">
-        {/* Cap outline */}
         <div className="absolute -top-12 left-1/2 -translate-x-1/2 w-16 h-12 border-4 border-white/20 rounded-t-md bg-deep-black" />
         
-        {/* Liquid */}
         <motion.div
           className="w-full relative"
           initial={{ height: 10 }}
@@ -60,7 +62,6 @@ export function MixerTool({ essences, totalMl }: MixerToolProps) {
           transition={{ type: 'spring', bounce: 0.2, duration: 1 }}
           style={{ backgroundColor: blendedColor }}
         >
-          {/* Waves / bubbles effect */}
           <div className="absolute top-0 inset-x-0 h-4 bg-white/20 mix-blend-overlay" />
           
           {percentage > 0 && (
@@ -70,14 +71,12 @@ export function MixerTool({ essences, totalMl }: MixerToolProps) {
           )}
         </motion.div>
 
-        {/* Total ML indicator */}
         <div className="absolute inset-0 flex flex-col items-center justify-center text-foreground mix-blend-difference pointer-events-none">
           <span className="font-display text-4xl font-bold">{totalMl}</span>
           <span className="text-sm tracking-widest uppercase">/ {MAX_COMPOSITION_ML} ml</span>
         </div>
       </div>
       
-      {/* Capacity Warning */}
       <div className="mt-8 text-center relative z-10 w-full">
         <div className="h-2 w-full bg-white/10 rounded-full overflow-hidden mb-2">
           <motion.div 
@@ -90,14 +89,12 @@ export function MixerTool({ essences, totalMl }: MixerToolProps) {
         </div>
         <p className="text-sm font-medium">
           {percentage === 100 ? (
-            <span className="text-emerald-400">Flacon plein — Prêt à créer !</span>
+            <span className="text-emerald-400">{t.full}</span>
           ) : (
-            <span className="text-foreground/60">Ajoutez des essences pour remplir votre flacon</span>
+            <span className="text-foreground/60">{t.addEssences}</span>
           )}
         </p>
       </div>
     </div>
   );
 }
-
-

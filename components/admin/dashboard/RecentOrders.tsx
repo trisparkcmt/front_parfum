@@ -7,39 +7,39 @@ const orders = [
     id: 'ORD001',
     product: 'Dupe Sauvage 100ml',
     variants: 'Eau de Parfum',
-    category: 'Parfum',
-    price: '89 000 FCFA',
-    status: 'Livré',
+    category: 'Perfume',
+    price: '89,000 FCFA',
+    status: 'Delivered',
     statusColor: 'text-emerald-400 bg-emerald-500/10',
     image: '🌿',
   },
   {
     id: 'ORD002',
-    product: 'Montre Royale Or 18K',
-    variants: '2 Variantes',
-    category: 'Accessoire',
-    price: '185 000 FCFA',
-    status: 'En attente',
+    product: 'Royal 18K Gold Watch',
+    variants: '2 Variants',
+    category: 'Accessory',
+    price: '185,000 FCFA',
+    status: 'Pending',
     statusColor: 'text-amber-400 bg-amber-500/10',
     image: '⌚',
   },
   {
     id: 'ORD003',
-    product: 'Composition Numba #7',
-    variants: 'Sur mesure · 100ml',
+    product: 'Numba Custom Blend #7',
+    variants: 'Tailor-made · 100ml',
     category: 'Atelier',
-    price: '42 000 FCFA',
-    status: 'Livré',
+    price: '42,000 FCFA',
+    status: 'Delivered',
     statusColor: 'text-emerald-400 bg-emerald-500/10',
     image: '🧪',
   },
   {
     id: 'ORD004',
-    product: 'Collier Perles d\'Afrique',
-    variants: 'Or & Perles naturelles',
-    category: 'Bijoux',
-    price: '95 000 FCFA',
-    status: 'En livraison',
+    product: 'African Pearl Necklace',
+    variants: 'Gold & Natural Pearls',
+    category: 'Jewelry',
+    price: '95,000 FCFA',
+    status: 'In Transit',
     statusColor: 'text-purple-400 bg-purple-500/10',
     image: '📿',
   },
@@ -47,9 +47,9 @@ const orders = [
     id: 'ORD005',
     product: 'Chanel N°5 Original',
     variants: 'Eau de Parfum · 50ml',
-    category: 'Parfum',
-    price: '249 000 FCFA',
-    status: 'Annulé',
+    category: 'Perfume',
+    price: '249,000 FCFA',
+    status: 'Cancelled',
     statusColor: 'text-red-400 bg-red-500/10',
     image: '🌸',
   },
@@ -59,14 +59,14 @@ export default function RecentOrders() {
   return (
     <div className="bg-white/5 rounded-2xl border border-white/10 p-6 shadow-sm hover:shadow-gold/5 transition-all duration-300">
       <div className="flex items-center justify-between mb-5">
-        <h3 className="font-semibold text-foreground">Commandes Récentes</h3>
+        <h3 className="font-semibold text-foreground">Recent Orders</h3>
         <div className="flex items-center gap-2">
           <button className="flex items-center gap-1.5 text-sm border border-white/10 rounded-lg px-3 py-1.5 text-foreground/60 hover:bg-white/5 hover:text-foreground transition-colors">
             <SlidersHorizontal size={14} />
-            Filtrer
+            Filter
           </button>
           <button className="text-sm border border-white/10 rounded-lg px-3 py-1.5 text-foreground/60 hover:bg-white/5 hover:text-foreground transition-colors">
-            Voir tout
+            View All
           </button>
         </div>
       </div>
@@ -75,10 +75,10 @@ export default function RecentOrders() {
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-white/10">
-              <th className="text-left text-foreground/40 font-medium pb-3 text-xs uppercase tracking-wider">Produits</th>
-              <th className="text-left text-foreground/40 font-medium pb-3 text-xs uppercase tracking-wider">Catégorie</th>
-              <th className="text-left text-foreground/40 font-medium pb-3 text-xs uppercase tracking-wider">Prix</th>
-              <th className="text-left text-foreground/40 font-medium pb-3 text-xs uppercase tracking-wider">Statut</th>
+              <th className="text-left text-foreground/40 font-medium pb-3 text-xs uppercase tracking-wider">Products</th>
+              <th className="text-left text-foreground/40 font-medium pb-3 text-xs uppercase tracking-wider">Category</th>
+              <th className="text-left text-foreground/40 font-medium pb-3 text-xs uppercase tracking-wider">Price</th>
+              <th className="text-left text-foreground/40 font-medium pb-3 text-xs uppercase tracking-wider">Status</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-white/5">
@@ -110,5 +110,3 @@ export default function RecentOrders() {
     </div>
   );
 }
-
-

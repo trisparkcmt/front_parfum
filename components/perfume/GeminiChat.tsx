@@ -2,11 +2,12 @@
 
 /**
  * @file components/perfume/GeminiChat.tsx
- * @description Redesigned AI Fragrance Sommelier — full chat experience.
+ * @description Redesigned AI Fragrance Sommelier — full chat experience with in-file translations.
  */
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import i18n from 'i18next';
 import AppImage from '@/components/ui/AppImage';
 import {
   Sparkles,
@@ -31,6 +32,99 @@ import { formatPrice, generateId } from '@/lib/utils';
 import type { CustomComposition, CompositionEssence, EssenceClient, Accessory, Product } from '@/types';
 import { productService } from '@/services/productService';
 import axios from 'axios';
+
+// ── In-File Dictionary ─────────────────────────────────────────────────────
+
+const dict = {
+  fr: {
+    loadingTexts: [
+      'Nous analysons vos préférences olfactives...',
+      'Recherche des parfums correspondant à votre profil...',
+      'Exploration de notre catalogue d\'essences rares...',
+      'Sélection des accessoires complémentaires...',
+      'Élaboration de votre formule personnalisée...',
+      'Affinement de la recommandation par notre IA...',
+      'Calcul des prix et des compositions optimales...',
+      'Derniers ajustements olfactifs en cours...',
+    ],
+    formatLabel: 'Quantité',
+    budgetLabel: 'Budget',
+    added: 'Ajouté ✓',
+    add: 'Ajouter',
+    aiFormula: 'Formule IA',
+    formulaPrice: 'Prix composition',
+    errorTitle: 'Erreur du serveur (503)',
+    errorBody: 'Désolé, nous recevons actuellement un trop grand nombre de requêtes. Veuillez réessayer dans un instant.',
+    retry: 'Réessayer la demande',
+    suggestedPerfumes: 'Parfums suggérés',
+    previousProducts: 'Produits proposés précédemment',
+    recommendedEssences: 'Essences recommandées',
+    proposedAccessories: 'Accessoires proposés',
+    addComposition: 'Ajouter la composition',
+    addAllToCart: 'Tout ajouter au panier',
+    creationIa: 'Création IA',
+    toastError: 'Une erreur est survenue avec le Sommelier IA',
+    technicalError: 'Désolé, je rencontre une difficulté technique. Veuillez réessayer dans quelques instants.',
+    resetSuccess: 'Résumé vidé avec succès.',
+    abortInfo: 'Demande IA annulée.',
+    loadingHistory: 'Chargement de votre historique…',
+    emptyTitle: 'Votre Sommelier IA',
+    emptyDescription: 'Décrivez votre personnalité, vos envies ou une occasion spéciale. Notre IA experte concevra la formule parfaite pour vous.',
+    suggestions: [
+      'Un parfum boisé pour une soirée romantique',
+      'Quelque chose de frais pour le bureau',
+      'Un parfum audacieux pour une sortie nocturne',
+    ],
+    newChat: 'Nouvelle conversation',
+    placeholder: 'Ex: Un parfum boisé pour le printemps...',
+  },
+  en: {
+    loadingTexts: [
+      'Analyzing your olfactory preferences...',
+      'Curating fragrances matching your scent profile...',
+      'Exploring our library of rare essences...',
+      'Selecting complementary accessories...',
+      'Crafting your bespoke scent formula...',
+      'Refining recommendation with our AI...',
+      'Calculating optimal pricing and blend ratios...',
+      'Finalizing your signature scent blend...',
+    ],
+    formatLabel: 'Size',
+    budgetLabel: 'Budget',
+    added: 'Added ✓',
+    add: 'Add to Cart',
+    aiFormula: 'AI Signature Formula',
+    formulaPrice: 'Blend Price',
+    errorTitle: 'Server Busy (503)',
+    errorBody: 'Our AI Sommelier is experiencing high demand right now. Please try again in a moment.',
+    retry: 'Retry Request',
+    suggestedPerfumes: 'Curated Perfumes',
+    previousProducts: 'Previously Suggested Products',
+    recommendedEssences: 'Recommended Essences',
+    proposedAccessories: 'Suggested Accessories',
+    addComposition: 'Add Custom Formula to Cart',
+    addAllToCart: 'Add All Suggestions to Cart',
+    creationIa: 'AI Creation',
+    toastError: 'An error occurred with the AI Sommelier',
+    technicalError: 'We encountered a technical glitch. Please try again shortly.',
+    resetSuccess: 'Chat history cleared successfully.',
+    abortInfo: 'AI request canceled.',
+    loadingHistory: 'Loading your consultation history…',
+    emptyTitle: 'Your AI Fragrance Sommelier',
+    emptyDescription: 'Share your mood, personality, or occasion. Our AI will formulate your bespoke signature scent.',
+    suggestions: [
+      'A warm woody scent for a romantic evening',
+      'A crisp fresh fragrance for the workplace',
+      'A bold captivating perfume for nightlife',
+    ],
+    newChat: 'Start Fresh',
+    placeholder: 'E.g., A fresh citrus scent for spring...',
+  },
+};
+
+function getLang(): 'fr' | 'en' {
+  return i18n.language && i18n.language.startsWith('en') ? 'en' : 'fr';
+}
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -76,27 +170,11 @@ export interface ChatMessage {
   animateText?: boolean;
 }
 
-/** Payload sent from InputBar to handleSend */
 interface SendPayload {
   content: string;
-  /** ml as a number, or null if user didn't specify */
   bottleSize: string | null;
-  /** budget in FCFA as a number, or empty string if not set */
   budget: string | number;
 }
-
-// ── Loading search texts ────────────────────────────────────────────────────
-
-const LOADING_TEXTS = [
-  'Nous analysons vos préférences olfactives...',
-  'Recherche des parfums correspondant à votre profil...',
-  'Exploration de notre catalogue d\'essences rares...',
-  'Sélection des accessoires complémentaires...',
-  'Élaboration de votre formule personnalisée...',
-  'Affinement de la recommandation par notre IA...',
-  'Calcul des prix et des compositions optimales...',
-  'Derniers ajustements olfactifs en cours...',
-];
 
 // ── Blending color helper ───────────────────────────────────────────────────
 
@@ -122,17 +200,18 @@ function blendHexColors(colors: { hex: string; weight: number }[]): string {
 function LoadingBubble() {
   const [textIdx, setTextIdx] = useState(0);
   const [visible, setVisible] = useState(true);
+  const t = dict[getLang()];
 
   useEffect(() => {
     const interval = setInterval(() => {
       setVisible(false);
       setTimeout(() => {
-        setTextIdx(i => (i + 1) % LOADING_TEXTS.length);
+        setTextIdx(i => (i + 1) % t.loadingTexts.length);
         setVisible(true);
       }, 350);
     }, 2200);
     return () => clearInterval(interval);
-  }, []);
+  }, [t.loadingTexts.length]);
 
   return (
     <div className="flex items-end gap-3 justify-start">
@@ -161,7 +240,7 @@ function LoadingBubble() {
                 transition={{ duration: 0.3 }}
                 className="text-xs text-foreground/60 italic"
               >
-                {LOADING_TEXTS[textIdx]}
+                {t.loadingTexts[textIdx]}
               </motion.p>
             )}
           </AnimatePresence>
@@ -246,10 +325,8 @@ function extractPromptMetadata(text: string, metadata?: Record<string, unknown>)
     }
   }
 
-  // Budget regex now accepts spaces/dots as thousand separators: "1 000 000" or "1.000.000"
   const budgetMatch = cleanedText.match(/(?:^|[\s—-])Budget:\s*([0-9]+(?:[\s.][0-9]{3})*)\s*(?:FCFA|f cfa)?/i);
   if (!budget && budgetMatch) {
-    // Remove spaces and dots used as thousand separators, keep only the number
     const numeric = Number(budgetMatch[1].replace(/[\s.]/g, ''));
     if (Number.isFinite(numeric) && numeric > 0) {
       budget = `${numeric.toLocaleString('fr-FR')} FCFA`;
@@ -301,11 +378,12 @@ function resolveSuggestionIds(metadata: Record<string, unknown> | undefined) {
 }
 
 function UserBubble({ text, metadata }: { text: string; metadata?: Record<string, unknown> }) {
+  const t = dict[getLang()];
   const { cleanedText, quantity, budget } = extractPromptMetadata(text, metadata);
 
   const chips = [
-    quantity ? `Quantité ${quantity}` : null,
-    budget ? `Budget ${budget}` : null,
+    quantity ? `${t.formatLabel} ${quantity}` : null,
+    budget ? `${t.budgetLabel} ${budget}` : null,
   ].filter(Boolean) as string[];
 
   return (
@@ -334,6 +412,7 @@ function ProductCard({
   image?: string; name: string; price: string | number; onAdd: () => void;
 }) {
   const [added, setAdded] = useState(false);
+  const t = dict[getLang()];
   const handleAdd = () => { onAdd(); setAdded(true); setTimeout(() => setAdded(false), 2000); };
 
   return (
@@ -362,7 +441,7 @@ function ProductCard({
           added ? 'bg-emerald-500/20 text-emerald-400' : 'bg-white/5 hover:bg-gold hover:text-black text-foreground/60'
         }`}
       >
-        {added ? <span>Ajouté ✓</span> : <><Plus size={11} /><span>Ajouter</span></>}
+        {added ? <span>{t.added}</span> : <><Plus size={11} /><span>{t.add}</span></>}
       </button>
     </div>
   );
@@ -435,9 +514,9 @@ function AiBubble({
   onAddAllToCart: (aiData: AiResponse, composition?: CustomComposition) => void;
   onRetry: (payload: SendPayload) => void;
 }) {
-  const [isTypingComplete, setIsTypingComplete] = useState(Boolean(messageObj.animateText) ? false : true);
-  const { addProduct, addComposition } = useCartStore();
-  const { addToast } = useToastStore();
+  const [isTypingComplete, setIsTypingComplete] = useState(!messageObj.animateText);
+  const { addProduct } = useCartStore();
+  const t = dict[getLang()];
   const { text, aiData, composition, suggestions, isError503, retryPayload, animateText } = messageObj;
 
   useEffect(() => {
@@ -486,10 +565,10 @@ function AiBubble({
           <div className="bg-red-500/10 border border-red-500/35 rounded-3xl p-5 max-w-md space-y-4">
             <div className="flex items-center gap-2 text-red-400">
               <AlertTriangle size={18} />
-              <p className="text-sm font-bold">Erreur du serveur (503)</p>
+              <p className="text-sm font-bold">{t.errorTitle}</p>
             </div>
             <p className="text-xs text-foreground/80 leading-relaxed">
-              Désolé, nous recevons actuellement un trop grand nombre de requêtes. Veuillez réessayer dans un instant.
+              {t.errorBody}
             </p>
             {retryPayload && (
               <button
@@ -497,7 +576,7 @@ function AiBubble({
                 className="flex items-center gap-2 px-4 py-2 rounded-xl bg-red-500/20 hover:bg-red-500/30 text-red-200 border border-red-500/30 text-xs font-bold transition-all"
               >
                 <RefreshCw size={12} />
-                Réessayer la demande
+                {t.retry}
               </button>
             )}
           </div>
@@ -517,7 +596,7 @@ function AiBubble({
                 <div className="flex items-center gap-2 mb-3">
                   <Beaker size={14} className="text-gold" />
                   <p className="text-[10px] font-bold uppercase tracking-widest text-gold">
-                    Formule IA ({composition!.totalMl}ml)
+                    {t.aiFormula} ({composition!.totalMl}ml)
                   </p>
                 </div>
                 <div className="space-y-2">
@@ -533,7 +612,7 @@ function AiBubble({
                 </div>
               </div>
               <div className="mt-3 pt-3 border-t border-white/10 flex justify-between items-center">
-                <span className="text-[10px] text-foreground/40 uppercase font-semibold">Prix composition</span>
+                <span className="text-[10px] text-foreground/40 uppercase font-semibold">{t.formulaPrice}</span>
                 <span className="text-sm font-bold text-gold">{formatPrice(composition!.totalPrice)}</span>
               </div>
             </div>
@@ -542,7 +621,7 @@ function AiBubble({
 
         {!isError503 && shouldShowContent && hasProducts && (
           <div>
-            <p className="text-[10px] text-foreground/40 uppercase tracking-widest font-bold mb-2 ml-1">Parfums suggérés</p>
+            <p className="text-[10px] text-foreground/40 uppercase tracking-widest font-bold mb-2 ml-1">{t.suggestedPerfumes}</p>
             <div className="flex gap-3 overflow-x-auto pb-2" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
               {aiData!.parfums_existants!.map(p => (
                 <ProductCard key={p.id} image={p.image_principale} name={p.nom} price={p.prix_unitaire} onAdd={() => handleAddProduct(p)} />
@@ -553,7 +632,7 @@ function AiBubble({
 
         {!isError503 && suggestions && suggestions.length > 0 && (
           <div>
-            <p className="text-[10px] text-foreground/40 uppercase tracking-widest font-bold mb-2 ml-1">Produits proposés précédemment</p>
+            <p className="text-[10px] text-foreground/40 uppercase tracking-widest font-bold mb-2 ml-1">{t.previousProducts}</p>
             <div className="flex gap-3 overflow-x-auto pb-2" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
               {suggestions.map((product) => (
                 <ProductCard
@@ -561,9 +640,7 @@ function AiBubble({
                   image={product.images?.[0]}
                   name={product.name}
                   price={product.price}
-                  onAdd={() => {
-                    addProduct(product);
-                  }}
+                  onAdd={() => { addProduct(product); }}
                 />
               ))}
             </div>
@@ -572,7 +649,7 @@ function AiBubble({
 
         {!isError503 && shouldShowContent && hasEssences && (
           <div>
-            <p className="text-[10px] text-foreground/40 uppercase tracking-widest font-bold mb-2 ml-1">Essences recommandées</p>
+            <p className="text-[10px] text-foreground/40 uppercase tracking-widest font-bold mb-2 ml-1">{t.recommendedEssences}</p>
             <div className="flex gap-3 overflow-x-auto pb-2" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
               {aiData!.essences_pre_faites!.map(e => (
                 <div key={e.id} className="flex-shrink-0 w-44 bg-white/5 border border-white/10 rounded-2xl p-4 hover:border-gold/30 transition-all">
@@ -590,7 +667,7 @@ function AiBubble({
 
         {!isError503 && shouldShowContent && hasAccessories && (
           <div>
-            <p className="text-[10px] text-foreground/40 uppercase tracking-widest font-bold mb-2 ml-1">Accessoires proposés</p>
+            <p className="text-[10px] text-foreground/40 uppercase tracking-widest font-bold mb-2 ml-1">{t.proposedAccessories}</p>
             <div className="flex gap-3 overflow-x-auto pb-2" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
               {aiData!.accessoires!.map(a => {
                 const accessoryLike = a as unknown as { image_principale?: string; nom?: string; prix_unitaire?: number | string };
@@ -607,11 +684,11 @@ function AiBubble({
           <div className="flex flex-wrap gap-2">
             {hasComposition && (
               <button
-                onClick={() => { addComposition(composition!); }}
+                onClick={() => { useCartStore.getState().addComposition(composition!); }}
                 className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-gold text-black font-bold text-xs uppercase tracking-wider hover:bg-gold/80 transition-all active:scale-95 shadow-lg shadow-gold/20"
               >
                 <ShoppingCart size={13} />
-                Ajouter la composition
+                {t.addComposition}
               </button>
             )}
             {(hasProducts || hasAccessories) && (
@@ -620,7 +697,7 @@ function AiBubble({
                 className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 hover:border-gold/30 hover:text-gold text-foreground/60 font-bold text-xs uppercase tracking-wider transition-all active:scale-95"
               >
                 <ShoppingBag size={13} />
-                Tout ajouter au panier
+                {t.addAllToCart}
               </button>
             )}
           </div>
@@ -630,13 +707,6 @@ function AiBubble({
   );
 }
 
-// ── Prompt builder ──────────────────────────────────────────────────────────
-
-/**
- * Builds the prompt string sent to the AI.
- * - bottleSize is in ml (number) or null (unspecified)
- * - budget is in FCFA (number or string) or empty
- */
 function buildPrompt({ content, bottleSize, budget }: SendPayload): string {
   const parts: string[] = [content.trim()];
   const normalizedBottleSize = (() => {
@@ -681,12 +751,12 @@ export function GeminiChat({ onChatStarted }: GeminiChatProps) {
   const { addProduct, addComposition } = useCartStore();
   const { user } = useAuthStore();
   const { addToast } = useToastStore();
+  const t = dict[getLang()];
 
   const resolveSuggestionsFromMetadata = useCallback(async (metadata?: Record<string, unknown>) => {
     if (!metadata) return [] as Product[];
 
     const ids = resolveSuggestionIds(metadata);
-
     if (ids.length === 0) return [] as Product[];
 
     const resolved = await Promise.all(
@@ -702,6 +772,7 @@ export function GeminiChat({ onChatStarted }: GeminiChatProps) {
 
     return resolved.filter((product): product is Product => Boolean(product));
   }, []);
+
   const bottomRef = useRef<HTMLDivElement>(null);
   const chatAreaRef = useRef<HTMLDivElement>(null);
 
@@ -770,23 +841,23 @@ export function GeminiChat({ onChatStarted }: GeminiChatProps) {
   const handleResetConversation = useCallback(async () => {
     try {
       const res = await apiLabService.resetIAChatSummary();
-      addToast(res.detail || 'Résumé vidé avec succès.', 'success');
+      addToast(res.detail || t.resetSuccess, 'success');
     } catch (err: unknown) {
       console.warn('Failed to reset AI chat summary:', err);
     } finally {
       setMessages([]);
       onChatStarted?.(false);
     }
-  }, [addToast, onChatStarted]);
+  }, [addToast, onChatStarted, t.resetSuccess]);
 
   const handleAbort = useCallback(() => {
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
       abortControllerRef.current = null;
       setIsLoading(false);
-      addToast('Demande IA annulée.', 'info');
+      addToast(t.abortInfo, 'info');
     }
-  }, [addToast]);
+  }, [addToast, t.abortInfo]);
 
   const handleSend = useCallback(async (data: SendPayload) => {
     if (!data.content.trim() || isLoading) return;
@@ -845,7 +916,7 @@ export function GeminiChat({ onChatStarted }: GeminiChatProps) {
       const composition: CustomComposition | undefined = compositionEssences.length > 0
         ? {
             id: generateId(),
-            name: response.flacon ? `Création IA (${response.flacon.nom})` : 'Création IA',
+            name: response.flacon ? `${t.creationIa} (${response.flacon.nom})` : t.creationIa,
             essences: compositionEssences,
             totalMl,
             totalPrice,
@@ -867,21 +938,20 @@ export function GeminiChat({ onChatStarted }: GeminiChatProps) {
       if (axiosError.response?.status === 503) {
         setMessages(prev => [...prev, { id: generateId(), role: 'ai', text: '', isError503: true, retryPayload: data }]);
       } else {
-        addToast('Une erreur est survenue avec le Sommelier IA', 'error');
+        addToast(t.toastError, 'error');
         setMessages(prev => [...prev, {
           id: generateId(), role: 'ai',
-          text: 'Désolé, je rencontre une difficulté technique. Veuillez réessayer dans quelques instants.',
+          text: t.technicalError,
         }]);
       }
     } finally {
       setIsLoading(false);
       abortControllerRef.current = null;
     }
-  }, [isLoading, essences, user, addToast, onChatStarted]);
+  }, [isLoading, essences, user, addToast, onChatStarted, t]);
 
   const handleAddAll = useCallback((aiData: AiResponse, composition?: CustomComposition) => {
-    let count = 0;
-    if (composition) { addComposition(composition); count++; }
+    if (composition) { addComposition(composition); }
 
     aiData.parfums_existants?.forEach(p => {
       addProduct({
@@ -889,7 +959,6 @@ export function GeminiChat({ onChatStarted }: GeminiChatProps) {
         category: 'perfume-brand', images: p.image_principale ? [p.image_principale] : [],
         inStock: true, createdAt: new Date().toISOString(), slug: p.slug,
       });
-      count++;
     });
 
     aiData.accessoires?.forEach(a => {
@@ -899,11 +968,8 @@ export function GeminiChat({ onChatStarted }: GeminiChatProps) {
         price: Number(a.price || Number(accessoryLike.prix_unitaire || 0)), category: 'accessory',
         images: a.images || (accessoryLike.image_principale ? [String(accessoryLike.image_principale)] : []),
       });
-      count++;
     });
-
-
-  }, [addProduct, addComposition, addToast]);
+  }, [addProduct, addComposition]);
 
   if (!mounted) return null;
 
@@ -931,7 +997,7 @@ export function GeminiChat({ onChatStarted }: GeminiChatProps) {
               <div className="flex h-14 w-14 items-center justify-center rounded-full border border-gold/20 bg-gold/10 text-gold shadow-sm shadow-gold/10">
                 <Loader2 size={24} className="animate-spin" />
               </div>
-              <p className="text-sm text-foreground/60">Chargement de votre historique…</p>
+              <p className="text-sm text-foreground/60">{t.loadingHistory}</p>
             </motion.div>
           )}
         </AnimatePresence>
@@ -950,19 +1016,15 @@ export function GeminiChat({ onChatStarted }: GeminiChatProps) {
               </div>
               <div>
                 <h1 className="font-display text-3xl md:text-5xl font-bold text-foreground mb-3">
-                  Votre Sommelier <span className="text-gradient-gold">IA</span>
+                  {t.emptyTitle.split('IA')[0]}<span className="text-gradient-gold">IA</span>
                 </h1>
                 <p className="text-sm text-foreground/70 max-w-md mx-auto font-light leading-relaxed">
-                  Décrivez votre personnalité, vos envies ou une occasion spéciale. Notre IA experte concevra la formule parfaite pour vous.
+                  {t.emptyDescription}
                 </p>
               </div>
 
               <div className="flex flex-wrap justify-center gap-2 max-w-md">
-                {[
-                  'Un parfum boisé pour une soirée romantique',
-                  'Quelque chose de frais pour le bureau',
-                  'Un parfum audacieux pour une sortie nocturne',
-                ].map(s => (
+                {t.suggestions.map(s => (
                   <button
                     key={s}
                     onClick={() => handleSend({ content: s, bottleSize: null, budget: '' })}
@@ -1007,7 +1069,7 @@ export function GeminiChat({ onChatStarted }: GeminiChatProps) {
             className="flex items-center gap-1.5 text-[10px] uppercase tracking-widest text-foreground/30 hover:text-gold transition-colors font-bold"
           >
             <RefreshCw size={10} />
-            Nouvelle conversation
+            {t.newChat}
           </button>
           <div className="flex-1 h-px bg-white/5" />
         </div>
@@ -1018,9 +1080,8 @@ export function GeminiChat({ onChatStarted }: GeminiChatProps) {
           onSend={handleSend}
           onStop={handleAbort}
           status={isLoading ? 'streaming' : 'ready'}
-          placeholder="Ex: Un parfum boisé pour le printemps..."
+          placeholder={t.placeholder}
           className="px-0 pb-0"
-
         />
       </div>
     </div>

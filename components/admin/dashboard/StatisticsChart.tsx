@@ -16,17 +16,17 @@ const data = [
   { date: '30', revenue: 2450000, target: 900000 },
 ];
 
-const tabs = ['Mensuel', 'Trimestriel', 'Annuel'];
+const tabs = ['Monthly', 'Quarterly', 'Yearly'];
 
 function CustomTooltip({ active, payload, label }: any) {
   if (!active || !payload) return null;
   return (
     <div className="bg-[#1E293B] text-foreground px-4 py-3 rounded-xl shadow-sm text-xs">
-      <p className="font-semibold mb-2">Jour {label}</p>
+      <p className="font-semibold mb-2">Day {label}</p>
       {payload.map((p: any, i: number) => (
         <p key={i} className="flex items-center gap-2 mt-1">
           <span className="w-2 h-2 rounded-full" style={{ background: p.stroke }} />
-          {p.name === 'revenue' ? 'Revenu' : 'Objectif'}:
+          {p.name === 'revenue' ? 'Revenue' : 'Target'}:
           <span className="font-bold">{(p.value / 1000000).toFixed(1)}M FCFA</span>
         </p>
       ))}
@@ -35,14 +35,14 @@ function CustomTooltip({ active, payload, label }: any) {
 }
 
 export default function StatisticsChart() {
-  const [activeTab, setActiveTab] = useState('Mensuel');
+  const [activeTab, setActiveTab] = useState('Monthly');
 
   return (
     <div className="bg-white/5 rounded-2xl border border-white/10 p-6 shadow-sm hover:shadow-gold/5 transition-all duration-300">
       <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
         <div>
-          <h3 className="font-semibold text-foreground">Statistiques</h3>
-          <p className="text-xs text-foreground/40 mt-0.5">Évolution du revenu et objectif mensuel</p>
+          <h3 className="font-semibold text-foreground">Statistics</h3>
+          <p className="text-xs text-foreground/40 mt-0.5">Revenue evolution and monthly target</p>
         </div>
         <div className="flex items-center gap-3">
           <div className="flex rounded-xl border border-white/10 overflow-hidden">
@@ -62,7 +62,7 @@ export default function StatisticsChart() {
           </div>
           <div className="hidden sm:flex items-center gap-2 border border-white/10 rounded-xl px-3 py-1.5 text-sm text-foreground/60 hover:bg-white/5 transition-colors cursor-pointer">
             <Calendar size={14} />
-            <span>30 Avr – 6 Mai</span>
+            <span>Apr 30 – May 6</span>
           </div>
         </div>
       </div>
@@ -70,10 +70,10 @@ export default function StatisticsChart() {
       {/* Legend */}
       <div className="flex items-center gap-6 mb-4 text-xs">
         <span className="flex items-center gap-2 text-foreground/60">
-          <span className="w-3 h-0.5 rounded-full bg-gold" /> Revenu
+          <span className="w-3 h-0.5 rounded-full bg-gold" /> Revenue
         </span>
         <span className="flex items-center gap-2 text-foreground/60">
-          <span className="w-3 h-0.5 rounded-full bg-white/40" /> Objectif
+          <span className="w-3 h-0.5 rounded-full bg-white/40" /> Target
         </span>
       </div>
 
@@ -126,5 +126,3 @@ export default function StatisticsChart() {
     </div>
   );
 }
-
-
