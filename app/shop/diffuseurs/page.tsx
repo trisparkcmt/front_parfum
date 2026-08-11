@@ -86,7 +86,7 @@ function DiffuseursShopContent() {
   const handleAddToCart = async (product: Product) => {
     try {
       await addDiffuseur(Number(product.id), 1);
-      addToast(isEn ? 'Added to bag' : 'Ajouté au panier', 'success');
+      addToast(isEn ? 'Added to bag' : 'Ajout├® au panier', 'success');
       const { trackAddToCart } = await import('@/lib/gtag');
       trackAddToCart({
         id: product.id,
@@ -97,22 +97,23 @@ function DiffuseursShopContent() {
       });
     } catch {
       addToast(
-        isEn ? 'Error adding item to bag' : +'+'Erreur lors de l+''+\u2019ajout au panier+''+`,
+        isEn ? 'Error adding item to bag' : 'Erreur lors de lÔÇÖajout au panier',
         'error'
       );
     }
   };
+
   const handleToggleFavorite = (product: Product) => {
     if (isFavorite(product.id)) {
       removeFavorite(product.id);
       addToast(
-        isEn ? `${product.name} removed from wishlist` : `${product.name} retirÃ© des favoris`,
+        isEn ? `${product.name} removed from wishlist` : `${product.name} retir├® des favoris`,
         'info'
       );
     } else {
       addFavorite(product);
       addToast(
-        isEn ? `${product.name} saved to wishlist` : `${product.name} ajoutÃ© aux favoris`,
+        isEn ? `${product.name} saved to wishlist` : `${product.name} ajout├® aux favoris`,
         'success'
       );
     }
@@ -159,7 +160,7 @@ function DiffuseursShopContent() {
           <p className="text-[15px] text-foreground/60 font-light leading-relaxed max-w-md mx-auto">
             {isEn
               ? 'Elevate your sanctuary with our ultrasonic and high-performance scenting systems.'
-              : 'Transformez votre intÃ©rieur avec notre sÃ©lection de diffuseurs ultrasoniques et haute technologie d\'ambiance.'}
+              : 'Transformez votre int├®rieur avec notre s├®lection de diffuseurs ultrasoniques et haute technologie d\'ambiance.'}
           </p>
 
           <div className="w-12 h-px bg-gold mx-auto mt-8 opacity-40" />
@@ -219,7 +220,7 @@ function DiffuseursShopContent() {
             </button>
             <button
               onClick={() => setViewMode('horizontal')}
-              title={isEn ? 'Expanded List View' : 'Vue liste dÃ©taillÃ©e'}
+              title={isEn ? 'Expanded List View' : 'Vue liste d├®taill├®e'}
               className={`p-1.5 sm:p-2.5 rounded-lg transition-all ${
                 viewMode === 'horizontal'
                   ? 'bg-gold text-black'
@@ -249,7 +250,7 @@ function DiffuseursShopContent() {
                 {isEn ? 'Ultrasonic' : 'Ultrasons'}
               </option>
               <option value="nebulisation" className="bg-background">
-                {isEn ? 'Cold-Air Nebulization' : 'NÃ©bulisation'}
+                {isEn ? 'Cold-Air Nebulization' : 'N├®bulisation'}
               </option>
               <option value="chaleur" className="bg-background">
                 {isEn ? 'Gentle Heat' : 'Chaleur douce'}
@@ -262,13 +263,13 @@ function DiffuseursShopContent() {
               className="w-full min-w-[160px] flex-1 appearance-none rounded-xl border border-foreground/10 bg-foreground/5 px-4 py-3 text-[13px] text-foreground/60 outline-none transition-all duration-300 hover:border-gold/40 hover:text-foreground focus:border-gold sm:max-w-[220px]"
             >
               <option value="-date_creation" className="bg-background">
-                {isEn ? 'Newest Arrivals' : 'NouveautÃ©s'}
+                {isEn ? 'Newest Arrivals' : 'Nouveaut├®s'}
               </option>
               <option value="prix_unitaire" className="bg-background">
                 {isEn ? 'Price: Low to High' : 'Prix : croissant'}
               </option>
               <option value="-prix_unitaire" className="bg-background">
-                {isEn ? 'Price: High to Low' : 'Prix : dÃ©croissant'}
+                {isEn ? 'Price: High to Low' : 'Prix : d├®croissant'}
               </option>
             </select>
 
@@ -277,7 +278,7 @@ function DiffuseursShopContent() {
               className="inline-flex items-center gap-2 rounded-xl border border-foreground/10 bg-foreground/5 px-3 py-3 text-[13px] text-foreground/60 transition-all duration-300 hover:border-gold hover:text-foreground"
             >
               <RotateCcw size={14} />
-              {isEn ? 'Clear Filters' : 'RÃ©initialiser'}
+              {isEn ? 'Clear Filters' : 'R├®initialiser'}
             </button>
           </motion.div>
         )}
@@ -324,19 +325,19 @@ function DiffuseursShopContent() {
             className="text-center py-28"
           >
             <h3 className="font-serif text-[22px] font-normal text-foreground mb-2">
-              {isEn ? 'No Diffusers Found' : 'Aucun rÃ©sultat'}
+              {isEn ? 'No Diffusers Found' : 'Aucun r├®sultat'}
             </h3>
             <p className="text-sm text-foreground/60 max-w-xs mx-auto mb-7 leading-relaxed">
               {isEn
                 ? 'Try broadening your search or resetting active filters.'
-                : 'Essayez de modifier votre recherche ou de rÃ©initialiser les filtres.'}
+                : 'Essayez de modifier votre recherche ou de r├®initialiser les filtres.'}
             </p>
             <button
               onClick={resetFilters}
               className="inline-flex items-center gap-2 px-7 py-3 rounded-xl bg-gold text-black text-[13px] font-semibold transition-all duration-300 hover:bg-gold/90 hover:-translate-y-0.5"
             >
               <RotateCcw size={14} />
-              {isEn ? 'Reset All Filters' : 'RÃ©initialiser les filtres'}
+              {isEn ? 'Reset All Filters' : 'R├®initialiser les filtres'}
             </button>
           </motion.div>
         )}
