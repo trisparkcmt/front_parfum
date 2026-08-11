@@ -102,6 +102,15 @@ export default function FlashSales() {
 
   const handleAddToCart = (product: Product) => {
     addProduct(product, 1);
+    import('@/lib/gtag').then(({ trackAddToCart }) => {
+      trackAddToCart({
+        id: product.id,
+        name: product.name,
+        price: product.price,
+        category: product.category ?? 'Produit',
+        quantity: 1,
+      });
+    });
   };
 
   const handleToggleFavorite = (product: Product) => {

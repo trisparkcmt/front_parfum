@@ -190,6 +190,15 @@ export default function PerfumesShopClient() {
         `${product.name} ${t('added_to_cart')}`,
         'success'
       );
+      import('@/lib/gtag').then(({ trackAddToCart }) => {
+        trackAddToCart({
+          id: product.id,
+          name: product.name,
+          price: product.price,
+          category: product.category ?? 'Parfum',
+          quantity: 1,
+        });
+      });
     }
   };
 
@@ -199,6 +208,15 @@ export default function PerfumesShopClient() {
       `${product.name} ${t('added_to_cart')}`,
       'success'
     );
+    import('@/lib/gtag').then(({ trackAddToCart }) => {
+      trackAddToCart({
+        id: product.id,
+        name: product.name,
+        price: product.price,
+        category: 'Essence finie',
+        quantity: quantite,
+      });
+    });
   };
 
   const handleToggleFavorite = (product: Product) => {

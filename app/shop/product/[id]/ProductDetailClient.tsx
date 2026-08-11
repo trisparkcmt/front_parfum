@@ -126,11 +126,20 @@ export default function ProductDetailClient({ id }: { id: string }) {
     } else {
       await addProduct(product, quantity);
     }
-    
+
     addToast(
       isEn ? `${product.name} added to bag` : `${product.name} ajouté au panier`,
       'success'
     );
+
+    const { trackAddToCart } = await import('@/lib/gtag');
+    trackAddToCart({
+      id: product.id,
+      name: product.name,
+      price: product.price,
+      category: isDiffuseur ? 'Diffuseur' : (product.category ?? 'Produit'),
+      quantity,
+    });
   };
 
   const handleToggleFavorite = () => {

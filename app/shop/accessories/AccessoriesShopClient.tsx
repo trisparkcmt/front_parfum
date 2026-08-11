@@ -111,8 +111,18 @@ export default function AccessoriesShop() {
   const { addFavorite, removeFavorite, isFavorite } = useFavoritesStore();
   const { addToast } = useToastStore();
 
-  const handleAddToCart = (product: Product) => {
-    addProduct(product, 1);
+  const handleAddToCart = async (product: Product) => {
+    try {
+      await addProduct(product, 1);
+      const { trackAddToCart } = await import('@/lib/gtag');
+      trackAddToCart({
+        id: product.id,
+        name: product.name,
+        price: product.price,
+        category: product.category ?? 'Accessoire',
+        quantity: 1,
+      });
+    } catch { /* cart store already shows toast on error */ }
   };
 
   const handleToggleFavorite = (product: Product) => {

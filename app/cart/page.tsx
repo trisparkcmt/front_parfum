@@ -296,6 +296,23 @@ export default function CartPage() {
         'success'
       );
 
+      // ── GA4: begin_checkout — fired once the backend confirms the order
+      // and before we clear the cart (cart data is still available here).
+      try {
+        const { trackBeginCheckout, cartLineToGA4Item } = await import('@/lib/gtag');
+        trackBeginCheckout({
+          value: total,
+          coupon: cart?.code_promo_applique || undefined,
+          items: allItems.map((item: any) => cartLineToGA4Item({
+            id: item.id,
+            nom: item.nom,
+            prix_unitaire_snapshot: item.prix_unitaire_snapshot,
+            quantite: item.quantite,
+            type: item.type,
+          })),
+        });
+      } catch { /* never break checkout over analytics */ }
+
       clearCart();
       await syncCart();
 

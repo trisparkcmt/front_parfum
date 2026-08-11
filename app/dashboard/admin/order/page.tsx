@@ -461,6 +461,24 @@ export default function OrdersPage() {
       }),
       successMessage: 'Commande marquée comme livrée et payée',
       errorMessage: 'Erreur lors de la mise à jour de la livraison',
+      onSuccess: () => {
+        // ── GA4: purchase — API confirmed delivery, this is the real conversion
+        import('@/lib/gtag').then(({ trackPurchase, orderLineToGA4Item }) => {
+          const allLines = [
+            ...(order.lignes_parfums ?? []).map(l => ({ ...l, type: 'parfum' })),
+            ...(order.lignes_accessoires ?? []).map(l => ({ ...l, type: 'accessoire' })),
+            ...(order.lignes_produit_fini_essence ?? []).map(l => ({ ...l, type: 'produit-fini-essence' })),
+            ...(order.lignes_parfums_perso ?? []).map(l => ({ ...l, type: 'parfum-personnalise' })),
+            ...(order.lignes_essence_personnalisee ?? []).map(l => ({ ...l, type: 'essence-personnalisee' })),
+          ];
+          trackPurchase({
+            transactionId: order.numero_commande,
+            value: parseFloat(order.total_ttc ?? '0'),
+            coupon: order.code_promo_utilise ?? undefined,
+            items: allLines.map(orderLineToGA4Item),
+          });
+        }).catch(() => { /* never surface analytics errors */ });
+      },
     });
   };
 
