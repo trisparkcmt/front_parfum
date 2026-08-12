@@ -1,7 +1,8 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Search, Plus, Edit2, Trash2, Loader2, Wifi, Zap, Tag, DollarSign, Boxes, Settings2 } from 'lucide-react';
+import { InlineCell } from '@/components/admin/InlineCell';
 import { adminService } from '@/services/apiService';
 import { useToastStore } from '@/store/useToastStore';
 import { useCatalogPermissions } from '@/hooks/useCatalogPermissions';
@@ -10,6 +11,143 @@ import { extractCatalogList } from '@/lib/catalogUtils';
 import { useAuthStore } from '@/store/useAuthStore';
 import AppImage from '@/components/ui/AppImage';
 import { SlideOver } from '@/components/ui/SlideOver';
+import { useTranslation } from 'react-i18next';
+
+/* ── Inline translations ─────────────────────────────────────────────────── */
+const T = {
+  fr: {
+    title: 'Diffuseurs de Parfum',
+    subtitle: "Gestion du catalogue des diffuseurs d'ambiance et technologies associées",
+    new: 'Nouveau Diffuseur',
+    kpi_total: 'Total Références',
+    kpi_connected: 'Appareils Connectés',
+    kpi_stock: 'Stock Global',
+    kpi_units: 'unités',
+    search_placeholder: 'Rechercher un diffuseur par nom...',
+    col_diffuseur: 'Diffuseur',
+    col_tech: 'Technologie',
+    col_reservoir: 'Réservoir',
+    col_prix_vente: 'Prix Vente',
+    col_prix_achat: 'Prix Achat',
+    col_marge: 'Marge / Unité',
+    col_stock: 'Stock',
+    col_actions: 'Actions',
+    in_stock: 'en stock',
+    out_of_stock: 'Rupture',
+    no_results: 'Aucun diffuseur de parfum trouvé.',
+    loading: 'Chargement des diffuseurs...',
+    modal_title_new: 'Nouveau Diffuseur de Parfum',
+    modal_title_edit: 'Modifier le Diffuseur',
+    modal_desc: 'Gestion complète des spécifications techniques et tarifs du diffuseur.',
+    section_general: 'Informations générales',
+    section_pricing: 'Tarification',
+    section_stock: 'Stock & spécifications',
+    section_tech: 'Caractéristiques techniques',
+    field_nom: 'Nom du diffuseur *',
+    field_description: 'Description courte',
+    field_prix_vente: 'Prix de vente (FCFA) *',
+    field_prix_achat: "Prix d'achat (FCFA)",
+    field_admin_badge: 'Admin',
+    field_stock: 'Stock quantité',
+    field_reservoir: 'Réservoir (ml)',
+    field_tech: 'Technologie',
+    field_tech_ultrasons: 'Ultrasons',
+    field_tech_nebulisation: 'Nébulisation à froid',
+    field_tech_chaleur: 'Chaleur douce',
+    field_tech_connecte: 'Connecté',
+    field_alimentation: 'Alimentation',
+    field_ali_secteur: 'Secteur (prise)',
+    field_ali_usb: 'USB',
+    field_ali_batterie: 'Batterie',
+    field_ali_solaire: 'Solaire',
+    field_connected: 'Appareil connecté (Wi-Fi / BT)',
+    field_led: 'Jeux de lumière LED',
+    field_actif: 'Visible dans la boutique',
+    margin_label: 'Marge estimée :',
+    confirm_delete: 'Supprimer ce diffuseur de parfum ?',
+    toast_load_error: 'Erreur lors du chargement des diffuseurs de parfum',
+    toast_save_error: 'Erreur lors de la sauvegarde du diffuseur',
+    toast_delete_ok: 'Diffuseur supprimé avec succès',
+    toast_delete_error: 'Erreur lors de la suppression',
+    toast_patch_error: 'Erreur lors de la mise à jour',
+    toast_create_ok: 'Diffuseur de parfum créé avec succès',
+    toast_update_ok: 'Diffuseur de parfum mis à jour',
+    toast_required: 'Nom et Prix unitaire requis',
+    // mobile card
+    card_reservoir: 'Réservoir',
+    card_prix_vente: 'Prix vente',
+    card_prix_achat: 'Prix achat',
+    card_marge: 'Marge / unité',
+    connected_label: 'Connecté',
+    led_label: 'LED',
+  },
+  en: {
+    title: 'Fragrance Diffusers',
+    subtitle: 'Manage the catalogue of ambient diffusers and their technologies',
+    new: 'New Diffuser',
+    kpi_total: 'Total References',
+    kpi_connected: 'Connected Devices',
+    kpi_stock: 'Global Stock',
+    kpi_units: 'units',
+    search_placeholder: 'Search diffuser by name...',
+    col_diffuseur: 'Diffuser',
+    col_tech: 'Technology',
+    col_reservoir: 'Reservoir',
+    col_prix_vente: 'Sale Price',
+    col_prix_achat: 'Purchase Price',
+    col_marge: 'Margin / Unit',
+    col_stock: 'Stock',
+    col_actions: 'Actions',
+    in_stock: 'in stock',
+    out_of_stock: 'Out of stock',
+    no_results: 'No fragrance diffusers found.',
+    loading: 'Loading diffusers...',
+    modal_title_new: 'New Fragrance Diffuser',
+    modal_title_edit: 'Edit Diffuser',
+    modal_desc: 'Full management of technical specs and pricing.',
+    section_general: 'General information',
+    section_pricing: 'Pricing',
+    section_stock: 'Stock & specifications',
+    section_tech: 'Technical characteristics',
+    field_nom: 'Diffuser name *',
+    field_description: 'Short description',
+    field_prix_vente: 'Sale price (FCFA) *',
+    field_prix_achat: 'Purchase price (FCFA)',
+    field_admin_badge: 'Admin',
+    field_stock: 'Stock quantity',
+    field_reservoir: 'Reservoir (ml)',
+    field_tech: 'Technology',
+    field_tech_ultrasons: 'Ultrasonic',
+    field_tech_nebulisation: 'Cold nebulisation',
+    field_tech_chaleur: 'Gentle heat',
+    field_tech_connecte: 'Connected',
+    field_alimentation: 'Power source',
+    field_ali_secteur: 'Mains (plug)',
+    field_ali_usb: 'USB',
+    field_ali_batterie: 'Battery',
+    field_ali_solaire: 'Solar',
+    field_connected: 'Connected device (Wi-Fi / BT)',
+    field_led: 'LED light display',
+    field_actif: 'Visible in the shop',
+    margin_label: 'Estimated margin:',
+    confirm_delete: 'Delete this fragrance diffuser?',
+    toast_load_error: 'Error loading diffusers',
+    toast_save_error: 'Error saving diffuser',
+    toast_delete_ok: 'Diffuser deleted successfully',
+    toast_delete_error: 'Error deleting diffuser',
+    toast_patch_error: 'Error updating diffuser',
+    toast_create_ok: 'Fragrance diffuser created successfully',
+    toast_update_ok: 'Fragrance diffuser updated',
+    toast_required: 'Name and Sale price are required',
+    card_reservoir: 'Reservoir',
+    card_prix_vente: 'Sale price',
+    card_prix_achat: 'Purchase price',
+    card_marge: 'Margin / unit',
+    connected_label: 'Connected',
+    led_label: 'LED',
+  },
+} as const;
+type TKey = keyof typeof T.fr;
 
 // --- Shared Primitives ---
 const cx = (...classes: (string | boolean | undefined)[]) => classes.filter(Boolean).join(' ');
@@ -109,6 +247,9 @@ export default function DiffuseursAdminPage() {
   const permissions = useCatalogPermissions('accessoires');
   const { user } = useAuthStore();
   const isAdmin = Boolean(user?.is_staff || user?.role === 'superadmin' || user?.is_superuser);
+  const { i18n } = useTranslation();
+  const isEn = i18n.language?.startsWith('en') ?? false;
+  const t = (k: TKey) => isEn ? T.en[k] : T.fr[k];
 
   const [diffuseurs, setDiffuseurs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -139,7 +280,7 @@ export default function DiffuseursAdminPage() {
       const data = await adminService.getDiffuseurs(search ? { search } : undefined);
       setDiffuseurs(extractCatalogList(data));
     } catch {
-      addToast('Erreur lors du chargement des diffuseurs de parfum', 'error');
+      addToast(t('toast_load_error'), 'error');
     } finally {
       setLoading(false);
     }
@@ -191,7 +332,7 @@ export default function DiffuseursAdminPage() {
   const handleSave = async () => {
     if (!permissions.canCreate && !permissions.canUpdate) return;
     if (!form.nom || !form.prix_unitaire) {
-      addToast('Nom et Prix unitaire requis', 'error');
+      addToast(t('toast_required'), 'error');
       return;
     }
     try {
@@ -212,30 +353,46 @@ export default function DiffuseursAdminPage() {
       if (form.capacite_reservoir_ml) payload.capacite_reservoir_ml = parseInt(form.capacite_reservoir_ml, 10);
 
       if (editing) {
+        setDiffuseurs(prev => prev.map(d => d.id === editing.id ? { ...d, ...payload } : d));
+        setShowModal(false);
         await adminService.updateDiffuseur(editing.id, payload);
-        addToast('Diffuseur de parfum mis à jour', 'success');
+        addToast(t('toast_update_ok'), 'success');
+        fetchItems();
       } else {
+        setShowModal(false);
         await adminService.createDiffuseur(payload);
-        addToast('Diffuseur de parfum créé avec succès', 'success');
+        addToast(t('toast_create_ok'), 'success');
+        fetchItems();
       }
-      setShowModal(false);
-      fetchItems();
     } catch {
-      addToast('Erreur lors de la sauvegarde du diffuseur', 'error');
+      addToast(t('toast_save_error'), 'error');
     } finally {
       setSaving(false);
     }
   };
 
+  const patchDiffuseur = async (id: number, field: string, value: string) => {
+    if (!permissions.canUpdate) return;
+    setDiffuseurs(prev => prev.map(d => d.id === id ? { ...d, [field]: value } : d));
+    try {
+      await adminService.updateDiffuseur(id, { [field]: field === 'nom' ? value : Number(value) });
+    } catch {
+      addToast(t('toast_patch_error'), 'error');
+      fetchItems();
+    }
+  };
+
   const handleDelete = async (id: number) => {
     if (!permissions.canDelete) return;
-    if (!confirm('Supprimer ce diffuseur de parfum ?')) return;
+    if (!confirm(t('confirm_delete'))) return;
+    const snapshot = diffuseurs.find(d => d.id === id);
+    setDiffuseurs(prev => prev.filter(d => d.id !== id));
     try {
       await adminService.deleteDiffuseur(id);
-      addToast('Diffuseur supprimé avec succès', 'success');
-      fetchItems();
+      addToast(t('toast_delete_ok'), 'success');
     } catch {
-      addToast('Erreur lors de la suppression', 'error');
+      if (snapshot) setDiffuseurs(prev => [snapshot, ...prev]);
+      addToast(t('toast_delete_error'), 'error');
     }
   };
 
@@ -261,20 +418,15 @@ export default function DiffuseursAdminPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl font-semibold text-foreground">
-            Diffuseurs de Parfum
-          </h1>
-          <p className="text-sm text-foreground/40 mt-0.5">
-            Gestion du catalogue des diffuseurs d'ambiance et technologies associées
-          </p>
+          <h1 className="text-xl font-semibold text-foreground">{t('title')}</h1>
+          <p className="text-sm text-foreground/40 mt-0.5">{t('subtitle')}</p>
         </div>
         {permissions.canCreate && (
           <button
             onClick={openAdd}
             className="flex items-center justify-center gap-2 bg-gold text-black px-3.5 py-2 rounded-lg text-sm font-semibold hover:bg-gold/90 transition-colors w-full sm:w-auto"
           >
-            <Plus size={16} />
-            Nouveau Diffuseur
+            <Plus size={16} />{t('new')}
           </button>
         )}
       </div>
@@ -282,16 +434,16 @@ export default function DiffuseursAdminPage() {
       {/* KPI Strip */}
       <div className="rounded-xl border border-white/10 bg-white/[0.02] grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-white/10">
         <div className="p-4">
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-foreground/35">Total Références</p>
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-foreground/35">{t('kpi_total')}</p>
           <p className="text-xl font-semibold tabular-nums text-foreground mt-0.5">{stats.total}</p>
         </div>
         <div className="p-4">
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-foreground/35">Appareils Connectés</p>
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-foreground/35">{t('kpi_connected')}</p>
           <p className="text-xl font-semibold tabular-nums text-foreground mt-0.5">{stats.connected}</p>
         </div>
         <div className="p-4">
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-foreground/35">Stock Global</p>
-          <p className="text-xl font-semibold tabular-nums text-foreground mt-0.5">{stats.totalStock} <span className="text-xs font-normal text-foreground/40">unités</span></p>
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-foreground/35">{t('kpi_stock')}</p>
+          <p className="text-xl font-semibold tabular-nums text-foreground mt-0.5">{stats.totalStock} <span className="text-xs font-normal text-foreground/40">{t('kpi_units')}</span></p>
         </div>
       </div>
 
@@ -301,7 +453,7 @@ export default function DiffuseursAdminPage() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-foreground/40" size={15} />
           <input
             type="text"
-            placeholder="Rechercher un diffuseur par nom..."
+            placeholder={t('search_placeholder')}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full bg-white/[0.02] border border-white/10 rounded-lg pl-9 pr-3 py-2 text-sm text-foreground placeholder:text-foreground/40 outline-none focus:border-gold/50 transition-colors"
@@ -321,14 +473,14 @@ export default function DiffuseursAdminPage() {
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="border-b border-white/10 bg-white/[0.02]">
-                  <th className="px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-foreground/35">Diffuseur</th>
-                  <th className="px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-foreground/35">Technologie</th>
-                  <th className="px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-foreground/35">Réservoir</th>
-                  <th className="px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-foreground/35">Prix Vente</th>
-                  {isAdmin && <th className="px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-gold/80">Prix Achat</th>}
-                  {isAdmin && <th className="px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-emerald-400/80">Marge / Unité</th>}
-                  <th className="px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-foreground/35">Stock</th>
-                  <th className="px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-foreground/35 text-right">Actions</th>
+                  <th className="px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-foreground/35">{t('col_diffuseur')}</th>
+                  <th className="px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-foreground/35">{t('col_tech')}</th>
+                  <th className="px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-foreground/35">{t('col_reservoir')}</th>
+                  <th className="px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-foreground/35">{t('col_prix_vente')}</th>
+                  {isAdmin && <th className="px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-gold/80">{t('col_prix_achat')}</th>}
+                  {isAdmin && <th className="px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-emerald-400/80">{t('col_marge')}</th>}
+                  <th className="px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-foreground/35">{t('col_stock')}</th>
+                  <th className="px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-foreground/35 text-right">{t('col_actions')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
@@ -355,7 +507,9 @@ export default function DiffuseursAdminPage() {
                             )}
                           </div>
                           <div>
-                            <p className="font-medium text-foreground">{item.nom}</p>
+                            <p className="font-medium text-foreground">
+                              <InlineCell value={item.nom} onSave={v => patchDiffuseur(item.id, 'nom', v)} disabled={!permissions.canUpdate} className="font-medium text-foreground" />
+                            </p>
                             <div className="flex items-center gap-1.5 mt-1">
                               {item.est_connecte && (
                                 <StatusChip
@@ -379,10 +533,10 @@ export default function DiffuseursAdminPage() {
                         {item.type_technologie || 'ultrasons'}
                       </td>
                       <td className="px-4 py-3 text-xs text-foreground/60 tabular-nums">
-                        {item.capacite_reservoir_ml ? `${item.capacite_reservoir_ml} ml` : '—'}
+                        <InlineCell value={String(item.capacite_reservoir_ml ?? '')} onSave={v => patchDiffuseur(item.id, 'capacite_reservoir_ml', v)} disabled={!permissions.canUpdate} inputType="number" display={item.capacite_reservoir_ml ? <>{item.capacite_reservoir_ml} ml</> : <>—</>} className="text-foreground/60 tabular-nums" />
                       </td>
                       <td className="px-4 py-3 text-xs font-semibold tabular-nums text-foreground">
-                        {pVente.toLocaleString()} FCFA
+                        <InlineCell value={String(item.prix_unitaire ?? '')} onSave={v => patchDiffuseur(item.id, 'prix_unitaire', v)} disabled={!permissions.canUpdate} inputType="number" display={<>{pVente.toLocaleString()} FCFA</>} className="font-semibold text-foreground tabular-nums" />
                       </td>
                       {isAdmin && (
                         <td className="px-4 py-3 text-xs tabular-nums text-gold/90">
@@ -399,11 +553,7 @@ export default function DiffuseursAdminPage() {
                         </td>
                       )}
                       <td className="px-4 py-3 text-xs">
-                        {item.stock_quantite > 0 ? (
-                          <StatusChip variant="emerald" label={`${item.stock_quantite} en stock`} />
-                        ) : (
-                          <StatusChip variant="red" label="Rupture" />
-                        )}
+                        <InlineCell value={String(item.stock_quantite ?? 0)} onSave={v => patchDiffuseur(item.id, 'stock_quantite', v)} disabled={!permissions.canUpdate} inputType="number" display={item.stock_quantite > 0 ? <span className="text-emerald-400 tabular-nums">{item.stock_quantite} {t('in_stock')}</span> : <span className="text-red-400">{t('out_of_stock')}</span>} className="tabular-nums" />
                       </td>
                       <td className="px-4 py-3 text-right">
                         <div className="inline-flex items-center gap-1">
@@ -424,9 +574,7 @@ export default function DiffuseursAdminPage() {
                 })}
                 {diffuseurs.length === 0 && (
                   <tr>
-                    <td colSpan={isAdmin ? 8 : 6} className="text-center py-12 text-xs italic text-foreground/30">
-                      Aucun diffuseur de parfum trouvé.
-                    </td>
+                    <td colSpan={isAdmin ? 8 : 6} className="text-center py-12 text-xs italic text-foreground/30">{t('no_results')}</td>
                   </tr>
                 )}
               </tbody>
@@ -504,21 +652,21 @@ export default function DiffuseursAdminPage() {
 
                 <div className="grid grid-cols-2 gap-2 border-t border-white/5 pt-2.5 text-xs">
                   <div>
-                    <p className="text-foreground/40">Réservoir</p>
+                    <p className="text-foreground/40">{t('card_reservoir')}</p>
                     <p className="font-medium text-foreground/80 tabular-nums">{item.capacite_reservoir_ml ? `${item.capacite_reservoir_ml} ml` : '—'}</p>
                   </div>
                   <div>
-                    <p className="text-foreground/40">Prix vente</p>
+                    <p className="text-foreground/40">{t('card_prix_vente')}</p>
                     <p className="font-semibold text-foreground tabular-nums">{pVente.toLocaleString()} FCFA</p>
                   </div>
                   {isAdmin && (
                     <>
                       <div>
-                        <p className="text-foreground/40">Prix achat</p>
+                        <p className="text-foreground/40">{t('card_prix_achat')}</p>
                         <p className="font-medium text-gold/90 tabular-nums">{pAchat !== null ? `${pAchat.toLocaleString()} FCFA` : '—'}</p>
                       </div>
                       <div>
-                        <p className="text-foreground/40">Marge / unité</p>
+                        <p className="text-foreground/40">{t('card_marge')}</p>
                         <p className={cx('font-semibold tabular-nums', benefice !== null ? (benefice >= 0 ? 'text-emerald-400' : 'text-red-400') : 'text-foreground/40')}>
                           {benefice !== null ? `${benefice >= 0 ? '+' : ''}${benefice.toLocaleString()} FCFA` : '—'}
                         </p>
@@ -536,8 +684,8 @@ export default function DiffuseursAdminPage() {
       <SlideOver
         isOpen={showModal}
         onClose={() => setShowModal(false)}
-        title={editing ? 'Modifier le Diffuseur' : 'Nouveau Diffuseur de Parfum'}
-        description="Gestion complète des spécifications techniques et tarifs du diffuseur."
+        title={editing ? t('modal_title_edit') : t('modal_title_new')}
+        description={t('modal_desc')}
         size="lg"
         footer={
           <div className="flex gap-3">
@@ -545,7 +693,7 @@ export default function DiffuseursAdminPage() {
               onClick={() => setShowModal(false)}
               className="flex-1 border border-white/10 rounded-lg py-2 text-xs text-foreground/60 hover:bg-white/5 transition-colors"
             >
-              Annuler
+              {isEn ? 'Cancel' : 'Annuler'}
             </button>
             <button
               onClick={handleSave}
@@ -553,142 +701,81 @@ export default function DiffuseursAdminPage() {
               className="flex-1 bg-gold text-black rounded-lg py-2 text-xs font-semibold hover:bg-gold/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
             >
               {saving && <Loader2 size={13} className="animate-spin" />}
-              Enregistrer
+              {saving ? (isEn ? 'Saving…' : 'Enregistrement…') : (isEn ? 'Save' : 'Enregistrer')}
             </button>
           </div>
         }
       >
         <div className="space-y-4">
 
-          <FormSection title="Informations générales" icon={<Tag size={11} />}>
-            <Field label="Nom du diffuseur *">
-              <input
-                type="text"
-                value={form.nom}
-                onChange={(e) => setForm((p) => ({ ...p, nom: e.target.value }))}
-                placeholder="ex: Diffuseur Ultrasonique Zen"
-                className={inputCls}
-              />
+          <FormSection title={t('section_general')} icon={<Tag size={11} />}>
+            <Field label={t('field_nom')}>
+              <input type="text" value={form.nom} onChange={(e) => setForm((p) => ({ ...p, nom: e.target.value }))} placeholder={isEn ? 'e.g. Zen Ultrasonic Diffuser' : 'ex: Diffuseur Ultrasonique Zen'} className={inputCls} />
             </Field>
-            <Field label="Description courte">
-              <input
-                type="text"
-                value={form.description_courte}
-                onChange={(e) => setForm((p) => ({ ...p, description_courte: e.target.value }))}
-                placeholder="ex: Diffusion haute fréquence 300ml avec LED"
-                className={inputCls}
-              />
+            <Field label={t('field_description')}>
+              <input type="text" value={form.description_courte} onChange={(e) => setForm((p) => ({ ...p, description_courte: e.target.value }))} placeholder={isEn ? 'e.g. High-frequency 300ml with LED' : 'ex: Diffusion haute fréquence 300ml avec LED'} className={inputCls} />
             </Field>
           </FormSection>
 
-          <FormSection title="Tarification" icon={<DollarSign size={11} />}>
+          <FormSection title={t('section_pricing')} icon={<DollarSign size={11} />}>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <Field label="Prix de vente (FCFA) *">
-                <input
-                  type="number"
-                  value={form.prix_unitaire}
-                  onChange={(e) => setForm((p) => ({ ...p, prix_unitaire: e.target.value }))}
-                  placeholder="25000"
-                  className={inputCls}
-                />
+              <Field label={t('field_prix_vente')}>
+                <input type="number" value={form.prix_unitaire} onChange={(e) => setForm((p) => ({ ...p, prix_unitaire: e.target.value }))} placeholder="25000" className={inputCls} />
               </Field>
               {isAdmin && (
-                <Field label={<span className="flex items-center gap-1.5 text-amber-400/90">Prix d'achat (FCFA)<span className="rounded bg-amber-500/15 px-1.5 py-0.5 text-[9px] font-semibold text-amber-400">Admin</span></span>}>
-                  <input
-                    type="number"
-                    value={form.prix_achat}
-                    onChange={(e) => setForm((p) => ({ ...p, prix_achat: e.target.value }))}
-                    placeholder="12000"
-                    className={cx(inputCls, 'border-amber-500/20')}
-                  />
+                <Field label={<span className="flex items-center gap-1.5 text-amber-400/90">{t('field_prix_achat')}<span className="rounded bg-amber-500/15 px-1.5 py-0.5 text-[9px] font-semibold text-amber-400">{t('field_admin_badge')}</span></span>}>
+                  <input type="number" value={form.prix_achat} onChange={(e) => setForm((p) => ({ ...p, prix_achat: e.target.value }))} placeholder="12000" className={cx(inputCls, 'border-amber-500/20')} />
                 </Field>
               )}
             </div>
             {isAdmin && profitPreview !== null && (
               <p className={cx('text-xs font-medium', profitPreview >= 0 ? 'text-emerald-400' : 'text-red-400')}>
-                Marge estimée : {profitPreview >= 0 ? '+' : ''}{profitPreview.toLocaleString()} FCFA
+                {t('margin_label')} {profitPreview >= 0 ? '+' : ''}{profitPreview.toLocaleString()} FCFA
               </p>
             )}
           </FormSection>
 
-          <FormSection title="Stock & spécifications" icon={<Boxes size={11} />}>
+          <FormSection title={t('section_stock')} icon={<Boxes size={11} />}>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <Field label="Stock quantité">
-                <input
-                  type="number"
-                  value={form.stock_quantite}
-                  onChange={(e) => setForm((p) => ({ ...p, stock_quantite: e.target.value }))}
-                  placeholder="15"
-                  className={inputCls}
-                />
+              <Field label={t('field_stock')}>
+                <input type="number" value={form.stock_quantite} onChange={(e) => setForm((p) => ({ ...p, stock_quantite: e.target.value }))} placeholder="15" className={inputCls} />
               </Field>
-              <Field label="Réservoir (ml)">
-                <input
-                  type="number"
-                  value={form.capacite_reservoir_ml}
-                  onChange={(e) => setForm((p) => ({ ...p, capacite_reservoir_ml: e.target.value }))}
-                  placeholder="300"
-                  className={inputCls}
-                />
+              <Field label={t('field_reservoir')}>
+                <input type="number" value={form.capacite_reservoir_ml} onChange={(e) => setForm((p) => ({ ...p, capacite_reservoir_ml: e.target.value }))} placeholder="300" className={inputCls} />
               </Field>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <Field label="Technologie">
-                <select
-                  value={form.type_technologie}
-                  onChange={(e) => setForm((p) => ({ ...p, type_technologie: e.target.value }))}
-                  className={inputCls}
-                >
-                  <option value="ultrasons" className="bg-background">Ultrasons</option>
-                  <option value="nebulisation" className="bg-background">Nébulisation</option>
-                  <option value="chaleur" className="bg-background">Chaleur douce</option>
-                  <option value="ventilation" className="bg-background">Ventilation</option>
+              <Field label={t('field_tech')}>
+                <select value={form.type_technologie} onChange={(e) => setForm((p) => ({ ...p, type_technologie: e.target.value }))} className={inputCls}>
+                  <option value="ultrasons" className="bg-background">{t('field_tech_ultrasons')}</option>
+                  <option value="nebulisation" className="bg-background">{t('field_tech_nebulisation')}</option>
+                  <option value="chaleur" className="bg-background">{t('field_tech_chaleur')}</option>
+                  <option value="ventilation" className="bg-background">{t('field_tech_connecte')}</option>
                 </select>
               </Field>
-              <Field label="Alimentation">
-                <select
-                  value={form.type_alimentation}
-                  onChange={(e) => setForm((p) => ({ ...p, type_alimentation: e.target.value }))}
-                  className={inputCls}
-                >
-                  <option value="secteur" className="bg-background">Secteur 220V</option>
-                  <option value="usb" className="bg-background">USB-C</option>
-                  <option value="batterie" className="bg-background">Batterie rechargeable</option>
+              <Field label={t('field_alimentation')}>
+                <select value={form.type_alimentation} onChange={(e) => setForm((p) => ({ ...p, type_alimentation: e.target.value }))} className={inputCls}>
+                  <option value="secteur" className="bg-background">{t('field_ali_secteur')}</option>
+                  <option value="usb" className="bg-background">{t('field_ali_usb')}</option>
+                  <option value="batterie" className="bg-background">{t('field_ali_batterie')}</option>
                 </select>
               </Field>
             </div>
           </FormSection>
 
-          <FormSection title="Fonctionnalités & statut" icon={<Settings2 size={11} />}>
+          <FormSection title={isEn ? 'Features & status' : 'Fonctionnalités & statut'} icon={<Settings2 size={11} />}>
             <div className="space-y-2.5">
               <label className="flex items-center gap-2.5 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={form.est_connecte}
-                  onChange={(e) => setForm((p) => ({ ...p, est_connecte: e.target.checked }))}
-                  className="rounded border-white/10 bg-white/5 text-gold focus:ring-gold"
-                />
-                <span className="text-xs text-foreground/70">Appareil connecté (Wi-Fi / Bluetooth)</span>
+                <input type="checkbox" checked={form.est_connecte} onChange={(e) => setForm((p) => ({ ...p, est_connecte: e.target.checked }))} className="rounded border-white/10 bg-white/5 text-gold focus:ring-gold" />
+                <span className="text-xs text-foreground/70">{t('field_connected')}</span>
               </label>
-
               <label className="flex items-center gap-2.5 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={form.a_jeux_de_lumiere}
-                  onChange={(e) => setForm((p) => ({ ...p, a_jeux_de_lumiere: e.target.checked }))}
-                  className="rounded border-white/10 bg-white/5 text-gold focus:ring-gold"
-                />
-                <span className="text-xs text-foreground/70">Jeux d'éclairage LED ambiants</span>
+                <input type="checkbox" checked={form.a_jeux_de_lumiere} onChange={(e) => setForm((p) => ({ ...p, a_jeux_de_lumiere: e.target.checked }))} className="rounded border-white/10 bg-white/5 text-gold focus:ring-gold" />
+                <span className="text-xs text-foreground/70">{t('field_led')}</span>
               </label>
-
               <label className="flex items-center gap-2.5 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={form.actif}
-                  onChange={(e) => setForm((p) => ({ ...p, actif: e.target.checked }))}
-                  className="rounded border-white/10 bg-white/5 text-gold focus:ring-gold"
-                />
-                <span className="text-xs text-foreground/70">Produit actif (visible en boutique)</span>
+                <input type="checkbox" checked={form.actif} onChange={(e) => setForm((p) => ({ ...p, actif: e.target.checked }))} className="rounded border-white/10 bg-white/5 text-gold focus:ring-gold" />
+                <span className="text-xs text-foreground/70">{t('field_actif')}</span>
               </label>
             </div>
           </FormSection>

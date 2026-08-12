@@ -123,7 +123,7 @@ export function Footer() {
             © {new Date().getFullYear()} Accessoires Exclusif. {t('all_rights_reserved', 'Tous droits réservés.')}
           </p>
           <p className="text-xs text-zinc-500">
-            {t('made_by', 'Fait par')} {t('Stak Digital et ses petits' , 'Stak Digital and his petit')} {t('in_cameroon', 'au Cameroun')}
+            {t('made_by', 'Fait par')} TriSpark Digital {t('in_cameroon', 'au Cameroun')}
           </p>
         </div>
       </div>

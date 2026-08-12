@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Loader2, Edit2, Trash2, Plus, Search, Gem, FlaskConical, Tag, Calendar, Image as ImageIcon } from 'lucide-react';
 import { PerfumeIcon } from '@/components/icons/CustomIcons';
 import { shopService, adminService } from '@/services/apiService';
@@ -281,6 +281,81 @@ function TabButton({
 }
 
 /* -------------------------------------------------------------------------- */
+/* InlineCell — click to edit, blur to save                                  */
+/* -------------------------------------------------------------------------- */
+
+function InlineCell({
+  id,
+  field,
+  value,
+  display,
+  inputType = 'text',
+  className = '',
+  inlineEdit,
+  setInlineEdit,
+  onSave,
+}: {
+  id: number;
+  field: string;
+  value: string;
+  display?: React.ReactNode;
+  inputType?: string;
+  className?: string;
+  inlineEdit: { id: number; field: string; value: string } | null;
+  setInlineEdit: (v: { id: number; field: string; value: string } | null) => void;
+  onSave: (id: number, field: string, value: string) => void;
+}) {
+  const isActive = inlineEdit?.id === id && inlineEdit?.field === field;
+  const inputRef = useRef<HTMLInputElement>(null);
+  const originalRef = useRef(value);
+
+  useEffect(() => {
+    if (isActive) {
+      inputRef.current?.focus();
+      inputRef.current?.select();
+      originalRef.current = value;
+    }
+  }, [isActive]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const commit = () => {
+    const val = inlineEdit?.value ?? value;
+    if (val.trim() !== '' && val !== originalRef.current) {
+      onSave(id, field, val.trim());
+    } else {
+      setInlineEdit(null);
+    }
+  };
+
+  if (isActive) {
+    return (
+      <input
+        ref={inputRef}
+        type={inputType}
+        value={inlineEdit!.value}
+        onChange={e => setInlineEdit({ id, field, value: e.target.value })}
+        onBlur={commit}
+        onKeyDown={e => {
+          if (e.key === 'Enter') { e.preventDefault(); inputRef.current?.blur(); }
+          if (e.key === 'Escape') { setInlineEdit(null); }
+        }}
+        className={`min-w-0 w-full rounded border border-gold/50 bg-white/[0.06] px-2 py-1 text-xs text-foreground outline-none ring-1 ring-gold/30 ${className}`}
+      />
+    );
+  }
+
+  return (
+    <span
+      onClick={() => setInlineEdit({ id, field, value })}
+      title="Cliquer pour modifier"
+      className={`cursor-text rounded px-1 -mx-1 py-0.5 transition-colors hover:bg-white/[0.06] hover:ring-1 hover:ring-white/10 group inline-flex items-center gap-1.5 ${className}`}
+    >
+      {display ?? value}
+      <Edit2 size={10} className="opacity-0 group-hover:opacity-40 transition-opacity flex-shrink-0" />
+    </span>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
 /* Main Component                                                             */
 /* -------------------------------------------------------------------------- */
 
@@ -308,6 +383,9 @@ export default function CategoriesAdminPage() {
   });
 
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+  const [isSaving, setIsSaving] = useState(false);
+  // Inline editing: { id, field, value }
+  const [inlineEdit, setInlineEdit] = useState<{ id: number; field: string; value: string } | null>(null);
 
   const { addToast } = useToastStore();
 
@@ -396,7 +474,6 @@ export default function CategoriesAdminPage() {
 
   const handleSave = async () => {
     const errors: Record<string, string> = {};
-
     if (activeTab === 'perfume_categories' || activeTab === 'accessory_categories') {
       if (!form.nom.trim()) errors.nom = t('categories.errors.name_required');
       if (!form.slug.trim()) errors.slug = t('categories.errors.slug_required');
@@ -404,21 +481,29 @@ export default function CategoriesAdminPage() {
         errors.ordre_affichage = t('categories.errors.display_order_required');
       else if (isNaN(Number(form.ordre_affichage)) || Number(form.ordre_affichage) < 0)
         errors.ordre_affichage = t('categories.errors.display_order_positive');
-      if (!form.taux_reduction) errors.taux_reduction = t('categories.errors.discount_rate_required');
-      else if (
-        isNaN(Number(form.taux_reduction)) ||
-        Number(form.taux_reduction) < 0 ||
-        Number(form.taux_reduction) > 100
-      )
-        errors.taux_reduction = t('categories.errors.discount_rate_range');
-      if (!form.message_promotion) errors.message_promotion = t('categories.errors.promo_message_required');
-    }
 
-    if (activeTab === 'perfume_categories' || activeTab === 'accessory_categories') {
-      if (!form.date_debut) errors.date_debut = t('categories.errors.start_date_required');
-      if (!form.date_fin) errors.date_fin = t('categories.errors.end_date_required');
-      else if (form.date_debut && form.date_fin && new Date(form.date_fin) < new Date(form.date_debut)) {
-        errors.date_fin = t('categories.errors.end_date_after_start');
+      // Validate discount rate only if provided
+      if (form.taux_reduction && form.taux_reduction !== '0' && form.taux_reduction !== '0.00') {
+        if (
+          isNaN(Number(form.taux_reduction)) ||
+          Number(form.taux_reduction) < 0 ||
+          Number(form.taux_reduction) > 100
+        )
+          errors.taux_reduction = t('categories.errors.discount_rate_range');
+
+        // Promo message and dates are only required when a discount is set
+        if (!form.message_promotion.trim())
+          errors.message_promotion = t('categories.errors.promo_message_required');
+        if (!form.date_debut)
+          errors.date_debut = t('categories.errors.start_date_required');
+        if (!form.date_fin)
+          errors.date_fin = t('categories.errors.end_date_required');
+        else if (form.date_debut && new Date(form.date_fin) < new Date(form.date_debut))
+          errors.date_fin = t('categories.errors.end_date_after_start');
+      } else if (form.date_debut || form.date_fin) {
+        // Dates provided without a discount — still validate the range if both are given
+        if (form.date_debut && form.date_fin && new Date(form.date_fin) < new Date(form.date_debut))
+          errors.date_fin = t('categories.errors.end_date_after_start');
       }
     }
 
@@ -442,6 +527,8 @@ export default function CategoriesAdminPage() {
       return;
     }
 
+    setIsSaving(true);
+    setShowModal(false);
     try {
       if (activeTab === 'perfume_categories') {
         const formData = new FormData();
@@ -499,15 +586,17 @@ export default function CategoriesAdminPage() {
         }
       }
 
-      setShowModal(false);
       fetchItems();
     } catch (error: any) {
-      setFormError(extractApiError(error, t('categories.toasts.save_error')));
+      setFormError(extractApiError(error, t('categories.toasts.save_error')));    } finally {
+      setIsSaving(false);
     }
   };
 
   const handleDelete = async (id: number) => {
     if (!confirm(t('categories.confirmations.delete_item'))) return;
+    const snapshot = items.find(i => i.id === id);
+    setItems(prev => prev.filter(i => i.id !== id));
     try {
       if (activeTab === 'perfume_categories') {
         await shopService.deletePerfumeCategory(id);
@@ -517,9 +606,33 @@ export default function CategoriesAdminPage() {
         await shopService.deleteBottleType(id);
       }
       addToast(t('categories.toasts.delete_success'), 'success');
-      fetchItems();
     } catch {
+      if (snapshot) setItems(prev => [snapshot, ...prev]);
       addToast(t('categories.toasts.delete_error'), 'error');
+    }
+  };
+
+  // ── Inline edit: patch a single field on blur ──────────────────────────
+  const handleInlineSave = async (id: number, field: string, value: string) => {
+    // Optimistically update local state first
+    setItems(prev => prev.map(item => item.id === id ? { ...item, [field]: value } : item));
+    setInlineEdit(null);
+
+    try {
+      const formData = new FormData();
+      formData.append(field, value);
+
+      if (activeTab === 'perfume_categories') {
+        await adminService.patchFormData(`shop/categories-parfum/${id}/`, formData);
+      } else if (activeTab === 'accessory_categories') {
+        await adminService.patchFormData(`shop/types-accessoire/${id}/`, formData);
+      } else if (activeTab === 'bottle_types') {
+        await shopService.updateBottleType(id, { [field]: value });
+      }
+    } catch {
+      // Roll back on failure
+      addToast(t('categories.toasts.save_error'), 'error');
+      fetchItems();
     }
   };
 
@@ -689,17 +802,34 @@ export default function CategoriesAdminPage() {
                                   )}
                                 </div>
                               </td>
-                              <td className="px-4 py-2.5 font-medium text-foreground">{c.nom}</td>
-                              <td className="px-4 py-2.5 text-foreground/50">{c.slug}</td>
-                              <td className="px-4 py-2.5 text-foreground/50 tabular-nums">{c.ordre_affichage}</td>
+                              <td className="px-4 py-2.5 font-medium text-foreground">
+                                <InlineCell id={c.id} field="nom" value={c.nom || ''} inlineEdit={inlineEdit} setInlineEdit={setInlineEdit} onSave={handleInlineSave} className="font-medium text-foreground" />
+                              </td>
+                              <td className="px-4 py-2.5 text-foreground/50">
+                                <InlineCell id={c.id} field="slug" value={c.slug || ''} inlineEdit={inlineEdit} setInlineEdit={setInlineEdit} onSave={handleInlineSave} className="text-foreground/50 font-mono text-[11px]" />
+                              </td>
+                              <td className="px-4 py-2.5 text-foreground/50 tabular-nums">
+                                <InlineCell id={c.id} field="ordre_affichage" value={String(c.ordre_affichage ?? 0)} inputType="number" inlineEdit={inlineEdit} setInlineEdit={setInlineEdit} onSave={handleInlineSave} className="text-foreground/50 tabular-nums w-16" />
+                              </td>
                               <td className="px-4 py-2.5">
-                                {c.taux_reduction && parseFloat(c.taux_reduction) > 0 ? (
-                                  <span className="inline-flex items-center rounded-full bg-gold/10 px-2 py-0.5 text-[11px] font-semibold text-gold ring-1 ring-inset ring-gold/20 tabular-nums">
-                                    -{c.taux_reduction}%
-                                  </span>
-                                ) : (
-                                  <span className="text-foreground/25">—</span>
-                                )}
+                                <InlineCell
+                                  id={c.id}
+                                  field="taux_reduction"
+                                  value={c.taux_reduction || '0'}
+                                  inputType="number"
+                                  inlineEdit={inlineEdit}
+                                  setInlineEdit={setInlineEdit}
+                                  onSave={handleInlineSave}
+                                  display={
+                                    c.taux_reduction && parseFloat(c.taux_reduction) > 0 ? (
+                                      <span className="inline-flex items-center rounded-full bg-gold/10 px-2 py-0.5 text-[11px] font-semibold text-gold ring-1 ring-inset ring-gold/20 tabular-nums">
+                                        -{c.taux_reduction}%
+                                      </span>
+                                    ) : (
+                                      <span className="text-foreground/25">—</span>
+                                    )
+                                  }
+                                />
                               </td>
                               <td className="max-w-[180px] px-4 py-2.5 text-[11px] text-foreground/45">
                                 {formatPromotionPeriod(c.date_debut, c.date_fin) || '—'}
@@ -717,16 +847,31 @@ export default function CategoriesAdminPage() {
                                   )}
                                 </div>
                               </td>
-                              <td className="px-4 py-2.5 font-medium text-foreground">{c.nom}</td>
-                              <td className="max-w-[200px] truncate px-4 py-2.5 text-foreground/50">{c.description || '—'}</td>
+                              <td className="px-4 py-2.5 font-medium text-foreground">
+                                <InlineCell id={c.id} field="nom" value={c.nom || ''} inlineEdit={inlineEdit} setInlineEdit={setInlineEdit} onSave={handleInlineSave} className="font-medium text-foreground" />
+                              </td>
+                              <td className="max-w-[200px] truncate px-4 py-2.5 text-foreground/50">
+                                <InlineCell id={c.id} field="description" value={c.description || ''} inlineEdit={inlineEdit} setInlineEdit={setInlineEdit} onSave={handleInlineSave} className="text-foreground/50" />
+                              </td>
                               <td className="px-4 py-2.5">
-                                {c.taux_reduction && parseFloat(c.taux_reduction) > 0 ? (
-                                  <span className="inline-flex items-center rounded-full bg-gold/10 px-2 py-0.5 text-[11px] font-semibold text-gold ring-1 ring-inset ring-gold/20 tabular-nums">
-                                    -{c.taux_reduction}%
-                                  </span>
-                                ) : (
-                                  <span className="text-foreground/25">—</span>
-                                )}
+                                <InlineCell
+                                  id={c.id}
+                                  field="taux_reduction"
+                                  value={c.taux_reduction || '0'}
+                                  inputType="number"
+                                  inlineEdit={inlineEdit}
+                                  setInlineEdit={setInlineEdit}
+                                  onSave={handleInlineSave}
+                                  display={
+                                    c.taux_reduction && parseFloat(c.taux_reduction) > 0 ? (
+                                      <span className="inline-flex items-center rounded-full bg-gold/10 px-2 py-0.5 text-[11px] font-semibold text-gold ring-1 ring-inset ring-gold/20 tabular-nums">
+                                        -{c.taux_reduction}%
+                                      </span>
+                                    ) : (
+                                      <span className="text-foreground/25">—</span>
+                                    )
+                                  }
+                                />
                               </td>
                               <td className="max-w-[180px] px-4 py-2.5 text-[11px] text-foreground/45">
                                 {formatPromotionPeriod(c.date_debut, c.date_fin) || '—'}
@@ -735,8 +880,12 @@ export default function CategoriesAdminPage() {
                           )}
                           {activeTab === 'bottle_types' && (
                             <>
-                              <td className="px-4 py-2.5 font-medium text-foreground">{c.nom}</td>
-                              <td className="px-4 py-2.5 text-foreground/50">{c.description || '—'}</td>
+                              <td className="px-4 py-2.5 font-medium text-foreground">
+                                <InlineCell id={c.id} field="nom" value={c.nom || ''} inlineEdit={inlineEdit} setInlineEdit={setInlineEdit} onSave={handleInlineSave} className="font-medium text-foreground" />
+                              </td>
+                              <td className="px-4 py-2.5 text-foreground/50">
+                                <InlineCell id={c.id} field="description" value={c.description || ''} inlineEdit={inlineEdit} setInlineEdit={setInlineEdit} onSave={handleInlineSave} className="text-foreground/50" />
+                              </td>
                             </>
                           )}
                           <td className="px-4 py-2.5 text-right">
@@ -788,8 +937,14 @@ export default function CategoriesAdminPage() {
                             </div>
                           )}
                           <div className="min-w-0">
-                            <h3 className="text-xs font-semibold text-foreground truncate">{c.nom}</h3>
-                            {c.slug && <p className="text-[11px] text-foreground/40 truncate">{c.slug}</p>}
+                            <h3 className="text-xs font-semibold text-foreground truncate">
+                              <InlineCell id={c.id} field="nom" value={c.nom || ''} inlineEdit={inlineEdit} setInlineEdit={setInlineEdit} onSave={handleInlineSave} className="font-semibold text-foreground" />
+                            </h3>
+                            {c.slug && (
+                              <p className="text-[11px] text-foreground/40 truncate">
+                                <InlineCell id={c.id} field="slug" value={c.slug || ''} inlineEdit={inlineEdit} setInlineEdit={setInlineEdit} onSave={handleInlineSave} className="text-foreground/40 font-mono text-[11px]" />
+                              </p>
+                            )}
                           </div>
                         </div>
 
@@ -804,13 +959,13 @@ export default function CategoriesAdminPage() {
                         {activeTab === 'perfume_categories' && (
                           <div className="flex justify-between text-foreground/60">
                             <span className="text-foreground/40">{t('categories.table.display_order')}:</span>
-                            <span className="font-medium text-foreground tabular-nums">{c.ordre_affichage}</span>
+                            <InlineCell id={c.id} field="ordre_affichage" value={String(c.ordre_affichage ?? 0)} inputType="number" inlineEdit={inlineEdit} setInlineEdit={setInlineEdit} onSave={handleInlineSave} className="font-medium text-foreground tabular-nums" />
                           </div>
                         )}
-                        {(activeTab === 'accessory_categories' || activeTab === 'bottle_types') && c.description && (
+                        {(activeTab === 'accessory_categories' || activeTab === 'bottle_types') && (
                           <div className="text-foreground/60">
                             <span className="block text-[10px] font-semibold uppercase text-foreground/40">{t('categories.table.description')}:</span>
-                            <p className="line-clamp-2 text-foreground/70">{c.description}</p>
+                            <InlineCell id={c.id} field="description" value={c.description || ''} inlineEdit={inlineEdit} setInlineEdit={setInlineEdit} onSave={handleInlineSave} className="text-foreground/70 line-clamp-2" />
                           </div>
                         )}
                         {activeTab !== 'bottle_types' && formatPromotionPeriod(c.date_debut, c.date_fin) && (
@@ -869,9 +1024,11 @@ export default function CategoriesAdminPage() {
             </button>
             <button
               onClick={handleSave}
-              className="flex-1 rounded-lg bg-gold px-4 py-2 text-xs font-semibold text-black transition-colors hover:bg-gold/85"
+              disabled={isSaving}
+              className="flex-1 rounded-lg bg-gold px-4 py-2 text-xs font-semibold text-black transition-colors hover:bg-gold/85 disabled:opacity-60 flex items-center justify-center gap-2"
             >
-              {t('common.save')}
+              {isSaving ? <Loader2 size={13} className="animate-spin" /> : null}
+              {isSaving ? t('common.loading') : t('common.save')}
             </button>
           </div>
         }
@@ -908,7 +1065,7 @@ export default function CategoriesAdminPage() {
                       className={inputClassName}
                     />
                   </Field>
-                  <Field label={t('categories.form.discount_rate')} required error={formErrors.taux_reduction}>
+                  <Field label={t('categories.form.discount_rate')} error={formErrors.taux_reduction}>
                     <input
                       data-field="taux_reduction"
                       value={form.taux_reduction}
@@ -938,7 +1095,7 @@ export default function CategoriesAdminPage() {
             )}
 
             {activeTab === 'accessory_categories' && (
-              <Field label={t('categories.form.discount_rate')} required error={formErrors.taux_reduction}>
+              <Field label={t('categories.form.discount_rate')} error={formErrors.taux_reduction}>
                 <input
                   data-field="taux_reduction"
                   value={form.taux_reduction}
@@ -952,7 +1109,7 @@ export default function CategoriesAdminPage() {
           {(activeTab === 'perfume_categories' || activeTab === 'accessory_categories') && (
             <FormSection title={t('categories.sections.promotion')} icon={Calendar}>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <Field label={t('categories.form.start_date')} required error={formErrors.date_debut}>
+                <Field label={t('categories.form.start_date')} error={formErrors.date_debut}>
                   <input
                     data-field="date_debut"
                     type="datetime-local"
@@ -961,7 +1118,7 @@ export default function CategoriesAdminPage() {
                     className={inputClassName}
                   />
                 </Field>
-                <Field label={t('categories.form.end_date')} required error={formErrors.date_fin}>
+                <Field label={t('categories.form.end_date')} error={formErrors.date_fin}>
                   <input
                     data-field="date_fin"
                     type="datetime-local"
@@ -971,7 +1128,7 @@ export default function CategoriesAdminPage() {
                   />
                 </Field>
               </div>
-              <Field label={t('categories.form.promo_message')} required error={formErrors.message_promotion}>
+              <Field label={t('categories.form.promo_message')} error={formErrors.message_promotion}>
                 <input
                   data-field="message_promotion"
                   value={form.message_promotion}

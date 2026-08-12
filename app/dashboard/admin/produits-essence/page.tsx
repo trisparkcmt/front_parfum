@@ -2,7 +2,58 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { Loader2, Edit2, Trash2, Plus, Search, RefreshCw, Filter } from 'lucide-react';
-import { shopService, labService } from '@/services/apiService';
+import { InlineCell } from '@/components/admin/InlineCell';
+import { useTranslation } from 'react-i18next';
+
+/* ── Inline translations ─────────────────────────────────────────────────── */
+const T = {
+  fr: {
+    title: 'Produits Essence', subtitle: "Formats prêts à la vente (`/shop/produits-essence/`)",
+    add: 'Ajouter', refresh: 'Actualiser',
+    col_image: 'Image', col_name: 'Nom', col_essence: 'Essence',
+    col_size: 'Taille', col_price: 'Prix actuel', col_stock: 'Stock', col_status: 'Statut', col_actions: 'Actions',
+    active: 'Actif', inactive: 'Inactif',
+    loading: 'Chargement...', no_results: 'Aucun produit essence trouvé.',
+    filter_size_all: 'Toutes tailles', filter_btn: 'Filtres', filter_size_label: 'Taille',
+    modal_new: 'Nouveau', modal_edit: 'Modifier',
+    modal_desc: 'Formulaire complet, sans popup ni défilement gênant.',
+    field_name: 'Nom du produit *', field_brand: 'Marque', field_category: 'Catégorie',
+    field_essence: 'Essence *', field_size: 'Taille (ml) *', field_price: 'Prix (FCFA) *',
+    field_promo: 'Prix promotionnel (FCFA)', field_stock: 'Stock disponible *',
+    field_active: 'Produit actif', field_image: 'Image principale',
+    confirm_delete: 'Supprimer ce produit essence ?',
+    toast_load_error: 'Erreur lors du chargement des produits essence',
+    toast_create_ok: 'Produit essence créé', toast_update_ok: 'Produit essence mis à jour',
+    toast_save_error: 'Erreur lors de la sauvegarde', toast_delete_ok: 'Produit supprimé',
+    toast_delete_error: 'Erreur lors de la suppression', toast_patch_error: 'Erreur lors de la mise à jour',
+    toast_required: 'Veuillez corriger les champs obligatoires.',
+    toast_duplicate: 'Un produit fini existe déjà pour cette essence et cette taille.',
+  },
+  en: {
+    title: 'Essence Products', subtitle: 'Ready-to-sell formats (`/shop/produits-essence/`)',
+    add: 'Add', refresh: 'Refresh',
+    col_image: 'Image', col_name: 'Name', col_essence: 'Essence',
+    col_size: 'Size', col_price: 'Current price', col_stock: 'Stock', col_status: 'Status', col_actions: 'Actions',
+    active: 'Active', inactive: 'Inactive',
+    loading: 'Loading...', no_results: 'No essence products found.',
+    filter_size_all: 'All sizes', filter_btn: 'Filters', filter_size_label: 'Size',
+    modal_new: 'New', modal_edit: 'Edit',
+    modal_desc: 'Full form with no popup or scroll issues.',
+    field_name: 'Product name *', field_brand: 'Brand', field_category: 'Category',
+    field_essence: 'Essence *', field_size: 'Size (ml) *', field_price: 'Price (FCFA) *',
+    field_promo: 'Promotional price (FCFA)', field_stock: 'Available stock *',
+    field_active: 'Active product', field_image: 'Main image',
+    confirm_delete: 'Delete this essence product?',
+    toast_load_error: 'Error loading essence products',
+    toast_create_ok: 'Essence product created', toast_update_ok: 'Essence product updated',
+    toast_save_error: 'Error saving', toast_delete_ok: 'Product deleted',
+    toast_delete_error: 'Error deleting', toast_patch_error: 'Error updating',
+    toast_required: 'Please fix the required fields.',
+    toast_duplicate: 'A finished product already exists for this essence and size.',
+  },
+} as const;
+type TKey = keyof typeof T.fr;
+import { shopService, labService, adminService as adm } from '@/services/apiService';
 import { useToastStore } from '@/store/useToastStore';
 import { useCatalogPermissions } from '@/hooks/useCatalogPermissions';
 import CatalogAccessNotice from '@/components/catalog/CatalogAccessNotice';
@@ -62,6 +113,9 @@ function IconButton({
 
 export default function FinishedEssenceAdminPage() {
   const permissions = useCatalogPermissions('produits_essence');
+  const { i18n } = useTranslation();
+  const isEn = i18n.language?.startsWith('en') ?? false;
+  const t = (k: TKey) => isEn ? T.en[k] : T.fr[k];
   const [items, setItems] = useState<any[]>([]);
   const [essences, setEssences] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -102,7 +156,7 @@ export default function FinishedEssenceAdminPage() {
       const data = await shopService.getFinishedEssences(params);
       setItems(extractCatalogList(data));
     } catch {
-      addToast('Erreur lors du chargement des produits essence', 'error');
+    addToast(t('toast_load_error'), 'error');
     } finally {
       setLoading(false);
     }
@@ -262,14 +316,17 @@ export default function FinishedEssenceAdminPage() {
       setFormError('');
       setSaving(true);
       if (editing) {
-        await adminService.patchFormData(`shop/produits-essence/${editing.id}/`, formData);
+        setItems(prev => prev.map(i => i.id === editing.id ? { ...i, ...Object.fromEntries(formData.entries()) } : i));
+        setShowModal(false);
+        await adm.patchFormData(`shop/produits-essence/${editing.id}/`, formData);
         addToast('Produit essence mis à jour', 'success');
+        fetchItems();
       } else {
-        await adminService.postFormData('shop/produits-essence/', formData);
-        addToast('Produit essence créé', 'success');
+        setShowModal(false);
+        await adm.postFormData('shop/produits-essence/', formData);
+        addToast(t('toast_create_ok'), 'success');
+        fetchItems();
       }
-      setShowModal(false);
-      fetchItems();
     } catch (err: any) {
       setFormError(extractApiError(err, 'Erreur lors de la sauvegarde'));
     } finally {
@@ -277,15 +334,31 @@ export default function FinishedEssenceAdminPage() {
     }
   };
 
+  const patchProduitEssence = async (id: number, field: string, value: string) => {
+    if (!permissions.canUpdate) return;
+    setItems(prev => prev.map(i => i.id === id ? { ...i, [field]: value } : i));
+    try {
+      const { adminService: adm } = await import('@/services/apiService');
+      const fd = new FormData();
+      fd.append(field, value);
+      await adm.patchFormData(`shop/produits-essence/${id}/`, fd);
+    } catch {
+      addToast(t('toast_patch_error'), 'error');
+      fetchItems();
+    }
+  };
+
   const handleDelete = async (id: number) => {
     if (!permissions.canDelete) return;
-    if (!confirm('Supprimer ce produit essence ?')) return;
+    if (!confirm(t('confirm_delete'))) return;
+    const snapshot = items.find(i => i.id === id);
+    setItems(prev => prev.filter(i => i.id !== id));
     try {
       await shopService.deleteFinishedEssence(id);
-      addToast('Produit supprimé', 'success');
-      fetchItems();
+      addToast(t('toast_delete_ok'), 'success');
     } catch {
-      addToast('Erreur lors de la suppression', 'error');
+      if (snapshot) setItems(prev => [snapshot, ...prev]);
+      addToast(t('toast_delete_error'), 'error');
     }
   };
 
@@ -304,25 +377,22 @@ export default function FinishedEssenceAdminPage() {
       {/* Page Header */}
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-xl font-semibold text-foreground">Produits Essence</h1>
-          <p className="text-sm text-foreground/40 mt-0.5">
-            Formats prêts à la vente (`/shop/produits-essence/`)
-          </p>
+          <h1 className="text-xl font-semibold text-foreground">{t('title')}</h1>
+          <p className="text-sm text-foreground/40 mt-0.5">{t('subtitle')}</p>
         </div>
         <div className="flex items-center gap-2">
           <button
             onClick={() => fetchItems()}
             className="flex items-center gap-2 border border-white/10 px-3 py-2 rounded-lg text-xs font-medium text-foreground/60 hover:bg-white/[0.06] transition-colors"
           >
-            <RefreshCw size={14} />
-            Actualiser
+            <RefreshCw size={14} />{t('refresh')}
           </button>
           {permissions.canCreate && (
             <button
               onClick={openAdd}
               className="flex items-center gap-2 bg-gold text-black px-3.5 py-2 rounded-lg text-xs font-semibold hover:bg-gold/90 transition-colors"
             >
-              <Plus size={15} /> Ajouter
+              <Plus size={15} /> {t('add')}
             </button>
           )}
         </div>
@@ -338,7 +408,7 @@ export default function FinishedEssenceAdminPage() {
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Rechercher par nom, marque..."
+              placeholder={isEn ? 'Search by name, brand...' : 'Rechercher par nom, marque...'}
               className="text-xs bg-transparent outline-none flex-1 text-foreground placeholder:text-foreground/30"
             />
           </div>
@@ -389,21 +459,21 @@ export default function FinishedEssenceAdminPage() {
         {loading ? (
           <div className="flex items-center justify-center gap-2 py-20 text-xs text-foreground/40">
             <Loader2 className="animate-spin text-gold" size={16} />
-            <span>Chargement...</span>
+            <span>{t('loading')}</span>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-xs text-left">
               <thead className="bg-white/[0.02] border-b border-white/10 text-[10px] font-semibold uppercase tracking-wider text-foreground/35">
                 <tr>
-                  <th className="px-4 py-3">Image</th>
-                  <th className="px-4 py-3">Nom</th>
-                  <th className="px-4 py-3">Essence</th>
-                  <th className="px-4 py-3">Taille</th>
-                  <th className="px-4 py-3">Prix actuel</th>
-                  <th className="px-4 py-3">Stock</th>
-                  <th className="px-4 py-3">Statut</th>
-                  <th className="px-4 py-3 text-right">Actions</th>
+                  <th className="px-4 py-3">{t('col_image')}</th>
+                  <th className="px-4 py-3">{t('col_name')}</th>
+                  <th className="px-4 py-3">{t('col_essence')}</th>
+                  <th className="px-4 py-3">{t('col_size')}</th>
+                  <th className="px-4 py-3">{t('col_price')}</th>
+                  <th className="px-4 py-3">{t('col_stock')}</th>
+                  <th className="px-4 py-3">{t('col_status')}</th>
+                  <th className="px-4 py-3 text-right">{t('col_actions')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
@@ -426,7 +496,9 @@ export default function FinishedEssenceAdminPage() {
                     </td>
                     <td className="px-4 py-3 font-medium text-foreground">
                       <div>
-                        <p className="text-xs font-medium">{item.nom || '—'}</p>
+                        <p className="text-xs font-medium">
+                          <InlineCell value={item.nom || ''} onSave={v => patchProduitEssence(item.id, 'nom', v)} disabled={!permissions.canUpdate} className="font-medium text-foreground" />
+                        </p>
                         {item.marque && (
                           <p className="text-[10px] text-foreground/40">
                             {item.marque} · {item.categorie}
@@ -441,9 +513,11 @@ export default function FinishedEssenceAdminPage() {
                     </td>
                     <td className="px-4 py-3 font-mono text-foreground/80">{item.taille_ml} ml</td>
                     <td className="px-4 py-3 font-semibold text-gold tabular-nums">
-                      {Number(item.prix_actuel ?? item.prix).toLocaleString()} FCFA
+                      <InlineCell value={String(item.prix_actuel ?? item.prix ?? '')} onSave={v => patchProduitEssence(item.id, 'prix', v)} disabled={!permissions.canUpdate} inputType="number" display={<>{Number(item.prix_actuel ?? item.prix).toLocaleString()} FCFA</>} className="font-semibold text-gold tabular-nums" />
                     </td>
-                    <td className="px-4 py-3 font-mono text-foreground/80">{item.stock_disponible}</td>
+                    <td className="px-4 py-3 font-mono text-foreground/80">
+                      <InlineCell value={String(item.stock_disponible ?? '0')} onSave={v => patchProduitEssence(item.id, 'stock_disponible', v)} disabled={!permissions.canUpdate} inputType="number" className="font-mono text-foreground/80 tabular-nums" />
+                    </td>
                     <td className="px-4 py-3">
                       <StatusChip active={item.actif} />
                     </td>
@@ -454,7 +528,7 @@ export default function FinishedEssenceAdminPage() {
                             onClick={() => openEdit(item)}
                             icon={Edit2}
                             variant="gold"
-                            title="Modifier"
+                        title={isEn ? 'Edit' : 'Modifier'}
                           />
                         )}
                         {permissions.canDelete && (
@@ -472,7 +546,7 @@ export default function FinishedEssenceAdminPage() {
                 {items.length === 0 && (
                   <tr>
                     <td colSpan={8} className="text-center py-12 text-sm italic text-foreground/30">
-                      Aucun produit essence trouvé.
+                      {t('no_results')}
                     </td>
                   </tr>
                 )}
@@ -486,8 +560,8 @@ export default function FinishedEssenceAdminPage() {
       <SlideOver
         isOpen={Boolean(showModal && (permissions.canCreate || permissions.canUpdate))}
         onClose={() => setShowModal(false)}
-        title={editing ? 'Modifier' : 'Nouveau'}
-        description="Formulaire complet, sans popup ni défilement gênant."
+        title={editing ? t('modal_edit') : t('modal_new')}
+        description={t('modal_desc')}
         size="lg"
         footer={
           <div className="flex gap-3 pt-2">

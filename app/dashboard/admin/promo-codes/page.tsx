@@ -5,6 +5,7 @@ import {
   Plus, Trash2, Edit2, Search, Loader2, Tag, X,
   CheckCircle, Users2, Percent, RefreshCw, Eye, EyeOff,
 } from 'lucide-react';
+import { InlineCell } from '@/components/admin/InlineCell';
 import { adminService, api } from '@/services/apiService';
 import { useToastStore } from '@/store/useToastStore';
 import { SlideOver } from '@/components/ui/SlideOver';
@@ -123,18 +124,48 @@ export default function PromoCodesPage() {
     setSaving(true);
     try {
       const payload = { code: formCode.trim().toUpperCase(), reduction_pourcentage: pct.toFixed(2), est_actif: formActif, clients_autorises: formClients };
-      if (editingCode) { await promoApi.update(editingCode.id, payload); addToast('Code promo mis a jour', 'success'); }
-      else { await promoApi.create(payload); addToast('Code promo cree - emails & notifications envoyes aux clients selectionnes', 'success'); }
-      setShowModal(false); fetchCodes();
+      if (editingCode) {
+        setCodes(prev => prev.map(c => c.id === editingCode.id ? { ...c, ...payload } : c));
+        setShowModal(false);
+        await promoApi.update(editingCode.id, payload);
+        addToast('Code promo mis a jour', 'success');
+        fetchCodes();
+      } else {
+        setShowModal(false);
+        const created = await promoApi.create(payload);
+        if (created?.id) {
+          setCodes(prev => [created, ...prev]);
+        } else {
+          fetchCodes();
+        }
+        addToast('Code promo cree - emails & notifications envoyes aux clients selectionnes', 'success');
+      }
     } catch (err: any) {
       addToast(err?.response?.data ? JSON.stringify(err.response.data) : 'Erreur lors de la sauvegarde', 'error');
     } finally { setSaving(false); }
   };
 
+  const patchPromoCode = async (id: number, field: string, value: string) => {
+    setCodes(prev => prev.map(c => c.id === id ? { ...c, [field]: value } : c));
+    try {
+      await promoApi.update(id, { [field]: field === 'code' ? value.toUpperCase() : value });
+    } catch {
+      addToast('Erreur lors de la mise à jour', 'error');
+      fetchCodes();
+    }
+  };
+
   const handleDelete = async (code: PromoCode) => {
     if (!confirm(`Supprimer le code "${code.code}" ?`)) return;
-    try { await promoApi.delete(code.id); addToast('Code promo supprime', 'success'); fetchCodes(); }
-    catch { addToast('Erreur lors de la suppression', 'error'); }
+    const snapshot = codes.find(c => c.id === code.id);
+    setCodes(prev => prev.filter(c => c.id !== code.id));
+    try {
+      await promoApi.delete(code.id);
+      addToast('Code promo supprime', 'success');
+    } catch {
+      if (snapshot) setCodes(prev => [snapshot, ...prev]);
+      addToast('Erreur lors de la suppression', 'error');
+    }
   };
 
   const toggleClient = (id: number) => setFormClients(prev => prev.includes(id) ? prev.filter(c => c !== id) : [...prev, id]);
@@ -210,12 +241,25 @@ export default function PromoCodesPage() {
                     className="hover:bg-white/[0.04] transition-colors cursor-pointer"
                   >
                     <td className="px-4 py-3">
-                      <span className="font-mono font-bold text-gold tracking-wider bg-gold/10 px-2 py-0.5 rounded border border-gold/20 text-xs">
-                        {code.code}
-                      </span>
+                      <InlineCell
+                        value={code.code}
+                        onSave={v => patchPromoCode(code.id, 'code', v)}
+                        display={
+                          <span className="font-mono font-bold text-gold tracking-wider bg-gold/10 px-2 py-0.5 rounded border border-gold/20 text-xs">
+                            {code.code}
+                          </span>
+                        }
+                        className="font-mono font-bold text-gold"
+                      />
                     </td>
                     <td className="px-4 py-3 font-semibold text-emerald-400 tabular-nums">
-                      {Number(code.reduction_pourcentage).toFixed(0)}%
+                      <InlineCell
+                        value={String(Number(code.reduction_pourcentage).toFixed(0))}
+                        onSave={v => patchPromoCode(code.id, 'reduction_pourcentage', v)}
+                        inputType="number"
+                        display={<>{Number(code.reduction_pourcentage).toFixed(0)}%</>}
+                        className="font-semibold text-emerald-400 tabular-nums"
+                      />
                     </td>
                     <td className="px-4 py-3 text-foreground/70">
                       <span className="inline-flex items-center gap-1.5">

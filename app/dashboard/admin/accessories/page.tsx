@@ -12,6 +12,155 @@ import { CreateCategoryModal } from '@/components/CreateCategoryModal';
 import { useAuthStore } from '@/store/useAuthStore';
 import AppImage from '@/components/ui/AppImage';
 import { SlideOver } from '@/components/ui/SlideOver';
+import { InlineCell } from '@/components/admin/InlineCell';
+import { useTranslation } from 'react-i18next';
+
+/* ── Inline translations ─────────────────────────────────────────────────── */
+const T = {
+  fr: {
+    title: 'Accessoires',
+    subtitle: 'Bijoux, montres et autres accessoires',
+    add: 'Ajouter',
+    all: 'Tous',
+    delete_selected: 'Supprimer',
+    search_placeholder: 'Rechercher par nom…',
+    filter_brand: 'Marque',
+    filter_all: 'Toutes',
+    filter_material: 'Matière',
+    filter_color: 'Couleur',
+    filter_stock: 'Stock',
+    filter_in_stock: 'En stock',
+    filter_low_stock: 'Stock faible',
+    col_accessory: 'Accessoire',
+    col_type: 'Type',
+    col_price: 'Prix vente',
+    col_margin: 'Bénéfice unitaire',
+    col_stock: 'Stock',
+    col_actions: 'Actions',
+    no_results: 'Aucun accessoire trouvé.',
+    loading: 'Chargement des accessoires…',
+    not_defined: 'Non défini',
+    units: 'unités',
+    modal_title_edit: "Modifier l'accessoire",
+    modal_title_new: 'Ajouter un accessoire',
+    section_id: 'Identification',
+    section_pricing: 'Tarification & réduction',
+    section_stock: 'Stock & logistique',
+    section_media: 'Visuels',
+    section_desc: 'Descriptions',
+    field_brand: 'Marque *',
+    field_name: 'Nom *',
+    field_sku: 'SKU / Référence',
+    field_type: "Type d'accessoire *",
+    field_price: 'Prix unitaire (FCFA) *',
+    field_purchase: "Prix d'achat (FCFA)",
+    field_promo: 'Prix promotionnel (FCFA)',
+    field_stock: 'Quantité en stock *',
+    field_alert: "Seuil d'alerte",
+    field_weight: 'Poids (g)',
+    field_material: 'Matière',
+    field_color: 'Couleur',
+    field_size: 'Taille',
+    field_desc_short: 'Description courte',
+    field_desc_long: 'Description longue',
+    field_desc_ai: 'Description IA',
+    margin_label: 'Bénéfice estimé :',
+    confirm_delete: 'Voulez-vous vraiment supprimer cet accessoire ?',
+    confirm_bulk: 'Supprimer',
+    accessory: 'accessoire(s)',
+    toast_load_error: 'Erreur lors du chargement des accessoires',
+    toast_types_error: "Erreur lors du chargement des types d'accessoires",
+    toast_create_ok: 'Accessoire créé avec succès',
+    toast_update_ok: 'Accessoire mis à jour avec succès',
+    toast_save_error: 'Erreur lors de la sauvegarde',
+    toast_delete_ok: 'Accessoire supprimé avec succès',
+    toast_delete_error: 'Erreur lors de la suppression',
+    toast_patch_error: 'Erreur lors de la mise à jour',
+    toast_bulk_ok: 'supprimé(s)',
+    toast_bulk_error: 'Erreur lors de la suppression en masse',
+    toast_type_added: "Type d'accessoire ajouté avec succès",
+    err_brand: 'La marque est requise',
+    err_name: 'Le nom est requis',
+    err_price: 'Le prix unitaire est requis',
+    err_type: "Le type d'accessoire est requis",
+    err_stock: 'La quantité en stock est requise',
+    new_type: 'Nouveau type…',
+    manage_types: 'Gérer les types',
+    admin_badge: 'Admin',
+  },
+  en: {
+    title: 'Accessories',
+    subtitle: 'Jewellery, watches and other accessories',
+    add: 'Add',
+    all: 'All',
+    delete_selected: 'Delete',
+    search_placeholder: 'Search by name…',
+    filter_brand: 'Brand',
+    filter_all: 'All',
+    filter_material: 'Material',
+    filter_color: 'Color',
+    filter_stock: 'Stock',
+    filter_in_stock: 'In stock',
+    filter_low_stock: 'Low stock',
+    col_accessory: 'Accessory',
+    col_type: 'Type',
+    col_price: 'Sale price',
+    col_margin: 'Unit margin',
+    col_stock: 'Stock',
+    col_actions: 'Actions',
+    no_results: 'No accessories found.',
+    loading: 'Loading accessories…',
+    not_defined: 'Not defined',
+    units: 'units',
+    modal_title_edit: 'Edit accessory',
+    modal_title_new: 'Add accessory',
+    section_id: 'Identification',
+    section_pricing: 'Pricing & discount',
+    section_stock: 'Stock & logistics',
+    section_media: 'Visuals',
+    section_desc: 'Descriptions',
+    field_brand: 'Brand *',
+    field_name: 'Name *',
+    field_sku: 'SKU / Reference',
+    field_type: 'Accessory type *',
+    field_price: 'Unit price (FCFA) *',
+    field_purchase: 'Purchase price (FCFA)',
+    field_promo: 'Promotional price (FCFA)',
+    field_stock: 'Stock quantity *',
+    field_alert: 'Alert threshold',
+    field_weight: 'Weight (g)',
+    field_material: 'Material',
+    field_color: 'Color',
+    field_size: 'Size',
+    field_desc_short: 'Short description',
+    field_desc_long: 'Long description',
+    field_desc_ai: 'AI description',
+    margin_label: 'Estimated margin:',
+    confirm_delete: 'Are you sure you want to delete this accessory?',
+    confirm_bulk: 'Delete',
+    accessory: 'accessory(ies)',
+    toast_load_error: 'Error loading accessories',
+    toast_types_error: 'Error loading accessory types',
+    toast_create_ok: 'Accessory created successfully',
+    toast_update_ok: 'Accessory updated successfully',
+    toast_save_error: 'Error saving',
+    toast_delete_ok: 'Accessory deleted successfully',
+    toast_delete_error: 'Error deleting',
+    toast_patch_error: 'Error updating',
+    toast_bulk_ok: 'deleted',
+    toast_bulk_error: 'Error during bulk delete',
+    toast_type_added: 'Accessory type added successfully',
+    err_brand: 'Brand is required',
+    err_name: 'Name is required',
+    err_price: 'Unit price is required',
+    err_type: 'Accessory type is required',
+    err_stock: 'Stock quantity is required',
+    new_type: 'New type…',
+    manage_types: 'Manage types',
+    admin_badge: 'Admin',
+  },
+} as const;
+type TKey = keyof typeof T.fr;
 
 function cx(...parts: Array<string | false | null | undefined>) {
   return parts.filter(Boolean).join(' ');
@@ -52,6 +201,9 @@ export default function AccessoriesPage() {
   const permissions = useCatalogPermissions('accessoires');
   const { user } = useAuthStore();
   const isAdmin = Boolean(user?.is_staff || user?.is_superuser || user?.role === 'superadmin');
+  const { i18n } = useTranslation();
+  const isEn = i18n.language?.startsWith('en') ?? false;
+  const t = (k: TKey) => isEn ? T.en[k] : T.fr[k];
   const [accessories, setAccessories] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -96,6 +248,7 @@ export default function AccessoriesPage() {
   });
 
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+  const [saving, setSaving] = useState(false);
 
   const { addToast } = useToastStore();
 
@@ -114,7 +267,7 @@ export default function AccessoriesPage() {
       const data = await shopService.getAccessories(params);
       setAccessories(extractCatalogList(data));
     } catch {
-      addToast('Erreur lors du chargement des accessoires', 'error');
+      addToast(t('toast_load_error'), 'error');
     } finally {
       setLoading(false);
     }
@@ -211,18 +364,18 @@ export default function AccessoriesPage() {
     const newType = await shopService.createAccessoryType({ nom: name });
     setAccessoryTypes(prev => [...prev, newType]);
     updateForm('type_accessoire', String(newType.id));
-    addToast('Type d\'accessoire ajouté avec succès', 'success');
+    addToast(t('toast_type_added'), 'success');
   };
 
   const handleSave = async () => {
     if (!permissions.canCreate && !permissions.canUpdate) return;
 
     const errors: Record<string, string> = {};
-    if (!form.marque) errors.marque = 'La marque est requise';
-    if (!form.nom) errors.nom = 'Le nom est requis';
-    if (!form.prix_unitaire) errors.prix_unitaire = 'Le prix unitaire est requis';
-    if (!form.type_accessoire) errors.type_accessoire = "Le type d'accessoire est requis";
-    if (!form.stock_quantite) errors.stock_quantite = 'La quantité en stock est requise';
+    if (!form.marque) errors.marque = t('err_brand');
+    if (!form.nom) errors.nom = t('err_name');
+    if (!form.prix_unitaire) errors.prix_unitaire = t('err_price');
+    if (!form.type_accessoire) errors.type_accessoire = t('err_type');
+    if (!form.stock_quantite) errors.stock_quantite = t('err_stock');
 
     setFormErrors(errors);
 
@@ -233,6 +386,8 @@ export default function AccessoriesPage() {
       }, 50);
       return;
     }
+
+    setSaving(true);
 
     const formData = new FormData();
     Object.entries(form).forEach(([key, val]) => {
@@ -250,48 +405,74 @@ export default function AccessoriesPage() {
 
     try {
       if (editingAccessory) {
-        // Utilisation de PATCH pour la mise à jour
+        // Optimistic: update in state immediately
+        setAccessories(prev => prev.map(a =>
+          (a.slug || a.id) === (editingAccessory.slug || editingAccessory.id)
+            ? { ...a, ...Object.fromEntries(formData.entries()) }
+            : a
+        ));
+        setShowModal(false);
         await adminService.patchFormData(`shop/accessoires/${editingAccessory.slug}/`, formData);
-        addToast('Accessoire mis à jour avec succès', 'success');
+        addToast(t('toast_update_ok'), 'success');
+        fetchAccessories(); // sync to get server-normalised data
       } else {
+        setShowModal(false);
         await adminService.postFormData('shop/accessoires/', formData);
-        addToast('Accessoire créé avec succès', 'success');
+        addToast(t('toast_create_ok'), 'success');
+        fetchAccessories(); // add new item
       }
-      setShowModal(false);
-      fetchAccessories();
     } catch (error: any) {
-      addToast(error.response?.data?.detail || 'Erreur lors de la sauvegarde', 'error');
+      addToast(error.response?.data?.detail || t('toast_save_error'), 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const patchAccessory = async (slugOrId: string, field: string, value: string) => {
+    if (!permissions.canUpdate) return;
+    setAccessories(prev => prev.map(a =>
+      (a.slug || a.id) === slugOrId ? { ...a, [field]: value } : a
+    ));
+    try {
+      const fd = new FormData();
+      fd.append(field, value);
+      await adminService.patchFormData(`shop/accessoires/${slugOrId}/`, fd);
+    } catch {
+      addToast(t('toast_patch_error'), 'error');
+      fetchAccessories();
     }
   };
 
   const handleDelete = async (slug: string) => {
     if (!permissions.canDelete) return;
-    if (!confirm('Voulez-vous vraiment supprimer cet accessoire ?')) return;
+    if (!confirm(t('confirm_delete'))) return;
+    // Optimistic: remove immediately
+    const snapshot = accessories.find(a => (a.slug || a.id) === slug);
+    setAccessories(prev => prev.filter(a => (a.slug || a.id) !== slug));
     try {
       await shopService.deleteAccessory(slug);
-      addToast('Accessoire supprimé avec succès', 'success');
-      fetchAccessories();
+      addToast(t('toast_delete_ok'), 'success');
     } catch (error) {
-      addToast('Erreur lors de la suppression', 'error');
+      if (snapshot) setAccessories(prev => [snapshot, ...prev]);
+      addToast(t('toast_delete_error'), 'error');
     }
   };
 
   const handleBulkDelete = async () => {
     if (!permissions.canDelete || selectedAccessories.size === 0) return;
-    if (!confirm(`Supprimer ${selectedAccessories.size} accessoire(s) ?`)) return;
+    if (!confirm(`${t('confirm_bulk')} ${selectedAccessories.size} ${t('accessory')} ?`)) return;
+    const slugs = Array.from(selectedAccessories);
+    const snapshots = accessories.filter(a => slugs.includes(a.slug || a.id));
+    setAccessories(prev => prev.filter(a => !slugs.includes(a.slug || a.id)));
+    setSelectedAccessories(new Set());
     try {
-      for (const slug of selectedAccessories) {
-        try {
-          await shopService.deleteAccessory(slug);
-        } catch (e) {
-          console.error(`Failed to delete ${slug}:`, e);
-        }
+      for (const slug of slugs) {
+        try { await shopService.deleteAccessory(slug); } catch (e) { console.error(`Failed to delete ${slug}:`, e); }
       }
-      addToast(`${selectedAccessories.size} accessoire(s) supprimé(s)`, 'success');
-      setSelectedAccessories(new Set());
-      fetchAccessories();
+      addToast(`${slugs.length} ${t('accessory')} ${t('toast_bulk_ok')}`, 'success');
     } catch (error) {
-      addToast('Erreur lors de la suppression en masse', 'error');
+      setAccessories(prev => [...snapshots, ...prev]);
+      addToast(t('toast_bulk_error'), 'error');
     }
   };
 
@@ -327,8 +508,8 @@ export default function AccessoriesPage() {
       {/* Header --------------------------------------------------------- */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl font-semibold text-foreground">Accessoires</h1>
-          <p className="mt-0.5 text-sm text-foreground/40">Bijoux, montres et autres accessoires</p>
+          <h1 className="text-xl font-semibold text-foreground">{t('title')}</h1>
+          <p className="mt-0.5 text-sm text-foreground/40">{t('subtitle')}</p>
         </div>
         <div className="flex items-center gap-2">
           {selectedAccessories.size > 0 && permissions.canDelete && (
@@ -337,7 +518,7 @@ export default function AccessoriesPage() {
               className="inline-flex items-center gap-2 rounded-lg bg-red-500/90 px-3.5 py-2 text-sm font-medium text-white transition-colors hover:bg-red-500"
             >
               <Trash2 size={14} />
-              Supprimer ({selectedAccessories.size})
+              {t('delete_selected')} ({selectedAccessories.size})
             </button>
           )}
           {permissions.canCreate && (
@@ -346,7 +527,7 @@ export default function AccessoriesPage() {
               className="inline-flex items-center gap-2 rounded-lg bg-gold px-3.5 py-2 text-sm font-semibold text-black transition-colors hover:bg-gold/85"
             >
               <Plus size={14} />
-              Ajouter
+              {t('add')}
             </button>
           )}
         </div>
@@ -362,7 +543,7 @@ export default function AccessoriesPage() {
             <input
               value={search}
               onChange={e => setSearch(e.target.value)}
-              placeholder="Rechercher par nom…"
+              placeholder={t('search_placeholder')}
               className="flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-foreground/35"
             />
             {search && (
@@ -416,30 +597,30 @@ export default function AccessoriesPage() {
         {showFilters && (
           <div className="grid grid-cols-1 gap-3 rounded-xl border border-white/10 bg-white/[0.02] p-4 sm:grid-cols-4">
             <div>
-              <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-foreground/35">Marque</p>
+              <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-foreground/35">{t('filter_brand')}</p>
               <input
                 value={marqueFilter}
                 onChange={e => setMarqueFilter(e.target.value)}
-                placeholder="Toutes"
-                className="w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/35 focus:border-gold/50"
+                placeholder={t('filter_all')}
+                className="w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 py-1.5 text-sm text-foreground outline-none transition-colors focus:border-gold/50"
               />
             </div>
             <div>
-              <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-foreground/35">Matière</p>
+              <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-foreground/35">{t('filter_material')}</p>
               <input
                 value={matiereFilter}
                 onChange={e => setMatiereFilter(e.target.value)}
-                placeholder="Toutes"
-                className="w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/35 focus:border-gold/50"
+                placeholder={t('filter_all')}
+                className="w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 py-1.5 text-sm text-foreground outline-none transition-colors focus:border-gold/50"
               />
             </div>
             <div>
-              <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-foreground/35">Couleur</p>
+              <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-foreground/35">{t('filter_color')}</p>
               <input
                 value={couleurFilter}
                 onChange={e => setCouleurFilter(e.target.value)}
-                placeholder="Toutes"
-                className="w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/35 focus:border-gold/50"
+                placeholder={t('filter_all')}
+                className="w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 py-1.5 text-sm text-foreground outline-none transition-colors focus:border-gold/50"
               />
             </div>
             <div>
@@ -449,9 +630,9 @@ export default function AccessoriesPage() {
                 onChange={e => setEnStockFilter(e.target.value)}
                 className="w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-foreground outline-none transition-colors focus:border-gold/50"
               >
-                <option value="" className="bg-background">Tous</option>
-                <option value="true" className="bg-background">En stock</option>
-                <option value="false" className="bg-background">Stock faible</option>
+                <option value="" className="bg-background">{t('all')}</option>
+                <option value="true" className="bg-background">{t('filter_in_stock')}</option>
+                <option value="false" className="bg-background">{t('filter_low_stock')}</option>
               </select>
             </div>
           </div>
@@ -484,14 +665,14 @@ export default function AccessoriesPage() {
                       className="rounded border-white/10 bg-white/5 text-gold focus:ring-gold"
                     />
                   </th>
-                  <th className="px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-foreground/35">Accessoire</th>
-                  <th className="px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-foreground/35">Type</th>
-                  <th className="px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-foreground/35">Prix vente</th>
+                  <th className="px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-foreground/35">{t('col_accessory')}</th>
+                  <th className="px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-foreground/35">{t('col_type')}</th>
+                  <th className="px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-foreground/35">{t('col_price')}</th>
                   {isAdmin && (
-                    <th className="px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-foreground/35">Bénéfice unitaire</th>
+                    <th className="px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-foreground/35">{t('col_margin')}</th>
                   )}
-                  <th className="px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-foreground/35">Stock</th>
-                  <th className="px-4 py-2.5 text-right text-[10px] font-semibold uppercase tracking-wider text-foreground/35">Actions</th>
+                  <th className="px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-foreground/35">{t('col_stock')}</th>
+                  <th className="px-4 py-2.5 text-right text-[10px] font-semibold uppercase tracking-wider text-foreground/35">{t('col_actions')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
@@ -529,7 +710,14 @@ export default function AccessoriesPage() {
                             )}
                           </div>
                           <div className="min-w-0">
-                            <p className="truncate text-xs font-medium text-foreground">{aName}</p>
+                            <p className="truncate text-xs font-medium text-foreground">
+                              <InlineCell
+                                value={aName}
+                                onSave={v => patchAccessory(a.slug || a.id, 'nom', v)}
+                                disabled={!permissions.canUpdate}
+                                className="font-medium text-foreground"
+                              />
+                            </p>
                             <p className="mt-0.5 font-mono text-[10px] uppercase text-foreground/30">{a.reference_sku || a.slug}</p>
                           </div>
                         </div>
@@ -540,7 +728,14 @@ export default function AccessoriesPage() {
                         </span>
                       </td>
                       <td className="whitespace-nowrap px-4 py-3 font-semibold text-foreground">
-                        {Number(aPrice).toLocaleString()} FCFA
+                        <InlineCell
+                          value={String(aPrice)}
+                          onSave={v => patchAccessory(a.slug || a.id, 'prix_unitaire', v)}
+                          disabled={!permissions.canUpdate}
+                          inputType="number"
+                          display={<>{Number(aPrice).toLocaleString()} FCFA</>}
+                          className="font-semibold text-foreground tabular-nums"
+                        />
                       </td>
                       {isAdmin && (
                         <td className="whitespace-nowrap px-4 py-3">
@@ -552,11 +747,20 @@ export default function AccessoriesPage() {
                               +{beneficeCalc.toLocaleString()} FCFA
                             </span>
                           ) : (
-                            <span className="text-xs italic text-foreground/30">Non défini</span>
+                      <span className="text-xs italic text-foreground/30">{t('not_defined')}</span>
                           )}
                         </td>
                       )}
-                      <td className="whitespace-nowrap px-4 py-3 text-xs text-foreground/55">{aStock} unités</td>
+                      <td className="whitespace-nowrap px-4 py-3 text-xs text-foreground/55">
+                        <InlineCell
+                          value={String(aStock)}
+                          onSave={v => patchAccessory(a.slug || a.id, 'stock_quantite', v)}
+                          disabled={!permissions.canUpdate}
+                          inputType="number"
+                          display={<>{aStock} {t('units')}</>}
+                          className="text-foreground/55 tabular-nums"
+                        />
+                      </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center justify-end gap-1">
                           {permissions.canUpdate && (
@@ -576,7 +780,7 @@ export default function AccessoriesPage() {
                 })}
                 {accessories.length === 0 && (
                   <tr>
-                    <td colSpan={7} className="py-16 text-center text-sm italic text-foreground/30">Aucun accessoire trouvé.</td>
+                      <td colSpan={7} className="py-16 text-center text-sm italic text-foreground/30">{t('no_results')}</td>
                   </tr>
                 )}
               </tbody>
@@ -589,16 +793,17 @@ export default function AccessoriesPage() {
       <SlideOver
         isOpen={showModal}
         onClose={() => setShowModal(false)}
-        title={editingAccessory ? "Modifier l'accessoire" : "Ajouter un accessoire"}
-        description={editingAccessory ? editingAccessory.nom : 'Nouvel accessoire du catalogue'}
+        title={editingAccessory ? t('modal_title_edit') : t('modal_title_new')}
+        description={editingAccessory ? editingAccessory.nom : isEn ? 'New catalogue accessory' : 'Nouvel accessoire du catalogue'}
         size="xl"
         footer={
           <div className="flex gap-3">
-            <button onClick={handleSave} className="flex-1 rounded-lg bg-gold py-2.5 text-sm font-semibold text-black transition-colors hover:bg-gold/85">
-              Enregistrer
+            <button onClick={handleSave} disabled={saving} className="flex-1 rounded-lg bg-gold py-2.5 text-sm font-semibold text-black transition-colors hover:bg-gold/85 disabled:opacity-60 flex items-center justify-center gap-2">
+              {saving ? <Loader2 size={14} className="animate-spin" /> : null}
+              {saving ? (isEn ? 'Saving…' : 'Enregistrement…') : (isEn ? 'Save' : 'Enregistrer')}
             </button>
             <button onClick={() => setShowModal(false)} className="rounded-lg border border-white/10 px-5 py-2.5 text-sm text-foreground/60 transition-colors hover:bg-white/6">
-              Annuler
+              {isEn ? 'Cancel' : 'Annuler'}
             </button>
           </div>
         }
@@ -606,9 +811,9 @@ export default function AccessoriesPage() {
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.6fr_0.9fr]">
           <div className="space-y-4">
 
-            <FormSection title="Identification" icon={<Tag size={11} />}>
+            <FormSection title={t('section_id')} icon={<Tag size={11} />}>
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <Field label="Marque" required error={formErrors.marque}>
+                <Field label={t('field_brand')} required error={formErrors.marque}>
                   <input
                     data-field="marque"
                     value={form.marque}

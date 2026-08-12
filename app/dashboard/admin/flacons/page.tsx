@@ -2,7 +2,114 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Loader2, Edit2, Trash2, Plus, Search, Filter, X, Image as ImageIcon } from 'lucide-react';
+import { InlineCell } from '@/components/admin/InlineCell';
 import { shopService, adminService } from '@/services/apiService';
+import { useTranslation } from 'react-i18next';
+
+/* ── Inline translations ─────────────────────────────────────────────────── */
+const T = {
+  fr: {
+    title: 'Flacons',
+    subtitle: 'Gestion des flacons et formats de contenance',
+    add: 'Ajouter un flacon',
+    col_name: 'Nom',
+    col_volume: 'Contenance',
+    col_material: 'Matière / Couleur',
+    col_price: 'Prix Vente',
+    col_margin: 'Bénéfice Unitaire',
+    col_actions: 'Actions',
+    not_defined: 'Non défini',
+    no_type: 'Sans type',
+    no_results: 'Aucun flacon trouvé.',
+    loading: 'Chargement des flacons...',
+    filter_type_all: 'Tous les types',
+    filter_stock_all: 'Stock (tous)',
+    filter_in_stock: 'En stock',
+    filter_low_stock: 'Stock faible',
+    modal_title_new: 'Ajouter un flacon',
+    modal_title_edit: 'Modifier le flacon',
+    modal_desc: 'Formulaire complet, sans popup ni défilement gênant.',
+    field_name: 'Nom *',
+    field_type: 'Type de Flacon *',
+    field_volume: 'Contenance (ml)',
+    field_weight: 'Poids (g)',
+    field_material: 'Matière',
+    field_color: 'Couleur',
+    field_height: 'Hauteur (cm)',
+    field_width: 'Largeur (cm)',
+    field_price: 'Prix de vente (FCFA)',
+    field_purchase: "Prix d'achat (FCFA)",
+    field_stock: 'Quantité en stock',
+    field_alert: "Seuil d'alerte stock",
+    field_active: 'Flacon actif',
+    field_image: 'Image principale',
+    field_placeholder_type: 'Type Flacon',
+    field_change_image: "Changer l'image",
+    field_choose_image: 'Choisir une image',
+    filter_type_label: 'Type :',
+    filter_stock_label: 'Stock :',
+    confirm_delete: 'Supprimer ce flacon ?',
+    toast_load_error: 'Erreur lors du chargement des flacons',
+    toast_create_ok: 'Flacon créé',
+    toast_update_ok: 'Flacon mis à jour',
+    toast_save_error: 'Erreur lors de la sauvegarde',
+    toast_delete_ok: 'Flacon supprimé',
+    toast_delete_error: 'Erreur lors de la suppression',
+    toast_patch_error: 'Erreur lors de la mise à jour',
+    toast_required: 'Champs requis : Nom, Type Flacon',
+  },
+  en: {
+    title: 'Bottles',
+    subtitle: 'Manage bottles and volume formats',
+    add: 'Add a bottle',
+    col_name: 'Name',
+    col_volume: 'Volume',
+    col_material: 'Material / Color',
+    col_price: 'Sale Price',
+    col_margin: 'Unit Margin',
+    col_actions: 'Actions',
+    not_defined: 'Not defined',
+    no_type: 'No type',
+    no_results: 'No bottles found.',
+    loading: 'Loading bottles...',
+    filter_type_all: 'All types',
+    filter_stock_all: 'Stock (all)',
+    filter_in_stock: 'In stock',
+    filter_low_stock: 'Low stock',
+    modal_title_new: 'Add a bottle',
+    modal_title_edit: 'Edit bottle',
+    modal_desc: 'Full form with no popup or scroll issues.',
+    field_name: 'Name *',
+    field_type: 'Bottle Type *',
+    field_volume: 'Volume (ml)',
+    field_weight: 'Weight (g)',
+    field_material: 'Material',
+    field_color: 'Color',
+    field_height: 'Height (cm)',
+    field_width: 'Width (cm)',
+    field_price: 'Sale price (FCFA)',
+    field_purchase: 'Purchase price (FCFA)',
+    field_stock: 'Stock quantity',
+    field_alert: 'Stock alert threshold',
+    field_active: 'Active bottle',
+    field_image: 'Main image',
+    field_placeholder_type: 'Bottle Type',
+    field_change_image: 'Change image',
+    field_choose_image: 'Choose an image',
+    filter_type_label: 'Type:',
+    filter_stock_label: 'Stock:',
+    confirm_delete: 'Delete this bottle?',
+    toast_load_error: 'Error loading bottles',
+    toast_create_ok: 'Bottle created',
+    toast_update_ok: 'Bottle updated',
+    toast_save_error: 'Error saving',
+    toast_delete_ok: 'Bottle deleted',
+    toast_delete_error: 'Error deleting',
+    toast_patch_error: 'Error updating',
+    toast_required: 'Required fields: Name, Bottle Type',
+  },
+} as const;
+type TKey = keyof typeof T.fr;
 import { useToastStore } from '@/store/useToastStore';
 import { useCatalogPermissions } from '@/hooks/useCatalogPermissions';
 import CatalogAccessNotice from '@/components/catalog/CatalogAccessNotice';
@@ -118,6 +225,9 @@ export default function FlaconsAdminPage() {
   const permissions = useCatalogPermissions('flacons');
   const { user } = useAuthStore();
   const isAdmin = Boolean(user?.is_staff || user?.is_superuser || user?.role === 'superadmin');
+  const { i18n } = useTranslation();
+  const isEn = i18n.language?.startsWith('en') ?? false;
+  const t = (k: TKey) => isEn ? T.en[k] : T.fr[k];
   const [bottles, setBottles] = useState<any[]>([]);
   const [bottleTypes, setBottleTypes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -129,6 +239,7 @@ export default function FlaconsAdminPage() {
   const [editingBottle, setEditingBottle] = useState<any | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
 
   const [form, setForm] = useState({
     nom: '',
@@ -164,7 +275,7 @@ export default function FlaconsAdminPage() {
       setBottles(extractCatalogList(bottlesData));
       setBottleTypes(extractCatalogList(typesData));
     } catch {
-      addToast('Erreur lors du chargement des flacons', 'error');
+      addToast(t('toast_load_error'), 'error');
     } finally {
       setLoading(false);
     }
@@ -228,9 +339,10 @@ export default function FlaconsAdminPage() {
   const handleSave = async () => {
     if (!permissions.canCreate && !permissions.canUpdate) return;
     if (!form.nom || !form.type_flacon) {
-      addToast('Champs requis : Nom, Type Flacon', 'error');
+      addToast(t('toast_required'), 'error');
       return;
     }
+    setSaving(true);
     try {
       const payload = {
         nom: form.nom,
@@ -253,38 +365,58 @@ export default function FlaconsAdminPage() {
         });
         formData.append('image_principale', imageFile);
         if (editingBottle) {
+          setBottles(prev => prev.map(b => b.id === editingBottle.id ? { ...b, ...payload } : b));
+          setShowModal(false);
           await adminService.patchFormData(`shop/flacons/${editingBottle.id}/`, formData);
-          addToast('Flacon mis à jour', 'success');
+          addToast(t('toast_update_ok'), 'success');
         } else {
+          setShowModal(false);
           await adminService.postFormData('shop/flacons/', formData);
-          addToast('Flacon créé', 'success');
+          addToast(t('toast_create_ok'), 'success');
         }
       } else {
         if (editingBottle) {
+          setBottles(prev => prev.map(b => b.id === editingBottle.id ? { ...b, ...payload } : b));
+          setShowModal(false);
           await shopService.updateBottle(editingBottle.id, payload);
-          addToast('Flacon mis à jour', 'success');
+          addToast(t('toast_update_ok'), 'success');
         } else {
+          setShowModal(false);
           await shopService.createBottle(payload);
-          addToast('Flacon créé', 'success');
+          addToast(t('toast_create_ok'), 'success');
         }
       }
-      setShowModal(false);
       fetchBottlesAndTypes();
     } catch (error: any) {
       const msg = error?.response?.data ? JSON.stringify(error.response.data) : 'Erreur lors de la sauvegarde';
       addToast(msg, 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const patchBottle = async (id: number, field: string, value: string) => {
+    if (!permissions.canUpdate) return;
+    setBottles(prev => prev.map(b => b.id === id ? { ...b, [field]: value } : b));
+    try {
+      await shopService.updateBottle(id, { [field]: value });
+    } catch {
+      addToast(t('toast_patch_error'), 'error');
+      fetchBottlesAndTypes();
     }
   };
 
   const handleDelete = async (id: number) => {
     if (!permissions.canDelete) return;
-    if (!confirm('Supprimer ce flacon ?')) return;
+    if (!confirm(t('confirm_delete'))) return;
+    const snapshot = bottles.find(b => b.id === id);
+    setBottles(prev => prev.filter(b => b.id !== id));
     try {
       await shopService.deleteBottle(id);
-      addToast('Flacon supprimé', 'success');
-      fetchBottlesAndTypes();
+      addToast(t('toast_delete_ok'), 'success');
     } catch {
-      addToast('Erreur lors de la suppression', 'error');
+      if (snapshot) setBottles(prev => [snapshot, ...prev]);
+      addToast(t('toast_delete_error'), 'error');
     }
   };
 
@@ -308,9 +440,9 @@ export default function FlaconsAdminPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl font-semibold text-foreground">Flacons</h1>
+          <h1 className="text-xl font-semibold text-foreground">{t('title')}</h1>
           <p className="text-sm text-foreground/40 mt-0.5">
-            Gestion des flacons et formats de contenance
+            {t('subtitle')}
           </p>
         </div>
         {permissions.canCreate && (
@@ -319,7 +451,7 @@ export default function FlaconsAdminPage() {
             className="bg-gold text-black rounded-lg px-3.5 py-2 text-xs font-semibold hover:bg-gold/80 transition-colors flex items-center gap-1.5 self-start sm:self-auto"
           >
             <Plus size={14} />
-            <span>Ajouter un flacon</span>
+            <span>{t('add')}</span>
           </button>
         )}
       </div>
@@ -379,7 +511,7 @@ export default function FlaconsAdminPage() {
                 onChange={(e) => setTypeFilter(e.target.value)}
                 className="text-xs bg-white/5 border border-white/10 rounded-lg px-2.5 py-1 text-foreground outline-none focus:border-white/20"
               >
-                <option value="" className="bg-background text-foreground">Tous les types</option>
+                <option value="" className="bg-background text-foreground">{t('filter_type_all')}</option>
                 {bottleTypes.map((t) => (
                   <option key={t.id} value={t.id} className="bg-background text-foreground">
                     {t.nom}
@@ -395,9 +527,9 @@ export default function FlaconsAdminPage() {
                 onChange={(e) => setEnStockFilter(e.target.value)}
                 className="text-xs bg-white/5 border border-white/10 rounded-lg px-2.5 py-1 text-foreground outline-none focus:border-white/20"
               >
-                <option value="" className="bg-background text-foreground">Stock (tous)</option>
-                <option value="true" className="bg-background text-foreground">En stock</option>
-                <option value="false" className="bg-background text-foreground">Stock faible</option>
+                <option value="" className="bg-background text-foreground">{t('filter_stock_all')}</option>
+                <option value="true" className="bg-background text-foreground">{t('filter_in_stock')}</option>
+                <option value="false" className="bg-background text-foreground">{t('filter_low_stock')}</option>
               </select>
             </div>
 
@@ -421,19 +553,19 @@ export default function FlaconsAdminPage() {
         {loading ? (
           <div className="flex items-center justify-center py-20 text-foreground/40 gap-2 text-xs">
             <Loader2 className="animate-spin text-gold" size={16} />
-            <span>Chargement des flacons...</span>
+            <span>{t('loading')}</span>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-white/[0.02] border-b border-white/10 text-[10px] font-semibold uppercase tracking-wider text-foreground/35">
-                  <th className="pl-4 py-3">Nom</th>
-                  <th className="px-3 py-3">Contenance</th>
+                  <th className="pl-4 py-3">{t('col_name')}</th>
+                  <th className="px-3 py-3">{t('col_volume')}</th>
                   <th className="px-3 py-3">Matière / Couleur</th>
-                  <th className="px-3 py-3">Prix Vente</th>
-                  {isAdmin && <th className="px-3 py-3">Bénéfice Unitaire</th>}
-                  <th className="pr-4 py-3 text-right">Actions</th>
+                  <th className="px-3 py-3">{t('col_price')}</th>
+                  {isAdmin && <th className="px-3 py-3">{t('col_margin')}</th>}
+                  <th className="pr-4 py-3 text-right">{t('col_actions')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5 text-xs">
@@ -464,19 +596,23 @@ export default function FlaconsAdminPage() {
                             )}
                           </div>
                           <div className="min-w-0">
-                            <p className="truncate font-medium text-foreground">{b.nom}</p>
-                            <p className="mt-0.5 text-[11px] text-foreground/35">{b.type_flacon?.nom || b.type_flacon_nom || 'Sans type'}</p>
+                            <p className="truncate font-medium text-foreground">
+                              <InlineCell value={b.nom} onSave={v => patchBottle(b.id, 'nom', v)} disabled={!permissions.canUpdate} className="font-medium text-foreground" />
+                            </p>
+                            <p className="mt-0.5 text-[11px] text-foreground/35">{b.type_flacon?.nom || b.type_flacon_nom || t('no_type')}</p>
                           </div>
                         </div>
                       </td>
                       <td className="px-3 py-3 text-foreground/60 tabular-nums">
-                        {b.contenance_ml} ml
+                        <InlineCell value={String(b.contenance_ml ?? '')} onSave={v => patchBottle(b.id, 'contenance_ml', v)} disabled={!permissions.canUpdate} inputType="number" display={<>{b.contenance_ml} ml</>} className="text-foreground/60 tabular-nums" />
                       </td>
                       <td className="px-3 py-3 text-foreground/60">
-                        {b.matiere} · {b.couleur}
+                        <InlineCell value={b.matiere ?? ''} onSave={v => patchBottle(b.id, 'matiere', v)} disabled={!permissions.canUpdate} className="text-foreground/60" />
+                        {' · '}
+                        <InlineCell value={b.couleur ?? ''} onSave={v => patchBottle(b.id, 'couleur', v)} disabled={!permissions.canUpdate} className="text-foreground/60" />
                       </td>
                       <td className="px-3 py-3 font-semibold text-gold tabular-nums">
-                        {b.prix_unitaire} FCFA
+                        <InlineCell value={String(b.prix_unitaire ?? '')} onSave={v => patchBottle(b.id, 'prix_unitaire', v)} disabled={!permissions.canUpdate} inputType="number" display={<>{b.prix_unitaire} FCFA</>} className="font-semibold text-gold tabular-nums" />
                       </td>
                       {isAdmin && (
                         <td className="px-3 py-3">
@@ -521,7 +657,7 @@ export default function FlaconsAdminPage() {
                       colSpan={isAdmin ? 6 : 5}
                       className="py-16 text-center text-sm italic text-foreground/30"
                     >
-                      Aucun flacon trouvé.
+                      {t('no_results')}
                     </td>
                   </tr>
                 )}
@@ -535,7 +671,7 @@ export default function FlaconsAdminPage() {
       <SlideOver
         isOpen={showModal}
         onClose={() => setShowModal(false)}
-        title={editingBottle ? 'Modifier le flacon' : 'Ajouter un flacon'}
+        title={editingBottle ? t('modal_title_edit') : t('modal_title_new')}
         description="Formulaire complet, sans popup ni défilement gênant."
         size="lg"
         footer={
@@ -544,13 +680,15 @@ export default function FlaconsAdminPage() {
               onClick={() => setShowModal(false)}
               className="flex-1 border border-white/10 rounded-lg py-2.5 text-sm text-foreground/60 hover:bg-white/5 transition-colors"
             >
-              Annuler
+              {isEn ? 'Cancel' : 'Annuler'}
             </button>
             <button
               onClick={handleSave}
-              className="flex-1 bg-gold text-black rounded-lg py-2.5 text-sm font-bold hover:bg-gold/80 transition-colors"
+              disabled={saving}
+              className="flex-1 bg-gold text-black rounded-lg py-2.5 text-sm font-bold hover:bg-gold/80 transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
             >
-              Enregistrer
+              {saving ? <Loader2 size={14} className="animate-spin" /> : null}
+              {saving ? (isEn ? 'Saving…' : 'Enregistrement…') : (isEn ? 'Save' : 'Enregistrer')}
             </button>
           </div>
         }

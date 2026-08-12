@@ -5,6 +5,87 @@ import {
   Search, Plus, Edit2, Trash2, Droplets, Loader2, 
   ShoppingBag, RefreshCw, ChevronLeft, ChevronRight, X, AlertCircle, Layers, Filter
 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { InlineCell } from '@/components/admin/InlineCell';
+
+/* ── Inline translations ─────────────────────────────────────────────────── */
+const T = {
+  fr: {
+    title: 'Essences', subtitle: 'Catalogue des huiles essentielles du laboratoire',
+    add: 'Ajouter une essence', kpi_total: 'Total Essences',
+    kpi_boutique: 'Disponibles Boutique', kpi_labo: 'Usage Labo Exclusif',
+    col_essence: 'Essence', col_ref: 'Code Réf.', col_category: 'Catégorie',
+    col_characteristics: 'Caractéristiques', col_price: 'Prix / ml', col_canal: 'Canal', col_actions: 'Actions',
+    canal_boutique: 'Boutique', canal_labo: 'Labo Seul',
+    search_placeholder: 'Rechercher par nom, référence, marque...',
+    filter_btn: 'Filtres', filter_reset: 'Réinitialiser',
+    filter_category: 'Catégorie :', filter_category_all: 'Toutes',
+    filter_intensity: 'Intensité :', filter_intensity_all: 'Toutes',
+    filter_genre: 'Genre :', filter_genre_all: 'Tous',
+    filter_boutique: 'Canal :', filter_boutique_all: 'Tous', filter_boutique_yes: 'Boutique', filter_boutique_no: 'Labo seul',
+    intensite_label: 'Intensité :', genre_label: 'Cible :',
+    delete_selected: 'Supprimer',
+    loading: 'Chargement...', no_results: 'Aucune essence trouvée.',
+    modal_new: 'Nouvelle essence', modal_edit: "Modifier l'essence",
+    section_general: 'Informations générales', section_pricing: 'Tarification labo',
+    section_lot: 'Lot initial (stock)', section_boutique: 'Format boutique',
+    field_name: 'Nom *', field_brand: 'Marque / Fournisseur *', field_ref: 'Code référence *',
+    field_category: 'Catégorie *', field_intensity: 'Intensité *', field_genre: 'Genre cible *',
+    field_price: 'Prix par ml (FCFA) *', field_description: 'Description',
+    field_lot_stock: 'Stock initial (ml) *', field_lot_alert: "Seuil d'alerte (ml) *",
+    field_lot_ref: 'Référence fournisseur',
+    field_boutique_toggle: 'Créer un format boutique',
+    field_boutique_size: 'Taille (ml) *', field_boutique_price: 'Prix (FCFA) *',
+    field_boutique_promo: 'Prix promo (FCFA)', field_boutique_stock: 'Stock disponible *',
+    field_boutique_image: 'Image du format boutique *',
+    confirm_delete: "Supprimer cette essence ? Cela affectera l'inventaire et les lots associés.",
+    confirm_bulk: 'Supprimer',
+    toast_load_error: 'Erreur lors du chargement des données',
+    toast_create_ok: 'Essence créée avec succès', toast_update_ok: 'Essence mise à jour avec succès',
+    toast_save_error: 'Erreur lors de la sauvegarde', toast_delete_ok: 'Essence supprimée',
+    toast_delete_error: 'Erreur lors de la suppression', toast_patch_error: 'Erreur lors de la mise à jour',
+    toast_bulk_ok: 'essence(s) supprimée(s)', toast_bulk_error: 'Erreur lors de la suppression en masse',
+    essences_label: 'essence(s)',
+  },
+  en: {
+    title: 'Essences', subtitle: 'Laboratory essential oil catalogue',
+    add: 'Add essence', kpi_total: 'Total Essences',
+    kpi_boutique: 'Available in Shop', kpi_labo: 'Lab Only',
+    col_essence: 'Essence', col_ref: 'Ref. Code', col_category: 'Category',
+    col_characteristics: 'Characteristics', col_price: 'Price / ml', col_canal: 'Channel', col_actions: 'Actions',
+    canal_boutique: 'Shop', canal_labo: 'Lab Only',
+    search_placeholder: 'Search by name, reference, brand...',
+    filter_btn: 'Filters', filter_reset: 'Reset',
+    filter_category: 'Category:', filter_category_all: 'All',
+    filter_intensity: 'Intensity:', filter_intensity_all: 'All',
+    filter_genre: 'Gender:', filter_genre_all: 'All',
+    filter_boutique: 'Channel:', filter_boutique_all: 'All', filter_boutique_yes: 'Shop', filter_boutique_no: 'Lab only',
+    intensite_label: 'Intensity:', genre_label: 'Target:',
+    delete_selected: 'Delete',
+    loading: 'Loading...', no_results: 'No essence found.',
+    modal_new: 'New essence', modal_edit: 'Edit essence',
+    section_general: 'General information', section_pricing: 'Lab pricing',
+    section_lot: 'Initial lot (stock)', section_boutique: 'Shop format',
+    field_name: 'Name *', field_brand: 'Brand / Supplier *', field_ref: 'Reference code *',
+    field_category: 'Category *', field_intensity: 'Intensity *', field_genre: 'Target gender *',
+    field_price: 'Price per ml (FCFA) *', field_description: 'Description',
+    field_lot_stock: 'Initial stock (ml) *', field_lot_alert: 'Alert threshold (ml) *',
+    field_lot_ref: 'Supplier reference',
+    field_boutique_toggle: 'Create shop format',
+    field_boutique_size: 'Size (ml) *', field_boutique_price: 'Price (FCFA) *',
+    field_boutique_promo: 'Promo price (FCFA)', field_boutique_stock: 'Available stock *',
+    field_boutique_image: 'Shop format image *',
+    confirm_delete: 'Delete this essence? This will affect the inventory and associated lots.',
+    confirm_bulk: 'Delete',
+    toast_load_error: 'Error loading data',
+    toast_create_ok: 'Essence created successfully', toast_update_ok: 'Essence updated successfully',
+    toast_save_error: 'Error saving', toast_delete_ok: 'Essence deleted',
+    toast_delete_error: 'Error deleting', toast_patch_error: 'Error updating',
+    toast_bulk_ok: 'essence(s) deleted', toast_bulk_error: 'Error during bulk delete',
+    essences_label: 'essence(s)',
+  },
+} as const;
+type TKey = keyof typeof T.fr;
 import { labService, adminService } from '@/services/apiService';
 import { useToastStore } from '@/store/useToastStore';
 import { useCatalogPermissions } from '@/hooks/useCatalogPermissions';
@@ -75,6 +156,9 @@ function IconButton({ icon: Icon, onClick, title, tint = 'gold' }: { icon: any, 
 
 export default function EssencesPage() {
   const permissions = useCatalogPermissions('essences');
+  const { i18n } = useTranslation();
+  const isEn = i18n.language?.startsWith('en') ?? false;
+  const t = (k: TKey) => isEn ? T.en[k] : T.fr[k];
   const [essences, setEssences] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -162,7 +246,7 @@ export default function EssencesPage() {
       const essList = Array.isArray(essencesData) ? essencesData : (essencesData as any)?.results || (essencesData as any)?.resultats || [];
       setEssences(essList);
     } catch {
-      addToast('Erreur lors du chargement des essences', 'error');
+      addToast(t('toast_load_error'), 'error');
     } finally {
       setLoading(false);
     }
@@ -296,9 +380,11 @@ export default function EssencesPage() {
           genre_cible: form.genreCible,
           prix_par_ml: form.prixParMl,
         };
-        
+        setEssences(prev => prev.map(e => e.id === editingEssence.id ? { ...e, ...payload } : e));
+        setShowModal(false);
         await labService.updateEssence(editingEssence.id, payload);
-        addToast('Essence mise à jour avec succès', 'success');
+        addToast(t('toast_update_ok'), 'success');
+        fetchData();
       } else {
         const formData = new FormData();
         formData.append('nom', form.nom);
@@ -309,45 +395,53 @@ export default function EssencesPage() {
         formData.append('intensite', form.intensite);
         formData.append('genre_cible', form.genreCible);
         formData.append('prix_par_ml', form.prixParMl);
-        
         formData.append('initial_lot[stock_ml]', form.lotStockMl);
         formData.append('initial_lot[seuil_alerte_ml]', form.lotSeuilAlerteMl || '0');
         formData.append('initial_lot[reference_fournisseur]', form.lotReferenceFournisseur || '');
-        
         if (form.includeProduitsFinis) {
           formData.append('produits_finis[0][taille_ml]', form.produitFini.taille_ml);
           formData.append('produits_finis[0][prix]', form.produitFini.prix);
           formData.append('produits_finis[0][prix_promotionnel]', form.produitFini.prix_promotionnel || '');
           formData.append('produits_finis[0][stock_disponible]', form.produitFini.stock_disponible);
-          
           if (produitFiniImageFile) {
             formData.append('produits_finis[0][image_principale]', produitFiniImageFile);
           }
         }
-        
+        setShowModal(false);
         await adminService.postFormData('lab/essences/', formData);
-        addToast('Essence créée avec succès', 'success');
+        addToast(t('toast_create_ok'), 'success');
+        fetchData();
       }
-      
-      setShowModal(false);
-      fetchData();
     } catch (e: any) {
-      const errorMessage = e.response?.data?.detail || e.response?.data?.error || 'Erreur lors de la sauvegarde';
+      const errorMessage = e.response?.data?.detail || e.response?.data?.error || t('toast_save_error');
       setFormError(errorMessage);
     } finally {
       setSaving(false);
     }
   };
 
+  const patchEssence = async (id: number, field: string, value: string) => {
+    if (!permissions.canUpdate) return;
+    setEssences(prev => prev.map(e => e.id === id ? { ...e, [field]: value } : e));
+    try {
+      await labService.updateEssence(id, { [field]: value });
+    } catch {
+      addToast(t('toast_patch_error'), 'error');
+      fetchData();
+    }
+  };
+
   const handleDelete = async (id: number) => {
     if (!permissions.canDelete) return;
-    if (!confirm('Supprimer cette essence ? Cela affectera l\'inventaire et les lots associés.')) return;
+    if (!confirm(t('confirm_delete'))) return;
+    const snapshot = essences.find(e => e.id === id);
+    setEssences(prev => prev.filter(e => e.id !== id));
     try {
       await labService.deleteEssence(id);
-      addToast('Essence supprimée', 'success');
-      fetchData();
+      addToast(t('toast_delete_ok'), 'success');
     } catch {
-      addToast('Erreur lors de la suppression', 'error');
+      if (snapshot) setEssences(prev => [snapshot, ...prev]);
+      addToast(t('toast_delete_error'), 'error');
     }
   };
 
@@ -365,20 +459,19 @@ export default function EssencesPage() {
 
   const handleBulkDelete = async () => {
     if (!permissions.canDelete || selectedEssences.size === 0) return;
-    if (!confirm(`Supprimer ${selectedEssences.size} essence(s) ?`)) return;
+    if (!confirm(`${t('confirm_bulk')} ${selectedEssences.size} ${t('essences_label')} ?`)) return;
+    const ids = Array.from(selectedEssences);
+    const snapshots = essences.filter(e => ids.includes(e.id));
+    setEssences(prev => prev.filter(e => !ids.includes(e.id)));
+    setSelectedEssences(new Set());
     try {
-      for (const id of selectedEssences) {
-        try {
-          await labService.deleteEssence(id);
-        } catch (e) {
-          console.error(`Failed to delete essence ${id}:`, e);
-        }
+      for (const id of ids) {
+        try { await labService.deleteEssence(id); } catch (e) { console.error(`Failed to delete essence ${id}:`, e); }
       }
-      addToast(`${selectedEssences.size} essence(s) supprimée(s)`, 'success');
-      setSelectedEssences(new Set());
-      fetchData();
+      addToast(`${ids.length} ${t('toast_bulk_ok')}`, 'success');
     } catch (error) {
-      addToast('Erreur lors de la suppression en masse', 'error');
+      setEssences(prev => [...snapshots, ...prev]);
+      addToast(t('toast_bulk_error'), 'error');
     }
   };
 
@@ -423,9 +516,9 @@ export default function EssencesPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl font-semibold text-foreground">Essences de Base</h1>
+          <h1 className="text-xl font-semibold text-foreground">{t('title')}</h1>
           <p className="text-sm text-foreground/40 mt-0.5">
-            Gestion du catalogue d'essences brutes pour les formulations et la boutique
+            {t('subtitle')}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -435,13 +528,13 @@ export default function EssencesPage() {
               className="bg-red-500/90 hover:bg-red-500 text-white rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors flex items-center gap-1.5"
             >
               <Trash2 size={14} />
-              Supprimer ({selectedEssences.size})
+              {t('delete_selected')} ({selectedEssences.size})
             </button>
           )}
           <IconButton 
             icon={RefreshCw} 
             onClick={fetchData} 
-            title="Rafraîchir"
+            title={isEn ? 'Refresh' : 'Rafraîchir'}
             tint="neutral"
           />
           {permissions.canCreate && (
@@ -449,7 +542,7 @@ export default function EssencesPage() {
               onClick={openAdd}
               className="bg-gold text-black font-semibold rounded-lg px-3.5 py-1.5 text-xs hover:bg-gold/90 transition-colors flex items-center gap-1.5"
             >
-              <Plus size={15} /> Ajouter une essence
+              <Plus size={15} /> {t('add')}
             </button>
           )}
         </div>
@@ -460,17 +553,17 @@ export default function EssencesPage() {
       {/* KPI Bordered Strip */}
       <div className="rounded-xl border border-white/10 bg-white/[0.02] grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-white/10">
         <div className="p-4 flex flex-col justify-between">
-          <span className="text-[10px] font-semibold uppercase tracking-wider text-foreground/35">Total Essences</span>
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-foreground/35">{t('kpi_total')}</span>
           <span className="text-xl font-semibold tabular-nums text-foreground mt-1">{essences.length}</span>
         </div>
 
         <div className="p-4 flex flex-col justify-between">
-          <span className="text-[10px] font-semibold uppercase tracking-wider text-foreground/35">Disponibles Boutique</span>
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-foreground/35">{t('kpi_boutique')}</span>
           <span className="text-xl font-semibold tabular-nums text-emerald-400 mt-1">{boutiqueCount}</span>
         </div>
 
         <div className="p-4 flex flex-col justify-between">
-          <span className="text-[10px] font-semibold uppercase tracking-wider text-foreground/35">Usage Labo Exclusif</span>
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-foreground/35">{t('kpi_labo')}</span>
           <span className="text-xl font-semibold tabular-nums text-foreground/80 mt-1">{essences.length - boutiqueCount}</span>
         </div>
       </div>
@@ -483,7 +576,7 @@ export default function EssencesPage() {
             <input
               value={search}
               onChange={e => setSearch(e.target.value)}
-              placeholder="Rechercher par nom, référence, marque..."
+              placeholder={t('search_placeholder')}
               className="w-full bg-white/[0.02] border border-white/10 rounded-lg pl-9 pr-8 py-1.5 text-xs text-foreground placeholder:text-foreground/40 outline-none focus:border-white/20 transition-all"
             />
             {search && (
@@ -559,7 +652,7 @@ export default function EssencesPage() {
         {loading ? (
           <div className="flex items-center justify-center py-12 text-foreground/40 gap-2 text-xs">
             <Loader2 className="animate-spin text-gold" size={16} />
-            <span>Chargement du catalogue...</span>
+            <span>{t('loading')}</span>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -580,12 +673,12 @@ export default function EssencesPage() {
                       className="rounded border-white/20 bg-white/5 text-gold focus:ring-0 cursor-pointer"
                     />
                   </th>
-                  <th className="px-3 py-3">Essence</th>
-                  <th className="px-3 py-3">Code Réf.</th>
-                  <th className="px-3 py-3">Catégorie</th>
-                  <th className="px-3 py-3">Caractéristiques</th>
+                  <th className="px-3 py-3">{t('col_essence')}</th>
+                  <th className="px-3 py-3">{t('col_ref')}</th>
+                  <th className="px-3 py-3">{t('col_category')}</th>
+                  <th className="px-3 py-3">{t('col_characteristics')}</th>
                   <th className="px-3 py-3">Prix / ml</th>
-                  <th className="px-3 py-3">Canal</th>
+                  <th className="px-3 py-3">{t('col_canal')}</th>
                   <th className="pr-4 py-3 text-right">Actions</th>
                 </tr>
               </thead>
@@ -602,8 +695,12 @@ export default function EssencesPage() {
                     </td>
                     <td className="px-3 py-3">
                       <div>
-                        <p className="font-medium text-foreground">{essence.nom}</p>
-                        <p className="text-[11px] text-foreground/40">{essence.marque || 'Maison'}</p>
+                        <p className="font-medium text-foreground">
+                          <InlineCell value={essence.nom} onSave={(v: string) => patchEssence(essence.id, 'nom', v)} disabled={!permissions.canUpdate} className="font-medium text-foreground" />
+                        </p>
+                        <p className="text-[11px] text-foreground/40">
+                          <InlineCell value={essence.marque || ''} onSave={(v: string) => patchEssence(essence.id, 'marque', v)} disabled={!permissions.canUpdate} className="text-foreground/40" />
+                        </p>
                       </div>
                     </td>
                     <td className="px-3 py-3 font-mono text-[11px] text-foreground/60">
@@ -620,13 +717,13 @@ export default function EssencesPage() {
                       <span>Cible: <strong className="font-medium text-foreground/80 capitalize">{essence.genre_cible}</strong></span>
                     </td>
                     <td className="px-3 py-3 font-medium text-foreground tabular-nums">
-                      {Number(essence.prix_par_ml || 0).toLocaleString()} FCFA
+                      <InlineCell value={String(essence.prix_par_ml ?? '0')} onSave={(v: string) => patchEssence(essence.id, 'prix_par_ml', v)} disabled={!permissions.canUpdate} inputType="number" display={<>{Number(essence.prix_par_ml || 0).toLocaleString()} FCFA</>} className="font-medium text-foreground tabular-nums" />
                     </td>
                     <td className="px-3 py-3">
                       {essence.vendu_comme_produit_fini ? (
-                        <StatusChip variant="emerald" label="Boutique" icon={ShoppingBag} />
+                        <StatusChip variant="emerald" label={t('canal_boutique')} icon={ShoppingBag} />
                       ) : (
-                        <StatusChip variant="neutral" label="Labo Seul" />
+                        <StatusChip variant="neutral" label={t('canal_labo')} />
                       )}
                     </td>
                     <td className="pr-4 py-3 text-right">
@@ -654,7 +751,7 @@ export default function EssencesPage() {
                 {currentItems.length === 0 && (
                   <tr>
                     <td colSpan={8} className="py-10 text-center text-sm italic text-foreground/30">
-                      Aucune essence ne correspond à votre recherche.
+                      {t('no_results')}
                     </td>
                   </tr>
                 )}
@@ -689,8 +786,8 @@ export default function EssencesPage() {
       <SlideOver
         isOpen={showModal}
         onClose={() => setShowModal(false)}
-        title={editingEssence ? 'Modifier l\'essence' : 'Nouvelle Essence de Parfum'}
-        description="Renseignez les spécifications techniques et commerciales de l'essence."
+        title={editingEssence ? t('modal_edit') : t('modal_new')}
+        description={isEn ? "Enter the technical and commercial specifications of the essence." : "Renseignez les spécifications techniques et commerciales de l'essence."}
         size="xl"
       >
         <div className="space-y-6 pt-2">
@@ -718,7 +815,7 @@ export default function EssencesPage() {
               <div>
                 <FloatInput
                   data-field="codeReference"
-                  label="Code Référence *"
+                  label="{t('col_ref')} // Code Référence *"
                   value={form.codeReference}
                   onChange={e => updateForm('codeReference', e.target.value)}
                   error={formErrors.codeReference}

@@ -168,22 +168,27 @@ export default function DeliveryPage() {
 
   const handleToggleStatus = async (id: number, currentStatut: string) => {
     const nextStatut = currentStatut === 'disponible' ? 'indisponible' : 'disponible';
+    // Optimistic flip
+    setDrivers(prev => prev.map(d => d.id === id ? { ...d, statut: nextStatut } : d));
     try {
       await adminService.updateDeliveryDriver(id, { statut: nextStatut });
       addToast('Statut du livreur mis à jour', 'success');
-      fetchDriversAndDeliveries();
     } catch (error: any) {
+      // Rollback
+      setDrivers(prev => prev.map(d => d.id === id ? { ...d, statut: currentStatut } : d));
       addToast('Erreur lors du modification du statut', 'error');
     }
   };
 
   const handleDeleteDriver = async (id: number) => {
     if (!confirm('Voulez-vous vraiment supprimer ce livreur ?')) return;
+    const snapshot = drivers.find(d => d.id === id);
+    setDrivers(prev => prev.filter(d => d.id !== id));
     try {
       await adminService.deleteDeliveryDriver(id);
       addToast('Livreur supprimé de la flotte avec succès', 'success');
-      fetchDriversAndDeliveries();
     } catch (error: any) {
+      if (snapshot) setDrivers(prev => [snapshot, ...prev]);
       addToast(error.response?.data?.detail || 'Erreur lors de la suppression', 'error');
     }
   };

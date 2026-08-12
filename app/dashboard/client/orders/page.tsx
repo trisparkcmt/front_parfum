@@ -257,6 +257,7 @@ export default function OrdersPage() {
   const [editLivraison, setEditLivraison] = useState<'en_attente_affectation' | 'assignée' | 'livrée' | 'échouée' | ''>('');
   const [editPaiement, setEditPaiement]   = useState<'en_attente' | 'payé' | 'échoué' | ''>('');
   const [editLivreur, setEditLivreur]     = useState('');
+  const [isSavingEdit, setIsSavingEdit]   = useState(false);
   const [editDateEst, setEditDateEst]     = useState('');
   const [editNote, setEditNote]           = useState('');
   const [editFrais, setEditFrais]         = useState('');
@@ -336,6 +337,7 @@ export default function OrdersPage() {
 
     const driverObj = editLivreur ? drivers.find(d => String(d.id ?? d.user_id) === editLivreur) : null;
 
+    setIsSavingEdit(true);
     setEditModal(null);
 
     await runOptimisticUpdate({
@@ -353,6 +355,7 @@ export default function OrdersPage() {
       successMessage: 'Commande mise à jour avec succès',
       errorMessage: 'Erreur lors de la mise à jour',
     });
+    setIsSavingEdit(false);
   };
 
   const handleDownloadInvoice = async (order: BackendOrder) => {
@@ -736,9 +739,11 @@ export default function OrdersPage() {
               </button>
               <button
                 onClick={handleSave}
-                className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg bg-gold py-2.5 text-sm font-semibold text-black transition-colors hover:bg-gold/85"
+                disabled={isSavingEdit}
+                className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg bg-gold py-2.5 text-sm font-semibold text-black transition-colors hover:bg-gold/85 disabled:opacity-60"
               >
-                Enregistrer les modifications
+                {isSavingEdit ? <Loader2 size={14} className="animate-spin" /> : null}
+                {isSavingEdit ? 'Enregistrement…' : 'Enregistrer les modifications'}
               </button>
             </div>
           }

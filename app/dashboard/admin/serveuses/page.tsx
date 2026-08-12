@@ -127,22 +127,27 @@ export default function ServeusesPage() {
   };
 
   const handleToggleStatus = async (id: number, currentActif: boolean) => {
+    // Optimistic flip
+    setServeuses(prev => prev.map(s => s.id === id ? { ...s, actif: !currentActif } : s));
     try {
       await adminService.updateServeuse(id, { actif: !currentActif });
       addToast('Statut de la serveuse mis à jour', 'success');
-      fetchServeuses();
     } catch (error: any) {
+      // Rollback
+      setServeuses(prev => prev.map(s => s.id === id ? { ...s, actif: currentActif } : s));
       addToast('Erreur lors de la modification du statut', 'error');
     }
   };
 
   const handleDelete = async (id: number) => {
     if (!confirm('Voulez-vous vraiment supprimer cette serveuse ?')) return;
+    const snapshot = serveuses.find(s => s.id === id);
+    setServeuses(prev => prev.filter(s => s.id !== id));
     try {
       await adminService.deleteServeuse(id);
       addToast('Serveuse supprimée avec succès', 'success');
-      fetchServeuses();
     } catch (error: any) {
+      if (snapshot) setServeuses(prev => [snapshot, ...prev]);
       addToast(error.response?.data?.detail || 'Erreur lors de la suppression', 'error');
     }
   };
