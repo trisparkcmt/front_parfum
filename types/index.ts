@@ -177,6 +177,28 @@ export interface Product {
 
 export interface Accessory extends Product {}
 
+export interface CompanyOpeningDay {
+  jour: string;
+  ouvert: boolean;
+  heure_ouverture: string | null;
+  heure_fermeture: string | null;
+  note: string;
+}
+
+export interface CompanyInfo {
+  id: number;
+  nom: string;
+  jours_ouverture: CompanyOpeningDay[];
+  telephone_principal: string;
+  telephone_secondaire?: string | null;
+  whatsapp?: string | null;
+  facebook_url?: string | null;
+  instagram_url?: string | null;
+  localisation?: string;
+  date_creation: string;
+  date_modification: string;
+}
+
 // ---- Essences & Custom Perfume ----
 
 export type OlfactiveFamily =

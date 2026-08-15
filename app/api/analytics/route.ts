@@ -96,6 +96,30 @@ export async function GET() {
             { name: 'newUsers' },
           ],
         },
+        // 6. Most Shared Products
+        {
+          dateRanges: [{ startDate: '30daysAgo', endDate: 'today' }],
+          dimensions: [{ name: 'itemName' }],
+          metrics: [
+            { name: 'eventCount' },
+          ],
+          dimensionFilter: {
+            filter: {
+              fieldName: 'eventName',
+              stringFilter: {
+                matchType: 'EXACT',
+                value: 'share',
+              },
+            },
+          },
+          orderBys: [
+            {
+              metric: { metricName: 'eventCount' },
+              desc: true,
+            },
+          ],
+          limit: 10,
+        },
       ],
     });
 
@@ -171,12 +195,20 @@ export async function GET() {
       newUsers: parseInt(row.metricValues?.[1]?.value || '0', 10),
     }));
 
+    // Parse Report 6: Most Shared Products
+    const shareRows = reports[5]?.rows || [];
+    const shares = shareRows.map((row: any) => ({
+      name: row.dimensionValues?.[0]?.value || 'Produit inconnu',
+      shares: parseInt(row.metricValues?.[0]?.value || '0', 10),
+    }));
+
     return NextResponse.json({
       funnel: completeFunnel,
       acquisition,
       pages,
       tech,
       geo,
+      shares,
     });
   } catch (error: any) {
     console.error('Error fetching GA4 report batch:', error);

@@ -1,16 +1,20 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { MapPin, Clock, Phone, Navigation, MessageCircle, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
+import { useTranslation } from 'react-i18next';
+import { shopService } from '@/services/apiService';
+import type { CompanyInfo } from '@/types';
 
 const LAT = 3.86484;
 const LNG = 11.52030;
 
 const STORE_INFO = {
   name: 'Accessoires Exclusifs',
-  address: 'Yaoundé, Centre, Cameroun',
+  addressFr: 'Yaoundé, Centre, Cameroun',
+  addressEn: 'Yaoundé, Centre, Cameroon',
   phone: '+237 680 254 243',
   whatsapp: '+237 680 254 243',
   hours: [
@@ -110,6 +114,36 @@ function LeafletMap() {
 }
 
 export default function StorePage() {
+  const { i18n } = useTranslation();
+  const isEn = i18n.language?.startsWith('en');
+  const [companyInfo, setCompanyInfo] = useState<CompanyInfo | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    shopService.getCompanyInfos()
+      .then((data) => {
+        if (!active) return;
+        if (Array.isArray(data) && data.length > 0) {
+          setCompanyInfo(data[0]);
+        }
+      })
+      .catch(() => {})
+      .finally(() => {
+        // no-op
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const storeDetails = {
+    name: companyInfo?.nom || STORE_INFO.name,
+    address: companyInfo?.localisation || (isEn ? STORE_INFO.addressEn : STORE_INFO.addressFr),
+    phone: companyInfo?.telephone_principal || STORE_INFO.phone,
+    whatsapp: companyInfo?.whatsapp || STORE_INFO.whatsapp,
+  };
+
   const handleGetDirections = () => {
     window.open(getDirectionsUrl(), '_blank');
   };
@@ -170,8 +204,8 @@ export default function StorePage() {
               </div>
               <div>
                 <p className="text-[10px] uppercase tracking-widest text-foreground/40 font-mono mb-1">Adresse</p>
-                <p className="text-sm font-semibold text-foreground">{STORE_INFO.name}</p>
-                <p className="text-xs text-foreground/50 mt-0.5">{STORE_INFO.address}</p>
+                <p className="text-sm font-semibold text-foreground">{storeDetails.name}</p>
+                <p className="text-xs text-foreground/50 mt-0.5">{storeDetails.address}</p>
               </div>
             </div>
 
@@ -202,7 +236,7 @@ export default function StorePage() {
               </div>
               <div>
                 <p className="text-[10px] uppercase tracking-widest text-foreground/40 font-mono mb-1">Contact</p>
-                <p className="text-sm font-semibold text-foreground">{STORE_INFO.phone}</p>
+                <p className="text-sm font-semibold text-foreground">{storeDetails.phone}</p>
               </div>
             </div>
 
@@ -216,7 +250,7 @@ export default function StorePage() {
             </button>
 
             <a
-              href={`https://wa.me/${STORE_INFO.whatsapp.replace(/\s+/g, '').replace('+', '')}`}
+              href={`https://wa.me/${storeDetails.whatsapp.replace(/\s+/g, '').replace('+', '')}`}
               target="_blank"
               rel="noopener noreferrer"
               className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl border border-white/10 text-sm text-foreground/70 hover:text-foreground hover:border-white/20 transition-all"

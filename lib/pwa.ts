@@ -25,6 +25,12 @@ export function isIOS(): boolean {
   return /iPad|iPhone|iPod/.test(ua) && !('MSStream' in window);
 }
 
+export function isAndroid(): boolean {
+  if (!isClient) return false;
+  const ua = window.navigator.userAgent || '';
+  return /Android/i.test(ua);
+}
+
 export function getDeferredInstallPrompt(): BeforeInstallPromptEvent | null {
   if (!isClient) return null;
   return (window as any).__ae_deferred_install_prompt ?? null;
@@ -45,6 +51,11 @@ export async function attemptPWAInstall(): Promise<
   if (!isClient) return 'unsupported';
   if (isPWAInstalled()) return 'installed';
 
+  // If iOS, always trigger fallback (installation manual) directly
+  if (isIOS()) {
+    return 'fallback';
+  }
+
   const prompt = getDeferredInstallPrompt();
   if (prompt) {
     try {
@@ -58,7 +69,8 @@ export async function attemptPWAInstall(): Promise<
     }
   }
 
-  if (isIOS()) {
+  // If on Android but prompt is not available, we can trigger fallback (manual instructions)
+  if (isAndroid()) {
     return 'fallback';
   }
 

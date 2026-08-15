@@ -92,15 +92,15 @@ export default function ClientProfilePage() {
       bg: 'bg-purple-400/10',
       action: toggleTheme
     },
-    {
+    ...(!isInstalled ? [{
       id: 'install-pwa',
       label: t('install_app', { defaultValue: 'Installer l\'app' }),
       value: getPWAInstallHint(),
-      icon: <Download size={18} className={isInstalled ? 'text-emerald-400' : 'text-gold'} />,
-      bg: isInstalled ? 'bg-emerald-400/10' : 'bg-gold/10',
+      icon: <Download size={18} className="text-gold" />,
+      bg: 'bg-gold/10',
       action: handleInstallPWA,
       isLoading: isInstallingPWA,
-    },
+    }] : []),
   ];
 
   const handleBecomePartner = async () => {

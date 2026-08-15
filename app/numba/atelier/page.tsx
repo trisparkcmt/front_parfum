@@ -11,6 +11,7 @@ import { generateId, sharePage } from '@/lib/utils';
 import { useTranslation } from 'react-i18next';
 import { ArrowLeft, Minus, Plus, ChevronLeft, ChevronRight, RefreshCcw, Loader2, Save, ShoppingCart, X, Send, Share2 } from 'lucide-react';
 import AppImage from '@/components/ui/AppImage';
+import { useSound } from '@/hooks/useSound';
 import type { CustomComposition, CompositionEssence, EssenceClient, Product } from '@/types';
 import { labService } from '@/services/labService';
 import { labService as apiLabService, shopService, cartService, orderService } from '@/services/apiService';
@@ -207,6 +208,7 @@ function AtelierContent() {
   const { addFavorite } = useFavoritesStore();
   const { user, isAuthenticated } = useAuthStore();
   const { addToast } = useToastStore();
+  const { playSound, stopSound } = useSound();
   const { i18n } = useTranslation();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -394,6 +396,10 @@ function AtelierContent() {
     setSavedParfumId(null);
     setCartAdded(false);
     setQuantities(prev => {
+      const prevVal = prev[id] || 0;
+      if (value > prevVal) {
+        playSound('pour');
+      }
       const currentOtherTotal = Object.entries(prev)
         .filter(([k]) => k !== id)
         .reduce((sum, [_, v]) => sum + v, 0);
@@ -407,7 +413,7 @@ function AtelierContent() {
       }
       return newQ;
     });
-  }, [bottleSize]);
+  }, [bottleSize, playSound]);
 
   const handleBottleSizeChange = (size: number, flaconId?: number) => {
     const limit = size * 0.45;
@@ -581,9 +587,11 @@ function AtelierContent() {
         i18n.language === 'en' ? `Composition saved! (ID: ${response.id})` : `Composition sauvegardée ! (ID: ${response.id})`,
         'success'
       );
+      playSound('success');
     } catch (error: any) {
       const errorMsg = error?.response?.data?.detail || (i18n.language === 'en' ? 'Error saving composition.' : 'Erreur lors de la sauvegarde.');
       addToast(errorMsg, 'error');
+      playSound('error');
     } finally {
       setIsSaving(false);
     }
@@ -639,9 +647,11 @@ function AtelierContent() {
         i18n.language === 'en' ? 'Composition updated!' : 'Composition modifiée avec succès !',
         'success'
       );
+      playSound('success');
     } catch (error: any) {
       const errorMsg = error?.response?.data?.detail || (i18n.language === 'en' ? 'Error updating composition.' : 'Erreur lors de la modification.');
       addToast(errorMsg, 'error');
+      playSound('error');
     } finally {
       setIsSaving(false);
     }
@@ -655,6 +665,19 @@ function AtelierContent() {
       name,
       `Découvrez ma création personnalisée « ${name} » sur Accessories Exclusif`
     );
+    if (result === 'shared' || result === 'copied') {
+      try {
+        const { trackShare } = await import('@/lib/gtag');
+        trackShare({
+          id: savedParfumId,
+          name: name,
+          category: 'Parfum personnalisé',
+          method: result === 'shared' ? 'Web Share API' : 'Clipboard',
+        });
+      } catch (err) {
+        console.warn('[Atelier] Failed to track share event:', err);
+      }
+    }
     if (result === 'shared') {
       addToast('Lien partagé', 'success');
     } else if (result === 'copied') {
@@ -721,10 +744,12 @@ function AtelierContent() {
 
       setCtaSuccess(true);
       addToast('Added', 'success');
+      playSound('success');
       setTimeout(() => setCtaSuccess(false), 3000);
     } catch (error: any) {
       const errorMsg = error?.response?.data?.detail || (i18n.language === 'en' ? 'Error adding to cart.' : 'Erreur lors de l\'ajout au panier.');
       addToast(errorMsg, 'error');
+      playSound('error');
     } finally {
       setIsAddingToCart(false);
     }
@@ -1004,6 +1029,8 @@ function AtelierContent() {
                         <div className="flex items-center gap-3">
                           <button
                             onClick={() => updateQtySlider(item.id, Math.max(0, qty - 1))}
+                            onMouseUp={() => stopSound('pour')}
+                            onTouchEnd={() => stopSound('pour')}
                             className="w-7 h-7 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-foreground/60 transition-colors disabled:opacity-20"
                             disabled={qty <= 0}
                           >
@@ -1022,12 +1049,16 @@ function AtelierContent() {
                               step="1"
                               value={qty}
                               onChange={(evt) => updateQtySlider(item.id, Number(evt.target.value))}
+                              onMouseUp={() => stopSound('pour')}
+                              onTouchEnd={() => stopSound('pour')}
                               className="w-full h-1 bg-white/10 rounded appearance-none cursor-pointer accent-gold outline-none"
                             />
                           </div>
 
                           <button
                             onClick={() => updateQtySlider(item.id, Math.min(qty + remaining, qty + 1))}
+                            onMouseUp={() => stopSound('pour')}
+                            onTouchEnd={() => stopSound('pour')}
                             className="w-7 h-7 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-foreground/60 transition-colors disabled:opacity-20"
                             disabled={remaining <= 0}
                           >
@@ -1095,6 +1126,8 @@ function AtelierContent() {
                         <div className="flex items-center gap-3">
                           <button
                             onClick={() => updateQtySlider(item.id, Math.max(0, qty - 1))}
+                            onMouseUp={() => stopSound('pour')}
+                            onTouchEnd={() => stopSound('pour')}
                             className="w-7 h-7 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-foreground/60 transition-colors disabled:opacity-20"
                             disabled={qty <= 0}
                           >
@@ -1113,12 +1146,16 @@ function AtelierContent() {
                               step="1"
                               value={qty}
                               onChange={(evt) => updateQtySlider(item.id, Number(evt.target.value))}
+                              onMouseUp={() => stopSound('pour')}
+                              onTouchEnd={() => stopSound('pour')}
                               className="w-full h-1 bg-white/10 rounded appearance-none cursor-pointer accent-gold outline-none"
                             />
                           </div>
 
                           <button
                             onClick={() => updateQtySlider(item.id, Math.min(qty + remaining, qty + 1))}
+                            onMouseUp={() => stopSound('pour')}
+                            onTouchEnd={() => stopSound('pour')}
                             className="w-7 h-7 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-foreground/60 transition-colors disabled:opacity-20"
                             disabled={remaining <= 0}
                           >

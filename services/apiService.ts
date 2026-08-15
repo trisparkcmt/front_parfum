@@ -12,6 +12,7 @@ import type {
   Order,
   CustomComposition,
   Accessory,
+  CompanyInfo,
 } from '@/types';
 
 // ============================================================================
@@ -376,6 +377,46 @@ export const shopService = {
    */
   deleteAccessory: async (slug: string) => {
     const response = await api.delete(`shop/accessoires/${slug}/`);
+    return response.data;
+  },
+
+  /**
+   * Get saved company information
+   */
+  getCompanyInfos: async (): Promise<CompanyInfo[]> => {
+    const response = await api.get('shop/infos-entreprise/');
+    return response.data;
+  },
+
+  /**
+   * Get company information detail by ID
+   */
+  getCompanyInfoById: async (id: number): Promise<CompanyInfo> => {
+    const response = await api.get(`shop/infos-entreprise/${id}/`);
+    return response.data;
+  },
+
+  /**
+   * Create company information (Admin)
+   */
+  createCompanyInfo: async (data: any) => {
+    const response = await api.post('shop/infos-entreprise/', data);
+    return response.data;
+  },
+
+  /**
+   * Update company information (Admin)
+   */
+  updateCompanyInfo: async (id: number, data: any) => {
+    const response = await api.patch(`shop/infos-entreprise/${id}/`, data);
+    return response.data;
+  },
+
+  /**
+   * Delete company information (Admin)
+   */
+  deleteCompanyInfo: async (id: number) => {
+    const response = await api.delete(`shop/infos-entreprise/${id}/`);
     return response.data;
   },
 
@@ -877,9 +918,13 @@ export const labService = {
 
   /**
    * Update an essence (Admin)
+   * Uses slug-based modifier endpoint when a slug is supplied.
    */
-  updateEssence: async (id: number, data: any) => {
-    const response = await api.patch(`lab/essences/${id}/`, data);
+  updateEssence: async (slugOrId: number | string, data: any) => {
+    const endpoint = typeof slugOrId === 'number'
+      ? `lab/essences/${slugOrId}/`
+      : `lab/essences/${slugOrId}/modifier/`;
+    const response = await api.patch(endpoint, data);
     return response.data;
   },
 

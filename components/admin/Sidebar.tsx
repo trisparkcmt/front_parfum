@@ -173,6 +173,11 @@ export default function Sidebar({ open, setOpen }: SidebarProps) {
       href: '/dashboard/admin/categories',
     },
     {
+      label: t('admin_nav_company_info', { defaultValue: isEn ? 'Company Info' : 'Infos Entreprise' }),
+      icon: <FileText size={18} />,
+      href: '/dashboard/admin/company-info',
+    },
+    {
       label: t('admin_nav_essences', { defaultValue: 'Essences' }),
       icon: <EssenceIcon size={18} />,
       href: '/dashboard/admin/essences',

@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { MapPin, Clock, Phone, Navigation, MessageCircle, Loader2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { shopService } from '@/services/apiService';
+import type { CompanyInfo } from '@/types';
 
 const LAT = 3.86484;
 const LNG = 11.52030;
@@ -132,8 +134,51 @@ function InfoCard({
 export default function StoreSection() {
   const { i18n } = useTranslation();
   const isEn = i18n.language?.startsWith("en");
+  const [companyInfo, setCompanyInfo] = useState<CompanyInfo | null>(null);
+  const [companyLoading, setCompanyLoading] = useState(false);
 
-  const storeHours = [
+  const companyDayLabels: Record<string, { fr: string; en: string }> = {
+    Lundi: { fr: 'Lundi', en: 'Monday' },
+    Mardi: { fr: 'Mardi', en: 'Tuesday' },
+    Mercredi: { fr: 'Mercredi', en: 'Wednesday' },
+    Jeudi: { fr: 'Jeudi', en: 'Thursday' },
+    Vendredi: { fr: 'Vendredi', en: 'Friday' },
+    Samedi: { fr: 'Samedi', en: 'Saturday' },
+    Dimanche: { fr: 'Dimanche', en: 'Sunday' },
+  };
+
+  const storeDetails = {
+    name: companyInfo?.nom || STORE_INFO.name,
+    address: companyInfo?.localisation || (isEn ? STORE_INFO.addressEn : STORE_INFO.addressFr),
+    phone: companyInfo?.telephone_principal || STORE_INFO.phone,
+    whatsapp: companyInfo?.whatsapp || STORE_INFO.whatsapp,
+  };
+
+  useEffect(() => {
+    let active = true;
+    setCompanyLoading(true);
+
+    shopService.getCompanyInfos()
+      .then((data) => {
+        if (!active) return;
+        if (Array.isArray(data) && data.length > 0) {
+          setCompanyInfo(data[0]);
+        }
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (active) setCompanyLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const storeHours = companyInfo?.jours_ouverture?.map((day) => ({
+    day: isEn ? companyDayLabels[day.jour]?.en || day.jour : day.jour,
+    time: day.ouvert ? `${day.heure_ouverture} – ${day.heure_fermeture}` : (isEn ? 'Closed' : 'Fermé'),
+  })) || [
     { day: isEn ? "Monday – Friday" : "Lundi – Vendredi", time: "09:00 – 19:00" },
     { day: isEn ? "Saturday" : "Samedi", time: "10:00 – 18:00" },
     { day: isEn ? "Sunday" : "Dimanche", time: isEn ? "Closed" : "Fermé" },
@@ -180,9 +225,9 @@ export default function StoreSection() {
 
           <div className="flex flex-col gap-4 lg:col-span-2">
             <InfoCard icon={<MapPin size={16} />} label={isEn ? "Address" : "Adresse"}>
-              <p className="text-sm font-semibold text-[var(--foreground)]">{STORE_INFO.name}</p>
+              <p className="text-sm font-semibold text-[var(--foreground)]">{storeDetails.name}</p>
               <p className="mt-0.5 text-xs text-[var(--t-text-muted)]">
-                {isEn ? STORE_INFO.addressEn : STORE_INFO.addressFr}
+                {storeDetails.address}
               </p>
             </InfoCard>
 
@@ -203,7 +248,7 @@ export default function StoreSection() {
             </InfoCard>
 
             <InfoCard icon={<Phone size={16} />} label={isEn ? "Contact" : "Contact"}>
-              <p className="text-sm font-semibold text-[var(--foreground)]">{STORE_INFO.phone}</p>
+              <p className="text-sm font-semibold text-[var(--foreground)]">{storeDetails.phone}</p>
             </InfoCard>
 
             <div className="grid grid-cols-1 gap-3 pt-1 sm:grid-cols-2 lg:grid-cols-1">
@@ -216,7 +261,7 @@ export default function StoreSection() {
               </button>
 
               <a
-                href={`https://wa.me/${STORE_INFO.whatsapp.replace(/\s+/g, "").replace("+", "")}`}
+                href={`https://wa.me/${(storeDetails.whatsapp || STORE_INFO.whatsapp).replace(/\s+/g, "").replace("+", "")}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex w-full items-center justify-center gap-2 rounded-xl border border-black/[0.08] py-3.5 text-sm text-neutral-500 transition-all hover:border-black/20 hover:text-[var(--foreground)] dark:border-[var(--t-card-border)] dark:text-[var(--t-text-muted)] dark:hover:border-[var(--t-card-hover-border)]"

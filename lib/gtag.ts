@@ -159,3 +159,29 @@ export function orderLineToGA4Item(line: {
     quantity:      line.quantite ?? 1,
   };
 }
+
+/**
+ * Fired when a user shares a product.
+ */
+export function trackShare(product: {
+  id: string | number;
+  name: string;
+  category?: string;
+  method?: string;
+}) {
+  const item: GA4Item = {
+    item_id:       String(product.id),
+    item_name:     product.name,
+    item_category: product.category || 'Product',
+    price:         0,
+    quantity:      1,
+  };
+
+  gtag('event', 'share', {
+    method:       product.method || 'Web Share',
+    content_type: 'product',
+    item_id:      String(product.id),
+    item_name:    product.name,
+    items:        [item],
+  });
+}

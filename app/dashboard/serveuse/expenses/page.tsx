@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Loader2, Plus, Search, RefreshCw, Trash2, Edit2 } from 'lucide-react';
+import { Loader2, Plus, Search, RefreshCw, Edit2 } from 'lucide-react';
 import { api } from '@/services/apiService';
 import { useToastStore } from '@/store/useToastStore';
 import { FloatInput } from '@/components/ui/Input';
@@ -106,16 +106,7 @@ export default function ServeuseExpensesPage() {
     }
   };
 
-  const handleDelete = async (id: number) => {
-    if (!confirm('Voulez-vous supprimer cette dépense ?')) return;
-    try {
-      await api.delete(`utilisateur/depenses/${id}/`);
-      addToast('Dépense supprimée', 'success');
-      fetchExpenses();
-    } catch {
-      addToast('Erreur lors de la suppression', 'error');
-    }
-  };
+
 
   return (
     <div className="space-y-6">
@@ -188,14 +179,9 @@ export default function ServeuseExpensesPage() {
                     <td className="px-5 py-4 text-foreground/60">{new Date(exp.date_depense).toLocaleDateString('fr-FR')}</td>
                     <td className="px-5 py-4 text-[11px] text-foreground/40">{new Date(exp.date_creation).toLocaleString('fr-FR')}</td>
                     <td className="px-5 py-4 text-right">
-                      <div className="flex gap-2 justify-end">
-                        <button onClick={() => openEdit(exp)} className="p-1.5 rounded-lg hover:bg-white/10 text-foreground/40 hover:text-gold">
-                          <Edit2 size={14} />
-                        </button>
-                        <button onClick={() => handleDelete(exp.id)} className="p-1.5 rounded-lg hover:bg-red-500/10 text-foreground/40 hover:text-red-400">
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
+                      <button onClick={() => openEdit(exp)} className="p-1.5 rounded-lg hover:bg-white/10 text-foreground/40 hover:text-gold">
+                        <Edit2 size={14} />
+                      </button>
                     </td>
                   </tr>
                 ))}

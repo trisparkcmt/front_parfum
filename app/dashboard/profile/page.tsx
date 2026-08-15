@@ -20,7 +20,7 @@ import { useToastStore } from '@/store/useToastStore';
 import { useTranslation } from 'react-i18next';
 import i18n from '@/lib/i18n';
 import { api } from '@/services/api';
-import { attemptPWAInstall, isPWAInstalled as checkPWAInstalled } from '@/lib/pwa';
+import { attemptPWAInstall, isPWAInstalled as checkPWAInstalled, isIOS, isAndroid } from '@/lib/pwa';
 import { triggerTestNotification } from '@/services/notifications';
 
 import { BackButton } from '@/components/ui/BackButton';
@@ -544,16 +544,12 @@ export default function ProfilePage() {
                     </ButtonPill>
                   }
                 />
-                {typeof window !== 'undefined' && (
+                {typeof window !== 'undefined' && !isPWAInstalled && (
                   <SettingRow
                     icon={<Download size={16} />}
                     label={isEn ? 'Web App (PWA)' : 'Application PWA'}
                     hint={
-                      isPWAInstalled
-                        ? isEn
-                          ? 'App is already installed'
-                          : 'Application déjà installée'
-                        : isEn
+                      isEn
                         ? 'Install application for rapid access'
                         : 'Installer l’application pour accès rapide'
                     }
@@ -561,16 +557,8 @@ export default function ProfilePage() {
                       <div className="flex items-center gap-2">
                         <ButtonPill onClick={handleInstallPWA}>
                           {isInstallingPWA
-                            ? isEn
-                              ? 'Installing...'
-                              : 'Installation...'
-                            : isPWAInstalled
-                            ? isEn
-                              ? 'Installed'
-                              : 'Installée'
-                            : isEn
-                            ? 'Install'
-                            : 'Installer'}
+                            ? (isEn ? 'Installing...' : 'Installation...')
+                            : (isEn ? 'Install' : 'Installer')}
                         </ButtonPill>
                         <button
                           onClick={() => setShowPWAHelp(true)}

@@ -235,7 +235,7 @@ export default function CartPage() {
 
     setIsProcessing(true);
 
-    const popupWindow = window.open('', '_blank', 'noopener,noreferrer');
+    const popupWindow = window.open('', '_blank');
 
     const formattedItems = allItems.map((item: any) => ({
       id: String(item.id),
@@ -317,7 +317,9 @@ export default function CartPage() {
       await syncCart();
 
       if (popupWindow) {
-        popupWindow.opener = null;
+        try {
+          popupWindow.opener = null;
+        } catch (_) {}
         popupWindow.location.href = waLink;
       } else {
         window.location.assign(waLink);

@@ -84,6 +84,19 @@ export function ProductCard({
       `Découvrez ${product.name} sur Accessories Exclusif`,
       mainImage ? resolveImageUrl(mainImage) : undefined
     );
+    if (result === 'shared' || result === 'copied') {
+      try {
+        const { trackShare } = await import('@/lib/gtag');
+        trackShare({
+          id: product.id,
+          name: product.name,
+          category: categoryLabel,
+          method: result === 'shared' ? 'Web Share API' : 'Clipboard',
+        });
+      } catch (err) {
+        console.warn('[ProductCard] Failed to track share event:', err);
+      }
+    }
     if (result === 'shared') addToast('Lien partagé', 'success');
     else if (result === 'copied') addToast('Lien copié dans le presse-papiers', 'success');
     else addToast("Le partage n'est pas disponible sur ce navigateur", 'error');

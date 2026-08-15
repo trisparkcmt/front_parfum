@@ -380,9 +380,9 @@ export default function EssencesPage() {
           genre_cible: form.genreCible,
           prix_par_ml: form.prixParMl,
         };
-        setEssences(prev => prev.map(e => e.id === editingEssence.id ? { ...e, ...payload } : e));
+        setEssences(prev => prev.map(e => (e.slug || String(e.id)) === (editingEssence.slug || String(editingEssence.id)) ? { ...e, ...payload } : e));
         setShowModal(false);
-        await labService.updateEssence(editingEssence.id, payload);
+        await labService.updateEssence(editingEssence.slug || editingEssence.id, payload);
         addToast(t('toast_update_ok'), 'success');
         fetchData();
       } else {
@@ -420,11 +420,11 @@ export default function EssencesPage() {
     }
   };
 
-  const patchEssence = async (id: number, field: string, value: string) => {
+  const patchEssence = async (slug: string, field: string, value: string) => {
     if (!permissions.canUpdate) return;
-    setEssences(prev => prev.map(e => e.id === id ? { ...e, [field]: value } : e));
+    setEssences(prev => prev.map(e => ((e.slug || String(e.id)) === slug ? { ...e, [field]: value } : e)));
     try {
-      await labService.updateEssence(id, { [field]: value });
+      await labService.updateEssence(slug, { [field]: value });
     } catch {
       addToast(t('toast_patch_error'), 'error');
       fetchData();
@@ -696,10 +696,10 @@ export default function EssencesPage() {
                     <td className="px-3 py-3">
                       <div>
                         <p className="font-medium text-foreground">
-                          <InlineCell value={essence.nom} onSave={(v: string) => patchEssence(essence.id, 'nom', v)} disabled={!permissions.canUpdate} className="font-medium text-foreground" />
+                          <InlineCell value={essence.nom} onSave={(v: string) => patchEssence(essence.slug || String(essence.id), 'nom', v)} disabled={!permissions.canUpdate} className="font-medium text-foreground" />
                         </p>
                         <p className="text-[11px] text-foreground/40">
-                          <InlineCell value={essence.marque || ''} onSave={(v: string) => patchEssence(essence.id, 'marque', v)} disabled={!permissions.canUpdate} className="text-foreground/40" />
+                          <InlineCell value={essence.marque || ''} onSave={(v: string) => patchEssence(essence.slug || String(essence.id), 'marque', v)} disabled={!permissions.canUpdate} className="text-foreground/40" />
                         </p>
                       </div>
                     </td>
@@ -717,7 +717,7 @@ export default function EssencesPage() {
                       <span>Cible: <strong className="font-medium text-foreground/80 capitalize">{essence.genre_cible}</strong></span>
                     </td>
                     <td className="px-3 py-3 font-medium text-foreground tabular-nums">
-                      <InlineCell value={String(essence.prix_par_ml ?? '0')} onSave={(v: string) => patchEssence(essence.id, 'prix_par_ml', v)} disabled={!permissions.canUpdate} inputType="number" display={<>{Number(essence.prix_par_ml || 0).toLocaleString()} FCFA</>} className="font-medium text-foreground tabular-nums" />
+                      <InlineCell value={String(essence.prix_par_ml ?? '0')} onSave={(v: string) => patchEssence(essence.slug || String(essence.id), 'prix_par_ml', v)} disabled={!permissions.canUpdate} inputType="number" display={<>{Number(essence.prix_par_ml || 0).toLocaleString()} FCFA</>} className="font-medium text-foreground tabular-nums" />
                     </td>
                     <td className="px-3 py-3">
                       {essence.vendu_comme_produit_fini ? (

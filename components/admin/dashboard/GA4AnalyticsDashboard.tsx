@@ -16,6 +16,7 @@ import {
   Monitor,
   X,
   ExternalLink,
+  Share2,
 } from 'lucide-react';
 import {
   BarChart,
@@ -62,12 +63,17 @@ interface GeoMetric {
   users: number;
   newUsers: number;
 }
+interface ShareMetric {
+  name: string;
+  shares: number;
+}
 interface GA4BatchResponse {
   funnel: FunnelStep[];
   acquisition: AcquisitionChannel[];
   pages: PageMetric[];
   tech: TechMetric[];
   geo: GeoMetric[];
+  shares: ShareMetric[];
 }
 
 /* ─── Constants ───────────────────────────────────────────────────────────── */
@@ -508,6 +514,40 @@ export default function GA4AnalyticsDashboard() {
           )}
         </div>
       </div>
+
+      {/* ── Most Shared Products ── */}
+      {data.shares && data.shares.length > 0 && (
+        <div className="bg-white/5 rounded-2xl border border-white/10 p-6 shadow-sm">
+          <div className="flex items-center gap-2 mb-5">
+            <Share2 className="text-gold h-4 w-4" />
+            <h3 className="font-semibold text-foreground text-sm">Most Shared Products <span className="ml-1 text-[10px] text-foreground/35 font-normal uppercase tracking-wider">(Last 30 days)</span></h3>
+          </div>
+          <div className="space-y-2">
+            {data.shares.map((item, i) => {
+              const maxShares = data.shares[0]?.shares || 1;
+              const pct = Math.round((item.shares / maxShares) * 100);
+              const medals = ['🥇', '🥈', '🥉'];
+              return (
+                <div key={i} className="flex items-center gap-3">
+                  <span className="w-6 text-center text-sm flex-shrink-0">{medals[i] ?? <span className="text-[11px] text-foreground/30 font-mono">{i + 1}</span>}</span>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-xs font-medium text-foreground/80 truncate max-w-[200px]">{item.name}</span>
+                      <span className="text-xs font-bold text-gold ml-2 flex-shrink-0">{item.shares.toLocaleString()} shares</span>
+                    </div>
+                    <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
+                      <div
+                        className="h-full rounded-full bg-gradient-to-r from-gold/60 to-gold"
+                        style={{ width: `${pct}%`, transition: 'width 0.6s ease' }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
 
       {/* ════════════════════════════════════════════════════

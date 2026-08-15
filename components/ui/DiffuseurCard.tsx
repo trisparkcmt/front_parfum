@@ -96,6 +96,20 @@ export function DiffuseurCard({
       `Découvrez ${product.name} sur Accessories Exclusif`
     );
 
+    if (result === 'shared' || result === 'copied') {
+      try {
+        const { trackShare } = await import('@/lib/gtag');
+        trackShare({
+          id: product.id,
+          name: product.name,
+          category: 'Diffuseur',
+          method: result === 'shared' ? 'Web Share API' : 'Clipboard',
+        });
+      } catch (err) {
+        console.warn('[DiffuseurCard] Failed to track share event:', err);
+      }
+    }
+
     if (result === 'shared') {
       addToast('Lien partagé', 'success');
     } else if (result === 'copied') {
