@@ -13,6 +13,8 @@ import FeatureStrip from './FeatureStrip';
 import EditorialQuote from './EditorialQuote';
 import WelcomeMessage from './WelcomeMessage';
 import StoreSection from './StoreSection';
+import HomeFAQ from './HomeFAQ';
+import AiFloatingButton from './AiFloatingButton';
 import { useTranslation } from 'react-i18next';
 
 export default function Home() {
@@ -73,10 +75,14 @@ export default function Home() {
       {/* TRUST FEATURES */}
       <FeatureStrip />
 
-      
+      {/* FAQ */}
+      <HomeFAQ />
 
       {/* STORE LOCATION */}
       <StoreSection />
+
+      {/* FLOATING AI CHAT BUTTON */}
+      <AiFloatingButton />
     </div>
   );
 }
