@@ -69,6 +69,8 @@ export function ProductCard({
       : product.type_technologie === 'chaleur' ? 'Chaleur douce'
       : product.type_technologie === 'connecte' ? 'Connecté'
       : 'Diffuseur')
+    : product.category === 'huile' || product.category === 'produit-fini-essence'
+    ? `Huile${product.volume ? ` • ${product.volume}` : ''}`
     : product.category && product.category.includes('perfume')
     ? `Parfum${product.volume ? ` • ${product.volume}` : ''}`
     : product.category === 'accessory'

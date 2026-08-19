@@ -7,7 +7,7 @@ import { adminService } from '@/services/apiService';
 import { InlineCell } from '@/components/admin/InlineCell';
 import { useTranslation } from 'react-i18next';
 
-/* ── Inline translations ─────────────────────────────────────────────────── */
+/* -- Inline translations --------------------------------------------------- */
 const T = {
   fr: {
     title: 'Parfums', subtitle: 'Catalogue des parfums de la boutique',
@@ -40,12 +40,12 @@ const T = {
     field_date_debut: 'Date début promo', field_date_fin: 'Date fin promo',
     field_promo_msg: 'Message promotion',
     margin_label: 'Bénéfice estimé :',
-    confirm_delete: 'Êtes‑vous sûr de vouloir supprimer ce parfum ?',
+    confirm_delete: 'Êtes-vous sûr de vouloir supprimer ce parfum ?',
     confirm_bulk: 'Supprimer',
     toast_load_error: 'Erreur lors du chargement des parfums',
     toast_create_ok: 'Parfum créé avec succès', toast_update_ok: 'Parfum mis à jour avec succès',
     toast_save_error: 'Erreur lors de la sauvegarde', toast_delete_ok: 'Parfum supprimé',
-    toast_delete_error: 'Erreur lors du suppression', toast_patch_error: 'Erreur lors de la mise à jour',
+    toast_delete_error: 'Erreur lors de la suppression', toast_patch_error: 'Erreur lors de la mise à jour',
     toast_bulk_ok: 'parfum(s) supprimé(s)', toast_bulk_error: 'Erreur lors de la suppression en masse',
     toast_required: 'Veuillez corriger les champs obligatoires.',
     toast_category_ok: 'Catégorie créée avec succès', toast_category_error: 'Erreur chargement catégories',
@@ -591,7 +591,7 @@ export default function PerfumeAdminPage() {
             <input
               value={search}
               onChange={e => setSearch(e.target.value)}
-              placeholder="Rechercher un parfum..."
+              placeholder={t('search_placeholder')}
               className="w-full rounded-lg border border-white/10 bg-white/[0.02] pl-9 pr-3 py-2 text-xs text-foreground placeholder:text-foreground/40 outline-none focus:border-white/20"
             />
           </div>
@@ -606,7 +606,7 @@ export default function PerfumeAdminPage() {
             )}
           >
             <SlidersHorizontal size={14} />
-            <span>Filtres</span>
+            <span>{t('filter_btn')}</span>
             {activeFiltersCount > 0 && (
               <span className="flex h-4 w-4 items-center justify-center rounded-full bg-gold text-[10px] font-bold text-black">
                 {activeFiltersCount}
@@ -625,10 +625,10 @@ export default function PerfumeAdminPage() {
                 onChange={(e) => setGenreFilter(e.target.value)}
                 className="rounded-lg border border-white/10 bg-background px-2.5 py-1.5 text-xs text-foreground outline-none"
               >
-                <option value="">Tous les genres</option>
-                <option value="homme">Homme</option>
-                <option value="femme">Femme</option>
-                <option value="mixte">Mixte</option>
+                <option value="">{t('filter_genre_all')}</option>
+                <option value="homme">{t('filter_genre_homme')}</option>
+                <option value="femme">{t('filter_genre_femme')}</option>
+                <option value="mixte">{t('filter_genre_mixte')}</option>
               </select>
             </div>
 
@@ -639,9 +639,9 @@ export default function PerfumeAdminPage() {
                 onChange={(e) => setEstBestsellerFilter(e.target.value)}
                 className="rounded-lg border border-white/10 bg-background px-2.5 py-1.5 text-xs text-foreground outline-none"
               >
-                <option value="">Tous</option>
-                <option value="true">Bestsellers uniquement</option>
-                <option value="false">Non bestsellers</option>
+                <option value="">{t('filter_bs_all')}</option>
+                <option value="true">{t('filter_bs_only')}</option>
+                <option value="false">{t('filter_bs_not')}</option>
               </select>
             </div>
 
@@ -653,7 +653,7 @@ export default function PerfumeAdminPage() {
                 }}
                 className="ml-auto text-[11px] text-foreground/45 hover:text-foreground"
               >
-                Réinitialiser
+                {t('filter_reset')}
               </button>
             )}
           </div>
@@ -837,7 +837,7 @@ export default function PerfumeAdminPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">Marque *</label>
+                    <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">{t('field_brand')} *</label>
                     <input
                       data-field="marque"
                       value={form.marque}
@@ -847,7 +847,7 @@ export default function PerfumeAdminPage() {
                     {formErrors.marque && <p className="mt-1 text-xs text-red-500">{formErrors.marque}</p>}
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">Nom *</label>
+                    <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">{t('field_name')} *</label>
                     <input
                       data-field="nom"
                       value={form.nom}
@@ -857,7 +857,7 @@ export default function PerfumeAdminPage() {
                     {formErrors.nom && <p className="mt-1 text-xs text-red-500">{formErrors.nom}</p>}
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">Slug (optionnel)</label>
+                    <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">{t('field_slug')}</label>
                     <input
                       data-field="slug"
                       value={form.slug}
@@ -866,7 +866,7 @@ export default function PerfumeAdminPage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">Référence SKU (optionnel)</label>
+                    <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">{t('field_sku')}</label>
                     <input
                       data-field="reference_sku"
                       value={form.reference_sku}
@@ -875,7 +875,7 @@ export default function PerfumeAdminPage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">Catégorie *</label>
+                    <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">{t('field_category')} *</label>
                     <div className="flex gap-2">
                       <select
                         data-field="categorie"
@@ -901,36 +901,36 @@ export default function PerfumeAdminPage() {
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">Genre</label>
+                      <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">{t('field_genre')}</label>
                       <select
                         data-field="genre_cible"
                         value={form.genre_cible}
                         onChange={(e) => updateForm('genre_cible', e.target.value)}
                         className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-base text-foreground outline-none focus:border-gold"
                       >
-                        <option value="homme">Homme</option>
-                        <option value="femme">Femme</option>
-                        <option value="mixte">Mixte</option>
+                        <option value="homme">{t('filter_genre_homme')}</option>
+                        <option value="femme">{t('filter_genre_femme')}</option>
+                        <option value="mixte">{t('filter_genre_mixte')}</option>
                       </select>
                     </div>
                     <div>
-                      <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">Intensité</label>
+                      <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">{t('field_intensite')}</label>
                       <select
                         data-field="intensite"
                         value={form.intensite}
                         onChange={(e) => updateForm('intensite', e.target.value)}
                         className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-base text-foreground outline-none focus:border-gold"
                       >
-                        <option value="légère">Légère</option>
-                        <option value="moyenne">Moyenne</option>
-                        <option value="forte">Forte</option>
-                        <option value="très forte">Très forte</option>
+                        <option value="légère">{isEn ? 'Light' : 'Légère'}</option>
+                        <option value="moyenne">{isEn ? 'Medium' : 'Moyenne'}</option>
+                        <option value="forte">{isEn ? 'Strong' : 'Forte'}</option>
+                        <option value="très forte">{isEn ? 'Very strong' : 'Très forte'}</option>
                       </select>
                     </div>
                   </div>
                   <div className="grid grid-cols-3 gap-2">
                     <div>
-                      <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">Notes tête</label>
+                      <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">{t('field_notes_tete')}</label>
                       <input
                         data-field="notes_tete"
                         value={form.notes_tete}
@@ -939,7 +939,7 @@ export default function PerfumeAdminPage() {
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">Notes cœur</label>
+                      <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">{t('field_notes_coeur')}</label>
                       <input
                         data-field="notes_coeur"
                         value={form.notes_coeur}
@@ -948,7 +948,7 @@ export default function PerfumeAdminPage() {
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">Notes fond</label>
+                      <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">{t('field_notes_fond')}</label>
                       <input
                         data-field="notes_fond"
                         value={form.notes_fond}
@@ -961,7 +961,7 @@ export default function PerfumeAdminPage() {
 
                 <div className="space-y-4">
                   <div className="space-y-1">
-                    <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">Contenance (ml) *</label>
+                    <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">{t('field_volume')} *</label>
                     <input
                       data-field="contenance_ml"
                       type="number"
@@ -973,7 +973,7 @@ export default function PerfumeAdminPage() {
                     {formErrors.contenance_ml && <p className="mt-1 text-xs text-red-500">{formErrors.contenance_ml}</p>}
                   </div>
                   <div className="space-y-1">
-                    <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">Prix unitaire (FCFA) *</label>
+                    <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">{t('field_price')} *</label>
                     <input
                       data-field="prix_unitaire"
                       type="number"
@@ -1005,7 +1005,7 @@ export default function PerfumeAdminPage() {
                     </div>
                   )}
                   <div className="space-y-1">
-                    <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">Stock *</label>
+                    <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">{t('field_stock')} *</label>
                     <input
                       data-field="stock_quantite"
                       type="number"
@@ -1016,7 +1016,7 @@ export default function PerfumeAdminPage() {
                     {formErrors.stock_quantite && <p className="mt-1 text-xs text-red-500">{formErrors.stock_quantite}</p>}
                   </div>
                   <div className="space-y-1">
-                    <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">Seuil d’alerte</label>
+                    <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">{t('field_alert')}</label>
                     <input
                       data-field="seuil_alerte_stock"
                       type="number"
@@ -1027,7 +1027,7 @@ export default function PerfumeAdminPage() {
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1">
-                      <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">Prix promo</label>
+                      <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">{t('field_promo_price')}</label>
                       <input
                         data-field="prix_promotionnel"
                         type="number"
@@ -1038,7 +1038,7 @@ export default function PerfumeAdminPage() {
                       />
                     </div>
                     <div className="space-y-1">
-                      <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">Taux réduction (%)</label>
+                      <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">{t('field_reduction')}</label>
                       <input
                         data-field="taux_reduction"
                         type="number"
@@ -1053,7 +1053,7 @@ export default function PerfumeAdminPage() {
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1">
-                      <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">Date début</label>
+                      <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">{t('field_date_debut')}</label>
                       <input
                         data-field="date_debut"
                         type="datetime-local"
@@ -1063,7 +1063,7 @@ export default function PerfumeAdminPage() {
                       />
                     </div>
                     <div className="space-y-1">
-                      <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">Date fin</label>
+                      <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">{t('field_date_fin')}</label>
                       <input
                         data-field="date_fin"
                         type="datetime-local"
@@ -1078,7 +1078,7 @@ export default function PerfumeAdminPage() {
 
               <div className="space-y-4">
                 <div className="space-y-1">
-                  <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">Description courte</label>
+                  <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">{t('field_desc_short')}</label>
                   <textarea
                     data-field="description_courte"
                     value={form.description_courte}
@@ -1088,7 +1088,7 @@ export default function PerfumeAdminPage() {
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">Description longue</label>
+                  <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">{t('field_desc_long')}</label>
                   <textarea
                     data-field="description_longue"
                     value={form.description_longue}
@@ -1098,7 +1098,7 @@ export default function PerfumeAdminPage() {
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">Description IA</label>
+                  <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">{t('field_desc_short')} IA</label>
                   <textarea
                     data-field="description_ia"
                     value={form.description_ia}
@@ -1108,7 +1108,7 @@ export default function PerfumeAdminPage() {
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">Message promo (optionnel)</label>
+                  <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">{t('field_promo_msg')}</label>
                   <textarea
                     data-field="message_promotion"
                     value={form.message_promotion}
@@ -1122,15 +1122,15 @@ export default function PerfumeAdminPage() {
               <div className="flex flex-wrap gap-4 pt-1">
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input type="checkbox" checked={form.est_nouveau} onChange={(e) => updateForm('est_nouveau', e.target.checked)} className="rounded border-white/10 bg-white/5 text-gold focus:ring-gold" />
-                  <span className="text-xs text-foreground/60">Nouveau</span>
+                  <span className="text-xs text-foreground/60">{t('field_new')}</span>
                 </label>
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input type="checkbox" checked={form.est_bestseller} onChange={(e) => updateForm('est_bestseller', e.target.checked)} className="rounded border-white/10 bg-white/5 text-gold focus:ring-gold" />
-                  <span className="text-xs text-foreground/60">Bestseller</span>
+                  <span className="text-xs text-foreground/60">{t('field_bestseller')}</span>
                 </label>
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input type="checkbox" checked={form.actif} onChange={(e) => updateForm('actif', e.target.checked)} className="rounded border-white/10 bg-white/5 text-gold focus:ring-gold" />
-                  <span className="text-xs text-foreground/60">Actif</span>
+                  <span className="text-xs text-foreground/60">{t('field_active')}</span>
                 </label>
               </div>
             </div>
@@ -1144,15 +1144,15 @@ export default function PerfumeAdminPage() {
           </div>
 
           <div className="flex gap-3 pt-6">
-            <button onClick={() => setShowModal(false)} className="flex-1 border border-white/10 rounded-lg py-2.5 text-sm text-foreground/60 hover:bg-white/5 transition-colors">Annuler</button>
+            <button onClick={() => setShowModal(false)} className="flex-1 border border-white/10 rounded-lg py-2.5 text-sm text-foreground/60 hover:bg-white/5 transition-colors">{isEn ? 'Cancel' : 'Annuler'}</button>
             <button onClick={handleSave} disabled={isSubmitting} className="flex-1 bg-gold text-black rounded-lg py-2.5 text-sm font-bold hover:bg-gold/80 transition-colors disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2">
               {isSubmitting ? (
                 <>
                   <Loader2 className="animate-spin" size={16} />
-                  <span>Envoi…</span>
+                  <span>{isEn ? 'Sending...' : 'Envoi...'}</span>
                 </>
               ) : (
-                'Enregistrer'
+                isEn ? 'Save' : 'Enregistrer'
               )}
             </button>
           </div>

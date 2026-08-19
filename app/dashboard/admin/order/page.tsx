@@ -10,8 +10,255 @@ import {
 import { orderService, adminService } from '@/services/apiService';
 import { invoiceService } from '@/services/invoiceService';
 import { useToastStore } from '@/store/useToastStore';
+import { useTranslation } from 'react-i18next';
 import type { BackendOrder, BackendOrderLine } from '@/types';
 import { useOptimisticOrders } from '@/hooks/useOptimisticOrders';
+
+const T = {
+  fr: {
+    title: 'Commandes',
+    subtitle_orders: 'commande',
+    subtitle_orders_plural: 'commandes',
+    subtitle_total: 'au total',
+    refresh: 'Actualiser',
+    loading: 'Chargement…',
+    search_placeholder: 'N° commande, e-mail, téléphone…',
+    client_name_placeholder: 'Nom client',
+    filters: 'Filtres',
+    filter_order_status: 'Statut commande',
+    filter_delivery: 'Statut livraison',
+    filter_payment: 'Paiement',
+    all: 'Tous',
+    table_order: 'N° Commande',
+    table_client: 'Client',
+    table_total: 'Total TTC',
+    table_promo: 'Promo',
+    table_driver: 'Livreur',
+    table_status: 'Statut',
+    table_delivery: 'Livraison',
+    table_date: 'Date',
+    ongoing: 'En cours',
+    completed: 'Complétées',
+    no_ongoing: 'Aucune commande en cours.',
+    no_completed: 'Aucune commande complétée.',
+    no_items: 'Aucun article dans cette commande.',
+    page_info: 'Page',
+    of: '/',
+    validate: 'Valider',
+    delivered: 'Livré',
+    cancel: 'Annuler',
+    refund: 'Rembourser',
+    close: 'Fermer',
+    manage: 'Gérer',
+    save: 'Enregistrer les modifications',
+    saving: 'Enregistrement…',
+    view_detail: 'Voir le détail',
+    manage_order: 'Modifier / gérer',
+    manage_order_eyebrow: 'Gérer la commande',
+    validation_eyebrow: 'Validation & livraison',
+    confirm_validation: 'Confirmer la validation',
+    assign_later: '— Assigner plus tard —',
+    none_driver: '— Aucun —',
+    section_statuses: 'Statuts & Assignations',
+    section_logistics: 'Livraison & Logistique',
+    section_notes: 'Notes internes',
+    section_recipient: 'Destinataire',
+    section_expedition: "Paramètres d'expédition",
+    section_delivery: 'Livraison',
+    section_items: 'Articles',
+    section_receipt: 'Récapitulatif',
+    section_invoice: 'Facture',
+    field_order_status: 'Statut de la commande',
+    field_delivery_status: 'Statut de livraison',
+    field_payment_status: 'Statut paiement',
+    field_assign_driver: 'Assigner un livreur',
+    field_choose_driver: 'Choisir un livreur',
+    field_est_date: 'Date estimée',
+    field_est_date_delivery: 'Date estimée de livraison',
+    field_fees: 'Frais de livraison',
+    field_note: 'Commentaire de gestion',
+    note_placeholder: "Commentaire interne visible uniquement par l'équipe…",
+    delivery_method: 'Livraison',
+    pickup: 'Retrait boutique',
+    kpi_total: 'Total',
+    kpi_pending: 'En attente',
+    kpi_validated: 'Validées',
+    kpi_paid: 'Payées',
+    kpi_cancelled: 'Annulées',
+    confirm_cancel: 'Annuler la commande',
+    confirm_pickup_validate: 'Valider la commande pickup',
+    confirm_deliver: 'Marquer la commande',
+    confirm_deliver_suffix: 'comme livrée (et payée) ?',
+    confirm_refund: 'Rembourser la commande',
+    invoice_open: 'Ouvrir',
+    invoice_download: 'Télécharger',
+    invoice_sent_email: 'Envoyée par e-mail',
+    download_success: 'Facture PDF téléchargée',
+    download_error: 'Facture non disponible',
+    update_success: 'Commande mise à jour avec succès',
+    update_error: 'Erreur lors de la mise à jour',
+    cancel_success: 'Commande annulée',
+    cancel_error: "Erreur lors de l'annulation",
+    deliver_success: 'Commande marquée comme livrée et payée',
+    deliver_error: 'Erreur lors de la mise à jour de la livraison',
+    validate_pickup_success: 'Commande pickup validée avec succès',
+    validate_error: 'Erreur lors de la validation',
+    validate_driver_success: 'Commande validée et livreur assigné',
+    refund_success: 'Commande marquée comme remboursée',
+    refund_error: 'Erreur lors du remboursement',
+    load_error: 'Erreur lors du chargement des commandes',
+    row_name: 'Nom',
+    row_phone: 'Téléphone',
+    row_address: 'Adresse',
+    row_city: 'Ville',
+    row_driver: 'Livreur',
+    row_est_date: 'Date estimée',
+    row_actual_date: 'Date réelle',
+    row_note_client: 'Note client',
+    row_note_internal: 'Note interne',
+    row_recipient: 'Destinataire',
+    receipt_subtotal: 'Sous-total',
+    receipt_delivery_fees: 'Frais de livraison',
+    receipt_promo_discount: 'Remise promo',
+    receipt_total: 'Total TTC',
+    receipt_commission: 'Commission',
+    receipt_provider: 'Prestataire',
+    group_perfumes: 'Parfums',
+    group_accessories: 'Accessoires',
+    group_essences: 'Essences finies',
+    group_custom_perfumes: 'Parfums personnalisés',
+    group_custom_essences: 'Essences personnalisées',
+    flacon: 'Flacon',
+    category: 'Catégorie',
+    ref: 'Réf',
+    essence_product: 'Produit fini',
+    orders_page: 'commandes · page',
+    items_count: 'Articles',
+    confirm_q: '?',
+  },
+  en: {
+    title: 'Orders',
+    subtitle_orders: 'order',
+    subtitle_orders_plural: 'orders',
+    subtitle_total: 'total',
+    refresh: 'Refresh',
+    loading: 'Loading…',
+    search_placeholder: 'Order #, email, phone…',
+    client_name_placeholder: 'Client name',
+    filters: 'Filters',
+    filter_order_status: 'Order status',
+    filter_delivery: 'Delivery status',
+    filter_payment: 'Payment',
+    all: 'All',
+    table_order: 'Order #',
+    table_client: 'Client',
+    table_total: 'Total',
+    table_promo: 'Promo',
+    table_driver: 'Driver',
+    table_status: 'Status',
+    table_delivery: 'Delivery',
+    table_date: 'Date',
+    ongoing: 'Ongoing',
+    completed: 'Completed',
+    no_ongoing: 'No ongoing orders.',
+    no_completed: 'No completed orders.',
+    no_items: 'No items in this order.',
+    page_info: 'Page',
+    of: '/',
+    validate: 'Validate',
+    delivered: 'Delivered',
+    cancel: 'Cancel',
+    refund: 'Refund',
+    close: 'Close',
+    manage: 'Manage',
+    save: 'Save changes',
+    saving: 'Saving…',
+    view_detail: 'View detail',
+    manage_order: 'Edit / manage',
+    manage_order_eyebrow: 'Manage order',
+    validation_eyebrow: 'Validation & delivery',
+    confirm_validation: 'Confirm validation',
+    assign_later: '— Assign later —',
+    none_driver: '— None —',
+    section_statuses: 'Statuses & Assignments',
+    section_logistics: 'Delivery & Logistics',
+    section_notes: 'Internal notes',
+    section_recipient: 'Recipient',
+    section_expedition: 'Shipping settings',
+    section_delivery: 'Delivery',
+    section_items: 'Items',
+    section_receipt: 'Summary',
+    section_invoice: 'Invoice',
+    field_order_status: 'Order status',
+    field_delivery_status: 'Delivery status',
+    field_payment_status: 'Payment status',
+    field_assign_driver: 'Assign a driver',
+    field_choose_driver: 'Choose a driver',
+    field_est_date: 'Estimated date',
+    field_est_date_delivery: 'Estimated delivery date',
+    field_fees: 'Delivery fees',
+    field_note: 'Management note',
+    note_placeholder: 'Internal comment visible to team only…',
+    delivery_method: 'Delivery',
+    pickup: 'Store pickup',
+    kpi_total: 'Total',
+    kpi_pending: 'Pending',
+    kpi_validated: 'Validated',
+    kpi_paid: 'Paid',
+    kpi_cancelled: 'Cancelled',
+    confirm_cancel: 'Cancel order',
+    confirm_pickup_validate: 'Validate pickup order',
+    confirm_deliver: 'Mark order',
+    confirm_deliver_suffix: 'as delivered (and paid)?',
+    confirm_refund: 'Refund order',
+    invoice_open: 'Open',
+    invoice_download: 'Download',
+    invoice_sent_email: 'Sent by email',
+    download_success: 'Invoice PDF downloaded',
+    download_error: 'Invoice not available',
+    update_success: 'Order updated successfully',
+    update_error: 'Error updating order',
+    cancel_success: 'Order cancelled',
+    cancel_error: 'Error cancelling order',
+    deliver_success: 'Order marked as delivered and paid',
+    deliver_error: 'Error updating delivery',
+    validate_pickup_success: 'Pickup order validated',
+    validate_error: 'Error validating order',
+    validate_driver_success: 'Order validated and driver assigned',
+    refund_success: 'Order marked as refunded',
+    refund_error: 'Error processing refund',
+    load_error: 'Error loading orders',
+    row_name: 'Name',
+    row_phone: 'Phone',
+    row_address: 'Address',
+    row_city: 'City',
+    row_driver: 'Driver',
+    row_est_date: 'Estimated date',
+    row_actual_date: 'Actual date',
+    row_note_client: 'Client note',
+    row_note_internal: 'Internal note',
+    row_recipient: 'Recipient',
+    receipt_subtotal: 'Subtotal',
+    receipt_delivery_fees: 'Delivery fees',
+    receipt_promo_discount: 'Promo discount',
+    receipt_total: 'Total',
+    receipt_commission: 'Commission',
+    receipt_provider: 'Provider',
+    group_perfumes: 'Perfumes',
+    group_accessories: 'Accessories',
+    group_essences: 'Finished essences',
+    group_custom_perfumes: 'Custom perfumes',
+    group_custom_essences: 'Custom essences',
+    flacon: 'Bottle',
+    category: 'Category',
+    ref: 'Ref',
+    essence_product: 'Finished product',
+    orders_page: 'orders · page',
+    items_count: 'Items',
+    confirm_q: '?',
+  },
+} as const;
+type TKey = keyof typeof T.fr;
 
 // ─────────────────────────────────────────────────────────────────────────
 // Config
@@ -75,8 +322,10 @@ function allLines(order: BackendOrder): BackendOrderLine[] {
   ];
 }
 
-function getDeliveryMethod(order: BackendOrder): string {
-  return order.livreur ? 'Livraison' : 'Retrait boutique';
+function getDeliveryMethod(order: BackendOrder, isEn = false): string {
+  return order.livreur
+    ? (isEn ? T.en.delivery_method : T.fr.delivery_method)
+    : (isEn ? T.en.pickup : T.fr.pickup);
 }
 
 function driverDisplayName(d: any): string {
@@ -238,6 +487,10 @@ function OrderPopupModal({
 // ─────────────────────────────────────────────────────────────────────────
 
 export default function OrdersPage() {
+  const { i18n } = useTranslation();
+  const isEn = i18n.language?.startsWith('en') ?? false;
+  const t = (k: TKey) => isEn ? T.en[k] : T.fr[k];
+
   const [orders, setOrders] = useState<BackendOrder[]>([]);
   const [total, setTotal]   = useState(0);
   const [page, setPage]     = useState(1);
@@ -293,7 +546,7 @@ export default function OrdersPage() {
       setOngoingPage(1);
       setCompletedPage(1);
     } catch {
-      addToast('Erreur lors du chargement des commandes', 'error');
+      addToast(isEn ? T.en.load_error : T.fr.load_error, 'error');
     } finally {
       setLoading(false);
     }
@@ -355,8 +608,8 @@ export default function OrdersPage() {
         ...(editFrais ? { frais_livraison: editFrais } : {}),
       },
       apiCall: () => orderService.updateOrder(order.numero_commande, payload),
-      successMessage: 'Commande mise à jour avec succès',
-      errorMessage: 'Erreur lors de la mise à jour',
+      successMessage: isEn ? T.en.update_success : T.fr.update_success,
+      errorMessage: isEn ? T.en.update_error : T.fr.update_error,
     });
     setIsSavingEdit(false);
   };
@@ -366,9 +619,9 @@ export default function OrdersPage() {
     setDownloadingInvoice(true);
     try {
       await invoiceService.downloadInvoiceFile(num, `facture-${num}.pdf`);
-      addToast('Facture PDF téléchargée', 'success');
+      addToast(isEn ? T.en.download_success : T.fr.download_success, 'success');
     } catch (err: any) {
-      addToast(err.response?.data?.detail ?? 'Facture non disponible', 'error');
+      addToast(err.response?.data?.detail ?? (isEn ? T.en.download_error : T.fr.download_error), 'error');
     } finally {
       setDownloadingInvoice(false);
     }
@@ -383,13 +636,13 @@ export default function OrdersPage() {
   };
 
   const handleCancel = async (order: BackendOrder) => {
-    if (!confirm(`Annuler la commande ${order.numero_commande} ?`)) return;
+    if (!confirm(`${isEn ? T.en.confirm_cancel : T.fr.confirm_cancel} ${order.numero_commande} ?`)) return;
     await runOptimisticUpdate({
       orderId: order.id,
       patch: { statut: 'annulée' },
       apiCall: () => orderService.cancelOrder(order.numero_commande),
-      successMessage: 'Commande annulée',
-      errorMessage: "Erreur lors de l'annulation",
+      successMessage: isEn ? T.en.cancel_success : T.fr.cancel_success,
+      errorMessage: isEn ? T.en.cancel_error : T.fr.cancel_error,
     });
   };
 
@@ -401,15 +654,15 @@ export default function OrdersPage() {
       setValDateEst(order.date_livraison_estimee ?? '');
       return;
     }
-    if (!confirm(`Valider la commande pickup ${order.numero_commande} ?`)) return;
+    if (!confirm(`${isEn ? T.en.confirm_pickup_validate : T.fr.confirm_pickup_validate} ${order.numero_commande} ?`)) return;
     await runOptimisticUpdate({
       orderId: order.id,
       patch: { statut: 'validé', statut_livraison: 'en_attente_affectation' },
       apiCall: () => orderService.updateOrder(order.numero_commande, {
         statut: 'validé', statut_livraison: 'en_attente_affectation',
       }),
-      successMessage: 'Commande pickup validée avec succès',
-      errorMessage: 'Erreur lors de la validation',
+      successMessage: isEn ? T.en.validate_pickup_success : T.fr.validate_pickup_success,
+      errorMessage: isEn ? T.en.validate_error : T.fr.validate_error,
     });
   };
 
@@ -437,33 +690,33 @@ export default function OrdersPage() {
         ...(valDateEst ? { date_livraison_estimee: valDateEst } : {}),
       },
       apiCall: () => orderService.updateOrder(order.numero_commande, payload),
-      successMessage: 'Commande validée et livreur assigné',
-      errorMessage: 'Erreur lors de la validation',
+      successMessage: isEn ? T.en.validate_driver_success : T.fr.validate_driver_success,
+      errorMessage: isEn ? T.en.validate_error : T.fr.validate_error,
     });
   };
 
   const totalPages = Math.ceil(total / PAGE_SIZE) || 1;
 
   const kpi = [
-    { label: 'Total',      value: total,                                                 color: 'text-foreground' },
-    { label: 'En attente', value: orders.filter(o => o.statut === 'en_attente').length,  color: 'text-amber-400'  },
-    { label: 'Validées',   value: orders.filter(o => o.statut === 'validé').length,      color: 'text-blue-400'   },
-    { label: 'Payées',     value: orders.filter(o => o.statut_paiement === 'payé').length, color: 'text-emerald-400' },
-    { label: 'Annulées',   value: orders.filter(o => o.statut === 'annulée').length,     color: 'text-red-400'    },
+    { label: t('kpi_total'),     value: total,                                                 color: 'text-foreground' },
+    { label: t('kpi_pending'),   value: orders.filter(o => o.statut === 'en_attente').length,  color: 'text-amber-400'  },
+    { label: t('kpi_validated'), value: orders.filter(o => o.statut === 'validé').length,      color: 'text-blue-400'   },
+    { label: t('kpi_paid'),      value: orders.filter(o => o.statut_paiement === 'payé').length, color: 'text-emerald-400' },
+    { label: t('kpi_cancelled'), value: orders.filter(o => o.statut === 'annulée').length,     color: 'text-red-400'    },
   ];
 
   const isCancellable = (o: BackendOrder) => o.statut === 'en_attente' || o.statut === 'validé';
 
   const handleMarkDelivered = async (order: BackendOrder) => {
-    if (!confirm(`Marquer la commande ${order.numero_commande} comme livrée (et payée) ?`)) return;
+    if (!confirm(`${isEn ? T.en.confirm_deliver : T.fr.confirm_deliver} ${order.numero_commande} ${isEn ? T.en.confirm_deliver_suffix : T.fr.confirm_deliver_suffix}`)) return;
     await runOptimisticUpdate({
       orderId: order.id,
       patch: { statut_livraison: 'livrée', statut_paiement: 'payé' },
       apiCall: () => orderService.updateOrder(order.numero_commande, {
         statut_livraison: 'livrée', statut_paiement: 'payé',
       }),
-      successMessage: 'Commande marquée comme livrée et payée',
-      errorMessage: 'Erreur lors de la mise à jour de la livraison',
+      successMessage: isEn ? T.en.deliver_success : T.fr.deliver_success,
+      errorMessage: isEn ? T.en.deliver_error : T.fr.deliver_error,
       onSuccess: () => {
         // ── GA4: purchase — API confirmed delivery, this is the real conversion
         import('@/lib/gtag').then(({ trackPurchase, orderLineToGA4Item }) => {
@@ -486,15 +739,15 @@ export default function OrdersPage() {
   };
 
   const handleRefund = async (order: BackendOrder) => {
-    if (!confirm(`Rembourser la commande ${order.numero_commande} ?`)) return;
+    if (!confirm(`${isEn ? T.en.confirm_refund : T.fr.confirm_refund} ${order.numero_commande} ?`)) return;
     await runOptimisticUpdate({
       orderId: order.id,
       patch: { statut: 'remboursée', statut_paiement: 'échoué' },
       apiCall: () => orderService.updateOrder(order.numero_commande, {
         statut: 'remboursée', statut_paiement: 'échoué',
       }),
-      successMessage: 'Commande marquée comme remboursée',
-      errorMessage: 'Erreur lors du remboursement',
+      successMessage: isEn ? T.en.refund_success : T.fr.refund_success,
+      errorMessage: isEn ? T.en.refund_error : T.fr.refund_error,
     });
   };
 
@@ -518,9 +771,9 @@ export default function OrdersPage() {
       {/* Header ------------------------------------------------------------ */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-xl font-semibold text-foreground">Commandes</h1>
+          <h1 className="text-xl font-semibold text-foreground">{t('title')}</h1>
           <p className="mt-0.5 text-sm text-foreground/40">
-            {total.toLocaleString()} commande{total > 1 ? 's' : ''} au total
+            {total.toLocaleString()} {total > 1 ? t('subtitle_orders_plural') : t('subtitle_orders')} {t('subtitle_total')}
           </p>
         </div>
         <button
@@ -528,7 +781,7 @@ export default function OrdersPage() {
           className="inline-flex items-center justify-center gap-2 rounded-lg border border-white/10 px-3.5 py-2 text-sm text-foreground/60 transition-colors hover:bg-white/6 hover:text-foreground"
         >
           <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
-          Actualiser
+          {t('refresh')}
         </button>
       </div>
 
@@ -550,7 +803,7 @@ export default function OrdersPage() {
             <input
               value={search}
               onChange={e => setSearch(e.target.value)}
-              placeholder="N° commande, e-mail, téléphone…"
+              placeholder={t('search_placeholder')}
               className="flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-foreground/35"
             />
             {search && (
@@ -564,7 +817,7 @@ export default function OrdersPage() {
             <input
               value={nomFilter}
               onChange={e => setNomFilter(e.target.value)}
-              placeholder="Nom client"
+              placeholder={t('client_name_placeholder')}
               className="w-full bg-transparent text-sm text-foreground outline-none placeholder:text-foreground/35"
             />
           </div>
@@ -579,7 +832,7 @@ export default function OrdersPage() {
             )}
           >
             <SlidersHorizontal size={14} />
-            Filtres
+            {t('filters')}
             {activeFilterCount > 0 && (
               <span className="rounded-full bg-gold/25 px-1.5 text-[10px] font-bold text-gold">{activeFilterCount}</span>
             )}
@@ -590,25 +843,28 @@ export default function OrdersPage() {
         {showFilters && (
           <div className="grid grid-cols-1 gap-4 rounded-xl border border-white/10 bg-white/[0.02] p-4 sm:grid-cols-3">
             <FilterGroup
-              label="Statut commande"
+              label={t('filter_order_status')}
               options={STATUT_OPTIONS}
               value={statutFilter}
               onChange={v => { setStatutFilter(v); setPage(1); }}
               cfg={STATUT_CFG}
+              allLabel={t('all')}
             />
             <FilterGroup
-              label="Statut livraison"
+              label={t('filter_delivery')}
               options={LIVRAISON_OPTIONS}
               value={livraisonFilter}
               onChange={v => { setLivraisonFilter(v); setPage(1); }}
               cfg={STATUT_LIVRAISON_CFG}
+              allLabel={t('all')}
             />
             <FilterGroup
-              label="Paiement"
+              label={t('filter_payment')}
               options={PAIEMENT_OPTIONS}
               value={paiementFilter}
               onChange={v => { setPaiementFilter(v); setPage(1); }}
               cfg={STATUT_PAIEMENT_CFG}
+              allLabel={t('all')}
             />
           </div>
         )}
@@ -616,25 +872,29 @@ export default function OrdersPage() {
 
       {/* Table: en cours --------------------------------------------------- */}
       <OrdersTable
-        heading="En cours"
+        heading={t('ongoing')}
         accent="bg-amber-400"
         count={ongoingOrders.length}
         orders={visibleOngoingOrders}
         loading={loading}
         pendingIds={pendingIds}
-        emptyLabel="Aucune commande en cours."
+        emptyLabel={t('no_ongoing')}
         onView={setSelected}
         onEdit={openEdit}
+        tableHeaders={[t('table_order'), t('table_client'), t('table_total'), t('table_promo'), t('table_driver'), t('table_status'), t('table_delivery'), t('table_date'), '']}
+        loadingLabel={t('loading')}
+        viewTitle={t('view_detail')}
+        manageTitle={t('manage_order')}
         renderActions={order => (
           <>
             {order.statut === 'en_attente' && (
-              <ActionButton tone="emerald" onClick={() => handleValidateClick(order)}>Valider</ActionButton>
+              <ActionButton tone="emerald" onClick={() => handleValidateClick(order)}>{t('validate')}</ActionButton>
             )}
             {order.statut === 'validé' && order.statut_livraison !== 'livrée' && (
-              <ActionButton tone="blue" icon={<Truck size={11} />} onClick={() => handleMarkDelivered(order)}>Livré</ActionButton>
+              <ActionButton tone="blue" icon={<Truck size={11} />} onClick={() => handleMarkDelivered(order)}>{t('delivered')}</ActionButton>
             )}
             {isCancellable(order) && (
-              <ActionButton tone="red" onClick={() => handleCancel(order)}>Annuler</ActionButton>
+              <ActionButton tone="red" onClick={() => handleCancel(order)}>{t('cancel')}</ActionButton>
             )}
           </>
         )}
@@ -646,17 +906,21 @@ export default function OrdersPage() {
       {/* Table: complétées --------------------------------------------------- */}
       <div className="pt-2">
         <OrdersTable
-          heading="Complétées"
+          heading={t('completed')}
           accent="bg-emerald-400"
           count={completedOrders.length}
           orders={visibleCompletedOrders}
           loading={loading}
           pendingIds={pendingIds}
-          emptyLabel="Aucune commande complétée."
+          emptyLabel={t('no_completed')}
           onView={setSelected}
+          tableHeaders={[t('table_order'), t('table_client'), t('table_total'), t('table_promo'), t('table_driver'), t('table_status'), t('table_delivery'), t('table_date'), '']}
+          loadingLabel={t('loading')}
+          viewTitle={t('view_detail')}
+          manageTitle={t('manage_order')}
           renderActions={order => (
             order.statut !== 'remboursée' && order.statut !== 'annulée' && (
-              <ActionButton tone="purple" onClick={() => handleRefund(order)}>Rembourser</ActionButton>
+              <ActionButton tone="purple" onClick={() => handleRefund(order)}>{t('refund')}</ActionButton>
             )
           )}
         />
@@ -668,7 +932,9 @@ export default function OrdersPage() {
       {/* Server page control --------------------------------------------------- */}
       {totalPages > 1 && (
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-t border-white/10 pt-4">
-          <p className="text-xs text-foreground/40">Page {page} / {totalPages} · {total.toLocaleString()} commandes</p>
+          <p className="text-xs text-foreground/40">
+            {t('page_info')} {page} {t('of')} {totalPages} · {total.toLocaleString()} {t('subtitle_orders_plural')}
+          </p>
           <div className="flex items-center gap-2">
             <button
               disabled={page <= 1}
@@ -717,6 +983,7 @@ export default function OrdersPage() {
           onDownloadInvoice={() => openInvoice(selected)}
           downloadingInvoice={downloadingInvoice}
           isCancellable={isCancellable(selected)}
+          isEn={isEn}
         />
       )}
 
@@ -727,7 +994,7 @@ export default function OrdersPage() {
         <OrderPopupModal
           isOpen
           onClose={() => setEditModal(null)}
-          eyebrow="Gérer la commande"
+          eyebrow={t('manage_order_eyebrow')}
           title={<span className="font-mono">{editModal.numero_commande}</span>}
           size="2xl"
           footer={
@@ -736,7 +1003,7 @@ export default function OrdersPage() {
                 onClick={() => setEditModal(null)}
                 className="w-full sm:w-auto rounded-lg border border-white/10 px-5 py-2.5 text-sm text-foreground/60 transition-colors hover:bg-white/6"
               >
-                Annuler
+                {t('cancel')}
               </button>
               <button
                 onClick={handleSave}
@@ -744,34 +1011,34 @@ export default function OrdersPage() {
                 className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg bg-gold py-2.5 text-sm font-semibold text-black transition-colors hover:bg-gold/85 disabled:opacity-60"
               >
                 {isSavingEdit ? <Loader2 size={14} className="animate-spin" /> : null}
-                {isSavingEdit ? 'Enregistrement…' : 'Enregistrer les modifications'}
+                {isSavingEdit ? t('saving') : t('save')}
               </button>
             </div>
           }
         >
-          <FormSection title="Statuts & Assignations" icon={<ClipboardList size={11} />}>
+          <FormSection title={t('section_statuses')} icon={<ClipboardList size={11} />}>
             <div className="space-y-4">
-              <Field label="Statut de la commande">
+              <Field label={t('field_order_status')}>
                 <SegmentedPicker value={editStatut} onChange={setEditStatut} options={STATUT_OPTIONS.filter(v => v) as any} cfg={STATUT_CFG} />
               </Field>
-              <Field label="Statut de livraison" icon={<Truck size={11} />}>
+              <Field label={t('field_delivery_status')} icon={<Truck size={11} />}>
                 <SegmentedPicker value={editLivraison} onChange={setEditLivraison} options={LIVRAISON_OPTIONS.filter(v => v) as any} cfg={STATUT_LIVRAISON_CFG} />
               </Field>
-              <Field label="Statut paiement" icon={<CreditCard size={11} />}>
+              <Field label={t('field_payment_status')} icon={<CreditCard size={11} />}>
                 <SegmentedPicker value={editPaiement} onChange={setEditPaiement} options={PAIEMENT_OPTIONS.filter(v => v) as any} cfg={STATUT_PAIEMENT_CFG} />
               </Field>
             </div>
           </FormSection>
 
-          <FormSection title="Livraison & Logistique" icon={<Bike size={11} />}>
+          <FormSection title={t('section_logistics')} icon={<Bike size={11} />}>
             <div className="space-y-4">
-              <Field label="Assigner un livreur">
+              <Field label={t('field_assign_driver')}>
                 <select
                   value={editLivreur}
                   onChange={e => setEditLivreur(e.target.value)}
                   className="w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2.5 text-sm text-foreground outline-none transition-colors focus:border-gold/50"
                 >
-                  <option value="" className="bg-background">— Aucun —</option>
+                  <option value="" className="bg-background">{t('none_driver')}</option>
                   {drivers.map(d => {
                     const id = d.id ?? d.user_id;
                     return <option key={id} value={id} className="bg-background">{driverDisplayName(d)}</option>;
@@ -780,7 +1047,7 @@ export default function OrdersPage() {
               </Field>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <Field label="Date estimée" icon={<Calendar size={11} />}>
+                <Field label={t('field_est_date')} icon={<Calendar size={11} />}>
                   <input
                     type="date"
                     value={editDateEst}
@@ -788,7 +1055,7 @@ export default function OrdersPage() {
                     className="w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2.5 text-sm text-foreground outline-none transition-colors focus:border-gold/50"
                   />
                 </Field>
-                <Field label="Frais de livraison" icon={<Tag size={11} />}>
+                <Field label={t('field_fees')} icon={<Tag size={11} />}>
                   <input
                     type="number"
                     value={editFrais}
@@ -801,13 +1068,13 @@ export default function OrdersPage() {
             </div>
           </FormSection>
 
-          <FormSection title="Notes internes" icon={<ClipboardList size={11} />}>
-            <Field label="Commentaire de gestion">
+          <FormSection title={t('section_notes')} icon={<ClipboardList size={11} />}>
+            <Field label={t('field_note')}>
               <textarea
                 value={editNote}
                 onChange={e => setEditNote(e.target.value)}
                 rows={3}
-                placeholder="Commentaire interne visible uniquement par l'équipe…"
+                placeholder={t('note_placeholder')}
                 className="w-full resize-none rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2.5 text-sm text-foreground outline-none transition-colors focus:border-gold/50"
               />
             </Field>
@@ -822,7 +1089,7 @@ export default function OrdersPage() {
         <OrderPopupModal
           isOpen
           onClose={() => setValidationModal(null)}
-          eyebrow="Validation & livraison"
+          eyebrow={t('validation_eyebrow')}
           title={<span className="font-mono">{validationModal.numero_commande}</span>}
           size="xl"
           footer={
@@ -831,36 +1098,36 @@ export default function OrdersPage() {
                 onClick={() => setValidationModal(null)}
                 className="w-full sm:w-auto rounded-lg border border-white/10 px-5 py-2.5 text-sm text-foreground/60 transition-colors hover:bg-white/6"
               >
-                Annuler
+                {t('cancel')}
               </button>
               <button
                 onClick={handleConfirmValidation}
                 className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg bg-emerald-500 py-2.5 text-sm font-semibold text-black transition-colors hover:bg-emerald-400"
               >
                 <CheckCircle size={15} />
-                Confirmer la validation
+                {t('confirm_validation')}
               </button>
             </div>
           }
         >
           <div className="space-y-4">
-            <FormSection title="Destinataire" icon={<MapPin size={11} />}>
+            <FormSection title={t('section_recipient')} icon={<MapPin size={11} />}>
               <dl className="space-y-1.5 text-xs">
-                <RowKV k="Nom" v={validationModal.livraison_nom_complet} />
-                <RowKV k="Téléphone" v={validationModal.livraison_telephone} />
-                <RowKV k="Adresse" v={`${validationModal.livraison_ville}, ${validationModal.livraison_quartier}`} />
+                <RowKV k={t('row_name')} v={validationModal.livraison_nom_complet} />
+                <RowKV k={t('row_phone')} v={validationModal.livraison_telephone} />
+                <RowKV k={t('row_address')} v={`${validationModal.livraison_ville}, ${validationModal.livraison_quartier}`} />
               </dl>
             </FormSection>
 
-            <FormSection title="Paramètres d'expedition" icon={<Bike size={11} />}>
+            <FormSection title={t('section_expedition')} icon={<Bike size={11} />}>
               <div className="space-y-4">
-                <Field label="Choisir un livreur">
+                <Field label={t('field_choose_driver')}>
                   <select
                     value={valDriverId}
                     onChange={e => setValDriverId(e.target.value)}
                     className="w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2.5 text-sm text-foreground outline-none transition-colors focus:border-gold/50"
                   >
-                    <option value="" className="bg-background">— Assigner plus tard —</option>
+                    <option value="" className="bg-background">{t('assign_later')}</option>
                     {drivers.map(d => {
                       const id = d.id ?? d.user_id;
                       return <option key={id} value={id} className="bg-background">{driverDisplayName(d)}</option>;
@@ -868,7 +1135,7 @@ export default function OrdersPage() {
                   </select>
                 </Field>
 
-                <Field label="Date estimée de livraison" icon={<Calendar size={11} />}>
+                <Field label={t('field_est_date_delivery')} icon={<Calendar size={11} />}>
                   <input
                     type="date"
                     value={valDateEst}
@@ -902,8 +1169,8 @@ function FormSection({ title, icon, children }: { title: string; icon?: React.Re
 }
 
 function FilterGroup({
-  label, options, value, onChange, cfg,
-}: { label: string; options: string[]; value: string; onChange: (v: string) => void; cfg: Record<string, { label: string }> }) {
+  label, options, value, onChange, cfg, allLabel = 'Tous',
+}: { label: string; options: string[]; value: string; onChange: (v: string) => void; cfg: Record<string, { label: string }>; allLabel?: string }) {
   return (
     <div>
       <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-foreground/35">{label}</p>
@@ -917,7 +1184,7 @@ function FilterGroup({
               value === v ? 'border-gold/40 bg-gold/15 text-gold' : 'border-white/10 text-foreground/50 hover:border-white/20'
             )}
           >
-            {v === '' ? 'Tous' : cfg[v]?.label ?? v}
+            {v === '' ? allLabel : cfg[v]?.label ?? v}
           </button>
         ))}
       </div>
@@ -950,7 +1217,7 @@ function RowKV({ k, v }: { k: string; v?: string | null }) {
 // ─────────────────────────────────────────────────────────────────────────
 
 function CardView({
-  orders, pendingIds, onView, onEdit, renderActions, emptyLabel,
+  orders, pendingIds, onView, onEdit, renderActions, emptyLabel, viewTitle = 'Voir', manageTitle = 'Gérer',
 }: {
   orders: BackendOrder[];
   pendingIds: Set<string>;
@@ -958,6 +1225,8 @@ function CardView({
   onEdit?: (o: BackendOrder) => void;
   renderActions: (o: BackendOrder) => React.ReactNode;
   emptyLabel: string;
+  viewTitle?: string;
+  manageTitle?: string;
 }) {
   if (orders.length === 0) {
     return (
@@ -996,8 +1265,8 @@ function CardView({
 
             <div className="flex items-center justify-between pt-2">
               <div className="flex items-center gap-1">
-                <IconButton icon={<Eye size={16} />} title="Voir le détail" onClick={() => onView(order)} tone="gold" />
-                {onEdit && <IconButton icon={<ClipboardList size={16} />} title="Modifier / gérer" onClick={() => onEdit(order)} tone="blue" />}
+                <IconButton icon={<Eye size={16} />} title={viewTitle} onClick={() => onView(order)} tone="gold" />
+                {onEdit && <IconButton icon={<ClipboardList size={16} />} title={manageTitle} onClick={() => onEdit(order)} tone="blue" />}
               </div>
               <div className="flex items-center gap-1.5">
                 {renderActions(order)}
@@ -1016,6 +1285,10 @@ function CardView({
 
 function OrdersTable({
   heading, accent, count, orders, loading, pendingIds, emptyLabel, onView, onEdit, renderActions,
+  tableHeaders = ['N° Commande', 'Client', 'Total TTC', 'Promo', 'Livreur', 'Statut', 'Livraison', 'Date', ''],
+  loadingLabel = 'Chargement…',
+  viewTitle = 'Voir',
+  manageTitle = 'Gérer',
 }: {
   heading: string;
   accent: string;
@@ -1027,6 +1300,10 @@ function OrdersTable({
   onView: (o: BackendOrder) => void;
   onEdit?: (o: BackendOrder) => void;
   renderActions: (o: BackendOrder) => React.ReactNode;
+  tableHeaders?: string[];
+  loadingLabel?: string;
+  viewTitle?: string;
+  manageTitle?: string;
 }) {
   return (
     <div>
@@ -1039,7 +1316,7 @@ function OrdersTable({
       {loading ? (
         <div className="flex flex-col items-center justify-center gap-2.5 py-16 text-foreground/40 rounded-xl border border-white/10">
           <Loader2 className="animate-spin text-gold" size={26} />
-          <p className="text-xs">Chargement…</p>
+          <p className="text-xs">{loadingLabel}</p>
         </div>
       ) : (
         <>
@@ -1052,6 +1329,8 @@ function OrdersTable({
               onEdit={onEdit}
               renderActions={renderActions}
               emptyLabel={emptyLabel}
+              viewTitle={viewTitle}
+              manageTitle={manageTitle}
             />
           </div>
 
@@ -1061,7 +1340,7 @@ function OrdersTable({
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-white/10 bg-white/[0.02]">
-                    {['N° Commande', 'Client', 'Total TTC', 'Promo', 'Livreur', 'Statut', 'Livraison', 'Date', ''].map(h => (
+                    {tableHeaders.map(h => (
                       <th key={h} className="whitespace-nowrap px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wider text-foreground/35">
                         {h}
                       </th>
@@ -1095,8 +1374,8 @@ function OrdersTable({
                         <td className="whitespace-nowrap px-4 py-3 text-[11px] text-foreground/35">{fmtDate(order.date_creation)}</td>
                         <td className="px-4 py-3">
                           <div className="flex items-center justify-end gap-1">
-                            <IconButton icon={<Eye size={14} />} title="Voir le détail" onClick={() => onView(order)} tone="gold" />
-                            {onEdit && <IconButton icon={<ClipboardList size={14} />} title="Modifier / gérer" onClick={() => onEdit(order)} tone="blue" />}
+                            <IconButton icon={<Eye size={14} />} title={viewTitle} onClick={() => onView(order)} tone="gold" />
+                            {onEdit && <IconButton icon={<ClipboardList size={14} />} title={manageTitle} onClick={() => onEdit(order)} tone="blue" />}
                             {renderActions(order)}
                           </div>
                         </td>
@@ -1124,7 +1403,7 @@ function TablePagination({
   if (totalPages <= 1) return null;
   return (
     <div className="flex items-center justify-between px-1">
-      <p className="text-[11px] text-foreground/40">{totalItems} commande{totalItems > 1 ? 's' : ''} · page {page}/{totalPages}</p>
+      <p className="text-[11px] text-foreground/40">{totalItems} {totalItems > 1 ? 'commandes' : 'commande'} · page {page}/{totalPages}</p>
       <div className="flex items-center gap-1">
         <button
           disabled={page <= 1}
@@ -1163,7 +1442,7 @@ function TablePagination({
 // ─────────────────────────────────────────────────────────────────────────
 
 function OrderDetailModal({
-  order, onClose, onManage, onValidate, onCancel, onDownloadInvoice, downloadingInvoice, isCancellable,
+  order, onClose, onManage, onValidate, onCancel, onDownloadInvoice, downloadingInvoice, isCancellable, isEn,
 }: {
   order: BackendOrder;
   onClose: () => void;
@@ -1173,14 +1452,16 @@ function OrderDetailModal({
   onDownloadInvoice: () => void;
   downloadingInvoice: boolean;
   isCancellable: boolean;
+  isEn: boolean;
 }) {
+  const t = (k: TKey) => isEn ? T.en[k] : T.fr[k];
   const lines = allLines(order);
   const groups: Array<{ title: string; icon: React.ReactNode; lines: BackendOrderLine[] }> = [
-    { title: 'Parfums', icon: <Package size={12} />, lines: order.lignes_parfums },
-    { title: 'Accessoires', icon: <Package size={12} />, lines: order.lignes_accessoires },
-    { title: 'Essences finies', icon: <Package size={12} />, lines: order.lignes_produit_fini_essence },
-    { title: 'Parfums personnalisés', icon: <Package size={12} />, lines: order.lignes_parfums_perso },
-    { title: 'Essences personnalisées', icon: <Package size={12} />, lines: order.lignes_essence_personnalisee },
+    { title: t('group_perfumes'),        icon: <Package size={12} />, lines: order.lignes_parfums },
+    { title: t('group_accessories'),     icon: <Package size={12} />, lines: order.lignes_accessoires },
+    { title: t('group_essences'),        icon: <Package size={12} />, lines: order.lignes_produit_fini_essence },
+    { title: t('group_custom_perfumes'), icon: <Package size={12} />, lines: order.lignes_parfums_perso },
+    { title: t('group_custom_essences'), icon: <Package size={12} />, lines: order.lignes_essence_personnalisee },
   ].filter(g => g.lines.length > 0);
 
   return (
@@ -1198,20 +1479,20 @@ function OrderDetailModal({
       footer={
         <div className="flex flex-col-reverse sm:flex-row flex-wrap gap-2.5">
           <button onClick={onClose} className="w-full sm:w-auto rounded-lg border border-white/10 px-5 py-2.5 text-xs text-foreground/60 transition-colors hover:bg-white/6">
-            Fermer
+            {t('close')}
           </button>
           {isCancellable && (
             <button onClick={onCancel} className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-red-500 py-2.5 text-xs font-semibold text-white transition-colors hover:bg-red-400">
-              <XCircle size={14} />Annuler
+              <XCircle size={14} />{t('cancel')}
             </button>
           )}
           {order.statut === 'en_attente' && (
             <button onClick={onValidate} className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-emerald-500 py-2.5 text-xs font-semibold text-black transition-colors hover:bg-emerald-400">
-              <CheckCircle size={14} />Valider
+              <CheckCircle size={14} />{t('validate')}
             </button>
           )}
           <button onClick={onManage} className="inline-flex flex-1 sm:flex-none items-center justify-center gap-1.5 rounded-lg bg-gold px-5 py-2.5 text-xs font-semibold text-black transition-colors hover:bg-gold/85">
-            <ClipboardList size={14} />Gérer
+            <ClipboardList size={14} />{t('manage')}
           </button>
         </div>
       }
@@ -1220,15 +1501,15 @@ function OrderDetailModal({
 
         {/* Summary strip */}
         <div className="grid grid-cols-2 gap-3 sm:flex sm:flex-wrap sm:items-center sm:gap-x-6 sm:gap-y-2 rounded-xl border border-white/10 bg-white/[0.02] p-3.5 sm:px-4 sm:py-3">
-          <SummaryStat label="Total TTC" value={fmt(order.total_ttc)} emphasize />
+          <SummaryStat label={t('receipt_total')} value={fmt(order.total_ttc)} emphasize />
           <div className="hidden sm:block h-8 w-px bg-white/10" />
-          <SummaryStat label="Paiement" node={<StatusChip cfg={STATUT_PAIEMENT_CFG[order.statut_paiement]} />} />
+          <SummaryStat label={t('field_payment_status')} node={<StatusChip cfg={STATUT_PAIEMENT_CFG[order.statut_paiement]} />} />
           <div className="hidden sm:block h-8 w-px bg-white/10" />
-          <SummaryStat label="Remise" value={getDeliveryMethod(order)} />
+          <SummaryStat label={t('section_delivery')} value={getDeliveryMethod(order, isEn)} />
           {order.code_promo_utilise && (
             <>
               <div className="hidden sm:block h-8 w-px bg-white/10" />
-              <SummaryStat label="Code promo" node={<span className="rounded border border-gold/20 bg-gold/10 px-1.5 py-0.5 font-mono text-xs text-gold">{order.code_promo_utilise}</span>} />
+              <SummaryStat label={t('table_promo')} node={<span className="rounded border border-gold/20 bg-gold/10 px-1.5 py-0.5 font-mono text-xs text-gold">{order.code_promo_utilise}</span>} />
             </>
           )}
         </div>
@@ -1237,16 +1518,16 @@ function OrderDetailModal({
           {/* Left: delivery + notes */}
           <div className="space-y-5 lg:col-span-2">
             <section className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
-              <SectionLabel icon={<MapPin size={11} />}>Livraison</SectionLabel>
+              <SectionLabel icon={<MapPin size={11} />}>{t('section_delivery')}</SectionLabel>
               <dl className="space-y-1.5 text-xs">
-                <RowKV k="Destinataire" v={order.livraison_nom_complet} />
-                <RowKV k="Téléphone" v={order.livraison_telephone} />
+                <RowKV k={t('row_recipient')} v={order.livraison_nom_complet} />
+                <RowKV k={t('row_phone')} v={order.livraison_telephone} />
                 {order.livraison_ville && (
-                  <RowKV k="Ville" v={`${order.livraison_ville}${order.livraison_quartier ? ` – ${order.livraison_quartier}` : ''}`} />
+                  <RowKV k={t('row_city')} v={`${order.livraison_ville}${order.livraison_quartier ? ` – ${order.livraison_quartier}` : ''}`} />
                 )}
-                <RowKV k="Livreur" v={order.livreur_nom ?? '—'} />
-                <RowKV k="Date estimée" v={fmtDate(order.date_livraison_estimee)} />
-                <RowKV k="Date réelle" v={fmtDate(order.date_livraison_reelle)} />
+                <RowKV k={t('row_driver')} v={order.livreur_nom ?? '—'} />
+                <RowKV k={t('row_est_date')} v={fmtDate(order.date_livraison_estimee)} />
+                <RowKV k={t('row_actual_date')} v={fmtDate(order.date_livraison_reelle)} />
               </dl>
               {order.motif_echec_livraison && (
                 <div className="mt-3 flex gap-2 rounded-lg bg-red-500/8 p-2.5 text-xs text-red-400">
@@ -1260,13 +1541,13 @@ function OrderDetailModal({
               <section className="space-y-3 rounded-xl border border-white/10 bg-white/[0.02] p-4">
                 {order.note_client && (
                   <div>
-                    <SectionLabel icon={<Phone size={11} />}>Note client</SectionLabel>
+                    <SectionLabel icon={<Phone size={11} />}>{t('row_note_client')}</SectionLabel>
                     <p className="text-xs leading-relaxed text-foreground/65">{order.note_client}</p>
                   </div>
                 )}
                 {order.note_interne && (
                   <div className={order.note_client ? 'mt-3 pt-3 border-t border-white/5' : ''}>
-                    <SectionLabel icon={<ClipboardList size={11} />}>Note interne</SectionLabel>
+                    <SectionLabel icon={<ClipboardList size={11} />}>{t('row_note_internal')}</SectionLabel>
                     <p className="text-xs leading-relaxed text-foreground/65">{order.note_interne}</p>
                   </div>
                 )}
@@ -1275,7 +1556,7 @@ function OrderDetailModal({
 
             {(order.facture || order.statut_paiement === 'payé') && (
               <section>
-                <SectionLabel icon={<FileText size={11} />}>Facture</SectionLabel>
+                <SectionLabel icon={<FileText size={11} />}>{t('section_invoice')}</SectionLabel>
                 <div className="space-y-2.5 rounded-xl border border-white/10 bg-white/[0.02] p-3.5">
                   {order.facture?.numero_facture && (
                     <div className="flex items-center justify-between text-xs">
@@ -1284,7 +1565,7 @@ function OrderDetailModal({
                     </div>
                   )}
                   {order.facture?.envoye_par_email && (
-                    <p className="flex items-center gap-1.5 text-[11px] text-emerald-400/80"><Mail size={11} />Envoyée par e-mail</p>
+                    <p className="flex items-center gap-1.5 text-[11px] text-emerald-400/80"><Mail size={11} />{t('invoice_sent_email')}</p>
                   )}
                   <div className="flex gap-2">
                     {order.facture?.fichier_pdf && (
@@ -1293,7 +1574,7 @@ function OrderDetailModal({
                         target="_blank" rel="noreferrer"
                         className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-white/10 py-2 text-xs font-medium text-foreground/75 transition-colors hover:bg-white/6"
                       >
-                        <FileText size={13} />Ouvrir
+                        <FileText size={13} />{t('invoice_open')}
                       </a>
                     )}
                     <button
@@ -1302,7 +1583,7 @@ function OrderDetailModal({
                       className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-emerald-500/15 py-2 text-xs font-medium text-emerald-400 ring-1 ring-inset ring-emerald-500/25 transition-colors hover:bg-emerald-500/25 disabled:opacity-50"
                     >
                       {downloadingInvoice ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} />}
-                      Télécharger
+                      {t('invoice_download')}
                     </button>
                   </div>
                 </div>
@@ -1313,26 +1594,26 @@ function OrderDetailModal({
           {/* Right: items + receipt */}
           <div className="space-y-5 lg:col-span-3">
             <section className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
-              <SectionLabel icon={<Package size={11} />}>Articles ({lines.length})</SectionLabel>
+              <SectionLabel icon={<Package size={11} />}>{t('section_items')} ({lines.length})</SectionLabel>
               <div className="max-h-[280px] space-y-4 overflow-y-auto pr-1">
                 {groups.map(g => (
-                  <LinesGroup key={g.title} title={g.title} icon={g.icon} lines={g.lines} />
+                  <LinesGroup key={g.title} title={g.title} icon={g.icon} lines={g.lines} isEn={isEn} />
                 ))}
-                {lines.length === 0 && <p className="py-4 text-center text-xs italic text-foreground/30">Aucun article dans cette commande.</p>}
+                {lines.length === 0 && <p className="py-4 text-center text-xs italic text-foreground/30">{t('no_items')}</p>}
               </div>
             </section>
 
             <section className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
-              <SectionLabel icon={<CreditCard size={11} />}>Récapitulatif</SectionLabel>
+              <SectionLabel icon={<CreditCard size={11} />}>{t('section_receipt')}</SectionLabel>
               <div className="space-y-1.5 text-xs">
-                <ReceiptRow k="Sous-total" v={fmt(order.sous_total)} />
-                <ReceiptRow k="Frais de livraison" v={fmt(order.frais_livraison)} />
-                {Number(order.remise_code_promo) > 0 && <ReceiptRow k="Remise promo" v={`-${fmt(order.remise_code_promo)}`} negative />}
+                <ReceiptRow k={t('receipt_subtotal')} v={fmt(order.sous_total)} />
+                <ReceiptRow k={t('receipt_delivery_fees')} v={fmt(order.frais_livraison)} />
+                {Number(order.remise_code_promo) > 0 && <ReceiptRow k={t('receipt_promo_discount')} v={`-${fmt(order.remise_code_promo)}`} negative />}
                 <div className="my-1.5 border-t border-dashed border-white/10" />
-                <ReceiptRow k="Total TTC" v={fmt(order.total_ttc)} bold />
+                <ReceiptRow k={t('receipt_total')} v={fmt(order.total_ttc)} bold />
                 <div className="my-1.5 border-t border-white/10" />
-                <ReceiptRow k="Commission" v={`${fmt(order.commission_montant)} · ${order.commission_statut}`} muted />
-                <ReceiptRow k="Prestataire" v={order.prestataire_code ?? '—'} muted />
+                <ReceiptRow k={t('receipt_commission')} v={`${fmt(order.commission_montant)} · ${order.commission_statut}`} muted />
+                <ReceiptRow k={t('receipt_provider')} v={order.prestataire_code ?? '—'} muted />
               </div>
             </section>
           </div>
@@ -1401,7 +1682,7 @@ function getOrderLineDetailMeta(line: BackendOrderLine) {
   return { essenceName, marque, tailleMl, categorie, prixParMl, prixActuel, codeReference };
 }
 
-function LinesGroup({ title, icon, lines }: { title: string; icon: React.ReactNode; lines: BackendOrderLine[] }) {
+function LinesGroup({ title, icon, lines, isEn = false }: { title: string; icon: React.ReactNode; lines: BackendOrderLine[]; isEn?: boolean }) {
   return (
     <div>
       <p className="mb-1.5 flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-wider text-foreground/30">
@@ -1443,7 +1724,7 @@ function LinesGroup({ title, icon, lines }: { title: string; icon: React.ReactNo
                   ))}
                   {line.composition.flacon_nom && (
                     <div className="flex justify-between text-foreground/35">
-                      <span>Flacon</span>
+                      <span>{isEn ? T.en.flacon : T.fr.flacon}</span>
                       <span>{line.composition.flacon_nom} {line.composition.flacon_contenance_ml ? `· ${line.composition.flacon_contenance_ml}ml` : ''}</span>
                     </div>
                   )}
@@ -1452,11 +1733,11 @@ function LinesGroup({ title, icon, lines }: { title: string; icon: React.ReactNo
               {hasDetailMeta && (
                 <div className="mt-2 ml-0 space-y-1 text-[11px] text-foreground/50 border-t border-white/5 pt-1.5">
                   <div className="flex justify-between gap-2">
-                    <span>{[detailMeta.essenceName, detailMeta.marque].filter(Boolean).join(' · ') || 'Produit fini'}</span>
+                    <span>{[detailMeta.essenceName, detailMeta.marque].filter(Boolean).join(' · ') || (isEn ? T.en.essence_product : T.fr.essence_product)}</span>
                     <span>{detailMeta.tailleMl ? `${detailMeta.tailleMl} ml` : ''}</span>
                   </div>
                   <div className="flex justify-between gap-2">
-                    <span>Catégorie: {detailMeta.categorie || '—'}</span>
+                    <span>{isEn ? T.en.category : T.fr.category}: {detailMeta.categorie || '—'}</span>
                     <span>
                       {detailMeta.prixParMl
                         ? `${Number(detailMeta.prixParMl).toLocaleString()} FCFA/ml`
@@ -1466,7 +1747,7 @@ function LinesGroup({ title, icon, lines }: { title: string; icon: React.ReactNo
                     </span>
                   </div>
                   {detailMeta.codeReference && (
-                    <div className="text-[10px] text-foreground/35">Réf: {detailMeta.codeReference}</div>
+                    <div className="text-[10px] text-foreground/35">{isEn ? T.en.ref : T.fr.ref}: {detailMeta.codeReference}</div>
                   )}
                 </div>
               )}

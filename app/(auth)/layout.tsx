@@ -9,7 +9,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence, LayoutGroup } from 'framer-motion';
-import { Gem, ArrowLeft, Sparkles } from 'lucide-react';
+import { ArrowLeft, Sparkles } from 'lucide-react';
 import { useMemo } from 'react';
 
 const TAGLINES = [
@@ -57,7 +57,11 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
 
       <div className="relative z-10 w-full p-12 flex flex-col justify-between h-full">
         <Link href="/" className="flex items-center gap-2 group w-fit">
-          <Gem className="h-8 w-8 text-gold group-hover:rotate-12 transition-transform duration-300" />
+          <img
+            src="/logo/Logo Accessoirs Exclusifs black transparent.svg"
+            alt="Accessoires Exclusifs"
+            className="h-14 w-auto object-contain invert group-hover:scale-105 transition-transform duration-300"
+          />
           <span className="font-display text-2xl font-bold tracking-tight text-foreground">
             <span className="text-gold">Accessories</span> Exclusif
           </span>

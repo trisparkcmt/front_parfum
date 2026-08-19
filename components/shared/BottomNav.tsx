@@ -2,7 +2,9 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence, LayoutGroup } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 import { HomeIcon, CartIcon, DiffuseurIcon, PerfumeIcon, LaptopIcon } from '@/components/icons/CustomIcons';
 import { Watch } from 'lucide-react';
 import { useCartStore } from '@/store/useCartStore';
@@ -18,16 +20,34 @@ type BottomNavLink = {
 
 const BottomNav = () => {
   const pathname = usePathname();
+  const { t } = useTranslation();
+  const [mounted, setMounted] = useState(false);
   const itemCount = useCartStore((s) => s.getItemCount());
   const openCartDrawer = useCartDrawerStore((s) => s.open);
 
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const links: BottomNavLink[] = [
-    { href: '/',                  icon: HomeIcon, label: 'Accueil',     action: null },
-    { href: '/shop/accessories',  icon: Watch,     label: 'Accessoires', action: null },
-    { href: '/shop/perfumes',     icon: PerfumeIcon,  label: 'Parfum',      action: null },
-    { href: '/shop/diffuseurs',   icon: DiffuseurIcon, label: 'Diffuseurs',  action: null },
-    { href: '/numba',             icon: LaptopIcon, label: 'Atelier',     action: null },
+    { href: '/',                  icon: HomeIcon,      label: t('nav_home', 'Accueil'),        action: null },
+    { href: '/shop/accessories',  icon: Watch,         label: t('nav_accessories', 'Accessoires'), action: null },
+    { href: '/shop/perfumes',     icon: PerfumeIcon,   label: t('nav_perfumes', 'Parfum'),     action: null },
+    { href: '/shop/diffuseurs',   icon: DiffuseurIcon, label: t('nav_diffuseurs', 'Diffuseurs'), action: null },
+    { href: '/numba',             icon: LaptopIcon,    label: t('nav_atelier', 'Atelier'),     action: null },
   ];
+
+  // Avoid hydration mismatch: render a stable shell until i18n is ready client-side
+  if (!mounted) {
+    return (
+      <nav
+        className="fixed bottom-5 left-4 right-4 z-[100] md:hidden"
+        style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
+      >
+        <div className="h-16 rounded-full border border-white/10 bg-deep-black/70 backdrop-blur-2xl" />
+      </nav>
+    );
+  }
 
   return (
     <nav
@@ -61,7 +81,6 @@ const BottomNav = () => {
                 className={`relative flex items-center h-11 rounded-full overflow-hidden
                   ${isActive ? 'px-4 gap-2' : 'w-11 justify-center'}`}
               >
-                {/* Sliding gold-glass highlight behind the active tab */}
                 {isActive && (
                   <motion.div
                     layoutId="bottomNavActivePill"

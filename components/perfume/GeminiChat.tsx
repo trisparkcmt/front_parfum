@@ -77,6 +77,15 @@ const dict = {
     ],
     newChat: 'Nouvelle conversation',
     placeholder: 'Ex: Un parfum boisé pour le printemps...',
+    nameModalTitle: 'Nommez votre création',
+    nameModalDesc: 'Donnez un nom à votre parfum avant de l\'ajouter au panier.',
+    nameModalPlaceholder: 'Ex : Rose de Damas, Nuit d\'Orient…',
+    nameModalConfirm: 'Ajouter au panier',
+    nameModalCancel: 'Annuler',
+    addingToCart: 'Ajout en cours…',
+    addCartSuccess: 'Composition ajoutée au panier',
+    addCartError: 'Erreur lors de l\'ajout au panier',
+    nameRequired: 'Veuillez saisir un nom pour votre création',
   },
   en: {
     loadingTexts: [
@@ -119,6 +128,15 @@ const dict = {
     ],
     newChat: 'Start Fresh',
     placeholder: 'E.g., A fresh citrus scent for spring...',
+    nameModalTitle: 'Name your creation',
+    nameModalDesc: 'Give your perfume a name before adding it to your cart.',
+    nameModalPlaceholder: 'E.g.: Damascus Rose, Oriental Night…',
+    nameModalConfirm: 'Add to cart',
+    nameModalCancel: 'Cancel',
+    addingToCart: 'Adding…',
+    addCartSuccess: 'Composition added to cart',
+    addCartError: 'Error adding to cart',
+    nameRequired: 'Please enter a name for your creation',
   },
 };
 
@@ -196,6 +214,85 @@ function blendHexColors(colors: { hex: string; weight: number }[]): string {
 }
 
 // ── Sub-components ──────────────────────────────────────────────────────────
+
+// ── NameCreationModal ──────────────────────────────────────────────────────
+
+function NameCreationModal({
+  defaultName,
+  onConfirm,
+  onClose,
+  isLoading,
+}: {
+  defaultName: string;
+  onConfirm: (name: string) => void;
+  onClose: () => void;
+  isLoading: boolean;
+}) {
+  const t = dict[getLang()];
+  const [name, setName] = useState(defaultName);
+  const [error, setError] = useState('');
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setTimeout(() => inputRef.current?.focus(), 80);
+  }, []);
+
+  const handleConfirm = () => {
+    if (!name.trim()) { setError(t.nameRequired); return; }
+    onConfirm(name.trim());
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <motion.div
+        initial={{ opacity: 0, scale: 0.93, y: 16 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.93, y: 16 }}
+        transition={{ type: 'spring', stiffness: 340, damping: 28 }}
+        className="relative z-10 w-full max-w-sm rounded-2xl border border-white/10 bg-background shadow-2xl p-6 space-y-4"
+      >
+        <div className="space-y-1">
+          <h3 className="text-sm font-bold text-foreground">{t.nameModalTitle}</h3>
+          <p className="text-xs text-foreground/50">{t.nameModalDesc}</p>
+        </div>
+
+        <div className="space-y-1">
+          <input
+            ref={inputRef}
+            type="text"
+            value={name}
+            onChange={e => { setName(e.target.value); setError(''); }}
+            onKeyDown={e => { if (e.key === 'Enter') handleConfirm(); if (e.key === 'Escape') onClose(); }}
+            placeholder={t.nameModalPlaceholder}
+            className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-foreground outline-none focus:border-gold/50 placeholder:text-foreground/30 transition-colors"
+          />
+          {error && <p className="text-[11px] text-red-400">{error}</p>}
+        </div>
+
+        <div className="flex gap-2">
+          <button
+            onClick={onClose}
+            disabled={isLoading}
+            className="flex-1 rounded-xl border border-white/10 py-2.5 text-xs font-medium text-foreground/60 hover:bg-white/5 transition-colors disabled:opacity-40"
+          >
+            {t.nameModalCancel}
+          </button>
+          <button
+            onClick={handleConfirm}
+            disabled={isLoading}
+            className="flex-1 rounded-xl bg-gold py-2.5 text-xs font-bold text-black hover:bg-gold/85 transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
+          >
+            {isLoading ? <Loader2 size={13} className="animate-spin" /> : <ShoppingCart size={13} />}
+            {isLoading ? t.addingToCart : t.nameModalConfirm}
+          </button>
+        </div>
+      </motion.div>
+    </div>
+  );
+}
+
+// ── LoadingBubble ───────────────────────────────────────────────────────────
 
 function LoadingBubble() {
   const [textIdx, setTextIdx] = useState(0);
@@ -515,9 +612,13 @@ function AiBubble({
   onRetry: (payload: SendPayload) => void;
 }) {
   const [isTypingComplete, setIsTypingComplete] = useState(!messageObj.animateText);
-  const { addProduct } = useCartStore();
+  const { addProduct, addDirectComposition } = useCartStore();
+  const { addToast } = useToastStore();
   const t = dict[getLang()];
   const { text, aiData, composition, suggestions, isError503, retryPayload, animateText } = messageObj;
+
+  const [showNameModal, setShowNameModal] = useState(false);
+  const [isAddingComposition, setIsAddingComposition] = useState(false);
 
   useEffect(() => {
     if (!animateText) {
@@ -555,8 +656,46 @@ function AiBubble({
     setIsTypingComplete(true);
   }, []);
 
+  const handleConfirmCompositionName = useCallback(async (name: string) => {
+    if (!composition || !aiData?.flacon) return;
+    setIsAddingComposition(true);
+    try {
+      const lignes = composition.essences
+        .map(({ essence, quantityMl }) => {
+          const lotId = essence.lotEssenceId;
+          const backendId = essence.backendId;
+          if (!lotId && !backendId) return null;
+          if (essence.itemType === 'ingredient') {
+            return { ingredient: backendId ?? Number(essence.id), quantite_ml: quantityMl };
+          }
+          return { lot_essence_id: lotId || backendId || Number(essence.id), quantite_ml: quantityMl };
+        })
+        .filter((l): l is NonNullable<typeof l> => l !== null);
+
+      if (lignes.length === 0) {
+        addToast(t.addCartError, 'error');
+        return;
+      }
+
+      await addDirectComposition({
+        flacon_id: aiData.flacon.id,
+        lignes,
+        nom: name,
+        quantite: 1,
+      }, { silent: true });
+
+      setShowNameModal(false);
+      addToast(t.addCartSuccess, 'success');
+    } catch {
+      addToast(t.addCartError, 'error');
+    } finally {
+      setIsAddingComposition(false);
+    }
+  }, [composition, aiData, addDirectComposition, addToast, t]);
+
   return (
-    <div className="flex items-start gap-3 justify-start">
+    <>
+      <div className="flex items-start gap-3 justify-start">
       <div className="w-9 h-9 rounded-full bg-gradient-to-br from-gold/30 to-gold/10 border border-gold/30 flex items-center justify-center flex-shrink-0 shadow-sm mt-1">
         <Sparkles size={15} className="text-gold" />
       </div>
@@ -684,7 +823,7 @@ function AiBubble({
           <div className="flex flex-wrap gap-2">
             {hasComposition && (
               <button
-                onClick={() => { useCartStore.getState().addComposition(composition!); }}
+                onClick={() => setShowNameModal(true)}
                 className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-gold text-black font-bold text-xs uppercase tracking-wider hover:bg-gold/80 transition-all active:scale-95 shadow-lg shadow-gold/20"
               >
                 <ShoppingCart size={13} />
@@ -704,6 +843,18 @@ function AiBubble({
         )}
       </div>
     </div>
+
+    <AnimatePresence>
+      {showNameModal && (
+        <NameCreationModal
+          defaultName={composition?.name ?? (getLang() === 'en' ? 'My AI Creation' : 'Ma Création IA')}
+          onConfirm={handleConfirmCompositionName}
+          onClose={() => setShowNameModal(false)}
+          isLoading={isAddingComposition}
+        />
+      )}
+    </AnimatePresence>
+    </>
   );
 }
 

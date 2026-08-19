@@ -14,7 +14,7 @@ import AppImage from '@/components/ui/AppImage';
 import { useSound } from '@/hooks/useSound';
 import type { CustomComposition, CompositionEssence, EssenceClient, Product } from '@/types';
 import { labService } from '@/services/labService';
-import { labService as apiLabService, shopService, cartService, orderService } from '@/services/apiService';
+import { labService as apiLabService, shopService, orderService } from '@/services/apiService';
 import './atelier.css';
 
 /* ═══════════════════════════════════════
@@ -807,34 +807,20 @@ function AtelierContent() {
         .map<DirectCompositionLine | null>(([essenceId, quantityMl]) => {
           const item = ALL_ITEMS.find(e => e.id === essenceId);
           if (!item) return null;
-
           if (item.itemType === 'ingredient') {
-            return {
-              ingredient: item.backendId ?? Number(essenceId),
-              quantite_ml: Number(quantityMl),
-            };
+            return { ingredient: item.backendId ?? Number(essenceId), quantite_ml: Number(quantityMl) };
           }
-
-          return {
-            lot_essence_id: item.lotEssenceId || item.backendId || Number(essenceId),
-            quantite_ml: Number(quantityMl),
-          };
+          return { lot_essence_id: item.lotEssenceId || item.backendId || Number(essenceId), quantite_ml: Number(quantityMl) };
         })
         .filter((line): line is DirectCompositionLine => line !== null);
 
-      // Step 1: Add direct composition to cart (enregistre=False by default)
-      const cartResponse = await cartService.addDirectComposition({
+      // Single endpoint — creates an isolated ephemeral cart and places the order atomically.
+      // The user's active cart is never touched.
+      const orderResponse = await orderService.placeDirectCompositionOrder({
         flacon_id: selectedFlaconId,
         lignes,
         nom: saveModalName || compositionName || `Création Numba ${bottleSize}ml`,
         quantite: 1,
-      });
-
-      const panier_id = cartResponse.id;
-
-      // Step 2: Place order using the generated panier_id
-      const orderResponse = await orderService.placeOrder({
-        panier_id,
         livraison_nom_complet: orderProfileDetails.fullName || undefined,
         livraison_telephone: orderProfileDetails.phone || undefined,
       });

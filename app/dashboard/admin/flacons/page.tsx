@@ -469,7 +469,7 @@ export default function FlaconsAdminPage() {
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Rechercher un flacon..."
+              placeholder={isEn ? 'Search a bottle...' : 'Rechercher un flacon...'}
               className="w-full bg-white/[0.02] border border-white/10 rounded-lg pl-9 pr-8 py-1.5 text-xs text-foreground placeholder:text-foreground/40 outline-none focus:border-white/20 transition-all"
             />
             {search && (

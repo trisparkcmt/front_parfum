@@ -17,7 +17,7 @@
  */
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Gem, Camera, Globe, MessageCircle, Mail, MapPin, Phone } from 'lucide-react';
+import { Camera, Globe, MessageCircle, Mail, MapPin, Phone } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 export function Footer() {
@@ -39,7 +39,11 @@ export function Footer() {
           {/* Brand */}
           <div className="space-y-4">
             <Link href="/" className="flex items-center gap-2">
-              <Gem className="h-7 w-7 text-gold" />
+              <img
+                src="/logo/Logo Accessoirs Exclusifs black transparent.svg"
+                alt="Accessoires Exclusifs"
+                className="h-12 w-auto object-contain dark:invert"
+              />
               <span className="font-display text-lg font-bold">
                 <span className="text-gold">Accessoires</span>{' '}
                 <span className="text-zinc-900 dark:text-zinc-100">Exclusifs</span>

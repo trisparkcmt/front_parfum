@@ -597,7 +597,7 @@ export default function EssencesPage() {
             )}
           >
             <Filter size={13} />
-            <span>Filtres</span>
+            <span>{t('filter_btn')}</span>
             {activeFiltersCount > 0 && (
               <span className="ml-0.5 rounded-full bg-gold px-1.5 py-0.2 text-[10px] font-bold text-black">
                 {activeFiltersCount}
@@ -610,7 +610,7 @@ export default function EssencesPage() {
         {showFilters && (
           <div className="rounded-xl border border-white/10 bg-white/[0.02] p-3 flex flex-wrap items-center gap-4">
             <div className="flex items-center gap-2">
-              <span className="text-xs text-foreground/50">Catégorie:</span>
+              <span className="text-xs text-foreground/50">{isEn ? 'Category:' : 'Catégorie:'}</span>
               <div className="flex items-center gap-1">
                 <button
                   onClick={() => setSelectedCategory('all')}
@@ -619,7 +619,7 @@ export default function EssencesPage() {
                     selectedCategory === 'all' ? 'bg-white/10 text-foreground font-medium' : 'text-foreground/50 hover:bg-white/5'
                   )}
                 >
-                  Toutes
+                  {t('filter_category_all')}
                 </button>
                 {STATIC_CATEGORIES.map(cat => (
                   <button
@@ -640,7 +640,7 @@ export default function EssencesPage() {
                 onClick={() => setSelectedCategory('all')}
                 className="text-[11px] text-foreground/40 hover:text-foreground underline ml-auto"
               >
-                Réinitialiser
+                {t('filter_reset')}
               </button>
             )}
           </div>
@@ -800,7 +800,7 @@ export default function EssencesPage() {
 
           {/* Section 1: Information Générale */}
           <div className="space-y-4">
-            <p className="text-xs font-bold text-gold uppercase tracking-wider">Informations Générales</p>
+            <p className="text-xs font-bold text-gold uppercase tracking-wider">{t('section_general')}</p>
             
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
@@ -850,7 +850,7 @@ export default function EssencesPage() {
 
           {/* Section 2: Profil & Prix */}
           <div className="space-y-4 pt-2 border-t border-white/10">
-            <p className="text-xs font-bold text-gold uppercase tracking-wider">Profil Olfactif & Tarification</p>
+            <p className="text-xs font-bold text-gold uppercase tracking-wider">{isEn ? 'Olfactive Profile & Pricing' : 'Profil Olfactif & Tarification'}</p>
 
             <div className="grid grid-cols-3 gap-3">
               <div>
@@ -861,10 +861,10 @@ export default function EssencesPage() {
                   onChange={e => updateForm('intensite', e.target.value)}
                   className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-foreground outline-none focus:border-gold/50 bg-neutral-900"
                 >
-                  <option value="légère">Légère</option>
-                  <option value="moyenne">Moyenne</option>
-                  <option value="forte">Forte</option>
-                  <option value="très forte">Très forte</option>
+                  <option value="légère">{isEn ? 'Light' : 'Légère'}</option>
+                  <option value="moyenne">{isEn ? 'Medium' : 'Moyenne'}</option>
+                  <option value="forte">{isEn ? 'Strong' : 'Forte'}</option>
+                  <option value="très forte">{isEn ? 'Very strong' : 'Très forte'}</option>
                 </select>
               </div>
               <div>
@@ -875,9 +875,9 @@ export default function EssencesPage() {
                   onChange={e => updateForm('genreCible', e.target.value)}
                   className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-foreground outline-none focus:border-gold/50 bg-neutral-900"
                 >
-                  <option value="mixte">Mixte</option>
-                  <option value="homme">Homme</option>
-                  <option value="femme">Femme</option>
+                  <option value="mixte">{isEn ? 'Unisex' : 'Mixte'}</option>
+                  <option value="homme">{isEn ? 'Men' : 'Homme'}</option>
+                  <option value="femme">{isEn ? 'Women' : 'Femme'}</option>
                 </select>
               </div>
               <div>
@@ -911,7 +911,7 @@ export default function EssencesPage() {
           {/* Section 3: Stock Initial (à la création uniquement) */}
           {!editingEssence && (
             <div className="space-y-4 pt-2 border-t border-white/10">
-              <p className="text-xs font-bold text-gold uppercase tracking-wider">Lot Initial (Stock Labo)</p>
+              <p className="text-xs font-bold text-gold uppercase tracking-wider">{t('section_lot')}</p>
               
               <div className="bg-white/5 border border-white/10 rounded-2xl p-4 space-y-4">
                 <div className="grid grid-cols-2 gap-4">
@@ -951,8 +951,8 @@ export default function EssencesPage() {
                     className="mt-1 rounded border-white/20 bg-white/5 text-gold focus:ring-gold cursor-pointer"
                   />
                   <div>
-                    <p className="font-semibold text-sm text-foreground">Activer le format boutique (Produit Fini)</p>
-                    <p className="text-xs text-foreground/50 mt-0.5">Permet de rendre ce produit immédiatement disponible à l'achat dans la boutique.</p>
+                    <p className="font-semibold text-sm text-foreground">{isEn ? 'Enable shop format (Finished Product)' : 'Activer le format boutique (Produit Fini)'}</p>
+                    <p className="text-xs text-foreground/50 mt-0.5">{isEn ? 'Makes this product immediately available for purchase in the shop.' : "Permet de rendre ce produit immédiatement disponible à l'achat dans la boutique."}</p>
                   </div>
                 </label>
 
@@ -1023,7 +1023,7 @@ export default function EssencesPage() {
               onClick={() => setShowModal(false)} 
               className="flex-1 px-4 py-3 rounded-xl bg-white/5 hover:bg-white/10 text-foreground font-semibold text-sm transition-all border border-white/10"
             >
-              Annuler
+              {isEn ? 'Cancel' : 'Annuler'}
             </button>
             <button 
               type="button"
@@ -1032,7 +1032,7 @@ export default function EssencesPage() {
               className="flex-1 px-4 py-3 rounded-xl bg-gold hover:bg-gold/90 text-black font-bold text-sm transition-all flex items-center justify-center gap-2 disabled:opacity-50 shadow-lg shadow-gold/10"
             >
               {saving && <Loader2 size={16} className="animate-spin" />}
-              {editingEssence ? 'Mettre à jour' : 'Enregistrer l\'essence'}
+              {editingEssence ? (isEn ? 'Update' : 'Mettre à jour') : (isEn ? "Save essence" : "Enregistrer l'essence")}
             </button>
           </div>
         </div>

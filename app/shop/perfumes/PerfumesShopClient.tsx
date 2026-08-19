@@ -4,7 +4,7 @@
  * @file app/shop/perfumes/PerfumesShopClient.tsx
  * @description Client-side marketplace catalog for brand perfumes, dupes and finished essences.
  */
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, SlidersHorizontal, X, RotateCcw, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
@@ -83,16 +83,16 @@ export default function PerfumesShopClient() {
             label: t('all_fragrances'),
             desc: '',
           },
-          ...backendCats.map((cat) => ({
-            id: cat.id,
-            label: cat.name,
-            desc: '',
-          })),
           {
             id: 'huile',
             label: t('pure_oils'),
             desc: t('pure_oils_desc'),
           },
+          ...backendCats.map((cat) => ({
+            id: cat.id,
+            label: cat.name,
+            desc: '',
+          })),
         ];
         setCategories(mappedTabs);
 
@@ -235,12 +235,26 @@ export default function PerfumesShopClient() {
     }
   };
 
-  const activeProducts =
-    activeTab === 'huile'
-      ? finishedEssenceProducts
-      : activeTab === 'all'
-      ? [...products, ...finishedEssenceProducts]
-      : products;
+  const activeProducts = useMemo(() => {
+    if (activeTab === 'huile') return finishedEssenceProducts;
+    if (activeTab !== 'all') return products;
+
+    // Interleave perfumes and huiles so huiles are distributed throughout
+    const result: Product[] = [];
+    const seen = new Set<string>();
+    const maxLen = Math.max(products.length, finishedEssenceProducts.length);
+    for (let i = 0; i < maxLen; i++) {
+      if (i < products.length && !seen.has(products[i].id)) {
+        seen.add(products[i].id);
+        result.push(products[i]);
+      }
+      if (i < finishedEssenceProducts.length && !seen.has(finishedEssenceProducts[i].id)) {
+        seen.add(finishedEssenceProducts[i].id);
+        result.push(finishedEssenceProducts[i]);
+      }
+    }
+    return result;
+  }, [activeTab, products, finishedEssenceProducts]);
 
   const isActiveLoading =
     activeTab === 'huile' || activeTab === 'all'

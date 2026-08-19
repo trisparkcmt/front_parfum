@@ -10,6 +10,7 @@ import { useFavoritesStore } from "@/store/useFavoritesStore";
 import { useToastStore } from "@/store/useToastStore";
 import { ProductCard } from "@/components/ui/ProductCard";
 import { ProductGridSkeleton } from "@/components/ui/Skeletons";
+import { EssenceQuantityModal } from "@/components/ui/EssenceQuantityModal";
 
 type FlashTab = "all" | "newest" | "popular" | "men" | "women";
 
@@ -100,7 +101,17 @@ export default function FlashSales() {
     }
   }, [activeTab, interleavedAll, bestsellers, hotsellers]);
 
+  const [selectedEssence, setSelectedEssence] = useState<Product | null>(null);
+
   const handleAddToCart = (product: Product) => {
+    if (
+      product.category === 'huile' ||
+      product.category === 'produit-fini-essence' ||
+      product.taille_ml !== undefined
+    ) {
+      setSelectedEssence(product);
+      return;
+    }
     addProduct(product, 1);
     import('@/lib/gtag').then(({ trackAddToCart }) => {
       trackAddToCart({
@@ -109,6 +120,20 @@ export default function FlashSales() {
         price: product.price,
         category: product.category ?? 'Produit',
         quantity: 1,
+      });
+    });
+  };
+
+  const handleConfirmEssenceQty = (product: Product, quantite: number) => {
+    addProduct(product, quantite);
+    addToast(`${product.name} ${isEn ? "added to cart" : "ajouté au panier"}`, 'success');
+    import('@/lib/gtag').then(({ trackAddToCart }) => {
+      trackAddToCart({
+        id: product.id,
+        name: product.name,
+        price: product.price,
+        category: 'Essence finie',
+        quantity: quantite,
       });
     });
   };
@@ -181,6 +206,14 @@ export default function FlashSales() {
           ))
         )}
       </div>
+
+      {selectedEssence && (
+        <EssenceQuantityModal
+          product={selectedEssence}
+          onConfirm={handleConfirmEssenceQty}
+          onClose={() => setSelectedEssence(null)}
+        />
+      )}
     </section>
   );
 }

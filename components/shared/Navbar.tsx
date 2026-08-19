@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { CartIcon, ProfileIcon } from '@/components/icons/CustomIcons';
-import { Gem, Heart } from 'lucide-react';
+import { Heart } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 import { PUBLIC_NAV_LINKS } from '@/lib/constants';
@@ -100,7 +100,11 @@ export function Navbar() {
 
         <div className="absolute left-1/2 -translate-x-1/2">
           <Link href="/" className="flex items-center group">
-            <Gem className="h-6 w-6 text-gold group-hover:rotate-12 transition-transform duration-300" />
+            <img
+              src="/logo/Logo Accessoirs Exclusifs black transparent.svg"
+              alt="Accessoires Exclusifs"
+              className="h-20 w-auto object-contain dark:invert group-hover:scale-105 transition-transform duration-300"
+            />
           </Link>
         </div>
 
@@ -126,7 +130,11 @@ export function Navbar() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between relative">
             <Link href="/" className="flex items-center gap-2 group flex-shrink-0 z-10">
-              <Gem className="h-8 w-8 text-gold group-hover:rotate-12 transition-transform duration-300" />
+              <img
+                src="/logo/Logo Accessoirs Exclusifs black transparent.svg"
+                alt="Accessoires Exclusifs"
+                className="h-24 w-auto object-contain dark:invert group-hover:scale-105 transition-transform duration-300"
+              />
             </Link>
 
             <div className={cn(glass, 'flex items-center gap-1 p-1.5 mx-auto')}>

@@ -1529,7 +1529,29 @@ export const orderService = {
   },
 
   /**
-   * Update order fields ΓÇö used by Admin/Serveuse to validate, assign driver, change statuses.
+   * Place a direct composition order without touching the user's active cart.
+   * Creates an isolated ephemeral cart, validates stock & 45% fill rule, then places the order.
+   * POST /api/v1/orders/commandes/passer-composition-directe/
+   */
+  placeDirectCompositionOrder: async (data: {
+    flacon_id: number;
+    lignes: Array<{ lot_essence_id?: number; ingredient?: number; quantite_ml: number }>;
+    quantite?: number;
+    nom?: string;
+    enregistre?: boolean;
+    livraison_nom_complet?: string;
+    livraison_telephone?: string;
+    livraison_quartier?: string;
+    livraison_ville?: string;
+    code_promo?: string;
+    note_client?: string;
+  }) => {
+    const response = await api.post('orders/commandes/passer-composition-directe/', data);
+    return response.data;
+  },
+
+  /**
+   * Update order fields — used by Admin/Serveuse to validate, assign driver, change statuses.
    * PATCH /api/v1/orders/commandes/{numero_commande}/
    */
   updateOrder: async (

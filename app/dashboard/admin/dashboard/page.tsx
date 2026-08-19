@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { adminService as adminApi, orderService } from '@/services/apiService';
 import { adminService as adminHelpers, type BestClient, type BestProvider } from '@/services/adminService';
 import { useToastStore } from '@/store/useToastStore';
+import { useTranslation } from 'react-i18next';
 import {
   Users, Truck, Store, ShoppingBag, Loader2, ArrowUpRight,
   Crown, Star, ShoppingCart, BarChart3, Globe
@@ -12,6 +13,64 @@ import Link from 'next/link';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend
 } from 'recharts';
+
+const T = {
+  fr: {
+    title: "Vue d'ensemble",
+    subtitle: "Suivi des indicateurs clés, classements et données d'audience",
+    loading_kpis: 'Chargement des indicateurs...',
+    loading: 'Chargement...',
+    loading_analytics: "Chargement de l'analyse...",
+    no_data: 'Aucune donnée disponible',
+    no_analytics: "Aucune donnée d'analyse disponible",
+    load_error: 'Erreur lors du chargement du tableau de bord',
+    stat_users: 'Utilisateurs',
+    stat_providers: 'Prestataires',
+    stat_drivers: 'Livreurs',
+    stat_orders: 'Commandes',
+    top5_clients: 'Top 5 Clients',
+    top5_providers: 'Top 5 Prestataires',
+    points_abbr: 'pts',
+    currency: 'FCFA',
+    analytics_title: "Analyses d'Audience (GA4)",
+    demo_mode: 'Mode Démo',
+    tab_custom: 'Graphique personnalisé',
+    tab_looker: 'Looker Studio Embed',
+    users_7d: 'Utilisateurs (7j)',
+    pageviews_7d: 'Vues de Page (7j)',
+    date_label: 'Date',
+    active_users: 'Utilisateurs actifs',
+    screen_views: "Vues d'écran",
+  },
+  en: {
+    title: 'Overview',
+    subtitle: 'Key indicators, rankings and audience data',
+    loading_kpis: 'Loading KPIs...',
+    loading: 'Loading...',
+    loading_analytics: 'Loading analytics...',
+    no_data: 'No data available',
+    no_analytics: 'No analytics data available',
+    load_error: 'Error loading dashboard',
+    stat_users: 'Users',
+    stat_providers: 'Providers',
+    stat_drivers: 'Drivers',
+    stat_orders: 'Orders',
+    top5_clients: 'Top 5 Clients',
+    top5_providers: 'Top 5 Providers',
+    points_abbr: 'pts',
+    currency: 'FCFA',
+    analytics_title: 'Audience Analytics (GA4)',
+    demo_mode: 'Demo Mode',
+    tab_custom: 'Custom Chart',
+    tab_looker: 'Looker Studio Embed',
+    users_7d: 'Users (7d)',
+    pageviews_7d: 'Page Views (7d)',
+    date_label: 'Date',
+    active_users: 'Active users',
+    screen_views: 'Screen views',
+  },
+} as const;
+type TKey = keyof typeof T.fr;
 
 function cx(...classes: (string | boolean | undefined)[]) {
   return classes.filter(Boolean).join(' ');
@@ -76,6 +135,10 @@ function RankBadge({ rank }: { rank: number }) {
 }
 
 export default function AdminDashboardPage() {
+  const { i18n } = useTranslation();
+  const isEn = i18n.language?.startsWith('en') ?? false;
+  const t = (k: TKey) => isEn ? T.en[k] : T.fr[k];
+  const [mounted, setMounted] = useState(false);
   const [loading, setLoading] = useState(true);
   const [dashboardData, setDashboardData] = useState({
     totalUsers: 0,
@@ -91,6 +154,10 @@ export default function AdminDashboardPage() {
   const [isMockAnalytics, setIsMockAnalytics] = useState(false);
   const [activeAnalyticsTab, setActiveAnalyticsTab] = useState<'custom' | 'looker'>('custom');
   const { addToast } = useToastStore();
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     const loadDashboardData = async () => {
@@ -134,14 +201,14 @@ export default function AdminDashboardPage() {
         setIsMockAnalytics(!!analyticsRes.isMock);
       } catch (error: any) {
         console.error('Failed to load dashboard data:', error);
-        addToast('Erreur lors du chargement du tableau de bord', 'error');
+        addToast(t('load_error'), 'error');
       } finally {
         setLoading(false);
       }
     };
 
     loadDashboardData();
-  }, [addToast]);
+  }, [addToast, t]);
 
   const formatDateLabel = (dateStr: string) => {
     if (dateStr.length !== 8) return dateStr;
@@ -150,13 +217,23 @@ export default function AdminDashboardPage() {
     return `${day}/${month}`;
   };
 
+  // Avoid hydration mismatch: keep a stable shell until i18n is ready client-side
+  if (!mounted) {
+    return (
+      <div className="space-y-6">
+        <div className="border-b border-white/10 pb-4 h-[52px]" />
+        <div className="rounded-xl border border-white/10 bg-white/[0.02] h-[92px]" />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* ── Page Header ─────────────────────────────────────────────────── */}
       <div className="border-b border-white/10 pb-4">
-        <h1 className="text-xl font-semibold text-foreground">Vue d'ensemble</h1>
+        <h1 className="text-xl font-semibold text-foreground">{t('title')}</h1>
         <p className="text-sm text-foreground/40 mt-0.5">
-          Suivi des indicateurs clés, classements et données d'audience
+          {t('subtitle')}
         </p>
       </div>
 
@@ -165,15 +242,15 @@ export default function AdminDashboardPage() {
         {loading ? (
           <div className="flex items-center justify-center py-6 text-gold">
             <Loader2 className="animate-spin" size={20} />
-            <span className="text-xs text-foreground/40 ml-2">Chargement des indicateurs...</span>
+            <span className="text-xs text-foreground/40 ml-2">{t('loading_kpis')}</span>
           </div>
         ) : (
           <div className="grid grid-cols-2 lg:grid-cols-4 divide-y lg:divide-y-0 lg:divide-x divide-white/8 gap-y-4 lg:gap-y-0">
             {[
-              { label: 'Utilisateurs', value: dashboardData.totalUsers, href: '/dashboard/admin/clients' },
-              { label: 'Prestataires', value: dashboardData.totalProviders, href: '/dashboard/admin/providers' },
-              { label: 'Livreurs', value: dashboardData.totalDeliveryDrivers, href: '/dashboard/admin/delivery' },
-              { label: 'Commandes', value: dashboardData.totalOrders, href: '/dashboard/admin/order' },
+              { label: t('stat_users'), value: dashboardData.totalUsers, href: '/dashboard/admin/clients' },
+              { label: t('stat_providers'), value: dashboardData.totalProviders, href: '/dashboard/admin/providers' },
+              { label: t('stat_drivers'), value: dashboardData.totalDeliveryDrivers, href: '/dashboard/admin/delivery' },
+              { label: t('stat_orders'), value: dashboardData.totalOrders, href: '/dashboard/admin/order' },
             ].map((stat, index) => (
               <div key={stat.label} className={cx('px-4', index === 0 && 'pl-0 lg:pl-0', index > 0 && 'pt-4 lg:pt-0')}>
                 <div className="flex items-center justify-between">
@@ -195,7 +272,7 @@ export default function AdminDashboardPage() {
           <div>
             <div className="flex items-center justify-between px-4 py-3 border-b border-white/10 bg-white/[0.02]">
               <span className="text-[10px] font-semibold uppercase tracking-wider text-foreground/35">
-                Top 5 Clients
+                {t('top5_clients')}
               </span>
               <IconButton href="/dashboard/admin/clients" icon={<ArrowUpRight size={14} />} hoverColor="gold" />
             </div>
@@ -203,11 +280,11 @@ export default function AdminDashboardPage() {
             {loading ? (
               <div className="flex items-center justify-center py-12 text-gold">
                 <Loader2 className="animate-spin" size={20} />
-                <span className="text-xs text-foreground/40 ml-2">Chargement...</span>
+                <span className="text-xs text-foreground/40 ml-2">{t('loading')}</span>
               </div>
             ) : topClients.length === 0 ? (
               <div className="py-12 text-center text-sm italic text-foreground/30">
-                Aucune donnée disponible
+                {t('no_data')}
               </div>
             ) : (
               <div className="divide-y divide-white/5">
@@ -227,7 +304,7 @@ export default function AdminDashboardPage() {
                     </div>
                     <div className="text-right shrink-0">
                       <p className="text-xs font-semibold tabular-nums text-gold">{(client.points_fidelite ?? 0).toLocaleString()}</p>
-                      <p className="text-[10px] text-foreground/35 uppercase tracking-wider">pts</p>
+                      <p className="text-[10px] text-foreground/35 uppercase tracking-wider">{t('points_abbr')}</p>
                     </div>
                   </div>
                 ))}
@@ -241,7 +318,7 @@ export default function AdminDashboardPage() {
           <div>
             <div className="flex items-center justify-between px-4 py-3 border-b border-white/10 bg-white/[0.02]">
               <span className="text-[10px] font-semibold uppercase tracking-wider text-foreground/35">
-                Top 5 Prestataires
+                {t('top5_providers')}
               </span>
               <IconButton href="/dashboard/admin/providers" icon={<ArrowUpRight size={14} />} hoverColor="emerald" />
             </div>
@@ -249,11 +326,11 @@ export default function AdminDashboardPage() {
             {loading ? (
               <div className="flex items-center justify-center py-12 text-gold">
                 <Loader2 className="animate-spin" size={20} />
-                <span className="text-xs text-foreground/40 ml-2">Chargement...</span>
+                <span className="text-xs text-foreground/40 ml-2">{t('loading')}</span>
               </div>
             ) : topProviders.length === 0 ? (
               <div className="py-12 text-center text-sm italic text-foreground/30">
-                Aucune donnée disponible
+                {t('no_data')}
               </div>
             ) : (
               <div className="divide-y divide-white/5">
@@ -275,7 +352,7 @@ export default function AdminDashboardPage() {
                       <p className="text-xs font-semibold tabular-nums text-emerald-400">
                         {Number(provider.solde_commission).toLocaleString('fr-FR')}
                       </p>
-                      <p className="text-[10px] text-foreground/35 uppercase tracking-wider">FCFA</p>
+                      <p className="text-[10px] text-foreground/35 uppercase tracking-wider">{t('currency')}</p>
                     </div>
                   </div>
                 ))}
@@ -292,10 +369,10 @@ export default function AdminDashboardPage() {
           <div className="flex items-center gap-2 pb-3 sm:pb-4">
             <BarChart3 size={16} className="text-gold" />
             <h2 className="text-xs font-semibold uppercase tracking-wider text-foreground">
-              Analyses d'Audience (GA4)
+              {t('analytics_title')}
             </h2>
             {isMockAnalytics && (
-              <StatusChip label="Mode Démo" color="gold" />
+              <StatusChip label={t('demo_mode')} color="gold" />
             )}
           </div>
 
@@ -309,7 +386,7 @@ export default function AdminDashboardPage() {
                   : "border-transparent text-foreground/45 hover:text-foreground"
               )}
             >
-              Graphique personnalisé
+              {t('tab_custom')}
             </button>
             <button
               onClick={() => setActiveAnalyticsTab('looker')}
@@ -320,7 +397,7 @@ export default function AdminDashboardPage() {
                   : "border-transparent text-foreground/45 hover:text-foreground"
               )}
             >
-              Looker Studio Embed
+              {t('tab_looker')}
             </button>
           </div>
         </div>
@@ -329,13 +406,13 @@ export default function AdminDashboardPage() {
           {loading ? (
             <div className="flex items-center justify-center py-20 text-gold">
               <Loader2 className="animate-spin" size={20} />
-              <span className="text-xs text-foreground/40 ml-2">Chargement de l'analyse...</span>
+              <span className="text-xs text-foreground/40 ml-2">{t('loading_analytics')}</span>
             </div>
           ) : activeAnalyticsTab === 'custom' ? (
             <div>
               {analyticsData.length === 0 ? (
                 <div className="py-16 text-center text-sm italic text-foreground/30">
-                  Aucune donnée d'analyse disponible
+                  {t('no_analytics')}
                 </div>
               ) : (
                 <div className="space-y-4">
@@ -344,7 +421,7 @@ export default function AdminDashboardPage() {
                     <div className="grid grid-cols-2 divide-x divide-white/8">
                       <div className="pr-3">
                         <p className="text-[10px] font-semibold uppercase tracking-wider text-foreground/35">
-                          Utilisateurs (7j)
+                          {t('users_7d')}
                         </p>
                         <p className="text-xl font-semibold tabular-nums text-foreground mt-0.5">
                           {analyticsData.reduce((acc, cur) => acc + cur.users, 0).toLocaleString()}
@@ -352,7 +429,7 @@ export default function AdminDashboardPage() {
                       </div>
                       <div className="pl-3">
                         <p className="text-[10px] font-semibold uppercase tracking-wider text-foreground/35">
-                          Vues de Page (7j)
+                          {t('pageviews_7d')}
                         </p>
                         <p className="text-xl font-semibold tabular-nums text-gold mt-0.5">
                           {analyticsData.reduce((acc, cur) => acc + cur.views, 0).toLocaleString()}
@@ -395,12 +472,12 @@ export default function AdminDashboardPage() {
                             color: '#fff',
                             fontSize: '12px'
                           }}
-                          labelFormatter={(label) => `Date: ${formatDateLabel(label as string)}`}
+                          labelFormatter={(label) => `${t('date_label')}: ${formatDateLabel(label as string)}`}
                         />
                         <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }} />
                         <Area
                           type="monotone"
-                          name="Utilisateurs actifs"
+                          name={t('active_users')}
                           dataKey="users"
                           stroke="#C5A059"
                           strokeWidth={2}
@@ -409,7 +486,7 @@ export default function AdminDashboardPage() {
                         />
                         <Area
                           type="monotone"
-                          name="Vues d'écran"
+                          name={t('screen_views')}
                           dataKey="views"
                           stroke="#3B82F6"
                           strokeWidth={2}
