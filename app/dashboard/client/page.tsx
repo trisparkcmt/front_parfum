@@ -11,11 +11,63 @@ import { BackButton } from '@/components/ui/BackButton';
 import { Order } from '@/types';
 import { useClientDashboard } from '@/hooks/useClientDashboard';
 
+// Local strings for keys that don't exist in the shared translation files yet.
+// Add languages here as needed — falls back to French if the current
+// app language isn't listed.
+const LOCAL_STRINGS: Record<string, Record<string, string>> = {
+  fr: {
+    order_id: 'ID',
+    order_date: 'Date',
+    order_items: 'Articles',
+    order_status: 'Statut',
+    order_total: 'Total',
+    order_client: 'Client',
+    order_phone: 'Téléphone',
+    order_created_at: 'Créée le',
+    loyalty_points: 'Points fidélité',
+    total_spent: 'Total dépensé',
+    my_orders_action: 'Mes Commandes',
+    my_orders_desc: 'Voir toutes mes commandes',
+    atelier_numba_desc: 'Atelier Numba',
+    saved_products_desc: 'Produits sauvegardés',
+    rewards_desc: 'Vos récompenses',
+    settings_desc: 'Langue, Devise, Apparence',
+    quantity_label: 'Quantité',
+    item_singular: 'article',
+    items_plural: 'articles',
+  },
+  en: {
+    order_id: 'ID',
+    order_date: 'Date',
+    order_items: 'Items',
+    order_status: 'Status',
+    order_total: 'Total',
+    order_client: 'Client',
+    order_phone: 'Phone',
+    order_created_at: 'Created on',
+    loyalty_points: 'Loyalty points',
+    total_spent: 'Total spent',
+    my_orders_action: 'My Orders',
+    my_orders_desc: 'View all my orders',
+    atelier_numba_desc: 'Numba Workshop',
+    saved_products_desc: 'Saved products',
+    rewards_desc: 'Your rewards',
+    settings_desc: 'Language, Currency, Appearance',
+    quantity_label: 'Quantity',
+    item_singular: 'item',
+    items_plural: 'items',
+  },
+};
+
 export default function ClientDashboard() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const router = useRouter();
   const { user } = useAuthStore();
   const { orders } = useClientDashboard();
+
+  // Resolve current language, falling back to French for anything not listed above.
+  const lang = LOCAL_STRINGS[i18n.language] ? i18n.language : 'fr';
+  const tr = (key: string) => LOCAL_STRINGS[lang][key] ?? LOCAL_STRINGS.fr[key] ?? key;
 
   const statusConfig = {
     pending: { label: t('status_pending'), color: 'text-amber-400 bg-amber-400/10' },
@@ -24,7 +76,6 @@ export default function ClientDashboard() {
     delivered: { label: t('status_delivered'), color: 'text-emerald-400 bg-emerald-400/10' },
     cancelled: { label: t('status_cancelled'), color: 'text-red-400 bg-red-400/10' },
   };
-
 
   const deliveredOrders = useMemo(() => orders.filter(o => o.status === 'delivered'), [orders]);
   const ongoingOrders = useMemo(() => orders.filter(o => o.status !== 'delivered'), [orders]);
@@ -51,6 +102,14 @@ export default function ClientDashboard() {
   const ongoingPages = Math.max(1, Math.ceil(ongoingOrders.length / rowsPerPage));
   const deliveredPages = Math.max(1, Math.ceil(deliveredOrders.length / rowsPerPage));
 
+  const tableHeaders = [
+    tr('order_id'),
+    tr('order_date'),
+    tr('order_items'),
+    tr('order_status'),
+    tr('order_total'),
+  ];
+
   return (
     <div className="space-y-6 px-4 sm:px-6 py-4 sm:py-6">
       <BackButton />
@@ -67,8 +126,8 @@ export default function ClientDashboard() {
         {[
           { label: t('orders_count'), value: orders.length, icon: <Package size={18} />, color: 'text-gold bg-gold/10' },
           { label: t('delivered_count'), value: deliveredOrders.length, icon: <ShoppingBag size={18} />, color: 'text-emerald-400 bg-emerald-400/10' },
-          { label: 'Points fidélité', value: user?.client?.points_fidelite ?? 0, icon: <Star size={18} />, color: 'text-amber-400 bg-amber-400/10' },
-          { label: 'Total dépensé', value: formatPrice(user?.client?.total_depenses ?? totalSpent), icon: <CreditCard size={18} />, color: 'text-blue-400 bg-blue-400/10' },
+          { label: tr('loyalty_points'), value: user?.client?.points_fidelite ?? 0, icon: <Star size={18} />, color: 'text-amber-400 bg-amber-400/10' },
+          { label: tr('total_spent'), value: formatPrice(user?.client?.total_depenses ?? totalSpent), icon: <CreditCard size={18} />, color: 'text-blue-400 bg-blue-400/10' },
         ].map(s => (
           <div key={s.label} className="bg-white/5 rounded-2xl border border-white/10 p-5 shadow-sm">
             <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-3 ${s.color}`}>{s.icon}</div>
@@ -106,7 +165,7 @@ export default function ClientDashboard() {
             <table className="w-full text-sm">
               <thead className="bg-white/5 border-b border-white/10">
                 <tr>
-                  {['ID', t('Date'), t('Articles'), t('Statut'), 'Total'].map(h => (
+                  {tableHeaders.map(h => (
                     <th key={h} className="text-left text-xs font-semibold text-foreground/40 uppercase tracking-wider px-5 py-3">{h}</th>
                   ))}
                 </tr>
@@ -119,8 +178,8 @@ export default function ClientDashboard() {
                     className="hover:bg-white/5 transition-colors cursor-pointer"
                   >
                     <td className="px-5 py-4 font-mono text-xs text-gold font-semibold">{order.id}</td>
-                    <td className="px-5 py-4 text-xs text-foreground/40">{new Date(order.createdAt).toLocaleDateString('fr-FR')}</td>
-                    <td className="px-5 py-4 text-xs text-foreground/60">{order.items.length} article{order.items.length > 1 ? 's' : ''}</td>
+                    <td className="px-5 py-4 text-xs text-foreground/40">{new Date(order.createdAt).toLocaleDateString(lang === 'en' ? 'en-US' : 'fr-FR')}</td>
+                    <td className="px-5 py-4 text-xs text-foreground/60">{order.items.length} {order.items.length > 1 ? tr('items_plural') : tr('item_singular')}</td>
                     <td className="px-5 py-4">
                       <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-full ${statusConfig[order.status]?.color}`}>
                         {statusConfig[order.status]?.label}
@@ -168,7 +227,7 @@ export default function ClientDashboard() {
             <table className="w-full text-sm">
               <thead className="bg-white/5 border-b border-white/10">
                 <tr>
-                  {['ID', t('Date'), t('Articles'), t('Statut'), 'Total'].map(h => (
+                  {tableHeaders.map(h => (
                     <th key={h} className="text-left text-xs font-semibold text-foreground/40 uppercase tracking-wider px-5 py-3">{h}</th>
                   ))}
                 </tr>
@@ -181,8 +240,8 @@ export default function ClientDashboard() {
                     className="hover:bg-white/5 transition-colors cursor-pointer"
                   >
                     <td className="px-5 py-4 font-mono text-xs text-gold font-semibold">{order.id}</td>
-                    <td className="px-5 py-4 text-xs text-foreground/40">{new Date(order.createdAt).toLocaleDateString('fr-FR')}</td>
-                    <td className="px-5 py-4 text-xs text-foreground/60">{order.items.length} article{order.items.length > 1 ? 's' : ''}</td>
+                    <td className="px-5 py-4 text-xs text-foreground/40">{new Date(order.createdAt).toLocaleDateString(lang === 'en' ? 'en-US' : 'fr-FR')}</td>
+                    <td className="px-5 py-4 text-xs text-foreground/60">{order.items.length} {order.items.length > 1 ? tr('items_plural') : tr('item_singular')}</td>
                     <td className="px-5 py-4">
                       <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-full ${statusConfig[order.status]?.color}`}>
                         {statusConfig[order.status]?.label}
@@ -222,11 +281,11 @@ export default function ClientDashboard() {
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {[
-          { label: 'Mes Commandes', desc: 'Voir toutes mes commandes', icon: <Package size={20} />, color: 'from-blue-500 to-blue-700', href: '/dashboard/client/orders' },
-          { label: t('create_perfume_action'), desc: 'Atelier Numba', icon: <PerfumeIcon size={20} />, color: 'from-purple-500 to-purple-700', href: '/numba' },
-          { label: t('my_favorites_action'), desc: 'Produits sauvegardés', icon: <Heart size={20} />, color: 'from-red-400 to-red-600', href: '/dashboard/client/favorites' },
-          { label: t('loyalty_program_action'), desc: 'Vos récompenses', icon: <Star size={20} />, color: 'from-amber-400 to-amber-600', href: '#' },
-          { label: t('settings_action'), desc: 'Langue, Devise, Apparence', icon: <Palette size={20} />, color: 'from-blue-400 to-blue-600', href: '/dashboard/client/profile' },
+          { label: tr('my_orders_action'), desc: tr('my_orders_desc'), icon: <Package size={20} />, color: 'from-blue-500 to-blue-700', href: '/dashboard/client/orders' },
+          { label: t('create_perfume_action'), desc: tr('atelier_numba_desc'), icon: <PerfumeIcon size={20} />, color: 'from-purple-500 to-purple-700', href: '/numba' },
+          { label: t('my_favorites_action'), desc: tr('saved_products_desc'), icon: <Heart size={20} />, color: 'from-red-400 to-red-600', href: '/dashboard/client/favorites' },
+          { label: t('loyalty_program_action'), desc: tr('rewards_desc'), icon: <Star size={20} />, color: 'from-amber-400 to-amber-600', href: '#' },
+          { label: t('settings_action'), desc: tr('settings_desc'), icon: <Palette size={20} />, color: 'from-blue-400 to-blue-600', href: '/dashboard/client/profile' },
         ].map(a => (
           <button
             key={a.label}
@@ -246,7 +305,7 @@ export default function ClientDashboard() {
             <div className="sticky top-0 bg-background border-b border-white/10 px-6 py-4 flex items-center justify-between z-10">
               <div>
                 <h3 className="font-bold text-foreground text-lg">{selectedOrder.id}</h3>
-                <p className="text-xs text-foreground/40">{new Date(selectedOrder.createdAt).toLocaleDateString('fr-FR')}</p>
+                <p className="text-xs text-foreground/40">{new Date(selectedOrder.createdAt).toLocaleDateString(lang === 'en' ? 'en-US' : 'fr-FR')}</p>
               </div>
               <button onClick={() => setSelectedOrder(null)} className="p-2 rounded-xl hover:bg-white/5 text-foreground/40 hover:text-foreground transition-colors">
                 <X size={18} />
@@ -257,36 +316,36 @@ export default function ClientDashboard() {
                 <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full ${statusConfig[selectedOrder.status]?.color}`}>
                   {statusConfig[selectedOrder.status]?.label}
                 </span>
-                <p className="text-xs text-foreground/40">{selectedOrder.items.length} article{selectedOrder.items.length > 1 ? 's' : ''}</p>
+                <p className="text-xs text-foreground/40">{selectedOrder.items.length} {selectedOrder.items.length > 1 ? tr('items_plural') : tr('item_singular')}</p>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="bg-white/5 rounded-xl px-3 py-2">
-                  <p className="text-[10px] text-foreground/40 mb-0.5">Total</p>
+                  <p className="text-[10px] text-foreground/40 mb-0.5">{tr('order_total')}</p>
                   <p className="text-sm font-semibold text-foreground">{formatPrice(selectedOrder.total)}</p>
                 </div>
                 <div className="bg-white/5 rounded-xl px-3 py-2">
-                  <p className="text-[10px] text-foreground/40 mb-0.5">Client</p>
+                  <p className="text-[10px] text-foreground/40 mb-0.5">{tr('order_client')}</p>
                   <p className="text-sm font-semibold text-foreground">{selectedOrder.clientName}</p>
                 </div>
                 <div className="bg-white/5 rounded-xl px-3 py-2">
-                  <p className="text-[10px] text-foreground/40 mb-0.5">Téléphone</p>
+                  <p className="text-[10px] text-foreground/40 mb-0.5">{tr('order_phone')}</p>
                   <p className="text-sm font-semibold text-foreground">{selectedOrder.clientPhone}</p>
                 </div>
                 <div className="bg-white/5 rounded-xl px-3 py-2">
-                  <p className="text-[10px] text-foreground/40 mb-0.5">Créée le</p>
-                  <p className="text-sm font-semibold text-foreground">{new Date(selectedOrder.createdAt).toLocaleString('fr-FR')}</p>
+                  <p className="text-[10px] text-foreground/40 mb-0.5">{tr('order_created_at')}</p>
+                  <p className="text-sm font-semibold text-foreground">{new Date(selectedOrder.createdAt).toLocaleString(lang === 'en' ? 'en-US' : 'fr-FR')}</p>
                 </div>
               </div>
 
               <div className="space-y-3">
-                <p className="text-xs font-semibold uppercase text-foreground/40">Articles</p>
+                <p className="text-xs font-semibold uppercase text-foreground/40">{tr('order_items')}</p>
                 <div className="space-y-2">
                   {selectedOrder.items.map((item) => (
                     <div key={item.id} className="flex items-center justify-between bg-white/5 rounded-xl px-4 py-3">
                       <div>
                         <p className="text-sm font-semibold text-foreground">{item.productName}</p>
-                        <p className="text-xs text-foreground/40">Quantité: {item.quantity}</p>
+                        <p className="text-xs text-foreground/40">{tr('quantity_label')}: {item.quantity}</p>
                       </div>
                       <p className="text-sm font-semibold text-foreground">{formatPrice(item.totalPrice)}</p>
                     </div>
@@ -307,4 +366,3 @@ export default function ClientDashboard() {
     </div>
   );
 }
-

@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import {
@@ -508,7 +508,7 @@ function IngredientsTab() {
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Rechercher un ingrédient..."
-            className="w-full bg-white/[0.02] border border-white/10 rounded-lg pl-9 pr-8 py-1.5 text-xs text-foreground placeholder:text-foreground/40 outline-none focus:border-white/20 transition-all"
+            className="shadow-black/30 shadow-sm w-full bg-white/[0.02] border border-white/10 rounded-lg pl-9 pr-8 py-1.5 text-xs text-foreground placeholder:text-foreground/40 outline-none focus:border-white/20 transition-all"
           />
           {search && (
             <button onClick={() => setSearch('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-foreground/40 hover:text-foreground">
@@ -1342,7 +1342,7 @@ export default function LabPage() {
       </div>
 
       {/* Tabs & Content Container */}
-      <div className="rounded-xl border border-white/10 bg-white/[0.02] overflow-hidden">
+      <div className="shadow-black/30 shadow-sm rounded-xl border border-white/10 bg-white/[0.02] overflow-hidden">
         <div className="flex border-b border-white/10 overflow-x-auto px-2 pt-1">
           <TabButton
             active={activeTab === 'ingredients'}

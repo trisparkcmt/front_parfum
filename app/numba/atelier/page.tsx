@@ -855,7 +855,17 @@ function AtelierContent() {
       {/* LEFT: VISUALIZER */}
       <div className="flacon-panel">
         <div className="flacon-panel-bg" />
-        <div className="flacon-eyebrow">Atelier Numba · {maxMl}ml</div>
+        {/* <div className="flex flex-col items-center gap-2 mb-2 z-10">
+          
+        </div> */}
+        <div className="flacon-eyebrow">Atelier 
+            <img
+              src="/logo/Numba gold.svg"
+              alt="Numba Logo"
+              className="-mt-20 -mb-20 h-20 w-auto object-contain "
+            />
+           · {maxMl}ml
+           </div>
         
         <div className="flex items-center gap-2 z-20">
           <button 

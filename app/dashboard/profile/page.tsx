@@ -51,7 +51,7 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 
 function Panel({ children, className }: { children: React.ReactNode; className?: string }) {
   return (
-    <div className={cx('rounded-xl border border-foreground/10 bg-foreground/[0.03]', className)}>
+    <div className={cx('rounded-xl shadow-black/30  shadow-sm border border-foreground/10 bg-foreground/[0.03]', className)}>
       {children}
     </div>
   );
@@ -396,7 +396,7 @@ export default function ProfilePage() {
           <div>
             <SectionLabel>{t('information', { defaultValue: isEn ? 'Information' : 'Informations' })}</SectionLabel>
             <Panel>
-              <div className="divide-y divide-foreground/10">
+              <div className="divide-y   divide-foreground/10">
                 <InfoRow
                   icon={<Mail size={16} />}
                   label={t('email', { defaultValue: 'Email' })}
@@ -461,7 +461,7 @@ export default function ProfilePage() {
                   <button
                     key={opt.id}
                     onClick={() => router.push(opt.href)}
-                    className="group flex items-start gap-3.5 p-4 rounded-xl border border-foreground/10 bg-foreground/[0.03] hover:bg-foreground/[0.05] transition-colors text-left"
+                    className="shadow-black/30  shadow-sm group flex items-start gap-3.5 p-4 rounded-xl border border-foreground/10 bg-foreground/[0.03] hover:bg-foreground/[0.05] transition-colors text-left"
                   >
                     <span className="text-2xl shrink-0 mt-0.5">{opt.icon}</span>
                     <div className="flex-1 min-w-0">
@@ -479,7 +479,7 @@ export default function ProfilePage() {
                 {/* FAVORITES CARD */}
                 <Link
                   href="/dashboard/client/favorites"
-                  className="group flex items-start gap-3.5 p-4 rounded-xl border border-foreground/10 bg-foreground/[0.03] hover:bg-foreground/[0.05] transition-colors"
+                  className="shadow-black/30  shadow-sm group flex items-start gap-3.5 p-4 rounded-xl border border-foreground/10 bg-foreground/[0.03] hover:bg-foreground/[0.05] transition-colors"
                 >
                   <div className="w-8 h-8 rounded-lg border border-foreground/10 bg-foreground/5 flex items-center justify-center text-rose-400 shrink-0">
                     <Heart size={16} />
@@ -499,7 +499,7 @@ export default function ProfilePage() {
                 {userRoles.includes('serveuse') && (
                   <Link
                     href="/dashboard/pos"
-                    className="group flex items-start gap-3.5 p-4 rounded-xl border border-foreground/10 bg-foreground/[0.03] hover:bg-foreground/[0.05] transition-colors"
+                    className="shadow-black/30  shadow-sm group flex items-start gap-3.5 p-4 rounded-xl border border-foreground/10 bg-foreground/[0.03] hover:bg-foreground/[0.05] transition-colors"
                   >
                     <div className="w-8 h-8 rounded-lg border border-foreground/10 bg-foreground/5 flex items-center justify-center text-gold shrink-0">
                       <ShoppingCart size={16} />

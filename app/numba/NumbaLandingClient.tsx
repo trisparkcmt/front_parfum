@@ -18,20 +18,21 @@ export default function NumbaLandingClient() {
 
   return (
     <div className="min-h-screen bg-background text-foreground font-sans selection:bg-gold selection:text-deep-black flex flex-col justify-between">
-      <div className="w-full border-b border-[var(--t-border)] px-4 sm:px-12 py-4 flex justify-between items-center text-[10px] tracking-[0.3em] font-mono uppercase text-foreground/40">
-        <div>[ {t('olfactory_atelier')} ]</div>
-        <div>Numba Lab System v2.6</div>
-      </div>
+      
 
       <main className="p-4 sm:p-6 lg:p-0 grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-0 w-full max-w-[1800px] mx-auto flex-grow items-stretch lg:border-b lg:border-[var(--t-border)]">
-        <div className="p-8 sm:p-12 lg:p-16 flex flex-col justify-between rounded-2xl lg:rounded-none border border-[var(--t-border)] lg:border-t-0 lg:border-b-0 lg:border-l-0 lg:border-r bg-foreground/[0.03]">
+        <div className="p-8 mt-18 lg:mt-0 sm:p-12 lg:p-16 lg:pt-25 flex flex-col justify-between rounded-2xl lg:rounded-none border border-[var(--t-border)] lg:border-t-0 lg:border-b-0 lg:border-l-0 lg:border-r bg-foreground/[0.03]">
           <div>
-            <span className="text-[11px] font-mono tracking-[0.25em] uppercase text-gold block mb-12">
+            <span className="text-[11px] font-mono tracking-[0.25em] uppercase text-gold block mb-2">
               Concept Introduction
             </span>
-            <h1 className="font-display text-4xl sm:text-5xl xl:text-6xl font-bold tracking-tight text-foreground leading-[1.1] mb-8">
+            <h1 className="font-display text-center text-4xl sm:text-5xl xl:text-6xl font-bold tracking-tight text-foreground leading-[1.1] -mb-2">
               {t('welcome_at')}<br />
-              <span className="text-gradient-gold font-normal italic font-serif lowercase">numba.</span>
+              <img
+              src="/logo/Numba gold.svg"
+              alt="Accessoires Exclusifs"
+              className="-my-20 w-auto object-contain  group-hover:scale-105 transition-transform duration-300"
+            />
             </h1>
           </div>
 
@@ -44,7 +45,7 @@ export default function NumbaLandingClient() {
 
         <Link
           href="/numba/ai-consultant"
-          className="group block relative p-8 sm:p-12 lg:p-16 flex flex-col justify-between rounded-2xl lg:rounded-none border-2 border-gold/40 lg:border lg:border-t-0 lg:border-b-0 lg:border-l-0 lg:border-r bg-foreground/[0.01] hover:bg-gold/5 transition-all duration-500 shadow-sm shadow-gold/[0.02] lg:shadow-none"
+          className="group block relative p-8 lg:mt-15 sm:p-12 lg:p-16 flex flex-col justify-between rounded-2xl lg:rounded-none border-2 border-gold/40 lg:border lg:border-t-0 lg:border-b-0 lg:border-l-0 lg:border-r bg-foreground/[0.01] hover:bg-gold/5 transition-all duration-500 shadow-sm shadow-gold/[0.02] lg:shadow-none"
         >
           <div className="lg:hidden absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-gold text-deep-black text-[9px] font-mono tracking-widest uppercase px-3 py-0.5 rounded-full font-bold">
             Option A
@@ -76,7 +77,7 @@ export default function NumbaLandingClient() {
 
         <Link
           href="/numba/atelier"
-          className="group block relative p-8 sm:p-12 lg:p-16 flex flex-col justify-between rounded-2xl lg:rounded-none border border-[var(--t-border)] lg:border-none bg-foreground/[0.03] lg:bg-transparent hover:bg-foreground/5 transition-all duration-500"
+          className="group block relative p-8 lg:mt-15 sm:p-12 lg:p-16 flex flex-col justify-between rounded-2xl lg:rounded-none border-2 border-blue/300 lg:border-none bg-foreground/[0.03] lg:bg-transparent hover:bg-foreground/5 transition-all duration-500"
         >
           <div className="lg:hidden absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-neutral-800 text-neutral-400 text-[9px] font-mono tracking-widest uppercase px-3 py-0.5 rounded-full border border-[var(--t-border)]">
             Option B

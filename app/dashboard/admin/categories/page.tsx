@@ -624,7 +624,7 @@ export default function CategoriesAdminPage() {
         </div>
 
         {/* Tabs & Content Wrapper */}
-        <div className="overflow-hidden rounded-xl border border-white/10 bg-white/[0.02]">
+        <div className="shadow-black/30 shadow-sm overflow-hidden rounded-xl border border-white/10 bg-white/[0.02]">
           {/* Section Navigation Tabs */}
           <div className="flex overflow-x-auto border-b border-white/10 bg-white/[0.02]">
             <TabButton

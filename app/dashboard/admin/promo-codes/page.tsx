@@ -210,7 +210,7 @@ export default function PromoCodesPage() {
       </div>
 
       {/* Table Container */}
-      <div className="rounded-xl border border-white/10 bg-white/[0.02] overflow-hidden">
+      <div className="shadow-black/30 shadow-sm rounded-xl border border-white/10 bg-white/[0.02] overflow-hidden">
         {loading ? (
           <div className="flex items-center justify-center gap-2 py-20 text-xs text-foreground/40">
             <Loader2 size={16} className="animate-spin text-gold" />

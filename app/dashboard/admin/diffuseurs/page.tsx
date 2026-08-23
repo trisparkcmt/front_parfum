@@ -432,7 +432,7 @@ export default function DiffuseursAdminPage() {
       </div>
 
       {/* KPI Strip */}
-      <div className="rounded-xl border border-white/10 bg-white/[0.02] grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-white/10">
+      <div className="shadow-black/30 shadow-sm shadow-black/30 shadow-sm rounded-xl border border-white/10 bg-white/[0.02] grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-white/10">
         <div className="p-4">
           <p className="text-[10px] font-semibold uppercase tracking-wider text-foreground/35">{t('kpi_total')}</p>
           <p className="text-xl font-semibold tabular-nums text-foreground mt-0.5">{stats.total}</p>
@@ -462,7 +462,7 @@ export default function DiffuseursAdminPage() {
       </div>
 
       {/* Table Section — desktop */}
-      <div className="hidden md:block rounded-xl border border-white/10 overflow-hidden bg-white/[0.02] min-h-[250px]">
+      <div className="shadow-black/30 shadow-sm hidden md:block rounded-xl border border-white/10 overflow-hidden bg-white/[0.02] min-h-[250px]">
         {loading ? (
           <div className="flex items-center justify-center py-20 text-foreground/40 gap-2">
             <Loader2 className="animate-spin text-gold" size={18} />
@@ -586,7 +586,7 @@ export default function DiffuseursAdminPage() {
       {/* Cards — mobile */}
       <div className="md:hidden space-y-3">
         {loading ? (
-          <div className="flex items-center justify-center py-20 text-foreground/40 gap-2 rounded-xl border border-white/10 bg-white/[0.02]">
+          <div className="shadow-black/30 shadow-sm flex items-center justify-center py-20 text-foreground/40 gap-2 rounded-xl border border-white/10 bg-white/[0.02]">
             <Loader2 className="animate-spin text-gold" size={18} />
             <span className="text-xs">Chargement des diffuseurs...</span>
           </div>

@@ -551,7 +551,7 @@ export default function EssencesPage() {
       <CatalogAccessNotice permissions={permissions} resourceLabel="les essences" />
 
       {/* KPI Bordered Strip */}
-      <div className="rounded-xl border border-white/10 bg-white/[0.02] grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-white/10">
+      <div className="shadow-black/30 shadow-sm rounded-xl border border-white/10 bg-white/[0.02] grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-white/10">
         <div className="p-4 flex flex-col justify-between">
           <span className="text-[10px] font-semibold uppercase tracking-wider text-foreground/35">{t('kpi_total')}</span>
           <span className="text-xl font-semibold tabular-nums text-foreground mt-1">{essences.length}</span>
@@ -592,7 +592,7 @@ export default function EssencesPage() {
           <button
             onClick={() => setShowFilters(!showFilters)}
             className={cx(
-              'flex items-center gap-1.5 rounded-lg border border-white/10 px-3 py-1.5 text-xs font-medium transition-colors',
+              'shadow-black/30 shadow-sm flex items-center gap-1.5 rounded-lg border border-white/10 px-3 py-1.5 text-xs font-medium transition-colors',
               showFilters || activeFiltersCount > 0 ? 'bg-white/10 text-foreground' : 'text-foreground/60 hover:bg-white/5'
             )}
           >
@@ -608,7 +608,7 @@ export default function EssencesPage() {
 
         {/* Expandable Filter Panel */}
         {showFilters && (
-          <div className="rounded-xl border border-white/10 bg-white/[0.02] p-3 flex flex-wrap items-center gap-4">
+          <div className="shadow-black/30 shadow-sm rounded-xl border border-white/10 bg-white/[0.02] p-3 flex flex-wrap items-center gap-4">
             <div className="flex items-center gap-2">
               <span className="text-xs text-foreground/50">{isEn ? 'Category:' : 'Catégorie:'}</span>
               <div className="flex items-center gap-1">
@@ -648,7 +648,7 @@ export default function EssencesPage() {
       </div>
 
       {/* Table */}
-      <div className="rounded-xl border border-white/10 overflow-hidden">
+      <div className="shadow-black/30 shadow-sm rounded-xl border border-white/10 overflow-hidden">
         {loading ? (
           <div className="flex items-center justify-center py-12 text-foreground/40 gap-2 text-xs">
             <Loader2 className="animate-spin text-gold" size={16} />

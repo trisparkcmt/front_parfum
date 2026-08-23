@@ -208,7 +208,7 @@ export default function AdminDashboardPage() {
     };
 
     loadDashboardData();
-  }, [addToast, t]);
+  }, [addToast]);
 
   const formatDateLabel = (dateStr: string) => {
     if (dateStr.length !== 8) return dateStr;
@@ -238,7 +238,7 @@ export default function AdminDashboardPage() {
       </div>
 
       {/* ── KPI Stat Strip ─────────────────────────────────────────────────── */}
-      <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
+      <div className="shadow-black/30 shadow-sm rounded-xl border border-white/10 bg-white/[0.02] p-4">
         {loading ? (
           <div className="flex items-center justify-center py-6 text-gold">
             <Loader2 className="animate-spin" size={20} />
@@ -268,7 +268,7 @@ export default function AdminDashboardPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
         {/* Top 5 Clients Table Container */}
-        <div className="rounded-xl border border-white/10 bg-white/[0.02] overflow-hidden flex flex-col justify-between">
+        <div className="rounded-xl shadow-black/30 shadow-sm border border-white/10 bg-white/[0.02] overflow-hidden flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between px-4 py-3 border-b border-white/10 bg-white/[0.02]">
               <span className="text-[10px] font-semibold uppercase tracking-wider text-foreground/35">
@@ -314,7 +314,7 @@ export default function AdminDashboardPage() {
         </div>
 
         {/* Top 5 Prestataires Table Container */}
-        <div className="rounded-xl border border-white/10 bg-white/[0.02] overflow-hidden flex flex-col justify-between">
+        <div className="shadow-black/30 shadow-sm rounded-xl border border-white/10 bg-white/[0.02] overflow-hidden flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between px-4 py-3 border-b border-white/10 bg-white/[0.02]">
               <span className="text-[10px] font-semibold uppercase tracking-wider text-foreground/35">
@@ -362,158 +362,7 @@ export default function AdminDashboardPage() {
         </div>
       </div>
 
-      {/* ── Google Analytics 4 Section ─────────────────────────────────── */}
-      <div className="rounded-xl border border-white/10 bg-white/[0.02] overflow-hidden">
-        {/* Header & Quiet Underline Navigation Tabs */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between px-5 pt-4 border-b border-white/10 gap-3">
-          <div className="flex items-center gap-2 pb-3 sm:pb-4">
-            <BarChart3 size={16} className="text-gold" />
-            <h2 className="text-xs font-semibold uppercase tracking-wider text-foreground">
-              {t('analytics_title')}
-            </h2>
-            {isMockAnalytics && (
-              <StatusChip label={t('demo_mode')} color="gold" />
-            )}
-          </div>
-
-          <div className="flex gap-6 border-b border-white/10 sm:border-b-0 -mb-px sm:mb-0">
-            <button
-              onClick={() => setActiveAnalyticsTab('custom')}
-              className={cx(
-                "pb-3 text-xs font-medium transition-colors border-b-2 -mb-px cursor-pointer",
-                activeAnalyticsTab === 'custom'
-                  ? "border-gold text-gold font-semibold"
-                  : "border-transparent text-foreground/45 hover:text-foreground"
-              )}
-            >
-              {t('tab_custom')}
-            </button>
-            <button
-              onClick={() => setActiveAnalyticsTab('looker')}
-              className={cx(
-                "pb-3 text-xs font-medium transition-colors border-b-2 -mb-px cursor-pointer",
-                activeAnalyticsTab === 'looker'
-                  ? "border-gold text-gold font-semibold"
-                  : "border-transparent text-foreground/45 hover:text-foreground"
-              )}
-            >
-              {t('tab_looker')}
-            </button>
-          </div>
-        </div>
-
-        <div className="p-5">
-          {loading ? (
-            <div className="flex items-center justify-center py-20 text-gold">
-              <Loader2 className="animate-spin" size={20} />
-              <span className="text-xs text-foreground/40 ml-2">{t('loading_analytics')}</span>
-            </div>
-          ) : activeAnalyticsTab === 'custom' ? (
-            <div>
-              {analyticsData.length === 0 ? (
-                <div className="py-16 text-center text-sm italic text-foreground/30">
-                  {t('no_analytics')}
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {/* Stats Sub-strip */}
-                  <div className="rounded-xl border border-white/10 bg-white/[0.02] p-3 max-w-sm">
-                    <div className="grid grid-cols-2 divide-x divide-white/8">
-                      <div className="pr-3">
-                        <p className="text-[10px] font-semibold uppercase tracking-wider text-foreground/35">
-                          {t('users_7d')}
-                        </p>
-                        <p className="text-xl font-semibold tabular-nums text-foreground mt-0.5">
-                          {analyticsData.reduce((acc, cur) => acc + cur.users, 0).toLocaleString()}
-                        </p>
-                      </div>
-                      <div className="pl-3">
-                        <p className="text-[10px] font-semibold uppercase tracking-wider text-foreground/35">
-                          {t('pageviews_7d')}
-                        </p>
-                        <p className="text-xl font-semibold tabular-nums text-gold mt-0.5">
-                          {analyticsData.reduce((acc, cur) => acc + cur.views, 0).toLocaleString()}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="h-[280px] w-full pt-2">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <AreaChart
-                        data={analyticsData}
-                        margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
-                      >
-                        <defs>
-                          <linearGradient id="colorUsers" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#C5A059" stopOpacity={0.15}/>
-                            <stop offset="95%" stopColor="#C5A059" stopOpacity={0}/>
-                          </linearGradient>
-                          <linearGradient id="colorViews" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.15}/>
-                            <stop offset="95%" stopColor="#3B82F6" stopOpacity={0}/>
-                          </linearGradient>
-                        </defs>
-                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
-                        <XAxis
-                          dataKey="date"
-                          tickFormatter={formatDateLabel}
-                          stroke="rgba(255,255,255,0.4)"
-                          fontSize={11}
-                          axisLine={false}
-                          tickLine={false}
-                        />
-                        <YAxis stroke="rgba(255,255,255,0.4)" fontSize={11} axisLine={false} tickLine={false} />
-                        <Tooltip
-                          contentStyle={{
-                            backgroundColor: 'var(--background)',
-                            border: '1px solid rgba(255,255,255,0.1)',
-                            borderRadius: '8px',
-                            color: '#fff',
-                            fontSize: '12px'
-                          }}
-                          labelFormatter={(label) => `${t('date_label')}: ${formatDateLabel(label as string)}`}
-                        />
-                        <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }} />
-                        <Area
-                          type="monotone"
-                          name={t('active_users')}
-                          dataKey="users"
-                          stroke="#C5A059"
-                          strokeWidth={2}
-                          fillOpacity={1}
-                          fill="url(#colorUsers)"
-                        />
-                        <Area
-                          type="monotone"
-                          name={t('screen_views')}
-                          dataKey="views"
-                          stroke="#3B82F6"
-                          strokeWidth={2}
-                          fillOpacity={1}
-                          fill="url(#colorViews)"
-                        />
-                      </AreaChart>
-                    </ResponsiveContainer>
-                  </div>
-                </div>
-              )}
-            </div>
-          ) : (
-            <div className="relative w-full overflow-hidden rounded-xl border border-white/10 bg-background aspect-[16/10] lg:aspect-[16/9]">
-              <iframe
-                width="100%"
-                height="100%"
-                src="https://datastudio.google.com/embed/reporting/eae29829-7867-4850-8ec9-6f0e8903c6ca/page/cEN3F"
-                frameBorder="0"
-                style={{ border: 0 }}
-                allowFullScreen
-                sandbox="allow-storage-access-by-user-activation allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox"
-              />
-            </div>
-          )}
-        </div>
-      </div>
+      
     </div>
   );
 }

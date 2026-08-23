@@ -564,7 +564,7 @@ export default function PerfumeAdminPage() {
       <CatalogAccessNotice permissions={permissions} resourceLabel="les parfums" />
 
       {/* KPI Summary Strip */}
-      <div className="flex items-center rounded-xl border border-white/10 bg-white/[0.02] divide-x divide-white/10 overflow-x-auto">
+      <div className="shadow-black/30 shadow-sm flex items-center rounded-xl border border-white/10 bg-white/[0.02] divide-x divide-white/10 overflow-x-auto">
         <div className="flex-1 min-w-[120px] p-4">
           <p className="text-[10px] font-semibold uppercase tracking-wider text-foreground/35">{t('kpi_total')}</p>
           <p className="text-xl font-semibold tabular-nums text-foreground mt-0.5">{perfumes.length}</p>
@@ -584,7 +584,7 @@ export default function PerfumeAdminPage() {
       </div>
 
       {/* Toolbar / Filters */}
-      <div className="space-y-3">
+      <div className="  space-y-3">
         <div className="flex items-center gap-3">
           <div className="relative flex-1">
             <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-foreground/40" />
@@ -617,7 +617,7 @@ export default function PerfumeAdminPage() {
 
         {/* Expanded Filters Panel */}
         {showFilters && (
-          <div className="flex flex-wrap items-center gap-3 rounded-xl border border-white/10 bg-white/[0.02] p-3">
+          <div className="shadow-black/30 shadow-sm flex flex-wrap items-center gap-3 rounded-xl border border-white/10 bg-white/[0.02] p-3">
             <div className="flex items-center gap-2">
               <span className="text-[10px] font-semibold uppercase tracking-wider text-foreground/35">Genre:</span>
               <select
@@ -661,7 +661,7 @@ export default function PerfumeAdminPage() {
       </div>
 
       {/* Table Container */}
-      <div className="rounded-xl border border-white/10 bg-white/[0.02] overflow-hidden min-h-[300px]">
+      <div className="shadow-black/30 shadow-sm rounded-xl border border-white/10 bg-white/[0.02] overflow-hidden min-h-[300px]">
         {/* Selection Bar */}
         <div className="flex items-center justify-between border-b border-white/10 px-4 py-2.5 bg-white/[0.01]">
           <p className="text-[10px] font-semibold uppercase tracking-wider text-foreground/35">

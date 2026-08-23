@@ -786,7 +786,7 @@ export default function OrdersPage() {
       </div>
 
       {/* KPI strip ----------------------------------------------------------- */}
-      <div className="grid grid-cols-2 gap-2.5 sm:flex sm:divide-x sm:divide-white/8 sm:gap-0 overflow-hidden sm:rounded-xl sm:border sm:border-white/10 sm:bg-white/[0.03]">
+      <div className="shadow-black/30 shadow-sm grid grid-cols-2 gap-2.5 sm:flex sm:divide-x sm:divide-white/8 sm:gap-0 overflow-hidden sm:rounded-xl sm:border sm:border-white/10 sm:bg-white/[0.03]">
         {kpi.map(k => (
           <div key={k.label} className="rounded-xl border border-white/10 bg-white/[0.03] p-3.5 sm:border-none sm:bg-transparent sm:flex-1 sm:px-5 sm:py-4">
             <p className="text-[10px] font-semibold uppercase tracking-wider text-foreground/35">{k.label}</p>
@@ -798,7 +798,7 @@ export default function OrdersPage() {
       {/* Toolbar --------------------------------------------------------------- */}
       <div className="space-y-3">
         <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center">
-          <div className="flex w-full sm:flex-1 items-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2">
+          <div className="shadow-black/30 shadow-sm flex w-full sm:flex-1 items-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2">
             <Search size={14} className="shrink-0 text-foreground/35" />
             <input
               value={search}
@@ -825,7 +825,7 @@ export default function OrdersPage() {
           <button
             onClick={() => setShowFilters(s => !s)}
             className={cx(
-              'inline-flex items-center justify-center gap-1.5 rounded-lg border px-3 py-2 text-sm transition-colors',
+              'shadow-black/30 shadow-sm inline-flex items-center justify-center gap-1.5 rounded-lg border px-3 py-2 text-sm transition-colors',
               showFilters || activeFilterCount
                 ? 'border-gold/30 bg-gold/10 text-gold'
                 : 'border-white/10 text-foreground/55 hover:bg-white/6'
@@ -834,14 +834,14 @@ export default function OrdersPage() {
             <SlidersHorizontal size={14} />
             {t('filters')}
             {activeFilterCount > 0 && (
-              <span className="rounded-full bg-gold/25 px-1.5 text-[10px] font-bold text-gold">{activeFilterCount}</span>
+              <span className="shadow-black/30 shadow-sm rounded-full bg-gold/25 px-1.5 text-[10px] font-bold text-gold">{activeFilterCount}</span>
             )}
             <ChevronDown size={13} className={cx('transition-transform', showFilters && 'rotate-180')} />
           </button>
         </div>
 
         {showFilters && (
-          <div className="grid grid-cols-1 gap-4 rounded-xl border border-white/10 bg-white/[0.02] p-4 sm:grid-cols-3">
+          <div className="shadow-black/30 shadow-sm grid grid-cols-1 gap-4 rounded-xl border border-white/10 bg-white/[0.02] p-4 sm:grid-cols-3">
             <FilterGroup
               label={t('filter_order_status')}
               options={STATUT_OPTIONS}

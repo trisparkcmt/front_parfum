@@ -312,8 +312,12 @@ function LoadingBubble() {
 
   return (
     <div className="flex items-end gap-3 justify-start">
-      <div className="w-9 h-9 rounded-full bg-gradient-to-br from-gold/30 to-gold/10 border border-gold/30 flex items-center justify-center flex-shrink-0 shadow-sm">
-        <Sparkles size={15} className="text-gold" />
+      <div className="w-9 h-9 rounded-full bg-gradient-to-br from-gold/30 to-gold/10 border border-gold/30 flex items-center justify-center flex-shrink-0 shadow-sm p-1.5">
+        <img
+          src="/logo/NOM II.svg"
+          alt="Numba"
+          className="w-full h-full object-contain dark:invert"
+        />
       </div>
       <div className="max-w-xs md:max-w-md bg-white/5 border border-white/10 rounded-3xl rounded-bl-md px-5 py-4 shadow-sm backdrop-blur-md">
         <div className="flex items-center gap-3">
@@ -696,8 +700,12 @@ function AiBubble({
   return (
     <>
       <div className="flex items-start gap-3 justify-start">
-      <div className="w-9 h-9 rounded-full bg-gradient-to-br from-gold/30 to-gold/10 border border-gold/30 flex items-center justify-center flex-shrink-0 shadow-sm mt-1">
-        <Sparkles size={15} className="text-gold" />
+      <div className="w-9 h-9 rounded-full bg-gradient-to-br from-gold/30 to-gold/10 border border-gold/30 flex items-center justify-center flex-shrink-0 shadow-sm mt-1 p-1.5">
+        <img
+          src="/logo/NOM II.svg"
+          alt="Numba"
+          className="w-full h-full object-contain dark:invert"
+        />
       </div>
       <div className="flex-1 min-w-0 space-y-4">
         {isError503 ? (
@@ -1162,8 +1170,12 @@ export function GeminiChat({ onChatStarted }: GeminiChatProps) {
               exit={{ opacity: 0, y: -20, transition: { duration: 0.2 } }}
               className="flex flex-col items-center justify-center h-full text-center py-12 gap-6"
             >
-              <div className="w-20 h-20 rounded-3xl bg-gold/10 border border-gold/20 flex items-center justify-center shadow-sm shadow-gold/10">
-                <Sparkles size={36} className="text-gold" />
+              <div className="w-20 h-20 rounded-3xl bg-gold/10 border border-gold/20 flex items-center justify-center shadow-sm shadow-gold/10 p-4">
+                <img
+                  src="/logo/NOM II.svg"
+                  alt="Numba"
+                  className="w-full h-full object-contain dark:invert"
+                />
               </div>
               <div>
                 <h1 className="font-display text-3xl md:text-5xl font-bold text-foreground mb-3">

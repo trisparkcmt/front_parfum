@@ -257,7 +257,7 @@ export default function AdminExpensesPage() {
       </div>
 
       {/* KPI Strip */}
-      <div className="rounded-xl border border-white/10 bg-white/[0.02] grid grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-white/10">
+      <div className="shadow-black/30 shadow-sm rounded-xl border border-white/10 bg-white/[0.02] grid grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-white/10">
         <div className="p-4 flex flex-col justify-between">
           <span className="text-[10px] font-semibold uppercase tracking-wider text-foreground/35">Total Dépenses Enregistrées</span>
           <span className="text-xl font-semibold tabular-nums text-foreground mt-1">{expenses.length}</span>
@@ -340,7 +340,7 @@ export default function AdminExpensesPage() {
       )}
 
       {/* Table */}
-      <div className="rounded-xl border border-white/10 overflow-hidden">
+      <div className="shadow-black/30 shadow-sm rounded-xl border border-white/10 overflow-hidden">
         {loading ? (
           <div className="flex items-center justify-center py-12 text-foreground/40 gap-2 text-xs">
             <Loader2 className="animate-spin text-gold" size={16} />

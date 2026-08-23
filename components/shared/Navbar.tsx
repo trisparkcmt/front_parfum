@@ -101,9 +101,9 @@ export function Navbar() {
         <div className="absolute left-1/2 -translate-x-1/2">
           <Link href="/" className="flex items-center group">
             <img
-              src="/logo/Logo Accessoirs Exclusifs black transparent.svg"
+              src="/logo/Logo Accessoirs Exclusifs gold transparent.svg"
               alt="Accessoires Exclusifs"
-              className="h-20 w-auto object-contain dark:invert group-hover:scale-105 transition-transform duration-300"
+              className="h-20 w-auto object-contain  group-hover:scale-105 transition-transform duration-300"
             />
           </Link>
         </div>
@@ -131,9 +131,9 @@ export function Navbar() {
           <div className="flex items-center justify-between relative">
             <Link href="/" className="flex items-center gap-2 group flex-shrink-0 z-10">
               <img
-                src="/logo/Logo Accessoirs Exclusifs black transparent.svg"
+                src="/logo/Logo only.svg"
                 alt="Accessoires Exclusifs"
-                className="h-24 w-auto object-contain dark:invert group-hover:scale-105 transition-transform duration-300"
+                className="h-24 w-auto object-contain group-hover:scale-105 transition-transform duration-300"
               />
             </Link>
 

@@ -195,7 +195,7 @@ export default function NotificationsPage() {
       </div>
 
       {/* KPIs Strip */}
-      <div className="rounded-xl border border-white/10 bg-white/[0.02] grid grid-cols-2 md:grid-cols-4 divide-x divide-white/10">
+      <div className="shadow-black/30 shadow-sm rounded-xl border border-white/10 bg-white/[0.02] grid grid-cols-2 md:grid-cols-4 divide-x divide-white/10">
         <div className="p-4">
           <p className="text-[10px] font-semibold uppercase tracking-wider text-foreground/35">Total alertes</p>
           <p className="text-xl font-semibold tabular-nums text-foreground mt-1">{stats?.total ?? 0}</p>
@@ -227,7 +227,7 @@ export default function NotificationsPage() {
       <div className="space-y-3">
         <div className="flex items-center gap-3">
           {/* Search Input */}
-          <div className="flex items-center gap-2 border border-white/10 rounded-lg px-3 py-2 flex-1 bg-white/[0.02]">
+          <div className="shadow-black/30 shadow-sm flex items-center gap-2 border border-white/10 rounded-lg px-3 py-2 flex-1 bg-white/[0.02]">
             <Search size={15} className="text-foreground/40 shrink-0" />
             <input
               value={search}
@@ -241,7 +241,7 @@ export default function NotificationsPage() {
           <button
             onClick={() => setShowFilters(!showFilters)}
             className={cx(
-              'flex items-center gap-2 border border-white/10 px-3 py-2 rounded-lg text-xs font-semibold transition-colors shrink-0',
+              'shadow-black/30 shadow-sm flex items-center gap-2 border border-white/10 px-3 py-2 rounded-lg text-xs font-semibold transition-colors shrink-0',
               showFilters || activeFiltersCount > 0
                 ? 'bg-white/10 text-foreground'
                 : 'text-foreground/60 hover:bg-white/[0.06]'
@@ -259,7 +259,7 @@ export default function NotificationsPage() {
 
         {/* Expandable Filter Panel */}
         {showFilters && (
-          <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4 flex flex-col md:flex-row gap-6">
+          <div className="shadow-black/30 shadow-sm rounded-xl border border-white/10 bg-white/[0.02] p-4 flex flex-col md:flex-row gap-6">
             {/* Status Filter Dropdown / Group */}
             <div className="space-y-1.5">
               <label className="text-[10px] font-semibold uppercase tracking-wider text-foreground/35 block">
@@ -319,7 +319,7 @@ export default function NotificationsPage() {
       </div>
 
       {/* Notifications Table Panel */}
-      <div className="rounded-xl border border-white/10 bg-white/[0.02] overflow-hidden">
+      <div className="shadow-black/30 shadow-sm rounded-xl border border-white/10 bg-white/[0.02] overflow-hidden">
         {loading ? (
           <div className="flex items-center justify-center py-20 gap-2">
             <Loader2 className="animate-spin text-gold" size={18} />

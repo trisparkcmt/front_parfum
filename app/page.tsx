@@ -54,7 +54,7 @@ export default function Home() {
      
 
       {/* SHOP BY CATEGORY */}
-      <section className="md:block hidden">   
+      <section className="lg:block hidden">   
         <ShopByCategory />
       </section>
       

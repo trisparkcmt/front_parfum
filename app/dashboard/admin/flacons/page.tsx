@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Loader2, Edit2, Trash2, Plus, Search, Filter, X, Image as ImageIcon } from 'lucide-react';
@@ -485,14 +485,14 @@ export default function FlaconsAdminPage() {
           <button
             onClick={() => setShowFilters(!showFilters)}
             className={cx(
-              'flex items-center gap-1.5 rounded-lg border border-white/10 px-3 py-1.5 text-xs font-medium transition-colors',
+              'shadow-black/30 shadow-sm flex items-center gap-1.5 rounded-lg border border-white/10 px-3 py-1.5 text-xs font-medium transition-colors',
               showFilters || activeFiltersCount > 0
                 ? 'bg-white/10 text-foreground'
                 : 'text-foreground/60 hover:bg-white/5'
             )}
           >
             <Filter size={13} />
-            <span>Filtres</span>
+            <span>{isEn ? 'Filters' : 'Filtres'}</span>
             {activeFiltersCount > 0 && (
               <span className="ml-0.5 rounded-full bg-gold px-1.5 py-0.2 text-[10px] font-bold text-black">
                 {activeFiltersCount}
@@ -503,9 +503,9 @@ export default function FlaconsAdminPage() {
 
         {/* Expandable Filter Panel */}
         {showFilters && (
-          <div className="rounded-xl border border-white/10 bg-white/[0.02] p-3 flex flex-wrap items-center gap-4">
+          <div className="shadow-black/30 shadow-sm rounded-xl border border-white/10 bg-white/[0.02] p-3 flex flex-wrap items-center gap-4">
             <div className="flex items-center gap-2">
-              <span className="text-xs text-foreground/50">Type :</span>
+              <span className="text-xs text-foreground/50">{t('filter_type_label')}</span>
               <select
                 value={typeFilter}
                 onChange={(e) => setTypeFilter(e.target.value)}
@@ -521,7 +521,7 @@ export default function FlaconsAdminPage() {
             </div>
 
             <div className="flex items-center gap-2">
-              <span className="text-xs text-foreground/50">Stock :</span>
+              <span className="text-xs text-foreground/50">{t('filter_stock_label')}</span>
               <select
                 value={enStockFilter}
                 onChange={(e) => setEnStockFilter(e.target.value)}
@@ -541,7 +541,7 @@ export default function FlaconsAdminPage() {
                 }}
                 className="text-[11px] text-foreground/40 hover:text-foreground underline ml-auto"
               >
-                Réinitialiser
+                add
               </button>
             )}
           </div>
@@ -549,7 +549,7 @@ export default function FlaconsAdminPage() {
       </div>
 
       {/* Table Section */}
-      <div className="rounded-xl border border-white/10 bg-white/[0.02] overflow-hidden min-h-[300px]">
+      <div className="shadow-black/30 shadow-sm rounded-xl border border-white/10 bg-white/[0.02] overflow-hidden min-h-[300px]">
         {loading ? (
           <div className="flex items-center justify-center py-20 text-foreground/40 gap-2 text-xs">
             <Loader2 className="animate-spin text-gold" size={16} />
@@ -667,12 +667,12 @@ export default function FlaconsAdminPage() {
         )}
       </div>
 
-      {/* SlideOver Drawer (Untouched Form Content) */}
+      {/* SlideOver Drawer */}
       <SlideOver
         isOpen={showModal}
         onClose={() => setShowModal(false)}
         title={editingBottle ? t('modal_title_edit') : t('modal_title_new')}
-        description="Formulaire complet, sans popup ni défilement gênant."
+        description={isEn ? 'Full form, no popup or scroll issues.' : 'Formulaire complet, sans popup ni défilement gênant.'}
         size="lg"
         footer={
           <div className="flex gap-3">
@@ -698,150 +698,16 @@ export default function FlaconsAdminPage() {
             <div className="space-y-4">
               <div>
                 <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">
-                  Nom *
+                  {t('field_name')}
                 </label>
                 <input
-                  placeholder="Nom du flacon"
+                  placeholder={isEn ? 'Bottle name' : 'Nom du flacon'}
                   value={form.nom}
                   onChange={(e) => updateForm('nom', e.target.value)}
                   className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-base text-foreground outline-none focus:border-gold"
                 />
               </div>
-              <div>
-                <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">
-                  Type de Flacon *
-                </label>
-                <select
-                  value={form.type_flacon}
-                  onChange={(e) => updateForm('type_flacon', e.target.value)}
-                  className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-base text-foreground outline-none focus:border-gold"
-                >
-                  <option value="" disabled className="text-black bg-white">
-                    Type Flacon
-                  </option>
-                  {bottleTypes.map((t) => (
-                    <option key={t.id} value={t.id} className="text-black bg-white">
-                      {t.nom}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">
-                    Contenance (ml)
-                  </label>
-                  <input
-                    type="number"
-                    value={form.contenance_ml}
-                    onChange={(e) => updateForm('contenance_ml', e.target.value)}
-                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-base text-foreground outline-none focus:border-gold"
-                  />
-                </div>
-                <div>
-                  <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">
-                    Poids (g)
-                  </label>
-                  <input
-                    type="number"
-                    value={form.poids_grammes}
-                    onChange={(e) => updateForm('poids_grammes', e.target.value)}
-                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-base text-foreground outline-none focus:border-gold"
-                  />
-                </div>
-              </div>
-            </div>
 
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">
-                    Matière
-                  </label>
-                  <input
-                    value={form.matiere}
-                    onChange={(e) => updateForm('matiere', e.target.value)}
-                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
-                  />
-                </div>
-                <div>
-                  <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">
-                    Couleur
-                  </label>
-                  <input
-                    value={form.couleur}
-                    onChange={(e) => updateForm('couleur', e.target.value)}
-                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
-                  />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">
-                    Hauteur (cm)
-                  </label>
-                  <input
-                    value={form.hauteur_cm}
-                    onChange={(e) => updateForm('hauteur_cm', e.target.value)}
-                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
-                  />
-                </div>
-                <div>
-                  <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">
-                    Largeur (cm)
-                  </label>
-                  <input
-                    value={form.largeur_cm}
-                    onChange={(e) => updateForm('largeur_cm', e.target.value)}
-                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
-                  />
-                </div>
-              </div>
-              <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
-                <label className="mb-2 block text-[10px] font-bold uppercase tracking-wider text-foreground/40">
-                  Image principale
-                </label>
-                <div className="flex flex-col gap-3">
-                  <label className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-white/10 bg-white/5 px-3 py-2 text-sm text-foreground/70 transition-colors hover:border-gold/40 hover:bg-white/10">
-                    <Plus size={14} className="text-gold" />
-                    <span>{imageFile ? 'Changer l’image' : 'Choisir une image'}</span>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (!file) return;
-                        const nextPreview = URL.createObjectURL(file);
-                        setImagePreview((prev) => {
-                          if (prev?.startsWith('blob:')) URL.revokeObjectURL(prev);
-                          return nextPreview;
-                        });
-                        setImageFile(file);
-                      }}
-                    />
-                  </label>
-                  <div className="relative h-40 overflow-hidden rounded-lg border border-white/10 bg-background/70">
-                    {imagePreview ? (
-                      <AppImage src={imagePreview} alt="Aperçu du flacon" fill className="object-cover" />
-                    ) : (editingBottle?.image_principale || editingBottle?.image) ? (
-                      <AppImage src={editingBottle.image_principale || editingBottle.image} alt={editingBottle.nom} fill className="object-cover" />
-                    ) : (
-                      <div className="flex h-full items-center justify-center text-sm text-foreground/30">Aucune image</div>
-                    )}
-                  </div>
-                </div>
-              </div>
-              <div>
-                <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">
-                  Prix Unitaire (FCFA)
-                </label>
-                <input
-                  value={form.prix_unitaire}
-                  onChange={(e) => updateForm('prix_unitaire', e.target.value)}
-                  className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-base text-foreground outline-none focus:border-gold"
-                />
-              </div>
               {isAdmin && (
                 <div>
                   <label className="text-[10px] font-bold text-amber-400/80 uppercase block mb-1 flex items-center gap-1">
@@ -869,6 +735,7 @@ export default function FlaconsAdminPage() {
                   )}
                 </div>
               )}
+
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">
@@ -893,6 +760,7 @@ export default function FlaconsAdminPage() {
                   />
                 </div>
               </div>
+
               <div>
                 <label className="flex items-center gap-2 cursor-pointer pt-2">
                   <input

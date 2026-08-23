@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import {
   Search, Eye, CheckCircle, Truck, XCircle, Loader2, RefreshCw,
   ChevronLeft, ChevronRight, X, Package, Bike, CreditCard,
@@ -12,29 +12,32 @@ import { invoiceService } from '@/services/invoiceService';
 import { useToastStore } from '@/store/useToastStore';
 import type { BackendOrder, BackendOrderLine } from '@/types';
 import { useOptimisticOrders } from '@/hooks/useOptimisticOrders';
+import { useTranslation } from 'react-i18next';
+import { BackButton } from '@/components/ui/BackButton';
 
 // ─────────────────────────────────────────────────────────────────────────
-// Config
+// Config — color/dot styling only (language-independent). Labels are
+// merged in at render time from STATUS_LABELS based on the current language.
 // ─────────────────────────────────────────────────────────────────────────
 
-const STATUT_CFG: Record<string, { label: string; color: string; dot: string }> = {
-  en_attente:   { label: 'En attente',  color: 'text-amber-400 bg-amber-500/10 ring-amber-500/20',   dot: 'bg-amber-400'   },
-  'validé':     { label: 'Validé',      color: 'text-blue-400 bg-blue-500/10 ring-blue-500/20',       dot: 'bg-blue-400'    },
-  'annulée':    { label: 'Annulée',     color: 'text-red-400 bg-red-500/10 ring-red-500/20',          dot: 'bg-red-400'     },
-  'remboursée': { label: 'Remboursée',  color: 'text-purple-400 bg-purple-500/10 ring-purple-500/20', dot: 'bg-purple-400'  },
+const STATUT_META: Record<string, { color: string; dot: string }> = {
+  en_attente:   { color: 'text-amber-400 bg-amber-500/10 ring-amber-500/20',   dot: 'bg-amber-400'   },
+  'validé':     { color: 'text-blue-400 bg-blue-500/10 ring-blue-500/20',       dot: 'bg-blue-400'    },
+  'annulée':    { color: 'text-red-400 bg-red-500/10 ring-red-500/20',          dot: 'bg-red-400'     },
+  'remboursée': { color: 'text-purple-400 bg-purple-500/10 ring-purple-500/20', dot: 'bg-purple-400'  },
 };
 
-const STATUT_LIVRAISON_CFG: Record<string, { label: string; color: string; dot: string }> = {
-  en_attente_affectation: { label: 'Non assignée', color: 'text-amber-400 bg-amber-500/10 ring-amber-500/20',    dot: 'bg-amber-400'   },
-  'assignée':              { label: 'Assignée',      color: 'text-blue-400 bg-blue-500/10 ring-blue-500/20',      dot: 'bg-blue-400'    },
-  'livrée':                { label: 'Livrée',        color: 'text-emerald-400 bg-emerald-500/10 ring-emerald-500/20', dot: 'bg-emerald-400' },
-  'échouée':               { label: 'Échouée',       color: 'text-red-400 bg-red-500/10 ring-red-500/20',         dot: 'bg-red-400'     },
+const STATUT_LIVRAISON_META: Record<string, { color: string; dot: string }> = {
+  en_attente_affectation: { color: 'text-amber-400 bg-amber-500/10 ring-amber-500/20',    dot: 'bg-amber-400'   },
+  'assignée':              { color: 'text-blue-400 bg-blue-500/10 ring-blue-500/20',      dot: 'bg-blue-400'    },
+  'livrée':                { color: 'text-emerald-400 bg-emerald-500/10 ring-emerald-500/20', dot: 'bg-emerald-400' },
+  'échouée':               { color: 'text-red-400 bg-red-500/10 ring-red-500/20',         dot: 'bg-red-400'     },
 };
 
-const STATUT_PAIEMENT_CFG: Record<string, { label: string; color: string; dot: string }> = {
-  en_attente: { label: 'En attente', color: 'text-amber-400 bg-amber-500/10 ring-amber-500/20',    dot: 'bg-amber-400'   },
-  'payé':     { label: 'Payé',       color: 'text-emerald-400 bg-emerald-500/10 ring-emerald-500/20', dot: 'bg-emerald-400' },
-  'échoué':   { label: 'Échoué',     color: 'text-red-400 bg-red-500/10 ring-red-500/20',          dot: 'bg-red-400'     },
+const STATUT_PAIEMENT_META: Record<string, { color: string; dot: string }> = {
+  en_attente: { color: 'text-amber-400 bg-amber-500/10 ring-amber-500/20',    dot: 'bg-amber-400'   },
+  'payé':     { color: 'text-emerald-400 bg-emerald-500/10 ring-emerald-500/20', dot: 'bg-emerald-400' },
+  'échoué':   { color: 'text-red-400 bg-red-500/10 ring-red-500/20',          dot: 'bg-red-400'     },
 };
 
 const STATUT_OPTIONS    = ['', 'en_attente', 'validé', 'annulée', 'remboursée'];
@@ -45,6 +48,291 @@ const PAGE_SIZE = 100;
 const ROWS_PER_TABLE = 10;
 
 // ─────────────────────────────────────────────────────────────────────────
+// Translation — this page has no shared locale-file setup yet, so all
+// strings live here and switch based on the app's current language.
+// ─────────────────────────────────────────────────────────────────────────
+
+const STATUS_LABELS: Record<string, { commande: Record<string, string>; livraison: Record<string, string>; paiement: Record<string, string> }> = {
+  fr: {
+    commande: { en_attente: 'En attente', 'validé': 'Validé', 'annulée': 'Annulée', 'remboursée': 'Remboursée' },
+    livraison: { en_attente_affectation: 'Non assignée', 'assignée': 'Assignée', 'livrée': 'Livrée', 'échouée': 'Échouée' },
+    paiement: { en_attente: 'En attente', 'payé': 'Payé', 'échoué': 'Échoué' },
+  },
+  en: {
+    commande: { en_attente: 'Pending', 'validé': 'Validated', 'annulée': 'Cancelled', 'remboursée': 'Refunded' },
+    livraison: { en_attente_affectation: 'Unassigned', 'assignée': 'Assigned', 'livrée': 'Delivered', 'échouée': 'Failed' },
+    paiement: { en_attente: 'Pending', 'payé': 'Paid', 'échoué': 'Failed' },
+  },
+};
+
+function withLabels(meta: Record<string, { color: string; dot: string }>, labels: Record<string, string>) {
+  const out: Record<string, { label: string; color: string; dot: string }> = {};
+  for (const k in meta) out[k] = { ...meta[k], label: labels[k] ?? k };
+  return out;
+}
+
+const LOCAL_STRINGS: Record<string, Record<string, string>> = {
+  fr: {
+    page_title: 'Commandes',
+    orders_word_singular: 'commande',
+    orders_word_plural: 'commandes',
+    in_total: 'au total',
+    refresh: 'Actualiser',
+    kpi_total: 'Total',
+    kpi_pending: 'En attente',
+    kpi_validated: 'Validées',
+    kpi_paid: 'Payées',
+    kpi_cancelled: 'Annulées',
+    search_placeholder: 'N° commande, e-mail, téléphone…',
+    client_name_placeholder: 'Nom client',
+    filters: 'Filtres',
+    filter_order_status: 'Statut commande',
+    filter_delivery_status: 'Statut livraison',
+    filter_payment: 'Paiement',
+    filter_all: 'Tous',
+    ongoing_heading: 'En cours',
+    completed_heading: 'Complétées',
+    empty_ongoing: 'Aucune commande en cours.',
+    empty_completed: 'Aucune commande complétée.',
+    col_order_number: 'N° Commande',
+    col_client: 'Client',
+    col_total_ttc: 'Total TTC',
+    col_promo: 'Promo',
+    col_driver: 'Livreur',
+    col_status: 'Statut',
+    col_delivery: 'Livraison',
+    col_date: 'Date',
+    view_details: 'Voir le détail',
+    edit_manage: 'Modifier / gérer',
+    action_validate: 'Valider',
+    action_delivered: 'Livré',
+    action_cancel: 'Annuler',
+    action_refund: 'Rembourser',
+    delivery_mode_delivery: 'Livraison',
+    delivery_mode_pickup: 'Retrait boutique',
+    driver_fallback: 'Livreur #{id}',
+    page_of: 'Page {page} / {totalPages}',
+    server_pagination_summary: '{total} commandes',
+    table_pagination_summary: '{count} {word} · page {page}/{totalPages}',
+    confirm_cancel_order: 'Annuler la commande {num} ?',
+    confirm_validate_pickup: 'Valider la commande pickup {num} ?',
+    confirm_mark_delivered: 'Marquer la commande {num} comme livrée (et payée) ?',
+    confirm_refund: 'Rembourser la commande {num} ?',
+    toast_load_error: 'Erreur lors du chargement des commandes',
+    toast_update_success: 'Commande mise à jour avec succès',
+    toast_update_error: 'Erreur lors de la mise à jour',
+    toast_invoice_downloaded: 'Facture PDF téléchargée',
+    toast_invoice_unavailable: 'Facture non disponible',
+    toast_order_cancelled: 'Commande annulée',
+    toast_cancel_error: "Erreur lors de l'annulation",
+    toast_pickup_validated: 'Commande pickup validée avec succès',
+    toast_validate_error: 'Erreur lors de la validation',
+    toast_validated_driver_assigned: 'Commande validée et livreur assigné',
+    toast_marked_delivered: 'Commande marquée comme livrée et payée',
+    toast_delivery_update_error: 'Erreur lors de la mise à jour de la livraison',
+    toast_marked_refunded: 'Commande marquée comme remboursée',
+    toast_refund_error: 'Erreur lors du remboursement',
+    manage_order: 'Gérer la commande',
+    section_status_tracking: 'Statuts & Suivi',
+    field_order_status: 'Statut de la commande',
+    field_delivery_status: 'Statut de livraison',
+    field_payment_status: 'Statut paiement',
+    section_shipping_fees: 'Acheminement & Frais',
+    field_assign_driver: 'Assigner un livreur',
+    option_none: '— Aucun —',
+    option_assign_later: '— Assigner plus tard —',
+    field_estimated_date: 'Date estimée',
+    field_delivery_fee: 'Frais de livraison',
+    section_team_notes: "Notes d'équipe",
+    field_internal_note: 'Note interne',
+    internal_note_placeholder: "Commentaire interne visible uniquement par l'équipe…",
+    cancel: 'Annuler',
+    saving: 'Enregistrement…',
+    save_changes: 'Enregistrer les modifications',
+    validation_delivery: 'Validation & livraison',
+    section_recipient: 'Destinataire',
+    label_name: 'Nom',
+    label_phone: 'Téléphone',
+    label_address: 'Adresse',
+    section_assignment: 'Assignation',
+    field_choose_driver: 'Choisir un livreur',
+    field_estimated_delivery_date: 'Date estimée de livraison',
+    confirm_validation: 'Confirmer la validation',
+    group_perfumes: 'Parfums',
+    group_accessories: 'Accessoires',
+    group_finished_essences: 'Essences finies',
+    group_custom_perfumes: 'Parfums personnalisés',
+    group_custom_essences: 'Essences personnalisées',
+    close: 'Fermer',
+    manage: 'Gérer',
+    summary_total_ttc: 'Total TTC',
+    summary_payment: 'Paiement',
+    summary_mode: 'Mode',
+    summary_promo_code: 'Code promo',
+    section_delivery: 'Livraison',
+    label_recipient: 'Destinataire',
+    label_city: 'Ville',
+    label_driver: 'Livreur',
+    label_estimated_date: 'Date estimée',
+    label_actual_date: 'Date réelle',
+    section_client_note: 'Note client',
+    section_internal_note: 'Note interne',
+    section_invoice: 'Facture',
+    invoice_sent_by_email: 'Envoyée par e-mail',
+    open: 'Ouvrir',
+    download: 'Télécharger',
+    section_articles: 'Articles ({count})',
+    no_articles: 'Aucun article dans cette commande.',
+    section_summary: 'Récapitulatif',
+    row_subtotal: 'Sous-total',
+    row_delivery_fee: 'Frais de livraison',
+    row_promo_discount: 'Remise promo',
+    row_total_ttc: 'Total TTC',
+    row_commission: 'Commission',
+    row_provider: 'Prestataire',
+    article_fallback: 'Article',
+    essence_fallback: 'Essence',
+    flask_label: 'Flacon',
+    category_label: 'Catégorie',
+    reference_label: 'Réf',
+    finished_product_fallback: 'Produit fini',
+  },
+  en: {
+    page_title: 'Orders',
+    orders_word_singular: 'order',
+    orders_word_plural: 'orders',
+    in_total: 'in total',
+    refresh: 'Refresh',
+    kpi_total: 'Total',
+    kpi_pending: 'Pending',
+    kpi_validated: 'Validated',
+    kpi_paid: 'Paid',
+    kpi_cancelled: 'Cancelled',
+    search_placeholder: 'Order #, email, phone…',
+    client_name_placeholder: 'Client name',
+    filters: 'Filters',
+    filter_order_status: 'Order status',
+    filter_delivery_status: 'Delivery status',
+    filter_payment: 'Payment',
+    filter_all: 'All',
+    ongoing_heading: 'Ongoing',
+    completed_heading: 'Completed',
+    empty_ongoing: 'No ongoing orders.',
+    empty_completed: 'No completed orders.',
+    col_order_number: 'Order #',
+    col_client: 'Client',
+    col_total_ttc: 'Total',
+    col_promo: 'Promo',
+    col_driver: 'Driver',
+    col_status: 'Status',
+    col_delivery: 'Delivery',
+    col_date: 'Date',
+    view_details: 'View details',
+    edit_manage: 'Edit / manage',
+    action_validate: 'Validate',
+    action_delivered: 'Delivered',
+    action_cancel: 'Cancel',
+    action_refund: 'Refund',
+    delivery_mode_delivery: 'Delivery',
+    delivery_mode_pickup: 'Store pickup',
+    driver_fallback: 'Driver #{id}',
+    page_of: 'Page {page} / {totalPages}',
+    server_pagination_summary: '{total} orders',
+    table_pagination_summary: '{count} {word} · page {page}/{totalPages}',
+    confirm_cancel_order: 'Cancel order {num}?',
+    confirm_validate_pickup: 'Validate pickup order {num}?',
+    confirm_mark_delivered: 'Mark order {num} as delivered (and paid)?',
+    confirm_refund: 'Refund order {num}?',
+    toast_load_error: 'Error loading orders',
+    toast_update_success: 'Order updated successfully',
+    toast_update_error: 'Error updating order',
+    toast_invoice_downloaded: 'Invoice PDF downloaded',
+    toast_invoice_unavailable: 'Invoice unavailable',
+    toast_order_cancelled: 'Order cancelled',
+    toast_cancel_error: 'Error cancelling order',
+    toast_pickup_validated: 'Pickup order validated successfully',
+    toast_validate_error: 'Error validating order',
+    toast_validated_driver_assigned: 'Order validated and driver assigned',
+    toast_marked_delivered: 'Order marked as delivered and paid',
+    toast_delivery_update_error: 'Error updating delivery',
+    toast_marked_refunded: 'Order marked as refunded',
+    toast_refund_error: 'Error refunding order',
+    manage_order: 'Manage order',
+    section_status_tracking: 'Status & Tracking',
+    field_order_status: 'Order status',
+    field_delivery_status: 'Delivery status',
+    field_payment_status: 'Payment status',
+    section_shipping_fees: 'Shipping & Fees',
+    field_assign_driver: 'Assign a driver',
+    option_none: '— None —',
+    option_assign_later: '— Assign later —',
+    field_estimated_date: 'Estimated date',
+    field_delivery_fee: 'Delivery fee',
+    section_team_notes: 'Team Notes',
+    field_internal_note: 'Internal note',
+    internal_note_placeholder: 'Internal comment visible only to the team…',
+    cancel: 'Cancel',
+    saving: 'Saving…',
+    save_changes: 'Save changes',
+    validation_delivery: 'Validation & delivery',
+    section_recipient: 'Recipient',
+    label_name: 'Name',
+    label_phone: 'Phone',
+    label_address: 'Address',
+    section_assignment: 'Assignment',
+    field_choose_driver: 'Choose a driver',
+    field_estimated_delivery_date: 'Estimated delivery date',
+    confirm_validation: 'Confirm validation',
+    group_perfumes: 'Perfumes',
+    group_accessories: 'Accessories',
+    group_finished_essences: 'Finished essences',
+    group_custom_perfumes: 'Custom perfumes',
+    group_custom_essences: 'Custom essences',
+    close: 'Close',
+    manage: 'Manage',
+    summary_total_ttc: 'Total',
+    summary_payment: 'Payment',
+    summary_mode: 'Mode',
+    summary_promo_code: 'Promo code',
+    section_delivery: 'Delivery',
+    label_recipient: 'Recipient',
+    label_city: 'City',
+    label_driver: 'Driver',
+    label_estimated_date: 'Estimated date',
+    label_actual_date: 'Actual date',
+    section_client_note: 'Client note',
+    section_internal_note: 'Internal note',
+    section_invoice: 'Invoice',
+    invoice_sent_by_email: 'Sent by email',
+    open: 'Open',
+    download: 'Download',
+    section_articles: 'Items ({count})',
+    no_articles: 'No items in this order.',
+    section_summary: 'Summary',
+    row_subtotal: 'Subtotal',
+    row_delivery_fee: 'Delivery fee',
+    row_promo_discount: 'Promo discount',
+    row_total_ttc: 'Total',
+    row_commission: 'Commission',
+    row_provider: 'Provider',
+    article_fallback: 'Item',
+    essence_fallback: 'Essence',
+    flask_label: 'Bottle',
+    category_label: 'Category',
+    reference_label: 'Ref',
+    finished_product_fallback: 'Finished product',
+  },
+};
+
+function translate(lang: string, key: string, vars?: Record<string, string | number>) {
+  let str = LOCAL_STRINGS[lang]?.[key] ?? LOCAL_STRINGS.fr[key] ?? key;
+  if (vars) {
+    for (const [k, v] of Object.entries(vars)) str = str.replace(`{${k}}`, String(v));
+  }
+  return str;
+}
+
+// ─────────────────────────────────────────────────────────────────────────
 // Small primitives
 // ─────────────────────────────────────────────────────────────────────────
 
@@ -52,14 +340,14 @@ function cx(...parts: Array<string | false | null | undefined>) {
   return parts.filter(Boolean).join(' ');
 }
 
-function fmt(v?: string | number | null) {
+function fmt(v?: string | number | null, lang: string = 'fr') {
   if (v == null || v === '') return '—';
-  return Number(v).toLocaleString('fr-FR') + ' FCFA';
+  return Number(v).toLocaleString(lang === 'en' ? 'en-US' : 'fr-FR') + ' FCFA';
 }
 
-function fmtDate(d?: string | null, time = false) {
+function fmtDate(d?: string | null, time = false, lang: string = 'fr') {
   if (!d) return '—';
-  return new Date(d).toLocaleDateString('fr-FR', {
+  return new Date(d).toLocaleDateString(lang === 'en' ? 'en-US' : 'fr-FR', {
     day: '2-digit', month: 'short', year: 'numeric',
     ...(time ? { hour: '2-digit', minute: '2-digit' } : {}),
   });
@@ -75,14 +363,14 @@ function allLines(order: BackendOrder): BackendOrderLine[] {
   ];
 }
 
-function getDeliveryMethod(order: BackendOrder): string {
-  return order.livreur ? 'Livraison' : 'Retrait boutique';
+function getDeliveryMethod(order: BackendOrder, lang: string): string {
+  return order.livreur ? translate(lang, 'delivery_mode_delivery') : translate(lang, 'delivery_mode_pickup');
 }
 
-function driverDisplayName(d: any): string {
+function driverDisplayName(d: any, lang: string): string {
   return d.user_details?.first_name
     ? `${d.user_details.first_name} ${d.user_details.last_name ?? ''}`.trim()
-    : d.name ?? `Livreur #${d.id}`;
+    : d.name ?? translate(lang, 'driver_fallback', { id: d.id });
 }
 
 /** Dot + label chip used for every status everywhere on the page. */
@@ -235,6 +523,14 @@ function OrderPopupModal({
 // ─────────────────────────────────────────────────────────────────────────
 
 export default function OrdersPage() {
+  const { i18n } = useTranslation();
+  const lang = LOCAL_STRINGS[i18n.language] ? i18n.language : 'fr';
+  const t = (key: string, vars?: Record<string, string | number>) => translate(lang, key, vars);
+
+  const statutCfg    = useMemo(() => withLabels(STATUT_META, STATUS_LABELS[lang].commande), [lang]);
+  const livraisonCfg = useMemo(() => withLabels(STATUT_LIVRAISON_META, STATUS_LABELS[lang].livraison), [lang]);
+  const paiementCfg  = useMemo(() => withLabels(STATUT_PAIEMENT_META, STATUS_LABELS[lang].paiement), [lang]);
+
   const [orders, setOrders] = useState<BackendOrder[]>([]);
   const [total, setTotal]   = useState(0);
   const [page, setPage]     = useState(1);
@@ -290,11 +586,11 @@ export default function OrdersPage() {
       setOngoingPage(1);
       setCompletedPage(1);
     } catch {
-      addToast('Erreur lors du chargement des commandes', 'error');
+      addToast(t('toast_load_error'), 'error');
     } finally {
       setLoading(false);
     }
-  }, [page, statutFilter, livraisonFilter, paiementFilter, nomFilter, search, addToast]);
+  }, [page, statutFilter, livraisonFilter, paiementFilter, nomFilter, search, addToast, lang]);
 
   useEffect(() => {
     if (searchRef.current) clearTimeout(searchRef.current);
@@ -347,13 +643,13 @@ export default function OrdersPage() {
         statut_livraison: editLivraison as any,
         statut_paiement: editPaiement as any,
         note_interne: editNote,
-        ...(driverObj ? { livreur: Number(editLivreur), livreur_nom: driverDisplayName(driverObj) } : {}),
+        ...(driverObj ? { livreur: Number(editLivreur), livreur_nom: driverDisplayName(driverObj, lang) } : {}),
         ...(editDateEst ? { date_livraison_estimee: editDateEst } : {}),
         ...(editFrais ? { frais_livraison: editFrais } : {}),
       },
       apiCall: () => orderService.updateOrder(order.numero_commande, payload),
-      successMessage: 'Commande mise à jour avec succès',
-      errorMessage: 'Erreur lors de la mise à jour',
+      successMessage: t('toast_update_success'),
+      errorMessage: t('toast_update_error'),
     });
     setIsSavingEdit(false);
   };
@@ -363,9 +659,9 @@ export default function OrdersPage() {
     setDownloadingInvoice(true);
     try {
       await invoiceService.downloadInvoiceFile(num, `facture-${num}.pdf`);
-      addToast('Facture PDF téléchargée', 'success');
+      addToast(t('toast_invoice_downloaded'), 'success');
     } catch (err: any) {
-      addToast(err.response?.data?.detail ?? 'Facture non disponible', 'error');
+      addToast(err.response?.data?.detail ?? t('toast_invoice_unavailable'), 'error');
     } finally {
       setDownloadingInvoice(false);
     }
@@ -380,13 +676,13 @@ export default function OrdersPage() {
   };
 
   const handleCancel = async (order: BackendOrder) => {
-    if (!confirm(`Annuler la commande ${order.numero_commande} ?`)) return;
+    if (!confirm(t('confirm_cancel_order', { num: order.numero_commande }))) return;
     await runOptimisticUpdate({
       orderId: order.id,
       patch: { statut: 'annulée' },
       apiCall: () => orderService.cancelOrder(order.numero_commande),
-      successMessage: 'Commande annulée',
-      errorMessage: "Erreur lors de l'annulation",
+      successMessage: t('toast_order_cancelled'),
+      errorMessage: t('toast_cancel_error'),
     });
   };
 
@@ -398,15 +694,15 @@ export default function OrdersPage() {
       setValDateEst(order.date_livraison_estimee ?? '');
       return;
     }
-    if (!confirm(`Valider la commande pickup ${order.numero_commande} ?`)) return;
+    if (!confirm(t('confirm_validate_pickup', { num: order.numero_commande }))) return;
     await runOptimisticUpdate({
       orderId: order.id,
       patch: { statut: 'validé', statut_livraison: 'en_attente_affectation' },
       apiCall: () => orderService.updateOrder(order.numero_commande, {
         statut: 'validé', statut_livraison: 'en_attente_affectation',
       }),
-      successMessage: 'Commande pickup validée avec succès',
-      errorMessage: 'Erreur lors de la validation',
+      successMessage: t('toast_pickup_validated'),
+      errorMessage: t('toast_validate_error'),
     });
   };
 
@@ -430,37 +726,37 @@ export default function OrdersPage() {
       patch: {
         statut: 'validé',
         statut_livraison: valDriverId ? 'assignée' : 'en_attente_affectation',
-        ...(driverObj ? { livreur: Number(valDriverId), livreur_nom: driverDisplayName(driverObj) } : {}),
+        ...(driverObj ? { livreur: Number(valDriverId), livreur_nom: driverDisplayName(driverObj, lang) } : {}),
         ...(valDateEst ? { date_livraison_estimee: valDateEst } : {}),
       },
       apiCall: () => orderService.updateOrder(order.numero_commande, payload),
-      successMessage: 'Commande validée et livreur assigné',
-      errorMessage: 'Erreur lors de la validation',
+      successMessage: t('toast_validated_driver_assigned'),
+      errorMessage: t('toast_validate_error'),
     });
   };
 
   const totalPages = Math.ceil(total / PAGE_SIZE) || 1;
 
   const kpi = [
-    { label: 'Total',      value: total,                                                 color: 'text-foreground' },
-    { label: 'En attente', value: orders.filter(o => o.statut === 'en_attente').length,  color: 'text-amber-400'  },
-    { label: 'Validées',   value: orders.filter(o => o.statut === 'validé').length,      color: 'text-blue-400'   },
-    { label: 'Payées',     value: orders.filter(o => o.statut_paiement === 'payé').length, color: 'text-emerald-400' },
-    { label: 'Annulées',   value: orders.filter(o => o.statut === 'annulée').length,     color: 'text-red-400'    },
+    { label: t('kpi_total'),     value: total,                                                 color: 'text-foreground' },
+    { label: t('kpi_pending'),   value: orders.filter(o => o.statut === 'en_attente').length,  color: 'text-amber-400'  },
+    { label: t('kpi_validated'), value: orders.filter(o => o.statut === 'validé').length,      color: 'text-blue-400'   },
+    { label: t('kpi_paid'),      value: orders.filter(o => o.statut_paiement === 'payé').length, color: 'text-emerald-400' },
+    { label: t('kpi_cancelled'), value: orders.filter(o => o.statut === 'annulée').length,     color: 'text-red-400'    },
   ];
 
   const isCancellable = (o: BackendOrder) => o.statut === 'en_attente' || o.statut === 'validé';
 
   const handleMarkDelivered = async (order: BackendOrder) => {
-    if (!confirm(`Marquer la commande ${order.numero_commande} comme livrée (et payée) ?`)) return;
+    if (!confirm(t('confirm_mark_delivered', { num: order.numero_commande }))) return;
     await runOptimisticUpdate({
       orderId: order.id,
       patch: { statut_livraison: 'livrée', statut_paiement: 'payé' },
       apiCall: () => orderService.updateOrder(order.numero_commande, {
         statut_livraison: 'livrée', statut_paiement: 'payé',
       }),
-      successMessage: 'Commande marquée comme livrée et payée',
-      errorMessage: 'Erreur lors de la mise à jour de la livraison',
+      successMessage: t('toast_marked_delivered'),
+      errorMessage: t('toast_delivery_update_error'),
       onSuccess: () => {
         // ── GA4: purchase — API confirmed delivery, this is the real conversion
         import('@/lib/gtag').then(({ trackPurchase, orderLineToGA4Item }) => {
@@ -483,15 +779,15 @@ export default function OrdersPage() {
   };
 
   const handleRefund = async (order: BackendOrder) => {
-    if (!confirm(`Rembourser la commande ${order.numero_commande} ?`)) return;
+    if (!confirm(t('confirm_refund', { num: order.numero_commande }))) return;
     await runOptimisticUpdate({
       orderId: order.id,
       patch: { statut: 'remboursée', statut_paiement: 'échoué' },
       apiCall: () => orderService.updateOrder(order.numero_commande, {
         statut: 'remboursée', statut_paiement: 'échoué',
       }),
-      successMessage: 'Commande marquée comme remboursée',
-      errorMessage: 'Erreur lors du remboursement',
+      successMessage: t('toast_marked_refunded'),
+      errorMessage: t('toast_refund_error'),
     });
   };
 
@@ -509,15 +805,21 @@ export default function OrdersPage() {
 
   const activeFilterCount = [statutFilter, livraisonFilter, paiementFilter].filter(Boolean).length;
 
+  const tableHeaders = [
+    t('col_order_number'), t('col_client'), t('col_total_ttc'), t('col_promo'),
+    t('col_driver'), t('col_status'), t('col_delivery'), t('col_date'), '',
+  ];
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 px-4 sm:px-6 py-4 sm:py-6">
+      <BackButton />
 
       {/* Header ------------------------------------------------------------ */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-xl font-semibold text-foreground">Commandes</h1>
+          <h1 className="text-xl font-semibold text-foreground">{t('page_title')}</h1>
           <p className="mt-0.5 text-sm text-foreground/40">
-            {total.toLocaleString()} commande{total > 1 ? 's' : ''} au total
+            {total.toLocaleString()} {total > 1 ? t('orders_word_plural') : t('orders_word_singular')} {t('in_total')}
           </p>
         </div>
         <button
@@ -525,7 +827,7 @@ export default function OrdersPage() {
           className="inline-flex items-center justify-center gap-2 rounded-lg border border-white/10 px-3.5 py-2 text-sm text-foreground/60 transition-colors hover:bg-white/6 hover:text-foreground"
         >
           <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
-          Actualiser
+          {t('refresh')}
         </button>
       </div>
 
@@ -547,7 +849,7 @@ export default function OrdersPage() {
             <input
               value={search}
               onChange={e => setSearch(e.target.value)}
-              placeholder="N° commande, e-mail, téléphone…"
+              placeholder={t('search_placeholder')}
               className="w-full bg-transparent text-sm text-foreground outline-none placeholder:text-foreground/35"
             />
             {search && (
@@ -562,7 +864,7 @@ export default function OrdersPage() {
               <input
                 value={nomFilter}
                 onChange={e => setNomFilter(e.target.value)}
-                placeholder="Nom client"
+                placeholder={t('client_name_placeholder')}
                 className="w-full bg-transparent text-sm text-foreground outline-none placeholder:text-foreground/35"
               />
             </div>
@@ -577,7 +879,7 @@ export default function OrdersPage() {
               )}
             >
               <SlidersHorizontal size={14} />
-              Filtres
+              {t('filters')}
               {activeFilterCount > 0 && (
                 <span className="rounded-full bg-gold/25 px-1.5 text-[10px] font-bold text-gold">{activeFilterCount}</span>
               )}
@@ -589,25 +891,28 @@ export default function OrdersPage() {
         {showFilters && (
           <div className="grid grid-cols-1 gap-4 rounded-xl border border-white/10 bg-white/[0.02] p-4 sm:grid-cols-3">
             <FilterGroup
-              label="Statut commande"
+              label={t('filter_order_status')}
+              allLabel={t('filter_all')}
               options={STATUT_OPTIONS}
               value={statutFilter}
               onChange={v => { setStatutFilter(v); setPage(1); }}
-              cfg={STATUT_CFG}
+              cfg={statutCfg}
             />
             <FilterGroup
-              label="Statut livraison"
+              label={t('filter_delivery_status')}
+              allLabel={t('filter_all')}
               options={LIVRAISON_OPTIONS}
               value={livraisonFilter}
               onChange={v => { setLivraisonFilter(v); setPage(1); }}
-              cfg={STATUT_LIVRAISON_CFG}
+              cfg={livraisonCfg}
             />
             <FilterGroup
-              label="Paiement"
+              label={t('filter_payment')}
+              allLabel={t('filter_all')}
               options={PAIEMENT_OPTIONS}
               value={paiementFilter}
               onChange={v => { setPaiementFilter(v); setPage(1); }}
-              cfg={STATUT_PAIEMENT_CFG}
+              cfg={paiementCfg}
             />
           </div>
         )}
@@ -615,59 +920,71 @@ export default function OrdersPage() {
 
       {/* Table: en cours --------------------------------------------------- */}
       <OrdersTable
-        heading="En cours"
+        heading={t('ongoing_heading')}
         accent="bg-amber-400"
         count={ongoingOrders.length}
         orders={visibleOngoingOrders}
         loading={loading}
         pendingIds={pendingIds}
-        emptyLabel="Aucune commande en cours."
+        emptyLabel={t('empty_ongoing')}
         onView={setSelected}
         onEdit={openEdit}
+        headers={tableHeaders}
+        viewLabel={t('view_details')}
+        editLabel={t('edit_manage')}
+        statutCfg={statutCfg}
+        lang={lang}
         renderActions={order => (
           <>
             {order.statut === 'en_attente' && (
-              <ActionButton tone="emerald" onClick={() => handleValidateClick(order)}>Valider</ActionButton>
+              <ActionButton tone="emerald" onClick={() => handleValidateClick(order)}>{t('action_validate')}</ActionButton>
             )}
             {order.statut === 'validé' && order.statut_livraison !== 'livrée' && (
-              <ActionButton tone="blue" icon={<Truck size={11} />} onClick={() => handleMarkDelivered(order)}>Livré</ActionButton>
+              <ActionButton tone="blue" icon={<Truck size={11} />} onClick={() => handleMarkDelivered(order)}>{t('action_delivered')}</ActionButton>
             )}
             {isCancellable(order) && (
-              <ActionButton tone="red" onClick={() => handleCancel(order)}>Annuler</ActionButton>
+              <ActionButton tone="red" onClick={() => handleCancel(order)}>{t('action_cancel')}</ActionButton>
             )}
           </>
         )}
       />
       {!loading && ongoingOrders.length > 0 && (
-        <TablePagination page={ongoingPage} totalPages={ongoingTotalPages} onChange={setOngoingPage} totalItems={ongoingOrders.length} />
+        <TablePagination page={ongoingPage} totalPages={ongoingTotalPages} onChange={setOngoingPage} totalItems={ongoingOrders.length} lang={lang} />
       )}
 
       {/* Table: complétées --------------------------------------------------- */}
       <div className="pt-2">
         <OrdersTable
-          heading="Complétées"
+          heading={t('completed_heading')}
           accent="bg-emerald-400"
           count={completedOrders.length}
           orders={visibleCompletedOrders}
           loading={loading}
           pendingIds={pendingIds}
-          emptyLabel="Aucune commande complétée."
+          emptyLabel={t('empty_completed')}
           onView={setSelected}
+          headers={tableHeaders}
+          viewLabel={t('view_details')}
+          editLabel={t('edit_manage')}
+          statutCfg={statutCfg}
+          lang={lang}
           renderActions={order => (
             order.statut !== 'remboursée' && order.statut !== 'annulée' && (
-              <ActionButton tone="purple" onClick={() => handleRefund(order)}>Rembourser</ActionButton>
+              <ActionButton tone="purple" onClick={() => handleRefund(order)}>{t('action_refund')}</ActionButton>
             )
           )}
         />
       </div>
       {!loading && completedOrders.length > 0 && (
-        <TablePagination page={completedPage} totalPages={completedTotalPages} onChange={setCompletedPage} totalItems={completedOrders.length} />
+        <TablePagination page={completedPage} totalPages={completedTotalPages} onChange={setCompletedPage} totalItems={completedOrders.length} lang={lang} />
       )}
 
       {/* Server page control --------------------------------------------------- */}
       {totalPages > 1 && (
         <div className="flex flex-col gap-3 border-t border-white/10 pt-4 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-xs text-foreground/40">Page {page} / {totalPages} · {total.toLocaleString()} commandes</p>
+          <p className="text-xs text-foreground/40">
+            {t('page_of', { page, totalPages })} · {t('server_pagination_summary', { total: total.toLocaleString() })}
+          </p>
           <div className="flex items-center gap-2">
             <button
               disabled={page <= 1}
@@ -716,6 +1033,9 @@ export default function OrdersPage() {
           onDownloadInvoice={() => openInvoice(selected)}
           downloadingInvoice={downloadingInvoice}
           isCancellable={isCancellable(selected)}
+          lang={lang}
+          statutCfg={statutCfg}
+          paiementCfg={paiementCfg}
         />
       )}
 
@@ -726,7 +1046,7 @@ export default function OrdersPage() {
         <OrderPopupModal
           isOpen
           onClose={() => setEditModal(null)}
-          eyebrow="Gérer la commande"
+          eyebrow={t('manage_order')}
           title={<span className="font-mono">{editModal.numero_commande}</span>}
           size="2xl"
           footer={
@@ -735,7 +1055,7 @@ export default function OrdersPage() {
                 onClick={() => setEditModal(null)}
                 className="rounded-lg border border-white/10 px-5 py-2.5 text-sm font-medium text-foreground/60 transition-colors hover:bg-white/6"
               >
-                Annuler
+                {t('cancel')}
               </button>
               <button
                 onClick={handleSave}
@@ -743,44 +1063,44 @@ export default function OrdersPage() {
                 className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg bg-gold py-2.5 text-sm font-semibold text-black transition-colors hover:bg-gold/85 disabled:opacity-60"
               >
                 {isSavingEdit ? <Loader2 size={14} className="animate-spin" /> : null}
-                {isSavingEdit ? 'Enregistrement…' : 'Enregistrer les modifications'}
+                {isSavingEdit ? t('saving') : t('save_changes')}
               </button>
             </div>
           }
         >
           <div className="space-y-4">
-            <FormSection title="Statuts & Suivi" icon={<ClipboardList size={11} />}>
+            <FormSection title={t('section_status_tracking')} icon={<ClipboardList size={11} />}>
               <div className="space-y-4">
-                <Field label="Statut de la commande">
-                  <SegmentedPicker value={editStatut} onChange={setEditStatut} options={STATUT_OPTIONS.filter(v => v) as any} cfg={STATUT_CFG} />
+                <Field label={t('field_order_status')}>
+                  <SegmentedPicker value={editStatut} onChange={setEditStatut} options={STATUT_OPTIONS.filter(v => v) as any} cfg={statutCfg} />
                 </Field>
-                <Field label="Statut de livraison" icon={<Truck size={11} />}>
-                  <SegmentedPicker value={editLivraison} onChange={setEditLivraison} options={LIVRAISON_OPTIONS.filter(v => v) as any} cfg={STATUT_LIVRAISON_CFG} />
+                <Field label={t('field_delivery_status')} icon={<Truck size={11} />}>
+                  <SegmentedPicker value={editLivraison} onChange={setEditLivraison} options={LIVRAISON_OPTIONS.filter(v => v) as any} cfg={livraisonCfg} />
                 </Field>
-                <Field label="Statut paiement" icon={<CreditCard size={11} />}>
-                  <SegmentedPicker value={editPaiement} onChange={setEditPaiement} options={PAIEMENT_OPTIONS.filter(v => v) as any} cfg={STATUT_PAIEMENT_CFG} />
+                <Field label={t('field_payment_status')} icon={<CreditCard size={11} />}>
+                  <SegmentedPicker value={editPaiement} onChange={setEditPaiement} options={PAIEMENT_OPTIONS.filter(v => v) as any} cfg={paiementCfg} />
                 </Field>
               </div>
             </FormSection>
 
-            <FormSection title="Acheminement & Frais" icon={<Bike size={11} />}>
+            <FormSection title={t('section_shipping_fees')} icon={<Bike size={11} />}>
               <div className="space-y-4">
-                <Field label="Assigner un livreur" icon={<Bike size={11} />}>
+                <Field label={t('field_assign_driver')} icon={<Bike size={11} />}>
                   <select
                     value={editLivreur}
                     onChange={e => setEditLivreur(e.target.value)}
                     className="w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2.5 text-sm text-foreground outline-none transition-colors focus:border-gold/50"
                   >
-                    <option value="" className="bg-background">— Aucun —</option>
+                    <option value="" className="bg-background">{t('option_none')}</option>
                     {drivers.map(d => {
                       const id = d.id ?? d.user_id;
-                      return <option key={id} value={id} className="bg-background">{driverDisplayName(d)}</option>;
+                      return <option key={id} value={id} className="bg-background">{driverDisplayName(d, lang)}</option>;
                     })}
                   </select>
                 </Field>
 
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  <Field label="Date estimée" icon={<Calendar size={11} />}>
+                  <Field label={t('field_estimated_date')} icon={<Calendar size={11} />}>
                     <input
                       type="date"
                       value={editDateEst}
@@ -788,7 +1108,7 @@ export default function OrdersPage() {
                       className="w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2.5 text-sm text-foreground outline-none transition-colors focus:border-gold/50"
                     />
                   </Field>
-                  <Field label="Frais de livraison" icon={<Tag size={11} />}>
+                  <Field label={t('field_delivery_fee')} icon={<Tag size={11} />}>
                     <input
                       type="number"
                       value={editFrais}
@@ -801,13 +1121,13 @@ export default function OrdersPage() {
               </div>
             </FormSection>
 
-            <FormSection title="Notes d'équipe" icon={<ClipboardList size={11} />}>
-              <Field label="Note interne">
+            <FormSection title={t('section_team_notes')} icon={<ClipboardList size={11} />}>
+              <Field label={t('field_internal_note')}>
                 <textarea
                   value={editNote}
                   onChange={e => setEditNote(e.target.value)}
                   rows={3}
-                  placeholder="Commentaire interne visible uniquement par l'équipe…"
+                  placeholder={t('internal_note_placeholder')}
                   className="w-full resize-none rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2.5 text-sm text-foreground outline-none transition-colors focus:border-gold/50"
                 />
               </Field>
@@ -823,7 +1143,7 @@ export default function OrdersPage() {
         <OrderPopupModal
           isOpen
           onClose={() => setValidationModal(null)}
-          eyebrow="Validation & livraison"
+          eyebrow={t('validation_delivery')}
           title={<span className="font-mono">{validationModal.numero_commande}</span>}
           size="xl"
           footer={
@@ -832,44 +1152,44 @@ export default function OrdersPage() {
                 onClick={() => setValidationModal(null)}
                 className="rounded-lg border border-white/10 px-5 py-2.5 text-sm font-medium text-foreground/60 transition-colors hover:bg-white/6"
               >
-                Annuler
+                {t('cancel')}
               </button>
               <button
                 onClick={handleConfirmValidation}
                 className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg bg-emerald-500 py-2.5 text-sm font-semibold text-black transition-colors hover:bg-emerald-400"
               >
                 <CheckCircle size={15} />
-                Confirmer la validation
+                {t('confirm_validation')}
               </button>
             </div>
           }
         >
           <div className="space-y-4">
-            <FormSection title="Destinataire" icon={<MapPin size={11} />}>
+            <FormSection title={t('section_recipient')} icon={<MapPin size={11} />}>
               <dl className="space-y-1.5 text-xs">
-                <RowKV k="Nom" v={validationModal.livraison_nom_complet} />
-                <RowKV k="Téléphone" v={validationModal.livraison_telephone} />
-                <RowKV k="Adresse" v={`${validationModal.livraison_ville}, ${validationModal.livraison_quartier}`} />
+                <RowKV k={t('label_name')} v={validationModal.livraison_nom_complet} />
+                <RowKV k={t('label_phone')} v={validationModal.livraison_telephone} />
+                <RowKV k={t('label_address')} v={`${validationModal.livraison_ville}, ${validationModal.livraison_quartier}`} />
               </dl>
             </FormSection>
 
-            <FormSection title="Assignation" icon={<Bike size={11} />}>
+            <FormSection title={t('section_assignment')} icon={<Bike size={11} />}>
               <div className="space-y-4">
-                <Field label="Choisir un livreur" icon={<Bike size={11} />}>
+                <Field label={t('field_choose_driver')} icon={<Bike size={11} />}>
                   <select
                     value={valDriverId}
                     onChange={e => setValDriverId(e.target.value)}
                     className="w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2.5 text-sm text-foreground outline-none transition-colors focus:border-gold/50"
                   >
-                    <option value="" className="bg-background">— Assigner plus tard —</option>
+                    <option value="" className="bg-background">{t('option_assign_later')}</option>
                     {drivers.map(d => {
                       const id = d.id ?? d.user_id;
-                      return <option key={id} value={id} className="bg-background">{driverDisplayName(d)}</option>;
+                      return <option key={id} value={id} className="bg-background">{driverDisplayName(d, lang)}</option>;
                     })}
                   </select>
                 </Field>
 
-                <Field label="Date estimée de livraison" icon={<Calendar size={11} />}>
+                <Field label={t('field_estimated_delivery_date')} icon={<Calendar size={11} />}>
                   <input
                     type="date"
                     value={valDateEst}
@@ -902,8 +1222,8 @@ function FormSection({ title, icon, children }: { title: string; icon?: React.Re
 }
 
 function FilterGroup({
-  label, options, value, onChange, cfg,
-}: { label: string; options: string[]; value: string; onChange: (v: string) => void; cfg: Record<string, { label: string }> }) {
+  label, allLabel, options, value, onChange, cfg,
+}: { label: string; allLabel: string; options: string[]; value: string; onChange: (v: string) => void; cfg: Record<string, { label: string }> }) {
   return (
     <div>
       <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-foreground/35">{label}</p>
@@ -917,7 +1237,7 @@ function FilterGroup({
               value === v ? 'border-gold/40 bg-gold/15 text-gold' : 'border-white/10 text-foreground/50 hover:border-white/20'
             )}
           >
-            {v === '' ? 'Tous' : cfg[v]?.label ?? v}
+            {v === '' ? allLabel : cfg[v]?.label ?? v}
           </button>
         ))}
       </div>
@@ -952,6 +1272,7 @@ function RowKV({ k, v }: { k: string; v?: string | null }) {
 
 function OrdersTable({
   heading, accent, count, orders, loading, pendingIds, emptyLabel, onView, onEdit, renderActions,
+  headers, viewLabel, editLabel, statutCfg, lang,
 }: {
   heading: string;
   accent: string;
@@ -963,6 +1284,11 @@ function OrdersTable({
   onView: (o: BackendOrder) => void;
   onEdit?: (o: BackendOrder) => void;
   renderActions: (o: BackendOrder) => React.ReactNode;
+  headers: string[];
+  viewLabel: string;
+  editLabel: string;
+  statutCfg: Record<string, { label: string; color: string; dot: string }>;
+  lang: string;
 }) {
   return (
     <div>
@@ -976,7 +1302,7 @@ function OrdersTable({
         {loading ? (
           <div className="flex flex-col items-center justify-center gap-2.5 py-16 text-foreground/40">
             <Loader2 className="animate-spin text-gold" size={26} />
-            <p className="text-xs">Chargement…</p>
+            <p className="text-xs">…</p>
           </div>
         ) : (
           <>
@@ -985,8 +1311,8 @@ function OrdersTable({
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-white/10 bg-white/[0.02]">
-                    {['N° Commande', 'Client', 'Total TTC', 'Promo', 'Livreur', 'Statut', 'Livraison', 'Date', ''].map(h => (
-                      <th key={h} className="whitespace-nowrap px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wider text-foreground/35">
+                    {headers.map((h, i) => (
+                      <th key={`${h}-${i}`} className="whitespace-nowrap px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wider text-foreground/35">
                         {h}
                       </th>
                     ))}
@@ -1007,20 +1333,20 @@ function OrdersTable({
                           <p className="text-xs font-medium leading-tight text-foreground">{order.livraison_nom_complet}</p>
                           <p className="mt-0.5 text-[10px] text-foreground/40">{order.client_email}</p>
                         </td>
-                        <td className="whitespace-nowrap px-4 py-3 font-semibold text-foreground">{fmt(order.total_ttc)}</td>
+                        <td className="whitespace-nowrap px-4 py-3 font-semibold text-foreground">{fmt(order.total_ttc, lang)}</td>
                         <td className="px-4 py-3">
                           {order.code_promo_utilise
                             ? <span className="rounded border border-gold/20 bg-gold/10 px-1.5 py-0.5 font-mono text-[11px] text-gold">{order.code_promo_utilise}</span>
                             : <span className="text-xs text-foreground/25">—</span>}
                         </td>
                         <td className="whitespace-nowrap px-4 py-3 text-xs text-foreground/55">{order.livreur_nom ?? '—'}</td>
-                        <td className="px-4 py-3"><StatusChip cfg={STATUT_CFG[order.statut]} /></td>
-                        <td className="whitespace-nowrap px-4 py-3 text-xs text-foreground/55">{getDeliveryMethod(order)}</td>
-                        <td className="whitespace-nowrap px-4 py-3 text-[11px] text-foreground/35">{fmtDate(order.date_creation)}</td>
+                        <td className="px-4 py-3"><StatusChip cfg={statutCfg[order.statut]} /></td>
+                        <td className="whitespace-nowrap px-4 py-3 text-xs text-foreground/55">{getDeliveryMethod(order, lang)}</td>
+                        <td className="whitespace-nowrap px-4 py-3 text-[11px] text-foreground/35">{fmtDate(order.date_creation, false, lang)}</td>
                         <td className="px-4 py-3">
                           <div className="flex items-center justify-end gap-1">
-                            <IconButton icon={<Eye size={14} />} title="Voir le détail" onClick={() => onView(order)} tone="gold" />
-                            {onEdit && <IconButton icon={<ClipboardList size={14} />} title="Modifier / gérer" onClick={() => onEdit(order)} tone="blue" />}
+                            <IconButton icon={<Eye size={14} />} title={viewLabel} onClick={() => onView(order)} tone="gold" />
+                            {onEdit && <IconButton icon={<ClipboardList size={14} />} title={editLabel} onClick={() => onEdit(order)} tone="blue" />}
                             {renderActions(order)}
                           </div>
                         </td>
@@ -1047,7 +1373,7 @@ function OrdersTable({
                         {order.numero_commande}
                         {isPending && <Loader2 size={11} className="animate-spin text-gold/70" />}
                       </span>
-                      <StatusChip cfg={STATUT_CFG[order.statut]} />
+                      <StatusChip cfg={statutCfg[order.statut]} />
                     </div>
 
                     <div className="flex justify-between items-start gap-2">
@@ -1055,18 +1381,18 @@ function OrdersTable({
                         <p className="text-xs font-medium text-foreground">{order.livraison_nom_complet}</p>
                         <p className="text-[11px] text-foreground/40">{order.client_email}</p>
                       </div>
-                      <p className="text-sm font-semibold text-foreground text-right">{fmt(order.total_ttc)}</p>
+                      <p className="text-sm font-semibold text-foreground text-right">{fmt(order.total_ttc, lang)}</p>
                     </div>
 
                     <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-foreground/45 border-t border-white/5 pt-2">
-                      <span>{getDeliveryMethod(order)}</span>
+                      <span>{getDeliveryMethod(order, lang)}</span>
                       {order.livreur_nom && <span>• {order.livreur_nom}</span>}
-                      <span>• {fmtDate(order.date_creation)}</span>
+                      <span>• {fmtDate(order.date_creation, false, lang)}</span>
                     </div>
 
                     <div className="flex items-center justify-end gap-1.5 pt-1">
-                      <IconButton icon={<Eye size={14} />} title="Voir le détail" onClick={() => onView(order)} tone="gold" />
-                      {onEdit && <IconButton icon={<ClipboardList size={14} />} title="Modifier / gérer" onClick={() => onEdit(order)} tone="blue" />}
+                      <IconButton icon={<Eye size={14} />} title={viewLabel} onClick={() => onView(order)} tone="gold" />
+                      {onEdit && <IconButton icon={<ClipboardList size={14} />} title={editLabel} onClick={() => onEdit(order)} tone="blue" />}
                       {renderActions(order)}
                     </div>
                   </div>
@@ -1084,12 +1410,13 @@ function OrdersTable({
 }
 
 function TablePagination({
-  page, totalPages, onChange, totalItems,
-}: { page: number; totalPages: number; onChange: (p: number) => void; totalItems: number }) {
+  page, totalPages, onChange, totalItems, lang,
+}: { page: number; totalPages: number; onChange: (p: number) => void; totalItems: number; lang: string }) {
   if (totalPages <= 1) return null;
+  const word = totalItems > 1 ? translate(lang, 'orders_word_plural') : translate(lang, 'orders_word_singular');
   return (
     <div className="flex items-center justify-between px-1">
-      <p className="text-[11px] text-foreground/40">{totalItems} commande{totalItems > 1 ? 's' : ''} · page {page}/{totalPages}</p>
+      <p className="text-[11px] text-foreground/40">{translate(lang, 'table_pagination_summary', { count: totalItems, word, page, totalPages })}</p>
       <div className="flex items-center gap-1">
         <button
           disabled={page <= 1}
@@ -1128,7 +1455,7 @@ function TablePagination({
 // ─────────────────────────────────────────────────────────────────────────
 
 function OrderDetailModal({
-  order, onClose, onManage, onValidate, onCancel, onDownloadInvoice, downloadingInvoice, isCancellable,
+  order, onClose, onManage, onValidate, onCancel, onDownloadInvoice, downloadingInvoice, isCancellable, lang, statutCfg, paiementCfg,
 }: {
   order: BackendOrder;
   onClose: () => void;
@@ -1138,25 +1465,28 @@ function OrderDetailModal({
   onDownloadInvoice: () => void;
   downloadingInvoice: boolean;
   isCancellable: boolean;
+  lang: string;
+  statutCfg: Record<string, { label: string; color: string; dot: string }>;
+  paiementCfg: Record<string, { label: string; color: string; dot: string }>;
 }) {
   const lines = allLines(order);
   const groups: Array<{ title: string; icon: React.ReactNode; lines: BackendOrderLine[] }> = [
-    { title: 'Parfums', icon: <Package size={12} />, lines: order.lignes_parfums },
-    { title: 'Accessoires', icon: <Package size={12} />, lines: order.lignes_accessoires },
-    { title: 'Essences finies', icon: <Package size={12} />, lines: order.lignes_produit_fini_essence },
-    { title: 'Parfums personnalisés', icon: <Package size={12} />, lines: order.lignes_parfums_perso },
-    { title: 'Essences personnalisées', icon: <Package size={12} />, lines: order.lignes_essence_personnalisee },
+    { title: translate(lang, 'group_perfumes'), icon: <Package size={12} />, lines: order.lignes_parfums },
+    { title: translate(lang, 'group_accessories'), icon: <Package size={12} />, lines: order.lignes_accessoires },
+    { title: translate(lang, 'group_finished_essences'), icon: <Package size={12} />, lines: order.lignes_produit_fini_essence },
+    { title: translate(lang, 'group_custom_perfumes'), icon: <Package size={12} />, lines: order.lignes_parfums_perso },
+    { title: translate(lang, 'group_custom_essences'), icon: <Package size={12} />, lines: order.lignes_essence_personnalisee },
   ].filter(g => g.lines.length > 0);
 
   return (
     <OrderPopupModal
       isOpen
       onClose={onClose}
-      eyebrow={fmtDate(order.date_creation, true)}
+      eyebrow={fmtDate(order.date_creation, true, lang)}
       title={
         <>
           <span className="font-mono">{order.numero_commande}</span>
-          <StatusChip cfg={STATUT_CFG[order.statut]} />
+          <StatusChip cfg={statutCfg[order.statut]} />
         </>
       }
       size="3xl"
@@ -1164,19 +1494,19 @@ function OrderDetailModal({
         <div className="flex flex-wrap items-center justify-end gap-2.5">
           {order.statut === 'en_attente' && (
             <button onClick={onValidate} className="inline-flex flex-1 sm:flex-initial items-center justify-center gap-1.5 rounded-lg bg-emerald-500 py-2.5 px-4 text-xs font-semibold text-black transition-colors hover:bg-emerald-400">
-              <CheckCircle size={14} />Valider
+              <CheckCircle size={14} />{translate(lang, 'action_validate')}
             </button>
           )}
           {isCancellable && (
             <button onClick={onCancel} className="inline-flex flex-1 sm:flex-initial items-center justify-center gap-1.5 rounded-lg bg-red-500/90 hover:bg-red-500 py-2.5 px-4 text-xs font-semibold text-white transition-colors">
-              <XCircle size={14} />Annuler
+              <XCircle size={14} />{translate(lang, 'action_cancel')}
             </button>
           )}
           <button onClick={onManage} className="inline-flex flex-1 sm:flex-initial items-center justify-center gap-1.5 rounded-lg bg-gold px-5 py-2.5 text-xs font-semibold text-black transition-colors hover:bg-gold/85">
-            <ClipboardList size={14} />Gérer
+            <ClipboardList size={14} />{translate(lang, 'manage')}
           </button>
           <button onClick={onClose} className="rounded-lg border border-white/10 px-5 py-2.5 text-xs text-foreground/60 transition-colors hover:bg-white/6">
-            Fermer
+            {translate(lang, 'close')}
           </button>
         </div>
       }
@@ -1185,15 +1515,15 @@ function OrderDetailModal({
 
         {/* Summary strip */}
         <div className="grid grid-cols-2 gap-3 rounded-xl border border-white/10 bg-white/[0.02] p-4 sm:flex sm:flex-wrap sm:items-center sm:gap-x-6 sm:gap-y-2">
-          <SummaryStat label="Total TTC" value={fmt(order.total_ttc)} emphasize />
+          <SummaryStat label={translate(lang, 'summary_total_ttc')} value={fmt(order.total_ttc, lang)} emphasize />
           <div className="hidden h-8 w-px bg-white/10 sm:block" />
-          <SummaryStat label="Paiement" node={<StatusChip cfg={STATUT_PAIEMENT_CFG[order.statut_paiement]} />} />
+          <SummaryStat label={translate(lang, 'summary_payment')} node={<StatusChip cfg={paiementCfg[order.statut_paiement]} />} />
           <div className="hidden h-8 w-px bg-white/10 sm:block" />
-          <SummaryStat label="Mode" value={getDeliveryMethod(order)} />
+          <SummaryStat label={translate(lang, 'summary_mode')} value={getDeliveryMethod(order, lang)} />
           {order.code_promo_utilise && (
             <>
               <div className="hidden h-8 w-px bg-white/10 sm:block" />
-              <SummaryStat label="Code promo" node={<span className="rounded border border-gold/20 bg-gold/10 px-1.5 py-0.5 font-mono text-xs text-gold">{order.code_promo_utilise}</span>} />
+              <SummaryStat label={translate(lang, 'summary_promo_code')} node={<span className="rounded border border-gold/20 bg-gold/10 px-1.5 py-0.5 font-mono text-xs text-gold">{order.code_promo_utilise}</span>} />
             </>
           )}
         </div>
@@ -1202,16 +1532,16 @@ function OrderDetailModal({
           {/* Left: delivery + notes */}
           <div className="space-y-5 lg:col-span-2">
             <section className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
-              <SectionLabel icon={<MapPin size={11} />}>Livraison</SectionLabel>
+              <SectionLabel icon={<MapPin size={11} />}>{translate(lang, 'section_delivery')}</SectionLabel>
               <dl className="space-y-1.5 text-xs">
-                <RowKV k="Destinataire" v={order.livraison_nom_complet} />
-                <RowKV k="Téléphone" v={order.livraison_telephone} />
+                <RowKV k={translate(lang, 'label_recipient')} v={order.livraison_nom_complet} />
+                <RowKV k={translate(lang, 'label_phone')} v={order.livraison_telephone} />
                 {order.livraison_ville && (
-                  <RowKV k="Ville" v={`${order.livraison_ville}${order.livraison_quartier ? ` – ${order.livraison_quartier}` : ''}`} />
+                  <RowKV k={translate(lang, 'label_city')} v={`${order.livraison_ville}${order.livraison_quartier ? ` – ${order.livraison_quartier}` : ''}`} />
                 )}
-                <RowKV k="Livreur" v={order.livreur_nom ?? '—'} />
-                <RowKV k="Date estimée" v={fmtDate(order.date_livraison_estimee)} />
-                <RowKV k="Date réelle" v={fmtDate(order.date_livraison_reelle)} />
+                <RowKV k={translate(lang, 'label_driver')} v={order.livreur_nom ?? '—'} />
+                <RowKV k={translate(lang, 'label_estimated_date')} v={fmtDate(order.date_livraison_estimee, false, lang)} />
+                <RowKV k={translate(lang, 'label_actual_date')} v={fmtDate(order.date_livraison_reelle, false, lang)} />
               </dl>
               {order.motif_echec_livraison && (
                 <div className="mt-3 flex gap-2 rounded-lg bg-red-500/10 border border-red-500/20 p-2.5 text-xs text-red-400">
@@ -1225,13 +1555,13 @@ function OrderDetailModal({
               <section className="space-y-3 rounded-xl border border-white/10 bg-white/[0.02] p-4">
                 {order.note_client && (
                   <div>
-                    <SectionLabel icon={<Phone size={11} />}>Note client</SectionLabel>
+                    <SectionLabel icon={<Phone size={11} />}>{translate(lang, 'section_client_note')}</SectionLabel>
                     <p className="text-xs leading-relaxed text-foreground/65">{order.note_client}</p>
                   </div>
                 )}
                 {order.note_interne && (
                   <div>
-                    <SectionLabel icon={<ClipboardList size={11} />}>Note interne</SectionLabel>
+                    <SectionLabel icon={<ClipboardList size={11} />}>{translate(lang, 'section_internal_note')}</SectionLabel>
                     <p className="text-xs leading-relaxed text-foreground/65">{order.note_interne}</p>
                   </div>
                 )}
@@ -1240,16 +1570,16 @@ function OrderDetailModal({
 
             {(order.facture || order.statut_paiement === 'payé') && (
               <section className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
-                <SectionLabel icon={<FileText size={11} />}>Facture</SectionLabel>
+                <SectionLabel icon={<FileText size={11} />}>{translate(lang, 'section_invoice')}</SectionLabel>
                 <div className="space-y-2.5">
                   {order.facture?.numero_facture && (
                     <div className="flex items-center justify-between text-xs">
                       <span className="text-foreground/40">N° {order.facture.numero_facture}</span>
-                      <span className="text-foreground/50">{fmtDate(order.facture.date_emission)}</span>
+                      <span className="text-foreground/50">{fmtDate(order.facture.date_emission, false, lang)}</span>
                     </div>
                   )}
                   {order.facture?.envoye_par_email && (
-                    <p className="flex items-center gap-1.5 text-[11px] text-emerald-400/80"><Mail size={11} />Envoyée par e-mail</p>
+                    <p className="flex items-center gap-1.5 text-[11px] text-emerald-400/80"><Mail size={11} />{translate(lang, 'invoice_sent_by_email')}</p>
                   )}
                   <div className="flex gap-2">
                     {order.facture?.fichier_pdf && (
@@ -1258,7 +1588,7 @@ function OrderDetailModal({
                         target="_blank" rel="noreferrer"
                         className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-white/10 py-2 text-xs font-medium text-foreground/75 transition-colors hover:bg-white/6"
                       >
-                        <FileText size={13} />Ouvrir
+                        <FileText size={13} />{translate(lang, 'open')}
                       </a>
                     )}
                     <button
@@ -1267,7 +1597,7 @@ function OrderDetailModal({
                       className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-emerald-500/15 py-2 text-xs font-medium text-emerald-400 ring-1 ring-inset ring-emerald-500/25 transition-colors hover:bg-emerald-500/25 disabled:opacity-50"
                     >
                       {downloadingInvoice ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} />}
-                      Télécharger
+                      {translate(lang, 'download')}
                     </button>
                   </div>
                 </div>
@@ -1278,26 +1608,26 @@ function OrderDetailModal({
           {/* Right: items + receipt */}
           <div className="space-y-5 lg:col-span-3">
             <section className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
-              <SectionLabel icon={<Package size={11} />}>Articles ({lines.length})</SectionLabel>
+              <SectionLabel icon={<Package size={11} />}>{translate(lang, 'section_articles', { count: lines.length })}</SectionLabel>
               <div className="max-h-[300px] space-y-4 overflow-y-auto pr-1">
                 {groups.map(g => (
-                  <LinesGroup key={g.title} title={g.title} icon={g.icon} lines={g.lines} />
+                  <LinesGroup key={g.title} title={g.title} icon={g.icon} lines={g.lines} lang={lang} />
                 ))}
-                {lines.length === 0 && <p className="py-4 text-center text-xs italic text-foreground/30">Aucun article dans cette commande.</p>}
+                {lines.length === 0 && <p className="py-4 text-center text-xs italic text-foreground/30">{translate(lang, 'no_articles')}</p>}
               </div>
             </section>
 
             <section className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
-              <SectionLabel icon={<CreditCard size={11} />}>Récapitulatif</SectionLabel>
+              <SectionLabel icon={<CreditCard size={11} />}>{translate(lang, 'section_summary')}</SectionLabel>
               <div className="space-y-1.5 text-xs">
-                <ReceiptRow k="Sous-total" v={fmt(order.sous_total)} />
-                <ReceiptRow k="Frais de livraison" v={fmt(order.frais_livraison)} />
-                {Number(order.remise_code_promo) > 0 && <ReceiptRow k="Remise promo" v={`-${fmt(order.remise_code_promo)}`} negative />}
+                <ReceiptRow k={translate(lang, 'row_subtotal')} v={fmt(order.sous_total, lang)} />
+                <ReceiptRow k={translate(lang, 'row_delivery_fee')} v={fmt(order.frais_livraison, lang)} />
+                {Number(order.remise_code_promo) > 0 && <ReceiptRow k={translate(lang, 'row_promo_discount')} v={`-${fmt(order.remise_code_promo, lang)}`} negative />}
                 <div className="my-1.5 border-t border-dashed border-white/10" />
-                <ReceiptRow k="Total TTC" v={fmt(order.total_ttc)} bold />
+                <ReceiptRow k={translate(lang, 'row_total_ttc')} v={fmt(order.total_ttc, lang)} bold />
                 <div className="my-1.5 border-t border-white/10" />
-                <ReceiptRow k="Commission" v={`${fmt(order.commission_montant)} · ${order.commission_statut}`} muted />
-                <ReceiptRow k="Prestataire" v={order.prestataire_code ?? '—'} muted />
+                <ReceiptRow k={translate(lang, 'row_commission')} v={`${fmt(order.commission_montant, lang)} · ${order.commission_statut}`} muted />
+                <ReceiptRow k={translate(lang, 'row_provider')} v={order.prestataire_code ?? '—'} muted />
               </div>
             </section>
           </div>
@@ -1340,7 +1670,7 @@ function ReceiptRow({ k, v, bold, negative, muted }: { k: string; v: string; bol
   );
 }
 
-function getOrderLineName(line: BackendOrderLine) {
+function getOrderLineName(line: BackendOrderLine, lang: string) {
   return (
     line.nom_snapshot ||
     line.nom ||
@@ -1350,7 +1680,7 @@ function getOrderLineName(line: BackendOrderLine) {
     line.parfum_details?.nom ||
     line.accessoire_details?.nom ||
     line.composition?.nom ||
-    'Article'
+    translate(lang, 'article_fallback')
   );
 }
 
@@ -1366,7 +1696,7 @@ function getOrderLineDetailMeta(line: BackendOrderLine) {
   return { essenceName, marque, tailleMl, categorie, prixParMl, prixActuel, codeReference };
 }
 
-function LinesGroup({ title, icon, lines }: { title: string; icon: React.ReactNode; lines: BackendOrderLine[] }) {
+function LinesGroup({ title, icon, lines, lang }: { title: string; icon: React.ReactNode; lines: BackendOrderLine[]; lang: string }) {
   return (
     <div>
       <p className="mb-1.5 flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-wider text-foreground/30">
@@ -1375,7 +1705,7 @@ function LinesGroup({ title, icon, lines }: { title: string; icon: React.ReactNo
       <div className="space-y-1.5">
         {lines.map(line => {
           const isCustom = !!line.parfum_personnalise || !!line.composition;
-          const name = getOrderLineName(line);
+          const name = getOrderLineName(line, lang);
           const detailMeta = getOrderLineDetailMeta(line);
           const hasDetailMeta = Boolean(
             line.produit_fini_essence ||
@@ -1403,13 +1733,13 @@ function LinesGroup({ title, icon, lines }: { title: string; icon: React.ReactNo
                 <div className="mt-2 ml-2 space-y-1 border-l border-white/10 pl-2.5">
                   {line.composition.lignes.map((essence, i) => (
                     <div key={i} className="flex justify-between text-foreground/50">
-                      <span>{essence.essence_nom || 'Essence'}</span>
+                      <span>{essence.essence_nom || translate(lang, 'essence_fallback')}</span>
                       <span>{essence.quantite_ml || '—'} ml</span>
                     </div>
                   ))}
                   {line.composition.flacon_nom && (
                     <div className="flex justify-between text-foreground/35">
-                      <span>Flacon</span>
+                      <span>{translate(lang, 'flask_label')}</span>
                       <span>{line.composition.flacon_nom} {line.composition.flacon_contenance_ml ? `· ${line.composition.flacon_contenance_ml}ml` : ''}</span>
                     </div>
                   )}
@@ -1418,11 +1748,11 @@ function LinesGroup({ title, icon, lines }: { title: string; icon: React.ReactNo
               {hasDetailMeta && (
                 <div className="mt-2 space-y-1 text-[11px] text-foreground/50">
                   <div className="flex justify-between gap-2">
-                    <span>{[detailMeta.essenceName, detailMeta.marque].filter(Boolean).join(' · ') || 'Produit fini'}</span>
+                    <span>{[detailMeta.essenceName, detailMeta.marque].filter(Boolean).join(' · ') || translate(lang, 'finished_product_fallback')}</span>
                     <span>{detailMeta.tailleMl ? `${detailMeta.tailleMl} ml` : ''}</span>
                   </div>
                   <div className="flex justify-between gap-2">
-                    <span>Catégorie: {detailMeta.categorie || '—'}</span>
+                    <span>{translate(lang, 'category_label')}: {detailMeta.categorie || '—'}</span>
                     <span>
                       {detailMeta.prixParMl
                         ? `${Number(detailMeta.prixParMl).toLocaleString()} FCFA/ml`
@@ -1432,7 +1762,7 @@ function LinesGroup({ title, icon, lines }: { title: string; icon: React.ReactNo
                     </span>
                   </div>
                   {detailMeta.codeReference && (
-                    <div className="text-[10px] text-foreground/35">Réf: {detailMeta.codeReference}</div>
+                    <div className="text-[10px] text-foreground/35">{translate(lang, 'reference_label')}: {detailMeta.codeReference}</div>
                   )}
                 </div>
               )}

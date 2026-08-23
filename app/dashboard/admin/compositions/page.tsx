@@ -103,7 +103,7 @@ export default function CompositionsPage() {
       </div>
 
       {/* KPI Bar */}
-      <div className="rounded-xl border border-white/10 bg-white/[0.02] grid grid-cols-2 md:grid-cols-4 divide-x divide-white/10">
+      <div className="shadow-black/30 shadow-sm rounded-xl border border-white/10 bg-white/[0.02] grid grid-cols-2 md:grid-cols-4 divide-x divide-white/10">
         <div className="p-4">
           <p className="text-[10px] font-semibold uppercase tracking-wider text-foreground/35">Total compositions</p>
           <p className="text-xl font-semibold tabular-nums text-foreground mt-1">{compositions.length}</p>
@@ -123,7 +123,7 @@ export default function CompositionsPage() {
       </div>
 
       {/* Table Section */}
-      <div className="rounded-xl border border-white/10 overflow-hidden bg-white/[0.02] min-h-[300px]">
+      <div className="shadow-black/30 shadow-sm rounded-xl border border-white/10 overflow-hidden bg-white/[0.02] min-h-[300px]">
         {loading ? (
           <div className="flex items-center justify-center py-20 text-foreground/40 text-xs gap-2">
             <Loader2 className="animate-spin text-gold" size={16} />

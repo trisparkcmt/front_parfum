@@ -403,7 +403,7 @@ export default function FinishedEssenceAdminPage() {
       {/* Toolbar / Inline Search & Collapsible Filters */}
       <div className="space-y-3">
         <div className="flex items-center gap-2.5">
-          <div className="flex items-center gap-2 bg-white/[0.02] border border-white/10 rounded-lg px-3 py-2 flex-1">
+          <div className="shadow-black/30 shadow-sm flex items-center gap-2 bg-white/[0.02] border border-white/10 rounded-lg px-3 py-2 flex-1">
             <Search size={14} className="text-foreground/40 shrink-0" />
             <input
               value={search}
@@ -414,7 +414,7 @@ export default function FinishedEssenceAdminPage() {
           </div>
           <button
             onClick={() => setShowFilters((v) => !v)}
-            className={`flex items-center gap-2 border border-white/10 px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
+            className={`shadow-black/30 shadow-sm flex items-center gap-2 border border-white/10 px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
               showFilters || activeFilterCount > 0
                 ? 'bg-white/[0.06] text-foreground'
                 : 'bg-white/[0.02] text-foreground/60 hover:bg-white/[0.05]'
@@ -432,7 +432,7 @@ export default function FinishedEssenceAdminPage() {
 
         {/* Filter Panel (Collapsible) */}
         {showFilters && (
-          <div className="bg-white/[0.02] border border-white/10 rounded-xl p-3 flex items-center gap-3">
+          <div className="shadow-black/30 shadow-sm bg-white/[0.02] border border-white/10 rounded-xl p-3 flex items-center gap-3">
             <div className="flex items-center gap-2">
               <label className="text-[10px] font-semibold uppercase tracking-wider text-foreground/35">
                 Taille

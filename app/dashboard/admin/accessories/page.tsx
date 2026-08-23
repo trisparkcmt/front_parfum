@@ -538,7 +538,7 @@ export default function AccessoriesPage() {
       {/* Toolbar ---------------------------------------------------------- */}
       <div className="space-y-3">
         <div className="flex flex-wrap items-center gap-2.5">
-          <div className="flex min-w-[220px] flex-1 items-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2">
+          <div className="shadow-black/30 shadow-sm flex min-w-[220px] flex-1 items-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2">
             <Search size={14} className="shrink-0 text-foreground/35" />
             <input
               value={search}
@@ -640,7 +640,7 @@ export default function AccessoriesPage() {
       </div>
 
       {/* Table -------------------------------------------------------------- */}
-      <div className="min-h-[300px] overflow-hidden rounded-xl border border-white/10">
+      <div className="shadow-black/30 shadow-sm min-h-[300px] overflow-hidden rounded-xl border border-white/10">
         {loading ? (
           <div className="flex flex-col items-center justify-center gap-2.5 py-20 text-foreground/40">
             <Loader2 className="animate-spin text-gold" size={28} />
