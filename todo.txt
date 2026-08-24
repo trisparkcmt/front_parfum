@@ -1,0 +1,31 @@
+Checks
+-page traduction de chaque page
+-dans l’atelier création sur mesure l’utilisateur quand il swipe les svg de flacon si ya pas de flacon qui sont dans la catégorie des flacon de 30ml en descendant le svg ne se montre pas parce que actu j’ai que des flacon de 100 ml mais je swipe tout le svg se montrent
+ •également dans le recape des essences sélectionner ya  juste leurs total en quantité ya pas la listes des essence et tou
+
+Dans le Dashboard ,dans l’image upload quand je met une image le "x" qui sers à retirer une image sélectionnée se trouve a l’intérieur du centenaire et n’est donc pas accessible 
+Également hier je n’arrivais pas à upload d’image de flacon ,je click bien sur ajouter une image mais l’image n’arrive jamais dans le formulaire et maintenant aujourdhui le container pour upload limage ne saffiche meme plus
+
+Également dans les formulaires d’inscription et de connexion emplimente des message d’erreur par exemple pour des identifiants incorrecte et également vérifier le type de données entre si c’est le format correct quand l’utilisateur sort du input ne pas attendre quand il veux soumettre avant de lui dire que l’émail n’as pas un format correct par exemple 
+
+Dans la page du prestataire implémente la pagination dans les table
+
+Implémenter des messages d’erreur plus précis du genre quand y’a pas de connexion internet faut dire que l’utilisateur est hors ligne 
+
+Également des timeout sur les requêtes et donnes des messages d’erreur en fonction de l’erreur 
+
+Faire la traduction dans le Dashboard du 
+livreur et également crée la page les livraisons ou il vera ses livraisons déjà complète donc on sépare la première page qui est celle des livraisons à faire et la seconde page où est stocké les livraisons déjà effectué 
+
+Dans le profile sous la section paramètres,
+Pour le choix de la langue faut mettre un dropdown comme dans la navbar
+Pour le choix du thème faut utiliser le composant toggle ci app/Toggle.tsx
+Pour le button installer pwa faut plutôt écrire installer l’application et le button de téléchargement doit avoir une couleur vive avec une icon download pour qu’on sache vraiment que c’est pour télécharger 
+
+Dans la page des favoris y’a encore des truc qui ne sont pas traduit en français quand change la langue de l’app
+
+Tu vois la requête vers Google qui permet de rendre le bouton connecté avec Google disponible ? Tu peux lancer la requête dès qu’on appuie le button login qui est dans la navbar et non quand la page login charge de sorte à gagner en temp
+
+Dans le Dashboard de la serveuse y’a que les page qu’elle a en commun avec l’admin qui sont déjà traduit les autre sont hard coder en franç donc faut  implémenter la traduction 
+Toujours dna que Dashboard de la serveuse dans la page des dépense il faut truncate la description et rendre litem clickable et ça ouvre un pop up de détails ou on peut voir toute la description 
+Et toujours dans les dépense enlève l’option de modification d’une dépense,la caissière ne pas se droit la

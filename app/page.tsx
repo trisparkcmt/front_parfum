@@ -16,6 +16,7 @@ import StoreSection from './StoreSection';
 import HomeFAQ from './HomeFAQ';
 import AiFloatingButton from './AiFloatingButton';
 import { useTranslation } from 'react-i18next';
+import {ThemeToggle} from './Toggle'
 
 export default function Home() {
   const [mounted, setMounted] = useState(false);
@@ -58,7 +59,7 @@ export default function Home() {
         <ShopByCategory />
       </section>
       
-
+        <ThemeToggle/>
       
 
       {/* BEST SELLERS / FLASH */}

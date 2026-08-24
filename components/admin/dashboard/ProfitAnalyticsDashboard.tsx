@@ -44,7 +44,7 @@ export default function ProfitAnalyticsDashboard() {
   const [loading, setLoading] = useState(true);
   const [dateDebut, setDateDebut] = useState('');
   const [dateFin, setDateFin] = useState('');
-  const [statut, setStatut] = useState('validated');
+  const [statut, setStatut] = useState('all');
   const [profitData, setProfitData] = useState<any | null>(null);
   const [labData, setLabData] = useState<any | null>(null);
   const [expandedEssences, setExpandedEssences] = useState<Set<number>>(new Set());
@@ -148,7 +148,7 @@ export default function ProfitAnalyticsDashboard() {
   const lotsApi: { type: string; id: number; essence: string; chiffre_affaires_genere: string; benefice: string }[] =
     profitData?.lots ?? [];
 
-  const detailEssences: EssenceDetail[] = essencesCat.detail_par_essence || labData?.benefices_par_essence?.map((e: any) => ({
+  const detailEssences: EssenceDetail[] = essencesCat.detail_par_essence || profitData?.benefices_par_essence || labData?.benefices_par_essence?.map((e: any) => ({
     essence_id: e.essence_id || e.id,
     essence_nom: e.essence || e.nom,
     essence_categorie: e.categorie || 'Essence',

@@ -14,6 +14,12 @@ export const getBaseURL = () => {
 /** Routes where a 401 must not trigger the global refresh interceptor. */
 const AUTH_PATHS_SKIP_REFRESH = /auth\/(mobile|web)\/login|auth\/registration|auth\/token\/refresh|auth\/logout/;
 
+const isDashboardContext = () => {
+  if (typeof window === 'undefined') return false;
+
+  return /^\/dashboard\/(admin|serveuse)(?:\/|$)/.test(window.location.pathname);
+};
+
 /**
  * Plain axios instance without interceptors.
  * Used for login and background checks so they never lock isRefreshing.
@@ -126,6 +132,10 @@ api.interceptors.request.use((config: any) => {
   }
 
   if (typeof window !== 'undefined') {
+    if (isDashboardContext()) {
+      config.headers['X-Dashboard-Context'] = 'true';
+    }
+
     const token = localStorage.getItem('auth_token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;

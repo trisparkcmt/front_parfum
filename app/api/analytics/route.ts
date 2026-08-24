@@ -23,145 +23,143 @@ export async function GET() {
       },
     });
 
-    const [batchResponse] = await client.batchRunReports({
-      property: `properties/${propertyId}`,
-      requests: [
-        // 1. Funnel & KPI Totals
-        {
-          dateRanges: [{ startDate: '30daysAgo', endDate: 'today' }],
-          dimensions: [{ name: 'eventName' }],
-          metrics: [
-            { name: 'purchaseRevenue' },
-            { name: 'eventCount' },
-            { name: 'activeUsers' },
-            { name: 'sessions' },
-          ],
-          dimensionFilter: {
-            filter: {
-              fieldName: 'eventName',
-              inListFilter: {
-                values: ['view_item_list', 'view_item', 'add_to_cart', 'remove_from_cart', 'begin_checkout', 'purchase'],
-              },
+    const requests = [
+      // 1. Funnel Event Counts (eventCount by eventName)
+      {
+        dateRanges: [{ startDate: '30daysAgo', endDate: 'today' }],
+        dimensions: [{ name: 'eventName' }],
+        metrics: [
+          { name: 'eventCount' },
+        ],
+        dimensionFilter: {
+          filter: {
+            fieldName: 'eventName',
+            inListFilter: {
+              values: ['view_item_list', 'view_item', 'add_to_cart', 'remove_from_cart', 'begin_checkout', 'purchase'],
             },
           },
         },
-        // 2. Acquisition Channels
-        {
-          dateRanges: [{ startDate: '30daysAgo', endDate: 'today' }],
-          dimensions: [{ name: 'sessionSourceMedium' }],
-          metrics: [
-            { name: 'activeUsers' },
-            { name: 'purchaseRevenue' },
-            { name: 'sessions' },
-          ],
-          orderBys: [
-            {
-              metric: { metricName: 'activeUsers' },
-              desc: true,
-            },
-          ],
-          limit: 10,
-        },
-        // 3. Top Pages
-        {
-          dateRanges: [{ startDate: '30daysAgo', endDate: 'today' }],
-          dimensions: [{ name: 'pagePathPlusQueryString' }],
-          metrics: [
-            { name: 'screenPageViews' },
-            { name: 'activeUsers' },
-          ],
-          orderBys: [
-            {
-              metric: { metricName: 'screenPageViews' },
-              desc: true,
-            },
-          ],
-          limit: 15,
-        },
-        // 4. Tech & Devices
-        {
-          dateRanges: [{ startDate: '30daysAgo', endDate: 'today' }],
-          dimensions: [{ name: 'deviceCategory' }, { name: 'browser' }],
-          metrics: [
-            { name: 'activeUsers' },
-            { name: 'sessions' },
-          ],
-        },
-        // 5. Geo
-        {
-          dateRanges: [{ startDate: '30daysAgo', endDate: 'today' }],
-          dimensions: [{ name: 'country' }, { name: 'city' }],
-          metrics: [
-            { name: 'activeUsers' },
-            { name: 'newUsers' },
-          ],
-        },
-        // 6. Most Shared Products
-        {
-          dateRanges: [{ startDate: '30daysAgo', endDate: 'today' }],
-          dimensions: [{ name: 'itemName' }],
-          metrics: [
-            { name: 'eventCount' },
-          ],
-          dimensionFilter: {
-            filter: {
-              fieldName: 'eventName',
-              stringFilter: {
-                matchType: 'EXACT',
-                value: 'share',
-              },
+      },
+      // 2. Funnel Revenue (purchaseRevenue by eventName - only for purchase)
+      {
+        dateRanges: [{ startDate: '30daysAgo', endDate: 'today' }],
+        dimensions: [{ name: 'eventName' }],
+        metrics: [
+          { name: 'purchaseRevenue' },
+        ],
+        dimensionFilter: {
+          filter: {
+            fieldName: 'eventName',
+            stringFilter: {
+              matchType: 'EXACT',
+              value: 'purchase',
             },
           },
-          orderBys: [
-            {
-              metric: { metricName: 'eventCount' },
-              desc: true,
-            },
-          ],
-          limit: 10,
         },
-      ],
+      },
+      // 3. Acquisition Channels
+      {
+        dateRanges: [{ startDate: '30daysAgo', endDate: 'today' }],
+        dimensions: [{ name: 'sessionSourceMedium' }],
+        metrics: [
+          { name: 'activeUsers' },
+          { name: 'purchaseRevenue' },
+          { name: 'sessions' },
+        ],
+        orderBys: [
+          {
+            metric: { metricName: 'activeUsers' },
+            desc: true,
+          },
+        ],
+        limit: 10,
+      },
+      // 3. Top Pages
+      {
+        dateRanges: [{ startDate: '30daysAgo', endDate: 'today' }],
+        dimensions: [{ name: 'pagePathPlusQueryString' }],
+        metrics: [
+          { name: 'screenPageViews' },
+          { name: 'activeUsers' },
+        ],
+        orderBys: [
+          {
+            metric: { metricName: 'screenPageViews' },
+            desc: true,
+          },
+        ],
+        limit: 15,
+      },
+      // 4. Tech & Devices
+      {
+        dateRanges: [{ startDate: '30daysAgo', endDate: 'today' }],
+        dimensions: [{ name: 'deviceCategory' }, { name: 'browser' }],
+        metrics: [
+          { name: 'activeUsers' },
+          { name: 'sessions' },
+        ],
+      },
+      // 5. Geo
+      {
+        dateRanges: [{ startDate: '30daysAgo', endDate: 'today' }],
+        dimensions: [{ name: 'country' }, { name: 'city' }],
+        metrics: [
+          { name: 'activeUsers' },
+          { name: 'newUsers' },
+        ],
+      },
+    ];
+
+    const chunkSize = 5;
+    const allReports: any[] = [];
+    for (let i = 0; i < requests.length; i += chunkSize) {
+      const chunk = requests.slice(i, i + chunkSize);
+      const [batchResponse] = await client.batchRunReports({
+        property: `properties/${propertyId}`,
+        requests: chunk,
+      });
+      allReports.push(...(batchResponse.reports || []));
+    }
+
+    const reports = allReports;
+
+    // Parse Report 0: Funnel Event Counts
+    const funnelEventRows = reports[0]?.rows || [];
+    const eventCountMap: Record<string, number> = {};
+    funnelEventRows.forEach((row: any) => {
+      const step = row.dimensionValues?.[0]?.value || '';
+      const eventCount = parseInt(row.metricValues?.[0]?.value || '0', 10);
+      eventCountMap[step] = eventCount;
     });
 
-    const reports = batchResponse.reports || [];
+    // Parse Report 1: Funnel Revenue (purchase only)
+    const funnelRevenueRows = reports[1]?.rows || [];
+    let purchaseRevenue = 0;
+    if (funnelRevenueRows.length > 0) {
+      purchaseRevenue = parseFloat(funnelRevenueRows[0]?.metricValues?.[0]?.value || '0');
+    }
 
-    // Parse Report 1: Funnel
-    const funnelRows = reports[0]?.rows || [];
-    const funnelData = funnelRows.map((row: any) => {
-      const step = row.dimensionValues?.[0]?.value || '';
-      const revenue = parseFloat(row.metricValues?.[0]?.value || '0');
-      const eventCount = parseInt(row.metricValues?.[1]?.value || '0', 10);
-      const totalUsers = parseInt(row.metricValues?.[2]?.value || '0', 10);
-      const sessions = parseInt(row.metricValues?.[3]?.value || '0', 10);
+    // Build funnel data
+    const expectedSteps = ['view_item_list', 'view_item', 'add_to_cart', 'remove_from_cart', 'begin_checkout', 'purchase'];
+    const completeFunnel = expectedSteps.map(stepName => {
+      const eventCount = eventCountMap[stepName] || 0;
+      const revenue = stepName === 'purchase' ? purchaseRevenue : 0;
+      // Approximate sessions/users from eventCount for conversion rate calculation
+      const sessions = eventCount;
       const conversionRate = sessions > 0 ? (eventCount / sessions) * 100 : 0;
 
       return {
-        step,
+        step: stepName,
         eventCount,
         revenue,
-        sales: step === 'purchase' ? eventCount : 0,
+        sales: stepName === 'purchase' ? eventCount : 0,
         conversionRate,
-        totalUsers,
-      };
-    });
-
-    // Ensure all expected funnel steps are present
-    const expectedSteps = ['view_item_list', 'view_item', 'add_to_cart', 'remove_from_cart', 'begin_checkout', 'purchase'];
-    const completeFunnel = expectedSteps.map(stepName => {
-      const found = funnelData.find(d => d.step === stepName);
-      if (found) return found;
-      return {
-        step: stepName,
-        eventCount: 0,
-        revenue: 0,
-        sales: 0,
-        conversionRate: 0,
-        totalUsers: 0,
+        totalUsers: eventCount,
       };
     });
 
     // Parse Report 2: Acquisition Channels
-    const acqRows = reports[1]?.rows || [];
+    const acqRows = reports[2]?.rows || [];
     const acquisition = acqRows.map((row: any) => ({
       sourceMedium: row.dimensionValues?.[0]?.value || '(direct) / (none)',
       users: parseInt(row.metricValues?.[0]?.value || '0', 10),
@@ -170,7 +168,7 @@ export async function GET() {
     }));
 
     // Parse Report 3: Top Pages
-    const pageRows = reports[2]?.rows || [];
+    const pageRows = reports[3]?.rows || [];
     const pages = pageRows.map((row: any) => ({
       path: row.dimensionValues?.[0]?.value || '/',
       views: parseInt(row.metricValues?.[0]?.value || '0', 10),
@@ -178,7 +176,7 @@ export async function GET() {
     }));
 
     // Parse Report 4: Tech & Devices
-    const techRows = reports[3]?.rows || [];
+    const techRows = reports[4]?.rows || [];
     const tech = techRows.map((row: any) => ({
       device: row.dimensionValues?.[0]?.value || 'desktop',
       browser: row.dimensionValues?.[1]?.value || 'Chrome',
@@ -187,19 +185,12 @@ export async function GET() {
     }));
 
     // Parse Report 5: Geo
-    const geoRows = reports[4]?.rows || [];
+    const geoRows = reports[5]?.rows || [];
     const geo = geoRows.map((row: any) => ({
       country: row.dimensionValues?.[0]?.value || 'Unknown',
       city: row.dimensionValues?.[1]?.value || 'Unknown',
       users: parseInt(row.metricValues?.[0]?.value || '0', 10),
       newUsers: parseInt(row.metricValues?.[1]?.value || '0', 10),
-    }));
-
-    // Parse Report 6: Most Shared Products
-    const shareRows = reports[5]?.rows || [];
-    const shares = shareRows.map((row: any) => ({
-      name: row.dimensionValues?.[0]?.value || 'Produit inconnu',
-      shares: parseInt(row.metricValues?.[0]?.value || '0', 10),
     }));
 
     return NextResponse.json({
@@ -208,7 +199,8 @@ export async function GET() {
       pages,
       tech,
       geo,
-      shares,
+      // GA4 does not support eventCount with the itemName dimension.
+      shares: [],
     });
   } catch (error: any) {
     console.error('Error fetching GA4 report batch:', error);
