@@ -169,6 +169,10 @@ export default function ProviderDashboardPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [showFiltersPanel, setShowFiltersPanel] = useState(false);
+  const [providerPage, setProviderPage] = useState(1);
+  const [operationPage, setOperationPage] = useState(1);
+  const [payoutPage, setPayoutPage] = useState(1);
+  const pageSize = 10;
 
   // Detail view dashboard states
   const [data, setData] = useState<ProviderDashboardData | null>(null);
@@ -453,6 +457,14 @@ export default function ProviderDashboardPage() {
       code.includes(query)
     );
   });
+  const providerPageCount = Math.max(1, Math.ceil(filteredProviders.length / pageSize));
+  const visibleProviders = filteredProviders.slice((providerPage - 1) * pageSize, providerPage * pageSize);
+  const operations = data?.historique_recent || [];
+  const payouts = data?.payouts_recents || [];
+  const operationPageCount = Math.max(1, Math.ceil(operations.length / pageSize));
+  const payoutPageCount = Math.max(1, Math.ceil(payouts.length / pageSize));
+  const visibleOperations = operations.slice((operationPage - 1) * pageSize, operationPage * pageSize);
+  const visiblePayouts = payouts.slice((payoutPage - 1) * pageSize, payoutPage * pageSize);
 
   // Render provider details dashboard view
   if (selectedProvider) {
@@ -574,8 +586,8 @@ export default function ProviderDashboardPage() {
                   <div className="p-4">
                     {activeTab === 'operations' ? (
                       <div className="space-y-2">
-                        {data?.historique_recent && data.historique_recent.length > 0 ? (
-                          data.historique_recent.map((log: OperationLog) => (
+                        {operations.length > 0 ? (
+                          visibleOperations.map((log: OperationLog) => (
                             <div
                               key={log.id}
                               className="flex items-center justify-between p-3 rounded-lg border border-white/10 bg-white/[0.01] hover:bg-white/[0.03] transition-colors"
@@ -618,11 +630,12 @@ export default function ProviderDashboardPage() {
                             Aucune opération récente enregistrée.
                           </div>
                         )}
+                        {operations.length > pageSize && <div className="flex justify-end gap-2 pt-2"><button disabled={operationPage === 1} onClick={() => setOperationPage((page) => page - 1)} className="px-2 py-1 text-xs border border-white/10 rounded disabled:opacity-30">Précédent</button><span className="text-xs text-foreground/40 self-center">{operationPage}/{operationPageCount}</span><button disabled={operationPage === operationPageCount} onClick={() => setOperationPage((page) => page + 1)} className="px-2 py-1 text-xs border border-white/10 rounded disabled:opacity-30">Suivant</button></div>}
                       </div>
                     ) : (
                       <div className="space-y-2">
-                        {data?.payouts_recents && data.payouts_recents.length > 0 ? (
-                          data.payouts_recents.map((payout: PayoutTransaction) => (
+                        {payouts.length > 0 ? (
+                          visiblePayouts.map((payout: PayoutTransaction) => (
                             <div
                               key={payout.id}
                               className="flex items-center justify-between p-3 rounded-lg border border-white/10 bg-white/[0.01] hover:bg-white/[0.03] transition-colors"
@@ -677,6 +690,7 @@ export default function ProviderDashboardPage() {
                             Aucune transaction de payout enregistrée.
                           </div>
                         )}
+                        {payouts.length > pageSize && <div className="flex justify-end gap-2 pt-2"><button disabled={payoutPage === 1} onClick={() => setPayoutPage((page) => page - 1)} className="px-2 py-1 text-xs border border-white/10 rounded disabled:opacity-30">Précédent</button><span className="text-xs text-foreground/40 self-center">{payoutPage}/{payoutPageCount}</span><button disabled={payoutPage === payoutPageCount} onClick={() => setPayoutPage((page) => page + 1)} className="px-2 py-1 text-xs border border-white/10 rounded disabled:opacity-30">Suivant</button></div>}
                       </div>
                     )}
                   </div>
@@ -985,7 +999,7 @@ export default function ProviderDashboardPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
-                {filteredProviders.map((provider: Provider) => {
+                {visibleProviders.map((provider: Provider) => {
                   const user = provider.user_details || { id: 0, email: '', telephone: '', first_name: '', last_name: '', role: '' };
                   
                   return (
@@ -1052,6 +1066,7 @@ export default function ProviderDashboardPage() {
             </table>
           </div>
         )}
+        {filteredProviders.length > pageSize && <div className="flex items-center justify-end gap-2 border-t border-white/10 px-4 py-3"><button disabled={providerPage === 1} onClick={() => setProviderPage((page) => page - 1)} className="px-2 py-1 text-xs border border-white/10 rounded disabled:opacity-30">Précédent</button><span className="text-xs text-foreground/40">{providerPage}/{providerPageCount}</span><button disabled={providerPage === providerPageCount} onClick={() => setProviderPage((page) => page + 1)} className="px-2 py-1 text-xs border border-white/10 rounded disabled:opacity-30">Suivant</button></div>}
       </div>
 
       {/* Validation modal - Form left untouched */}

@@ -34,7 +34,7 @@ const BottomNav = () => {
     { href: '/shop/accessories',  icon: Watch,         label: t('nav_accessories', 'Accessoires'), action: null },
     { href: '/shop/perfumes',     icon: PerfumeIcon,   label: t('nav_perfumes', 'Parfum'),     action: null },
     { href: '/shop/diffuseurs',   icon: DiffuseurIcon, label: t('nav_diffuseurs', 'Diffuseurs'), action: null },
-    { href: '/numba',             icon: LaptopIcon,    label: t('nav_atelier', 'Workshop'),     action: null },
+    { href: '/numba',             icon: LaptopIcon,    label: t('nav_atelier', 'Numba Workshop'), action: null },
   ];
 
   // Avoid hydration mismatch: render a stable shell until i18n is ready client-side

@@ -146,7 +146,7 @@ export default function DeliveryDashboard() {
   };
 
   const pendingTasks   = tasks.filter(t => t.status !== 'delivered' && t.status !== 'failed');
-  const completedTasks = tasks.filter(t => t.status === 'delivered');
+  const completedTasks: DeliveryTask[] = [];
 
   // ─────────────────────────────────────────────────────────────────────────
   return (
@@ -291,30 +291,6 @@ export default function DeliveryDashboard() {
         )}
       </div>
 
-      {/* Completed */}
-      {completedTasks.length > 0 && (
-        <div>
-          <h2 className="font-semibold text-foreground/60 text-base mb-3">Livraisons terminées ({completedTasks.length})</h2>
-          <div className="space-y-3">
-            {completedTasks.map(task => (
-              <div
-                key={task.id}
-                onClick={() => setSelected(task)}
-                className="bg-white/3 rounded-2xl border border-white/5 p-4 flex items-center justify-between cursor-pointer hover:bg-white/5 transition-colors"
-              >
-                <div>
-                  <p className="font-semibold text-foreground/60">{t('order_label')} {task.orderId}</p>
-                  <p className="text-xs text-foreground/30">{task.clientName} · {task.deliveryAddress}</p>
-                </div>
-                <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full text-emerald-400 bg-emerald-400/10">
-                  Livré ✓
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
       {/* Quick nav */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <button
@@ -326,6 +302,16 @@ export default function DeliveryDashboard() {
           </div>
           <p className="font-semibold text-sm text-foreground">Mes Livraisons</p>
           <p className="text-xs text-foreground/40 mt-0.5 flex items-center gap-1">Voir toutes mes livraisons <ChevronRight size={12} /></p>
+        </button>
+        <button
+          onClick={() => router.push('/dashboard/delivery/completed')}
+          className="bg-white/5 rounded-2xl border border-white/10 p-5 shadow-sm hover:shadow-gold/5 transition-all text-left group"
+        >
+          <div className="w-10 h-10 rounded-xl bg-emerald-400/10 flex items-center justify-center text-emerald-400 mb-3 group-hover:scale-110 transition-transform">
+            <CheckCircle size={20} />
+          </div>
+          <p className="font-semibold text-sm text-foreground">{t('completed_deliveries', { defaultValue: 'Livraisons terminées' })}</p>
+          <p className="text-xs text-foreground/40 mt-0.5 flex items-center gap-1">{t('view_completed_deliveries', { defaultValue: 'Voir l’historique' })} <ChevronRight size={12} /></p>
         </button>
       </div>
 

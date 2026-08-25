@@ -52,7 +52,7 @@ export default function FavoritesPage() {
   useEffect(() => {
     const mappedFavorites: FavoriteProduct[] = favorites.map((fav: any) => ({
       id: String(fav.id),
-      name: fav.name || fav.nom_produit || 'Produit',
+      name: fav.name || fav.nom_produit || t('product', 'Produit'),
       price: Number(fav.price || fav.prix_produit || 0),
       slug: fav.slug || fav.slug_produit,
       category: fav.category,
@@ -64,7 +64,7 @@ export default function FavoritesPage() {
 
     const customFavorites: FavoriteProduct[] = (user?.parfums_personnalises || []).map((item: any) => ({
       id: `custom-${item.id}`,
-      name: item.nom || 'Composition sur mesure',
+      name: item.nom || t('custom_perfume', 'Composition sur mesure'),
       price: Number(item.prix_total || item.prix || item.composition?.prix_total || 0),
       category: 'custom',
       image: undefined,
@@ -106,12 +106,12 @@ export default function FavoritesPage() {
       // Refresh user data to update parfums_personnalises
       await useAuthStore.getState().fetchUser();
       const { addToast } = useToastStore.getState();
-      addToast('Parfum supprimé avec succès', 'success');
+      addToast(t('favorite_deleted', 'Parfum supprimé avec succès'), 'success');
       setRemovingId(null);
     } catch (error: any) {
       console.error('Error deleting custom perfume:', error);
       const { addToast } = useToastStore.getState();
-      addToast(error?.response?.data?.detail || 'Erreur lors de la suppression', 'error');
+      addToast(error?.response?.data?.detail || t('delete_error', 'Erreur lors de la suppression'), 'error');
       setRemovingId(null);
     }
   };
@@ -162,7 +162,7 @@ export default function FavoritesPage() {
           aria-hidden
         />
         <p className="text-[11px] font-semibold uppercase tracking-[0.25em] text-gold/80">
-          {t('personal_collection', 'Collection personnelle')}
+            {t('personal_collection', 'Collection personnelle')}
         </p>
         <div className="mt-2 flex items-end justify-between gap-4">
           <h1 className="font-serif text-3xl italic tracking-tight text-foreground">
@@ -283,7 +283,7 @@ export default function FavoritesPage() {
                   {/* Info */}
                   <div className="mt-3 space-y-0.5">
                     <p className="text-[10px] font-medium uppercase tracking-[0.15em] text-gold/70">
-                      {product.type === 'custom' ? 'Parfum sur mesure' : product.type === 'perfume' ? 'Parfum' : 'Accessoire'}
+                      {product.type === 'custom' ? t('custom_perfume', 'Parfum sur mesure') : product.type === 'perfume' ? t('perfume', 'Parfum') : t('accessory', 'Accessoire')}
                     </p>
                     <h3
                       className="cursor-pointer truncate font-serif text-[15px] text-foreground/90 transition-colors hover:text-gold"
@@ -315,7 +315,7 @@ export default function FavoritesPage() {
               <div className="w-full max-w-lg rounded-3xl border border-white/10 bg-[#111111] p-6 shadow-2xl shadow-black/50">
                 <div className="flex items-start justify-between gap-4">
                   <div>
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.25em] text-gold/70">Parfum sur mesure</p>
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.25em] text-gold/70">{t('custom_perfume', 'Parfum sur mesure')}</p>
                     <h3 className="mt-1 font-serif text-2xl text-foreground">{selectedCustom.name}</h3>
                   </div>
                   <button
@@ -335,22 +335,22 @@ export default function FavoritesPage() {
 
                   <div className="grid gap-3 rounded-2xl border border-white/10 bg-white/[0.03] p-4 sm:grid-cols-2">
                     <div>
-                      <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-foreground/40">Flacon</p>
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-foreground/40">{t('bottle', 'Flacon')}</p>
                       <p className="mt-1 text-foreground">{selectedCustom.bottleName || '—'}</p>
                     </div>
                     <div>
-                      <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-foreground/40">Statut</p>
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-foreground/40">{t('status', 'Statut')}</p>
                       <p className="mt-1 text-foreground">{selectedCustom.status || '—'}</p>
                     </div>
                   </div>
 
                   {selectedCustom.lines && selectedCustom.lines.length > 0 && (
                     <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-                      <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-foreground/40">Composition</p>
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-foreground/40">{t('composition', 'Composition')}</p>
                       <div className="mt-3 space-y-2">
                         {selectedCustom.lines.map((line, index) => (
                           <div key={`${line.essence_nom}-${index}`} className="flex items-center justify-between gap-3 rounded-xl bg-black/20 px-3 py-2 text-sm">
-                            <span className="text-foreground">{line.essence_nom || 'Essence'}</span>
+                            <span className="text-foreground">{line.essence_nom || t('essence', 'Essence')}</span>
                             <span className="text-foreground/60">{line.quantite_ml || '—'} ml</span>
                           </div>
                         ))}
@@ -361,7 +361,7 @@ export default function FavoritesPage() {
 
                 <div className="mt-6 flex items-center justify-between border-t border-white/10 pt-4">
                   <div className="flex items-center gap-3">
-                    <p className="text-sm text-foreground/50">Prix total</p>
+                    <p className="text-sm text-foreground/50">{t('total_price', 'Prix total')}</p>
                     <p className="font-serif text-xl text-gold">{formatPrice(selectedCustom.price)}</p>
                   </div>
                   {selectedCustom.raw?.id && (

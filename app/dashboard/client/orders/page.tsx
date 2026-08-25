@@ -928,7 +928,6 @@ export default function OrdersPage() {
         pendingIds={pendingIds}
         emptyLabel={t('empty_ongoing')}
         onView={setSelected}
-        onEdit={openEdit}
         headers={tableHeaders}
         viewLabel={t('view_details')}
         editLabel={t('edit_manage')}
@@ -936,12 +935,6 @@ export default function OrdersPage() {
         lang={lang}
         renderActions={order => (
           <>
-            {order.statut === 'en_attente' && (
-              <ActionButton tone="emerald" onClick={() => handleValidateClick(order)}>{t('action_validate')}</ActionButton>
-            )}
-            {order.statut === 'validé' && order.statut_livraison !== 'livrée' && (
-              <ActionButton tone="blue" icon={<Truck size={11} />} onClick={() => handleMarkDelivered(order)}>{t('action_delivered')}</ActionButton>
-            )}
             {isCancellable(order) && (
               <ActionButton tone="red" onClick={() => handleCancel(order)}>{t('action_cancel')}</ActionButton>
             )}
@@ -1027,8 +1020,6 @@ export default function OrdersPage() {
         <OrderDetailModal
           order={selected}
           onClose={() => setSelected(null)}
-          onManage={() => { setSelected(null); openEdit(selected); }}
-          onValidate={() => { handleValidateClick(selected); setSelected(null); }}
           onCancel={() => { handleCancel(selected); setSelected(null); }}
           onDownloadInvoice={() => openInvoice(selected)}
           downloadingInvoice={downloadingInvoice}
@@ -1455,12 +1446,10 @@ function TablePagination({
 // ─────────────────────────────────────────────────────────────────────────
 
 function OrderDetailModal({
-  order, onClose, onManage, onValidate, onCancel, onDownloadInvoice, downloadingInvoice, isCancellable, lang, statutCfg, paiementCfg,
+  order, onClose, onCancel, onDownloadInvoice, downloadingInvoice, isCancellable, lang, statutCfg, paiementCfg,
 }: {
   order: BackendOrder;
   onClose: () => void;
-  onManage: () => void;
-  onValidate: () => void;
   onCancel: () => void;
   onDownloadInvoice: () => void;
   downloadingInvoice: boolean;
@@ -1492,19 +1481,11 @@ function OrderDetailModal({
       size="3xl"
       footer={
         <div className="flex flex-wrap items-center justify-end gap-2.5">
-          {order.statut === 'en_attente' && (
-            <button onClick={onValidate} className="inline-flex flex-1 sm:flex-initial items-center justify-center gap-1.5 rounded-lg bg-emerald-500 py-2.5 px-4 text-xs font-semibold text-black transition-colors hover:bg-emerald-400">
-              <CheckCircle size={14} />{translate(lang, 'action_validate')}
-            </button>
-          )}
           {isCancellable && (
             <button onClick={onCancel} className="inline-flex flex-1 sm:flex-initial items-center justify-center gap-1.5 rounded-lg bg-red-500/90 hover:bg-red-500 py-2.5 px-4 text-xs font-semibold text-white transition-colors">
               <XCircle size={14} />{translate(lang, 'action_cancel')}
             </button>
           )}
-          <button onClick={onManage} className="inline-flex flex-1 sm:flex-initial items-center justify-center gap-1.5 rounded-lg bg-gold px-5 py-2.5 text-xs font-semibold text-black transition-colors hover:bg-gold/85">
-            <ClipboardList size={14} />{translate(lang, 'manage')}
-          </button>
           <button onClick={onClose} className="rounded-lg border border-white/10 px-5 py-2.5 text-xs text-foreground/60 transition-colors hover:bg-white/6">
             {translate(lang, 'close')}
           </button>

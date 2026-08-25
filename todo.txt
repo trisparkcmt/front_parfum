@@ -29,3 +29,39 @@ Tu vois la requête vers Google qui permet de rendre le bouton connecté avec Go
 Dans le Dashboard de la serveuse y’a que les page qu’elle a en commun avec l’admin qui sont déjà traduit les autre sont hard coder en franç donc faut  implémenter la traduction 
 Toujours dna que Dashboard de la serveuse dans la page des dépense il faut truncate la description et rendre litem clickable et ça ouvre un pop up de détails ou on peut voir toute la description 
 Et toujours dans les dépense enlève l’option de modification d’une dépense,la caissière ne pas se droit la
+
+i also asked you to implement an error message that says to the user that he is offline no internet connection you didnt
+also in the bottomnavbar for the atelier numba write its english version as "Numba Workshop"
+also in the atelier in the svg swipper you should disable left or right swipe button depending on if the uer can swipe left orright when there are other svgs to see or not
+also for the desktop navbar ,can you put the logo in a pill like the rest of the bar? maintaining its current size dont reduce it 
+le contenaire pour upload in image est revenu mais quand je click ca ouvre lexplorateur je choisi limage mais limage narrive jamais dasn le container
+tu ne peut pas just reutiliser le meme composant pour upload image comme celui dans le formulaire de creation de parfum par eemple??
+et aussi faut impementer la traduction dasn le point of sale 
+toujour dasn le point of sale quand je choisit une quantiter dhuile la jauge en haut qui montre la quantiter selectioner sur 45ml devient directement peinne alors que mon choix natteint pas vraiment 45ml
+dasn le dashboard du livreure des quon entre dasn la premiere page naffiche plus les livraison deja completer vu que ya maitenant une page dedier 
+dans le dashboard du client ,la page mes commande a repris le meme composant que celui du dashboard admin des commandes alors quils ne foncyionent pas de la meme maniere, revois cela parce que quand tu ouvre le detail de la commandes ya les bouton cancel,valider et editer alors que le client nas pas ces droit la il peut juste voir et cancel ,pas valider et editer
+
+
+
+dasn ele dashboard client ,dasn la page order le bouto back dois aener a la page precedant et non a la home page comme actuellement 
+dans la page des falacon,dasn la table des flacon ya pas le stock alors que cest dans la reponse :{
+            "id": 3,
+            "nom": "Similique hic quos v",
+            "slug": "similique-hic-quos-v-100-40052",
+            "image_principale": "https://d3fr3l8gi93hp1.cloudfront.net/flacons/None/7599893116298132.jfif",
+            "prix_unitaire": "500.00",
+            "contenance_ml": 100,
+            "stock_quantite": 93,
+            "stock_suffisant": true,
+            "matiere": "Odit eiusmod aliquid",
+            "couleur": "Numquam veritatis at",
+            "type_flacon": 1
+        }
+toujour dasn le form modal des flacon quand jajoute une image le preview cest limage par defaut ce nest pas limage que jai ajouter mais quand jenvoi cest effectivement limage que jai ajouter qui estenvoyer 
+aussi dans latelier de creation sur mesure quand jouvre le container des flacon en theme claire le text est presque illisible ,on direait que cest lopacier qui a ete reduit corrige ca ,fait que les textes soient pareil en theme sombre et claire 
+et toujour dans le container pour choisir le flacon les image des flacon ne saffichent pas pourtant ils ont des images et cest la meme chose pdasnle recape ya pas dimage du flacon
+je veux egalement que tu commente la section notes de base dans lateklier de sorte que plus rien concernant cela nest visible , commente juste ne supprime pas pour le moment ca ne vas pas etre utliser on limplementeras dasn les prochaines version
+aussi faut implementer la pagination sur toutes les table dasn le dashboard de ladmin et la serveuse ,par exemple dans la page des parfume mettre une pagination de 50 sur la table qui liste les parfum ,et je me disais quon pour cree une seconde table pour les produit en rupture de stock et ne pas les melanger avec ceux en stock pour les page parfum,accessoire,huils,produit essence et diffuseur
+
+sur telephoen le banner qui affiche hors connexion dois etre en taut de la page juste au desu de la navbar 
+AI-24b0a5fdc5991

@@ -4,11 +4,13 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { shopService, orderService } from '@/services/apiService';
 import { useToastStore } from '@/store/useToastStore';
+import { useTranslation } from 'react-i18next';
 import { ShoppingBag, Gem, Loader2, ArrowUpRight, ShoppingCart, Droplets } from 'lucide-react';
 import { PerfumeIcon } from '@/components/icons/CustomIcons';
 import { DashboardKpiStrip, DashboardPageHeader } from '@/components/admin/dashboard/shared';
 
 export default function ServeuseDashboardPage() {
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
     ordersCount: 0,
@@ -42,7 +44,7 @@ export default function ServeuseDashboardPage() {
         });
       } catch (error: any) {
         console.error('Failed to load serveuse dashboard data:', error);
-        addToast('Erreur de chargement du tableau de bord', 'error');
+        addToast(t('dashboard_load_error', { defaultValue: 'Erreur de chargement du tableau de bord' }), 'error');
       } finally {
         setLoading(false);
       }
@@ -52,24 +54,24 @@ export default function ServeuseDashboardPage() {
   }, [addToast]);
 
   const kpis = [
-    { label: 'Commandes', value: loading ? '—' : stats.ordersCount, icon: <ShoppingBag size={15} />, color: 'text-purple-400' },
-    { label: 'Parfums', value: loading ? '—' : stats.perfumesCount, icon: <PerfumeIcon size={15} />, color: 'text-gold' },
-    { label: 'Accessoires', value: loading ? '—' : stats.accessoriesCount, icon: <Gem size={15} />, color: 'text-emerald-400' },
-    { label: 'Flacons', value: loading ? '—' : stats.bottlesCount, icon: <Droplets size={15} />, color: 'text-blue-400' },
+    { label: t('orders', { defaultValue: 'Commandes' }), value: loading ? '—' : stats.ordersCount, icon: <ShoppingBag size={15} />, color: 'text-purple-400' },
+    { label: t('perfumes', { defaultValue: 'Parfums' }), value: loading ? '—' : stats.perfumesCount, icon: <PerfumeIcon size={15} />, color: 'text-gold' },
+    { label: t('accessories', { defaultValue: 'Accessoires' }), value: loading ? '—' : stats.accessoriesCount, icon: <Gem size={15} />, color: 'text-emerald-400' },
+    { label: t('bottles', { defaultValue: 'Flacons' }), value: loading ? '—' : stats.bottlesCount, icon: <Droplets size={15} />, color: 'text-blue-400' },
   ];
 
   return (
     <div className="space-y-6">
       <DashboardPageHeader
-        title="Espace Serveuse"
-        description="Vue d'ensemble des activités de la boutique"
+        title={t('serveuse_space', { defaultValue: 'Espace Serveuse' })}
+        description={t('serveuse_overview', { defaultValue: "Vue d'ensemble des activités de la boutique" })}
         actions={(
           <Link
             href="/dashboard/pos"
             className="inline-flex items-center gap-2 self-start rounded-xl bg-gold px-4 py-2.5 font-semibold text-slate-900 transition-all hover:bg-gold/90"
           >
             <ShoppingCart size={18} />
-            <span>Point de Vente</span>
+            <span>{t('point_of_sale', { defaultValue: 'Point de Vente' })}</span>
           </Link>
         )}
       />

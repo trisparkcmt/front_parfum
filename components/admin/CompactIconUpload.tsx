@@ -45,7 +45,7 @@ export default function CompactIconUpload({
         {label}
       </label>
       <div
-        className="relative border border-dashed border-white/20 rounded-lg bg-white/[0.02] hover:border-white/30 hover:bg-white/5 transition-colors cursor-pointer overflow-hidden"
+        className="relative border border-dashed border-white/20 rounded-lg bg-white/[0.02] hover:border-white/30 hover:bg-white/5 transition-colors cursor-pointer overflow-visible"
         style={{ width: 80, height: 80 }}
       >
         <input
@@ -62,7 +62,7 @@ export default function CompactIconUpload({
               type="button"
               onClick={handleRemove}
               aria-label="Remove image"
-              className="absolute -top-1.5 -right-1.5 bg-red-500 text-white p-0.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity z-10"
+              className="absolute -top-3 -right-3 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity z-20 shadow-lg"
             >
               <X size={10} />
             </button>

@@ -6,10 +6,18 @@ import { cn } from "@/lib/utils"
 
 interface ThemeToggleProps {
   className?: string
+  checked?: boolean
+  onChange?: () => void
 }
 
-export function ThemeToggle({ className }: ThemeToggleProps) {
+export function ThemeToggle({ className, checked, onChange }: ThemeToggleProps) {
   const [isDark, setIsDark] = useState(true)
+  const dark = checked ?? isDark
+
+  const handleToggle = () => {
+    if (checked === undefined) setIsDark(!isDark)
+    onChange?.()
+  }
 
   // next-themes
   // const { resolvedTheme, setTheme } = useTheme()
@@ -20,12 +28,12 @@ export function ThemeToggle({ className }: ThemeToggleProps) {
     <div
       className={cn(
         "flex w-16 h-8 p-1 rounded-full cursor-pointer transition-all duration-300",
-        isDark 
+        dark
           ? "bg-zinc-950 border border-zinc-800" 
           : "bg-white border border-zinc-200",
         className
       )}
-      onClick={() => setIsDark(!isDark)}
+      onClick={handleToggle}
       role="button"
       tabIndex={0}
     >
@@ -33,12 +41,12 @@ export function ThemeToggle({ className }: ThemeToggleProps) {
         <div
           className={cn(
             "flex justify-center items-center w-6 h-6 rounded-full transition-transform duration-300",
-            isDark 
+            dark
               ? "transform translate-x-0 bg-zinc-800" 
               : "transform translate-x-8 bg-gray-200"
           )}
         >
-          {isDark ? (
+          {dark ? (
             <Moon 
               className="w-4 h-4 text-white" 
               strokeWidth={1.5}
@@ -53,12 +61,12 @@ export function ThemeToggle({ className }: ThemeToggleProps) {
         <div
           className={cn(
             "flex justify-center items-center w-6 h-6 rounded-full transition-transform duration-300",
-            isDark 
+            dark
               ? "bg-transparent" 
               : "transform -translate-x-8"
           )}
         >
-          {isDark ? (
+          {dark ? (
             <Sun 
               className="w-4 h-4 text-gray-500" 
               strokeWidth={1.5}

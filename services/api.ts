@@ -27,6 +27,7 @@ const isDashboardContext = () => {
 
 export const rawApi = axios.create({
   baseURL: getBaseURL(),
+  timeout: 15000,
 
   headers: {
     'Content-Type': 'application/json',
@@ -36,6 +37,7 @@ export const rawApi = axios.create({
 
 export const api = axios.create({
   baseURL: getBaseURL(),
+  timeout: 15000,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -256,14 +258,22 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
+    // Attach a stable code so screens can distinguish offline and timeout errors.
+    if (!error.response) {
+      if (error.code === 'ECONNABORTED' || error.code === 'ETIMEDOUT') {
+        error.code = 'REQUEST_TIMEOUT';
+      } else if (typeof navigator !== 'undefined' && !navigator.onLine) {
+        error.code = 'OFFLINE';
+      } else {
+        error.code = 'NETWORK_ERROR';
+      }
+      return Promise.reject(error);
+    }
+
     // ── Network error (server unreachable / sleeping) ──────────────────────
     // error.response is undefined when there is no HTTP response at all.
     // We must NOT treat this as an auth error; just propagate it so callers
     // can display an appropriate "connexion impossible" message.
-    if (!error.response) {
-      return Promise.reject(error);
-    }
-
     // ── 401 Unauthorized ───────────────────────────────────────────────────
     const requestUrl = originalRequest?.url ?? '';
 

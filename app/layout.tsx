@@ -5,6 +5,7 @@ import { LayoutWrapper } from "@/components/shared/LayoutWrapper";
 import { ToastProvider } from "@/components/shared/ToastProvider";
 import { FCMProvider } from "@/components/pwa/FCMProvider";
 import { InstallPrompt } from "@/components/pwa/InstallPrompt";
+import { OfflineBanner } from "@/components/shared/OfflineBanner";
 
 // 1. Import the optimized Next.js Google Analytics component
 import { GoogleAnalytics } from '@next/third-parties/google';
@@ -129,6 +130,7 @@ export default function RootLayout({
         <ToastProvider />
         <FCMProvider />
         <InstallPrompt />
+        <OfflineBanner />
 
         {/* 2. Google Analytics tracking code */}
         <GoogleAnalytics gaId="G-JG0NYEN3VL" />

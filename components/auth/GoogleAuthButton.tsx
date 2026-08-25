@@ -11,6 +11,16 @@ interface GoogleAuthButtonProps {
 
 const GOOGLE_SCRIPT_ID = 'google-identity-services';
 
+export function preloadGoogleIdentityScript() {
+  if (typeof document === 'undefined' || document.getElementById(GOOGLE_SCRIPT_ID)) return;
+  const script = document.createElement('script');
+  script.id = GOOGLE_SCRIPT_ID;
+  script.src = 'https://accounts.google.com/gsi/client';
+  script.async = true;
+  script.defer = true;
+  document.head.appendChild(script);
+}
+
 /** Official Google "G" logo SVG */
 function GoogleLogo({ className }: { className?: string }) {
   return (
@@ -99,12 +109,9 @@ export default function GoogleAuthButton({
 
     let script = document.getElementById(GOOGLE_SCRIPT_ID) as HTMLScriptElement | null;
     if (!script) {
-      script = document.createElement('script');
-      script.id = GOOGLE_SCRIPT_ID;
-      script.src = 'https://accounts.google.com/gsi/client';
-      script.async = true;
-      script.defer = true;
-      
+      preloadGoogleIdentityScript();
+      script = document.getElementById(GOOGLE_SCRIPT_ID) as HTMLScriptElement;
+
       const onLoad = () => {
         console.log('Google OAuth2 SDK script loaded successfully');
         initializeClient();

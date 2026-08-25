@@ -117,6 +117,7 @@ import { extractCatalogList } from '@/lib/catalogUtils';
 import { useAuthStore } from '@/store/useAuthStore';
 import { SlideOver } from '@/components/ui/SlideOver';
 import AppImage from '@/components/ui/AppImage';
+import ImageUploader from '@/components/admin/ImageUploader';
 
 // --- Helper Functions & Primitives ---
 
@@ -772,6 +773,21 @@ export default function FlaconsAdminPage() {
                   <span className="text-xs text-foreground/60 font-medium">Actif</span>
                 </label>
               </div>
+            </div>
+            <div className="space-y-4">
+              <ImageUploader
+                initialImage={imagePreview}
+                onFileSelect={(file) => {
+                  setImageFile(file);
+                  if (!file) {
+                    setImagePreview(null);
+                    return;
+                  }
+                  const reader = new FileReader();
+                  reader.onload = () => setImagePreview(typeof reader.result === 'string' ? reader.result : null);
+                  reader.readAsDataURL(file);
+                }}
+              />
             </div>
           </div>
         </div>

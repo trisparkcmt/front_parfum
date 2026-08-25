@@ -6,7 +6,7 @@ import { DEFAULT_COMMISSION_PERCENT } from '@/lib/constants';
 import {
   Percent, TrendingUp, ShoppingBag, Users,
   Copy, CheckCircle, Palette, ChevronRight, Mail, Phone,
-  Wallet, Lock, ArrowDownToLine,
+  Wallet, Lock, ArrowDownToLine, ChevronLeft,
 } from 'lucide-react';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -47,6 +47,9 @@ export default function PartnerDashboard() {
   const { user } = useAuthStore();
   const { data: dashboardData, loading, error, toNumber } = usePartnerDashboard();
   const [copied, setCopied] = useState(false);
+  const [payoutPage, setPayoutPage] = useState(1);
+  const [operationPage, setOperationPage] = useState(1);
+  const pageSize = 10;
 
   const rawUser = user as any;
 
@@ -67,6 +70,44 @@ export default function PartnerDashboard() {
   const operationHistory = dashboardData?.historique || dashboardData?.historique_recent || [];
   const recentHistory = dashboardData?.historique_recent || dashboardData?.historique || [];
   const recentPayouts = dashboardData?.payouts_recents || [];
+  const payoutPageCount = Math.max(1, Math.ceil(recentPayouts.length / pageSize));
+  const operationPageCount = Math.max(1, Math.ceil(recentHistory.length / pageSize));
+  const visiblePayouts = recentPayouts.slice((payoutPage - 1) * pageSize, payoutPage * pageSize);
+  const visibleOperations = recentHistory.slice((operationPage - 1) * pageSize, operationPage * pageSize);
+
+  const Pagination = ({
+    page,
+    pageCount,
+    onChange,
+  }: {
+    page: number;
+    pageCount: number;
+    onChange: (nextPage: number) => void;
+  }) => (
+    <div className="flex items-center justify-between border-t border-white/10 px-5 py-3 text-xs text-foreground/50">
+      <span>{t('page', { defaultValue: 'Page' })} {page} / {pageCount}</span>
+      <div className="flex items-center gap-1">
+        <button
+          type="button"
+          onClick={() => onChange(page - 1)}
+          disabled={page === 1}
+          aria-label={t('previous', { defaultValue: 'Précédent' })}
+          className="rounded-lg border border-white/10 p-1.5 hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed"
+        >
+          <ChevronLeft size={14} />
+        </button>
+        <button
+          type="button"
+          onClick={() => onChange(page + 1)}
+          disabled={page === pageCount}
+          aria-label={t('next', { defaultValue: 'Suivant' })}
+          className="rounded-lg border border-white/10 p-1.5 hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed"
+        >
+          <ChevronRight size={14} />
+        </button>
+      </div>
+    </div>
+  );
 
   const salesHistory = operationHistory.filter(
     (op: PartnerHistoryEntry) => op.type_operation === 'vente'
@@ -193,7 +234,7 @@ export default function PartnerDashboard() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-foreground/5">
-                {recentPayouts.map((payout: PartnerPayout) => (
+                {visiblePayouts.map((payout: PartnerPayout) => (
                   <tr key={payout.id} className="hover:bg-white/5 transition-colors">
                     <td className="px-5 py-4 font-mono text-xs text-gold font-semibold truncate max-w-[140px]">
                       {payout.reference_unique}
@@ -215,6 +256,7 @@ export default function PartnerDashboard() {
               </tbody>
             </table>
           </div>
+          <Pagination page={payoutPage} pageCount={payoutPageCount} onChange={setPayoutPage} />
         </div>
       )}
 
@@ -237,7 +279,7 @@ export default function PartnerDashboard() {
             </thead>
             <tbody className="divide-y divide-foreground/5">
               {recentHistory.length > 0 ? (
-                recentHistory.map((op) => {
+                visibleOperations.map((op) => {
                   const amount = parseFloat(op.montant);
                   const isNegative = amount < 0;
                   return (
@@ -270,6 +312,7 @@ export default function PartnerDashboard() {
             </tbody>
           </table>
         </div>
+        <Pagination page={operationPage} pageCount={operationPageCount} onChange={setOperationPage} />
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

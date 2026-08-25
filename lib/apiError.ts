@@ -1,6 +1,11 @@
 /** Normalize Django/DRF error payloads into a user-facing string. */
 export function extractApiError(error: unknown, fallback: string): string {
-  const data = (error as { response?: { data?: unknown } })?.response?.data;
+  const typedError = error as { code?: string; response?: { data?: unknown } };
+  if (typedError.code === 'OFFLINE') return 'Vous êtes hors ligne. Vérifiez votre connexion Internet.';
+  if (typedError.code === 'REQUEST_TIMEOUT') return 'La requête a dépassé le délai. Veuillez réessayer.';
+  if (typedError.code === 'NETWORK_ERROR') return 'Le serveur est momentanément inaccessible. Veuillez réessayer.';
+
+  const data = typedError.response?.data;
   if (!data) return fallback;
 
   if (typeof data === 'string') return data;

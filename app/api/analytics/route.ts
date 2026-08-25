@@ -113,11 +113,12 @@ export async function GET() {
     const chunkSize = 5;
     const allReports: any[] = [];
     for (let i = 0; i < requests.length; i += chunkSize) {
-      const chunk = requests.slice(i, i + chunkSize);
-      const [batchResponse] = await client.batchRunReports({
+      const chunk: any[] = requests.slice(i, i + chunkSize);
+      const batchResult: any = await (client.batchRunReports({
         property: `properties/${propertyId}`,
         requests: chunk,
-      });
+      } as any) as any);
+      const batchResponse: any = Array.isArray(batchResult) ? batchResult[0] : batchResult;
       allReports.push(...(batchResponse.reports || []));
     }
 

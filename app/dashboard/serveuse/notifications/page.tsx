@@ -7,8 +7,10 @@ import {
 } from 'lucide-react';
 import { notificationService } from '@/services/apiService';
 import { useToastStore } from '@/store/useToastStore';
+import { useTranslation } from 'react-i18next';
 
 export default function NotificationsPage() {
+  const { t } = useTranslation();
   const [notifications, setNotifications] = useState<any[]>([]);
   const [stats, setStats] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
@@ -52,7 +54,7 @@ export default function NotificationsPage() {
       const count = data.count || results.length;
       setTotalPages(Math.max(1, Math.ceil(count / 10)));
     } catch (error) {
-      addToast('Erreur lors du chargement des notifications', 'error');
+      addToast(t('notifications_load_error', { defaultValue: 'Erreur lors du chargement des notifications' }), 'error');
     } finally {
       setLoading(false);
     }
@@ -72,20 +74,20 @@ export default function NotificationsPage() {
   const handleMarkAsRead = async (id: number) => {
     try {
       await notificationService.markAsRead(id, true);
-      addToast('Notification marquée comme lue', 'success');
+      addToast(t('notification_marked_read', { defaultValue: 'Notification marquée comme lue' }), 'success');
       fetchNotifications();
     } catch (error) {
-      addToast('Erreur lors de la mise à jour de la notification', 'error');
+      addToast(t('notification_update_error', { defaultValue: 'Erreur lors de la mise à jour de la notification' }), 'error');
     }
   };
 
   const handleMarkAllAsRead = async () => {
     try {
       await notificationService.markAllAsRead();
-      addToast('Toutes les notifications ont été marquées comme lues', 'success');
+      addToast(t('all_notifications_read', { defaultValue: 'Toutes les notifications ont été marquées comme lues' }), 'success');
       fetchNotifications();
     } catch (error) {
-      addToast('Erreur lors du marquage des notifications', 'error');
+      addToast(t('notifications_mark_all_error', { defaultValue: 'Erreur lors du marquage des notifications' }), 'error');
     }
   };
 
@@ -105,13 +107,13 @@ export default function NotificationsPage() {
   const getTypeLabel = (type: string) => {
     switch (type) {
       case 'accessoire':
-        return 'Accessoire';
+        return t('accessory', { defaultValue: 'Accessoire' });
       case 'flacon':
-        return 'Flacon';
+        return t('bottle', { defaultValue: 'Flacon' });
       case 'lot_essence':
-        return 'Lot d\'essence';
+        return t('essence_lot', { defaultValue: "Lot d'essence" });
       default:
-        return type;
+        return type || t('other', { defaultValue: 'Autre' });
     }
   };
 
@@ -119,8 +121,8 @@ export default function NotificationsPage() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Alertes & Notifications</h1>
-          <p className="text-sm text-foreground/40 mt-0.5">Suivi en temps réel des stocks bas et alertes système</p>
+          <h1 className="text-2xl font-bold text-foreground">{t('notifications_title', { defaultValue: 'Alertes & Notifications' })}</h1>
+          <p className="text-sm text-foreground/40 mt-0.5">{t('notifications_subtitle', { defaultValue: 'Suivi en temps réel des stocks bas et alertes système' })}</p>
         </div>
         {stats?.non_lues > 0 && (
           <button
@@ -128,7 +130,7 @@ export default function NotificationsPage() {
             className="flex items-center gap-2 bg-gold/10 text-gold hover:bg-gold/20 border border-gold/20 px-4 py-2 rounded-xl text-sm font-medium transition-all"
           >
             <CheckCheck size={16} />
-            Tout marquer comme lu
+            {t('mark_all_read', { defaultValue: 'Tout marquer comme lu' })}
           </button>
         )}
       </div>
@@ -136,19 +138,19 @@ export default function NotificationsPage() {
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="bg-white/5 border border-white/10 rounded-2xl p-4 shadow-sm">
-          <p className="text-xs font-semibold text-foreground/40 uppercase tracking-wider">Total alertes</p>
+          <p className="text-xs font-semibold text-foreground/40 uppercase tracking-wider">{t('total_alerts', { defaultValue: 'Total alertes' })}</p>
           <p className="text-2xl font-bold text-foreground mt-1">{stats?.total ?? 0}</p>
         </div>
         <div className="bg-red-500/5 border border-red-500/10 rounded-2xl p-4 shadow-sm">
-          <p className="text-xs font-semibold text-red-400/60 uppercase tracking-wider">Non lues</p>
+          <p className="text-xs font-semibold text-red-400/60 uppercase tracking-wider">{t('unread', { defaultValue: 'Non lues' })}</p>
           <p className="text-2xl font-bold text-red-400 mt-1">{stats?.non_lues ?? 0}</p>
         </div>
         <div className="bg-emerald-500/5 border border-emerald-500/10 rounded-2xl p-4 shadow-sm">
-          <p className="text-xs font-semibold text-emerald-400/60 uppercase tracking-wider">Lues</p>
+          <p className="text-xs font-semibold text-emerald-400/60 uppercase tracking-wider">{t('read', { defaultValue: 'Lues' })}</p>
           <p className="text-2xl font-bold text-emerald-400 mt-1">{stats?.lues ?? 0}</p>
         </div>
         <div className="bg-white/5 border border-white/10 rounded-2xl p-4 shadow-sm flex flex-col justify-between">
-          <p className="text-xs font-semibold text-foreground/40 uppercase tracking-wider">Par type de produit</p>
+          <p className="text-xs font-semibold text-foreground/40 uppercase tracking-wider">{t('by_product_type', { defaultValue: 'Par type de produit' })}</p>
           <div className="flex flex-wrap gap-2 mt-2">
             {stats?.par_type_produit?.map((item: any) => (
               <span key={item.type_produit} className="text-[10px] font-bold bg-white/5 px-2 py-0.5 rounded-full border border-white/5">
@@ -166,7 +168,7 @@ export default function NotificationsPage() {
           <input
             value={search}
             onChange={e => { setSearch(e.target.value); setPage(1); }}
-            placeholder="Rechercher par produit, message..."
+            placeholder={t('search_notifications', { defaultValue: 'Rechercher par produit, message...' })}
             className="text-sm bg-transparent outline-none flex-1 text-foreground placeholder:text-foreground/40"
           />
         </div>
@@ -177,19 +179,19 @@ export default function NotificationsPage() {
               onClick={() => { setStatusFilter('all'); setPage(1); }}
               className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${statusFilter === 'all' ? 'bg-gold text-black' : 'text-foreground/60 hover:text-foreground'}`}
             >
-              Tous
+              {t('all', { defaultValue: 'Tous' })}
             </button>
             <button
               onClick={() => { setStatusFilter('unread'); setPage(1); }}
               className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${statusFilter === 'unread' ? 'bg-gold text-black' : 'text-foreground/60 hover:text-foreground'}`}
             >
-              Non-lues
+              {t('unread', { defaultValue: 'Non-lues' })}
             </button>
             <button
               onClick={() => { setStatusFilter('read'); setPage(1); }}
               className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${statusFilter === 'read' ? 'bg-gold text-black' : 'text-foreground/60 hover:text-foreground'}`}
             >
-              Lues
+              {t('read', { defaultValue: 'Lues' })}
             </button>
           </div>
 
@@ -198,25 +200,25 @@ export default function NotificationsPage() {
               onClick={() => { setTypeFilter('all'); setPage(1); }}
               className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${typeFilter === 'all' ? 'bg-gold text-black' : 'text-foreground/60 hover:text-foreground'}`}
             >
-              Tous types
+              {t('all_types', { defaultValue: 'Tous types' })}
             </button>
             <button
               onClick={() => { setTypeFilter('accessoire'); setPage(1); }}
               className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${typeFilter === 'accessoire' ? 'bg-gold text-black' : 'text-foreground/60 hover:text-foreground'}`}
             >
-              Accessoires
+              {t('accessories', { defaultValue: 'Accessoires' })}
             </button>
             <button
               onClick={() => { setTypeFilter('flacon'); setPage(1); }}
               className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${typeFilter === 'flacon' ? 'bg-gold text-black' : 'text-foreground/60 hover:text-foreground'}`}
             >
-              Flacons
+              {t('bottles', { defaultValue: 'Flacons' })}
             </button>
             <button
               onClick={() => { setTypeFilter('lot_essence'); setPage(1); }}
               className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${typeFilter === 'lot_essence' ? 'bg-gold text-black' : 'text-foreground/60 hover:text-foreground'}`}
             >
-              Lots Essence
+              {t('essence_lots', { defaultValue: 'Lots Essence' })}
             </button>
           </div>
         </div>
@@ -227,7 +229,7 @@ export default function NotificationsPage() {
         {loading ? (
           <div className="flex flex-col items-center justify-center py-24 text-gold gap-3">
             <RefreshCw className="animate-spin" size={32} />
-            <p className="text-sm font-medium">Chargement des notifications...</p>
+            <p className="text-sm font-medium">{t('loading_notifications', { defaultValue: 'Chargement des notifications...' })}</p>
           </div>
         ) : (
           <div className="divide-y divide-white/5">
@@ -266,13 +268,13 @@ export default function NotificationsPage() {
                       <span className="text-[10px] text-foreground/30 font-mono">{timeString}</span>
                     </div>
 
-                    <h4 className="text-sm font-semibold text-foreground">{notif.titre || 'Alerte Stock'}</h4>
+                    <h4 className="text-sm font-semibold text-foreground">{notif.titre || t('stock_alert', { defaultValue: 'Alerte Stock' })}</h4>
                     <p className="text-xs text-foreground/60 leading-relaxed">{notif.message || notif.contenu}</p>
 
                     {notif.seuil_alerte !== undefined && (
                       <div className="flex items-center gap-2 mt-2 text-[10px] font-mono text-amber-400 bg-amber-400/5 px-2 py-1 rounded w-fit border border-amber-400/10">
                         <AlertTriangle size={12} />
-                        <span>Stock actuel : {notif.stock_actuel} | Seuil : {notif.seuil_alerte}</span>
+                        <span>{t('current_stock', { defaultValue: 'Stock actuel' })} : {notif.stock_actuel} | {t('threshold', { defaultValue: 'Seuil' })} : {notif.seuil_alerte}</span>
                       </div>
                     )}
                   </div>
@@ -282,7 +284,7 @@ export default function NotificationsPage() {
                       <button 
                         onClick={() => handleMarkAsRead(notif.id)}
                         className="p-1.5 rounded-lg hover:bg-white/10 text-foreground/40 hover:text-gold transition-colors"
-                        title="Marquer comme lue"
+                        title={t('mark_read', { defaultValue: 'Marquer comme lue' })}
                       >
                         <Check size={16} />
                       </button>
@@ -295,7 +297,7 @@ export default function NotificationsPage() {
             {notifications.length === 0 && (
               <div className="flex flex-col items-center justify-center py-24 text-foreground/30 gap-3">
                 <Bell size={36} className="text-foreground/20" />
-                <p className="text-sm italic">Aucune notification trouvée</p>
+                <p className="text-sm italic">{t('no_notifications', { defaultValue: 'Aucune notification trouvée' })}</p>
               </div>
             )}
           </div>
@@ -310,15 +312,15 @@ export default function NotificationsPage() {
             disabled={page === 1}
             className="px-4 py-2 border border-white/10 rounded-lg text-xs font-semibold hover:bg-white/5 disabled:opacity-40 disabled:hover:bg-transparent transition-colors"
           >
-            Précédent
+            {t('previous', { defaultValue: 'Précédent' })}
           </button>
-          <span className="text-xs text-foreground/40">Page {page} sur {totalPages}</span>
+          <span className="text-xs text-foreground/40">{t('page', { defaultValue: 'Page' })} {page} {t('of', { defaultValue: 'sur' })} {totalPages}</span>
           <button
             onClick={() => setPage(p => Math.min(totalPages, p + 1))}
             disabled={page === totalPages}
             className="px-4 py-2 border border-white/10 rounded-lg text-xs font-semibold hover:bg-white/5 disabled:opacity-40 disabled:hover:bg-transparent transition-colors"
           >
-            Suivant
+            {t('next', { defaultValue: 'Suivant' })}
           </button>
         </div>
       )}

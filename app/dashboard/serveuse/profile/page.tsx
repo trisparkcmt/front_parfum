@@ -17,6 +17,7 @@ import { useToastStore } from '@/store/useToastStore';
 import PasswordChangeModal from '@/components/shared/PasswordChangeModal';
 import ProfileEditModal from '@/components/shared/ProfileEditModal';
 import ConfirmDialog from '@/components/shared/ConfirmDialog';
+import { ThemeToggle } from '@/app/Toggle';
 
 export default function ServeuseProfilePage() {
   const { user, logout } = useAuthStore();
@@ -29,11 +30,6 @@ export default function ServeuseProfilePage() {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
-  const handleLanguageChange = () => {
-    const newLang = i18n.language === 'fr' ? 'en' : 'fr';
-    i18n.changeLanguage(newLang);
-  };
-
   const settingsOptions = [
     {
       id: 'language',
@@ -41,7 +37,7 @@ export default function ServeuseProfilePage() {
       value: i18n.language === 'fr' ? 'Français' : 'English',
       icon: <Languages size={18} className="text-blue-400" />,
       bg: 'bg-blue-400/10',
-      action: handleLanguageChange
+      action: undefined
     },
     {
       id: 'currency',
@@ -108,7 +104,7 @@ export default function ServeuseProfilePage() {
 
               </div>
               <div>
-                <p className="text-sm text-foreground">My dashboard</p>
+                <p className="text-sm text-foreground">{t('my_dashboard', 'Mon tableau de bord')}</p>
               </div>
             </div>
           </div>
@@ -174,7 +170,8 @@ export default function ServeuseProfilePage() {
           {settingsOptions.map((opt) => (
             <button
               key={opt.id}
-              onClick={opt.action}
+              onClick={opt.id === 'language' ? undefined : opt.action}
+              type="button"
               className="w-full flex items-center justify-between px-5 py-4 hover:bg-gray-500/5 transition-all group"
             >
               <div className="flex items-center gap-3">
@@ -186,7 +183,20 @@ export default function ServeuseProfilePage() {
                   <p className="text-[11px] text-foreground/40">{opt.value}</p>
                 </div>
               </div>
-              <ChevronRight size={16} className="text-foreground/20 group-hover:text-gold group-hover:translate-x-0.5 transition-all" />
+              {opt.id === 'language' ? (
+                <select
+                  value={i18n.language?.startsWith('en') ? 'en' : 'fr'}
+                  onChange={(event) => i18n.changeLanguage(event.target.value)}
+                  onClick={(event) => event.stopPropagation()}
+                  className="bg-transparent border border-white/10 rounded-lg px-2 py-1 text-xs text-foreground"
+                  aria-label={t('language')}
+                >
+                  <option value="fr">Français</option>
+                  <option value="en">English</option>
+                </select>
+              ) : opt.id === 'appearance' ? (
+                <ThemeToggle checked={theme === 'dark'} onChange={toggleTheme} />
+              ) : <ChevronRight size={16} className="text-foreground/20 group-hover:text-gold group-hover:translate-x-0.5 transition-all" />}
             </button>
           ))}
         </div>

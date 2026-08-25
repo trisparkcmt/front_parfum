@@ -17,6 +17,7 @@ import { Button } from '@/components/ui/Button';
 import GoogleAuthButton from '@/components/auth/GoogleAuthButton';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useTranslation } from 'react-i18next';
+import { extractApiError } from '@/lib/apiError';
 
 function LoginFormContent() {
   const { t, i18n } = useTranslation();
@@ -65,6 +66,8 @@ function LoginFormContent() {
 
   const { register, handleSubmit, formState: { errors } } = useForm<LoginForm>({
     resolver: zodResolver(loginSchema),
+    mode: 'onBlur',
+    reValidateMode: 'onChange',
     defaultValues: {
       loginInput: remembered.loginInput,
       rememberMe: remembered.rememberMe,
@@ -82,9 +85,11 @@ function LoginFormContent() {
           localStorage.removeItem('remembered_login');
         }
         router.push(redirectUrl);
+      } else {
+        setFormError(t('login_error', { defaultValue: 'Identifiant ou mot de passe incorrect.' }));
       }
     } catch (err: any) {
-      const errorMessage = err.response?.data?.detail || t('login_error') || 'Identifiant ou mot de passe incorrect.';
+      const errorMessage = extractApiError(err, t('login_error', { defaultValue: 'Identifiant ou mot de passe incorrect.' }));
       setFormError(errorMessage);
       if (errors.loginInput) {
         setTimeout(() => {
@@ -106,7 +111,7 @@ function LoginFormContent() {
       const success = await loginWithGoogle(googleAccessToken);
       if (success) router.push(redirectUrl);
     } catch (err: any) {
-      setFormError(err.message || err.response?.data?.detail || t('login_error') || 'Échec de la connexion Google');
+      setFormError(extractApiError(err, t('login_error', { defaultValue: 'Échec de la connexion Google' })));
     }
   };
 

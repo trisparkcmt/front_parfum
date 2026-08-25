@@ -769,13 +769,7 @@ export default function POSPage() {
                           oilLimitExceeded ? 'bg-red-500' : 'bg-gold'
                         )}
                         style={{
-                          width: `${
-                            totalMl <= 0
-                              ? 0
-                              : oilLimitExceeded
-                                ? Math.min(100, (Math.min(totalMl, maxOilMl) / maxOilMl) * 100)
-                                : 100
-                          }%`,
+                          width: `${maxOilMl > 0 ? Math.min(100, (totalMl / maxOilMl) * 100) : 0}%`,
                         }}
                       />
                     </div>

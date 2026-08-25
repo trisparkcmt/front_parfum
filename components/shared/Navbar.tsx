@@ -16,6 +16,7 @@ import { useThemeStore } from '@/store/useThemeStore';
 import { Button } from '@/components/ui/Button';
 import { LanguageSelector } from './LanguageSelector';
 import { ThemeToggle } from './ThemeToggle';
+import { preloadGoogleIdentityScript } from '@/components/auth/GoogleAuthButton';
 
 const NAV_LABEL_MAP: Record<string, { fr: string; en: string }> = {
   '/': { fr: 'Accueil', en: 'Home' },
@@ -90,7 +91,7 @@ export function Navbar() {
               </div>
             </Link>
           ) : (
-            <Link href="/login" onClick={() => setIsNavigating(true)} className="flex-shrink-0">
+            <Link href="/login" onClick={() => { setIsNavigating(true); preloadGoogleIdentityScript(); }} className="flex-shrink-0">
               <Button className="text-[0.65rem] rounded-full " variant="secondary" size="sm">
                 {isEn ? UI_DICT.login.en : UI_DICT.login.fr}
               </Button>
@@ -129,7 +130,7 @@ export function Navbar() {
       <nav className={cn('hidden lg:block transition-all duration-300', scrolled ? 'py-2.5' : 'py-4')}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between relative">
-            <Link href="/" className="flex items-center gap-2 group flex-shrink-0 z-10">
+            <Link href="/" className={cn(glass, 'flex items-center gap-2 group flex-shrink-0 z-10 px-2')}>
               <img
                 src="/logo/Logo only.svg"
                 alt="Accessoires Exclusifs"
@@ -214,7 +215,7 @@ export function Navbar() {
                   </div>
                 </Link>
               ) : (
-                <Link href="/login" onClick={() => setIsNavigating(true)}>
+                <Link href="/login" onClick={() => { setIsNavigating(true); preloadGoogleIdentityScript(); }}>
                   <Button variant="secondary" size="sm" className={cn(glass, 'border-gold/30 text-gold hover:bg-gold/10')}>
                     {isEn ? UI_DICT.login.en : UI_DICT.login.fr}
                   </Button>

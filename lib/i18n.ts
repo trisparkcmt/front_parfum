@@ -239,7 +239,71 @@ const resources = {
       "register_success": "Compte créé avec succès",
       "register_error": "Une erreur est survenue lors de l'inscription",
       "brand_description": "Votre destination luxe pour accessoires premium et parfums d'exception. Découvrez l'atelier Numba et créez votre signature olfactive.",
-      "navigation": "Navigation"
+      "navigation": "Navigation",
+      "serveuse_space": "Espace Serveuse",
+      "serveuse_overview": "Vue d'ensemble des activités de la boutique",
+      "point_of_sale": "Point de Vente",
+      "dashboard_load_error": "Erreur de chargement du tableau de bord",
+      "orders": "Commandes",
+      "perfumes": "Parfums",
+      "accessories": "Accessoires",
+      "bottles": "Flacons",
+      "daily_expenses": "Dépenses Journalières",
+      "daily_expenses_desc": "Enregistrez vos dépenses quotidiennes de la boutique",
+      "expenses_load_error": "Erreur lors du chargement des dépenses",
+      "expense_required": "Le titre et le montant sont requis",
+      "expense_saved": "Dépense enregistrée",
+      "expense_save_error": "Erreur lors de la sauvegarde",
+      "search_by_title": "Rechercher par titre",
+      "loading_expenses": "Chargement des dépenses",
+      "no_expenses": "Aucune dépense enregistrée.",
+      "title": "Titre",
+      "description": "Description",
+      "amount": "Montant",
+      "expense_date": "Date de la Dépense",
+      "created_at": "Créé le",
+      "details": "Détails",
+      "new_expense": "Nouvel enregistrement de dépense",
+      "expense_title": "Titre / Objet *",
+      "expense_title_placeholder": "Ex: Achat café, recharge gaz",
+      "description_optional": "Description (optionnel)",
+      "additional_details": "Détails supplémentaires",
+      "amount_fcfa_required": "Montant (FCFA) *",
+      "expense_date_required": "Date de la Dépense *",
+      "expense": "Dépense",
+      "no_description": "Aucune description fournie.",
+      "notifications_title": "Alertes & Notifications",
+      "notifications_subtitle": "Suivi en temps réel des stocks bas et alertes système",
+      "notifications_load_error": "Erreur lors du chargement des notifications",
+      "notification_marked_read": "Notification marquée comme lue",
+      "notification_update_error": "Erreur lors de la mise à jour de la notification",
+      "all_notifications_read": "Toutes les notifications ont été marquées comme lues",
+      "notifications_mark_all_error": "Erreur lors du marquage des notifications",
+      "mark_all_read": "Tout marquer comme lu",
+      "total_alerts": "Total alertes",
+      "unread": "Non lues",
+      "read": "Lues",
+      "by_product_type": "Par type de produit",
+      "search_notifications": "Rechercher par produit, message...",
+      "all_types": "Tous types",
+      "essence_lots": "Lots Essence",
+      "loading_notifications": "Chargement des notifications...",
+      "stock_alert": "Alerte Stock",
+      "current_stock": "Stock actuel",
+      "threshold": "Seuil",
+      "mark_read": "Marquer comme lue",
+      "no_notifications": "Aucune notification trouvée"
+      ,"product": "Produit"
+      ,"favorite_deleted": "Parfum supprimé avec succès"
+      ,"delete_error": "Erreur lors de la suppression"
+      ,"perfume": "Parfum"
+      ,"accessory": "Accessoire"
+      ,"bottle": "Flacon"
+      ,"status": "Statut"
+      ,"composition": "Composition"
+      ,"essence": "Essence"
+      ,"total_price": "Prix total"
+      ,"my_dashboard": "Mon tableau de bord"
     }
   },
   en: {
@@ -478,7 +542,71 @@ const resources = {
       "register_success": "Account created successfully",
       "register_error": "An error occurred during registration",
       "brand_description": "Your luxury destination for premium accessories and exceptional perfumes. Discover the Numba atelier and create your olfactory signature.",
-      "navigation": "Navigation"
+      "navigation": "Navigation",
+      "serveuse_space": "Store Staff Space",
+      "serveuse_overview": "Overview of store activities",
+      "point_of_sale": "Point of Sale",
+      "dashboard_load_error": "Error loading dashboard",
+      "orders": "Orders",
+      "perfumes": "Perfumes",
+      "accessories": "Accessories",
+      "bottles": "Bottles",
+      "daily_expenses": "Daily Expenses",
+      "daily_expenses_desc": "Record your store's daily expenses",
+      "expenses_load_error": "Error loading expenses",
+      "expense_required": "Title and amount are required",
+      "expense_saved": "Expense recorded",
+      "expense_save_error": "Error saving expense",
+      "search_by_title": "Search by title",
+      "loading_expenses": "Loading expenses",
+      "no_expenses": "No expenses recorded.",
+      "title": "Title",
+      "description": "Description",
+      "amount": "Amount",
+      "expense_date": "Expense date",
+      "created_at": "Created at",
+      "details": "Details",
+      "new_expense": "New expense record",
+      "expense_title": "Title / Purpose *",
+      "expense_title_placeholder": "E.g. Coffee purchase, gas refill",
+      "description_optional": "Description (optional)",
+      "additional_details": "Additional details",
+      "amount_fcfa_required": "Amount (FCFA) *",
+      "expense_date_required": "Expense date *",
+      "expense": "Expense",
+      "no_description": "No description provided.",
+      "notifications_title": "Alerts & Notifications",
+      "notifications_subtitle": "Real-time monitoring of low stock and system alerts",
+      "notifications_load_error": "Error loading notifications",
+      "notification_marked_read": "Notification marked as read",
+      "notification_update_error": "Error updating notification",
+      "all_notifications_read": "All notifications have been marked as read",
+      "notifications_mark_all_error": "Error marking notifications as read",
+      "mark_all_read": "Mark all as read",
+      "total_alerts": "Total alerts",
+      "unread": "Unread",
+      "read": "Read",
+      "by_product_type": "By product type",
+      "search_notifications": "Search by product or message...",
+      "all_types": "All types",
+      "essence_lots": "Essence lots",
+      "loading_notifications": "Loading notifications...",
+      "stock_alert": "Stock alert",
+      "current_stock": "Current stock",
+      "threshold": "Threshold",
+      "mark_read": "Mark as read",
+      "no_notifications": "No notifications found"
+      ,"product": "Product"
+      ,"favorite_deleted": "Perfume deleted successfully"
+      ,"delete_error": "Error while deleting"
+      ,"perfume": "Perfume"
+      ,"accessory": "Accessory"
+      ,"bottle": "Bottle"
+      ,"status": "Status"
+      ,"composition": "Composition"
+      ,"essence": "Essence"
+      ,"total_price": "Total price"
+      ,"my_dashboard": "My dashboard"
     }
   }
 };

@@ -29,6 +29,7 @@ import PasswordChangeModal from '@/components/shared/PasswordChangeModal';
 import ProfileEditModal from '@/components/shared/ProfileEditModal';
 import ConfirmDialog from '@/components/shared/ConfirmDialog';
 import type { UserRole } from '@/types';
+import { ThemeToggle } from '@/app/Toggle';
 
 /* ------------------------------------------------------------------ */
 /*  Helpers & Shared Primitives                                       */
@@ -529,20 +530,22 @@ export default function ProfilePage() {
                   label={t('language', { defaultValue: isEn ? 'Language' : 'Langue' })}
                   hint={isEn ? 'Choose display language' : 'Choisissez votre langue / Language'}
                   control={
-                    <ButtonPill onClick={handleLanguageChange}>
-                      {i18n.language === 'fr' ? 'Français' : 'English'}
-                    </ButtonPill>
+                    <select
+                      value={isEn ? 'en' : 'fr'}
+                      onChange={(event) => i18n.changeLanguage(event.target.value)}
+                      className="rounded-lg border border-foreground/10 bg-background px-2.5 py-1.5 text-xs text-foreground"
+                      aria-label={t('language', { defaultValue: isEn ? 'Language' : 'Langue' })}
+                    >
+                      <option value="fr">Français</option>
+                      <option value="en">English</option>
+                    </select>
                   }
                 />
                 <SettingRow
                   icon={theme === 'dark' ? <Moon size={16} /> : <Sun size={16} />}
                   label={t('appearance', { defaultValue: isEn ? 'Appearance' : 'Apparence' })}
                   hint={isEn ? 'Light or dark theme' : 'Mode clair ou sombre'}
-                  control={
-                    <ButtonPill onClick={toggleTheme}>
-                      {theme === 'dark' ? (isEn ? 'Dark' : 'Sombre') : (isEn ? 'Light' : 'Clair')}
-                    </ButtonPill>
-                  }
+                  control={<ThemeToggle checked={theme === 'dark'} onChange={toggleTheme} />}
                 />
                 {typeof window !== 'undefined' && !isPWAInstalled && (
                   <SettingRow
@@ -555,11 +558,12 @@ export default function ProfilePage() {
                     }
                     control={
                       <div className="flex items-center gap-2">
-                        <ButtonPill onClick={handleInstallPWA}>
+                        <button onClick={handleInstallPWA} className="inline-flex items-center gap-2 rounded-lg bg-gold px-3 py-1.5 text-xs font-semibold text-black hover:bg-gold/90 transition-colors">
+                          <Download size={14} />
                           {isInstallingPWA
                             ? (isEn ? 'Installing...' : 'Installation...')
-                            : (isEn ? 'Install' : 'Installer')}
-                        </ButtonPill>
+                            : (isEn ? 'Install the app' : 'Installer l’application')}
+                        </button>
                         <button
                           onClick={() => setShowPWAHelp(true)}
                           aria-label={isEn ? 'PWA Help' : 'Aide PWA'}

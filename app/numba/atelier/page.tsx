@@ -36,6 +36,18 @@ const BOTTLE_SIZES = [
   { ml: 100, label: '100ml', desc: 'Prestige' },
 ];
 
+function getBottleCapacity(bottle: any): number {
+  return Number(
+    bottle?.contenance_ml ||
+    bottle?.capacite_ml ||
+    bottle?.capacity_ml ||
+    bottle?.size_ml ||
+    bottle?.type_flacon?.contenance_ml ||
+    bottle?.type_flacon?.capacite_ml ||
+    0
+  );
+}
+
 const FORMAT_PRICES: Record<string, number> = { edc: 5000, edp: 8500, extrait: 12000 };
 const FORMAT_LABELS: Record<string, string> = { edc: 'Eau de Cologne', edp: 'Eau de Parfum', extrait: 'Extrait' };
 
@@ -208,7 +220,7 @@ function AtelierContent() {
   const { addFavorite } = useFavoritesStore();
   const { user, isAuthenticated } = useAuthStore();
   const { addToast } = useToastStore();
-  const { playSound, stopSound } = useSound();
+  const { playSound } = useSound();
   const { i18n } = useTranslation();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -373,6 +385,23 @@ function AtelierContent() {
   const [drawerSizeFilter, setDrawerSizeFilter] = useState<number | null>(null);
   const [drawerSort, setDrawerSort] = useState<'asc' | 'desc'>('asc');
 
+  const availableBottleSizes = useMemo(() => {
+    const capacities = Array.from(new Set(flacons.map(getBottleCapacity).filter((capacity) => capacity > 0))).sort((a, b) => a - b);
+    return capacities.map((ml) => ({
+      ml,
+      label: `${ml}ml`,
+      desc: ml <= 30 ? 'Discovery' : ml <= 60 ? 'Signature' : 'Prestige',
+    }));
+  }, [flacons]);
+
+  useEffect(() => {
+    if (availableBottleSizes.length === 0 || availableBottleSizes.some((bottle) => bottle.ml === bottleSize)) return;
+    const firstAvailableSize = availableBottleSizes[0].ml;
+    const firstBottle = flacons.find((bottle) => getBottleCapacity(bottle) === firstAvailableSize);
+    setBottleSize(firstAvailableSize);
+    setSelectedFlaconId(firstBottle ? Number(firstBottle.id) : null);
+  }, [availableBottleSizes, bottleSize, flacons]);
+
   const currentIngredientsFiltered = useMemo(() => {
     return ingredients.filter(item => {
       if (ingredientSubtab === 'tete') return TETE_FAMILIES.includes(item.family);
@@ -397,9 +426,6 @@ function AtelierContent() {
     setCartAdded(false);
     setQuantities(prev => {
       const prevVal = prev[id] || 0;
-      if (value > prevVal) {
-        playSound('pour');
-      }
       const currentOtherTotal = Object.entries(prev)
         .filter(([k]) => k !== id)
         .reduce((sum, [_, v]) => sum + v, 0);
@@ -413,7 +439,7 @@ function AtelierContent() {
       }
       return newQ;
     });
-  }, [bottleSize, playSound]);
+  }, [bottleSize]);
 
   const handleBottleSizeChange = (size: number, flaconId?: number) => {
     const limit = size * 0.45;
@@ -433,7 +459,7 @@ function AtelierContent() {
     } else {
       // Find the matching flacon from the loaded list
       const matched = flacons.find((f: any) => {
-        const cap = Number(f.contenance_ml || f.capacite_ml || f.capacity_ml || f.size_ml || 0);
+        const cap = getBottleCapacity(f);
         return cap === size;
       });
       setSelectedFlaconId(matched ? Number(matched.id) : null);
@@ -455,39 +481,13 @@ function AtelierContent() {
   }, [quantities, bottleSize, ALL_ITEMS, flacons, selectedFlaconId]);
 
   const formulaSummary = useMemo(() => {
-    const list = [];
+    const list: { name: string; ml: number }[] = [];
     
     // Ingredients
-    const teteMl = ingredients.filter(e => TETE_FAMILIES.includes(e.family)).reduce((acc, e) => acc + (quantities[e.id] || 0), 0);
-    if (teteMl > 0) list.push({ name: i18n.language === 'en' ? 'Top Notes' : 'Notes de Tête', ml: teteMl });
-    
-    const coeurMl = ingredients.filter(e => COEUR_FAMILIES.includes(e.family)).reduce((acc, e) => acc + (quantities[e.id] || 0), 0);
-    if (coeurMl > 0) list.push({ name: i18n.language === 'en' ? 'Heart Notes' : 'Notes de Cœur', ml: coeurMl });
-    
-    const fondMl = ingredients.filter(e => FOND_FAMILIES.includes(e.family)).reduce((acc, e) => acc + (quantities[e.id] || 0), 0);
-    if (fondMl > 0) list.push({ name: i18n.language === 'en' ? 'Base Notes' : 'Notes de Fond', ml: fondMl });
-    
-    // Essences
-    const premiumMl = essences.filter(e => {
-      const familyStr = e.family as string;
-      const cat = familyStr === 'premium' || familyStr === 'super-premium' || familyStr === 'high' ? e.family : (e.id.includes('sprem') ? 'super-premium' : e.id.includes('high') ? 'high' : 'premium');
-      return cat === 'premium';
-    }).reduce((acc, e) => acc + (quantities[e.id] || 0), 0);
-    if (premiumMl > 0) list.push({ name: i18n.language === 'en' ? 'Premium Essences' : 'Essences Premium', ml: premiumMl });
-    
-    const superPremiumMl = essences.filter(e => {
-      const familyStr = e.family as string;
-      const cat = familyStr === 'premium' || familyStr === 'super-premium' || familyStr === 'high' ? e.family : (e.id.includes('sprem') ? 'super-premium' : e.id.includes('high') ? 'high' : 'premium');
-      return cat === 'super-premium';
-    }).reduce((acc, e) => acc + (quantities[e.id] || 0), 0);
-    if (superPremiumMl > 0) list.push({ name: i18n.language === 'en' ? 'Super Premium Essences' : 'Essences Super Premium', ml: superPremiumMl });
-    
-    const highMl = essences.filter(e => {
-      const familyStr = e.family as string;
-      const cat = familyStr === 'premium' || familyStr === 'super-premium' || familyStr === 'high' ? e.family : (e.id.includes('sprem') ? 'super-premium' : e.id.includes('high') ? 'high' : 'premium');
-      return cat === 'high';
-    }).reduce((acc, e) => acc + (quantities[e.id] || 0), 0);
-    if (highMl > 0) list.push({ name: i18n.language === 'en' ? 'High Essences' : 'Essences Haute Qualité', ml: highMl });
+    for (const item of ALL_ITEMS) {
+      const ml = quantities[item.id] || 0;
+      if (ml > 0) list.push({ name: item.name, ml });
+    }
     
     return list;
   }, [quantities, ingredients, essences, i18n.language]);
@@ -887,22 +887,24 @@ function AtelierContent() {
         <div className="relative w-full flex items-center justify-center mt-8">
           <div className="size-slider-wrap">
             <button 
+              disabled={availableBottleSizes.length === 0 || availableBottleSizes.findIndex(s => s.ml === bottleSize) <= 0}
               className="size-slider-nav"
               onClick={() => {
-                const idx = BOTTLE_SIZES.findIndex(s => s.ml === bottleSize);
-                const nextIdx = (idx - 1 + BOTTLE_SIZES.length) % BOTTLE_SIZES.length;
-                handleBottleSizeChange(BOTTLE_SIZES[nextIdx].ml);
+                const idx = availableBottleSizes.findIndex(s => s.ml === bottleSize);
+                const nextIdx = Math.max(0, idx - 1);
+                if (availableBottleSizes[nextIdx]) handleBottleSizeChange(availableBottleSizes[nextIdx].ml);
               }}
             >
               <ChevronLeft size={20} />
             </button>
 
             <button 
+              disabled={availableBottleSizes.length === 0 || availableBottleSizes.findIndex(s => s.ml === bottleSize) >= availableBottleSizes.length - 1}
               className="size-slider-nav"
               onClick={() => {
-                const idx = BOTTLE_SIZES.findIndex(s => s.ml === bottleSize);
-                const nextIdx = (idx + 1) % BOTTLE_SIZES.length;
-                handleBottleSizeChange(BOTTLE_SIZES[nextIdx].ml);
+                const idx = availableBottleSizes.findIndex(s => s.ml === bottleSize);
+                const nextIdx = Math.min(availableBottleSizes.length - 1, idx + 1);
+                if (availableBottleSizes[nextIdx]) handleBottleSizeChange(availableBottleSizes[nextIdx].ml);
               }}
             >
               <ChevronRight size={20} />
@@ -1025,8 +1027,6 @@ function AtelierContent() {
                         <div className="flex items-center gap-3">
                           <button
                             onClick={() => updateQtySlider(item.id, Math.max(0, qty - 1))}
-                            onMouseUp={() => stopSound('pour')}
-                            onTouchEnd={() => stopSound('pour')}
                             className="w-7 h-7 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-foreground/60 transition-colors disabled:opacity-20"
                             disabled={qty <= 0}
                           >
@@ -1045,16 +1045,12 @@ function AtelierContent() {
                               step="1"
                               value={qty}
                               onChange={(evt) => updateQtySlider(item.id, Number(evt.target.value))}
-                              onMouseUp={() => stopSound('pour')}
-                              onTouchEnd={() => stopSound('pour')}
                               className="w-full h-1 bg-white/10 rounded appearance-none cursor-pointer accent-gold outline-none"
                             />
                           </div>
 
                           <button
                             onClick={() => updateQtySlider(item.id, Math.min(qty + remaining, qty + 1))}
-                            onMouseUp={() => stopSound('pour')}
-                            onTouchEnd={() => stopSound('pour')}
                             className="w-7 h-7 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-foreground/60 transition-colors disabled:opacity-20"
                             disabled={remaining <= 0}
                           >
@@ -1122,8 +1118,6 @@ function AtelierContent() {
                         <div className="flex items-center gap-3">
                           <button
                             onClick={() => updateQtySlider(item.id, Math.max(0, qty - 1))}
-                            onMouseUp={() => stopSound('pour')}
-                            onTouchEnd={() => stopSound('pour')}
                             className="w-7 h-7 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-foreground/60 transition-colors disabled:opacity-20"
                             disabled={qty <= 0}
                           >
@@ -1142,16 +1136,12 @@ function AtelierContent() {
                               step="1"
                               value={qty}
                               onChange={(evt) => updateQtySlider(item.id, Number(evt.target.value))}
-                              onMouseUp={() => stopSound('pour')}
-                              onTouchEnd={() => stopSound('pour')}
                               className="w-full h-1 bg-white/10 rounded appearance-none cursor-pointer accent-gold outline-none"
                             />
                           </div>
 
                           <button
                             onClick={() => updateQtySlider(item.id, Math.min(qty + remaining, qty + 1))}
-                            onMouseUp={() => stopSound('pour')}
-                            onTouchEnd={() => stopSound('pour')}
                             className="w-7 h-7 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-foreground/60 transition-colors disabled:opacity-20"
                             disabled={remaining <= 0}
                           >
@@ -1527,7 +1517,7 @@ function AtelierContent() {
             <div className="flex-1 overflow-y-auto p-6 space-y-4">
               {flacons
                 .filter((f: any) => {
-                  const cap = Number(f.contenance_ml || f.capacite_ml || 0);
+                  const cap = Number(f.contenance_ml || f.capacite_ml || f.capacity_ml || f.size_ml || f.type_flacon?.contenance_ml || 0);
                   if (drawerSizeFilter === 30) return cap <= 30;
                   if (drawerSizeFilter === 50) return cap > 30 && cap <= 60;
                   if (drawerSizeFilter === 100) return cap > 60;
@@ -1539,7 +1529,7 @@ function AtelierContent() {
                   return drawerSort === 'asc' ? pA - pB : pB - pA;
                 })
                 .map((f: any) => {
-                  const cap = Number(f.contenance_ml || f.capacite_ml || 0);
+                  const cap = getBottleCapacity(f);
                   const selected = Number(f.id) === selectedFlaconId;
                   return (
                     <button

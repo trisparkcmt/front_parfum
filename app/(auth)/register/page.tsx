@@ -58,6 +58,8 @@ function RegisterFormContent() {
     setFocus,
   } = useForm<RegisterForm>({
     resolver: zodResolver(registerSchema),
+    mode: 'onBlur',
+    reValidateMode: 'onChange',
   });
 
   const onSubmit = async (data: RegisterForm) => {
