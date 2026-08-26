@@ -564,6 +564,7 @@ export default function FlaconsAdminPage() {
                   <th className="pl-4 py-3">{t('col_name')}</th>
                   <th className="px-3 py-3">{t('col_volume')}</th>
                   <th className="px-3 py-3">Matière / Couleur</th>
+                  <th className="px-3 py-3">{isEn ? 'Stock' : 'Stock'}</th>
                   <th className="px-3 py-3">{t('col_price')}</th>
                   {isAdmin && <th className="px-3 py-3">{t('col_margin')}</th>}
                   <th className="pr-4 py-3 text-right">{t('col_actions')}</th>
@@ -612,6 +613,16 @@ export default function FlaconsAdminPage() {
                         {' · '}
                         <InlineCell value={b.couleur ?? ''} onSave={v => patchBottle(b.id, 'couleur', v)} disabled={!permissions.canUpdate} className="text-foreground/60" />
                       </td>
+                      <td className="px-3 py-3 tabular-nums">
+                        {b.stock_quantite !== undefined && b.stock_quantite !== null ? (
+                          <StatusChip
+                            status={b.stock_quantite === 0 ? 'red' : b.stock_quantite <= (b.seuil_alerte_stock ?? 10) ? 'amber' : 'emerald'}
+                            label={`${b.stock_quantite}`}
+                          />
+                        ) : (
+                          <span className="text-foreground/30 text-xs italic">{t('not_defined')}</span>
+                        )}
+                      </td>
                       <td className="px-3 py-3 font-semibold text-gold tabular-nums">
                         <InlineCell value={String(b.prix_unitaire ?? '')} onSave={v => patchBottle(b.id, 'prix_unitaire', v)} disabled={!permissions.canUpdate} inputType="number" display={<>{b.prix_unitaire} FCFA</>} className="font-semibold text-gold tabular-nums" />
                       </td>
@@ -655,7 +666,7 @@ export default function FlaconsAdminPage() {
                 {bottles.length === 0 && (
                   <tr>
                     <td
-                      colSpan={isAdmin ? 6 : 5}
+                      colSpan={isAdmin ? 7 : 6}
                       className="py-16 text-center text-sm italic text-foreground/30"
                     >
                       {t('no_results')}
@@ -776,16 +787,15 @@ export default function FlaconsAdminPage() {
             </div>
             <div className="space-y-4">
               <ImageUploader
-                initialImage={imagePreview}
+                preview={imagePreview}
                 onFileSelect={(file) => {
-                  setImageFile(file);
                   if (!file) {
+                    setImageFile(null);
                     setImagePreview(null);
                     return;
                   }
-                  const reader = new FileReader();
-                  reader.onload = () => setImagePreview(typeof reader.result === 'string' ? reader.result : null);
-                  reader.readAsDataURL(file);
+                  setImageFile(file);
+                  setImagePreview(URL.createObjectURL(file));
                 }}
               />
             </div>

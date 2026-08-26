@@ -43,3 +43,6 @@ dans le dashboard du client ,la page mes commande a repris le meme composant que
 
 
 AI-24b0a5fdc5991
+
+vc-domain-verify=accessoiresexclusifs.com,4f0c238c1008ab6373bb
+_vercel

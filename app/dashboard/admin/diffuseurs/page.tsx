@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Search, Plus, Edit2, Trash2, Loader2, Wifi, Zap, Tag, DollarSign, Boxes, Settings2 } from 'lucide-react';
 import { InlineCell } from '@/components/admin/InlineCell';
+import { TablePagination } from '@/components/admin/TablePagination';
 import { adminService } from '@/services/apiService';
 import { useToastStore } from '@/store/useToastStore';
 import { useCatalogPermissions } from '@/hooks/useCatalogPermissions';
@@ -259,6 +260,11 @@ export default function DiffuseursAdminPage() {
   const [saving, setSaving] = useState(false);
   const { addToast } = useToastStore();
 
+  // ── Pagination & stock split ──────────────────────────────────────────────
+  const ITEMS_PER_PAGE = 50;
+  const [pageInStock, setPageInStock] = useState(1);
+  const [pageOutOfStock, setPageOutOfStock] = useState(1);
+
   const [form, setForm] = useState({
     nom: '',
     description_courte: '',
@@ -484,7 +490,7 @@ export default function DiffuseursAdminPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
-                {diffuseurs.map((item) => {
+                {diffuseurs.filter(item => Number(item.stock_quantite ?? 0) > 0).slice((pageInStock - 1) * ITEMS_PER_PAGE, pageInStock * ITEMS_PER_PAGE).map((item) => {
                   const pVente = parseFloat(item.prix_unitaire || 0);
                   const pAchat = item.prix_achat ? parseFloat(item.prix_achat) : null;
                   const benefice = item.benefice_unitaire
@@ -572,13 +578,71 @@ export default function DiffuseursAdminPage() {
                     </tr>
                   );
                 })}
-                {diffuseurs.length === 0 && (
+                {diffuseurs.filter(i => Number(i.stock_quantite ?? 0) > 0).length === 0 && diffuseurs.length === 0 && (
                   <tr>
                     <td colSpan={isAdmin ? 8 : 6} className="text-center py-12 text-xs italic text-foreground/30">{t('no_results')}</td>
                   </tr>
                 )}
               </tbody>
             </table>
+            <TablePagination
+              currentPage={pageInStock}
+              totalPages={Math.max(1, Math.ceil(diffuseurs.filter(i => Number(i.stock_quantite ?? 0) > 0).length / ITEMS_PER_PAGE))}
+              totalItems={diffuseurs.filter(i => Number(i.stock_quantite ?? 0) > 0).length}
+              itemsPerPage={ITEMS_PER_PAGE}
+              onPageChange={setPageInStock}
+              itemLabel={isEn ? 'in-stock diffusers' : 'diffuseurs en stock'}
+            />
+            {diffuseurs.filter(i => Number(i.stock_quantite ?? 0) === 0).length > 0 && (
+              <div className="border-t-2 border-red-500/20">
+                <div className="px-4 py-2.5 bg-red-500/5 border-b border-red-500/10 flex items-center gap-2">
+                  <span className="h-1.5 w-1.5 rounded-full bg-red-400 shrink-0" />
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-red-400">
+                    {isEn ? `Out of Stock (${diffuseurs.filter(i => Number(i.stock_quantite ?? 0) === 0).length})` : `En Rupture de Stock (${diffuseurs.filter(i => Number(i.stock_quantite ?? 0) === 0).length})`}
+                  </p>
+                </div>
+                <table className="w-full text-left border-collapse">
+                  <tbody className="divide-y divide-white/5 opacity-70">
+                    {diffuseurs.filter(i => Number(i.stock_quantite ?? 0) === 0).slice((pageOutOfStock - 1) * ITEMS_PER_PAGE, pageOutOfStock * ITEMS_PER_PAGE).map((item) => {
+                      const pVente = parseFloat(item.prix_unitaire || 0);
+                      const pAchat = item.prix_achat ? parseFloat(item.prix_achat) : null;
+                      return (
+                        <tr key={item.id} className="hover:bg-white/[0.02] transition-colors">
+                          <td className="px-4 py-2.5 text-xs text-foreground/50">
+                            <div className="flex items-center gap-3">
+                              <div className="w-8 h-8 rounded-lg bg-white/5 border border-white/10 overflow-hidden relative flex-shrink-0">
+                                {item.image_principale ? <AppImage src={item.image_principale} alt={item.nom || ''} fill className="object-cover opacity-50" /> : null}
+                              </div>
+                              <span>{item.nom || '—'}</span>
+                            </div>
+                          </td>
+                          <td className="px-4 py-2.5 text-xs text-foreground/35">{item.technologie || '—'}</td>
+                          <td className="px-4 py-2.5 text-xs text-foreground/35">{item.capacite_reservoir_ml ? `${item.capacite_reservoir_ml} ml` : '—'}</td>
+                          <td className="px-4 py-2.5 text-xs text-foreground/40">{pVente ? `${pVente.toLocaleString()} FCFA` : '—'}</td>
+                          {isAdmin && <td className="px-4 py-2.5 text-xs text-foreground/35">{pAchat ? `${pAchat.toLocaleString()} FCFA` : '—'}</td>}
+                          {isAdmin && <td className="px-4 py-2.5 text-xs text-foreground/35">—</td>}
+                          <td className="px-4 py-2.5"><span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium ring-1 ring-inset bg-red-500/10 text-red-400 ring-red-500/20"><span className="h-1.5 w-1.5 rounded-full bg-red-400" />{isEn ? 'Out of stock' : 'Rupture'}</span></td>
+                          <td className="px-4 py-2.5 text-right">
+                            <div className="flex items-center justify-end gap-1">
+                              {permissions.canUpdate && <button onClick={() => openEdit(item)} className="rounded-md p-1.5 text-foreground/45 hover:text-gold hover:bg-gold/10 transition-colors" title="Modifier"><Edit2 size={13} /></button>}
+                              {permissions.canDelete && <button onClick={() => handleDelete(item.id)} className="rounded-md p-1.5 text-foreground/45 hover:text-red-400 hover:bg-red-500/10 transition-colors" title="Supprimer"><Trash2 size={13} /></button>}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+                <TablePagination
+                  currentPage={pageOutOfStock}
+                  totalPages={Math.max(1, Math.ceil(diffuseurs.filter(i => Number(i.stock_quantite ?? 0) === 0).length / ITEMS_PER_PAGE))}
+                  totalItems={diffuseurs.filter(i => Number(i.stock_quantite ?? 0) === 0).length}
+                  itemsPerPage={ITEMS_PER_PAGE}
+                  onPageChange={setPageOutOfStock}
+                  itemLabel={isEn ? 'out-of-stock diffusers' : 'diffuseurs en rupture'}
+                />
+              </div>
+            )}
           </div>
         )}
       </div>

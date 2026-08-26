@@ -5,7 +5,7 @@ import {
   Search, Eye, CheckCircle, Truck, XCircle, Loader2, RefreshCw,
   ChevronLeft, ChevronRight, X, Package, Bike, CreditCard,
   MapPin, Phone, Calendar, Tag, ClipboardList, AlertTriangle,
-  SlidersHorizontal, Download, FileText, Mail, ChevronDown,
+  SlidersHorizontal, Download, FileText, Mail, ChevronDown, ArrowLeft,
 } from 'lucide-react';
 import { orderService, adminService } from '@/services/apiService';
 import { invoiceService } from '@/services/invoiceService';
@@ -13,7 +13,7 @@ import { useToastStore } from '@/store/useToastStore';
 import type { BackendOrder, BackendOrderLine } from '@/types';
 import { useOptimisticOrders } from '@/hooks/useOptimisticOrders';
 import { useTranslation } from 'react-i18next';
-import { BackButton } from '@/components/ui/BackButton';
+import { useRouter } from 'next/navigation';
 
 // ─────────────────────────────────────────────────────────────────────────
 // Config — color/dot styling only (language-independent). Labels are
@@ -810,9 +810,19 @@ export default function OrdersPage() {
     t('col_driver'), t('col_status'), t('col_delivery'), t('col_date'), '',
   ];
 
+  const router = useRouter();
+
   return (
     <div className="space-y-6 px-4 sm:px-6 py-4 sm:py-6">
-      <BackButton />
+      <button
+        onClick={() => router.back()}
+        className="flex items-center gap-2 text-foreground/60 hover:text-gold transition-colors group mb-6"
+      >
+        <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center group-hover:bg-gold/10 group-hover:scale-110 transition-all">
+          <ArrowLeft size={18} />
+        </div>
+        <span className="text-sm font-medium uppercase tracking-widest">Retour</span>
+      </button>
 
       {/* Header ------------------------------------------------------------ */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

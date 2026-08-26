@@ -28,5 +28,3 @@ export function BackButton({ className, label = "Retour", href = '/' }: BackButt
     </button>
   );
 }
-
-

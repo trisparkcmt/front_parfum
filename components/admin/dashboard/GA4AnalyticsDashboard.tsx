@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { 
   TrendingUp, 
   Users, 
@@ -30,6 +31,133 @@ import {
   PieChart,
   Pie
 } from 'recharts';
+
+/* ─── Inline translations ─────────────────────────────────────────────────── */
+const TG = {
+  fr: {
+    title: 'Statistiques Google Analytics 4 (30 derniers jours)',
+    subtitle: 'Analytics avancées traitées en batch avec batchRunReports',
+    badge: 'Batch API Client',
+    loading: 'Traitement batch des rapports Google Analytics 4…',
+    error_title: 'Synchronisation GA4 échouée',
+    error_env: 'Vérifiez vos variables d\'environnement',
+    kpi_revenue: 'Chiffre d\'affaires',
+    kpi_revenue_sub: 'Total des ventes',
+    kpi_sales: 'Nombre de ventes',
+    kpi_sales_sub: 'Transactions réussies',
+    kpi_conv: 'Conversion globale',
+    kpi_conv_sub: 'Sessions ayant acheté',
+    kpi_visitors: 'Visiteurs uniques',
+    kpi_visitors_sub: 'Portée globale du funnel',
+    kpi_aov: 'Panier moyen',
+    kpi_aov_sub: 'CA moy. / achat',
+    funnel_title: 'Entonnoir de conversion e-commerce',
+    device_title: 'Appareils & Navigateurs',
+    device_legend: 'Par appareil',
+    browser_legend: 'Par navigateur',
+    view_all_browsers: 'Voir les {n} navigateurs',
+    funnel_detail_title: 'Détail des étapes du funnel',
+    col_step: 'Étape',
+    col_events: 'Événements',
+    col_users: 'Utilisateurs',
+    col_sales: 'Ventes',
+    col_revenue: 'CA',
+    col_conv: 'Conv.',
+    acquisition_title: 'Canaux d\'acquisition',
+    col_source: 'Source / Medium',
+    col_sessions: 'Sessions',
+    view_all_channels: 'Voir les {n} canaux',
+    pages_title: 'Pages les plus consultées',
+    col_page: 'Page',
+    col_views: 'Vues',
+    view_all_pages: 'Voir les {n} pages',
+    geo_title: 'Villes & Régions actives',
+    col_country: 'Pays',
+    col_city: 'Ville',
+    col_new: 'Nouveaux',
+    view_all_locations: 'Voir les {n} localisations',
+    shares_title: 'Produits les plus partagés',
+    shares_sub: '(30 derniers jours)',
+    shares_label: 'partages',
+    no_channels: 'Aucun canal disponible',
+    no_pages: 'Aucune page disponible',
+    no_locations: 'Aucune localisation disponible',
+    modal_device: 'Répartition appareils & navigateurs',
+    modal_device_legend: 'Par appareil',
+    modal_browser_legend: 'Par navigateur',
+    modal_full_breakdown: 'Détail complet (Appareil × Navigateur)',
+    sessions_abbr: 'sess.',
+    users_abbr: 'util.',
+    modal_acquisition: 'Tous les canaux d\'acquisition',
+    modal_pages: 'Toutes les pages',
+    modal_geo: 'Toutes les localisations',
+    new_users_abbr: 'Nouv.',
+    funnel_events: 'Événements',
+    funnel_uniq_users: 'Utilisateurs uniques',
+  },
+  en: {
+    title: 'Google Analytics 4 Statistics (Last 30 days)',
+    subtitle: 'Advanced analytics batch-processed with batchRunReports',
+    badge: 'Batch API Client',
+    loading: 'Batch-processing Google Analytics 4 reports...',
+    error_title: 'GA4 Synchronization Failed',
+    error_env: 'Check your environment variables',
+    kpi_revenue: 'Revenue',
+    kpi_revenue_sub: 'Total revenue',
+    kpi_sales: 'Number of Sales',
+    kpi_sales_sub: 'Successful transactions',
+    kpi_conv: 'Overall Conversion',
+    kpi_conv_sub: 'Purchased sessions',
+    kpi_visitors: 'Unique Visitors',
+    kpi_visitors_sub: 'Global funnel reach',
+    kpi_aov: 'AOV',
+    kpi_aov_sub: 'Avg revenue / purchase',
+    funnel_title: 'E-Commerce Conversion Funnel',
+    device_title: 'Device & Browser',
+    device_legend: 'By Device',
+    browser_legend: 'By Browser',
+    view_all_browsers: 'View all {n} browsers',
+    funnel_detail_title: 'Funnel Step Details',
+    col_step: 'Step',
+    col_events: 'Events',
+    col_users: 'Users',
+    col_sales: 'Sales',
+    col_revenue: 'Revenue',
+    col_conv: 'Conv. Rate',
+    acquisition_title: 'Acquisition Channels',
+    col_source: 'Source / Medium',
+    col_sessions: 'Sessions',
+    view_all_channels: 'View all {n} channels',
+    pages_title: 'Most Viewed Pages',
+    col_page: 'Page',
+    col_views: 'Views',
+    view_all_pages: 'View all {n} pages',
+    geo_title: 'Active Cities & Regions',
+    col_country: 'Country',
+    col_city: 'City',
+    col_new: 'New',
+    view_all_locations: 'View all {n} locations',
+    shares_title: 'Most Shared Products',
+    shares_sub: '(Last 30 days)',
+    shares_label: 'shares',
+    no_channels: 'No channels available',
+    no_pages: 'No pages available',
+    no_locations: 'No locations available',
+    modal_device: 'Device & Browser Breakdown',
+    modal_device_legend: 'By Device',
+    modal_browser_legend: 'By Browser',
+    modal_full_breakdown: 'Full Breakdown (Device × Browser)',
+    sessions_abbr: 'sess.',
+    users_abbr: 'usr',
+    modal_acquisition: 'All Acquisition Channels',
+    modal_pages: 'All Pages',
+    modal_geo: 'All Locations',
+    new_users_abbr: 'New',
+    funnel_events: 'Events',
+    funnel_uniq_users: 'Unique Users',
+  },
+} as const;
+type TGKey = keyof typeof TG.fr;
 
 /* ─── Types ───────────────────────────────────────────────────────────────── */
 interface FunnelStep {
@@ -137,6 +265,14 @@ function Modal({
 
 /* ─── Main Component ──────────────────────────────────────────────────────── */
 export default function GA4AnalyticsDashboard() {
+  const { i18n } = useTranslation();
+  const isEn = i18n.language?.startsWith('en') ?? false;
+  const tg = (k: TGKey, vars?: Record<string, number>) => {
+    let s: string = String(isEn ? TG.en[k] : TG.fr[k]);
+    if (vars) for (const [key, val] of Object.entries(vars)) s = s.replace(`{${key}}`, String(val));
+    return s;
+  };
+
   const [data, setData] = useState<GA4BatchResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -168,7 +304,7 @@ export default function GA4AnalyticsDashboard() {
     return (
       <div className="flex flex-col items-center justify-center min-h-[450px] space-y-4 bg-white/5 border border-white/10 rounded-2xl p-8">
         <Loader2 className="h-8 w-8 text-gold animate-spin" />
-        <p className="text-sm text-foreground/60">Batch-processing Google Analytics 4 reports...</p>
+        <p className="text-sm text-foreground/60">{tg('loading')}</p>
       </div>
     );
   }
@@ -177,12 +313,12 @@ export default function GA4AnalyticsDashboard() {
     return (
       <div className="flex flex-col items-center justify-center min-h-[450px] space-y-4 bg-red-500/5 border border-red-500/10 rounded-2xl p-8 text-center">
         <AlertCircle className="h-10 w-10 text-red-400" />
-        <h3 className="font-semibold text-foreground">GA4 Synchronization Failed</h3>
+        <h3 className="font-semibold text-foreground">{tg('error_title')}</h3>
         <p className="text-xs text-foreground/60 max-w-md">{error || 'Unknown error'}</p>
         <div className="text-[11px] text-foreground/30 mt-2">
-          Check your environment variables{' '}
+          {tg('error_env')}{' '}
           <code className="bg-white/5 px-1 py-0.5 rounded">GOOGLE_CLIENT_EMAIL</code>,{' '}
-          <code className="bg-white/5 px-1 py-0.5 rounded">GOOGLE_PRIVATE_KEY</code>, and{' '}
+          <code className="bg-white/5 px-1 py-0.5 rounded">GOOGLE_PRIVATE_KEY</code>,{' '}
           <code className="bg-white/5 px-1 py-0.5 rounded">GA_PROPERTY_ID</code>.
         </div>
       </div>
@@ -233,25 +369,25 @@ export default function GA4AnalyticsDashboard() {
         <div>
           <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
             <BarChart3 className="text-gold h-5 w-5" />
-            Google Analytics 4 Statistics (Last 30 days)
+            {tg('title')}
           </h2>
-          <p className="text-xs text-foreground/40 mt-0.5">Advanced analytics batch-processed with batchRunReports</p>
+          <p className="text-xs text-foreground/40 mt-0.5">{tg('subtitle')}</p>
         </div>
         <span className="text-[10px] font-semibold px-2 py-1 rounded bg-gold/10 text-gold border border-gold/20 uppercase tracking-wider">
-          Batch API Client
+          {tg('badge')}
         </span>
       </div>
 
       {/* ── KPI Cards ── */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
         {[
-          { label: 'Revenue',           value: `${revenueTotal.toLocaleString()} FCFA`, icon: <DollarSign size={10} className="text-gold" />,        sub: 'Total revenue' },
-          { label: 'Number of Sales',   value: salesCount.toLocaleString(),              icon: <ShoppingBag size={10} className="text-purple-400" />, sub: 'Successful transactions' },
-          { label: 'Overall Conversion',value: `${conversionRate.toFixed(2)}%`,          icon: <Percent size={10} className="text-emerald-400" />,    sub: 'Purchased sessions' },
-          { label: 'Unique Visitors',   value: globalTraffic.toLocaleString(),           icon: <Users size={10} className="text-blue-400" />,         sub: 'Global funnel reach' },
-          { label: 'AOV',               value: `${Math.round(aov).toLocaleString()} FCFA`, icon: <TrendingUp size={10} className="text-gold" />,      sub: 'Avg revenue / purchase', wide: true },
+          { label: tg('kpi_revenue'),   value: `${revenueTotal.toLocaleString()} FCFA`, icon: <DollarSign size={10} className="text-gold" />,        sub: tg('kpi_revenue_sub') },
+          { label: tg('kpi_sales'),     value: salesCount.toLocaleString(),              icon: <ShoppingBag size={10} className="text-purple-400" />, sub: tg('kpi_sales_sub') },
+          { label: tg('kpi_conv'),      value: `${conversionRate.toFixed(2)}%`,          icon: <Percent size={10} className="text-emerald-400" />,    sub: tg('kpi_conv_sub') },
+          { label: tg('kpi_visitors'), value: globalTraffic.toLocaleString(),            icon: <Users size={10} className="text-blue-400" />,         sub: tg('kpi_visitors_sub') },
+          { label: tg('kpi_aov'),       value: `${Math.round(aov).toLocaleString()} FCFA`, icon: <TrendingUp size={10} className="text-gold" />,    sub: tg('kpi_aov_sub'), wide: true },
         ].map(k => (
-          <div key={k.label} className={`bg-white/5 rounded-2xl border border-white/10 p-5 shadow-sm${k.wide ? ' col-span-2 lg:col-span-1' : ''}`}>
+          <div key={k.label} className={`bg-white/5 rounded-2xl border border-white/10 p-5 shadow-sm${(k as any).wide ? ' col-span-2 lg:col-span-1' : ''}`}>
             <p className="text-xs text-foreground/40 mb-2">{k.label}</p>
             <p className="text-xl font-bold text-foreground">{k.value}</p>
             <div className="text-[10px] text-foreground/30 mt-2 flex items-center gap-1">{k.icon} {k.sub}</div>
@@ -264,7 +400,7 @@ export default function GA4AnalyticsDashboard() {
 
         {/* Funnel bar chart */}
         <div className="lg:col-span-2 bg-white/5 rounded-2xl border border-white/10 p-6 shadow-sm">
-          <h3 className="font-semibold text-foreground text-sm mb-4">E-Commerce Conversion Funnel</h3>
+          <h3 className="font-semibold text-foreground text-sm mb-4">{tg('funnel_title')}</h3>
           <div className="h-[280px] w-full">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={chartData} layout="vertical" margin={{ top: 5, right: 30, left: 60, bottom: 5 }}>
@@ -279,8 +415,8 @@ export default function GA4AnalyticsDashboard() {
                     return (
                       <div className="bg-[#0b0b0b] border border-white/10 text-foreground px-4 py-3 rounded-xl shadow-sm text-xs space-y-1">
                         <p className="font-bold text-gold">{d.name}</p>
-                        <p className="text-foreground/80">Events: <span className="font-semibold text-foreground">{d.value.toLocaleString()}</span></p>
-                        <p className="text-foreground/80">Unique Users: <span className="font-semibold text-foreground">{d.users.toLocaleString()}</span></p>
+                        <p className="text-foreground/80">{tg('funnel_events')}: <span className="font-semibold text-foreground">{d.value.toLocaleString()}</span></p>
+                        <p className="text-foreground/80">{tg('funnel_uniq_users')}: <span className="font-semibold text-foreground">{d.users.toLocaleString()}</span></p>
                       </div>
                     );
                   }}
@@ -297,7 +433,7 @@ export default function GA4AnalyticsDashboard() {
         <div className="bg-white/5 rounded-2xl border border-white/10 p-6 shadow-sm h-full flex flex-col" style={{ minHeight: 0 }}>
           <h3 className="font-semibold text-foreground text-sm mb-4 flex items-center gap-2 flex-shrink-0">
             <Monitor className="text-gold h-4 w-4" />
-            Device &amp; Browser
+            {tg('device_title')}
           </h3>
 
           {/* Pie chart – fixed height */}
@@ -327,7 +463,7 @@ export default function GA4AnalyticsDashboard() {
 
           {/* Browser preview (top N rows, fixed) */}
           <div className="mt-4 pt-4 border-t border-white/10 flex-shrink-0">
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-foreground/35 mb-2">By Browser</p>
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-foreground/35 mb-2">{tg('browser_legend')}</p>
             <div className="space-y-1.5">
               {browserRows.slice(0, BROWSER_PREVIEW).map(([browser, stats]) => (
                 <div key={browser} className="flex items-center justify-between text-xs">
@@ -340,30 +476,26 @@ export default function GA4AnalyticsDashboard() {
               ))}
             </div>
             {browserRows.length > BROWSER_PREVIEW && (
-              <button
-                onClick={() => setModalOpen('devices')}
-                className="mt-3 flex items-center gap-1 text-[11px] text-foreground/40 hover:text-gold transition-colors cursor-pointer"
-              >
+              <button onClick={() => setModalOpen('devices')} className="mt-3 flex items-center gap-1 text-[11px] text-foreground/40 hover:text-gold transition-colors cursor-pointer">
                 <ExternalLink size={11} />
-                View all {browserRows.length} browsers
+                {tg('view_all_browsers', { n: browserRows.length })}
               </button>
             )}
           </div>
         </div>
       </div>
 
-      {/* ── Funnel detail table ── */}
       <div className="bg-white/5 rounded-2xl border border-white/10 p-6 shadow-sm overflow-x-auto">
-        <h3 className="font-semibold text-foreground text-sm mb-4">Funnel Step Details</h3>
+        <h3 className="font-semibold text-foreground text-sm mb-4">{tg('funnel_detail_title')}</h3>
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="border-b border-white/5 text-[10px] text-foreground/40 uppercase tracking-wider">
-              <th className="pb-2">Step</th>
-              <th className="pb-2 text-right">Events</th>
-              <th className="pb-2 text-right">Users</th>
-              <th className="pb-2 text-right">Sales</th>
-              <th className="pb-2 text-right">Revenue</th>
-              <th className="pb-2 text-right">Conv. Rate</th>
+              <th className="pb-2">{tg('col_step')}</th>
+              <th className="pb-2 text-right">{tg('col_events')}</th>
+              <th className="pb-2 text-right">{tg('col_users')}</th>
+              <th className="pb-2 text-right">{tg('col_sales')}</th>
+              <th className="pb-2 text-right">{tg('col_revenue')}</th>
+              <th className="pb-2 text-right">{tg('col_conv')}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-white/5 text-xs">
@@ -394,16 +526,16 @@ export default function GA4AnalyticsDashboard() {
         <div className="bg-white/5 rounded-2xl border border-white/10 p-6 shadow-sm flex flex-col">
           <div className="flex items-center gap-2 mb-4 flex-shrink-0">
             <Layers className="text-gold h-4 w-4" />
-            <h3 className="font-semibold text-foreground text-sm">Acquisition Channels</h3>
+          <h3 className="font-semibold text-foreground text-sm">{tg('acquisition_title')}</h3>
           </div>
           <div className="overflow-x-auto flex-1">
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="border-b border-white/5 text-[10px] text-foreground/40 uppercase tracking-wider">
-                  <th className="pb-2">Source / Medium</th>
-                  <th className="pb-2 text-right">Users</th>
-                  <th className="pb-2 text-right">Sessions</th>
-                  <th className="pb-2 text-right">Revenue</th>
+                  <th className="pb-2">{tg('col_source')}</th>
+                  <th className="pb-2 text-right">{tg('col_users')}</th>
+                  <th className="pb-2 text-right">{tg('col_sessions')}</th>
+                  <th className="pb-2 text-right">{tg('col_revenue')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5 text-xs text-foreground/80">
@@ -416,7 +548,7 @@ export default function GA4AnalyticsDashboard() {
                   </tr>
                 ))}
                 {data.acquisition.length === 0 && (
-                  <tr><td colSpan={4} className="py-4 text-center text-foreground/30">No channels available</td></tr>
+                  <tr><td colSpan={4} className="py-4 text-center text-foreground/30">{tg('no_channels')}</td></tr>
                 )}
               </tbody>
             </table>
@@ -427,7 +559,7 @@ export default function GA4AnalyticsDashboard() {
               className="mt-3 flex items-center gap-1 text-[11px] text-foreground/40 hover:text-gold transition-colors cursor-pointer flex-shrink-0"
             >
               <ExternalLink size={11} />
-              View all {data.acquisition.length} channels
+              {tg('view_all_channels', { n: data.acquisition.length })}
             </button>
           )}
         </div>
@@ -436,15 +568,15 @@ export default function GA4AnalyticsDashboard() {
         <div className="bg-white/5 rounded-2xl border border-white/10 p-6 shadow-sm flex flex-col">
           <div className="flex items-center gap-2 mb-4 flex-shrink-0">
             <FileText className="text-gold h-4 w-4" />
-            <h3 className="font-semibold text-foreground text-sm">Most Viewed Pages</h3>
+          <h3 className="font-semibold text-foreground text-sm">{tg('pages_title')}</h3>
           </div>
           <div className="overflow-x-auto flex-1">
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="border-b border-white/5 text-[10px] text-foreground/40 uppercase tracking-wider">
-                  <th className="pb-2">Page</th>
-                  <th className="pb-2 text-right">Views</th>
-                  <th className="pb-2 text-right">Users</th>
+                  <th className="pb-2">{tg('col_page')}</th>
+                  <th className="pb-2 text-right">{tg('col_views')}</th>
+                  <th className="pb-2 text-right">{tg('col_users')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5 text-xs text-foreground/80">
@@ -456,7 +588,7 @@ export default function GA4AnalyticsDashboard() {
                   </tr>
                 ))}
                 {data.pages.length === 0 && (
-                  <tr><td colSpan={3} className="py-4 text-center text-foreground/30">No pages available</td></tr>
+                  <tr><td colSpan={3} className="py-4 text-center text-foreground/30">{tg('no_pages')}</td></tr>
                 )}
               </tbody>
             </table>
@@ -467,7 +599,7 @@ export default function GA4AnalyticsDashboard() {
               className="mt-3 flex items-center gap-1 text-[11px] text-foreground/40 hover:text-gold transition-colors cursor-pointer flex-shrink-0"
             >
               <ExternalLink size={11} />
-              View all {data.pages.length} pages
+              {tg('view_all_pages', { n: data.pages.length })}
             </button>
           )}
         </div>
@@ -476,16 +608,16 @@ export default function GA4AnalyticsDashboard() {
         <div className="bg-white/5 rounded-2xl border border-white/10 p-6 shadow-sm flex flex-col">
           <div className="flex items-center gap-2 mb-4 flex-shrink-0">
             <Globe className="text-gold h-4 w-4" />
-            <h3 className="font-semibold text-foreground text-sm">Active Cities &amp; Regions</h3>
+          <h3 className="font-semibold text-foreground text-sm">{tg('geo_title')}</h3>
           </div>
           <div className="overflow-x-auto flex-1">
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="border-b border-white/5 text-[10px] text-foreground/40 uppercase tracking-wider">
-                  <th className="pb-2">Country</th>
-                  <th className="pb-2">City</th>
-                  <th className="pb-2 text-right">Users</th>
-                  <th className="pb-2 text-right">New</th>
+                  <th className="pb-2">{tg('col_country')}</th>
+                  <th className="pb-2">{tg('col_city')}</th>
+                  <th className="pb-2 text-right">{tg('col_users')}</th>
+                  <th className="pb-2 text-right">{tg('col_new')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5 text-xs text-foreground/80">
@@ -498,7 +630,7 @@ export default function GA4AnalyticsDashboard() {
                   </tr>
                 ))}
                 {data.geo.length === 0 && (
-                  <tr><td colSpan={4} className="py-4 text-center text-foreground/30">No locations available</td></tr>
+                  <tr><td colSpan={4} className="py-4 text-center text-foreground/30">{tg('no_locations')}</td></tr>
                 )}
               </tbody>
             </table>
@@ -509,7 +641,7 @@ export default function GA4AnalyticsDashboard() {
               className="mt-3 flex items-center gap-1 text-[11px] text-foreground/40 hover:text-gold transition-colors cursor-pointer flex-shrink-0"
             >
               <ExternalLink size={11} />
-              View all {data.geo.length} locations
+              {tg('view_all_locations', { n: data.geo.length })}
             </button>
           )}
         </div>
@@ -520,7 +652,9 @@ export default function GA4AnalyticsDashboard() {
         <div className="bg-white/5 rounded-2xl border border-white/10 p-6 shadow-sm">
           <div className="flex items-center gap-2 mb-5">
             <Share2 className="text-gold h-4 w-4" />
-            <h3 className="font-semibold text-foreground text-sm">Most Shared Products <span className="ml-1 text-[10px] text-foreground/35 font-normal uppercase tracking-wider">(Last 30 days)</span></h3>
+            <h3 className="font-semibold text-foreground text-sm">
+              {tg('shares_title')} <span className="ml-1 text-[10px] text-foreground/35 font-normal uppercase tracking-wider">{tg('shares_sub')}</span>
+            </h3>
           </div>
           <div className="space-y-2">
             {data.shares.map((item, i) => {
@@ -533,7 +667,7 @@ export default function GA4AnalyticsDashboard() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between mb-1">
                       <span className="text-xs font-medium text-foreground/80 truncate max-w-[200px]">{item.name}</span>
-                      <span className="text-xs font-bold text-gold ml-2 flex-shrink-0">{item.shares.toLocaleString()} shares</span>
+                      <span className="text-xs font-bold text-gold ml-2 flex-shrink-0">{item.shares.toLocaleString()} {tg('shares_label')}</span>
                     </div>
                     <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
                       <div
@@ -554,17 +688,15 @@ export default function GA4AnalyticsDashboard() {
           MODALS
       ════════════════════════════════════════════════════ */}
 
-      {/* Device & Browser modal */}
-      <Modal open={modalOpen === 'devices'} onClose={() => setModalOpen(null)} title="Device & Browser Breakdown">
+      <Modal open={modalOpen === 'devices'} onClose={() => setModalOpen(null)} title={tg('modal_device')}>
         <div className="space-y-6">
-          {/* Device summary */}
           <div>
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-foreground/35 mb-3">By Device</p>
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-foreground/35 mb-3">{tg('modal_device_legend')}</p>
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="border-b border-white/5 text-[10px] text-foreground/40 uppercase tracking-wider">
-                  <th className="pb-2">Device</th>
-                  <th className="pb-2 text-right">Users</th>
+                  <th className="pb-2">{isEn ? 'Device' : 'Appareil'}</th>
+                  <th className="pb-2 text-right">{tg('col_users')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5 text-xs text-foreground/80">
@@ -580,15 +712,14 @@ export default function GA4AnalyticsDashboard() {
               </tbody>
             </table>
           </div>
-          {/* Browser full list */}
           <div>
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-foreground/35 mb-3">By Browser</p>
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-foreground/35 mb-3">{tg('modal_browser_legend')}</p>
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="border-b border-white/5 text-[10px] text-foreground/40 uppercase tracking-wider">
-                  <th className="pb-2">Browser</th>
-                  <th className="pb-2 text-right">Users</th>
-                  <th className="pb-2 text-right">Sessions</th>
+                  <th className="pb-2">{isEn ? 'Browser' : 'Navigateur'}</th>
+                  <th className="pb-2 text-right">{tg('col_users')}</th>
+                  <th className="pb-2 text-right">{tg('col_sessions')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5 text-xs text-foreground/80">
@@ -602,16 +733,15 @@ export default function GA4AnalyticsDashboard() {
               </tbody>
             </table>
           </div>
-          {/* Per-device per-browser breakdown */}
           <div>
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-foreground/35 mb-3">Full Breakdown (Device × Browser)</p>
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-foreground/35 mb-3">{tg('modal_full_breakdown')}</p>
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="border-b border-white/5 text-[10px] text-foreground/40 uppercase tracking-wider">
-                  <th className="pb-2">Device</th>
-                  <th className="pb-2">Browser</th>
-                  <th className="pb-2 text-right">Users</th>
-                  <th className="pb-2 text-right">Sessions</th>
+                  <th className="pb-2">{isEn ? 'Device' : 'Appareil'}</th>
+                  <th className="pb-2">{isEn ? 'Browser' : 'Navigateur'}</th>
+                  <th className="pb-2 text-right">{tg('col_users')}</th>
+                  <th className="pb-2 text-right">{tg('col_sessions')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5 text-xs text-foreground/80">
@@ -629,15 +759,14 @@ export default function GA4AnalyticsDashboard() {
         </div>
       </Modal>
 
-      {/* Acquisition Channels modal */}
-      <Modal open={modalOpen === 'acquisition'} onClose={() => setModalOpen(null)} title="All Acquisition Channels">
+      <Modal open={modalOpen === 'acquisition'} onClose={() => setModalOpen(null)} title={tg('modal_acquisition')}>
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="border-b border-white/5 text-[10px] text-foreground/40 uppercase tracking-wider">
-              <th className="pb-2">Source / Medium</th>
-              <th className="pb-2 text-right">Users</th>
-              <th className="pb-2 text-right">Sessions</th>
-              <th className="pb-2 text-right">Revenue</th>
+              <th className="pb-2">{tg('col_source')}</th>
+              <th className="pb-2 text-right">{tg('col_users')}</th>
+              <th className="pb-2 text-right">{tg('col_sessions')}</th>
+              <th className="pb-2 text-right">{tg('col_revenue')}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-white/5 text-xs text-foreground/80">
@@ -653,14 +782,13 @@ export default function GA4AnalyticsDashboard() {
         </table>
       </Modal>
 
-      {/* Pages modal */}
-      <Modal open={modalOpen === 'pages'} onClose={() => setModalOpen(null)} title="All Pages">
+      <Modal open={modalOpen === 'pages'} onClose={() => setModalOpen(null)} title={tg('modal_pages')}>
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="border-b border-white/5 text-[10px] text-foreground/40 uppercase tracking-wider">
-              <th className="pb-2">Page</th>
-              <th className="pb-2 text-right">Views</th>
-              <th className="pb-2 text-right">Users</th>
+              <th className="pb-2">{tg('col_page')}</th>
+              <th className="pb-2 text-right">{tg('col_views')}</th>
+              <th className="pb-2 text-right">{tg('col_users')}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-white/5 text-xs text-foreground/80">
@@ -675,15 +803,14 @@ export default function GA4AnalyticsDashboard() {
         </table>
       </Modal>
 
-      {/* Geo modal */}
-      <Modal open={modalOpen === 'geo'} onClose={() => setModalOpen(null)} title="All Locations">
+      <Modal open={modalOpen === 'geo'} onClose={() => setModalOpen(null)} title={tg('modal_geo')}>
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="border-b border-white/5 text-[10px] text-foreground/40 uppercase tracking-wider">
-              <th className="pb-2">Country</th>
-              <th className="pb-2">City</th>
-              <th className="pb-2 text-right">Users</th>
-              <th className="pb-2 text-right">New Users</th>
+              <th className="pb-2">{tg('col_country')}</th>
+              <th className="pb-2">{tg('col_city')}</th>
+              <th className="pb-2 text-right">{tg('col_users')}</th>
+              <th className="pb-2 text-right">{tg('col_new')}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-white/5 text-xs text-foreground/80">

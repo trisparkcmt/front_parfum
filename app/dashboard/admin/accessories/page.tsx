@@ -13,6 +13,7 @@ import { useAuthStore } from '@/store/useAuthStore';
 import AppImage from '@/components/ui/AppImage';
 import { SlideOver } from '@/components/ui/SlideOver';
 import { InlineCell } from '@/components/admin/InlineCell';
+import { TablePagination } from '@/components/admin/TablePagination';
 import { useTranslation } from 'react-i18next';
 
 /* ── Inline translations ─────────────────────────────────────────────────── */
@@ -251,6 +252,11 @@ export default function AccessoriesPage() {
   const [saving, setSaving] = useState(false);
 
   const { addToast } = useToastStore();
+
+  // ── Pagination & stock split ──────────────────────────────────────────────
+  const ITEMS_PER_PAGE = 50;
+  const [pageInStock, setPageInStock] = useState(1);
+  const [pageOutOfStock, setPageOutOfStock] = useState(1);
 
   const fetchAccessories = useCallback(async () => {
     if (!permissions.canRead) return;
@@ -676,7 +682,7 @@ export default function AccessoriesPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
-                {accessories.map(a => {
+                {accessories.filter(a => Number(a.stock_quantite || 0) > 0).slice((pageInStock - 1) * ITEMS_PER_PAGE, pageInStock * ITEMS_PER_PAGE).map(a => {
                   const aName = a.nom || 'Accessoire';
                   const aPrice = a.prix_unitaire || 0;
                   const aStock = a.stock_quantite || 0;
@@ -778,13 +784,68 @@ export default function AccessoriesPage() {
                     </tr>
                   );
                 })}
-                {accessories.length === 0 && (
+                {accessories.filter(a => Number(a.stock_quantite || 0) > 0).length === 0 && accessories.length === 0 && (
                   <tr>
                       <td colSpan={7} className="py-16 text-center text-sm italic text-foreground/30">{t('no_results')}</td>
                   </tr>
                 )}
               </tbody>
             </table>
+            <TablePagination
+              currentPage={pageInStock}
+              totalPages={Math.max(1, Math.ceil(accessories.filter(a => Number(a.stock_quantite || 0) > 0).length / ITEMS_PER_PAGE))}
+              totalItems={accessories.filter(a => Number(a.stock_quantite || 0) > 0).length}
+              itemsPerPage={ITEMS_PER_PAGE}
+              onPageChange={setPageInStock}
+              itemLabel={isEn ? 'in-stock accessories' : 'accessoires en stock'}
+            />
+            {accessories.filter(a => Number(a.stock_quantite || 0) === 0).length > 0 && (
+              <div className="border-t-2 border-red-500/20">
+                <div className="px-4 py-2.5 bg-red-500/5 border-b border-red-500/10 flex items-center gap-2">
+                  <span className="h-1.5 w-1.5 rounded-full bg-red-400 shrink-0" />
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-red-400">
+                    {isEn ? `Out of Stock (${accessories.filter(a => Number(a.stock_quantite || 0) === 0).length})` : `En Rupture de Stock (${accessories.filter(a => Number(a.stock_quantite || 0) === 0).length})`}
+                  </p>
+                </div>
+                <table className="w-full text-left border-collapse">
+                  <tbody className="divide-y divide-white/5 opacity-70">
+                    {accessories.filter(a => Number(a.stock_quantite || 0) === 0).slice((pageOutOfStock - 1) * ITEMS_PER_PAGE, pageOutOfStock * ITEMS_PER_PAGE).map(a => {
+                      const aName = a.nom || 'Accessoire';
+                      const aPrice = a.prix_unitaire || 0;
+                      const aStock = a.stock_quantite || 0;
+                      const typeName = typeof a.type_accessoire === 'object' ? a.type_accessoire?.nom : (accessoryTypes.find(t => t.id === a.type_accessoire)?.nom || '—');
+                      return (
+                        <tr key={a.slug || a.id} className="hover:bg-white/[0.02] transition-colors">
+                          <td className="w-12 px-4 py-2.5"><input type="checkbox" checked={selectedAccessories.has(a.slug || a.id)} onChange={() => toggleSelectAccessory(a.slug || a.id)} className="rounded border-white/10 bg-white/5 text-gold focus:ring-0 focus:ring-offset-0" /></td>
+                          <td className="px-4 py-2.5 text-xs text-foreground/50">
+                            {aName}
+                            {typeName && <span className="block text-[10px] text-foreground/30">{typeName}</span>}
+                          </td>
+                          <td className="px-4 py-2.5"><span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium ring-1 ring-inset bg-red-500/10 text-red-400 ring-red-500/20"><span className="h-1.5 w-1.5 rounded-full bg-red-400" />{isEn ? 'Out of stock' : 'Rupture'}</span></td>
+                          <td className="px-4 py-2.5 text-xs text-foreground/40">{aPrice ? `${aPrice} FCFA` : '—'}</td>
+                          {isAdmin && <td className="px-4 py-2.5 text-xs text-foreground/35">—</td>}
+                          <td className="px-4 py-2.5 text-xs tabular-nums text-foreground/40">0 {t('units')}</td>
+                          <td className="px-4 py-2.5 text-right">
+                            <div className="flex items-center justify-end gap-1">
+                              {permissions.canUpdate && <button onClick={() => handleOpenEdit(a)} className="rounded-md p-1.5 text-foreground/45 hover:text-gold hover:bg-gold/10 transition-colors" title="Modifier"><Edit2 size={13} /></button>}
+                              {permissions.canDelete && <button onClick={() => handleDelete(a.slug || a.id)} className="rounded-md p-1.5 text-foreground/45 hover:text-red-400 hover:bg-red-500/10 transition-colors" title="Supprimer"><Trash2 size={13} /></button>}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+                <TablePagination
+                  currentPage={pageOutOfStock}
+                  totalPages={Math.max(1, Math.ceil(accessories.filter(a => Number(a.stock_quantite || 0) === 0).length / ITEMS_PER_PAGE))}
+                  totalItems={accessories.filter(a => Number(a.stock_quantite || 0) === 0).length}
+                  itemsPerPage={ITEMS_PER_PAGE}
+                  onPageChange={setPageOutOfStock}
+                  itemLabel={isEn ? 'out-of-stock accessories' : 'accessoires en rupture'}
+                />
+              </div>
+            )}
           </div>
         )}
       </div>

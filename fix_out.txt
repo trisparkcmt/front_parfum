@@ -1,0 +1,11 @@
+startIdx: 949, endIdx: 953
+OK: replaced tab lines
+New lines around change:
+          {[
+            /* Notes de Base tab — temporarily disabled, will be re-enabled in a future version
+            { id: 'ingredients', label: i18n.language === 'en' ? '🧪 Raw Notes' : '🧪 Notes de Base' }, */
+            { id: 'essences', label: i18n.language === 'en' ? '✨ Premium Bases' : '✨ Essences d'Exception' },
+            { id: 'recap', label: i18n.language === 'en' ? '📋 Formula' : '📋 Finalisation' }
+          ].map(tab => (
+            <button
+DONE

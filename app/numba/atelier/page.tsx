@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useCallback, useMemo, useEffect, Suspense } from 'react';
 import Link from 'next/link';
@@ -227,7 +227,7 @@ function AtelierContent() {
   const compositionIdParam = searchParams.get('composition');
 
   const [mounted, setMounted] = useState(false);
-  const [activeTab, setActiveTab] = useState<'ingredients' | 'essences' | 'recap'>('ingredients');
+  const [activeTab, setActiveTab] = useState<'ingredients' | 'essences' | 'recap'>('essences');
   
   // Sub-tabs
   const [ingredientSubtab, setIngredientSubtab] = useState<'tete' | 'coeur' | 'fond'>('tete');
@@ -379,6 +379,8 @@ function AtelierContent() {
   const totalMl = useMemo(() => Object.values(quantities).reduce((s, v) => s + v, 0), [quantities]);
   const remaining = maxFillMl - totalMl;
 
+  // Flacon detail modal state
+  const [showFlaconDetail, setShowFlaconDetail] = useState(false);
   // Flacon drawer state
   const [showFlaconDrawer, setShowFlaconDrawer] = useState(false);
   const [isDrawerFullScreen, setIsDrawerFullScreen] = useState(false);
@@ -886,33 +888,47 @@ function AtelierContent() {
 
         <div className="relative w-full flex items-center justify-center mt-8">
           <div className="size-slider-wrap">
-            <button 
-              disabled={availableBottleSizes.length === 0 || availableBottleSizes.findIndex(s => s.ml === bottleSize) <= 0}
-              className="size-slider-nav"
-              onClick={() => {
-                const idx = availableBottleSizes.findIndex(s => s.ml === bottleSize);
-                const nextIdx = Math.max(0, idx - 1);
-                if (availableBottleSizes[nextIdx]) handleBottleSizeChange(availableBottleSizes[nextIdx].ml);
-              }}
-            >
-              <ChevronLeft size={20} />
-            </button>
+            {availableBottleSizes.length > 0 && availableBottleSizes.findIndex(s => s.ml === bottleSize) > 0 && (
+              <button
+                className="size-slider-nav"
+                onClick={() => {
+                  const idx = availableBottleSizes.findIndex(s => s.ml === bottleSize);
+                  const nextIdx = Math.max(0, idx - 1);
+                  if (availableBottleSizes[nextIdx]) handleBottleSizeChange(availableBottleSizes[nextIdx].ml);
+                }}
+              >
+                <ChevronLeft size={20} />
+              </button>
+            )}
 
-            <button 
-              disabled={availableBottleSizes.length === 0 || availableBottleSizes.findIndex(s => s.ml === bottleSize) >= availableBottleSizes.length - 1}
-              className="size-slider-nav"
-              onClick={() => {
-                const idx = availableBottleSizes.findIndex(s => s.ml === bottleSize);
-                const nextIdx = Math.min(availableBottleSizes.length - 1, idx + 1);
-                if (availableBottleSizes[nextIdx]) handleBottleSizeChange(availableBottleSizes[nextIdx].ml);
-              }}
-            >
-              <ChevronRight size={20} />
-            </button>
+            {availableBottleSizes.length > 0 && availableBottleSizes.findIndex(s => s.ml === bottleSize) < availableBottleSizes.length - 1 && (
+              <button
+                className="size-slider-nav"
+                onClick={() => {
+                  const idx = availableBottleSizes.findIndex(s => s.ml === bottleSize);
+                  const nextIdx = Math.min(availableBottleSizes.length - 1, idx + 1);
+                  if (availableBottleSizes[nextIdx]) handleBottleSizeChange(availableBottleSizes[nextIdx].ml);
+                }}
+              >
+                <ChevronRight size={20} />
+              </button>
+            )}
           </div>
 
-          <div className="flacon-stage relative transition-all duration-700">
+          <div
+            className="flacon-stage relative transition-all duration-700 cursor-pointer group"
+            onClick={() => { if (selectedFlaconId) setShowFlaconDetail(true); }}
+            title={selectedFlaconId ? (i18n.language === 'en' ? 'View flacon details' : 'Voir les détails du flacon') : undefined}
+          >
             <div className="bottle-glow" />
+            {/* Hint overlay on hover */}
+            {selectedFlaconId && (
+              <div className="absolute inset-0 flex items-end justify-center pb-4 opacity-0 group-hover:opacity-100 transition-opacity z-10 pointer-events-none">
+                <span className="bg-black/60 backdrop-blur-sm text-gold text-[9px] uppercase tracking-widest px-3 py-1 rounded-full border border-gold/20">
+                  {i18n.language === 'en' ? 'Click for details' : 'Cliquer pour détails'}
+                </span>
+              </div>
+            )}
             {bottleSize >= 61 && <Bottle100 totalMl={totalMl} maxFillMl={maxFillMl} quantities={quantities} allItems={ALL_ITEMS} />}
             {bottleSize >= 31 && bottleSize <= 60 && <Bottle50 totalMl={totalMl} maxFillMl={maxFillMl} quantities={quantities} allItems={ALL_ITEMS} />}
             {bottleSize <= 30 && <Bottle30 totalMl={totalMl} maxFillMl={maxFillMl} quantities={quantities} allItems={ALL_ITEMS} />}
@@ -928,7 +944,7 @@ function AtelierContent() {
         <div className="mt-auto pb-12 w-full max-w-xs">
           <div className="flex justify-between items-end mb-2">
             <span className="text-[10px] uppercase tracking-widest text-gold/60">Composition</span>
-            <span className="text-[14px] font-light text-cream">{totalMl} / {maxFillMl} ml</span>
+            <span className="text-[14px] font-light text-foreground/70">{totalMl} / {maxFillMl} ml</span>
           </div>
           <div className="h-[2px] w-full bg-foreground/5 overflow-hidden">
             <div className="h-full bg-gold transition-all duration-700" style={{ width: `${Math.min(100, (totalMl/maxFillMl)*100)}%` }} />
@@ -947,8 +963,9 @@ function AtelierContent() {
         {/* Unified Glassmorphism Tabs */}
         <div className="atelier-tab-row flex items-center gap-3 mb-8 overflow-x-auto pb-2">
           {[
-            { id: 'ingredients', label: i18n.language === 'en' ? '🧪 Raw Notes' : '🧪 Notes de Base' },
-            { id: 'essences', label: i18n.language === 'en' ? '✨ Premium Bases' : '✨ Essences d’Exception' },
+            /* Notes de Base tab — temporarily disabled, will be re-enabled in a future version
+            { id: 'ingredients', label: i18n.language === 'en' ? '🧪 Raw Notes' : '🧪 Notes de Base' }, */
+            { id: 'essences', label: i18n.language === 'en' ? '✨ Premium Bases' : `✨ Essences d'Exception` },
             { id: 'recap', label: i18n.language === 'en' ? '📋 Formula' : '📋 Finalisation' }
           ].map(tab => (
             <button
@@ -1014,7 +1031,7 @@ function AtelierContent() {
                             <span className="text-2xl relative z-10">{EMOJIS[item.family] || '💧'}</span>
                           </div>
                           <div>
-                            <h4 className={`text-sm font-medium tracking-wide transition-colors ${sel ? 'text-gold' : 'text-cream/90 group-hover:text-gold'}`}>
+                            <h4 className={`text-sm font-medium tracking-wide transition-colors ${sel ? 'text-gold' : 'text-foreground/80 group-hover:text-gold'}`}>
                               {item.name}
                             </h4>
                             <p className="text-[10px] uppercase tracking-widest text-foreground/30 mt-1">
@@ -1027,7 +1044,7 @@ function AtelierContent() {
                         <div className="flex items-center gap-3">
                           <button
                             onClick={() => updateQtySlider(item.id, Math.max(0, qty - 1))}
-                            className="w-7 h-7 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-foreground/60 transition-colors disabled:opacity-20"
+                            className="w-7 h-7 rounded-full bg-foreground/5 hover:bg-foreground/10 flex items-center justify-center text-foreground/60 transition-colors disabled:opacity-20"
                             disabled={qty <= 0}
                           >
                             <Minus size={12} />
@@ -1045,13 +1062,13 @@ function AtelierContent() {
                               step="1"
                               value={qty}
                               onChange={(evt) => updateQtySlider(item.id, Number(evt.target.value))}
-                              className="w-full h-1 bg-white/10 rounded appearance-none cursor-pointer accent-gold outline-none"
+                              className="w-full h-1 bg-foreground/10 rounded appearance-none cursor-pointer accent-gold outline-none"
                             />
                           </div>
 
                           <button
                             onClick={() => updateQtySlider(item.id, Math.min(qty + remaining, qty + 1))}
-                            className="w-7 h-7 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-foreground/60 transition-colors disabled:opacity-20"
+                            className="w-7 h-7 rounded-full bg-foreground/5 hover:bg-foreground/10 flex items-center justify-center text-foreground/60 transition-colors disabled:opacity-20"
                             disabled={remaining <= 0}
                           >
                             <Plus size={12} />
@@ -1104,7 +1121,7 @@ function AtelierContent() {
                             <span className="text-2xl relative z-10">{EMOJIS[essenceSubtab] || '✨'}</span>
                           </div>
                           <div className="max-w-[150px] sm:max-w-[200px]">
-                            <h4 className={`text-sm font-medium tracking-wide transition-colors ${sel ? 'text-gold' : 'text-cream/90 group-hover:text-gold'}`}>
+                            <h4 className={`text-sm font-medium tracking-wide transition-colors ${sel ? 'text-gold' : 'text-foreground/80 group-hover:text-gold'}`}>
                               {item.name}
                             </h4>
                             <p className="text-[10px] text-foreground/40 line-clamp-1 mt-0.5">{item.description}</p>
@@ -1118,7 +1135,7 @@ function AtelierContent() {
                         <div className="flex items-center gap-3">
                           <button
                             onClick={() => updateQtySlider(item.id, Math.max(0, qty - 1))}
-                            className="w-7 h-7 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-foreground/60 transition-colors disabled:opacity-20"
+                            className="w-7 h-7 rounded-full bg-foreground/5 hover:bg-foreground/10 flex items-center justify-center text-foreground/60 transition-colors disabled:opacity-20"
                             disabled={qty <= 0}
                           >
                             <Minus size={12} />
@@ -1136,13 +1153,13 @@ function AtelierContent() {
                               step="1"
                               value={qty}
                               onChange={(evt) => updateQtySlider(item.id, Number(evt.target.value))}
-                              className="w-full h-1 bg-white/10 rounded appearance-none cursor-pointer accent-gold outline-none"
+                              className="w-full h-1 bg-foreground/10 rounded appearance-none cursor-pointer accent-gold outline-none"
                             />
                           </div>
 
                           <button
                             onClick={() => updateQtySlider(item.id, Math.min(qty + remaining, qty + 1))}
-                            className="w-7 h-7 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-foreground/60 transition-colors disabled:opacity-20"
+                            className="w-7 h-7 rounded-full bg-foreground/5 hover:bg-foreground/10 flex items-center justify-center text-foreground/60 transition-colors disabled:opacity-20"
                             disabled={remaining <= 0}
                           >
                             <Plus size={12} />
@@ -1174,23 +1191,27 @@ function AtelierContent() {
                     const cap = Number(matchedFlacon.contenance_ml || matchedFlacon.capacite_ml || 0);
                     return (
                       <div className="bg-white/5 border border-white/10 rounded-2xl p-5 flex items-center justify-between gap-4">
-                        <div className="flex items-center gap-4">
-                          {matchedFlacon.type_flacon?.image ? (
-                            <AppImage src={matchedFlacon.type_flacon.image} alt={matchedFlacon.nom || 'Flacon'} width={64} height={64} className="size-16 rounded-xl object-cover border border-white/10" />
+                        <button
+                          onClick={() => setShowFlaconDetail(true)}
+                          className="flex items-center gap-4 text-left group hover:opacity-90 transition-opacity flex-1 min-w-0"
+                        >
+                          {(matchedFlacon.image_principale || matchedFlacon.image || matchedFlacon.type_flacon?.image) ? (
+                            <AppImage src={matchedFlacon.image_principale || matchedFlacon.image || matchedFlacon.type_flacon!.image} alt={matchedFlacon.nom || 'Flacon'} width={64} height={64} className="size-16 rounded-xl object-cover border border-white/10 group-hover:ring-1 group-hover:ring-gold/40 transition-all flex-shrink-0" />
                           ) : (
-                            <div className="size-16 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-[10px] text-foreground/30 text-center px-1">Aucune Image</div>
+                            <div className="size-16 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-[10px] text-foreground/30 text-center px-1 flex-shrink-0">Aucune Image</div>
                           )}
-                          <div>
+                          <div className="min-w-0">
                             <p className="font-semibold text-foreground text-base">{matchedFlacon.nom}</p>
                             <p className="text-xs text-foreground/40 mt-0.5">{cap} ml · {matchedFlacon.matiere || 'Verre'} · {matchedFlacon.couleur || 'Transparent'}</p>
                             <p className="text-sm font-bold text-gold mt-1">{Number(matchedFlacon.prix_unitaire).toLocaleString()} FCFA</p>
+                            <p className="text-[9px] text-gold/50 mt-1 uppercase tracking-widest">{i18n.language === 'en' ? 'Click to see details' : 'Cliquer pour détails'}</p>
                           </div>
-                        </div>
+                        </button>
                         <button 
                           onClick={() => setShowFlaconDrawer(true)}
-                          className="px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-xs font-semibold text-foreground transition-all"
+                          className="px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-xs font-semibold text-foreground transition-all flex-shrink-0"
                         >
-                          Modifier
+                          {i18n.language === 'en' ? 'Change' : 'Modifier'}
                         </button>
                       </div>
                     );
@@ -1206,7 +1227,7 @@ function AtelierContent() {
                       {formulaSummary.map((item, idx) => (
                         <div key={idx} className="flex justify-between items-center text-sm">
                           <span className="text-foreground/40">{item.name}</span>
-                          <span className="text-cream font-light">{item.ml} ml</span>
+                          <span className="text-foreground/70 font-light">{item.ml} ml</span>
                         </div>
                       ))}
                     </div>
@@ -1437,6 +1458,105 @@ function AtelierContent() {
         </div>
       )}
 
+      {/* ── Flacon Detail Modal ── */}
+      {showFlaconDetail && (() => {
+        const f = flacons.find((f: any) => Number(f.id) === selectedFlaconId) || flacons[0];
+        if (!f) return null;
+        const cap = Number(f.contenance_ml || f.capacite_ml || 0);
+        const imgSrc = f.image_principale || f.image || f.type_flacon?.image;
+        const isEn = i18n.language === 'en';
+        return (
+          <div
+            className="fixed inset-0 z-[70] flex items-center justify-center bg-black/75 backdrop-blur-sm p-4"
+            onClick={() => setShowFlaconDetail(false)}
+          >
+            <div
+              className="relative bg-background border border-[var(--t-border)] rounded-2xl w-full max-w-md shadow-2xl overflow-hidden animate-in fade-in zoom-in-95"
+              onClick={e => e.stopPropagation()}
+            >
+              {/* Close */}
+              <button
+                onClick={() => setShowFlaconDetail(false)}
+                className="absolute top-3 right-3 z-10 p-1.5 rounded-full bg-black/40 hover:bg-black/60 text-white/70 hover:text-white transition-colors"
+              >
+                <X size={15} />
+              </button>
+
+              {/* Image */}
+              <div className="relative w-full h-72 bg-foreground/[0.03] flex items-center justify-center overflow-hidden">
+                {imgSrc ? (
+                  <AppImage
+                    src={imgSrc}
+                    alt={f.nom || 'Flacon'}
+                    fill
+                    className="object-contain p-6"
+                  />
+                ) : (
+                  <div className="flex flex-col items-center gap-2 text-foreground/20">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1"><path d="M9 2h6l1 4H8L9 2z"/><path d="M8 6v14a2 2 0 002 2h4a2 2 0 002-2V6"/></svg>
+                    <span className="text-xs">{isEn ? 'No image' : 'Aucune image'}</span>
+                  </div>
+                )}
+                {/* Gold gradient bottom */}
+                <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-background to-transparent" />
+              </div>
+
+              {/* Details */}
+              <div className="px-6 pb-6 pt-3 space-y-4">
+                <div>
+                  <h2 className="text-xl font-semibold text-foreground">{f.nom}</h2>
+                  <p className="text-xs text-foreground/40 mt-0.5 uppercase tracking-widest">
+                    {f.type_flacon?.nom || f.type_flacon_nom || (isEn ? 'Bottle' : 'Flacon')}
+                  </p>
+                </div>
+
+                {/* Specs grid */}
+                <div className="grid grid-cols-2 gap-3">
+                  {[
+                    { label: isEn ? 'Volume' : 'Contenance', value: cap ? `${cap} ml` : '—' },
+                    { label: isEn ? 'Material' : 'Matière', value: f.matiere || '—' },
+                    { label: isEn ? 'Color' : 'Couleur', value: f.couleur || '—' },
+                    { label: 'Stock', value: f.stock_quantite != null ? `${f.stock_quantite} ${isEn ? 'units' : 'unités'}` : '—' },
+                    ...(f.hauteur_cm ? [{ label: isEn ? 'Height' : 'Hauteur', value: `${f.hauteur_cm} cm` }] : []),
+                    ...(f.largeur_cm ? [{ label: isEn ? 'Width' : 'Largeur', value: `${f.largeur_cm} cm` }] : []),
+                    ...(f.poids_grammes ? [{ label: isEn ? 'Weight' : 'Poids', value: `${f.poids_grammes} g` }] : []),
+                  ].map(spec => (
+                    <div key={spec.label} className="bg-foreground/[0.04] rounded-xl p-3">
+                      <p className="text-[9px] uppercase tracking-widest text-foreground/35 mb-0.5">{spec.label}</p>
+                      <p className="text-sm font-medium text-foreground">{spec.value}</p>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Price */}
+                <div className="flex items-center justify-between pt-2 border-t border-[var(--t-border)]">
+                  <span className="text-xs text-foreground/40 uppercase tracking-widest">{isEn ? 'Sale Price' : 'Prix de vente'}</span>
+                  <span className="text-2xl font-extralight text-gold">
+                    {Number(f.prix_unitaire).toLocaleString()} <span className="text-xs font-normal">FCFA</span>
+                  </span>
+                </div>
+
+                {/* Actions */}
+                <div className="flex gap-2 pt-1">
+                  <button
+                    onClick={() => { setShowFlaconDetail(false); setShowFlaconDrawer(true); }}
+                    className="flex-1 px-4 py-2.5 bg-foreground/5 hover:bg-foreground/10 border border-[var(--t-border)] rounded-xl text-xs font-semibold text-foreground/70 transition-all"
+                  >
+                    {isEn ? 'Change bottle' : 'Changer de flacon'}
+                  </button>
+                  <button
+                    onClick={() => setShowFlaconDetail(false)}
+                    className="flex-1 px-4 py-2.5 bg-gold text-black hover:bg-gold/90 rounded-xl text-xs font-bold transition-all"
+                  >
+                    {isEn ? 'Keep this one' : 'Garder ce flacon'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
       {/* ── Flacon Selector Drawer ── */}
       {showFlaconDrawer && (
         <div className="fixed inset-0 z-50 flex flex-col justify-end" style={{ height: '100dvh' }}>
@@ -1444,7 +1564,7 @@ function AtelierContent() {
           <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setShowFlaconDrawer(false)} />
           
           {/* Drawer Sheet */}
-          <div className={`relative bg-neutral-900 border-t border-white/15 rounded-t-[2.5rem] shadow-sm transition-all duration-300 flex flex-col overflow-hidden w-full mx-auto max-w-xl ${
+          <div className={`relative bg-background border-t border-[var(--t-border)] rounded-t-[2.5rem] shadow-sm transition-all duration-300 flex flex-col overflow-hidden w-full mx-auto max-w-xl ${
             isDrawerFullScreen ? 'h-[92vh]' : 'h-[65vh]'
           }`}>
             
@@ -1479,7 +1599,7 @@ function AtelierContent() {
             </div>
 
             {/* Filters */}
-            <div className="p-4 border-b border-white/10 flex flex-wrap items-center justify-between gap-3 bg-neutral-950/40 flex-shrink-0">
+            <div className="p-4 border-b border-[var(--t-border)] flex flex-wrap items-center justify-between gap-3 bg-foreground/[0.03] flex-shrink-0">
               {/* Size tabs */}
               <div className="flex gap-1.5">
                 {[
@@ -1541,12 +1661,12 @@ function AtelierContent() {
                       className={`w-full flex items-center justify-between gap-4 p-4 border rounded-2xl text-left transition-all ${
                         selected
                           ? 'border-gold bg-gold/5 shadow-lg shadow-gold/5'
-                          : 'border-white/10 hover:border-white/20 bg-white/5'
+                          : 'border-[var(--t-border)] hover:border-foreground/20 bg-foreground/[0.03]'
                       }`}
                     >
                       <div className="flex items-center gap-4">
-                        {f.type_flacon?.image ? (
-                          <AppImage src={f.type_flacon.image} alt={f.nom || 'Flacon'} width={64} height={64} className="size-16 rounded-xl object-cover border border-white/10" />
+                        {(f.image_principale || f.image || f.type_flacon?.image) ? (
+                          <AppImage src={f.image_principale || f.image || f.type_flacon!.image} alt={f.nom || 'Flacon'} width={64} height={64} className="size-16 rounded-xl object-cover border border-white/10" />
                         ) : (
                           <div className="size-16 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-[10px] text-foreground/30 text-center px-1">Aucune Image</div>
                         )}

@@ -105,6 +105,7 @@ import { MultiImageUpload } from '@/components/MultiImageUpload';
 import { CreateCategoryModal } from '@/components/CreateCategoryModal';
 import { useAuthStore } from '@/store/useAuthStore';
 import { FormModal } from '@/components/ui/FormModal';
+import { TablePagination } from '@/components/admin/TablePagination';
 
 /* -------------------------------------------------------------------------- */
 /*                               SHARED PRIMITIVES                            */
@@ -534,6 +535,23 @@ export default function PerfumeAdminPage() {
   const filtered = perfumes;
   const activeFiltersCount = (genreFilter ? 1 : 0) + (estBestsellerFilter ? 1 : 0);
 
+  // ── Pagination & stock split ──────────────────────────────────────────────
+  const ITEMS_PER_PAGE = 50;
+  const [pageInStock, setPageInStock] = useState(1);
+  const [pageOutOfStock, setPageOutOfStock] = useState(1);
+
+  const inStockItems  = filtered.filter(p => Number(p.stock_quantite ?? p.stock ?? 0) > 0);
+  const outOfStockItems = filtered.filter(p => Number(p.stock_quantite ?? p.stock ?? 0) === 0);
+
+  const inStockTotalPages  = Math.max(1, Math.ceil(inStockItems.length / ITEMS_PER_PAGE));
+  const outStockTotalPages = Math.max(1, Math.ceil(outOfStockItems.length / ITEMS_PER_PAGE));
+
+  const pagedInStock  = inStockItems.slice((pageInStock - 1) * ITEMS_PER_PAGE, pageInStock * ITEMS_PER_PAGE);
+  const pagedOutOfStock = outOfStockItems.slice((pageOutOfStock - 1) * ITEMS_PER_PAGE, pageOutOfStock * ITEMS_PER_PAGE);
+
+  // Reset to page 1 when filters change
+  useEffect(() => { setPageInStock(1); setPageOutOfStock(1); }, [search, genreFilter, estBestsellerFilter]);
+
   if (!permissions.canRead) {
     return (
       <div className="space-y-6">
@@ -714,7 +732,7 @@ export default function PerfumeAdminPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
-                {filtered.map(p => {
+                {pagedInStock.map(p => {
                   const productImg = p.image_principale || p.image;
                   const slugKey = p.slug || String(p.id);
                   const isSelected = selectedSlugs.includes(slugKey);
@@ -810,7 +828,7 @@ export default function PerfumeAdminPage() {
                   );
                 })}
 
-                {filtered.length === 0 && (
+                {inStockItems.length === 0 && filtered.length === 0 && (
                   <tr>
                     <td colSpan={isAdmin ? 9 : 8} className="text-center py-16 text-xs italic text-foreground/30">
                       {t('no_results')}
@@ -819,6 +837,70 @@ export default function PerfumeAdminPage() {
                 )}
               </tbody>
             </table>
+            <TablePagination
+              currentPage={pageInStock}
+              totalPages={inStockTotalPages}
+              totalItems={inStockItems.length}
+              itemsPerPage={ITEMS_PER_PAGE}
+              onPageChange={setPageInStock}
+              itemLabel={isEn ? 'in-stock perfumes' : 'parfums en stock'}
+            />
+            {outOfStockItems.length > 0 && (
+              <div className="border-t-2 border-red-500/20">
+                <div className="px-4 py-2.5 bg-red-500/5 border-b border-red-500/10 flex items-center gap-2">
+                  <span className="h-1.5 w-1.5 rounded-full bg-red-400 shrink-0" />
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-red-400">
+                    {isEn ? `Out of Stock (${outOfStockItems.length})` : `En Rupture de Stock (${outOfStockItems.length})`}
+                  </p>
+                </div>
+                <table className="w-full text-left border-collapse">
+                  <tbody className="divide-y divide-white/5 opacity-70">
+                    {pagedOutOfStock.map(p => {
+                      const productImg = p.image_principale || p.image;
+                      const slugKey = p.slug || String(p.id);
+                      const stockQty = Number(p.stock_quantite ?? p.stock ?? 0);
+                      return (
+                        <tr key={p.id} className="hover:bg-white/[0.02] transition-colors">
+                          <td className="w-10 px-4 py-2.5">
+                            <input type="checkbox" checked={selectedSlugs.includes(slugKey)} onChange={() => toggleSelectedSlug(slugKey)} className="rounded border-white/10 bg-white/5 text-gold focus:ring-0 focus:ring-offset-0" />
+                          </td>
+                          <td className="w-14 px-4 py-2.5">
+                            <div className="relative w-8 h-8 rounded-lg bg-white/5 border border-white/10 overflow-hidden flex items-center justify-center">
+                              {productImg ? <AppImage src={productImg} alt={p.nom || 'Parfum'} fill className="object-cover opacity-50" /> : <ImageIcon size={13} className="text-foreground/15" />}
+                            </div>
+                          </td>
+                          <td className="px-4 py-2.5 text-xs text-foreground/50">
+                            {p.nom || p.name || '—'}
+                            {p.marque && <span className="block text-[10px] text-foreground/30">{p.marque}</span>}
+                          </td>
+                          <td className="px-4 py-2.5"><StatusChip label={t('out_of_stock')} type="red" /></td>
+                          <td className="px-4 py-2.5 text-xs tabular-nums text-foreground/40">
+                            <InlineCell value={String(stockQty)} onSave={v => patchPerfume(p.slug || String(p.id), 'stock_quantite', v)} disabled={!permissions.canUpdate} inputType="number" className="text-foreground/40 tabular-nums" />
+                          </td>
+                          <td className="px-4 py-2.5 text-xs text-foreground/35">{p.contenance_ml ? `${p.contenance_ml} ml` : '—'}</td>
+                          <td className="px-4 py-2.5 text-xs text-foreground/40">{p.prix_unitaire ? `${p.prix_unitaire} FCFA` : '—'}</td>
+                          {isAdmin && <td className="px-4 py-2.5 text-xs text-foreground/35">—</td>}
+                          <td className="px-4 py-2.5 text-right">
+                            <div className="flex items-center justify-end gap-1">
+                              {permissions.canUpdate && <IconButton variant="gold" onClick={() => handleOpenEdit(p)} title="Modifier"><Edit2 size={13} /></IconButton>}
+                              {permissions.canDelete && <IconButton variant="red" onClick={() => handleDelete(p.slug)} title="Supprimer"><Trash2 size={13} /></IconButton>}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+                <TablePagination
+                  currentPage={pageOutOfStock}
+                  totalPages={outStockTotalPages}
+                  totalItems={outOfStockItems.length}
+                  itemsPerPage={ITEMS_PER_PAGE}
+                  onPageChange={setPageOutOfStock}
+                  itemLabel={isEn ? 'out-of-stock perfumes' : 'parfums en rupture'}
+                />
+              </div>
+            )}
           </div>
         )}
       </div>
