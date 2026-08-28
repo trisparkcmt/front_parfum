@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useState, useCallback, useMemo, useEffect, Suspense } from 'react';
 import Link from 'next/link';
@@ -9,12 +9,13 @@ import { useAuthStore } from '@/store/useAuthStore';
 import { useToastStore } from '@/store/useToastStore';
 import { generateId, sharePage } from '@/lib/utils';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft, Minus, Plus, ChevronLeft, ChevronRight, RefreshCcw, Loader2, Save, ShoppingCart, X, Send, Share2 } from 'lucide-react';
+import { ArrowLeft, Minus, Plus, ChevronLeft, ChevronRight, RefreshCcw, Loader2, Save, ShoppingCart, X, Send, Share2, Eye } from 'lucide-react';
 import AppImage from '@/components/ui/AppImage';
 import { useSound } from '@/hooks/useSound';
 import type { CustomComposition, CompositionEssence, EssenceClient, Product } from '@/types';
 import { labService } from '@/services/labService';
 import { labService as apiLabService, shopService, orderService } from '@/services/apiService';
+import ColorPicker from '@/components/ui/ColorPicker';
 import './atelier.css';
 
 /* ═══════════════════════════════════════
@@ -251,6 +252,7 @@ function AtelierContent() {
   const [ctaSuccess, setCtaSuccess] = useState(false);
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [saveModalName, setSaveModalName] = useState('');
+  const [couleur, setCouleur] = useState(''); // Default empty color
 
   // Direct Order Workflow states
   const [showDirectOrderModal, setShowDirectOrderModal] = useState(false);
@@ -562,6 +564,7 @@ function AtelierContent() {
         nom: name,
         flacon: selectedFlaconId,
         lignes: lignes as any[],
+        couleur: couleur,
       });
 
       setSavedParfumId(Number(response.id));
@@ -643,6 +646,7 @@ function AtelierContent() {
         nom: compositionName || `Création Numba ${bottleSize}ml`,
         flacon: selectedFlaconId,
         lignes: lignes as any[],
+        couleur: couleur,
       });
 
       addToast(
@@ -822,6 +826,7 @@ function AtelierContent() {
         flacon_id: selectedFlaconId,
         lignes,
         nom: saveModalName || compositionName || `Création Numba ${bottleSize}ml`,
+        couleur: couleur,
         quantite: 1,
         livraison_nom_complet: orderProfileDetails.fullName || undefined,
         livraison_telephone: orderProfileDetails.phone || undefined,
@@ -1193,7 +1198,7 @@ function AtelierContent() {
                       <div className="bg-white/5 border border-white/10 rounded-2xl p-5 flex items-center justify-between gap-4">
                         <button
                           onClick={() => setShowFlaconDetail(true)}
-                          className="flex items-center gap-4 text-left group hover:opacity-90 transition-opacity flex-1 min-w-0"
+                          className="flex items-center gap-4 text-left group hover:opacity-90 transition-opacity flex-1 min-w-0 relative"
                         >
                           {(matchedFlacon.image_principale || matchedFlacon.image || matchedFlacon.type_flacon?.image) ? (
                             <AppImage src={matchedFlacon.image_principale || matchedFlacon.image || matchedFlacon.type_flacon!.image} alt={matchedFlacon.nom || 'Flacon'} width={64} height={64} className="size-16 rounded-xl object-cover border border-white/10 group-hover:ring-1 group-hover:ring-gold/40 transition-all flex-shrink-0" />
@@ -1206,6 +1211,7 @@ function AtelierContent() {
                             <p className="text-sm font-bold text-gold mt-1">{Number(matchedFlacon.prix_unitaire).toLocaleString()} FCFA</p>
                             <p className="text-[9px] text-gold/50 mt-1 uppercase tracking-widest">{i18n.language === 'en' ? 'Click to see details' : 'Cliquer pour détails'}</p>
                           </div>
+                          <Eye size={18} className="text-gold/40 group-hover:text-gold flex-shrink-0 transition-colors absolute right-3" />
                         </button>
                         <button 
                           onClick={() => setShowFlaconDrawer(true)}
@@ -1314,7 +1320,7 @@ function AtelierContent() {
       {/* Save Modal */}
       {showSaveModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-background rounded-2xl p-8 w-full max-w-sm shadow-sm border border-white/10 animate-in fade-in zoom-in-95">
+          <div className="bg-background rounded-2xl p-8 w-full max-w-sm shadow-sm border border-white/10 animate-in fade-in zoom-in-95 max-h-[90vh] overflow-y-auto">
             <h2 className="text-2xl font-extralight text-foreground mb-2">
               {i18n.language === 'en' ? 'Save Your Composition' : 'Sauvegarder votre Composition'}
             </h2>
@@ -1328,6 +1334,13 @@ function AtelierContent() {
               value={saveModalName}
               onChange={(e) => setSaveModalName(e.target.value)}
               className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-foreground placeholder-foreground/30 focus:outline-none focus:border-gold/50 mb-6 text-sm"
+            />
+
+            <ColorPicker 
+              value={couleur}
+              onChange={setCouleur}
+              label={i18n.language === 'en' ? 'Bottle Color' : 'Couleur du Flacon'}
+              className="mb-6"
             />
 
             <div className="flex gap-3">
@@ -1385,6 +1398,13 @@ function AtelierContent() {
                 <p className="text-xl font-light text-gold">{calcPrice.toLocaleString()} <span className="text-[10px]">FCFA</span></p>
               </div>
             </div>
+
+            <ColorPicker 
+              value={couleur}
+              onChange={setCouleur}
+              label={i18n.language === 'en' ? 'Bottle Color' : 'Couleur du Flacon'}
+              className="mb-6"
+            />
 
             <div className="space-y-4">
               <div className="rounded-xl border border-white/10 bg-white/5 p-4 text-sm text-foreground/70">
@@ -1516,7 +1536,6 @@ function AtelierContent() {
                     { label: isEn ? 'Volume' : 'Contenance', value: cap ? `${cap} ml` : '—' },
                     { label: isEn ? 'Material' : 'Matière', value: f.matiere || '—' },
                     { label: isEn ? 'Color' : 'Couleur', value: f.couleur || '—' },
-                    { label: 'Stock', value: f.stock_quantite != null ? `${f.stock_quantite} ${isEn ? 'units' : 'unités'}` : '—' },
                     ...(f.hauteur_cm ? [{ label: isEn ? 'Height' : 'Hauteur', value: `${f.hauteur_cm} cm` }] : []),
                     ...(f.largeur_cm ? [{ label: isEn ? 'Width' : 'Largeur', value: `${f.largeur_cm} cm` }] : []),
                     ...(f.poids_grammes ? [{ label: isEn ? 'Weight' : 'Poids', value: `${f.poids_grammes} g` }] : []),

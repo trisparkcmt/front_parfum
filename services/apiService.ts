@@ -705,7 +705,9 @@ export const shopService = {
   },
 
   /**
-   * Get finished essences
+   * Get finished essence products
+   * Public: only actif=true, prix>0, in-stock essences.
+   * Dashboard: all items (requires X-Dashboard-Context header, set automatically).
    */
   getFinishedEssences: async (params?: {
     essence?: number;
@@ -719,9 +721,17 @@ export const shopService = {
   },
 
   /**
-   * Create finished essence (Admin)
+   * Create or upsert a finished essence product (Admin / Serveuse).
+   * If a ProduitFiniEssence already exists for (essence, taille_ml),
+   * the server performs an update instead of creating a duplicate.
    */
-  createFinishedEssence: async (data: any) => {
+  createFinishedEssence: async (data: {
+    essence: number;
+    taille_ml: number;
+    prix: string;
+    prix_promotionnel?: string | null;
+    actif?: boolean;
+  } | FormData) => {
     const response = await api.post('shop/produits-essence/', data);
     return response.data;
   },
@@ -735,15 +745,20 @@ export const shopService = {
   },
 
   /**
-   * Update finished essence (Admin)
+   * Update finished essence — price, size, actif (Admin / Serveuse)
    */
-  updateFinishedEssence: async (id: number, data: any) => {
+  updateFinishedEssence: async (id: number, data: {
+    prix?: string;
+    prix_promotionnel?: string | null;
+    taille_ml?: number;
+    actif?: boolean;
+  } | FormData) => {
     const response = await api.patch(`shop/produits-essence/${id}/`, data);
     return response.data;
   },
 
   /**
-   * Delete finished essence (Admin)
+   * Delete finished essence (Admin / Serveuse)
    */
   deleteFinishedEssence: async (id: number) => {
     const response = await api.delete(`shop/produits-essence/${id}/`);
@@ -780,6 +795,7 @@ export const labService = {
     prix_min?: number;
     prix_max?: number;
     stock_min?: number;
+    tags?: string;
     page?: number;
     ordering?: string;
   }): Promise<Essence[]> => {
@@ -831,6 +847,7 @@ export const labService = {
       ingredient?: number;
       quantite_ml: number;
     }>;
+    couleur?: string;
   }): Promise<CustomComposition> => {
     const response = await api.post('lab/parfums-perso/', data);
     return response.data;
@@ -849,6 +866,7 @@ export const labService = {
       ingredient?: number;
       quantite_ml: number;
     }>;
+    couleur?: string;
   }): Promise<CustomComposition> => {
     const response = await api.patch(`lab/parfums-perso/${id}/`, data);
     return response.data;
@@ -909,9 +927,42 @@ export const labService = {
   },
 
   /**
-   * Create a new essence (Admin)
+   * Create a new essence — supports simple or full creation
+   * (with initial_lot and produits_finis) via EssenceCreateFullSerializer (Admin)
    */
-  createEssence: async (data: any) => {
+  createEssence: async (data: {
+    marque: string;
+    nom: string;
+    categorie: string;
+    code_reference?: string;
+    description?: string;
+    fournisseur?: string;
+    origine_pays?: string;
+    concentration_max?: string;
+    couleur?: string;
+    duree?: string;
+    intensite?: string;
+    genre_cible?: string;
+    notes_tete?: string;
+    notes_coeur?: string;
+    notes_fond?: string;
+    prix_par_ml: string;
+    seuil_alerte_ml?: string;
+    actif?: boolean;
+    tag_ids?: number[];
+    initial_lot?: {
+      stock_ml: string;
+      quantite_initiale_ml?: string;
+      prix_achat_par_ml?: string;
+      reference_fournisseur?: string;
+      actif?: boolean;
+    };
+    produits_finis?: Array<{
+      taille_ml: number;
+      prix: string;
+      prix_promotionnel?: string | null;
+    }>;
+  } | FormData) => {
     const response = await api.post('lab/essences/', data);
     return response.data;
   },
@@ -920,11 +971,39 @@ export const labService = {
    * Update an essence (Admin)
    * Uses slug-based modifier endpoint when a slug is supplied.
    */
-  updateEssence: async (slugOrId: number | string, data: any) => {
+  updateEssence: async (slugOrId: number | string, data: {
+    marque?: string;
+    nom?: string;
+    categorie?: string;
+    code_reference?: string;
+    description?: string;
+    fournisseur?: string;
+    origine_pays?: string;
+    concentration_max?: string;
+    couleur?: string;
+    duree?: string;
+    intensite?: string;
+    genre_cible?: string;
+    notes_tete?: string;
+    notes_coeur?: string;
+    notes_fond?: string;
+    prix_par_ml?: string;
+    seuil_alerte_ml?: string;
+    actif?: boolean;
+    tag_ids?: number[];
+  }) => {
     const endpoint = typeof slugOrId === 'number'
       ? `lab/essences/${slugOrId}/`
       : `lab/essences/${slugOrId}/modifier/`;
     const response = await api.patch(endpoint, data);
+    return response.data;
+  },
+
+  /**
+   * Get a single essence by slug
+   */
+  getEssenceBySlug: async (slug: string) => {
+    const response = await api.get(`lab/essences/${slug}/`);
     return response.data;
   },
 
@@ -961,25 +1040,53 @@ export const labService = {
   },
 
   /**
-   * Get all essence lots (Admin / Laborantin)
+   * Get all essence lots with optional filters (Admin / Laborantin)
+   * stock_precedent_ml is auto-computed server-side on creation.
    */
-  getLotsEssence: async (params?: { essence?: number; actif?: boolean; page?: number }) => {
+  getLotsEssence: async (params?: {
+    essence?: number;
+    actif?: boolean;
+    page?: number;
+  }) => {
     const response = await api.get('lab/lots-essence/', { params });
     return response.data;
   },
 
   /**
-   * Create an essence lot (Admin / Laborantin)
+   * Get single essence lot by ID
    */
-  createLotEssence: async (data: any) => {
+  getLotEssenceById: async (id: number) => {
+    const response = await api.get(`lab/lots-essence/${id}/`);
+    return response.data;
+  },
+
+  /**
+   * Create an essence lot (Admin / Laborantin)
+   * stock_precedent_ml is computed automatically from all active lots of the essence.
+   */
+  createLotEssence: async (data: {
+    essence: number;
+    stock_ml: string;
+    quantite_initiale_ml?: string;
+    prix_achat_par_ml?: string;
+    reference_fournisseur?: string;
+    actif?: boolean;
+  }) => {
     const response = await api.post('lab/lots-essence/', data);
     return response.data;
   },
 
   /**
-   * Update an essence lot (Admin / Laborantin)
+   * Update an essence lot — use PATCH for partial updates (Admin / Laborantin)
+   * Useful for manual inventory adjustments (stock_ml) or changing actif/reference.
    */
-  updateLotEssence: async (id: number, data: any) => {
+  updateLotEssence: async (id: number, data: {
+    stock_ml?: string;
+    quantite_initiale_ml?: string;
+    prix_achat_par_ml?: string;
+    reference_fournisseur?: string;
+    actif?: boolean;
+  }) => {
     const response = await api.patch(`lab/lots-essence/${id}/`, data);
     return response.data;
   },
@@ -1539,6 +1646,7 @@ export const orderService = {
     quantite?: number;
     nom?: string;
     enregistre?: boolean;
+    couleur?: string;
     livraison_nom_complet?: string;
     livraison_telephone?: string;
     livraison_quartier?: string;

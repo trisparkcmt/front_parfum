@@ -230,6 +230,30 @@ export default function CompositionsPage() {
               </div>
             </div>
 
+            {/* Color Display */}
+            {selected.couleur && (
+              <div className="rounded-xl border border-white/10 bg-white/[0.02] p-3">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-foreground/35 mb-2">Couleur du Flacon</p>
+                <div className="flex items-center gap-3">
+                  <code className="text-xs font-mono text-gold bg-white/5 px-3 py-2 rounded border border-white/10 flex-1">
+                    {selected.couleur}
+                  </code>
+                  <div 
+                    className="w-12 h-12 rounded-lg border-2 border-white/20 shadow-md cursor-pointer hover:shadow-lg hover:border-white/40 transition-all flex-shrink-0"
+                    style={{ backgroundColor: selected.couleur }}
+                    title="Couleur du flacon"
+                  >
+                    <div 
+                      className="w-full h-full rounded-lg pointer-events-none"
+                      style={{
+                        boxShadow: `inset 0 0 6px ${selected.couleur}40, 0 0 8px ${selected.couleur}40`,
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
             {selected.description && (
               <div>
                 <p className="text-[10px] font-semibold uppercase tracking-wider text-foreground/35 mb-1">Description</p>

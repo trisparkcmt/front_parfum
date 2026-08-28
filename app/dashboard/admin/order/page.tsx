@@ -1723,9 +1723,29 @@ function LinesGroup({ title, icon, lines, isEn = false }: { title: string; icon:
                     </div>
                   ))}
                   {line.composition.flacon_nom && (
-                    <div className="flex justify-between text-foreground/35">
+                    <div className="flex justify-between items-center text-foreground/35">
                       <span>{isEn ? T.en.flacon : T.fr.flacon}</span>
                       <span>{line.composition.flacon_nom} {line.composition.flacon_contenance_ml ? `· ${line.composition.flacon_contenance_ml}ml` : ''}</span>
+                    </div>
+                  )}
+                  {line.composition.couleur && (
+                    <div className="flex justify-between items-center text-foreground/35 pt-1 border-t border-white/5">
+                      <span>{isEn ? 'Color' : 'Couleur'}</span>
+                      <div className="flex items-center gap-2">
+                        <code className="text-[10px] font-mono text-gold">{line.composition.couleur}</code>
+                        <div 
+                          className="w-5 h-5 rounded-full border border-white/20 shadow-md cursor-pointer hover:shadow-lg hover:border-white/40 transition-all"
+                          style={{ backgroundColor: line.composition.couleur }}
+                          title="Cliquer pour voir les détails"
+                        >
+                          <div 
+                            className="w-full h-full rounded-full pointer-events-none"
+                            style={{
+                              boxShadow: `inset 0 0 4px ${line.composition.couleur}40, 0 0 6px ${line.composition.couleur}40`,
+                            }}
+                          />
+                        </div>
+                      </div>
                     </div>
                   )}
                 </div>

@@ -136,6 +136,8 @@ api.interceptors.request.use((config: any) => {
   if (typeof window !== 'undefined') {
     if (isDashboardContext()) {
       config.headers['X-Dashboard-Context'] = 'true';
+      config.headers['X-Context'] = 'dashboard';
+      config.headers['X-Admin-Context'] = 'true';
     }
 
     const token = localStorage.getItem('auth_token');

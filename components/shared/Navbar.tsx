@@ -72,7 +72,7 @@ export function Navbar() {
   );
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50">
+    <header className="fixed left-0 right-0 z-50 transition-[top] duration-300" style={{ top: 'var(--offline-banner-height, 0px)' }}>
       <div className={cn('absolute inset-x-0 top-0 h-0.5 bg-gold transition-opacity duration-200', isNavigating ? 'opacity-100' : 'opacity-0')} />
 
       {/* MOBILE */}

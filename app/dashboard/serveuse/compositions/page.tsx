@@ -149,6 +149,34 @@ export default function CompositionsPage() {
                 <p className="text-xs text-foreground/40 italic">Aucun détail sur les lignes de formulation.</p>
               )}
             </div>
+
+            {/* Flacon Info */}
+            <div className="space-y-2 mb-5 pb-5 border-b border-white/10">
+              <p className="text-xs font-semibold text-foreground/40 uppercase">Flacon</p>
+              {selected.flacon && (
+                <div className="text-xs text-foreground/60">
+                  <p>ID: {selected.flacon}</p>
+                </div>
+              )}
+              {selected.couleur && (
+                <div className="flex items-center gap-2 pt-2">
+                  <span className="text-xs text-foreground/40">Couleur:</span>
+                  <code className="text-xs font-mono text-gold bg-white/5 px-2 py-1 rounded border border-white/10">{selected.couleur}</code>
+                  <div 
+                    className="w-6 h-6 rounded-full border border-white/20 shadow-md cursor-pointer hover:shadow-lg hover:border-white/40 transition-all"
+                    style={{ backgroundColor: selected.couleur }}
+                    title="Couleur du flacon"
+                  >
+                    <div 
+                      className="w-full h-full rounded-full pointer-events-none"
+                      style={{
+                        boxShadow: `inset 0 0 4px ${selected.couleur}40, 0 0 6px ${selected.couleur}40`,
+                      }}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
             <button onClick={() => setSelected(null)} className="w-full border border-white/10 rounded-lg py-2.5 text-sm text-foreground/60 hover:bg-white/5 transition-colors">
               Fermer
             </button>

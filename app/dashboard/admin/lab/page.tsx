@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import {
@@ -778,12 +778,12 @@ function LotsTab() {
       if (editing) {
         setItems(prev => prev.map(i => i.id === editing.id ? { ...i, ...payload } : i));
         setShowModal(false);
-        await labService.updateLotEssence(editing.id, payload);
+        await labService.updateLotEssence(editing.id, payload as any);
         addToast(t('lot_toast_update'), 'success');
         fetchItems();
       } else {
         setShowModal(false);
-        await labService.createLotEssence(payload);
+        await labService.createLotEssence(payload as any);
         addToast(t('lot_toast_create'), 'success');
         fetchItems();
       }

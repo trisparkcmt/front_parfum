@@ -9,13 +9,22 @@ export function OfflineBanner() {
   const [offline, setOffline] = useState(false);
 
   useEffect(() => {
-    const update = () => setOffline(!navigator.onLine);
+    const update = () => {
+      const isOffline = !navigator.onLine;
+      setOffline(isOffline);
+      if (isOffline) {
+        document.documentElement.classList.add('is-offline');
+      } else {
+        document.documentElement.classList.remove('is-offline');
+      }
+    };
     update();
     window.addEventListener('offline', update);
     window.addEventListener('online', update);
     return () => {
       window.removeEventListener('offline', update);
       window.removeEventListener('online', update);
+      document.documentElement.classList.remove('is-offline');
     };
   }, []);
 
@@ -23,10 +32,10 @@ export function OfflineBanner() {
 
   return (
     <>
-      {/* Mobile: pinned above the navbar at the very top */}
+      {/* Mobile: pinned below status bar, above navbar */}
       <div
         role="alert"
-        className="sm:hidden fixed top-0 inset-x-0 z-[210] flex items-center justify-center gap-2 bg-red-600 px-4 py-2.5 text-center text-sm font-semibold text-white shadow-lg"
+        className="sm:hidden fixed top-0 inset-x-0 z-[210] flex items-center justify-center gap-2 bg-red-600 px-4 py-2.5 text-center text-sm font-semibold text-white shadow-lg pt-safe"
       >
         <WifiOff size={16} />
         {t('offline_message', { defaultValue: 'Vous êtes hors ligne. Vérifiez votre connexion Internet.' })}

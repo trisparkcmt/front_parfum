@@ -33,6 +33,7 @@ import {
   FlaskConical,
   RefreshCcw,
 } from 'lucide-react';
+import ColorPicker from '@/components/ui/ColorPicker';
 
 interface CartItem {
   product: Product;
@@ -167,6 +168,7 @@ export default function POSPage() {
   const [quantities, setQuantities] = useState<Record<string, number>>({});
   const [essenceTier, setEssenceTier] = useState<'all' | 'premium' | 'super-premium' | 'high'>('all');
   const [essenceSearch, setEssenceSearch] = useState('');
+  const [couleur, setCouleur] = useState(''); // Default empty color
 
   // Load lab items (essences, ingredients, flacons) on component mount
   useEffect(() => {
@@ -331,6 +333,7 @@ export default function POSPage() {
       slug: `custom-${Date.now()}`,
       is_custom: true,
       flaconId: selectedFlaconId,
+      couleur: couleur,
       description: `Format ${selectedSize}ml (Mélange de ${totalMl}ml d'ingrédients).`,
       quantities,
       selectedSize,
@@ -340,6 +343,7 @@ export default function POSPage() {
     addToast('Composition ajoutée au ticket de caisse !', 'success');
     setQuantities({});
     setCompositionName('');
+    setCouleur(''); // Reset color
     setActiveTab('products');
   };
 
@@ -745,6 +749,14 @@ export default function POSPage() {
                       })}
                     </div>
                   </div>
+
+                  {/* Color Picker */}
+                  <ColorPicker 
+                    value={couleur}
+                    onChange={setCouleur}
+                    label="Couleur du Flacon"
+                    className=""
+                  />
 
                   {/* Volume Gauge Bar */}
                   <div className="space-y-1">

@@ -340,7 +340,7 @@ const resources = {
       "nav_perfume": "Perfumery",
       "nav_perfumes": "Perfumery",
       "nav_diffuseurs": "Diffusers",
-      "nav_atelier": "Atelier Numba",
+      "nav_atelier": "Numba Workshop",
       "login": "Login",
       "register": "Register",
       "hero_title": "Elegance Without Compromise",

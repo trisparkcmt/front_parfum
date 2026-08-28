@@ -244,6 +244,7 @@ export interface CustomComposition {
   createdBy: string; // user id
   createdAt: string;
   isAiGenerated: boolean;
+  couleur?: string;
 }
 
 // ---- Cart ----
@@ -345,6 +346,7 @@ export interface BackendOrderLine {
     prix_flacon_snapshot?: string;
     prix_total?: string;
     statut?: string;
+    couleur?: string;
     lignes?: Array<{
       essence_nom?: string;
       quantite_ml?: string;
@@ -701,7 +703,24 @@ export interface EssenceDetails {
   categorie: string;
   code_reference: string;
   description?: string;
+  description_ia?: string;
+  fournisseur?: string;
+  origine_pays?: string;
+  concentration_max?: string;
+  couleur?: string;
+  duree?: string;
+  intensite?: string;
+  genre_cible?: string;
+  notes_tete?: string;
+  notes_coeur?: string;
+  notes_fond?: string;
+  famille_olfactive?: string[];
+  humeurs_compatibles?: string[];
+  occasions?: string[];
+  saisons_compatibles?: string[];
+  moments_journee?: string[];
   prix_par_ml: string;
+  seuil_alerte_ml?: string;
   actif: boolean;
   stock_total_ml: string;
 }
@@ -735,13 +754,30 @@ export interface Essence {
   categorie: string;
   code_reference: string;
   description?: string;
-  prix_par_ml: string;
-  actif: boolean;
+  description_ia?: string;
+  fournisseur?: string;
+  origine_pays?: string;
+  concentration_max?: string;
+  couleur?: string;
+  duree?: string;
+  intensite?: string;
+  genre_cible?: string;
+  notes_tete?: string;
+  notes_coeur?: string;
+  notes_fond?: string;
   tags: TagEssence[];
   famille_olfactive?: string[];
-  stock_total_ml: string;
+  humeurs_compatibles?: string[];
+  occasions?: string[];
+  saisons_compatibles?: string[];
+  signes_astrologiques_compatibles?: string[];
+  moments_journee?: string[];
+  prix_par_ml: string;
+  seuil_alerte_ml: string;
+  actif: boolean;
   date_creation: string;
   date_modification?: string;
+  stock_total_ml?: string;
 }
 
 export interface LotEssence {
@@ -750,6 +786,12 @@ export interface LotEssence {
   essence_details?: EssenceDetails;
   stock_ml: string;
   stock_precedent_ml?: string;
+  quantite_initiale_ml?: string;
+  prix_achat_par_ml?: string;
+  cout_achat_total?: string;
+  chiffre_affaires_genere?: string;
+  benefice_lot?: string;
+  est_termine?: boolean;
   seuil_alerte_ml?: string;
   actif: boolean;
   date_reception: string;
@@ -815,15 +857,20 @@ export interface AccessoireFilterParams {
 }
 
 export interface EssenceFilterParams {
-  genre?: GenreCible;
-  intensite?: Intensite;
-  prix_min?: number;
-  prix_max?: number;
-  stock_min?: number;
   famille_olfactive?: string;
   humeur?: string;
   saison?: string;
   occasion?: string;
+  signe_astrologique?: string;
+  moment_journee?: string;
+  genre?: string;
+  intensite?: string;
+  prix_min?: number;
+  prix_max?: number;
+  stock_min?: number;
+  tags?: string; // comma-separated IDs (?tags=1,3)
+  search?: string;
+  ordering?: string;
   page?: number;
 }
 

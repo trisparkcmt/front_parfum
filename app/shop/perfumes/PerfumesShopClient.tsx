@@ -628,7 +628,12 @@ export default function PerfumesShopClient() {
       {/* Pagination Metadata Counter */}
       {!loading && totalCount > 0 && (
         <p className="text-center text-xs text-foreground/35 mt-4 font-mono tracking-wide">
-          {t('pagination_info', { count: totalCount, page: currentPage, totalPages })}
+          {t('pagination_info', { 
+            defaultValue: `Affichage de la page {{page}} sur {{totalPages}} ({{count}} résultats)`,
+            count: totalCount, 
+            page: currentPage, 
+            totalPages 
+          })}
         </p>
       )}
 

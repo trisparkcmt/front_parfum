@@ -43,7 +43,7 @@ export function LayoutWrapper({ children }: { children: React.ReactNode }) {
   const shouldHideFooter = shouldHideNav;
 
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="flex flex-col min-h-screen transition-[margin-top] duration-300" style={{ marginTop: 'var(--offline-banner-height, 0px)' }}>
       {!shouldHideNav && (
         <Navbar />
       )}
