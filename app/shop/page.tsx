@@ -5,7 +5,7 @@ export const metadata: Metadata = {
   title: 'Boutique',
   description: 'Découvrez les parfums de marque, les dupes et les accessoires de luxe sur Accessoires Exclusifs.',
   alternates: {
-    canonical: 'https://accessoires-exclusifs.vercel.app/shop',
+    canonical: 'https://accessoiresexclusifs.com/shop',
   },
 };
 

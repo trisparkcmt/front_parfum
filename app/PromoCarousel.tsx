@@ -497,7 +497,8 @@ export default function PromoCarousel() {
               className="absolute inset-0"
               initial={{ scale: 1 }}
               animate={{ scale: 1.08 }}
-              transition={{ duration: AUTO_SLIDE_INTERVAL / 1000 + 2, ease: 'linear' }}
+ 
+             transition={{ duration: AUTO_SLIDE_INTERVAL / 1000 + 2, ease: 'linear' }}
             >
               <AppImage
                 src={activeSlide.image || FALLBACK_IMAGE}

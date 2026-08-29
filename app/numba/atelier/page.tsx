@@ -9,7 +9,7 @@ import { useAuthStore } from '@/store/useAuthStore';
 import { useToastStore } from '@/store/useToastStore';
 import { generateId, sharePage } from '@/lib/utils';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft, Minus, Plus, ChevronLeft, ChevronRight, RefreshCcw, Loader2, Save, ShoppingCart, X, Send, Share2, Eye } from 'lucide-react';
+import { ArrowLeft, Minus, Plus, ChevronLeft, ChevronRight, RefreshCcw, Loader2, Save, ShoppingCart, X, Send, Share2, Eye, Search } from 'lucide-react';
 import AppImage from '@/components/ui/AppImage';
 import { useSound } from '@/hooks/useSound';
 import type { CustomComposition, CompositionEssence, EssenceClient, Product } from '@/types';
@@ -233,6 +233,7 @@ function AtelierContent() {
   // Sub-tabs
   const [ingredientSubtab, setIngredientSubtab] = useState<'tete' | 'coeur' | 'fond'>('tete');
   const [essenceSubtab, setEssenceSubtab] = useState<'high' | 'premium' | 'super-premium'>('high');
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Datasets
   const [ingredients, setIngredients] = useState<EssenceClient[]>([]);
@@ -408,22 +409,30 @@ function AtelierContent() {
 
   const currentIngredientsFiltered = useMemo(() => {
     return ingredients.filter(item => {
+      const matchesSearch = searchQuery
+        ? item.name.toLowerCase().includes(searchQuery.toLowerCase())
+        : true;
+      if (!matchesSearch) return false;
       if (ingredientSubtab === 'tete') return TETE_FAMILIES.includes(item.family);
       if (ingredientSubtab === 'coeur') return COEUR_FAMILIES.includes(item.family);
       if (ingredientSubtab === 'fond') return FOND_FAMILIES.includes(item.family);
       return false;
     });
-  }, [ingredients, ingredientSubtab]);
+  }, [ingredients, ingredientSubtab, searchQuery]);
 
   const currentEssencesFiltered = useMemo(() => {
     return essences.filter(item => {
+      const matchesSearch = searchQuery
+        ? item.name.toLowerCase().includes(searchQuery.toLowerCase()) || (item.description || '').toLowerCase().includes(searchQuery.toLowerCase())
+        : true;
+      if (!matchesSearch) return false;
       const familyStr = item.family as string;
       const cat = familyStr === 'premium' || familyStr === 'super-premium' || familyStr === 'high' 
         ? item.family 
         : (item.id.includes('sprem') ? 'super-premium' : item.id.includes('high') ? 'high' : 'premium');
       return cat === essenceSubtab;
     });
-  }, [essences, essenceSubtab]);
+  }, [essences, essenceSubtab, searchQuery]);
 
   const updateQtySlider = useCallback((id: string, value: number) => {
     setSavedParfumId(null);
@@ -958,47 +967,60 @@ function AtelierContent() {
       </div>
 
       {/* RIGHT: APOTHECARY INTERFACE */}
-      <div className="config-panel !bg-background"> 
-        <div className="mb-6">
-          <h1 className="flex text-5xl font-extralight tracking-tight text-foreground mb-2">
-            Artisanat<br /><span className="text-gold italic serif">Olfactif</span>
-          </h1>
-        </div>
-
-        {/* Unified Glassmorphism Tabs */}
-        <div className="atelier-tab-row flex items-center gap-3 mb-8 overflow-x-auto pb-2">
-          {[
-            /* Notes de Base tab — temporarily disabled, will be re-enabled in a future version
-            { id: 'ingredients', label: i18n.language === 'en' ? '🧪 Raw Notes' : '🧪 Notes de Base' }, */
-            { id: 'essences', label: i18n.language === 'en' ? '✨ Premium Bases' : `✨ Essences d'Exception` },
-            { id: 'recap', label: i18n.language === 'en' ? '📋 Formula' : '📋 Finalisation' }
-          ].map(tab => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id as any)}
-              className={`whitespace-nowrap px-3 py-1.5 text-sm font-medium transition-colors border-b-2 ${
-                activeTab === tab.id 
-                  ? 'border-gold text-gold font-semibold' 
-                  : 'border-transparent text-foreground/60 hover:border-gold/50 hover:text-foreground'
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
-
-        {/* LOADING INDICATOR */}
-        {loadingData ? (
-          <div className="flex flex-col items-center justify-center py-24 gap-4 text-foreground/40">
-            <Loader2 className="w-8 h-8 animate-spin text-gold" />
-            <span className="text-xs uppercase tracking-widest font-mono">Chargement du laboratoire...</span>
+      <div className="config-panel !bg-background flex flex-col h-full overflow-hidden"> 
+        
+        {/* Fixed Header Section (Tabs & Search Bar) - NEVER scrolls, stays under the bottle */}
+        <div className="flex-shrink-0 bg-background pt-2 pb-3 z-20 border-b border-white/5">
+          {/* Unified Glassmorphism Tabs */}
+          <div className="atelier-tab-row flex items-center gap-3 mb-3 overflow-x-auto pb-2">
+            {[
+              /* Notes de Base tab — temporarily disabled, will be re-enabled in a future version
+              { id: 'ingredients', label: i18n.language === 'en' ? '🧪 Raw Notes' : '🧪 Notes de Base' }, */
+              { id: 'essences', label: i18n.language === 'en' ? '✨ Premium Bases' : `✨ Essences d'Exception` },
+              { id: 'recap', label: i18n.language === 'en' ? '📋 Formula' : '📋 Finalisation' }
+            ].map(tab => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id as any)}
+                className={`whitespace-nowrap px-3 py-1.5 text-sm font-medium transition-colors border-b-2 ${
+                  activeTab === tab.id 
+                    ? 'border-gold text-gold font-semibold' 
+                    : 'border-transparent text-foreground/60 hover:border-gold/50 hover:text-foreground'
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
           </div>
-        ) : (
-          <>
-            {/* SUB-TABS NAVIGATION OR PANEL VIEW */}
-            {activeTab === 'ingredients' && (
-              <div className="flex flex-col gap-6 animate-in fade-in duration-300">
-                {/* Steps within ingredients */}
+
+          {/* Sub-tabs & Search Bar (only for essences/ingredients, not for recap) */}
+          {!loadingData && (activeTab === 'essences' || activeTab === 'ingredients') && (
+            <div className="flex flex-col gap-3 mt-1">
+              {/* Sub-tabs for essences */}
+              {activeTab === 'essences' && (
+                <div className="atelier-tab-row flex items-center gap-3 overflow-x-auto pb-2">
+                  {[
+                    { id: 'high', label: 'High Luxury' },
+                    { id: 'premium', label: 'Premium' },
+                    { id: 'super-premium', label: 'Super Premium' }
+                  ].map(sub => (
+                    <button
+                      key={sub.id}
+                      onClick={() => setEssenceSubtab(sub.id as any)}
+                      className={`whitespace-nowrap px-3 py-1 text-xs font-medium transition-colors border-b-2 ${
+                        essenceSubtab === sub.id 
+                          ? 'border-gold text-gold font-semibold' 
+                          : 'border-transparent text-foreground/60 hover:border-gold/50 hover:text-foreground'
+                      }`}
+                    >
+                      {sub.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* Sub-tabs for ingredients */}
+              {activeTab === 'ingredients' && (
                 <div className="atelier-tab-row flex items-center gap-3 overflow-x-auto pb-2">
                   {[
                     { id: 'tete', label: i18n.language === 'en' ? 'Top Notes' : 'Notes de Tête' },
@@ -1018,8 +1040,46 @@ function AtelierContent() {
                     </button>
                   ))}
                 </div>
+              )}
 
-                <div className="sommelier visible !mb-0 !bg-transparent !border-white/5 !px-0">
+              {/* Search Bar */}
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder={i18n.language === 'en' ? 'Search an essence...' : 'Rechercher une essence...'}
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 pl-10 text-xs text-foreground focus:outline-none focus:border-gold/50 transition-all font-sans"
+                />
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-foreground/40 w-3.5 h-3.5" />
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-foreground/40 hover:text-foreground p-0.5"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Scrollable Content Section */}
+        <div className="flex-1 overflow-y-auto py-4 pr-1 scrollbar-thin">
+
+        {/* LOADING INDICATOR */}
+        {loadingData ? (
+          <div className="flex flex-col items-center justify-center py-24 gap-4 text-foreground/40">
+            <Loader2 className="w-8 h-8 animate-spin text-gold" />
+            <span className="text-xs uppercase tracking-widest font-mono">Chargement du laboratoire...</span>
+          </div>
+        ) : (
+          <>
+            {/* SUB-TABS NAVIGATION OR PANEL VIEW */}
+            {activeTab === 'ingredients' && (
+              <div className="flex flex-col gap-6 animate-in fade-in duration-300">
+                <div className="sommelier visible !mb-0 !bg-transparent !border-white/5 !px-0 hidden lg:block">
                   <div className="sommelier-text text-sm font-light italic text-foreground/50" dangerouslySetInnerHTML={{ __html: sommelierHint.text }} />
                 </div>
 
@@ -1029,11 +1089,11 @@ function AtelierContent() {
                     const qty = quantities[item.id] || 0;
                     const sel = qty > 0;
                     return (
-                      <div key={item.id} className="group flex items-center justify-between p-6 bg-[var(--t-surface)] transition-all hover:bg-foreground/[0.02]">
-                        <div className="flex items-center gap-6">
-                          <div className="relative w-12 h-12 flex items-center justify-center">
+                      <div key={item.id} className="group flex items-center justify-between py-3 px-4 sm:p-5 bg-[var(--t-surface)] transition-all hover:bg-foreground/[0.02]">
+                        <div className="flex items-center gap-4">
+                          <div className="relative w-10 h-10 flex items-center justify-center flex-shrink-0">
                             <div className="absolute inset-0 rounded-full blur-xl opacity-20" style={{ backgroundColor: item.color }} />
-                            <span className="text-2xl relative z-10">{EMOJIS[item.family] || '💧'}</span>
+                            <span className="text-xl relative z-10">{EMOJIS[item.family] || '💧'}</span>
                           </div>
                           <div>
                             <h4 className={`text-sm font-medium tracking-wide transition-colors ${sel ? 'text-gold' : 'text-foreground/80 group-hover:text-gold'}`}>
@@ -1055,7 +1115,7 @@ function AtelierContent() {
                             <Minus size={12} />
                           </button>
 
-                          <div className="flex flex-col gap-1 w-28 sm:w-32">
+                          <div className="flex flex-col gap-1 w-24 sm:w-32">
                             <div className="flex justify-between items-center text-[9px] uppercase tracking-wider text-foreground/40 font-mono">
                               <span className={sel ? "text-gold font-bold font-sans" : "font-sans"}>{qty} ml</span>
                               <span className="text-foreground/30 font-sans">max {qty + remaining} ml</span>
@@ -1088,28 +1148,7 @@ function AtelierContent() {
 
             {activeTab === 'essences' && (
               <div className="flex flex-col gap-6 animate-in fade-in duration-300">
-                {/* Steps within premium essences */}
-                <div className="atelier-tab-row flex items-center gap-3 overflow-x-auto pb-2">
-                  {[
-                    { id: 'high', label: 'High Luxury' },
-                    { id: 'premium', label: 'Premium' },
-                    { id: 'super-premium', label: 'Super Premium' }
-                  ].map(sub => (
-                    <button
-                      key={sub.id}
-                      onClick={() => setEssenceSubtab(sub.id as any)}
-                      className={`whitespace-nowrap px-3 py-1 text-xs font-medium transition-colors border-b-2 ${
-                        essenceSubtab === sub.id 
-                          ? 'border-gold text-gold font-semibold' 
-                          : 'border-transparent text-foreground/60 hover:border-gold/50 hover:text-foreground'
-                      }`}
-                    >
-                      {sub.label}
-                    </button>
-                  ))}
-                </div>
-
-                <div className="sommelier visible !mb-0 !bg-transparent !border-white/5 !px-0">
+                <div className="sommelier visible !mb-0 !bg-transparent !border-white/5 !px-0 hidden lg:block">
                   <div className="sommelier-text text-sm font-light italic text-foreground/50" dangerouslySetInnerHTML={{ __html: sommelierHint.text }} />
                 </div>
 
@@ -1119,13 +1158,13 @@ function AtelierContent() {
                     const qty = quantities[item.id] || 0;
                     const sel = qty > 0;
                     return (
-                      <div key={item.id} className="group flex items-center justify-between p-6 bg-[var(--t-surface)] transition-all hover:bg-foreground/[0.02]">
-                        <div className="flex items-center gap-6">
-                          <div className="relative w-12 h-12 flex items-center justify-center">
+                      <div key={item.id} className="group flex items-center justify-between py-3 px-4 sm:p-5 bg-[var(--t-surface)] transition-all hover:bg-foreground/[0.02]">
+                        <div className="flex items-center gap-4">
+                          <div className="relative w-10 h-10 flex items-center justify-center flex-shrink-0">
                             <div className="absolute inset-0 rounded-full blur-xl opacity-20" style={{ backgroundColor: item.color }} />
-                            <span className="text-2xl relative z-10">{EMOJIS[essenceSubtab] || '✨'}</span>
+                            <span className="text-xl relative z-10">{EMOJIS[essenceSubtab] || '✨'}</span>
                           </div>
-                          <div className="max-w-[150px] sm:max-w-[200px]">
+                          <div className="max-w-[120px] sm:max-w-[200px]">
                             <h4 className={`text-sm font-medium tracking-wide transition-colors ${sel ? 'text-gold' : 'text-foreground/80 group-hover:text-gold'}`}>
                               {item.name}
                             </h4>
@@ -1146,7 +1185,7 @@ function AtelierContent() {
                             <Minus size={12} />
                           </button>
 
-                          <div className="flex flex-col gap-1 w-28 sm:w-32">
+                          <div className="flex flex-col gap-1 w-24 sm:w-32">
                             <div className="flex justify-between items-center text-[9px] uppercase tracking-wider text-foreground/40 font-mono">
                               <span className={sel ? "text-gold font-bold font-sans" : "font-sans"}>{qty} ml</span>
                               <span className="text-foreground/30 font-sans">max {qty + remaining} ml</span>
@@ -1211,7 +1250,7 @@ function AtelierContent() {
                             <p className="text-sm font-bold text-gold mt-1">{Number(matchedFlacon.prix_unitaire).toLocaleString()} FCFA</p>
                             <p className="text-[9px] text-gold/50 mt-1 uppercase tracking-widest">{i18n.language === 'en' ? 'Click to see details' : 'Cliquer pour détails'}</p>
                           </div>
-                          <Eye size={18} className="text-gold/40 group-hover:text-gold flex-shrink-0 transition-colors absolute right-3" />
+                          <Eye size={16} className="text-gold hover:text-white flex-shrink-0 transition-colors absolute right-3 top-1/2 -translate-y-1/2 bg-gold/10 border border-gold/20 p-1 rounded-lg" />
                         </button>
                         <button 
                           onClick={() => setShowFlaconDrawer(true)}
@@ -1245,7 +1284,7 @@ function AtelierContent() {
         )}
 
         {/* Footer Summary */}
-        <div className="mt-auto pt-6 border-t border-[var(--t-border)] flex flex-col gap-4">
+        <div className="mt-8 pt-6 border-t border-[var(--t-border)] flex flex-col gap-4">
           <div>
             <p className="text-[10px] uppercase tracking-[0.3em] text-foreground/30 mb-1">Investissement Total</p>
             <p className="text-4xl font-extralight text-gold">{calcPrice.toLocaleString()} <span className="text-xs tracking-normal">FCFA</span></p>
@@ -1314,6 +1353,7 @@ function AtelierContent() {
               {i18n.language === 'en' ? 'Order Directly' : 'Commander directement'}
             </button>
           </div>
+        </div>
         </div>
       </div>
 

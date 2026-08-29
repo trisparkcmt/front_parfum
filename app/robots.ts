@@ -6,7 +6,7 @@ export default function robots(): MetadataRoute.Robots {
       userAgent: '*',
       allow: '/',
     },
-    sitemap: 'https://accessoires-exclusifs.vercel.app/sitemap.xml',
-    host: 'https://accessoires-exclusifs.vercel.app',
+    sitemap: 'https://accessoiresexclusifs.com/sitemap.xml',
+    host: 'https://accessoiresexclusifs.com',
   };
 }

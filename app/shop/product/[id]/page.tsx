@@ -23,9 +23,9 @@ export async function generateMetadata({
     const rawImage = product.image_principale || (product.images && product.images[0]) || '';
     const mainImage = rawImage
       ? resolveImageUrl(rawImage)
-      : 'https://accessoires-exclusifs.vercel.app/og-image.svg';
+      : 'https://accessoiresexclusifs.com/og-image.svg';
 
-    const productUrl = `https://accessoires-exclusifs.vercel.app/shop/product/${product.slug || product.id}`;
+    const productUrl = `https://accessoiresexclusifs.com/shop/product/${product.slug || product.id}`;
 
     return {
       title: { default: product.name, template: '%s | Accessoires Exclusifs' },

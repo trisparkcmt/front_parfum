@@ -11,7 +11,7 @@ import { OfflineBanner } from "@/components/shared/OfflineBanner";
 import { GoogleAnalytics } from '@next/third-parties/google';
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://accessoires-exclusifs.vercel.app'),
+  metadataBase: new URL('https://accessoiresexclusifs.com'),
   title: {
     default: 'Accessoires Exclusifs | Luxe & Création de Parfums',
     template: '%s | Accessoires Exclusifs',
@@ -47,7 +47,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Accessoires Exclusifs | Luxe & Création de Parfums',
     description: 'Découvrez notre plateforme e-commerce de luxe, notre boutique d\'accessoires, et notre atelier de création olfactive assisté par IA.',
-    url: 'https://accessoires-exclusifs.vercel.app',
+    url: 'https://accessoiresexclusifs.com',
     siteName: 'Accessoires Exclusifs',
     locale: 'fr_FR',
     type: 'website',
@@ -83,7 +83,7 @@ export const metadata: Metadata = {
     telephone: false,
   },
   alternates: {
-    canonical: 'https://accessoires-exclusifs.vercel.app',
+    canonical: 'https://accessoiresexclusifs.com',
   },
 };
 
