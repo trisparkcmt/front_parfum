@@ -17,6 +17,7 @@ import { Button } from '@/components/ui/Button';
 import { LanguageSelector } from './LanguageSelector';
 import { ThemeToggle } from './ThemeToggle';
 import { preloadGoogleIdentityScript } from '@/components/auth/GoogleAuthButton';
+import { MobileOfflineBanner } from './OfflineBanner';
 
 const NAV_LABEL_MAP: Record<string, { fr: string; en: string }> = {
   '/': { fr: 'Accueil', en: 'Home' },
@@ -72,7 +73,11 @@ export function Navbar() {
   );
 
   return (
-    <header className="fixed left-0 right-0 z-50 transition-[top] duration-300" style={{ top: 'var(--offline-banner-height, 0px)' }}>
+    <header className="fixed top-0 left-0 right-0 z-50">
+      {/* Mobile offline banner — sits between phone status bar and nav content */}
+      <div className="lg:hidden">
+        <MobileOfflineBanner />
+      </div>
       <div className={cn('absolute inset-x-0 top-0 h-0.5 bg-gold transition-opacity duration-200', isNavigating ? 'opacity-100' : 'opacity-0')} />
 
       {/* MOBILE */}

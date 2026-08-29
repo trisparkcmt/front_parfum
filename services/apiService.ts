@@ -721,6 +721,28 @@ export const shopService = {
   },
 
   /**
+   * Get list of essences for public shop (Huile category)
+   */
+  getPublicEssences: async (params?: {
+    search?: string;
+    famille_olfactive?: string;
+    humeur?: string;
+    saison?: string;
+    occasion?: string;
+    genre?: string;
+    intensite?: string;
+    prix_min?: number;
+    prix_max?: number;
+    tags?: string;
+    page?: number;
+    ordering?: string;
+    actif?: boolean;
+  }) => {
+    const response = await api.get('lab/essences/', { params });
+    return response.data;
+  },
+
+  /**
    * Create or upsert a finished essence product (Admin / Serveuse).
    * If a ProduitFiniEssence already exists for (essence, taille_ml),
    * the server performs an update instead of creating a duplicate.

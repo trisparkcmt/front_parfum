@@ -34,24 +34,9 @@
   --font-mono: 'Lora', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 }
 
-:root {
-  --offline-banner-height: 0px;
-}
+/* Offline banner is now inline inside the Navbar header on mobile. */
+/* Desktop variant is fixed at the bottom — no height variable needed. */
 
-html.is-offline {
-  --offline-banner-height: calc(40px + env(safe-area-inset-top));
-}
-
-@media (min-width: 640px) {
-  html.is-offline {
-    --offline-banner-height: 0px;
-  }
-}
-
-.sticky.top-0 {
-  top: var(--offline-banner-height, 0px) !important;
-  transition: top 300ms ease-in-out;
-}
 
 /* ============================================================
    DARK THEME (Default)

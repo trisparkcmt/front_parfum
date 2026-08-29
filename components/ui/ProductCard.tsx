@@ -229,7 +229,11 @@ export function ProductCard({
 
         {/* Price — always one line, mt-auto pushes it away from name */}
         <p className=" text-sm font-medium sm:text-md text-foreground">
-          {hasReduction ? (
+          {product.category === 'huile' && product.produits_finis && product.produits_finis.length > 0 ? (
+            <span className="text-gold">
+              {t('price_from', { defaultValue: 'À partir de' })} {formatPrice(product.price)}
+            </span>
+          ) : hasReduction ? (
             <>
               <span className="line-through text-foreground/40 mr-1 sm:mr-1.5">{formatPrice(product.originalPrice!)}</span>
               <span className="text-gold">{formatPrice(product.price)}</span>

@@ -15,8 +15,8 @@ import { useFavoritesStore } from '@/store/useFavoritesStore';
 import { useToastStore } from '@/store/useToastStore';
 import { useTranslation } from 'react-i18next';
 import { productService } from '@/services/productService';
-import type { Product } from '@/types';
-import { EssenceQuantityModal } from '@/components/ui/EssenceQuantityModal';
+import type { Product, ProduitFiniEssence } from '@/types';
+import { EssenceSizePickerModal } from '@/components/ui/EssenceSizePickerModal';
 
 export default function PerfumesShopClient() {
   const { t } = useTranslation();
@@ -139,23 +139,27 @@ export default function PerfumesShopClient() {
   useEffect(() => {
     if (!mounted || (activeTab !== 'huile' && activeTab !== 'all')) return;
 
-    async function loadFinishedEssences() {
+    async function loadEssenceProducts() {
       setFinishedEssenceLoading(true);
       try {
-        const response = await productService.getFinishedEssenceProducts({
+        const response = await productService.getEssencesAsProducts({
           search: debouncedSearch || undefined,
           ordering: ordering || undefined,
+          genre: genre !== 'all' ? genre : undefined,
+          famille_olfactive: olfactiveFamily !== 'all' ? olfactiveFamily : undefined,
+          intensite: intensity !== 'all' ? intensity : undefined,
+          prix_max: maxPrice < 150000 ? maxPrice : undefined,
         });
         setFinishedEssenceProducts(response);
       } catch (error) {
-        console.error('Failed to load finished essences:', error);
+        console.error('Failed to load essence products:', error);
       } finally {
         setFinishedEssenceLoading(false);
       }
     }
 
-    loadFinishedEssences();
-  }, [mounted, activeTab, debouncedSearch, ordering]);
+    loadEssenceProducts();
+  }, [mounted, activeTab, debouncedSearch, ordering, genre, olfactiveFamily, intensity, maxPrice]);
 
   // Scroll active tab to center
   useEffect(() => {
@@ -181,7 +185,7 @@ export default function PerfumesShopClient() {
       activeTab === 'huile' ||
       product.category === 'huile' ||
       product.category === 'produit-fini-essence' ||
-      product.taille_ml !== undefined
+      product.produits_finis !== undefined
     ) {
       setSelectedEssence(product);
     } else {
@@ -202,17 +206,37 @@ export default function PerfumesShopClient() {
     }
   };
 
-  const handleConfirmEssenceQty = (product: Product, quantite: number) => {
-    addProduct(product, quantite);
+  const handleConfirmEssenceSize = (essence: Product, variant: ProduitFiniEssence, quantite: number) => {
+    const cartProduct: Product = {
+      id: String(variant.id),
+      name: `${essence.name} - ${variant.taille_ml}ml`,
+      description: essence.description || '',
+      price: variant.prix_actuel,
+      originalPrice: variant.prix_promotionnel ? parseFloat(variant.prix_promotionnel) : undefined,
+      taux_reduction: variant.prix_promotionnel && parseFloat(variant.prix_promotionnel) > variant.prix_actuel
+        ? String(Math.round((1 - variant.prix_actuel / parseFloat(variant.prix_promotionnel)) * 100))
+        : undefined,
+      category: 'huile',
+      images: essence.images,
+      brand: essence.brand,
+      inStock: true,
+      volume: `${variant.taille_ml}ml`,
+      taille_ml: variant.taille_ml,
+      stock_total_ml: essence.stock_total_ml,
+      essence_id: Number(essence.id),
+      createdAt: new Date().toISOString(),
+    };
+
+    addProduct(cartProduct, quantite);
     addToast(
-      `${product.name} ${t('added_to_cart')}`,
+      `${cartProduct.name} ${t('added_to_cart')}`,
       'success'
     );
     import('@/lib/gtag').then(({ trackAddToCart }) => {
       trackAddToCart({
-        id: product.id,
-        name: product.name,
-        price: product.price,
+        id: cartProduct.id,
+        name: cartProduct.name,
+        price: cartProduct.price,
         category: 'Essence finie',
         quantity: quantite,
       });
@@ -638,9 +662,9 @@ export default function PerfumesShopClient() {
       )}
 
       {selectedEssence && (
-        <EssenceQuantityModal
+        <EssenceSizePickerModal
           product={selectedEssence}
-          onConfirm={handleConfirmEssenceQty}
+          onConfirm={handleConfirmEssenceSize}
           onClose={() => setSelectedEssence(null)}
         />
       )}

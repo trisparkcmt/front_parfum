@@ -24,7 +24,8 @@ import { BackButton } from '@/components/ui/BackButton';
 import { useCartStore } from '@/store/useCartStore';
 import { useFavoritesStore } from '@/store/useFavoritesStore';
 import { useToastStore } from '@/store/useToastStore';
-import { Product } from '@/types';
+import { Product, ProduitFiniEssence } from '@/types';
+import { EssenceSizePickerModal } from '@/components/ui/EssenceSizePickerModal';
 
 export default function ProductDetailClient({ id }: { id: string }) {
   const { i18n } = useTranslation();
@@ -36,6 +37,18 @@ export default function ProductDetailClient({ id }: { id: string }) {
   const [quantity, setQuantity] = useState(1);
   const [activeTab, setActiveTab] = useState<'description' | 'details'>('description');
   const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
+  const [selectedVariant, setSelectedVariant] = useState<ProduitFiniEssence | null>(null);
+  const [selectedEssence, setSelectedEssence] = useState<Product | null>(null);
+
+  // Auto-select first available variant for finished essences
+  useEffect(() => {
+    if (product && product.category === 'huile' && product.produits_finis && product.produits_finis.length > 0) {
+      const firstAvailable = product.produits_finis.find((v) => v.stock_disponible > 0) || product.produits_finis[0];
+      setSelectedVariant(firstAvailable);
+    } else {
+      setSelectedVariant(null);
+    }
+  }, [product]);
 
   const { addProduct, addDiffuseur } = useCartStore();
   const { addFavorite, removeFavorite, isFavorite } = useFavoritesStore();
@@ -121,22 +134,52 @@ export default function ProductDetailClient({ id }: { id: string }) {
       (product.description || '').toLowerCase().includes('diffuseur')
     );
 
+    const addedName = product.category === 'huile' && selectedVariant
+      ? `${product.name} - ${selectedVariant.taille_ml}ml`
+      : product.name;
+
+    const addedPrice = product.category === 'huile' && selectedVariant
+      ? selectedVariant.prix_actuel
+      : product.price;
+
     if (isDiffuseur) {
       await addDiffuseur(Number(product.id), quantity);
+    } else if (product.category === 'huile') {
+      if (!selectedVariant) return;
+      const cartProduct: Product = {
+        id: String(selectedVariant.id),
+        name: addedName,
+        description: product.description || '',
+        price: addedPrice,
+        originalPrice: selectedVariant.prix_promotionnel ? parseFloat(selectedVariant.prix_promotionnel) : undefined,
+        taux_reduction: selectedVariant.prix_promotionnel && parseFloat(selectedVariant.prix_promotionnel) > selectedVariant.prix_actuel
+          ? String(Math.round((1 - selectedVariant.prix_actuel / parseFloat(selectedVariant.prix_promotionnel)) * 100))
+          : undefined,
+        category: 'huile',
+        images: product.images,
+        brand: product.brand,
+        inStock: true,
+        volume: `${selectedVariant.taille_ml}ml`,
+        taille_ml: selectedVariant.taille_ml,
+        stock_total_ml: product.stock_total_ml,
+        essence_id: Number(product.id),
+        createdAt: new Date().toISOString(),
+      };
+      await addProduct(cartProduct, quantity);
     } else {
       await addProduct(product, quantity);
     }
 
     addToast(
-      isEn ? `${product.name} added to bag` : `${product.name} ajouté au panier`,
+      isEn ? `${addedName} added to bag` : `${addedName} ajouté au panier`,
       'success'
     );
 
     const { trackAddToCart } = await import('@/lib/gtag');
     trackAddToCart({
-      id: product.id,
-      name: product.name,
-      price: product.price,
+      id: product.category === 'huile' && selectedVariant ? String(selectedVariant.id) : product.id,
+      name: addedName,
+      price: addedPrice,
       category: isDiffuseur ? 'Diffuseur' : (product.category ?? 'Produit'),
       quantity,
     });
@@ -190,6 +233,46 @@ export default function ProductDetailClient({ id }: { id: string }) {
         'error'
       );
     }
+  };
+
+  const handleRelatedAddToCart = (p: Product) => {
+    if (p.category === 'huile' || p.produits_finis !== undefined) {
+      setSelectedEssence(p);
+    } else {
+      addProduct(p, 1);
+      addToast(
+        isEn ? `${p.name} added to bag` : `${p.name} ajouté au panier`,
+        'success'
+      );
+    }
+  };
+
+  const handleConfirmRelatedEssenceSize = (essence: Product, variant: ProduitFiniEssence, quantite: number) => {
+    const cartProduct: Product = {
+      id: String(variant.id),
+      name: `${essence.name} - ${variant.taille_ml}ml`,
+      description: essence.description || '',
+      price: variant.prix_actuel,
+      originalPrice: variant.prix_promotionnel ? parseFloat(variant.prix_promotionnel) : undefined,
+      taux_reduction: variant.prix_promotionnel && parseFloat(variant.prix_promotionnel) > variant.prix_actuel
+        ? String(Math.round((1 - variant.prix_actuel / parseFloat(variant.prix_promotionnel)) * 100))
+        : undefined,
+      category: 'huile',
+      images: essence.images,
+      brand: essence.brand,
+      inStock: true,
+      volume: `${variant.taille_ml}ml`,
+      taille_ml: variant.taille_ml,
+      stock_total_ml: essence.stock_total_ml,
+      essence_id: Number(essence.id),
+      createdAt: new Date().toISOString(),
+    };
+
+    addProduct(cartProduct, quantite);
+    addToast(
+      isEn ? `${cartProduct.name} added to bag` : `${cartProduct.name} ajouté au panier`,
+      'success'
+    );
   };
 
   const noteEntries = product.notes ? Object.entries(product.notes) : [];
@@ -327,8 +410,21 @@ export default function ProductDetailClient({ id }: { id: string }) {
                 </div>
               </div>
 
-              <div className="text-2xl md:text-3xl font-light text-foreground mb-7">
-                {formatPrice(product.price)}
+              <div className="text-2xl md:text-3xl font-light text-foreground mb-7 font-mono">
+                {product.category === 'huile' && selectedVariant ? (
+                  selectedVariant.prix_promotionnel && parseFloat(selectedVariant.prix_promotionnel) > selectedVariant.prix_actuel ? (
+                    <div className="flex items-baseline gap-3">
+                      <span className="text-gold font-bold">{formatPrice(selectedVariant.prix_actuel)}</span>
+                      <span className="line-through text-foreground/45 text-sm md:text-base">
+                        {formatPrice(parseFloat(selectedVariant.prix_promotionnel))}
+                      </span>
+                    </div>
+                  ) : (
+                    <span className="text-gold font-bold">{formatPrice(selectedVariant.prix_actuel)}</span>
+                  )
+                ) : (
+                  formatPrice(product.price)
+                )}
               </div>
 
               <p className="text-foreground/70 leading-relaxed mb-8 text-[15px] md:text-base max-w-lg">
@@ -353,25 +449,73 @@ export default function ProductDetailClient({ id }: { id: string }) {
                 </div>
               )}
 
+              {/* Sizing Format Selector for Huiles */}
+              {product.category === 'huile' && product.produits_finis && product.produits_finis.length > 0 && (
+                <div className="mb-8">
+                  <h3 className="text-xs font-bold uppercase tracking-widest text-foreground/60 mb-3">
+                    {isEn ? 'Choose Size' : 'Format'}
+                  </h3>
+                  <div className="flex flex-wrap gap-2.5">
+                    {product.produits_finis.map((v) => {
+                      const isSelected = selectedVariant?.id === v.id;
+                      const isOutOfStock = v.stock_disponible <= 0;
+                      return (
+                        <button
+                          key={v.id}
+                          disabled={isOutOfStock}
+                          onClick={() => {
+                            setSelectedVariant(v);
+                            setQuantity(1);
+                          }}
+                          className={cn(
+                            'px-4 py-2.5 rounded-xl border text-xs font-bold transition-all relative flex flex-col items-center gap-0.5 min-w-[70px]',
+                            isSelected
+                              ? 'border-gold bg-gold/10 text-gold shadow-md'
+                              : isOutOfStock
+                              ? 'opacity-40 cursor-not-allowed border-white/5 bg-white/5 text-foreground/35'
+                              : 'border-white/10 bg-white/5 text-foreground hover:border-white/20'
+                          )}
+                        >
+                          <span className="text-sm font-bold">{v.taille_ml}ml</span>
+                          <span className="text-[10px] text-foreground/50 font-normal">{formatPrice(v.prix_actuel)}</span>
+                          {isSelected && (
+                            <span className="absolute -top-1.5 -right-1.5 w-3.5 h-3.5 bg-gold rounded-full flex items-center justify-center">
+                              <Check size={8} className="text-black stroke-[3]" />
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
               <div className="flex flex-col sm:flex-row gap-3 mb-10">
                 <div className="flex items-center justify-between sm:justify-start border border-foreground/10 rounded-xl bg-foreground/5 px-2 h-14 sm:w-36">
                   <button
                     onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                    className="w-10 h-10 flex items-center justify-center rounded-lg text-foreground/60 hover:text-gold hover:bg-foreground/5 transition-colors"
+                    disabled={quantity <= 1}
+                    className="w-10 h-10 flex items-center justify-center rounded-lg text-foreground/60 hover:text-gold hover:bg-foreground/5 transition-colors disabled:opacity-30"
                   >
                     <Minus size={15} />
                   </button>
                   <span className="flex-1 text-center font-bold tabular-nums">{quantity}</span>
                   <button
                     onClick={() => setQuantity(quantity + 1)}
-                    className="w-10 h-10 flex items-center justify-center rounded-lg text-foreground/60 hover:text-gold hover:bg-foreground/5 transition-colors"
+                    disabled={
+                      product.category === 'huile' && selectedVariant
+                        ? quantity >= selectedVariant.stock_disponible
+                        : false
+                    }
+                    className="w-10 h-10 flex items-center justify-center rounded-lg text-foreground/60 hover:text-gold hover:bg-foreground/5 transition-colors disabled:opacity-30"
                   >
                     <Plus size={15} />
                   </button>
                 </div>
                 <button
                   onClick={handleAddToCart}
-                  className="flex-1 h-14 bg-foreground text-background font-bold uppercase tracking-widest text-sm rounded-xl hover:bg-gold hover:text-black transition-all duration-300 flex items-center justify-center gap-3 group"
+                  disabled={product.category === 'huile' && !selectedVariant}
+                  className="flex-1 h-14 bg-foreground text-background font-bold uppercase tracking-widest text-sm rounded-xl hover:bg-gold hover:text-black transition-all duration-300 flex items-center justify-center gap-3 group disabled:opacity-40"
                 >
                   <ShoppingBag size={18} className="group-hover:scale-110 transition-transform" />
                   {isEn ? 'Add to Shopping Bag' : 'Ajouter au panier'}
@@ -482,7 +626,11 @@ export default function ProductDetailClient({ id }: { id: string }) {
                         <td className="py-4 text-foreground/40 uppercase text-xs tracking-widest w-1/3">
                           {isEn ? 'Volume' : 'Volume'}
                         </td>
-                        <td className="py-4 text-foreground font-medium">{product.volume || 'N/A'}</td>
+                        <td className="py-4 text-foreground font-medium">
+                          {product.category === 'huile' && selectedVariant
+                            ? `${selectedVariant.taille_ml}ml`
+                            : product.volume || 'N/A'}
+                        </td>
                       </tr>
                       {product.category?.includes('perfume') && (
                         <>
@@ -559,7 +707,7 @@ export default function ProductDetailClient({ id }: { id: string }) {
                 <ProductCard
                   key={p.id}
                   product={p}
-                  onAddToCart={addProduct}
+                  onAddToCart={handleRelatedAddToCart}
                   onToggleFavorite={addFavorite}
                   isFavorite={isFavorite(p.id)}
                 />
@@ -568,6 +716,14 @@ export default function ProductDetailClient({ id }: { id: string }) {
           </div>
         )}
       </div>
+
+      {selectedEssence && (
+        <EssenceSizePickerModal
+          product={selectedEssence}
+          onConfirm={handleConfirmRelatedEssenceSize}
+          onClose={() => setSelectedEssence(null)}
+        />
+      )}
     </div>
   );
 }

@@ -282,6 +282,49 @@ export function mapBackendFinishedEssenceToProduct(p: any): Product {
   };
 }
 
+// Helper to map backend essence with produits_finis to Product model
+export function mapBackendEssenceToProduct(e: any): Product {
+  const images = collectProductImages(e);
+
+  const activePF = (e.produits_finis || [])
+    .filter((pf: any) => pf.actif)
+    .map((pf: any) => ({
+      id: pf.id,
+      taille_ml: Number(pf.taille_ml),
+      prix: pf.prix,
+      prix_promotionnel: pf.prix_promotionnel,
+      prix_actuel: parseFloat(pf.prix_actuel || pf.prix || '0'),
+      stock_disponible: Number(pf.stock_disponible),
+      actif: pf.actif,
+    }));
+
+  const lowestPrice = activePF.reduce((min: number, pf: any) => {
+    return min === 0 ? pf.prix_actuel : (pf.prix_actuel < min ? pf.prix_actuel : min);
+  }, 0);
+
+  const hasStock = activePF.some((pf: any) => pf.stock_disponible > 0);
+
+  return {
+    id: String(e.id),
+    name: e.nom || `Essence #${e.id}`,
+    description: e.description || e.description_ia || '',
+    price: lowestPrice,
+    category: 'huile',
+    images,
+    brand: e.marque || 'Exclusif Collection',
+    inStock: hasStock && e.actif !== false,
+    rating: e.rating || 4.8,
+    reviews: e.reviews || 15,
+    slug: e.slug || String(e.id),
+    createdAt: e.date_creation || new Date().toISOString(),
+    image_principale: e.image_principale || images[0],
+    image_supp_1: e.image_supp_1 || images[1],
+    stock_total_ml: e.stock_total_ml != null ? Number(e.stock_total_ml) : undefined,
+    gender: e.genre_cible === 'homme' ? 'masculine' : e.genre_cible === 'femme' ? 'feminine' : 'unisex',
+    produits_finis: activePF,
+  };
+}
+
 export interface PerfumeFilterParams {
   famille_olfactive?: string;
   humeur?: string;
@@ -463,6 +506,48 @@ export const productService = {
     }
 
     return results.map(mapBackendFinishedEssenceToProduct);
+  },
+
+  /**
+   * Fetch essences as shop products from API with filters.
+   * Filters out any essences that have no active produits_finis in stock.
+   */
+  async getEssencesAsProducts(filters?: {
+    search?: string;
+    ordering?: string;
+    genre?: string;
+    famille_olfactive?: string;
+    intensite?: string;
+    prix_max?: number;
+  }): Promise<Product[]> {
+    const params: any = {
+      actif: true,
+    };
+    if (filters) {
+      if (filters.search) params.search = filters.search;
+      if (filters.ordering) params.ordering = filters.ordering;
+      if (filters.genre && filters.genre !== 'all') params.genre = filters.genre;
+      if (filters.famille_olfactive && filters.famille_olfactive !== 'all') params.famille_olfactive = filters.famille_olfactive;
+      if (filters.intensite && filters.intensite !== 'all') params.intensite = filters.intensite;
+      if (filters.prix_max) params.prix_max = filters.prix_max;
+    }
+
+    const response = await apiShopService.getPublicEssences(params);
+
+    let results: any[] = [];
+    if (response) {
+      if (Array.isArray(response)) {
+        results = response;
+      } else if (Array.isArray(response.results)) {
+        results = response.results;
+      } else if (Array.isArray(response.resultats)) {
+        results = response.resultats;
+      }
+    }
+
+    return results
+      .map(mapBackendEssenceToProduct)
+      .filter((product) => product.inStock);
   },
 
   /**

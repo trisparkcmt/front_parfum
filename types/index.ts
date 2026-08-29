@@ -173,6 +173,17 @@ export interface Product {
   taille_ml?: number;       // fixed bottle size in ml (e.g. 30, 50, 100)
   stock_total_ml?: number;  // total virtual stock available in ml (from LotEssence FIFO)
   essence_id?: number;      // backend essence ID
+  produits_finis?: ProduitFiniEssence[];
+}
+
+export interface ProduitFiniEssence {
+  id: number;
+  taille_ml: number;
+  prix: string;
+  prix_promotionnel: string | null;
+  prix_actuel: number;
+  stock_disponible: number;
+  actif: boolean;
 }
 
 export interface Accessory extends Product {}
@@ -778,6 +789,7 @@ export interface Essence {
   date_creation: string;
   date_modification?: string;
   stock_total_ml?: string;
+  produits_finis?: ProduitFiniEssence[];
 }
 
 export interface LotEssence {
