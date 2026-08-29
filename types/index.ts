@@ -176,16 +176,6 @@ export interface Product {
   produits_finis?: ProduitFiniEssence[];
 }
 
-export interface ProduitFiniEssence {
-  id: number;
-  taille_ml: number;
-  prix: string;
-  prix_promotionnel: string | null;
-  prix_actuel: number;
-  stock_disponible: number;
-  actif: boolean;
-}
-
 export interface Accessory extends Product {}
 
 export interface CompanyOpeningDay {
@@ -742,8 +732,8 @@ export interface ProduitFiniEssence {
   essence_details?: EssenceDetails;
   taille_ml: number;
   prix: string;
-  prix_actuel: string;
-  prix_promotionnel?: string;
+  prix_actuel: number;
+  prix_promotionnel?: string | null;
   prix_par_ml: string;
   stock_disponible: number;
   stock_precedent?: number;
