@@ -66,7 +66,7 @@ export async function registerPushNotifications(authToken: string): Promise<void
 
     console.log('[FCM] Registering token with backend...');
     // Use raw fetch to ensure Authorization header is formatted correctly and handle timeout/re-wake ups
-    const response = await fetch('https://accessoires-exclusifs-api.onrender.com/api/v1/utilisateur/devices/register/', {
+    const response = await fetch('https://api.accessoiresexclusifs.com/api/v1/utilisateur/devices/register/', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -99,7 +99,7 @@ export async function unregisterPushNotifications(authToken: string): Promise<vo
 
   try {
     console.log('[FCM] Unregistering token from backend...');
-    const response = await fetch('https://accessoires-exclusifs-api.onrender.com/api/v1/utilisateur/devices/unregister/', {
+    const response = await fetch('https://api.accessoiresexclusifs.com/api/v1/utilisateur/devices/unregister/', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

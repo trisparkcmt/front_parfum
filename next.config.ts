@@ -20,7 +20,7 @@ const nextConfig: NextConfig = {
     '172.20.10.5', 
     '192.168.1.173', 
     'bodacious-purple-gaffe.ngrok-free.dev',
-    'accessoires-exclusifs-api.onrender.com',
+    'api.accessoiresexclusifs.com',
     '0.0.0.0'
   ],
   
@@ -45,7 +45,7 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: 'https',
-        hostname: 'accessoires-exclusifs-api.onrender.com',
+        hostname: 'api.accessoiresexclusifs.com',
         pathname: '/**',
       },
       {

@@ -1,4 +1,4 @@
-POST https://accessoires-exclusifs-api.onrender.com/api/v1/login/
+POST https://api.accessoiresexclusifs.com/api/v1/login/
 content-type:Application/json
 
 {

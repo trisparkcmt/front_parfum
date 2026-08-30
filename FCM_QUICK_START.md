@@ -237,7 +237,7 @@ Vérifiez votre `.env.local` :
 
 ```bash
 # API Backend
-NEXT_PUBLIC_API_URL=https://accessoires-exclusifs-api.onrender.com
+NEXT_PUBLIC_API_URL=https://api.accessoiresexclusifs.com
 
 # Firebase (Optionnel - hardcoded si manquant)
 NEXT_PUBLIC_FIREBASE_VAPID_KEY=F0KwqkUGUbWZxo-vWoyYJzB073iJlXFZrdfCEs4UeQk

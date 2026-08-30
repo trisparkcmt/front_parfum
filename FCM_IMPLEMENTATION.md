@@ -106,7 +106,7 @@ Les fichiers suivants sont **déjà configurés** :
 NEXT_PUBLIC_FIREBASE_VAPID_KEY=F0KwqkUGUbWZxo-vWoyYJzB073iJlXFZrdfCEs4UeQk
 
 # API Backend
-NEXT_PUBLIC_API_URL=https://accessoires-exclusifs-api.onrender.com
+NEXT_PUBLIC_API_URL=https://api.accessoiresexclusifs.com
 ```
 
 ### **Étape 2 : Services créés**
