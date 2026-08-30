@@ -20,7 +20,7 @@ import type { NavLink, OlfactiveFamily } from '@/types';
 // API Configuration
 // ============================================================
 
-export const API_BASE_URL = 'https://accessoires-exclusifs-api.onrender.com';
+export const API_BASE_URL = 'https://api.accessoiresexclusifs.com';
 
 // ============================================================
 // Theme Colors
