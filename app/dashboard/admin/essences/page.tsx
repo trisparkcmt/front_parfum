@@ -199,11 +199,34 @@ export default function EssencesPage() {
   const [produitFiniImageFile, setProduitFiniImageFile] = useState<File | null>(null);
   const [selectedEssences, setSelectedEssences] = useState<Set<number>>(new Set());
 
+  // Custom dropdown open states
+  const [openDropdown, setOpenDropdown] = useState<'categorie' | 'intensite' | 'genreCible' | null>(null);
+
+  // Close custom dropdowns on outside click
+  useEffect(() => {
+    if (!openDropdown) return;
+    const close = () => setOpenDropdown(null);
+    document.addEventListener('mousedown', close);
+    return () => document.removeEventListener('mousedown', close);
+  }, [openDropdown]);
+
   const updateForm = (field: string, value: any) => {
-    setForm(prev => ({
-      ...prev,
-      [field]: value,
-    }));
+    // Support nested dot-notation keys like "produitFini.taille_ml"
+    if (field.includes('.')) {
+      const [parent, child] = field.split('.');
+      setForm(prev => ({
+        ...prev,
+        [parent]: {
+          ...(prev[parent as keyof typeof prev] as Record<string, any>),
+          [child]: value,
+        },
+      }));
+    } else {
+      setForm(prev => ({
+        ...prev,
+        [field]: value,
+      }));
+    }
     if (formErrors[field]) {
       setFormErrors(prev => {
         const updated = { ...prev };
@@ -815,7 +838,7 @@ export default function EssencesPage() {
               <div>
                 <FloatInput
                   data-field="codeReference"
-                  label="{t('col_ref')} // Code Référence *"
+                  label="Code Référence *"
                   value={form.codeReference}
                   onChange={e => updateForm('codeReference', e.target.value)}
                   error={formErrors.codeReference}
@@ -833,16 +856,31 @@ export default function EssencesPage() {
               />
               <div>
                 <label className="text-[11px] font-bold text-foreground/50 uppercase block mb-1.5">Catégorie *</label>
-                <select
-                  data-field="categorie"
-                  value={form.categorie}
-                  onChange={e => updateForm('categorie', e.target.value)}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-foreground outline-none focus:border-gold/50 bg-neutral-900 capitalize"
-                >
-                  {STATIC_CATEGORIES.map(cat => (
-                    <option key={cat} value={cat}>{cat.replace('_', ' ')}</option>
-                  ))}
-                </select>
+                <div className="relative">
+                  <button
+                    type="button"
+                    data-field="categorie"
+                    onClick={() => setOpenDropdown(v => v === 'categorie' ? null : 'categorie')}
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-foreground text-left outline-none focus:border-gold/50 flex items-center justify-between capitalize"
+                  >
+                    <span>{form.categorie.replace('_', ' ')}</span>
+                    <svg className={`w-4 h-4 text-foreground/40 transition-transform ${openDropdown === 'categorie' ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                  </button>
+                  {openDropdown === 'categorie' && (
+                    <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-neutral-900 border border-white/10 rounded-xl shadow-xl overflow-hidden">
+                      {STATIC_CATEGORIES.map(cat => (
+                        <button
+                          key={cat}
+                          type="button"
+                          onClick={() => { updateForm('categorie', cat); setOpenDropdown(null); }}
+                          className={`w-full text-left px-4 py-2.5 text-sm capitalize transition-colors hover:bg-white/10 ${form.categorie === cat ? 'text-gold bg-gold/10' : 'text-foreground'}`}
+                        >
+                          {cat.replace('_', ' ')}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
                 {formErrors.categorie && <p className="mt-1 text-xs text-red-500">{formErrors.categorie}</p>}
               </div>
             </div>
@@ -855,30 +893,68 @@ export default function EssencesPage() {
             <div className="grid grid-cols-3 gap-3">
               <div>
                 <label className="text-[11px] font-bold text-foreground/50 uppercase block mb-1.5">Intensité *</label>
-                <select
-                  data-field="intensite"
-                  value={form.intensite}
-                  onChange={e => updateForm('intensite', e.target.value)}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-foreground outline-none focus:border-gold/50 bg-neutral-900"
-                >
-                  <option value="légère">{isEn ? 'Light' : 'Légère'}</option>
-                  <option value="moyenne">{isEn ? 'Medium' : 'Moyenne'}</option>
-                  <option value="forte">{isEn ? 'Strong' : 'Forte'}</option>
-                  <option value="très forte">{isEn ? 'Very strong' : 'Très forte'}</option>
-                </select>
+                <div className="relative">
+                  <button
+                    type="button"
+                    data-field="intensite"
+                    onClick={() => setOpenDropdown(v => v === 'intensite' ? null : 'intensite')}
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-foreground text-left outline-none focus:border-gold/50 flex items-center justify-between capitalize"
+                  >
+                    <span>{isEn ? { 'légère': 'Light', 'moyenne': 'Medium', 'forte': 'Strong', 'très forte': 'Very strong' }[form.intensite] ?? form.intensite : form.intensite}</span>
+                    <svg className={`w-4 h-4 text-foreground/40 transition-transform ${openDropdown === 'intensite' ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                  </button>
+                  {openDropdown === 'intensite' && (
+                    <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-neutral-900 border border-white/10 rounded-xl shadow-xl overflow-hidden">
+                      {[
+                        { value: 'légère',     labelFr: 'Légère',     labelEn: 'Light' },
+                        { value: 'moyenne',    labelFr: 'Moyenne',    labelEn: 'Medium' },
+                        { value: 'forte',      labelFr: 'Forte',      labelEn: 'Strong' },
+                        { value: 'très forte', labelFr: 'Très forte', labelEn: 'Very strong' },
+                      ].map(opt => (
+                        <button
+                          key={opt.value}
+                          type="button"
+                          onClick={() => { updateForm('intensite', opt.value); setOpenDropdown(null); }}
+                          className={`w-full text-left px-4 py-2.5 text-sm transition-colors hover:bg-white/10 ${form.intensite === opt.value ? 'text-gold bg-gold/10' : 'text-foreground'}`}
+                        >
+                          {isEn ? opt.labelEn : opt.labelFr}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
               <div>
                 <label className="text-[11px] font-bold text-foreground/50 uppercase block mb-1.5">Cible *</label>
-                <select
-                  data-field="genreCible"
-                  value={form.genreCible}
-                  onChange={e => updateForm('genreCible', e.target.value)}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-foreground outline-none focus:border-gold/50 bg-neutral-900"
-                >
-                  <option value="mixte">{isEn ? 'Unisex' : 'Mixte'}</option>
-                  <option value="homme">{isEn ? 'Men' : 'Homme'}</option>
-                  <option value="femme">{isEn ? 'Women' : 'Femme'}</option>
-                </select>
+                <div className="relative">
+                  <button
+                    type="button"
+                    data-field="genreCible"
+                    onClick={() => setOpenDropdown(v => v === 'genreCible' ? null : 'genreCible')}
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-foreground text-left outline-none focus:border-gold/50 flex items-center justify-between capitalize"
+                  >
+                    <span>{isEn ? { 'mixte': 'Unisex', 'homme': 'Men', 'femme': 'Women' }[form.genreCible] ?? form.genreCible : form.genreCible}</span>
+                    <svg className={`w-4 h-4 text-foreground/40 transition-transform ${openDropdown === 'genreCible' ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                  </button>
+                  {openDropdown === 'genreCible' && (
+                    <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-neutral-900 border border-white/10 rounded-xl shadow-xl overflow-hidden">
+                      {[
+                        { value: 'mixte',  labelFr: 'Mixte',  labelEn: 'Unisex' },
+                        { value: 'homme',  labelFr: 'Homme',  labelEn: 'Men' },
+                        { value: 'femme',  labelFr: 'Femme',  labelEn: 'Women' },
+                      ].map(opt => (
+                        <button
+                          key={opt.value}
+                          type="button"
+                          onClick={() => { updateForm('genreCible', opt.value); setOpenDropdown(null); }}
+                          className={`w-full text-left px-4 py-2.5 text-sm transition-colors hover:bg-white/10 ${form.genreCible === opt.value ? 'text-gold bg-gold/10' : 'text-foreground'}`}
+                        >
+                          {isEn ? opt.labelEn : opt.labelFr}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
               <div>
                 <FloatInput

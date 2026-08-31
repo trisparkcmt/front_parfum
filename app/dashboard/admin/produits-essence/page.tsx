@@ -238,6 +238,25 @@ export default function FinishedEssenceAdminPage() {
     });
   };
 
+  // When an essence is selected, auto-fill derived fields from its data
+  const selectEssence = (e: any) => {
+    const essenceId = String(e.id);
+    setForm(prev => ({
+      ...prev,
+      essence: essenceId,
+      nom: prev.nom || e.nom || '',        // only prefill if not already set (edit mode)
+      marque: e.marque || '',
+      categorie: e.categorie || '',
+    }));
+    setFormErrors(prev => {
+      const next = { ...prev };
+      delete next.essence;
+      return next;
+    });
+    setShowEssenceDropdown(false);
+    setEssenceSearch('');
+  };
+
   const openAdd = () => {
     setEditing(null);
     setForm({
@@ -631,204 +650,244 @@ export default function FinishedEssenceAdminPage() {
           </div>
         }
       >
-        <div className="space-y-4">
+        <div className="space-y-5">
+
+          {/* ── 1. Essence selector ─ always at the top ─────────────────── */}
           <div>
-            <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">Nom du produit *</label>
+            <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">
+              Essence de base *
+            </label>
+            <div className="relative">
+              <div
+                data-field="essence"
+                className={`w-full bg-white/5 border rounded-xl px-3 py-2.5 text-sm outline-none cursor-pointer flex items-center justify-between gap-2 ${formErrors.essence ? 'border-red-500/50' : 'border-white/10 hover:border-white/20'}`}
+                onClick={() => setShowEssenceDropdown(v => !v)}
+              >
+                <span className={form.essence ? 'text-foreground' : 'text-foreground/40'}>
+                  {form.essence
+                    ? (() => {
+                        const found = essences.find((e: any) => String(e.id) === form.essence);
+                        return found ? `${found.nom}${found.marque ? ` — ${found.marque}` : ''}` : `Essence #${form.essence}`;
+                      })()
+                    : (isEn ? 'Choose an essence…' : 'Choisir une essence…')}
+                </span>
+                <Search size={14} className="text-foreground/40 shrink-0" />
+              </div>
+              {formErrors.essence && <p className="mt-1 text-xs text-red-500">{formErrors.essence}</p>}
+
+              {showEssenceDropdown && (
+                <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-neutral-900 border border-white/10 rounded-xl shadow-xl overflow-hidden">
+                  <div className="p-2 border-b border-white/10">
+                    <input
+                      autoFocus
+                      value={essenceSearch}
+                      onChange={e => setEssenceSearch(e.target.value)}
+                      placeholder={isEn ? 'Search essence…' : 'Rechercher une essence…'}
+                      className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold/50 placeholder:text-foreground/30"
+                    />
+                  </div>
+                  <div className="max-h-52 overflow-y-auto">
+                    {essences
+                      .filter((e: any) =>
+                        !essenceSearch ||
+                        e.nom?.toLowerCase().includes(essenceSearch.toLowerCase()) ||
+                        e.marque?.toLowerCase().includes(essenceSearch.toLowerCase())
+                      )
+                      .map((e: any) => (
+                        <button
+                          key={e.id}
+                          type="button"
+                          onClick={() => selectEssence(e)}
+                          className={`w-full text-left px-4 py-2.5 text-sm transition-colors hover:bg-white/10 ${String(e.id) === form.essence ? 'text-gold bg-gold/10' : 'text-foreground'}`}
+                        >
+                          <span className="font-medium">{e.nom}</span>
+                          {e.marque && <span className="text-foreground/40 ml-2 text-xs">— {e.marque}</span>}
+                          {e.categorie && <span className="ml-2 text-[10px] uppercase tracking-wider text-foreground/30">{e.categorie.replace('_', ' ')}</span>}
+                        </button>
+                      ))}
+                    {essences.filter((e: any) =>
+                      !essenceSearch ||
+                      e.nom?.toLowerCase().includes(essenceSearch.toLowerCase()) ||
+                      e.marque?.toLowerCase().includes(essenceSearch.toLowerCase())
+                    ).length === 0 && (
+                      <p className="text-center text-xs text-foreground/30 italic py-4">
+                        {isEn ? 'No essence found.' : 'Aucune essence trouvée.'}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* ── Derived fields (read-only, populated from essence) ─────────── */}
+          {form.essence && (
+            <div className="rounded-xl border border-white/8 bg-white/[0.02] px-4 py-3 space-y-2">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-foreground/35 mb-2">
+                {isEn ? 'Details from selected essence' : 'Détails issus de l\'essence'}
+              </p>
+              <div className="grid grid-cols-3 gap-3 text-xs">
+                <div>
+                  <p className="text-foreground/40 mb-0.5">{isEn ? 'Brand' : 'Marque'}</p>
+                  <p className="font-medium text-foreground">{form.marque || '—'}</p>
+                </div>
+                <div>
+                  <p className="text-foreground/40 mb-0.5">{isEn ? 'Category' : 'Catégorie'}</p>
+                  <p className="font-medium text-foreground capitalize">{form.categorie?.replace('_', ' ') || '—'}</p>
+                </div>
+                <div>
+                  <p className="text-foreground/40 mb-0.5">{isEn ? 'Name' : 'Nom'}</p>
+                  <p className="font-medium text-foreground truncate">{form.nom || '—'}</p>
+                </div>
+              </div>
+              <p className="text-[10px] text-foreground/30 pt-1">
+                {isEn ? 'You can override the product name below.' : 'Vous pouvez modifier le nom du produit ci-dessous.'}
+              </p>
+            </div>
+          )}
+
+          {/* ── 2. Product name (editable override of essence name) ────────── */}
+          <div>
+            <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">
+              {isEn ? 'Product name *' : 'Nom du produit *'}
+            </label>
             <input
               data-field="nom"
               value={form.nom}
               onChange={(e) => updateFormField('nom', e.target.value)}
-              className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-base text-foreground outline-none focus:border-gold"
+              placeholder={isEn ? 'e.g. Oud Premium 50ml' : 'Ex: Oud Premium 50ml'}
+              className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-foreground outline-none focus:border-gold/50 placeholder:text-foreground/25"
             />
             {formErrors.nom && <p className="mt-1 text-xs text-red-500">{formErrors.nom}</p>}
           </div>
+
+          {/* ── 3. Size + Stock ────────────────────────────────────────────── */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">Marque</label>
+              <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">
+                {isEn ? 'Size (ml) *' : 'Taille (ml) *'}
+              </label>
               <input
-                data-field="marque"
-                value={form.marque}
-                onChange={(e) => updateFormField('marque', e.target.value)}
-                className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-base text-foreground outline-none focus:border-gold"
+                data-field="taille_ml"
+                type="number"
+                value={form.taille_ml}
+                onChange={(e) => updateFormField('taille_ml', e.target.value)}
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-foreground outline-none focus:border-gold/50"
               />
-              {formErrors.marque && <p className="mt-1 text-xs text-red-500">{formErrors.marque}</p>}
+              {formErrors.taille_ml && <p className="mt-1 text-xs text-red-500">{formErrors.taille_ml}</p>}
             </div>
             <div>
-              <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">Catégorie</label>
+              <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">
+                {isEn ? 'Available stock *' : 'Stock disponible *'}
+              </label>
               <input
-                data-field="categorie"
-                value={form.categorie}
-                onChange={(e) => updateFormField('categorie', e.target.value)}
-                className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-base text-foreground outline-none focus:border-gold"
+                data-field="stock_disponible"
+                type="number"
+                value={form.stock_disponible}
+                onChange={(e) => updateFormField('stock_disponible', e.target.value)}
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-foreground outline-none focus:border-gold/50"
               />
-              {formErrors.categorie && <p className="mt-1 text-xs text-red-500">{formErrors.categorie}</p>}
+              {formErrors.stock_disponible && <p className="mt-1 text-xs text-red-500">{formErrors.stock_disponible}</p>}
             </div>
           </div>
-        </div>
 
-        <div className="relative">
-          <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">Essence de base *</label>
-          <div
-            data-field="essence"
-            className={`w-full bg-white/5 border rounded-xl px-3 py-2.5 text-base outline-none focus:border-gold bg-neutral-900 cursor-pointer flex items-center justify-between ${formErrors.essence ? 'border-red-500/50' : 'border-white/10'}`}
-            onClick={() => setShowEssenceDropdown(v => !v)}
-          >
-            <span className={form.essence ? 'text-foreground' : 'text-foreground/40'}>
-              {form.essence
-                ? essences.find((e: any) => String(e.id) === form.essence)?.nom ?? `Essence #${form.essence}`
-                : 'Choisir une essence…'}
-            </span>
-            <Search size={14} className="text-foreground/40" />
+          {/* ── 4. Price + Promo ───────────────────────────────────────────── */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">
+                {isEn ? 'Price (FCFA) *' : 'Prix (FCFA) *'}
+              </label>
+              <input
+                data-field="prix"
+                type="number"
+                value={form.prix}
+                onChange={(e) => updateFormField('prix', e.target.value)}
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-foreground outline-none focus:border-gold/50"
+              />
+              {formErrors.prix && <p className="mt-1 text-xs text-red-500">{formErrors.prix}</p>}
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">
+                {isEn ? 'Promo price' : 'Prix promo'} <span className="text-foreground/30 normal-case font-normal">(optionnel)</span>
+              </label>
+              <input
+                data-field="prix_promotionnel"
+                type="number"
+                value={form.prix_promotionnel}
+                onChange={(e) => updateFormField('prix_promotionnel', e.target.value)}
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-foreground outline-none focus:border-gold/50"
+              />
+              {formErrors.prix_promotionnel && <p className="mt-1 text-xs text-red-500">{formErrors.prix_promotionnel}</p>}
+            </div>
           </div>
-          {formErrors.essence && <p className="mt-1 text-xs text-red-500">{formErrors.essence}</p>}
-          {showEssenceDropdown && (
-            <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-neutral-900 border border-white/10 rounded-xl shadow-sm overflow-hidden">
-              <div className="p-2">
-                <input
-                  autoFocus
-                  value={essenceSearch}
-                  onChange={e => setEssenceSearch(e.target.value)}
-                  placeholder="Rechercher une essence…"
-                  className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
-                />
-              </div>
-              <div className="max-h-48 overflow-y-auto">
-                {essences
-                  .filter((e: any) =>
-                    !essenceSearch ||
-                    e.nom?.toLowerCase().includes(essenceSearch.toLowerCase()) ||
-                    e.marque?.toLowerCase().includes(essenceSearch.toLowerCase())
-                  )
-                  .map((e: any) => (
-                    <button
-                      key={e.id}
-                      onClick={() => {
-                        setForm(f => ({ ...f, essence: String(e.id) }));
-                        setFormErrors((prev) => {
-                          if (!prev.essence) return prev;
-                          const next = { ...prev };
-                          delete next.essence;
-                          return next;
-                        });
-                        setShowEssenceDropdown(false);
-                        setEssenceSearch('');
-                      }}
-                      className={`w-full text-left px-4 py-2.5 text-sm hover:bg-white/10 transition-colors ${
-                        String(e.id) === form.essence ? 'text-gold bg-gold/10' : 'text-foreground'
-                      }`}
-                    >
-                      <span className="font-medium">{e.nom}</span>
-                      {e.marque && <span className="text-foreground/40 ml-2 text-xs">— {e.marque}</span>}
-                    </button>
-                  ))}
-              </div>
+
+          {/* ── 5. Image ───────────────────────────────────────────────────── */}
+          <div>
+            <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">
+              {isEn ? 'Main image' : 'Image principale'}
+            </label>
+            <input
+              data-field="imageFile"
+              type="file"
+              accept="image/*"
+              onChange={(e) => setImageFile(e.target.files?.[0] || null)}
+              className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-foreground outline-none file:bg-gold file:text-black file:border-0 file:rounded-lg file:px-3 file:py-1.5 file:mr-3 file:text-xs file:font-bold file:cursor-pointer cursor-pointer"
+            />
+          </div>
+
+          {/* ── 6. Lab stock warning ───────────────────────────────────────── */}
+          {!editing && form.essence && (
+            <div className={`rounded-xl border px-4 py-3 text-sm space-y-1 ${stockInsuffisant ? 'border-red-500/30 bg-red-500/10 text-red-300' : 'border-white/10 bg-white/[0.03] text-foreground/70'}`}>
+              <p className="font-semibold text-xs uppercase tracking-wider text-foreground/50">
+                {isEn ? 'Lab lot consumption' : 'Consommation lot laboratoire'}
+              </p>
+              <p>
+                {isEn ? 'Required ml:' : 'ML requis :'} <span className="font-bold">{mlRequis.toLocaleString()} ml</span>
+                {' '}<span className="text-foreground/40 text-xs">{isEn ? '(size × stock)' : '(taille × stock)'}</span>
+              </p>
+              <p>
+                {isEn ? 'Available lot stock:' : 'Stock lot disponible :'}{' '}
+                {loadingLotStock ? (
+                  <span className="text-foreground/40">{isEn ? 'calculating…' : 'calcul…'}</span>
+                ) : lotStockMl !== null ? (
+                  <span className={`font-bold ${stockInsuffisant ? 'text-red-400' : 'text-emerald-400'}`}>
+                    {lotStockMl.toLocaleString()} ml
+                  </span>
+                ) : (
+                  <span className="text-foreground/40">—</span>
+                )}
+              </p>
+              {stockInsuffisant && (
+                <p className="text-xs pt-1">
+                  {isEn
+                    ? 'Insufficient stock — create a lab lot or reduce the requested stock.'
+                    : 'Stock insuffisant — créez un lot via Labo ou réduisez le stock demandé.'}
+                </p>
+              )}
             </div>
           )}
-        </div>
 
-        <div>
-          <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">Image principale</label>
-          <input
-            data-field="imageFile"
-            type="file"
-            accept="image/*"
-            onChange={(e) => setImageFile(e.target.files?.[0] || null)}
-            className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-base text-foreground outline-none file:bg-gold file:text-black file:border-0 file:rounded file:px-2 file:py-1 file:mr-2 file:text-xs file:font-semibold"
-          />
-          {formErrors.imageFile && <p className="mt-1 text-xs text-red-500">{formErrors.imageFile}</p>}
-        </div>
+          {/* ── 7. Active toggle ──────────────────────────────────────────── */}
+          <label className="flex items-center gap-3 cursor-pointer select-none">
+            <div
+              onClick={() => setForm(f => ({ ...f, actif: !f.actif }))}
+              className={`w-10 h-5 rounded-full transition-all relative flex-shrink-0 ${form.actif ? 'bg-gold' : 'bg-white/10'}`}
+            >
+              <span className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-all ${form.actif ? 'left-5' : 'left-0.5'}`} />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-foreground">{isEn ? 'Active product' : 'Produit actif'}</p>
+              <p className="text-[10px] text-foreground/40">{isEn ? 'Visible in shop' : 'Visible dans la boutique'}</p>
+            </div>
+          </label>
 
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">Taille (ml) *</label>
-            <input
-              data-field="taille_ml"
-              type="number"
-              value={form.taille_ml}
-              onChange={(e) => updateFormField('taille_ml', e.target.value)}
-              className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-base text-foreground outline-none focus:border-gold"
-            />
-            {formErrors.taille_ml && <p className="mt-1 text-xs text-red-500">{formErrors.taille_ml}</p>}
-          </div>
-          <div>
-            <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">Stock *</label>
-            <input
-              data-field="stock_disponible"
-              type="number"
-              value={form.stock_disponible}
-              onChange={(e) => updateFormField('stock_disponible', e.target.value)}
-              className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-base text-foreground outline-none focus:border-gold"
-            />
-            {formErrors.stock_disponible && <p className="mt-1 text-xs text-red-500">{formErrors.stock_disponible}</p>}
-          </div>
-        </div>
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">Prix (FCFA) *</label>
-            <input
-              data-field="prix"
-              type="number"
-              value={form.prix}
-              onChange={(e) => updateFormField('prix', e.target.value)}
-              className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-base text-foreground outline-none focus:border-gold"
-            />
-            {formErrors.prix && <p className="mt-1 text-xs text-red-500">{formErrors.prix}</p>}
-          </div>
-          <div>
-            <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">Prix Promo</label>
-            <input
-              data-field="prix_promotionnel"
-              type="number"
-              value={form.prix_promotionnel}
-              onChange={(e) => updateFormField('prix_promotionnel', e.target.value)}
-              className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-base text-foreground outline-none focus:border-gold"
-            />
-            {formErrors.prix_promotionnel && <p className="mt-1 text-xs text-red-500">{formErrors.prix_promotionnel}</p>}
-          </div>
-        </div>
-
-        {!editing && form.essence && (
-          <div className={`rounded-xl border px-4 py-3 text-sm space-y-1 ${stockInsuffisant ? 'border-red-500/30 bg-red-500/10 text-red-300' : 'border-white/10 bg-white/5 text-foreground/70'}`}>
-            <p className="font-semibold text-xs uppercase tracking-wider text-foreground/50">Consommation lot laboratoire</p>
-            <p>
-              ML requis : <span className="font-bold">{mlRequis.toLocaleString()} ml</span>
-              {' '}(taille × stock)
+          {/* ── Error banner ─────────────────────────────────────────────── */}
+          {formError && (
+            <p className="text-sm font-semibold text-red-500 bg-red-500/10 border border-red-500/20 px-4 py-2.5 rounded-xl text-center whitespace-pre-line">
+              {formError}
             </p>
-            <p>
-              Stock lot disponible :{' '}
-              {loadingLotStock ? (
-                <span className="text-foreground/40">calcul…</span>
-              ) : lotStockMl !== null ? (
-                <span className={`font-bold ${stockInsuffisant ? 'text-red-400' : 'text-emerald-400'}`}>
-                  {lotStockMl.toLocaleString()} ml
-                </span>
-              ) : (
-                <span className="text-foreground/40">—</span>
-              )}
-            </p>
-            {stockInsuffisant && (
-              <p className="text-xs pt-1">
-                Stock insuffisant — créez un lot via Labo ou réduisez le stock demandé.
-              </p>
-            )}
-          </div>
-        )}
-
-        <label className="flex items-center gap-2 text-sm pt-1 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={form.actif}
-            onChange={(e) => setForm((f) => ({ ...f, actif: e.target.checked }))}
-            className="rounded border-white/10 bg-white/5 text-gold focus:ring-gold"
-          />
-          Produit actif
-        </label>
-
-        {formError && (
-          <p className="text-sm font-semibold text-red-500 bg-red-500/10 border border-red-500/20 px-4 py-2.5 rounded-xl text-center whitespace-pre-line">
-            {formError}
-          </p>
-        )}
+          )}
+        </div>
       </SlideOver>
     </div>
   );

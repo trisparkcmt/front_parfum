@@ -28,7 +28,7 @@ export async function generateMetadata({
       description: product.description || `Huile essentielle ${product.name}`,
       openGraph: {
         title: product.name,
-        description: product.description || 'Découvrez notre collection d'huiles exclusives',
+        description: product.description || "Découvrez notre collection d'huiles exclusives",
         url: productUrl,
         siteName: 'Accessoires Exclusifs',
         locale: 'fr_FR',
@@ -38,7 +38,7 @@ export async function generateMetadata({
       twitter: {
         card: 'summary_large_image',
         title: product.name,
-        description: product.description || 'Découvrez notre collection d'huiles exclusives',
+        description: product.description || "Découvrez notre collection d'huiles exclusives",
         images: [mainImage],
       },
     };
