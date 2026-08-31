@@ -119,8 +119,8 @@ function collectProductImages(p: any): string[] {
   return images;
 }
 
-function inferCatalogItemKind(item: any): 'perfume' | 'accessory' | 'diffuseur' | 'unknown' {
-  const payload = item?.parfum ?? item?.accessoire ?? item?.produit ?? item;
+function inferCatalogItemKind(item: any): 'perfume' | 'accessory' | 'diffuseur' | 'essence' | 'unknown' {
+  const payload = item?.parfum ?? item?.accessoire ?? item?.produit ?? item?.essence ?? item;
   const typeTokens = [
     item?.type,
     item?.type_article,
@@ -134,6 +134,23 @@ function inferCatalogItemKind(item: any): 'perfume' | 'accessory' | 'diffuseur' 
     .filter(Boolean)
     .join(' ')
     .toLowerCase();
+
+  // Essence / finished-essence detection — must come BEFORE perfume check
+  // because essences can carry genre_cible / famille_olfactive which would
+  // otherwise cause them to be misclassified as perfumes.
+  if (
+    typeTokens.includes('essence') ||
+    typeTokens.includes('huile') ||
+    typeTokens.includes('produit_fini') ||
+    typeTokens.includes('produit-fini') ||
+    item?.essence != null ||           // wrapper field used by catalog endpoints
+    payload?.essence != null ||
+    payload?.taille_ml != null ||      // ProduitFiniEssence-specific field
+    payload?.stock_total_ml != null ||
+    payload?.produits_finis != null    // parent essence object
+  ) {
+    return 'essence';
+  }
 
   if (typeTokens.includes('accessoire') || typeTokens.includes('accessory') || payload?.type_accessoire || payload?.type_nom) {
     return 'accessory';
@@ -156,7 +173,7 @@ function inferCatalogItemKind(item: any): 'perfume' | 'accessory' | 'diffuseur' 
 }
 
 function mapBackendCatalogItemToProduct(item: any): Product {
-  const payload = item?.parfum ?? item?.accessoire ?? item?.produit ?? item;
+  const payload = item?.parfum ?? item?.accessoire ?? item?.produit ?? item?.essence ?? item;
   const kind = inferCatalogItemKind(item);
 
   switch (kind) {
@@ -164,6 +181,13 @@ function mapBackendCatalogItemToProduct(item: any): Product {
       return mapBackendAccessoryToProduct(payload);
     case 'diffuseur':
       return mapBackendDiffuseurToProduct(payload);
+    case 'essence':
+      // Route to the appropriate mapper depending on whether this is a
+      // parent essence object (with produits_finis) or a finished-essence product.
+      if (payload?.produits_finis != null) {
+        return mapBackendEssenceToProduct(payload);
+      }
+      return mapBackendFinishedEssenceToProduct(payload);
     case 'perfume':
     default:
       return mapBackendPerfumeToProduct(payload);

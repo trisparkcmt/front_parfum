@@ -1682,9 +1682,68 @@ function getOrderLineDetailMeta(line: BackendOrderLine) {
   return { essenceName, marque, tailleMl, categorie, prixParMl, prixActuel, codeReference };
 }
 
+function ColorPopup({ color, onClose }: { color: string; onClose: () => void }) {
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, [onClose]);
+
+  return (
+    <div
+      className="fixed inset-0 z-[80] flex items-center justify-center bg-black/70 backdrop-blur-sm p-6"
+      onClick={onClose}
+    >
+      <div
+        className="relative flex flex-col items-center gap-5 rounded-2xl border border-white/15 bg-background p-7 shadow-2xl w-full max-w-[260px]"
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Large color swatch */}
+        <div
+          className="h-32 w-32 rounded-full border-4 border-white/20 shadow-2xl"
+          style={{
+            backgroundColor: color,
+            boxShadow: `0 0 40px ${color}60, 0 0 80px ${color}30, inset 0 0 20px ${color}20`,
+          }}
+        />
+
+        {/* Hex code */}
+        <div className="text-center space-y-1">
+          <p className="text-[10px] font-semibold uppercase tracking-widest text-foreground/35">
+            Couleur du flacon
+          </p>
+          <code className="block rounded-lg border border-white/10 bg-white/[0.04] px-4 py-1.5 font-mono text-sm font-bold tracking-widest text-gold">
+            {color.toUpperCase()}
+          </code>
+        </div>
+
+        {/* Copy button */}
+        <button
+          onClick={() => { navigator.clipboard?.writeText(color); onClose(); }}
+          className="w-full rounded-xl border border-white/10 py-2 text-xs font-medium text-foreground/60 transition-colors hover:border-gold/30 hover:text-gold"
+        >
+          Copier
+        </button>
+
+        <button
+          onClick={onClose}
+          className="absolute top-3 right-3 rounded-full p-1.5 text-foreground/30 transition-colors hover:text-foreground"
+        >
+          <X size={14} />
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function LinesGroup({ title, icon, lines, isEn = false }: { title: string; icon: React.ReactNode; lines: BackendOrderLine[]; isEn?: boolean }) {
+  const [colorPreview, setColorPreview] = useState<string | null>(null);
+
   return (
     <div>
+      {/* Color popup */}
+      {colorPreview && <ColorPopup color={colorPreview} onClose={() => setColorPreview(null)} />}
+
       <p className="mb-1.5 flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-wider text-foreground/30">
         {icon}{title}
       </p>
@@ -1733,18 +1792,20 @@ function LinesGroup({ title, icon, lines, isEn = false }: { title: string; icon:
                       <span>{isEn ? 'Color' : 'Couleur'}</span>
                       <div className="flex items-center gap-2">
                         <code className="text-[10px] font-mono text-gold">{line.composition.couleur}</code>
-                        <div 
-                          className="w-5 h-5 rounded-full border border-white/20 shadow-md cursor-pointer hover:shadow-lg hover:border-white/40 transition-all"
+                        <button
+                          type="button"
+                          onClick={() => setColorPreview(line.composition!.couleur!)}
+                          title="Voir la couleur en grand"
+                          className="group relative w-6 h-6 rounded-full border-2 border-white/20 shadow-md transition-all hover:scale-125 hover:border-white/60 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-gold/50"
                           style={{ backgroundColor: line.composition.couleur }}
-                          title="Cliquer pour voir les détails"
                         >
-                          <div 
-                            className="w-full h-full rounded-full pointer-events-none"
+                          <span
+                            className="absolute inset-0 rounded-full pointer-events-none"
                             style={{
-                              boxShadow: `inset 0 0 4px ${line.composition.couleur}40, 0 0 6px ${line.composition.couleur}40`,
+                              boxShadow: `inset 0 0 4px ${line.composition.couleur}40, 0 0 8px ${line.composition.couleur}40`,
                             }}
                           />
-                        </div>
+                        </button>
                       </div>
                     </div>
                   )}

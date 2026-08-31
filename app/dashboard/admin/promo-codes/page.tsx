@@ -87,6 +87,7 @@ export default function PromoCodesPage() {
   const [formActif, setFormActif] = useState(true);
   const [formClients, setFormClients] = useState<number[]>([]);
   const [selectedPromoForDetails, setSelectedPromoForDetails] = useState<PromoCode | null>(null);
+  const [groupLoading, setGroupLoading] = useState<string | null>(null);
 
   const fetchCodes = useCallback(async () => {
     setLoading(true);
@@ -169,6 +170,35 @@ export default function PromoCodesPage() {
   };
 
   const toggleClient = (id: number) => setFormClients(prev => prev.includes(id) ? prev.filter(c => c !== id) : [...prev, id]);
+
+  // Fetch a named group from the API and add all returned client IDs to formClients
+  const selectGroup = async (groupKey: string) => {
+    setGroupLoading(groupKey);
+    try {
+      const paramMap: Record<string, Record<string, any>> = {
+        bestsellers:   { ordering: '-total_depense', page_size: 50 },
+        recents:       { ordering: '-date_joined',   page_size: 50 },
+        active:        { is_active: true,            page_size: 50 },
+        inactive:      { is_active: false,           page_size: 50 },
+        all:           { page_size: 200 },
+      };
+      const data = await adminService.getUsers(paramMap[groupKey] ?? {});
+      const list: Client[] = data.results ?? data.resultats ?? (Array.isArray(data) ? data : []);
+      // Merge — keep existing + add new without duplicates
+      setClients(prev => {
+        const merged = [...prev];
+        list.forEach(c => { if (!merged.find(m => m.id === c.id)) merged.push(c); });
+        return merged;
+      });
+      const ids = list.map(c => c.id);
+      setFormClients(prev => Array.from(new Set([...prev, ...ids])));
+      addToast(`${ids.length} client(s) ajouté(s)`, 'success');
+    } catch {
+      addToast('Erreur lors du chargement du groupe', 'error');
+    } finally {
+      setGroupLoading(null);
+    }
+  };
   const fmt = (d: string) => new Date(d).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
 
   return (
@@ -355,6 +385,39 @@ export default function PromoCodesPage() {
             </button>
             {showClientPicker && (
               <div className="mt-2 border border-white/10 rounded-xl overflow-hidden">
+                {/* Group shortcuts */}
+                <div className="px-3 py-2.5 border-b border-white/10 bg-white/[0.02]">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-foreground/35 mb-2">Sélection rapide par groupe</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {[
+                      { key: 'bestsellers', label: '⭐ Meilleurs clients',  title: 'Top 50 clients par dépense totale' },
+                      { key: 'recents',     label: '🆕 Nouveaux clients',   title: 'Les 50 inscrits les plus récents' },
+                      { key: 'active',      label: '✅ Comptes actifs',     title: 'Tous les comptes actifs' },
+                      { key: 'all',         label: '👥 Tous',               title: 'Sélectionner tous les clients (max 200)' },
+                    ].map(g => (
+                      <button
+                        key={g.key}
+                        type="button"
+                        title={g.title}
+                        disabled={groupLoading !== null}
+                        onClick={() => selectGroup(g.key)}
+                        className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[11px] font-medium text-foreground/60 transition-colors hover:border-gold/30 hover:bg-gold/8 hover:text-gold disabled:opacity-40 disabled:cursor-wait"
+                      >
+                        {groupLoading === g.key && <Loader2 size={10} className="animate-spin" />}
+                        {g.label}
+                      </button>
+                    ))}
+                    {formClients.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setFormClients([])}
+                        className="inline-flex items-center gap-1 rounded-full border border-red-500/20 bg-red-500/8 px-2.5 py-1 text-[11px] font-medium text-red-400 transition-colors hover:bg-red-500/15"
+                      >
+                        <X size={9} /> Tout désélectionner
+                      </button>
+                    )}
+                  </div>
+                </div>
                 <div className="px-3 py-2 border-b border-white/10 flex items-center gap-2">
                   <Search size={14} className="text-foreground/40" />
                   <input autoFocus value={clientSearch} onChange={e => setClientSearch(e.target.value)} placeholder="Rechercher par nom ou email..." className="flex-1 bg-transparent text-sm outline-none text-foreground placeholder:text-foreground/30" />

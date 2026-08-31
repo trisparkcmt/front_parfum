@@ -1039,7 +1039,7 @@ export function GeminiChat({ onChatStarted }: GeminiChatProps) {
       const apiResponse = await api.post(
         'lab/ia-recommandation/',
         { prompt: fullPrompt },
-        { signal: abortControllerRef.current.signal }
+        { signal: abortControllerRef.current.signal, timeout: 60000 }
       );
 
       const response: AiResponse = apiResponse.data;

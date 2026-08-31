@@ -58,8 +58,12 @@ export function ProductCard({
 
   const isDiffuseur = !!(product.type_technologie || product.capacite_reservoir_ml);
 
+  const isHuile = product.category === 'huile' || product.category === 'produit-fini-essence';
+
   const productUrl = isDiffuseur
     ? `/shop/diffuseurs/${product.id || product.slug}`
+    : isHuile
+    ? `/shop/huile/${product.slug || product.id}`
     : `/shop/product/${product.slug || product.id}`;
 
   // Derive category label
