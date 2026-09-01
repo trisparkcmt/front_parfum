@@ -469,7 +469,6 @@ export default function CategoriesAdminPage() {
     }
 
     setIsSaving(true);
-    setShowModal(false);
     try {
       if (activeTab === 'perfume_categories') {
         const formData = new FormData();
@@ -527,9 +526,11 @@ export default function CategoriesAdminPage() {
         }
       }
 
+      setShowModal(false);
       fetchItems();
     } catch (error: any) {
-      setFormError(extractApiError(error, t('toast_save_error')));    } finally {
+      setFormError(extractApiError(error, t('toast_save_error')));
+    } finally {
       setIsSaving(false);
     }
   };

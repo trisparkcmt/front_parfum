@@ -299,10 +299,10 @@ export default function FlaconsAdminPage() {
     setImagePreview(null);
     setForm({
       nom: '',
-      type_flacon: '',
+      type_flacon: bottleTypes[0]?.id ? String(bottleTypes[0].id) : '',
       contenance_ml: 100,
-      matiere: '',
-      couleur: '',
+      matiere: 'Verre',
+      couleur: 'Transparent',
       hauteur_cm: '15.00',
       largeur_cm: '6.00',
       poids_grammes: 200,
@@ -340,7 +340,7 @@ export default function FlaconsAdminPage() {
 
   const handleSave = async () => {
     if (!permissions.canCreate && !permissions.canUpdate) return;
-    if (!form.nom) {
+    if (!form.nom || !form.type_flacon) {
       addToast(t('toast_required'), 'error');
       return;
     }
@@ -348,6 +348,7 @@ export default function FlaconsAdminPage() {
     try {
       const payload: Record<string, any> = {
         nom: form.nom,
+        type_flacon: Number(form.type_flacon),
         contenance_ml: Number(form.contenance_ml),
         hauteur_cm: form.hauteur_cm,
         largeur_cm: form.largeur_cm,
@@ -358,9 +359,6 @@ export default function FlaconsAdminPage() {
         actif: form.actif,
       };
 
-      if (form.type_flacon) {
-        payload.type_flacon = Number(form.type_flacon);
-      }
       if (form.matiere) {
         payload.matiere = form.matiere;
       }
