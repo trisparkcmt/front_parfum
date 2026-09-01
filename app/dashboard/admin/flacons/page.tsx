@@ -31,7 +31,7 @@ const T = {
     modal_title_edit: 'Modifier le flacon',
     modal_desc: 'Formulaire complet, sans popup ni défilement gênant.',
     field_name: 'Nom *',
-    field_type: 'Type de Flacon *',
+    field_type: 'Type de Flacon',
     field_volume: 'Contenance (ml)',
     field_weight: 'Poids (g)',
     field_material: 'Matière',
@@ -81,7 +81,7 @@ const T = {
     modal_title_edit: 'Edit bottle',
     modal_desc: 'Full form with no popup or scroll issues.',
     field_name: 'Name *',
-    field_type: 'Bottle Type *',
+    field_type: 'Bottle Type',
     field_volume: 'Volume (ml)',
     field_weight: 'Weight (g)',
     field_material: 'Material',
@@ -247,8 +247,8 @@ export default function FlaconsAdminPage() {
     nom: '',
     type_flacon: '',
     contenance_ml: 100,
-    matiere: 'Verre',
-    couleur: 'Transparent',
+    matiere: '',
+    couleur: '',
     hauteur_cm: '15.00',
     largeur_cm: '6.00',
     poids_grammes: 200,
@@ -299,10 +299,10 @@ export default function FlaconsAdminPage() {
     setImagePreview(null);
     setForm({
       nom: '',
-      type_flacon: bottleTypes[0]?.id ? String(bottleTypes[0].id) : '',
+      type_flacon: '',
       contenance_ml: 100,
-      matiere: 'Verre',
-      couleur: 'Transparent',
+      matiere: '',
+      couleur: '',
       hauteur_cm: '15.00',
       largeur_cm: '6.00',
       poids_grammes: 200,
@@ -340,18 +340,15 @@ export default function FlaconsAdminPage() {
 
   const handleSave = async () => {
     if (!permissions.canCreate && !permissions.canUpdate) return;
-    if (!form.nom || !form.type_flacon) {
+    if (!form.nom) {
       addToast(t('toast_required'), 'error');
       return;
     }
     setSaving(true);
     try {
-      const payload = {
+      const payload: Record<string, any> = {
         nom: form.nom,
-        type_flacon: Number(form.type_flacon),
         contenance_ml: Number(form.contenance_ml),
-        matiere: form.matiere,
-        couleur: form.couleur,
         hauteur_cm: form.hauteur_cm,
         largeur_cm: form.largeur_cm,
         poids_grammes: Number(form.poids_grammes),
@@ -360,6 +357,19 @@ export default function FlaconsAdminPage() {
         seuil_alerte_stock: Number(form.seuil_alerte_stock),
         actif: form.actif,
       };
+
+      if (form.type_flacon) {
+        payload.type_flacon = Number(form.type_flacon);
+      }
+      if (form.matiere) {
+        payload.matiere = form.matiere;
+      }
+      if (form.couleur) {
+        payload.couleur = form.couleur;
+      }
+      if (form.prix_achat) {
+        payload.prix_achat = form.prix_achat;
+      }
       if (imageFile) {
         const formData = new FormData();
         Object.entries(payload).forEach(([key, value]) => {
