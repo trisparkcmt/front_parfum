@@ -5,6 +5,7 @@ import { Loader2, Edit2, Trash2, Plus, Search, Filter, X, Image as ImageIcon } f
 import { InlineCell } from '@/components/admin/InlineCell';
 import { shopService, adminService } from '@/services/apiService';
 import { useTranslation } from 'react-i18next';
+import { CustomSelect } from '@/components/ui/CustomSelect';
 
 /* ── Inline translations ─────────────────────────────────────────────────── */
 const T = {
@@ -507,31 +508,29 @@ export default function FlaconsAdminPage() {
           <div className="shadow-black/30 shadow-sm rounded-xl border border-white/10 bg-white/[0.02] p-3 flex flex-wrap items-center gap-4">
             <div className="flex items-center gap-2">
               <span className="text-xs text-foreground/50">{t('filter_type_label')}</span>
-              <select
+              <CustomSelect
                 value={typeFilter}
-                onChange={(e) => setTypeFilter(e.target.value)}
-                className="text-xs bg-white/5 border border-white/10 rounded-lg px-2.5 py-1 text-foreground outline-none focus:border-white/20"
-              >
-                <option value="" className="bg-background text-foreground">{t('filter_type_all')}</option>
-                {bottleTypes.map((t) => (
-                  <option key={t.id} value={t.id} className="bg-background text-foreground">
-                    {t.nom}
-                  </option>
-                ))}
-              </select>
+                onChange={setTypeFilter}
+                size="sm"
+                options={[
+                  { value: '', label: t('filter_type_all') },
+                  ...bottleTypes.map((t) => ({ value: t.id, label: t.nom })),
+                ]}
+              />
             </div>
 
             <div className="flex items-center gap-2">
               <span className="text-xs text-foreground/50">{t('filter_stock_label')}</span>
-              <select
+              <CustomSelect
                 value={enStockFilter}
-                onChange={(e) => setEnStockFilter(e.target.value)}
-                className="text-xs bg-white/5 border border-white/10 rounded-lg px-2.5 py-1 text-foreground outline-none focus:border-white/20"
-              >
-                <option value="" className="bg-background text-foreground">{t('filter_stock_all')}</option>
-                <option value="true" className="bg-background text-foreground">{t('filter_in_stock')}</option>
-                <option value="false" className="bg-background text-foreground">{t('filter_low_stock')}</option>
-              </select>
+                onChange={setEnStockFilter}
+                size="sm"
+                options={[
+                  { value: '', label: t('filter_stock_all') },
+                  { value: 'true', label: t('filter_in_stock') },
+                  { value: 'false', label: t('filter_low_stock') },
+                ]}
+              />
             </div>
 
             {activeFiltersCount > 0 && (

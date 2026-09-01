@@ -175,14 +175,54 @@ export default function StoreSection() {
     };
   }, []);
 
-  const storeHours = companyInfo?.jours_ouverture?.map((day) => ({
-    day: isEn ? companyDayLabels[day.jour]?.en || day.jour : day.jour,
-    time: day.ouvert ? `${day.heure_ouverture} – ${day.heure_fermeture}` : (isEn ? 'Closed' : 'Fermé'),
-  })) || [
-    { day: isEn ? "Monday – Friday" : "Lundi – Vendredi", time: "09:00 – 19:00" },
-    { day: isEn ? "Saturday" : "Samedi", time: "10:00 – 18:00" },
-    { day: isEn ? "Sunday" : "Dimanche", time: isEn ? "Closed" : "Fermé" },
-  ];
+  const groupedStoreHours = (() => {
+    const days = companyInfo?.jours_ouverture || [
+      { jour: 'Lundi', ouvert: true, heure_ouverture: '09:00', heure_fermeture: '19:00' },
+      { jour: 'Mardi', ouvert: true, heure_ouverture: '09:00', heure_fermeture: '19:00' },
+      { jour: 'Mercredi', ouvert: true, heure_ouverture: '09:00', heure_fermeture: '19:00' },
+      { jour: 'Jeudi', ouvert: true, heure_ouverture: '09:00', heure_fermeture: '19:00' },
+      { jour: 'Vendredi', ouvert: true, heure_ouverture: '09:00', heure_fermeture: '19:00' },
+      { jour: 'Samedi', ouvert: true, heure_ouverture: '10:00', heure_fermeture: '18:00' },
+      { jour: 'Dimanche', ouvert: false, heure_ouverture: null, heure_fermeture: null },
+    ];
+
+    const groups: Array<{ day: string; time: string }> = [];
+    let current: { day: string; time: string; startIndex: number; endIndex: number } | null = null;
+
+    const pushCurrent = () => {
+      if (!current) return;
+      groups.push({
+        day: current.day,
+        time: current.time,
+      });
+      current = null;
+    };
+
+    days.forEach((day, index) => {
+      const label = isEn ? companyDayLabels[day.jour]?.en || day.jour : day.jour;
+      const time = day.ouvert ? `${day.heure_ouverture} – ${day.heure_fermeture}` : (isEn ? 'Closed' : 'Fermé');
+
+      if (!current) {
+        current = { day: label, time, startIndex: index, endIndex: index };
+        return;
+      }
+
+      const sameSchedule = current.time === time && index === current.endIndex + 1;
+      if (sameSchedule) {
+        current.day = index === current.endIndex + 1 ? `${current.day} – ${label}` : current.day;
+        current.endIndex = index;
+        return;
+      }
+
+      pushCurrent();
+      current = { day: label, time, startIndex: index, endIndex: index };
+    });
+
+    pushCurrent();
+    return groups;
+  })();
+
+  const storeHours = groupedStoreHours;
 
   const handleGetDirections = () => {
     window.open(getDirectionsUrl(), "_blank", "noopener,noreferrer");

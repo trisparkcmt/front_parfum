@@ -44,6 +44,7 @@ const T = {
     field_start_date: 'Date début',
     field_end_date: 'Date fin',
     field_promo_msg: 'Message promotion',
+    btn_reset_dates: 'Réinitialiser les dates',
     field_category_icon: "Image / Icône de la catégorie",
     field_type_icon: 'Icône du type',
     field_active: 'Actif',
@@ -112,6 +113,7 @@ const T = {
     field_start_date: 'Start Date',
     field_end_date: 'End Date',
     field_promo_msg: 'Promo Message',
+    btn_reset_dates: 'Reset Dates',
     field_category_icon: 'Category Image / Icon',
     field_type_icon: 'Type Icon',
     field_active: 'Active',
@@ -440,16 +442,10 @@ export default function CategoriesAdminPage() {
 
         if (!form.message_promotion.trim())
           errors.message_promotion = t('err_promo_msg');
-        if (!form.date_debut)
-          errors.date_debut = t('err_start_date');
-        if (!form.date_fin)
-          errors.date_fin = t('err_end_date');
-        else if (form.date_debut && new Date(form.date_fin) < new Date(form.date_debut))
-          errors.date_fin = t('err_end_after_start');
-      } else if (form.date_debut || form.date_fin) {
-        if (form.date_debut && form.date_fin && new Date(form.date_fin) < new Date(form.date_debut))
-          errors.date_fin = t('err_end_after_start');
       }
+      // Allow empty dates, but validate date order if both are provided
+      if (form.date_debut && form.date_fin && new Date(form.date_fin) < new Date(form.date_debut))
+        errors.date_fin = t('err_end_after_start');
     }
 
     if (activeTab === 'accessory_categories' || activeTab === 'bottle_types') {
@@ -1066,6 +1062,18 @@ export default function CategoriesAdminPage() {
                     className={inputClassName}
                   />
                 </Field>
+              </div>
+              <div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    updateForm('date_debut', '');
+                    updateForm('date_fin', '');
+                  }}
+                  className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-white/10 bg-white/[0.02] px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-foreground/60 transition-colors hover:border-white/20 hover:bg-white/[0.05] hover:text-foreground/80"
+                >
+                  {t('btn_reset_dates')}
+                </button>
               </div>
               <Field label={t('field_promo_msg')} error={formErrors.message_promotion}>
                 <input

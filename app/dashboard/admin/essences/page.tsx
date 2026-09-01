@@ -210,30 +210,81 @@ export default function EssencesPage() {
     return () => document.removeEventListener('mousedown', close);
   }, [openDropdown]);
 
+  const validateBoutiqueFormat = (nextForm = form) => {
+    const nextErrors: Record<string, string> = {};
+
+    if (!nextForm.includeProduitsFinis) {
+      return nextErrors;
+    }
+
+    const tailleMl = Number(nextForm.produitFini.taille_ml);
+    const stockDisponible = Number(nextForm.produitFini.stock_disponible);
+    const essenceStock = Number(nextForm.lotStockMl);
+
+    if (nextForm.produitFini.taille_ml !== '' && (!Number.isFinite(tailleMl) || tailleMl <= 0)) {
+      nextErrors['produitFini.taille_ml'] = 'La taille doit être supérieure à 0';
+    }
+
+    if (nextForm.produitFini.stock_disponible !== '' && (!Number.isFinite(stockDisponible) || stockDisponible < 0)) {
+      nextErrors['produitFini.stock_disponible'] = 'Le stock doit être supérieur ou égal à 0';
+    }
+
+    if (
+      nextForm.lotStockMl !== '' &&
+      Number.isFinite(essenceStock) && essenceStock > 0 &&
+      nextForm.produitFini.taille_ml !== '' && Number.isFinite(tailleMl) && tailleMl > 0 &&
+      nextForm.produitFini.stock_disponible !== '' && Number.isFinite(stockDisponible) && stockDisponible >= 0
+    ) {
+      const totalEssenceNeededMl = tailleMl * stockDisponible;
+
+      if (totalEssenceNeededMl > essenceStock) {
+        nextErrors['produitFini.stock_disponible'] = `Stock impossible : il faut ${totalEssenceNeededMl.toLocaleString()} ml d'essence pour ${stockDisponible} flacon(s) de ${tailleMl} ml, alors qu'il reste ${essenceStock.toLocaleString()} ml.`;
+      }
+    }
+
+    return nextErrors;
+  };
+
   const updateForm = (field: string, value: any) => {
     // Support nested dot-notation keys like "produitFini.taille_ml"
+    let nextForm = form;
+
     if (field.includes('.')) {
       const [parent, child] = field.split('.');
-      setForm(prev => ({
-        ...prev,
+      nextForm = {
+        ...form,
         [parent]: {
-          ...(prev[parent as keyof typeof prev] as Record<string, any>),
+          ...(form[parent as keyof typeof form] as Record<string, any>),
           [child]: value,
         },
-      }));
+      };
     } else {
-      setForm(prev => ({
-        ...prev,
+      nextForm = {
+        ...form,
         [field]: value,
-      }));
+      };
     }
-    if (formErrors[field]) {
-      setFormErrors(prev => {
-        const updated = { ...prev };
-        delete updated[field];
-        return updated;
-      });
-    }
+
+    setForm(nextForm);
+
+    setFormErrors(prev => {
+      const updated = { ...prev };
+      delete updated[field];
+
+      if (field === 'includeProduitsFinis' || field === 'lotStockMl' || field.includes('produitFini')) {
+        const validationErrors = validateBoutiqueFormat(nextForm);
+        Object.keys(validationErrors).forEach((key) => {
+          updated[key] = validationErrors[key];
+        });
+        if (!nextForm.includeProduitsFinis) {
+          delete updated['produitFini.taille_ml'];
+          delete updated['produitFini.prix'];
+          delete updated['produitFini.stock_disponible'];
+        }
+      }
+
+      return updated;
+    });
   };
 
   const resetForm = () => {
@@ -357,24 +408,17 @@ export default function EssencesPage() {
       if (!form.produitFini.taille_ml) errors['produitFini.taille_ml'] = 'La taille du format boutique est requise';
       else if (isNaN(Number(form.produitFini.taille_ml)) || Number(form.produitFini.taille_ml) <= 0) 
         errors['produitFini.taille_ml'] = 'La taille doit être supérieure à 0';
-      
+
       if (!form.produitFini.prix) errors['produitFini.prix'] = 'Le prix du format boutique est requis';
       else if (isNaN(Number(form.produitFini.prix)) || Number(form.produitFini.prix) <= 0) 
         errors['produitFini.prix'] = 'Le prix doit être supérieur à 0';
-      
+
       if (form.produitFini.stock_disponible === '') errors['produitFini.stock_disponible'] = 'Le stock est requis';
       else if (isNaN(Number(form.produitFini.stock_disponible)) || Number(form.produitFini.stock_disponible) < 0) 
         errors['produitFini.stock_disponible'] = 'Le stock doit être supérieur ou égal à 0';
-      
-      if (!produitFiniImageFile) errors.produitFiniImageFile = 'Une image est requise pour le format boutique';
-      
-      if (form.produitFini.stock_disponible !== '' && form.lotStockMl !== '') {
-        const boutiqueStock = Number(form.produitFini.stock_disponible);
-        const lotStock = Number(form.lotStockMl);
-        if (!isNaN(boutiqueStock) && !isNaN(lotStock) && boutiqueStock > lotStock) {
-          errors['produitFini.stock_disponible'] = 'Le stock boutique doit être ≤ au stock initial du lot';
-        }
-      }
+
+      const boutiqueFormatErrors = validateBoutiqueFormat(form);
+      Object.assign(errors, boutiqueFormatErrors);
     }
     
     if (Object.keys(errors).length > 0) {
@@ -1069,7 +1113,7 @@ export default function EssencesPage() {
                     
                     <div className="col-span-2">
                       <label className="block text-xs font-bold text-foreground/50 uppercase tracking-wider mb-2">
-                        Image Principale *
+                        Image Principale
                       </label>
                       <input
                         data-field="produitFiniImageFile"

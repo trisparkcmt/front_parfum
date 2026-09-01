@@ -112,7 +112,7 @@ export default function ClientDashboard() {
 
   return (
     <div className="space-y-6 px-4 sm:px-6 py-4 sm:py-6">
-      <BackButton />
+      <BackButton href="/dashboard/client/profile" />
       <div className="bg-gradient-to-r from-gold to-gold-dark rounded-2xl p-6 text-black relative overflow-hidden">
         <div className="absolute top-0 right-0 w-40 h-40 bg-black/5 rounded-full -mr-10 -mt-10" />
         <div className="relative z-10">

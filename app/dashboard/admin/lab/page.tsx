@@ -8,6 +8,7 @@ import {
 import { labService } from '@/services/apiService';
 import { InlineCell } from '@/components/admin/InlineCell';
 import { useTranslation } from 'react-i18next';
+import { CustomSelect } from '@/components/ui/CustomSelect';
 
 /* ── Inline translations ─────────────────────────────────────────────────── */
 const T = {
@@ -696,7 +697,6 @@ function LotsTab() {
     essence: '',
     quantite_initiale_ml: '',
     prix_achat_par_ml: '',
-    stock_ml: '',
     seuil_alerte_ml: '',
     reference_fournisseur: '',
     actif: true,
@@ -736,7 +736,6 @@ function LotsTab() {
       essence: essences[0]?.id ? String(essences[0].id) : '',
       quantite_initiale_ml: '',
       prix_achat_par_ml: '',
-      stock_ml: '',
       seuil_alerte_ml: '',
       reference_fournisseur: '',
       actif: true,
@@ -751,7 +750,6 @@ function LotsTab() {
       essence: String(item.essence || item.essence_id || ''),
       quantite_initiale_ml: String(item.quantite_initiale_ml ?? item.quantite_initiale ?? ''),
       prix_achat_par_ml: item.prix_achat_par_ml ? String(item.prix_achat_par_ml) : '',
-      stock_ml: String(item.stock_ml ?? item.quantite_ml ?? ''),
       seuil_alerte_ml: String(item.seuil_alerte_ml ?? ''),
       reference_fournisseur: item.reference_fournisseur || '',
       actif: item.actif !== undefined ? item.actif : true,
@@ -761,17 +759,16 @@ function LotsTab() {
 
   const handleSave = async () => {
     if (!permissions.canCreate && !permissions.canUpdate) return;
-    if (!form.essence || (!form.stock_ml && !form.quantite_initiale_ml)) {
+    if (!form.essence || !form.quantite_initiale_ml) {
       addToast(t('lot_required'), 'error'); return;
     }
     try {
       setSaving(true);
       const payload: Record<string, unknown> = {
         essence: Number(form.essence),
-        stock_ml: form.stock_ml || form.quantite_initiale_ml,
+        quantite_initiale_ml: form.quantite_initiale_ml,
         actif: form.actif,
       };
-      if (form.quantite_initiale_ml) payload.quantite_initiale_ml = form.quantite_initiale_ml;
       if (form.prix_achat_par_ml) payload.prix_achat_par_ml = form.prix_achat_par_ml;
       if (form.seuil_alerte_ml) payload.seuil_alerte_ml = form.seuil_alerte_ml;
       if (form.reference_fournisseur) payload.reference_fournisseur = form.reference_fournisseur;
@@ -881,29 +878,29 @@ function LotsTab() {
           <div className="rounded-xl border border-white/10 bg-white/[0.02] p-3 flex flex-wrap items-center gap-4">
             <div className="flex items-center gap-2">
               <span className="text-xs text-foreground/50">Essence :</span>
-              <select
+              <CustomSelect
                 value={essenceFilter}
-                onChange={e => setEssenceFilter(e.target.value)}
-                className="text-xs bg-white/5 border border-white/10 rounded-lg px-2.5 py-1 text-foreground outline-none focus:border-white/20"
-              >
-                <option value="" className="bg-background text-foreground">{t('all')}</option>
-                {essences.map(e => (
-                  <option key={e.id} value={e.id} className="bg-background text-foreground">{e.nom}</option>
-                ))}
-              </select>
+                onChange={setEssenceFilter}
+                size="sm"
+                options={[
+                  { value: '', label: t('all') },
+                  ...essences.map(e => ({ value: e.id, label: e.nom })),
+                ]}
+              />
             </div>
 
             <div className="flex items-center gap-2">
               <span className="text-xs text-foreground/50">Statut :</span>
-              <select
+              <CustomSelect
                 value={actifFilter}
-                onChange={e => setActifFilter(e.target.value)}
-                className="text-xs bg-white/5 border border-white/10 rounded-lg px-2.5 py-1 text-foreground outline-none focus:border-white/20"
-              >
-                <option value="" className="bg-background text-foreground">{t('status_all')}</option>
-                <option value="true" className="bg-background text-foreground">{t('status_active')}</option>
-                <option value="false" className="bg-background text-foreground">{t('status_inactive')}</option>
-              </select>
+                onChange={setActifFilter}
+                size="sm"
+                options={[
+                  { value: '', label: t('status_all') },
+                  { value: 'true', label: t('status_active') },
+                  { value: 'false', label: t('status_inactive') },
+                ]}
+              />
             </div>
 
             {activeFiltersCount > 0 && (
@@ -964,7 +961,10 @@ function LotsTab() {
                         {item.essence_details?.nom || `ID: ${item.essence || '—'}`}
                       </td>
                       <td className="px-3 py-3 font-semibold text-foreground tabular-nums">
-                        <InlineCell value={String(item.stock_ml ?? item.quantite_ml ?? '0')} onSave={v => patchLot(item.id, 'stock_ml', v)} disabled={!permissions.canUpdate} inputType="number" display={<>{Number(item.stock_ml ?? item.quantite_ml ?? 0).toLocaleString()} ml{item.quantite_initiale_ml && <span className="text-[10px] text-foreground/40 block font-normal">/ {item.quantite_initiale_ml} ml reçus</span>}</>} className="font-semibold text-foreground tabular-nums" />
+                        <span>
+                          {Number(item.stock_ml ?? item.quantite_ml ?? 0).toLocaleString()} ml
+                          {item.quantite_initiale_ml && <span className="text-[10px] text-foreground/40 block font-normal">/ {item.quantite_initiale_ml} ml reçus</span>}
+                        </span>
                       </td>
                       <td className="px-3 py-3 text-foreground/70 tabular-nums">
                         {coutTotal !== null ? `${coutTotal.toLocaleString()} FCFA` : '—'}
@@ -1031,82 +1031,75 @@ function LotsTab() {
         }
       >
         <div className="space-y-4">
-              <div>
-                <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Essence *</label>
-                <select
-                  value={form.essence}
-                  onChange={e => setForm(p => ({ ...p, essence: e.target.value }))}
-                  className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
-                >
-                  <option value="" disabled>Sélectionner une essence</option>
-                  {essences.map(e => (
-                    <option key={e.id} value={e.id}>{e.nom} ({e.code_reference})</option>
-                  ))}
-                </select>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Quantité initiale reçue (ml) *</label>
-                  <input
-                    type="number"
-                    value={form.quantite_initiale_ml}
-                    onChange={e => setForm(p => ({ ...p, quantite_initiale_ml: e.target.value }))}
-                    placeholder="ex: 500"
-                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
-                  />
-                </div>
-                <div>
-                  <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Prix d'achat par ml (FCFA) *</label>
-                  <input
-                    type="number"
-                    value={form.prix_achat_par_ml}
-                    onChange={e => setForm(p => ({ ...p, prix_achat_par_ml: e.target.value }))}
-                    placeholder="ex: 2.50"
-                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
-                  />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Stock restant (ml)</label>
-                  <input
-                    type="number"
-                    value={form.stock_ml}
-                    onChange={e => setForm(p => ({ ...p, stock_ml: e.target.value }))}
-                    placeholder="ex: 500"
-                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
-                  />
-                </div>
-                <div>
-                  <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Seuil alerte (ml)</label>
-                  <input
-                    type="number"
-                    value={form.seuil_alerte_ml}
-                    onChange={e => setForm(p => ({ ...p, seuil_alerte_ml: e.target.value }))}
-                    placeholder="50"
-                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Référence fournisseur</label>
-                <input
-                  value={form.reference_fournisseur}
-                  onChange={e => setForm(p => ({ ...p, reference_fournisseur: e.target.value }))}
-                  placeholder="LOT-GRASSET-PATCH-09"
-                  className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
-                />
-              </div>
-              <label className="flex items-center gap-2 cursor-pointer pt-1">
-                <input
-                  type="checkbox"
-                  checked={form.actif}
-                  onChange={e => setForm(p => ({ ...p, actif: e.target.checked }))}
-                  className="rounded border-white/10 bg-white/5 text-gold focus:ring-gold"
-                />
-                <span className="text-sm text-foreground/60">{t('lot_field_active')}</span>
-              </label>
+          <div>
+            <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Essence *</label>
+            <CustomSelect
+              value={form.essence}
+              onChange={e => setForm(p => ({ ...p, essence: e }))}
+              options={[
+                { value: '', label: 'Sélectionner une essence' },
+                ...essences.map(e => ({ value: e.id, label: `${e.nom} (${e.code_reference})` })),
+              ]}
+              data-field="essence"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Quantité initiale reçue (ml) *</label>
+              <input
+                type="number"
+                value={form.quantite_initiale_ml}
+                onChange={e => setForm(p => ({ ...p, quantite_initiale_ml: e.target.value }))}
+                placeholder="ex: 500"
+                className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
+              />
             </div>
+            <div>
+              <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Prix d'achat par ml (FCFA) *</label>
+              <input
+                type="number"
+                value={form.prix_achat_par_ml}
+                onChange={e => setForm(p => ({ ...p, prix_achat_par_ml: e.target.value }))}
+                placeholder="ex: 2.50"
+                className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 gap-3">
+            <div>
+              <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Seuil alerte (ml)</label>
+              <input
+                type="number"
+                value={form.seuil_alerte_ml}
+                onChange={e => setForm(p => ({ ...p, seuil_alerte_ml: e.target.value }))}
+                placeholder="50"
+                className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Référence fournisseur</label>
+            <input
+              value={form.reference_fournisseur}
+              onChange={e => setForm(p => ({ ...p, reference_fournisseur: e.target.value }))}
+              placeholder="LOT-GRASSET-PATCH-09"
+              className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
+            />
+          </div>
+
+          <label className="flex items-center gap-2 cursor-pointer pt-1">
+            <input
+              type="checkbox"
+              checked={form.actif}
+              onChange={e => setForm(p => ({ ...p, actif: e.target.checked }))}
+              className="rounded border-white/10 bg-white/5 text-gold focus:ring-gold"
+            />
+            <span className="text-sm text-foreground/60">{t('lot_field_active')}</span>
+          </label>
+        </div>
       </SlideOver>
     </div>
   );
@@ -1344,12 +1337,14 @@ export default function LabPage() {
       {/* Tabs & Content Container */}
       <div className="shadow-black/30 shadow-sm rounded-xl border border-white/10 bg-white/[0.02] overflow-hidden">
         <div className="flex border-b border-white/10 overflow-x-auto px-2 pt-1">
+          {/*
           <TabButton
             active={activeTab === 'ingredients'}
             onClick={() => setActiveTab('ingredients')}
             icon={<FlaskConical size={14} />}
             label={t('tab_ingredients')}
           />
+          */}
           <TabButton
             active={activeTab === 'lots'}
             onClick={() => setActiveTab('lots')}
@@ -1365,7 +1360,7 @@ export default function LabPage() {
         </div>
 
         <div className="p-4 sm:p-5">
-          {activeTab === 'ingredients' && <IngredientsTab />}
+          {/* {activeTab === 'ingredients' && <IngredientsTab />} */}
           {activeTab === 'lots' && <LotsTab />}
           {activeTab === 'inventory' && <InventoryTab />}
         </div>

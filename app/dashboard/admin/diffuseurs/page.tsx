@@ -13,6 +13,7 @@ import { useAuthStore } from '@/store/useAuthStore';
 import AppImage from '@/components/ui/AppImage';
 import { SlideOver } from '@/components/ui/SlideOver';
 import { useTranslation } from 'react-i18next';
+import { CustomSelect } from '@/components/ui/CustomSelect';
 
 /* ── Inline translations ─────────────────────────────────────────────────── */
 const T = {
@@ -810,19 +811,27 @@ export default function DiffuseursAdminPage() {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <Field label={t('field_tech')}>
-                <select value={form.type_technologie} onChange={(e) => setForm((p) => ({ ...p, type_technologie: e.target.value }))} className={inputCls}>
-                  <option value="ultrasons" className="bg-background">{t('field_tech_ultrasons')}</option>
-                  <option value="nebulisation" className="bg-background">{t('field_tech_nebulisation')}</option>
-                  <option value="chaleur" className="bg-background">{t('field_tech_chaleur')}</option>
-                  <option value="ventilation" className="bg-background">{t('field_tech_connecte')}</option>
-                </select>
+                <CustomSelect
+                  value={form.type_technologie}
+                  onChange={(e) => setForm((p) => ({ ...p, type_technologie: e }))}
+                  options={[
+                    { value: 'ultrasons', label: t('field_tech_ultrasons') },
+                    { value: 'nebulisation', label: t('field_tech_nebulisation') },
+                    { value: 'chaleur', label: t('field_tech_chaleur') },
+                    { value: 'ventilation', label: t('field_tech_connecte') },
+                  ]}
+                />
               </Field>
               <Field label={t('field_alimentation')}>
-                <select value={form.type_alimentation} onChange={(e) => setForm((p) => ({ ...p, type_alimentation: e.target.value }))} className={inputCls}>
-                  <option value="secteur" className="bg-background">{t('field_ali_secteur')}</option>
-                  <option value="usb" className="bg-background">{t('field_ali_usb')}</option>
-                  <option value="batterie" className="bg-background">{t('field_ali_batterie')}</option>
-                </select>
+                <CustomSelect
+                  value={form.type_alimentation}
+                  onChange={(e) => setForm((p) => ({ ...p, type_alimentation: e }))}
+                  options={[
+                    { value: 'secteur', label: t('field_ali_secteur') },
+                    { value: 'usb', label: t('field_ali_usb') },
+                    { value: 'batterie', label: t('field_ali_batterie') },
+                  ]}
+                />
               </Field>
             </div>
           </FormSection>

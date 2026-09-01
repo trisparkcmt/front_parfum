@@ -15,6 +15,7 @@ import { SlideOver } from '@/components/ui/SlideOver';
 import { InlineCell } from '@/components/admin/InlineCell';
 import { TablePagination } from '@/components/admin/TablePagination';
 import { useTranslation } from 'react-i18next';
+import { CustomSelect } from '@/components/ui/CustomSelect';
 
 /* ── Inline translations ─────────────────────────────────────────────────── */
 const T = {
@@ -631,15 +632,16 @@ export default function AccessoriesPage() {
             </div>
             <div>
               <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-foreground/35">Stock</p>
-              <select
+              <CustomSelect
                 value={enStockFilter}
-                onChange={e => setEnStockFilter(e.target.value)}
-                className="w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-foreground outline-none transition-colors focus:border-gold/50"
-              >
-                <option value="" className="bg-background">{t('all')}</option>
-                <option value="true" className="bg-background">{t('filter_in_stock')}</option>
-                <option value="false" className="bg-background">{t('filter_low_stock')}</option>
-              </select>
+                onChange={setEnStockFilter}
+                size="sm"
+                options={[
+                  { value: '', label: t('all') },
+                  { value: 'true', label: t('filter_in_stock') },
+                  { value: 'false', label: t('filter_low_stock') },
+                ]}
+              />
             </div>
           </div>
         )}
@@ -890,18 +892,15 @@ export default function AccessoriesPage() {
                     className={inputCls}
                   />
                 </Field>
-                <Field label="Type d'accessoire" required error={formErrors.type_accessoire}>
-                  <select
+                  <Field label="Type d'accessoire" required error={formErrors.type_accessoire}>
+                  <CustomSelect
                     data-field="type_accessoire"
                     value={form.type_accessoire}
-                    onChange={e => updateForm('type_accessoire', e.target.value)}
-                    className={inputCls}
-                  >
-                    <option value="" disabled className="bg-background">Choisir un type</option>
-                    {accessoryTypes.map(t => (
-                      <option key={t.id} value={t.id} className="bg-background">{t.nom}</option>
-                    ))}
-                  </select>
+                    onChange={v => updateForm('type_accessoire', v)}
+                    placeholder="Choisir un type"
+                    error={!!formErrors.type_accessoire}
+                    options={accessoryTypes.map(t => ({ value: String(t.id), label: t.nom }))}
+                  />
                 </Field>
                 <Field label="Référence SKU" error={formErrors.reference_sku}>
                   <input

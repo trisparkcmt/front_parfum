@@ -18,7 +18,7 @@ const promoApi = {
   delete: async (id: number) => { await api.delete(`orders/admin/codes-promo/${id}/`); },
 };
 
-interface PromoCode { id: number; code: string; reduction_pourcentage: string; est_actif: boolean; clients_autorises: number[]; date_creation: string; }
+interface PromoCode { id: number; code: string; reduction_pourcentage: string; est_actif: boolean; clients_autorises: number[]; date_creation: string; date_debut?: string | null; date_fin?: string | null; }
 interface Client { id: number; first_name: string; last_name: string; email: string; telephone?: string; }
 
 // --- Shared UI Primitives ---
@@ -86,6 +86,8 @@ export default function PromoCodesPage() {
   const [formReduction, setFormReduction] = useState('10.00');
   const [formActif, setFormActif] = useState(true);
   const [formClients, setFormClients] = useState<number[]>([]);
+  const [formDateDebut, setFormDateDebut] = useState<string | null>(null);
+  const [formDateFin, setFormDateFin] = useState<string | null>(null);
   const [selectedPromoForDetails, setSelectedPromoForDetails] = useState<PromoCode | null>(null);
   const [groupLoading, setGroupLoading] = useState<string | null>(null);
 
@@ -115,7 +117,7 @@ export default function PromoCodesPage() {
     return () => { if (clientDebounce.current) clearTimeout(clientDebounce.current); };
   }, [clientSearch, fetchClients]);
 
-  const openCreate = () => { setEditingCode(null); setFormCode(''); setFormReduction('10.00'); setFormActif(true); setFormClients([]); setShowModal(true); setClientSearch(''); setShowClientPicker(false); };
+  const openCreate = () => { setEditingCode(null); setFormCode(''); setFormReduction('10.00'); setFormActif(true); setFormClients([]); setFormDateDebut(null); setFormDateFin(null); setShowModal(true); setClientSearch(''); setShowClientPicker(false); };
   const openEdit = (code: PromoCode) => { setEditingCode(code); setFormCode(code.code); setFormReduction(code.reduction_pourcentage); setFormActif(code.est_actif); setFormClients(code.clients_autorises ?? []); setShowModal(true); setClientSearch(''); setShowClientPicker(false); };
 
   const handleSave = async () => {

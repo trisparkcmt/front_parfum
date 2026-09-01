@@ -6,6 +6,7 @@ import { shopService } from '@/services/apiService';
 import { adminService } from '@/services/apiService';
 import { InlineCell } from '@/components/admin/InlineCell';
 import { useTranslation } from 'react-i18next';
+import { CustomSelect } from '@/components/ui/CustomSelect';
 
 /* -- Inline translations --------------------------------------------------- */
 const T = {
@@ -638,29 +639,33 @@ export default function PerfumeAdminPage() {
           <div className="shadow-black/30 shadow-sm flex flex-wrap items-center gap-3 rounded-xl border border-white/10 bg-white/[0.02] p-3">
             <div className="flex items-center gap-2">
               <span className="text-[10px] font-semibold uppercase tracking-wider text-foreground/35">Genre:</span>
-              <select
+              <CustomSelect
+                size="sm"
                 value={genreFilter}
-                onChange={(e) => setGenreFilter(e.target.value)}
-                className="rounded-lg border border-white/10 bg-background px-2.5 py-1.5 text-xs text-foreground outline-none"
-              >
-                <option value="">{t('filter_genre_all')}</option>
-                <option value="homme">{t('filter_genre_homme')}</option>
-                <option value="femme">{t('filter_genre_femme')}</option>
-                <option value="mixte">{t('filter_genre_mixte')}</option>
-              </select>
+                onChange={setGenreFilter}
+                options={[
+                  { value: '', label: t('filter_genre_all') },
+                  { value: 'homme', label: t('filter_genre_homme') },
+                  { value: 'femme', label: t('filter_genre_femme') },
+                  { value: 'mixte', label: t('filter_genre_mixte') },
+                ]}
+                className="min-w-[110px]"
+              />
             </div>
 
             <div className="flex items-center gap-2">
               <span className="text-[10px] font-semibold uppercase tracking-wider text-foreground/35">Bestseller:</span>
-              <select
+              <CustomSelect
+                size="sm"
                 value={estBestsellerFilter}
-                onChange={(e) => setEstBestsellerFilter(e.target.value)}
-                className="rounded-lg border border-white/10 bg-background px-2.5 py-1.5 text-xs text-foreground outline-none"
-              >
-                <option value="">{t('filter_bs_all')}</option>
-                <option value="true">{t('filter_bs_only')}</option>
-                <option value="false">{t('filter_bs_not')}</option>
-              </select>
+                onChange={setEstBestsellerFilter}
+                options={[
+                  { value: '', label: t('filter_bs_all') },
+                  { value: 'true', label: t('filter_bs_only') },
+                  { value: 'false', label: t('filter_bs_not') },
+                ]}
+                className="min-w-[110px]"
+              />
             </div>
 
             {activeFiltersCount > 0 && (
@@ -959,17 +964,19 @@ export default function PerfumeAdminPage() {
                   <div>
                     <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">{t('field_category')} *</label>
                     <div className="flex gap-2">
-                      <select
-                        data-field="categorie"
-                        value={form.categorie}
-                        onChange={(e) => updateForm('categorie', e.target.value)}
-                        className={`flex-1 bg-white/5 border rounded-lg px-3 py-2.5 text-base text-foreground outline-none focus:border-gold ${formErrors.categorie ? 'border-red-500/50' : 'border-white/10'}`}
-                      >
-                        <option value="" disabled className="bg-neutral-900">Catégorie</option>
-                        {categories.map((c) => (
-                          <option key={c.id} value={c.id} className="bg-neutral-900">{c.nom}</option>
-                        ))}
-                      </select>
+                      <div className="flex-1">
+                        <CustomSelect
+                          data-field="categorie"
+                          value={form.categorie}
+                          onChange={(value) => updateForm('categorie', value)}
+                          options={categories.map((c) => ({
+                            value: String(c.id),
+                            label: c.nom,
+                          }))}
+                          placeholder="Catégorie"
+                          error={!!formErrors.categorie}
+                        />
+                      </div>
                       <button
                         type="button"
                         onClick={() => setIsCategoryModalOpen(true)}
@@ -984,30 +991,30 @@ export default function PerfumeAdminPage() {
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">{t('field_genre')}</label>
-                      <select
+                      <CustomSelect
                         data-field="genre_cible"
                         value={form.genre_cible}
-                        onChange={(e) => updateForm('genre_cible', e.target.value)}
-                        className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-base text-foreground outline-none focus:border-gold"
-                      >
-                        <option value="homme">{t('filter_genre_homme')}</option>
-                        <option value="femme">{t('filter_genre_femme')}</option>
-                        <option value="mixte">{t('filter_genre_mixte')}</option>
-                      </select>
+                        onChange={(value) => updateForm('genre_cible', value)}
+                        options={[
+                          { value: 'homme', label: t('filter_genre_homme') },
+                          { value: 'femme', label: t('filter_genre_femme') },
+                          { value: 'mixte', label: t('filter_genre_mixte') },
+                        ]}
+                      />
                     </div>
                     <div>
                       <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">{t('field_intensite')}</label>
-                      <select
+                      <CustomSelect
                         data-field="intensite"
                         value={form.intensite}
-                        onChange={(e) => updateForm('intensite', e.target.value)}
-                        className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-base text-foreground outline-none focus:border-gold"
-                      >
-                        <option value="légère">{isEn ? 'Light' : 'Légère'}</option>
-                        <option value="moyenne">{isEn ? 'Medium' : 'Moyenne'}</option>
-                        <option value="forte">{isEn ? 'Strong' : 'Forte'}</option>
-                        <option value="très forte">{isEn ? 'Very strong' : 'Très forte'}</option>
-                      </select>
+                        onChange={(value) => updateForm('intensite', value)}
+                        options={[
+                          { value: 'légère', label: isEn ? 'Light' : 'Légère' },
+                          { value: 'moyenne', label: isEn ? 'Medium' : 'Moyenne' },
+                          { value: 'forte', label: isEn ? 'Strong' : 'Forte' },
+                          { value: 'très forte', label: isEn ? 'Very strong' : 'Très forte' },
+                        ]}
+                      />
                     </div>
                   </div>
                   <div className="grid grid-cols-3 gap-2">
@@ -1133,27 +1140,39 @@ export default function PerfumeAdminPage() {
                       />
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1">
-                      <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">{t('field_date_debut')}</label>
-                      <input
-                        data-field="date_debut"
-                        type="datetime-local"
-                        value={form.date_debut}
-                        onChange={(e) => updateForm('date_debut', e.target.value)}
-                        className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-base text-foreground outline-none focus:border-gold"
-                      />
+                  <div className="space-y-3">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">{t('field_date_debut')}</label>
+                        <input
+                          data-field="date_debut"
+                          type="datetime-local"
+                          value={form.date_debut}
+                          onChange={(e) => updateForm('date_debut', e.target.value)}
+                          className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-base text-foreground outline-none focus:border-gold"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">{t('field_date_fin')}</label>
+                        <input
+                          data-field="date_fin"
+                          type="datetime-local"
+                          value={form.date_fin}
+                          onChange={(e) => updateForm('date_fin', e.target.value)}
+                          className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-base text-foreground outline-none focus:border-gold"
+                        />
+                      </div>
                     </div>
-                    <div className="space-y-1">
-                      <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">{t('field_date_fin')}</label>
-                      <input
-                        data-field="date_fin"
-                        type="datetime-local"
-                        value={form.date_fin}
-                        onChange={(e) => updateForm('date_fin', e.target.value)}
-                        className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-base text-foreground outline-none focus:border-gold"
-                      />
-                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        updateForm('date_debut', '');
+                        updateForm('date_fin', '');
+                      }}
+                      className="text-xs font-medium text-foreground/60 hover:text-gold transition-colors px-2 py-1"
+                    >
+                      Réinitialiser les dates
+                    </button>
                   </div>
                 </div>
               </div>

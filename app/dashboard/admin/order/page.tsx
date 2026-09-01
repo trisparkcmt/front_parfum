@@ -13,6 +13,7 @@ import { useToastStore } from '@/store/useToastStore';
 import { useTranslation } from 'react-i18next';
 import type { BackendOrder, BackendOrderLine } from '@/types';
 import { useOptimisticOrders } from '@/hooks/useOptimisticOrders';
+import { CustomSelect } from '@/components/ui/CustomSelect';
 
 const T = {
   fr: {
@@ -1033,17 +1034,17 @@ export default function OrdersPage() {
           <FormSection title={t('section_logistics')} icon={<Bike size={11} />}>
             <div className="space-y-4">
               <Field label={t('field_assign_driver')}>
-                <select
+                <CustomSelect
                   value={editLivreur}
-                  onChange={e => setEditLivreur(e.target.value)}
-                  className="w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2.5 text-sm text-foreground outline-none transition-colors focus:border-gold/50"
-                >
-                  <option value="" className="bg-background">{t('none_driver')}</option>
-                  {drivers.map(d => {
-                    const id = d.id ?? d.user_id;
-                    return <option key={id} value={id} className="bg-background">{driverDisplayName(d)}</option>;
-                  })}
-                </select>
+                  onChange={setEditLivreur}
+                  options={[
+                    { value: '', label: t('none_driver') },
+                    ...drivers.map(d => ({
+                      value: d.id ?? d.user_id,
+                      label: driverDisplayName(d)
+                    })),
+                  ]}
+                />
               </Field>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -1122,17 +1123,17 @@ export default function OrdersPage() {
             <FormSection title={t('section_expedition')} icon={<Bike size={11} />}>
               <div className="space-y-4">
                 <Field label={t('field_choose_driver')}>
-                  <select
+                  <CustomSelect
                     value={valDriverId}
-                    onChange={e => setValDriverId(e.target.value)}
-                    className="w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2.5 text-sm text-foreground outline-none transition-colors focus:border-gold/50"
-                  >
-                    <option value="" className="bg-background">{t('assign_later')}</option>
-                    {drivers.map(d => {
-                      const id = d.id ?? d.user_id;
-                      return <option key={id} value={id} className="bg-background">{driverDisplayName(d)}</option>;
-                    })}
-                  </select>
+                    onChange={setValDriverId}
+                    options={[
+                      { value: '', label: t('assign_later') },
+                      ...drivers.map(d => ({
+                        value: d.id ?? d.user_id,
+                        label: driverDisplayName(d)
+                      })),
+                    ]}
+                  />
                 </Field>
 
                 <Field label={t('field_est_date_delivery')} icon={<Calendar size={11} />}>

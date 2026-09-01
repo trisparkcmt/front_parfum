@@ -70,6 +70,66 @@ function createDefaultOpeningDays() {
   }));
 }
 
+function groupOpeningDays(days: any[] = [], localeIsEn = false) {
+  if (!days.length) return [];
+
+  const normalized = days.map((day, index) => ({
+    ...day,
+    index,
+    label: day.jour,
+  }));
+
+  const groups: { start: number; end: number; days: any[]; isOpen: boolean; openingTime: string | null; closingTime: string | null }[] = [];
+  let currentGroup = {
+    start: 0,
+    end: 0,
+    days: [normalized[0]],
+    isOpen: normalized[0].ouvert,
+    openingTime: normalized[0].heure_ouverture ?? null,
+    closingTime: normalized[0].heure_fermeture ?? null,
+  };
+
+  for (let i = 1; i < normalized.length; i += 1) {
+    const current = normalized[i];
+    const sameSchedule =
+      current.ouvert === currentGroup.isOpen &&
+      (current.heure_ouverture ?? null) === currentGroup.openingTime &&
+      (current.heure_fermeture ?? null) === currentGroup.closingTime;
+
+    if (sameSchedule && i === currentGroup.end + 1) {
+      currentGroup.days.push(current);
+      currentGroup.end = i;
+      continue;
+    }
+
+    groups.push(currentGroup);
+    currentGroup = {
+      start: i,
+      end: i,
+      days: [current],
+      isOpen: current.ouvert,
+      openingTime: current.heure_ouverture ?? null,
+      closingTime: current.heure_fermeture ?? null,
+    };
+  }
+
+  groups.push(currentGroup);
+
+  return groups.map((group) => {
+    const labels = group.days.map((day) => day.label);
+    const firstLabel = labels[0];
+    const lastLabel = labels[labels.length - 1];
+    const rangeLabel = labels.length === 1 ? firstLabel : `${firstLabel} – ${lastLabel}`;
+
+    return {
+      rangeLabel,
+      text: group.isOpen
+        ? `${group.openingTime} — ${group.closingTime}`
+        : (localeIsEn ? 'Closed' : 'Fermé'),
+    };
+  });
+}
+
 export default function AdminCompanyInfoPage() {
   const { i18n } = useTranslation();
   const isEn = i18n.language?.startsWith('en');
@@ -265,11 +325,11 @@ export default function AdminCompanyInfoPage() {
             <div className="rounded-3xl border border-white/10 bg-white/5 p-6">
               <p className="text-sm uppercase tracking-[0.3em] text-neutral-400">{text.hours}</p>
               <div className="mt-4 space-y-3">
-                {companyInfo.jours_ouverture.map((day) => (
-                  <div key={day.jour} className="flex items-center justify-between gap-4 rounded-2xl bg-white/5 p-4">
-                    <span className="text-sm text-foreground/80">{day.jour}</span>
+                {groupOpeningDays(companyInfo.jours_ouverture, isEn).map((range, index) => (
+                  <div key={`${range.rangeLabel}-${index}`} className="flex items-center justify-between gap-4 rounded-2xl bg-white/5 p-4">
+                    <span className="text-sm text-foreground/80">{range.rangeLabel}</span>
                     <span className="text-sm font-semibold text-foreground">
-                      {day.ouvert ? `${day.heure_ouverture} — ${day.heure_fermeture}` : (isEn ? 'Closed' : 'Fermé')}
+                      {range.text}
                     </span>
                   </div>
                 ))}

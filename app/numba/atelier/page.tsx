@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useCallback, useMemo, useEffect, Suspense } from 'react';
 import Link from 'next/link';
@@ -974,8 +974,9 @@ function AtelierContent() {
           {/* Unified Glassmorphism Tabs */}
           <div className="atelier-tab-row flex items-center gap-3 mb-3 overflow-x-auto pb-2">
             {[
-              /* Notes de Base tab — temporarily disabled, will be re-enabled in a future version
-              { id: 'ingredients', label: i18n.language === 'en' ? '🧪 Raw Notes' : '🧪 Notes de Base' }, */
+              /*
+              { id: 'ingredients', label: i18n.language === 'en' ? '🧪 Raw Notes' : '🧪 Notes de Base' },
+              */
               { id: 'essences', label: i18n.language === 'en' ? '✨ Premium Bases' : `✨ Essences d'Exception` },
               { id: 'recap', label: i18n.language === 'en' ? '📋 Formula' : '📋 Finalisation' }
             ].map(tab => (
@@ -994,53 +995,28 @@ function AtelierContent() {
           </div>
 
           {/* Sub-tabs & Search Bar (only for essences/ingredients, not for recap) */}
-          {!loadingData && (activeTab === 'essences' || activeTab === 'ingredients') && (
+          {!loadingData && activeTab === 'essences' && (
             <div className="flex flex-col gap-3 mt-1">
               {/* Sub-tabs for essences */}
-              {activeTab === 'essences' && (
-                <div className="atelier-tab-row flex items-center gap-3 overflow-x-auto pb-2">
-                  {[
-                    { id: 'high', label: 'High Luxury' },
-                    { id: 'premium', label: 'Premium' },
-                    { id: 'super-premium', label: 'Super Premium' }
-                  ].map(sub => (
-                    <button
-                      key={sub.id}
-                      onClick={() => setEssenceSubtab(sub.id as any)}
-                      className={`whitespace-nowrap px-3 py-1 text-xs font-medium transition-colors border-b-2 ${
-                        essenceSubtab === sub.id 
-                          ? 'border-gold text-gold font-semibold' 
-                          : 'border-transparent text-foreground/60 hover:border-gold/50 hover:text-foreground'
-                      }`}
-                    >
-                      {sub.label}
-                    </button>
-                  ))}
-                </div>
-              )}
-
-              {/* Sub-tabs for ingredients */}
-              {activeTab === 'ingredients' && (
-                <div className="atelier-tab-row flex items-center gap-3 overflow-x-auto pb-2">
-                  {[
-                    { id: 'tete', label: i18n.language === 'en' ? 'Top Notes' : 'Notes de Tête' },
-                    { id: 'coeur', label: i18n.language === 'en' ? 'Heart Notes' : 'Notes de Cœur' },
-                    { id: 'fond', label: i18n.language === 'en' ? 'Base Notes' : 'Notes de Fond' }
-                  ].map(sub => (
-                    <button
-                      key={sub.id}
-                      onClick={() => setIngredientSubtab(sub.id as any)}
-                      className={`whitespace-nowrap px-3 py-1 text-xs font-medium transition-colors border-b-2 ${
-                        ingredientSubtab === sub.id 
-                          ? 'border-gold text-gold font-semibold' 
-                          : 'border-transparent text-foreground/60 hover:border-gold/50 hover:text-foreground'
-                      }`}
-                    >
-                      {sub.label}
-                    </button>
-                  ))}
-                </div>
-              )}
+              <div className="atelier-tab-row flex items-center gap-3 overflow-x-auto pb-2">
+                {[
+                  { id: 'high', label: 'High Luxury' },
+                  { id: 'premium', label: 'Premium' },
+                  { id: 'super-premium', label: 'Super Premium' }
+                ].map(sub => (
+                  <button
+                    key={sub.id}
+                    onClick={() => setEssenceSubtab(sub.id as any)}
+                    className={`whitespace-nowrap px-3 py-1 text-xs font-medium transition-colors border-b-2 ${
+                      essenceSubtab === sub.id 
+                        ? 'border-gold text-gold font-semibold' 
+                        : 'border-transparent text-foreground/60 hover:border-gold/50 hover:text-foreground'
+                    }`}
+                  >
+                    {sub.label}
+                  </button>
+                ))}
+              </div>
 
               {/* Search Bar */}
               <div className="relative">

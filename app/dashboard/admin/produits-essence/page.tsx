@@ -5,6 +5,7 @@ import { Loader2, Edit2, Trash2, Plus, Search, RefreshCw, Filter } from 'lucide-
 import { InlineCell } from '@/components/admin/InlineCell';
 import { TablePagination } from '@/components/admin/TablePagination';
 import { useTranslation } from 'react-i18next';
+import { CustomSelect } from '@/components/ui/CustomSelect';
 
 /* ── Inline translations ─────────────────────────────────────────────────── */
 const T = {
@@ -462,18 +463,18 @@ export default function FinishedEssenceAdminPage() {
               <label className="text-[10px] font-semibold uppercase tracking-wider text-foreground/35">
                 Taille
               </label>
-              <select
+              <CustomSelect
                 value={tailleFilter}
-                onChange={(e) => setTailleFilter(e.target.value)}
-                className="bg-white/[0.03] border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-foreground outline-none focus:border-white/20"
-              >
-                <option value="">Toutes tailles</option>
-                {[10, 30, 50, 100].map((s) => (
-                  <option key={s} value={s}>
-                    {s} ml
-                  </option>
-                ))}
-              </select>
+                onChange={(value) => setTailleFilter(value)}
+                options={[
+                  { value: '', label: 'Toutes tailles' },
+                  { value: '10', label: '10 ml' },
+                  { value: '30', label: '30 ml' },
+                  { value: '50', label: '50 ml' },
+                  { value: '100', label: '100 ml' },
+                ]}
+                size="sm"
+              />
             </div>
           </div>
         )}

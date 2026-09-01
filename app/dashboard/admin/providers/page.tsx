@@ -31,6 +31,7 @@ import { adminService } from '@/services/apiService';
 import { useToastStore } from '@/store/useToastStore';
 import { SlideOver } from '@/components/ui/SlideOver';
 import { localAuth } from '@/lib/localAuth';
+import { CustomSelect } from '@/components/ui/CustomSelect';
 
 // Helper utilities
 function cx(...classes: (string | boolean | undefined)[]) {
@@ -743,15 +744,15 @@ export default function ProviderDashboardPage() {
                       <label className="text-[10px] font-semibold text-foreground/40 uppercase tracking-wider mb-1 block">
                         Statut du Compte
                       </label>
-                      <select
+                      <CustomSelect
                         value={updateStatut}
-                        onChange={e => setUpdateStatut(e.target.value)}
-                        className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-foreground outline-none focus:border-gold transition-colors cursor-pointer"
-                      >
-                        <option value="actif" className="bg-background">Actif</option>
-                        <option value="suspendu" className="bg-background">Suspendu</option>
-                        <option value="en_attente" className="bg-background">En attente</option>
-                      </select>
+                        onChange={setUpdateStatut}
+                        options={[
+                          { value: 'actif', label: 'Actif' },
+                          { value: 'suspendu', label: 'Suspendu' },
+                          { value: 'en_attente', label: 'En attente' },
+                        ]}
+                      />
                     </div>
 
                     <button

@@ -10,12 +10,26 @@ interface BackButtonProps {
   href?: string;
 }
 
-export function BackButton({ className, label = "Retour", href = '/' }: BackButtonProps) {
+export function BackButton({ className, label = "Retour", href }: BackButtonProps) {
   const router = useRouter();
+
+  const handleBack = () => {
+    if (href) {
+      router.push(href);
+      return;
+    }
+
+    if (typeof window !== 'undefined' && window.history.length > 1) {
+      router.back();
+      return;
+    }
+
+    router.push('/');
+  };
 
   return (
     <button
-      onClick={() => router.push(href)}
+      onClick={handleBack}
       className={cn(
         "flex items-center gap-2 text-foreground/60 hover:text-gold transition-colors group mb-6",
         className
