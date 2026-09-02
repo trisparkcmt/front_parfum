@@ -850,10 +850,33 @@ export const labService = {
 
   /**
    * Get a single custom perfume composition by ID
+   *
+   * Some shared links may hit the detail endpoint before the object is visible to
+   * the current session (for example, a private composition shared by another user).
+   * In that case, fall back to the list endpoint and resolve by id so the atelier
+   * can still handle the link gracefully instead of crashing on a 404.
    */
   getCustomPerfume: async (id: number) => {
-    const response = await api.get(`lab/parfums-perso/${id}/`);
-    return response.data;
+    try {
+      const response = await api.get(`lab/parfums-perso/${id}/`);
+      return response.data;
+    } catch (error: any) {
+      if (error?.response?.status !== 404) {
+        throw error;
+      }
+
+      const listResponse = await api.get('lab/parfums-perso/');
+      const list = listResponse.data?.results || listResponse.data?.resultats || listResponse.data || [];
+      const found = Array.isArray(list)
+        ? list.find((item: any) => Number(item.id) === Number(id))
+        : null;
+
+      if (!found) {
+        throw error;
+      }
+
+      return found;
+    }
   },
 
   /**

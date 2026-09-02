@@ -238,10 +238,13 @@ export default function FlaconsAdminPage() {
   const [enStockFilter, setEnStockFilter] = useState('');
   const [showFilters, setShowFilters] = useState(false);
   const [showModal, setShowModal] = useState(false);
+  const [showTypeModal, setShowTypeModal] = useState(false);
   const [editingBottle, setEditingBottle] = useState<any | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [creatingType, setCreatingType] = useState(false);
+  const [typeDraft, setTypeDraft] = useState({ nom: '', description: '' });
 
   const [form, setForm] = useState({
     nom: '',
@@ -336,6 +339,36 @@ export default function FlaconsAdminPage() {
       actif: bot.actif !== undefined ? bot.actif : true,
     });
     setShowModal(true);
+  };
+
+  const handleCreateBottleType = async () => {
+    const nom = typeDraft.nom.trim();
+    if (!nom) {
+      addToast(isEn ? 'Please enter a bottle type name.' : 'Veuillez saisir un nom pour le type de flacon.', 'error');
+      return;
+    }
+
+    try {
+      setCreatingType(true);
+      const payload = {
+        nom,
+        description: typeDraft.description.trim() || '',
+      };
+      const created = await shopService.createBottleType(payload);
+      await fetchBottlesAndTypes();
+      const createdId = created?.id ?? created?.data?.id;
+      if (createdId) {
+        updateForm('type_flacon', String(createdId));
+      }
+      setShowTypeModal(false);
+      setTypeDraft({ nom: '', description: '' });
+      addToast(isEn ? 'Bottle type created.' : 'Type de flacon créé.', 'success');
+    } catch (error: any) {
+      const msg = error?.response?.data ? JSON.stringify(error.response.data) : (isEn ? 'Unable to create bottle type.' : 'Impossible de créer le type de flacon.');
+      addToast(msg, 'error');
+    } finally {
+      setCreatingType(false);
+    }
   };
 
   const handleSave = async () => {
@@ -688,6 +721,59 @@ export default function FlaconsAdminPage() {
 
       {/* SlideOver Drawer */}
       <SlideOver
+        isOpen={showTypeModal}
+        onClose={() => setShowTypeModal(false)}
+        title={isEn ? 'Create bottle type' : 'Créer un type de flacon'}
+        description={isEn ? 'Add a type without leaving the bottle form.' : 'Ajoutez un type sans quitter le formulaire du flacon.'}
+        size="md"
+        footer={
+          <div className="flex gap-3">
+            <button
+              onClick={() => setShowTypeModal(false)}
+              className="flex-1 border border-white/10 rounded-lg py-2.5 text-sm text-foreground/60 hover:bg-white/5 transition-colors"
+            >
+              {isEn ? 'Cancel' : 'Annuler'}
+            </button>
+            <button
+              onClick={handleCreateBottleType}
+              disabled={creatingType}
+              className="flex-1 bg-gold text-black rounded-lg py-2.5 text-sm font-bold hover:bg-gold/80 transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
+            >
+              {creatingType ? <Loader2 size={14} className="animate-spin" /> : null}
+              {creatingType ? (isEn ? 'Creating…' : 'Création…') : (isEn ? 'Create' : 'Créer')}
+            </button>
+          </div>
+        }
+      >
+        <div className="space-y-4 p-1">
+          <div>
+            <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">
+              {isEn ? 'Name *' : 'Nom *'}
+            </label>
+            <input
+              value={typeDraft.nom}
+              onChange={(e) => setTypeDraft((prev) => ({ ...prev, nom: e.target.value }))}
+              placeholder={isEn ? 'Bottle type name' : 'Nom du type de flacon'}
+              className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
+            />
+          </div>
+
+          <div>
+            <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">
+              {isEn ? 'Description' : 'Description'}
+            </label>
+            <textarea
+              value={typeDraft.description}
+              onChange={(e) => setTypeDraft((prev) => ({ ...prev, description: e.target.value }))}
+              placeholder={isEn ? 'Short description' : 'Description courte'}
+              rows={4}
+              className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold resize-none"
+            />
+          </div>
+        </div>
+      </SlideOver>
+
+      <SlideOver
         isOpen={showModal}
         onClose={() => setShowModal(false)}
         title={editingBottle ? t('modal_title_edit') : t('modal_title_new')}
@@ -728,9 +814,20 @@ export default function FlaconsAdminPage() {
               </div>
 
               <div>
-                <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">
-                  {t('field_type')}
-                </label>
+                <div className="mb-1 flex items-center justify-between gap-2">
+                  <label className="text-[10px] font-bold text-foreground/40 uppercase block">
+                    {t('field_type')}
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setShowTypeModal(true)}
+                    className="inline-flex h-6 w-6 items-center justify-center rounded-md border border-white/10 bg-white/5 text-sm font-semibold text-foreground/80 transition-colors hover:bg-white/10"
+                    title={isEn ? 'Add bottle type' : 'Ajouter un type de flacon'}
+                    aria-label={isEn ? 'Add bottle type' : 'Ajouter un type de flacon'}
+                  >
+                    +
+                  </button>
+                </div>
                 <CustomSelect
                   value={form.type_flacon}
                   onChange={(value) => updateForm('type_flacon', value)}

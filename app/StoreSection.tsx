@@ -186,13 +186,19 @@ export default function StoreSection() {
       { jour: 'Dimanche', ouvert: false, heure_ouverture: null, heure_fermeture: null },
     ];
 
+    const formatRange = (labels: string[]) => {
+      if (!labels.length) return '';
+      if (labels.length === 1) return labels[0];
+      return `${labels[0]} - ${labels[labels.length - 1]}`;
+    };
+
     const groups: Array<{ day: string; time: string }> = [];
-    let current: { day: string; time: string; startIndex: number; endIndex: number } | null = null;
+    let current: { labels: string[]; time: string; endIndex: number } | null = null;
 
     const pushCurrent = () => {
       if (!current) return;
       groups.push({
-        day: current.day,
+        day: formatRange(current.labels),
         time: current.time,
       });
       current = null;
@@ -203,19 +209,19 @@ export default function StoreSection() {
       const time = day.ouvert ? `${day.heure_ouverture} – ${day.heure_fermeture}` : (isEn ? 'Closed' : 'Fermé');
 
       if (!current) {
-        current = { day: label, time, startIndex: index, endIndex: index };
+        current = { labels: [label], time, endIndex: index };
         return;
       }
 
       const sameSchedule = current.time === time && index === current.endIndex + 1;
       if (sameSchedule) {
-        current.day = index === current.endIndex + 1 ? `${current.day} – ${label}` : current.day;
+        current.labels.push(label);
         current.endIndex = index;
         return;
       }
 
       pushCurrent();
-      current = { day: label, time, startIndex: index, endIndex: index };
+      current = { labels: [label], time, endIndex: index };
     });
 
     pushCurrent();

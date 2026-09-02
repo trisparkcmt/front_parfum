@@ -9,6 +9,7 @@ import { useThemeStore } from '@/store/useThemeStore';
 import { useCartStore } from '@/store/useCartStore';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useCartDrawerStore } from '@/store/useCartDrawerStore';
+import { PullToRefresh } from '@/components/pwa/PullToRefresh';
 import '@/lib/i18n';
 
 export function LayoutWrapper({ children }: { children: React.ReactNode }) {
@@ -41,9 +42,11 @@ export function LayoutWrapper({ children }: { children: React.ReactNode }) {
   const isAiConsultant = pathname === '/numba/ai-consultant';
   const shouldHideNav = isDashboard || isAuth || isAtelier || isAiConsultant;
   const shouldHideFooter = shouldHideNav;
+  const canPullToRefresh = !isDashboard && !isAuth;
 
   return (
     <div className="flex flex-col min-h-screen">
+      <PullToRefresh enabled={canPullToRefresh} onRefresh={() => window.location.reload()} />
       {!shouldHideNav && (
         <Navbar />
       )}
