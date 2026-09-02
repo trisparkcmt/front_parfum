@@ -426,9 +426,10 @@ function AtelierContent() {
         ? item.name.toLowerCase().includes(searchQuery.toLowerCase()) || (item.description || '').toLowerCase().includes(searchQuery.toLowerCase())
         : true;
       if (!matchesSearch) return false;
-      const familyStr = item.family as string;
-      const cat = familyStr === 'premium' || familyStr === 'super-premium' || familyStr === 'high' 
-        ? item.family 
+      const familyStr = String(item.family || '').toLowerCase();
+      const normalizedFamily = familyStr.replace(/[_\s]+/g, '-');
+      const cat = normalizedFamily === 'premium' || normalizedFamily === 'super-premium' || normalizedFamily === 'high'
+        ? normalizedFamily
         : (item.id.includes('sprem') ? 'super-premium' : item.id.includes('high') ? 'high' : 'premium');
       return cat === essenceSubtab;
     });

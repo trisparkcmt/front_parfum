@@ -544,19 +544,7 @@ export const productService = {
     intensite?: string;
     prix_max?: number;
   }): Promise<Product[]> {
-    const params: any = {
-      actif: true,
-    };
-    if (filters) {
-      if (filters.search) params.search = filters.search;
-      if (filters.ordering) params.ordering = filters.ordering;
-      if (filters.genre && filters.genre !== 'all') params.genre = filters.genre;
-      if (filters.famille_olfactive && filters.famille_olfactive !== 'all') params.famille_olfactive = filters.famille_olfactive;
-      if (filters.intensite && filters.intensite !== 'all') params.intensite = filters.intensite;
-      if (filters.prix_max) params.prix_max = filters.prix_max;
-    }
-
-    const response = await apiShopService.getPublicEssences(params);
+    const response = await apiShopService.getPublicEssences();
 
     let results: any[] = [];
     if (response) {
