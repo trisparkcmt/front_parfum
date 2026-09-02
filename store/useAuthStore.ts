@@ -139,6 +139,7 @@ export const useAuthStore = create<AuthState>()(
           if (typeof window !== 'undefined') {
             if (access) {
               localStorage.setItem('auth_token', access);
+              localStorage.setItem('auth_method', 'web');
               api.defaults.headers.common['Authorization'] = `Bearer ${access}`;
               rawApi.defaults.headers.common['Authorization'] = `Bearer ${access}`;
             } else {
@@ -390,6 +391,7 @@ export const useAuthStore = create<AuthState>()(
         if (typeof window !== 'undefined') {
           localStorage.removeItem('auth_token');
           localStorage.removeItem('refresh_token');
+          localStorage.removeItem('auth_method');
           delete api.defaults.headers.common['Authorization'];
         }
         useToastStore.getState().addToast('Déconnexion réussie.', 'success');

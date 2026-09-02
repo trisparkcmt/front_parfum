@@ -272,11 +272,14 @@ function AtelierContent() {
     setMounted(true);
     async function loadData() {
       setLoadingData(true);
-      const [ingreds, esss, bottlesRes] = await Promise.all([
+      const [ingredientsResult, essencesResult, bottlesResult] = await Promise.allSettled([
         labService.getIngredients(),
         labService.getEssences(),
         shopService.getBottles({ en_stock: true }),
       ]);
+      const ingreds = ingredientsResult.status === 'fulfilled' ? ingredientsResult.value : [];
+      const esss = essencesResult.status === 'fulfilled' ? essencesResult.value : [];
+      const bottlesRes = bottlesResult.status === 'fulfilled' ? bottlesResult.value : [];
       const bottles = bottlesRes.results || bottlesRes.resultats || (Array.isArray(bottlesRes) ? bottlesRes : []);
       setIngredients(ingreds);
       setEssences(esss);

@@ -839,8 +839,6 @@ export const labService = {
       params,
       headers: {
         'X-Context': typeof window !== 'undefined' && isDashboardContext() ? 'dashboard' : 'labo',
-        'Cache-Control': 'no-cache',
-        Pragma: 'no-cache',
       },
     });
     return response.data.resultats || response.data.results || response.data;
