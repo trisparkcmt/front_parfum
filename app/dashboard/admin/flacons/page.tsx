@@ -247,8 +247,8 @@ export default function FlaconsAdminPage() {
     nom: '',
     type_flacon: '',
     contenance_ml: 100,
-    matiere: '',
-    couleur: '',
+    matiere: 'Verre',
+    couleur: 'Transparent',
     hauteur_cm: '15.00',
     largeur_cm: '6.00',
     poids_grammes: 200,
@@ -727,6 +727,95 @@ export default function FlaconsAdminPage() {
                 />
               </div>
 
+              <div>
+                <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">
+                  {t('field_type')}
+                </label>
+                <CustomSelect
+                  value={form.type_flacon}
+                  onChange={(value) => updateForm('type_flacon', value)}
+                  options={[
+                    { value: '', label: isEn ? 'Select bottle type' : 'Sélectionner un type de flacon' },
+                    ...bottleTypes.map((type) => ({ value: String(type.id), label: type.nom })),
+                  ]}
+                  data-field="type_flacon"
+                  size="md"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">
+                    {t('field_volume')}
+                  </label>
+                  <input
+                    type="number"
+                    value={form.contenance_ml}
+                    onChange={(e) => updateForm('contenance_ml', Number(e.target.value) || 0)}
+                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-base text-foreground outline-none focus:border-gold"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">
+                    {t('field_price')}
+                  </label>
+                  <input
+                    type="number"
+                    value={form.prix_unitaire}
+                    onChange={(e) => updateForm('prix_unitaire', e.target.value)}
+                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-base text-foreground outline-none focus:border-gold"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">
+                    {t('field_material')}
+                  </label>
+                  <input
+                    value={form.matiere}
+                    onChange={(e) => updateForm('matiere', e.target.value)}
+                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-base text-foreground outline-none focus:border-gold"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">
+                    {t('field_color')}
+                  </label>
+                  <input
+                    value={form.couleur}
+                    onChange={(e) => updateForm('couleur', e.target.value)}
+                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-base text-foreground outline-none focus:border-gold"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">
+                    Stock Initial
+                  </label>
+                  <input
+                    type="number"
+                    value={form.stock_quantite}
+                    onChange={(e) => updateForm('stock_quantite', e.target.value)}
+                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-base text-foreground outline-none focus:border-gold"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">
+                    Seuil Alerte
+                  </label>
+                  <input
+                    type="number"
+                    value={form.seuil_alerte_stock}
+                    onChange={(e) => updateForm('seuil_alerte_stock', e.target.value)}
+                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-base text-foreground outline-none focus:border-gold"
+                  />
+                </div>
+              </div>
+
               {isAdmin && (
                 <div>
                   <label className="text-[10px] font-bold text-amber-400/80 uppercase block mb-1 flex items-center gap-1">
@@ -754,31 +843,6 @@ export default function FlaconsAdminPage() {
                   )}
                 </div>
               )}
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">
-                    Stock Initial
-                  </label>
-                  <input
-                    type="number"
-                    value={form.stock_quantite}
-                    onChange={(e) => updateForm('stock_quantite', e.target.value)}
-                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-base text-foreground outline-none focus:border-gold"
-                  />
-                </div>
-                <div>
-                  <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">
-                    Seuil Alerte
-                  </label>
-                  <input
-                    type="number"
-                    value={form.seuil_alerte_stock}
-                    onChange={(e) => updateForm('seuil_alerte_stock', e.target.value)}
-                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-base text-foreground outline-none focus:border-gold"
-                  />
-                </div>
-              </div>
 
               <div>
                 <label className="flex items-center gap-2 cursor-pointer pt-2">

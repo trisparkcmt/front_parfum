@@ -695,7 +695,7 @@ function LotsTab() {
 
   const [form, setForm] = useState({
     essence: '',
-    quantite_initiale_ml: '',
+    stock_ml: '',
     prix_achat_par_ml: '',
     seuil_alerte_ml: '',
     reference_fournisseur: '',
@@ -734,7 +734,7 @@ function LotsTab() {
     setEditing(null);
     setForm({
       essence: essences[0]?.id ? String(essences[0].id) : '',
-      quantite_initiale_ml: '',
+      stock_ml: '',
       prix_achat_par_ml: '',
       seuil_alerte_ml: '',
       reference_fournisseur: '',
@@ -748,7 +748,7 @@ function LotsTab() {
     setEditing(item);
     setForm({
       essence: String(item.essence || item.essence_id || ''),
-      quantite_initiale_ml: String(item.quantite_initiale_ml ?? item.quantite_initiale ?? ''),
+      stock_ml: String(item.stock_ml ?? item.quantite_initiale_ml ?? item.quantite_initiale ?? ''),
       prix_achat_par_ml: item.prix_achat_par_ml ? String(item.prix_achat_par_ml) : '',
       seuil_alerte_ml: String(item.seuil_alerte_ml ?? ''),
       reference_fournisseur: item.reference_fournisseur || '',
@@ -759,14 +759,14 @@ function LotsTab() {
 
   const handleSave = async () => {
     if (!permissions.canCreate && !permissions.canUpdate) return;
-    if (!form.essence || !form.quantite_initiale_ml) {
+    if (!form.essence || !form.stock_ml) {
       addToast(t('lot_required'), 'error'); return;
     }
     try {
       setSaving(true);
       const payload: Record<string, unknown> = {
         essence: Number(form.essence),
-        quantite_initiale_ml: form.quantite_initiale_ml,
+        stock_ml: form.stock_ml,
         actif: form.actif,
       };
       if (form.prix_achat_par_ml) payload.prix_achat_par_ml = form.prix_achat_par_ml;
@@ -1046,11 +1046,11 @@ function LotsTab() {
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Quantité initiale reçue (ml) *</label>
+              <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Stock initial (ml) *</label>
               <input
                 type="number"
-                value={form.quantite_initiale_ml}
-                onChange={e => setForm(p => ({ ...p, quantite_initiale_ml: e.target.value }))}
+                value={form.stock_ml}
+                onChange={e => setForm(p => ({ ...p, stock_ml: e.target.value }))}
                 placeholder="ex: 500"
                 className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
               />
