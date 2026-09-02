@@ -256,6 +256,19 @@ function RegisterFormContent() {
           {...registerField('passwordConfirm')}
         />
 
+        <p className="text-xs leading-relaxed text-foreground/50">
+          {t('register_terms_intro', {
+            defaultValue: "En créant un compte, vous acceptez nos ",
+          })}
+          <Link href="/terms" className="text-gold hover:underline">
+            {t('terms_short', { defaultValue: 'Conditions générales' })}
+          </Link>{' '}
+          {t('and', { defaultValue: 'et notre' })}{' '}
+          <Link href="/privacy" className="text-gold hover:underline">
+            {t('privacy_policy', { defaultValue: 'Politique de confidentialité' })}
+          </Link>.
+        </p>
+
         <Button type="submit" className="w-full mt-6" isLoading={isLoading} rightIcon={<UserPlus size={18} />}>
           {t('register_btn')}
         </Button>

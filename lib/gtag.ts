@@ -7,8 +7,8 @@
  *
  * Measurement ID is loaded from the same environment variable used by
  * @next/third-parties/google (NEXT_PUBLIC_GA_ID).
- * If you hard-coded the ID directly in layout.tsx ("G-JG0NYEN3VL"), set
- * NEXT_PUBLIC_GA_ID=G-JG0NYEN3VL in your .env.local so it matches.
+ * If you hard-code the ID directly in layout.tsx, keep it aligned with
+ * NEXT_PUBLIC_GA_ID when that environment variable is used.
  */
 
 declare global {

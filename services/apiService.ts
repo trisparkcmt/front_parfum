@@ -4,7 +4,7 @@
  * Implements all endpoints from the API documentation.
  */
 
-import { api } from './api';
+import { api, isDashboardContext } from './api';
 import type {
   User,
   Essence,
@@ -716,7 +716,10 @@ export const shopService = {
     search?: string;
     ordering?: string;
   }) => {
-    const response = await api.get('shop/produits-essence/', { params });
+    const response = await api.get('shop/produits-essence/', {
+      params,
+      headers: { 'X-Context': isDashboardContext() ? 'dashboard' : 'boutique' },
+    });
     return response.data;
   },
 
@@ -738,7 +741,10 @@ export const shopService = {
     ordering?: string;
     actif?: boolean;
   }) => {
-    const response = await api.get('lab/essences/', { params });
+    const response = await api.get('lab/essences/', {
+      params,
+      headers: { 'X-Context': 'boutique' },
+    });
     return response.data;
   },
 
@@ -754,7 +760,9 @@ export const shopService = {
     prix_promotionnel?: string | null;
     actif?: boolean;
   } | FormData) => {
-    const response = await api.post('shop/produits-essence/', data);
+    const response = await api.post('shop/produits-essence/', data, {
+      headers: { 'X-Context': 'dashboard' },
+    });
     return response.data;
   },
 
@@ -762,7 +770,9 @@ export const shopService = {
    * Get finished essence by ID
    */
   getFinishedEssenceById: async (id: number) => {
-    const response = await api.get(`shop/produits-essence/${id}/`);
+    const response = await api.get(`shop/produits-essence/${id}/`, {
+      headers: { 'X-Context': isDashboardContext() ? 'dashboard' : 'boutique' },
+    });
     return response.data;
   },
 
@@ -775,7 +785,9 @@ export const shopService = {
     taille_ml?: number;
     actif?: boolean;
   } | FormData) => {
-    const response = await api.patch(`shop/produits-essence/${id}/`, data);
+    const response = await api.patch(`shop/produits-essence/${id}/`, data, {
+      headers: { 'X-Context': 'dashboard' },
+    });
     return response.data;
   },
 
@@ -783,7 +795,9 @@ export const shopService = {
    * Delete finished essence (Admin / Serveuse)
    */
   deleteFinishedEssence: async (id: number) => {
-    const response = await api.delete(`shop/produits-essence/${id}/`);
+    const response = await api.delete(`shop/produits-essence/${id}/`, {
+      headers: { 'X-Context': 'dashboard' },
+    });
     return response.data;
   },
 
@@ -821,7 +835,10 @@ export const labService = {
     page?: number;
     ordering?: string;
   }): Promise<Essence[]> => {
-    const response = await api.get('lab/essences/', { params });
+    const response = await api.get('lab/essences/', {
+      params,
+      headers: { 'X-Context': typeof window !== 'undefined' && isDashboardContext() ? 'dashboard' : 'labo' },
+    });
     return response.data.resultats || response.data.results || response.data;
   },
 
@@ -1008,7 +1025,9 @@ export const labService = {
       prix_promotionnel?: string | null;
     }>;
   } | FormData) => {
-    const response = await api.post('lab/essences/', data);
+    const response = await api.post('lab/essences/', data, {
+      headers: { 'X-Context': 'dashboard' },
+    });
     return response.data;
   },
 
@@ -1040,7 +1059,9 @@ export const labService = {
     const endpoint = typeof slugOrId === 'number'
       ? `lab/essences/${slugOrId}/`
       : `lab/essences/${slugOrId}/modifier/`;
-    const response = await api.patch(endpoint, data);
+    const response = await api.patch(endpoint, data, {
+      headers: { 'X-Context': 'dashboard' },
+    });
     return response.data;
   },
 
@@ -1048,7 +1069,9 @@ export const labService = {
    * Get a single essence by slug
    */
   getEssenceBySlug: async (slug: string) => {
-    const response = await api.get(`lab/essences/${slug}/`);
+    const response = await api.get(`lab/essences/${slug}/`, {
+      headers: { 'X-Context': typeof window !== 'undefined' && isDashboardContext() ? 'dashboard' : 'labo' },
+    });
     return response.data;
   },
 
@@ -1056,7 +1079,9 @@ export const labService = {
    * Delete an essence (Admin)
    */
   deleteEssence: async (id: number) => {
-    const response = await api.delete(`lab/essences/${id}/`);
+    const response = await api.delete(`lab/essences/${id}/`, {
+      headers: { 'X-Context': 'dashboard' },
+    });
     return response.data;
   },
 
@@ -1093,7 +1118,10 @@ export const labService = {
     actif?: boolean;
     page?: number;
   }) => {
-    const response = await api.get('lab/lots-essence/', { params });
+    const response = await api.get('lab/lots-essence/', {
+      params,
+      headers: { 'X-Context': 'dashboard' },
+    });
     return response.data;
   },
 
@@ -1101,7 +1129,9 @@ export const labService = {
    * Get single essence lot by ID
    */
   getLotEssenceById: async (id: number) => {
-    const response = await api.get(`lab/lots-essence/${id}/`);
+    const response = await api.get(`lab/lots-essence/${id}/`, {
+      headers: { 'X-Context': 'dashboard' },
+    });
     return response.data;
   },
 
@@ -1117,7 +1147,9 @@ export const labService = {
     reference_fournisseur?: string;
     actif?: boolean;
   }) => {
-    const response = await api.post('lab/lots-essence/', data);
+    const response = await api.post('lab/lots-essence/', data, {
+      headers: { 'X-Context': 'dashboard' },
+    });
     return response.data;
   },
 
@@ -1132,7 +1164,9 @@ export const labService = {
     reference_fournisseur?: string;
     actif?: boolean;
   }) => {
-    const response = await api.patch(`lab/lots-essence/${id}/`, data);
+    const response = await api.patch(`lab/lots-essence/${id}/`, data, {
+      headers: { 'X-Context': 'dashboard' },
+    });
     return response.data;
   },
 
@@ -1140,7 +1174,9 @@ export const labService = {
    * Delete an essence lot (Admin / Laborantin)
    */
   deleteLotEssence: async (id: number) => {
-    const response = await api.delete(`lab/lots-essence/${id}/`);
+    const response = await api.delete(`lab/lots-essence/${id}/`, {
+      headers: { 'X-Context': 'dashboard' },
+    });
     return response.data;
   },
 

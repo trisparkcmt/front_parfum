@@ -696,8 +696,9 @@ function LotsTab() {
   const [form, setForm] = useState({
     essence: '',
     stock_ml: '',
+    seuil_alerte_ml: '0',
     prix_achat_par_ml: '',
-    seuil_alerte_ml: '',
+    quantite_initiale_ml: '',
     reference_fournisseur: '',
     actif: true,
   });
@@ -735,8 +736,9 @@ function LotsTab() {
     setForm({
       essence: essences[0]?.id ? String(essences[0].id) : '',
       stock_ml: '',
+      seuil_alerte_ml: '0',
       prix_achat_par_ml: '',
-      seuil_alerte_ml: '',
+      quantite_initiale_ml: '',
       reference_fournisseur: '',
       actif: true,
     });
@@ -749,8 +751,9 @@ function LotsTab() {
     setForm({
       essence: String(item.essence || item.essence_id || ''),
       stock_ml: String(item.stock_ml ?? item.quantite_initiale_ml ?? item.quantite_initiale ?? ''),
+      seuil_alerte_ml: String(item.seuil_alerte_ml ?? '0'),
       prix_achat_par_ml: item.prix_achat_par_ml ? String(item.prix_achat_par_ml) : '',
-      seuil_alerte_ml: String(item.seuil_alerte_ml ?? ''),
+      quantite_initiale_ml: String(item.quantite_initiale_ml ?? ''),
       reference_fournisseur: item.reference_fournisseur || '',
       actif: item.actif !== undefined ? item.actif : true,
     });
@@ -767,10 +770,11 @@ function LotsTab() {
       const payload: Record<string, unknown> = {
         essence: Number(form.essence),
         stock_ml: form.stock_ml,
+        seuil_alerte_ml: form.seuil_alerte_ml,
         actif: form.actif,
       };
+      if (form.quantite_initiale_ml) payload.quantite_initiale_ml = form.quantite_initiale_ml;
       if (form.prix_achat_par_ml) payload.prix_achat_par_ml = form.prix_achat_par_ml;
-      if (form.seuil_alerte_ml) payload.seuil_alerte_ml = form.seuil_alerte_ml;
       if (form.reference_fournisseur) payload.reference_fournisseur = form.reference_fournisseur;
       if (editing) {
         setItems(prev => prev.map(i => i.id === editing.id ? { ...i, ...payload } : i));

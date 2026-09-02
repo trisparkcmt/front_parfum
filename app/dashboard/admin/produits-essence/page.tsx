@@ -141,15 +141,11 @@ export default function FinishedEssenceAdminPage() {
     taille_ml: '50',
     prix: '',
     prix_promotionnel: '',
-    stock_disponible: '0',
     actif: true,
     nom: '',
     marque: '',
     categorie: '',
   });
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [lotStockMl, setLotStockMl] = useState<number | null>(null);
-  const [loadingLotStock, setLoadingLotStock] = useState(false);
   const [essenceSearch, setEssenceSearch] = useState('');
   const [showEssenceDropdown, setShowEssenceDropdown] = useState(false);
 
@@ -181,39 +177,6 @@ export default function FinishedEssenceAdminPage() {
       .catch(() => {});
   }, []);
 
-  const fetchLotStockForEssence = useCallback(async (essenceId: string) => {
-    if (!essenceId) {
-      setLotStockMl(null);
-      return;
-    }
-    try {
-      setLoadingLotStock(true);
-      const data = await labService.getLotsEssence({
-        essence: Number(essenceId),
-        actif: true,
-      });
-      const lots = extractCatalogList(data);
-      const total = lots.reduce<number>((sum, lot: any) => {
-        const stock = lot.stock_ml ?? lot.quantite_ml ?? '0';
-        return sum + parseFloat(String(stock));
-      }, 0);
-      setLotStockMl(total);
-    } catch {
-      setLotStockMl(null);
-    } finally {
-      setLoadingLotStock(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (showModal && form.essence) {
-      fetchLotStockForEssence(form.essence);
-    }
-  }, [showModal, form.essence, fetchLotStockForEssence]);
-
-  const mlRequis = Number(form.taille_ml || 0) * Number(form.stock_disponible || 0);
-  const stockInsuffisant = lotStockMl !== null && mlRequis > 0 && mlRequis > lotStockMl;
-
   const validateForm = useCallback(() => {
     const errors: Record<string, string> = {};
     if (!form.essence || form.essence === '') errors.essence = 'Une essence doit être sélectionnée';
@@ -222,12 +185,9 @@ export default function FinishedEssenceAdminPage() {
     if (!form.categorie.trim()) errors.categorie = 'La catégorie est requise';
     if (!form.taille_ml || Number(form.taille_ml) <= 0) errors.taille_ml = 'La taille doit être supérieure à 0';
     if (!form.prix || Number(form.prix) <= 0) errors.prix = 'Le prix doit être supérieur à 0';
-    if (form.stock_disponible === '' || Number(form.stock_disponible) < 0)
-      errors.stock_disponible = 'Le stock est requis';
-    if (stockInsuffisant) errors.stock_disponible = 'Le stock demandé dépasse le stock du lot laboratoire';
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
-  }, [form.essence, form.nom, form.marque, form.categorie, form.taille_ml, form.prix, form.stock_disponible, stockInsuffisant]);
+  }, [form.essence, form.nom, form.marque, form.categorie, form.taille_ml, form.prix]);
 
   const updateFormField = (field: keyof typeof form, value: string | boolean) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -265,13 +225,11 @@ export default function FinishedEssenceAdminPage() {
       taille_ml: '',
       prix: '',
       prix_promotionnel: '',
-      stock_disponible: '',
       actif: true,
       nom: '',
       marque: '',
       categorie: '',
     });
-    setImageFile(null);
     setFormError('');
     setFormErrors({});
     setShowModal(true);
@@ -286,13 +244,11 @@ export default function FinishedEssenceAdminPage() {
       taille_ml: String(item.taille_ml ?? ''),
       prix: String(priceValue ?? ''),
       prix_promotionnel: item.prix_promotionnel ? String(item.prix_promotionnel) : '',
-      stock_disponible: String(item.stock_disponible ?? '0'),
       actif: item.actif !== false,
       nom: item.nom ?? '',
       marque: item.marque ?? '',
       categorie: item.categorie ?? '',
     });
-    setImageFile(null);
     setFormError('');
     setFormErrors({});
     setShowModal(true);
@@ -320,36 +276,26 @@ export default function FinishedEssenceAdminPage() {
       return;
     }
 
-    const formData = new FormData();
-    formData.append('essence', form.essence);
-    formData.append('taille_ml', form.taille_ml);
-    formData.append('prix', form.prix);
-    if (form.prix_promotionnel) {
-      formData.append('prix_promotionnel', form.prix_promotionnel);
-    } else {
-      formData.append('prix_promotionnel', '');
-    }
-    formData.append('stock_disponible', form.stock_disponible);
-    formData.append('actif', String(form.actif));
-    formData.append('nom', form.nom);
-    formData.append('marque', form.marque);
-    formData.append('categorie', form.categorie);
-    if (imageFile) {
-      formData.append('image_principale', imageFile);
-    }
+    const payload = {
+      essence: Number(form.essence),
+      taille_ml: Number(form.taille_ml),
+      prix: form.prix,
+      prix_promotionnel: form.prix_promotionnel || null,
+      actif: form.actif,
+    };
 
     try {
       setFormError('');
       setSaving(true);
       if (editing) {
-        setItems(prev => prev.map(i => i.id === editing.id ? { ...i, ...Object.fromEntries(formData.entries()) } : i));
+        setItems(prev => prev.map(i => i.id === editing.id ? { ...i, ...payload } : i));
         setShowModal(false);
-        await adm.patchFormData(`shop/produits-essence/${editing.id}/`, formData);
+        await shopService.updateFinishedEssence(editing.id, payload);
         addToast('Produit essence mis à jour', 'success');
         fetchItems();
       } else {
         setShowModal(false);
-        await adm.postFormData('shop/produits-essence/', formData);
+        await shopService.createFinishedEssence(payload);
         addToast(t('toast_create_ok'), 'success');
         fetchItems();
       }
@@ -542,7 +488,7 @@ export default function FinishedEssenceAdminPage() {
                       <InlineCell value={String(item.prix_actuel ?? item.prix ?? '')} onSave={v => patchProduitEssence(item.id, 'prix', v)} disabled={!permissions.canUpdate} inputType="number" display={<>{Number(item.prix_actuel ?? item.prix).toLocaleString()} FCFA</>} className="font-semibold text-gold tabular-nums" />
                     </td>
                     <td className="px-4 py-3 font-mono text-foreground/80">
-                      <InlineCell value={String(item.stock_disponible ?? '0')} onSave={v => patchProduitEssence(item.id, 'stock_disponible', v)} disabled={!permissions.canUpdate} inputType="number" className="font-mono text-foreground/80 tabular-nums" />
+                      <span className="font-mono text-foreground/80 tabular-nums">{item.stock_disponible ?? 0}</span>
                     </td>
                     <td className="px-4 py-3">
                       <StatusChip active={item.actif} />
@@ -777,19 +723,6 @@ export default function FinishedEssenceAdminPage() {
               />
               {formErrors.taille_ml && <p className="mt-1 text-xs text-red-500">{formErrors.taille_ml}</p>}
             </div>
-            <div>
-              <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">
-                {isEn ? 'Available stock *' : 'Stock disponible *'}
-              </label>
-              <input
-                data-field="stock_disponible"
-                type="number"
-                value={form.stock_disponible}
-                onChange={(e) => updateFormField('stock_disponible', e.target.value)}
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-foreground outline-none focus:border-gold/50"
-              />
-              {formErrors.stock_disponible && <p className="mt-1 text-xs text-red-500">{formErrors.stock_disponible}</p>}
-            </div>
           </div>
 
           {/* ── 4. Price + Promo ───────────────────────────────────────────── */}
@@ -822,53 +755,7 @@ export default function FinishedEssenceAdminPage() {
             </div>
           </div>
 
-          {/* ── 5. Image ───────────────────────────────────────────────────── */}
-          <div>
-            <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">
-              {isEn ? 'Main image' : 'Image principale'}
-            </label>
-            <input
-              data-field="imageFile"
-              type="file"
-              accept="image/*"
-              onChange={(e) => setImageFile(e.target.files?.[0] || null)}
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-foreground outline-none file:bg-gold file:text-black file:border-0 file:rounded-lg file:px-3 file:py-1.5 file:mr-3 file:text-xs file:font-bold file:cursor-pointer cursor-pointer"
-            />
-          </div>
-
-          {/* ── 6. Lab stock warning ───────────────────────────────────────── */}
-          {!editing && form.essence && (
-            <div className={`rounded-xl border px-4 py-3 text-sm space-y-1 ${stockInsuffisant ? 'border-red-500/30 bg-red-500/10 text-red-300' : 'border-white/10 bg-white/[0.03] text-foreground/70'}`}>
-              <p className="font-semibold text-xs uppercase tracking-wider text-foreground/50">
-                {isEn ? 'Lab lot consumption' : 'Consommation lot laboratoire'}
-              </p>
-              <p>
-                {isEn ? 'Required ml:' : 'ML requis :'} <span className="font-bold">{mlRequis.toLocaleString()} ml</span>
-                {' '}<span className="text-foreground/40 text-xs">{isEn ? '(size × stock)' : '(taille × stock)'}</span>
-              </p>
-              <p>
-                {isEn ? 'Available lot stock:' : 'Stock lot disponible :'}{' '}
-                {loadingLotStock ? (
-                  <span className="text-foreground/40">{isEn ? 'calculating…' : 'calcul…'}</span>
-                ) : lotStockMl !== null ? (
-                  <span className={`font-bold ${stockInsuffisant ? 'text-red-400' : 'text-emerald-400'}`}>
-                    {lotStockMl.toLocaleString()} ml
-                  </span>
-                ) : (
-                  <span className="text-foreground/40">—</span>
-                )}
-              </p>
-              {stockInsuffisant && (
-                <p className="text-xs pt-1">
-                  {isEn
-                    ? 'Insufficient stock — create a lab lot or reduce the requested stock.'
-                    : 'Stock insuffisant — créez un lot via Labo ou réduisez le stock demandé.'}
-                </p>
-              )}
-            </div>
-          )}
-
-          {/* ── 7. Active toggle ──────────────────────────────────────────── */}
+          {/* ── 5. Active toggle ──────────────────────────────────────────── */}
           <label className="flex items-center gap-3 cursor-pointer select-none">
             <div
               onClick={() => setForm(f => ({ ...f, actif: !f.actif }))}

@@ -46,3 +46,13 @@ AI-24b0a5fdc5991
 
 vc-domain-verify=accessoiresexclusifs.com,4f0c238c1008ab6373bb
 _vercel
+
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-5JW2VWNBYD"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-5JW2VWNBYD');
+</script>
