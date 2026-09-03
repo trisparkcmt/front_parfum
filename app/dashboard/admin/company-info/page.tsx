@@ -242,8 +242,8 @@ export default function AdminCompanyInfoPage() {
       }
 
       addToast(text.saveSuccess, 'success');
-      setShowForm(false);
       fetchCompanyInfo();
+      setShowForm(false);
     } catch (error: any) {
       console.error('Company info save failed', error);
       setFormError(error?.message || text.saveError);

@@ -133,7 +133,7 @@ export default function RootLayout({
         <OfflineBanner />
 
         {/* 2. Google Analytics tracking code */}
-        <GoogleAnalytics gaId="G-5JW2VWNBYD" />
+        <GoogleAnalytics gaId={process.env.NEXT_PUBLIC_GA_ID || "G-LZ9Y34PNZP"} />
       </body>
     </html>
   );

@@ -95,7 +95,8 @@ export default function PasswordChangeModal({
       setFormData({ oldPassword: '', newPassword: '', newPasswordConfirm: '' });
       setErrors({});
       onSuccess?.();
-      onClose();
+      // Delay close to allow toast to show
+      setTimeout(() => onClose(), 1000);
     } catch (error: any) {
       console.error('Password change failed:', error);
       const errorMsg =

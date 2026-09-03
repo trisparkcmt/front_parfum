@@ -462,8 +462,8 @@ function IngredientsTab() {
         await labService.createIngredient(payload);
         addToast(t('ing_toast_create'), 'success');
       }
+      await fetchItems();
       setShowModal(false);
-      fetchItems();
     } catch (e: any) {
       setFormError(e.response?.data?.detail || t('ing_toast_save_error'));
     } finally {
