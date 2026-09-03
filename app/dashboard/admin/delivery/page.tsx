@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Plus, Loader2, RefreshCw, Trash2 } from 'lucide-react';
+import { Plus, Loader2, RefreshCw, Trash2, AlertCircle, X } from 'lucide-react';
 import { adminService } from '@/services/apiService';
 import { useToastStore } from '@/store/useToastStore';
 import AppImage from '@/components/ui/AppImage';
@@ -118,6 +118,8 @@ export default function DeliveryPage() {
 
   // Form state
   const [userIdVal, setUserIdVal] = useState('');
+  const [formError, setFormError] = useState<string | null>(null);
+  const [promoting, setPromoting] = useState(false);
 
   const { addToast } = useToastStore();
 
@@ -154,15 +156,22 @@ export default function DeliveryPage() {
   }, [fetchDriversAndDeliveries]);
 
   const handlePromote = async () => {
-    if (!userIdVal) return;
+    setFormError(null);
+    if (!userIdVal) {
+      setFormError('Veuillez sélectionner un utilisateur');
+      return;
+    }
     try {
+      setPromoting(true);
       await adminService.promoteToDriver(parseInt(userIdVal));
       addToast('Utilisateur promu au rang de livreur avec succès', 'success');
       setShowModal(false);
       setUserIdVal('');
       fetchDriversAndDeliveries();
     } catch (error: any) {
-      addToast(error.response?.data?.detail || 'Erreur lors de la promotion', 'error');
+      setFormError(error.response?.data?.detail || 'Erreur lors de la promotion');
+    } finally {
+      setPromoting(false);
     }
   };
 
@@ -405,20 +414,35 @@ export default function DeliveryPage() {
           <div className="flex gap-3 w-full justify-end">
             <button
               onClick={() => setShowModal(false)}
-              className="rounded-lg border border-white/10 px-4 py-2 text-xs font-medium text-foreground/60 hover:bg-white/5 transition-colors"
+              disabled={promoting}
+              className="rounded-lg border border-white/10 px-4 py-2 text-xs font-medium text-foreground/60 hover:bg-white/5 transition-colors disabled:opacity-50"
             >
               Annuler
             </button>
             <button
               onClick={handlePromote}
-              className="rounded-lg bg-gold px-4 py-2 text-xs font-semibold text-black hover:bg-gold/90 transition-colors"
+              disabled={promoting}
+              className="rounded-lg bg-gold px-4 py-2 text-xs font-semibold text-black hover:bg-gold/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
             >
-              Promouvoir
+              {promoting && <Loader2 size={12} className="animate-spin" />}
+              {promoting ? 'Promotion...' : 'Promouvoir'}
             </button>
           </div>
         }
       >
         <div className="space-y-3">
+          {formError && (
+            <div className="flex items-start gap-3 rounded-lg bg-red-500/10 border border-red-500/20 p-3">
+              <AlertCircle size={16} className="text-red-400 flex-shrink-0 mt-0.5" />
+              <p className="text-xs text-red-400 flex-1">{formError}</p>
+              <button
+                onClick={() => setFormError(null)}
+                className="text-red-400/60 hover:text-red-400 transition-colors flex-shrink-0"
+              >
+                <X size={14} />
+              </button>
+            </div>
+          )}
           <div>
             <label className="text-[10px] font-bold text-foreground/40 uppercase mb-1 block">ID de l'utilisateur</label>
             <input

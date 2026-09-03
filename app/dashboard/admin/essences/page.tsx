@@ -388,6 +388,9 @@ export default function EssencesPage() {
   const handleSave = async () => {
     if (!permissions.canCreate && !permissions.canUpdate) return;
     
+    // Clear previous error banner
+    setFormError(null);
+    
     const errors: Record<string, string> = {};
     
     if (!form.nom.trim()) errors.nom = 'Le nom est requis';
@@ -455,10 +458,11 @@ export default function EssencesPage() {
           genre_cible: form.genreCible,
           prix_par_ml: form.prixParMl,
         };
-        setEssences(prev => prev.map(e => (e.slug || String(e.id)) === (editingEssence.slug || String(editingEssence.id)) ? { ...e, ...payload } : e));
-        setShowModal(false);
         await labService.updateEssence(editingEssence.slug || editingEssence.id, payload);
+        setEssences(prev => prev.map(e => (e.slug || String(e.id)) === (editingEssence.slug || String(editingEssence.id)) ? { ...e, ...payload } : e));
         addToast(t('toast_update_ok'), 'success');
+        setShowModal(false);
+        resetForm();
         fetchData();
       } else {
         const payload: {
@@ -510,9 +514,10 @@ export default function EssencesPage() {
             prix_promotionnel: form.produitFini.prix_promotionnel || null,
           }];
         }
-        setShowModal(false);
         await labService.createEssence(payload);
         addToast(t('toast_create_ok'), 'success');
+        setShowModal(false);
+        resetForm();
         fetchData();
       }
     } catch (e: unknown) {
@@ -1072,6 +1077,24 @@ export default function EssencesPage() {
           </div>
 
           {/* Section 3: Stock Initial (à la création uniquement) */}
+          {/* Error Banner */}
+          {formError && (
+            <div className="mb-4 rounded-xl bg-red-500/10 border border-red-500/20 p-4 flex items-start gap-3">
+              <AlertCircle size={20} className="text-red-400 shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <p className="text-sm font-medium text-red-400">Erreur lors de la sauvegarde</p>
+                <p className="mt-1 text-xs text-red-400/80">{formError}</p>
+              </div>
+              <button
+                onClick={() => setFormError(null)}
+                className="text-red-400/60 hover:text-red-400 transition-colors"
+              >
+                <X size={16} />
+              </button>
+            </div>
+          )}
+
+          {/* Form Content */}
           {!editingEssence && (
             <div className="space-y-4 pt-2 border-t border-white/10">
               <p className="text-xs font-bold text-gold uppercase tracking-wider">{t('section_lot')}</p>
@@ -1192,10 +1215,15 @@ export default function EssencesPage() {
               type="button"
               onClick={handleSave} 
               disabled={saving}
-              className="flex-1 px-4 py-3 rounded-xl bg-gold hover:bg-gold/90 text-black font-bold text-sm transition-all flex items-center justify-center gap-2 disabled:opacity-50 shadow-lg shadow-gold/10"
+              className="flex-1 px-4 py-3 rounded-xl bg-gold hover:bg-gold/90 text-black font-bold text-sm transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-gold/10"
             >
               {saving && <Loader2 size={16} className="animate-spin" />}
-              {editingEssence ? (isEn ? 'Update' : 'Mettre à jour') : (isEn ? "Save essence" : "Enregistrer l'essence")}
+              {saving 
+                ? (isEn ? 'Saving...' : 'Enregistrement...')
+                : editingEssence 
+                  ? (isEn ? 'Update' : 'Mettre à jour') 
+                  : (isEn ? "Save essence" : "Enregistrer l'essence")
+              }
             </button>
           </div>
         </div>

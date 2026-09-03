@@ -1,7 +1,7 @@
 ﻿'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { Search, Plus, Edit2, Trash2, Loader2, Wifi, Zap, Tag, DollarSign, Boxes, Settings2 } from 'lucide-react';
+import { Search, Plus, Edit2, Trash2, Loader2, Wifi, Zap, Tag, DollarSign, Boxes, Settings2, AlertCircle, X } from 'lucide-react';
 import { InlineCell } from '@/components/admin/InlineCell';
 import { TablePagination } from '@/components/admin/TablePagination';
 import { adminService } from '@/services/apiService';
@@ -259,6 +259,7 @@ export default function DiffuseursAdminPage() {
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState<any | null>(null);
   const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
   const { addToast } = useToastStore();
 
   // ── Pagination & stock split ──────────────────────────────────────────────
@@ -301,6 +302,7 @@ export default function DiffuseursAdminPage() {
   const openAdd = () => {
     if (!permissions.canCreate) return;
     setEditing(null);
+    setFormError(null);
     setForm({
       nom: '',
       description_courte: '',
@@ -320,6 +322,7 @@ export default function DiffuseursAdminPage() {
   const openEdit = (item: any) => {
     if (!permissions.canUpdate) return;
     setEditing(item);
+    setFormError(null);
     setForm({
       nom: item.nom || '',
       description_courte: item.description_courte || '',
@@ -337,6 +340,7 @@ export default function DiffuseursAdminPage() {
   };
 
   const handleSave = async () => {
+    setFormError(null);
     if (!permissions.canCreate && !permissions.canUpdate) return;
     if (!form.nom || !form.prix_unitaire) {
       addToast(t('toast_required'), 'error');
@@ -360,19 +364,17 @@ export default function DiffuseursAdminPage() {
       if (form.capacite_reservoir_ml) payload.capacite_reservoir_ml = parseInt(form.capacite_reservoir_ml, 10);
 
       if (editing) {
-        setDiffuseurs(prev => prev.map(d => d.id === editing.id ? { ...d, ...payload } : d));
-        setShowModal(false);
         await adminService.updateDiffuseur(editing.id, payload);
         addToast(t('toast_update_ok'), 'success');
-        fetchItems();
       } else {
-        setShowModal(false);
         await adminService.createDiffuseur(payload);
         addToast(t('toast_create_ok'), 'success');
-        fetchItems();
       }
-    } catch {
-      addToast(t('toast_save_error'), 'error');
+      
+      setShowModal(false);
+      fetchItems();
+    } catch (err: any) {
+      setFormError(err?.message || t('toast_save_error'));
     } finally {
       setSaving(false);
     }
@@ -756,7 +758,8 @@ export default function DiffuseursAdminPage() {
           <div className="flex gap-3">
             <button
               onClick={() => setShowModal(false)}
-              className="flex-1 border border-white/10 rounded-lg py-2 text-xs text-foreground/60 hover:bg-white/5 transition-colors"
+              disabled={saving}
+              className="flex-1 border border-white/10 rounded-lg py-2 text-xs text-foreground/60 hover:bg-white/5 transition-colors disabled:opacity-50"
             >
               {isEn ? 'Cancel' : 'Annuler'}
             </button>
@@ -772,6 +775,18 @@ export default function DiffuseursAdminPage() {
         }
       >
         <div className="space-y-4">
+          {formError && (
+            <div className="flex items-start gap-3 rounded-lg bg-red-500/10 border border-red-500/20 p-3">
+              <AlertCircle size={16} className="text-red-400 flex-shrink-0 mt-0.5" />
+              <p className="text-xs text-red-400 flex-1">{formError}</p>
+              <button
+                onClick={() => setFormError(null)}
+                className="text-red-400/60 hover:text-red-400 transition-colors flex-shrink-0"
+              >
+                <X size={14} />
+              </button>
+            </div>
+          )}
 
           <FormSection title={t('section_general')} icon={<Tag size={11} />}>
             <Field label={t('field_nom')}>

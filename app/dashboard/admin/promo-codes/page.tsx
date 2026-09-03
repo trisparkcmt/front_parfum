@@ -81,6 +81,7 @@ export default function PromoCodesPage() {
   const [showModal, setShowModal] = useState(false);
   const [editingCode, setEditingCode] = useState<PromoCode | null>(null);
   const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
   const [showClientPicker, setShowClientPicker] = useState(false);
   const [formCode, setFormCode] = useState('');
   const [formReduction, setFormReduction] = useState('10.00');
@@ -117,25 +118,26 @@ export default function PromoCodesPage() {
     return () => { if (clientDebounce.current) clearTimeout(clientDebounce.current); };
   }, [clientSearch, fetchClients]);
 
-  const openCreate = () => { setEditingCode(null); setFormCode(''); setFormReduction('10.00'); setFormActif(true); setFormClients([]); setFormDateDebut(null); setFormDateFin(null); setShowModal(true); setClientSearch(''); setShowClientPicker(false); };
-  const openEdit = (code: PromoCode) => { setEditingCode(code); setFormCode(code.code); setFormReduction(code.reduction_pourcentage); setFormActif(code.est_actif); setFormClients(code.clients_autorises ?? []); setShowModal(true); setClientSearch(''); setShowClientPicker(false); };
+  const openCreate = () => { setFormError(null); setEditingCode(null); setFormCode(''); setFormReduction('10.00'); setFormActif(true); setFormClients([]); setFormDateDebut(null); setFormDateFin(null); setShowModal(true); setClientSearch(''); setShowClientPicker(false); };
+  const openEdit = (code: PromoCode) => { setFormError(null); setEditingCode(code); setFormCode(code.code); setFormReduction(code.reduction_pourcentage); setFormActif(code.est_actif); setFormClients(code.clients_autorises ?? []); setShowModal(true); setClientSearch(''); setShowClientPicker(false); };
 
   const handleSave = async () => {
     if (!formCode.trim()) { addToast('Le code est requis', 'error'); return; }
     const pct = parseFloat(formReduction);
     if (isNaN(pct) || pct < 0 || pct > 100) { addToast('La reduction doit etre entre 0 et 100%', 'error'); return; }
+    setFormError(null);
     setSaving(true);
     try {
       const payload = { code: formCode.trim().toUpperCase(), reduction_pourcentage: pct.toFixed(2), est_actif: formActif, clients_autorises: formClients };
       if (editingCode) {
         setCodes(prev => prev.map(c => c.id === editingCode.id ? { ...c, ...payload } : c));
-        setShowModal(false);
         await promoApi.update(editingCode.id, payload);
+        setShowModal(false);
         addToast('Code promo mis a jour', 'success');
         fetchCodes();
       } else {
-        setShowModal(false);
         const created = await promoApi.create(payload);
+        setShowModal(false);
         if (created?.id) {
           setCodes(prev => [created, ...prev]);
         } else {
@@ -144,7 +146,9 @@ export default function PromoCodesPage() {
         addToast('Code promo cree - emails & notifications envoyes aux clients selectionnes', 'success');
       }
     } catch (err: any) {
-      addToast(err?.response?.data ? JSON.stringify(err.response.data) : 'Erreur lors de la sauvegarde', 'error');
+      const errorMessage = err?.response?.data ? JSON.stringify(err.response.data) : 'Erreur lors de la sauvegarde';
+      setFormError(errorMessage);
+      addToast(errorMessage, 'error');
     } finally { setSaving(false); }
   };
 
@@ -346,7 +350,7 @@ export default function PromoCodesPage() {
               {saving ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle size={16} />}
               {editingCode ? 'Enregistrer les modifications' : 'Creer et envoyer'}
             </button>
-            <button onClick={() => setShowModal(false)} className="px-5 border border-white/10 rounded-xl py-3 text-sm text-foreground/60 hover:bg-white/5 transition-all">Annuler</button>
+            <button onClick={() => setShowModal(false)} disabled={saving} className="px-5 border border-white/10 rounded-xl py-3 text-sm text-foreground/60 hover:bg-white/5 transition-all disabled:opacity-50">Annuler</button>
           </div>
         }
       >

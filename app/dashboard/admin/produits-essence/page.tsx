@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Loader2, Edit2, Trash2, Plus, Search, RefreshCw, Filter } from 'lucide-react';
+import { Search, Plus, Edit2, Trash2, Loader2, RefreshCw, Filter, AlertCircle, X } from 'lucide-react';
 import { InlineCell } from '@/components/admin/InlineCell';
 import { TablePagination } from '@/components/admin/TablePagination';
 import { useTranslation } from 'react-i18next';
@@ -127,7 +127,7 @@ export default function FinishedEssenceAdminPage() {
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState<any | null>(null);
   const [saving, setSaving] = useState(false);
-  const [formError, setFormError] = useState('');
+  const [formError, setFormError] = useState<string | null>(null);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const { addToast } = useToastStore();
 
@@ -230,7 +230,7 @@ export default function FinishedEssenceAdminPage() {
       marque: '',
       categorie: '',
     });
-    setFormError('');
+    setFormError(null);
     setFormErrors({});
     setShowModal(true);
   };
@@ -249,7 +249,7 @@ export default function FinishedEssenceAdminPage() {
       marque: item.marque ?? '',
       categorie: item.categorie ?? '',
     });
-    setFormError('');
+    setFormError(null);
     setFormErrors({});
     setShowModal(true);
   };
@@ -285,17 +285,17 @@ export default function FinishedEssenceAdminPage() {
     };
 
     try {
-      setFormError('');
+      setFormError(null);
       setSaving(true);
       if (editing) {
         setItems(prev => prev.map(i => i.id === editing.id ? { ...i, ...payload } : i));
-        setShowModal(false);
         await shopService.updateFinishedEssence(editing.id, payload);
+        setShowModal(false);
         addToast('Produit essence mis à jour', 'success');
         fetchItems();
       } else {
-        setShowModal(false);
         await shopService.createFinishedEssence(payload);
+        setShowModal(false);
         addToast(t('toast_create_ok'), 'success');
         fetchItems();
       }
@@ -586,7 +586,7 @@ export default function FinishedEssenceAdminPage() {
         size="lg"
         footer={
           <div className="flex gap-3 pt-2">
-            <button onClick={() => setShowModal(false)} className="flex-1 border border-white/10 rounded-xl py-2.5 text-sm">Annuler</button>
+            <button onClick={() => setShowModal(false)} disabled={saving} className="flex-1 border border-white/10 rounded-xl py-2.5 text-sm disabled:opacity-50">Annuler</button>
             <button
               onClick={handleSave}
               disabled={saving}

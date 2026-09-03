@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Loader2, Edit2, Trash2, Plus, Search, Gem, FlaskConical, Tag, Calendar, Image as ImageIcon } from 'lucide-react';
+import { Loader2, Edit2, Trash2, Plus, Search, Gem, FlaskConical, Tag, Calendar, Image as ImageIcon, AlertCircle, X } from 'lucide-react';
 import { PerfumeIcon } from '@/components/icons/CustomIcons';
 import { shopService, adminService } from '@/services/apiService';
 import { useToastStore } from '@/store/useToastStore';
@@ -970,6 +970,20 @@ export default function CategoriesAdminPage() {
         }
       >
         <div className="space-y-4">
+          {/* Error Banner */}
+          {formError && (
+            <div className="rounded-xl bg-red-500/10 border border-red-500/20 p-4 flex items-start gap-3">
+              <AlertCircle size={20} className="text-red-400 shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <p className="text-sm font-medium text-red-400">{isEn ? 'Save Error' : 'Erreur lors de la sauvegarde'}</p>
+                <p className="mt-1 text-xs text-red-400/80">{formError}</p>
+              </div>
+              <button onClick={() => setFormError('')} className="text-red-400/60 hover:text-red-400 transition-colors">
+                <X size={16} />
+              </button>
+            </div>
+          )}
+
           <FormSection title={t('section_general')} icon={Tag}>
             <Field label={t('field_name')} required error={formErrors.nom}>
               <input
@@ -1108,12 +1122,6 @@ export default function CategoriesAdminPage() {
                 <span className="text-xs text-foreground/70 font-medium">{t('field_active')}</span>
               </label>
             </FormSection>
-          )}
-
-          {formError && (
-            <p className="text-xs font-semibold text-red-400 bg-red-500/10 border border-red-500/20 px-3 py-2.5 rounded-lg text-center mt-4">
-              {formError}
-            </p>
           )}
         </div>
       </SlideOver>

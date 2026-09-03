@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Search, Plus, Edit2, Trash2, Loader2, SlidersHorizontal, X, Tag, Layers, Palette, DollarSign, Boxes } from 'lucide-react';
+import { Search, Plus, Edit2, Trash2, Loader2, SlidersHorizontal, X, Tag, Layers, Palette, DollarSign, Boxes, AlertCircle } from 'lucide-react';
 import { shopService, adminService } from '@/services/apiService';
 import { useToastStore } from '@/store/useToastStore';
 import { useCatalogPermissions } from '@/hooks/useCatalogPermissions';
@@ -250,6 +250,7 @@ export default function AccessoriesPage() {
   });
 
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+  const [formError, setFormError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
   const { addToast } = useToastStore();
@@ -377,6 +378,9 @@ export default function AccessoriesPage() {
   const handleSave = async () => {
     if (!permissions.canCreate && !permissions.canUpdate) return;
 
+    // Clear previous error
+    setFormError(null);
+
     const errors: Record<string, string> = {};
     if (!form.marque) errors.marque = t('err_brand');
     if (!form.nom) errors.nom = t('err_name');
@@ -412,24 +416,26 @@ export default function AccessoriesPage() {
 
     try {
       if (editingAccessory) {
-        // Optimistic: update in state immediately
+        await adminService.patchFormData(`shop/accessoires/${editingAccessory.slug}/`, formData);
         setAccessories(prev => prev.map(a =>
           (a.slug || a.id) === (editingAccessory.slug || editingAccessory.id)
             ? { ...a, ...Object.fromEntries(formData.entries()) }
             : a
         ));
-        setShowModal(false);
-        await adminService.patchFormData(`shop/accessoires/${editingAccessory.slug}/`, formData);
         addToast(t('toast_update_ok'), 'success');
+        setShowModal(false);
+        setFormError(null);
         fetchAccessories(); // sync to get server-normalised data
       } else {
-        setShowModal(false);
         await adminService.postFormData('shop/accessoires/', formData);
         addToast(t('toast_create_ok'), 'success');
+        setShowModal(false);
+        setFormError(null);
         fetchAccessories(); // add new item
       }
     } catch (error: any) {
-      addToast(error.response?.data?.detail || t('toast_save_error'), 'error');
+      const errorMessage = error.response?.data?.detail || t('toast_save_error');
+      setFormError(errorMessage);
     } finally {
       setSaving(false);
     }
@@ -871,6 +877,23 @@ export default function AccessoriesPage() {
           </div>
         }
       >
+        {/* Error Banner */}
+        {formError && (
+          <div className="mb-4 rounded-xl bg-red-500/10 border border-red-500/20 p-4 flex items-start gap-3">
+            <AlertCircle size={20} className="text-red-400 shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <p className="text-sm font-medium text-red-400">{isEn ? 'Save Error' : 'Erreur lors de la sauvegarde'}</p>
+              <p className="mt-1 text-xs text-red-400/80">{formError}</p>
+            </div>
+            <button
+              onClick={() => setFormError(null)}
+              className="text-red-400/60 hover:text-red-400 transition-colors"
+            >
+              <X size={16} />
+            </button>
+          </div>
+        )}
+
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.6fr_0.9fr]">
           <div className="space-y-4">
 

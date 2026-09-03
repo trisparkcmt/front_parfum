@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   FlaskConical, Package, Layers, Plus, Edit2, Trash2,
-  Loader2, Search, RefreshCw, AlertTriangle, Filter, X
+  Loader2, Search, RefreshCw, AlertTriangle, Filter, X, AlertCircle
 } from 'lucide-react';
 import { labService } from '@/services/apiService';
 import { InlineCell } from '@/components/admin/InlineCell';
@@ -384,6 +384,7 @@ function IngredientsTab() {
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState<any | null>(null);
   const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
   const { addToast } = useToastStore();
 
   const [form, setForm] = useState({
@@ -417,6 +418,7 @@ function IngredientsTab() {
   const openAdd = () => {
     if (!permissions.canCreate) return;
     setEditing(null);
+    setFormError(null);
     setForm({ nom: '', description: '', prix_par_ml: '', prix_achat_par_ml: '', stock_ml: '', seuil_alerte_ml: '0', actif: true });
     setShowModal(true);
   };
@@ -424,6 +426,7 @@ function IngredientsTab() {
   const openEdit = (item: any) => {
     if (!permissions.canUpdate) return;
     setEditing(item);
+    setFormError(null);
     setForm({
       nom: item.nom || '',
       description: item.description || '',
@@ -437,9 +440,10 @@ function IngredientsTab() {
   };
 
   const handleSave = async () => {
+    setFormError(null);
     if (!permissions.canCreate && !permissions.canUpdate) return;
     if (!form.nom || !form.prix_par_ml || !form.stock_ml) {
-      addToast(t('ing_required'), 'error'); return;
+      setFormError(t('ing_required')); return;
     }
     try {
       setSaving(true);
@@ -452,19 +456,16 @@ function IngredientsTab() {
         actif: form.actif,
       };
       if (editing) {
-        setItems(prev => prev.map(i => i.id === editing.id ? { ...i, ...payload } : i));
-        setShowModal(false);
         await labService.updateIngredient(editing.id, payload);
         addToast(t('ing_toast_update'), 'success');
-        fetchItems();
       } else {
-        setShowModal(false);
         await labService.createIngredient(payload);
         addToast(t('ing_toast_create'), 'success');
-        fetchItems();
       }
+      setShowModal(false);
+      fetchItems();
     } catch (e: any) {
-      addToast(e.response?.data?.detail || t('ing_toast_save_error'), 'error');
+      setFormError(e.response?.data?.detail || t('ing_toast_save_error'));
     } finally {
       setSaving(false);
     }
@@ -617,7 +618,7 @@ function IngredientsTab() {
         size="lg"
         footer={
           <div className="flex gap-3">
-            <button onClick={() => setShowModal(false)} className="flex-1 border border-white/10 rounded-lg py-2.5 text-sm text-foreground/60 hover:bg-white/5 transition-colors">
+            <button onClick={() => setShowModal(false)} disabled={saving} className="flex-1 border border-white/10 rounded-lg py-2.5 text-sm text-foreground/60 hover:bg-white/5 transition-colors disabled:opacity-50">
               {t('cancel')}
             </button>
             <button onClick={handleSave} disabled={saving} className="flex-1 bg-gold text-black rounded-lg py-2.5 text-sm font-bold hover:bg-gold/80 transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
@@ -628,6 +629,18 @@ function IngredientsTab() {
         }
       >
         <div className="space-y-3">
+          {formError && (
+            <div className="flex items-start gap-3 rounded-lg bg-red-500/10 border border-red-500/20 p-3">
+              <AlertCircle size={16} className="text-red-400 flex-shrink-0 mt-0.5" />
+              <p className="text-xs text-red-400 flex-1">{formError}</p>
+              <button
+                onClick={() => setFormError(null)}
+                className="text-red-400/60 hover:text-red-400 transition-colors flex-shrink-0"
+              >
+                <X size={14} />
+              </button>
+            </div>
+          )}
               {[
                 { label: 'Nom *', field: 'nom', placeholder: 'Ex: Huile de Rose' },
                 { label: 'Description', field: 'description', placeholder: 'Description de l\'ingrédient' },
@@ -691,6 +704,7 @@ function LotsTab() {
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState<any | null>(null);
   const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
   const { addToast } = useToastStore();
 
   const [form, setForm] = useState({
@@ -733,6 +747,7 @@ function LotsTab() {
   const openAdd = () => {
     if (!permissions.canCreate) return;
     setEditing(null);
+    setFormError(null);
     setForm({
       essence: essences[0]?.id ? String(essences[0].id) : '',
       stock_ml: '',
@@ -748,6 +763,7 @@ function LotsTab() {
   const openEdit = (item: any) => {
     if (!permissions.canUpdate) return;
     setEditing(item);
+    setFormError(null);
     setForm({
       essence: String(item.essence || item.essence_id || ''),
       stock_ml: String(item.stock_ml ?? item.quantite_initiale_ml ?? item.quantite_initiale ?? ''),
@@ -761,9 +777,10 @@ function LotsTab() {
   };
 
   const handleSave = async () => {
+    setFormError(null);
     if (!permissions.canCreate && !permissions.canUpdate) return;
     if (!form.essence || !form.stock_ml) {
-      addToast(t('lot_required'), 'error'); return;
+      setFormError(t('lot_required')); return;
     }
     try {
       setSaving(true);
@@ -777,19 +794,16 @@ function LotsTab() {
       if (form.prix_achat_par_ml) payload.prix_achat_par_ml = form.prix_achat_par_ml;
       if (form.reference_fournisseur) payload.reference_fournisseur = form.reference_fournisseur;
       if (editing) {
-        setItems(prev => prev.map(i => i.id === editing.id ? { ...i, ...payload } : i));
-        setShowModal(false);
         await labService.updateLotEssence(editing.id, payload as any);
         addToast(t('lot_toast_update'), 'success');
-        fetchItems();
       } else {
-        setShowModal(false);
         await labService.createLotEssence(payload as any);
         addToast(t('lot_toast_create'), 'success');
-        fetchItems();
       }
+      setShowModal(false);
+      fetchItems();
     } catch (e: any) {
-      addToast(extractApiError(e, t('lot_toast_save_error')), 'error');
+      setFormError(extractApiError(e, t('lot_toast_save_error')));
     } finally {
       setSaving(false);
     }
@@ -1024,7 +1038,7 @@ function LotsTab() {
         size="lg"
         footer={
           <div className="flex gap-3">
-            <button onClick={() => setShowModal(false)} className="flex-1 border border-white/10 rounded-lg py-2.5 text-sm text-foreground/60 hover:bg-white/5 transition-colors">
+            <button onClick={() => setShowModal(false)} disabled={saving} className="flex-1 border border-white/10 rounded-lg py-2.5 text-sm text-foreground/60 hover:bg-white/5 transition-colors disabled:opacity-50">
               {t('cancel')}
             </button>
             <button onClick={handleSave} disabled={saving} className="flex-1 bg-gold text-black rounded-lg py-2.5 text-sm font-bold hover:bg-gold/80 transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
@@ -1035,6 +1049,18 @@ function LotsTab() {
         }
       >
         <div className="space-y-4">
+          {formError && (
+            <div className="flex items-start gap-3 rounded-lg bg-red-500/10 border border-red-500/20 p-3">
+              <AlertCircle size={16} className="text-red-400 flex-shrink-0 mt-0.5" />
+              <p className="text-xs text-red-400 flex-1">{formError}</p>
+              <button
+                onClick={() => setFormError(null)}
+                className="text-red-400/60 hover:text-red-400 transition-colors flex-shrink-0"
+              >
+                <X size={14} />
+              </button>
+            </div>
+          )}
           <div>
             <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Essence *</label>
             <CustomSelect
@@ -1121,6 +1147,7 @@ function InventoryTab() {
   const [editing, setEditing] = useState<any | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
   const { addToast } = useToastStore();
 
   const [form, setForm] = useState({
@@ -1146,6 +1173,7 @@ function InventoryTab() {
 
   const openEdit = (item: any) => {
     setEditing(item);
+    setFormError(null);
     setForm({
       quantite_disponible_ml: String(item.quantite_disponible_ml || ''),
       seuil_alerte_ml: String(item.seuil_alerte_ml || ''),
@@ -1155,6 +1183,7 @@ function InventoryTab() {
   };
 
   const handleSave = async () => {
+    setFormError(null);
     if (!editing) return;
     try {
       setSaving(true);
@@ -1167,7 +1196,7 @@ function InventoryTab() {
       setShowModal(false);
       fetchItems();
     } catch (e: any) {
-      addToast(e.response?.data?.detail || t('inv_toast_save_error'), 'error');
+      setFormError(e.response?.data?.detail || t('inv_toast_save_error'));
     } finally {
       setSaving(false);
     }
@@ -1288,7 +1317,7 @@ function InventoryTab() {
         size="lg"
         footer={
           <div className="flex gap-3">
-            <button onClick={() => setShowModal(false)} className="flex-1 border border-white/10 rounded-lg py-2.5 text-sm text-foreground/60 hover:bg-white/5 transition-colors">
+            <button onClick={() => setShowModal(false)} disabled={saving} className="flex-1 border border-white/10 rounded-lg py-2.5 text-sm text-foreground/60 hover:bg-white/5 transition-colors disabled:opacity-50">
               {t('cancel')}
             </button>
             <button onClick={handleSave} disabled={saving} className="flex-1 bg-gold text-black rounded-lg py-2.5 text-sm font-bold hover:bg-gold/80 transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
@@ -1299,6 +1328,18 @@ function InventoryTab() {
         }
       >
         <div className="space-y-3">
+          {formError && (
+            <div className="flex items-start gap-3 rounded-lg bg-red-500/10 border border-red-500/20 p-3">
+              <AlertCircle size={16} className="text-red-400 flex-shrink-0 mt-0.5" />
+              <p className="text-xs text-red-400 flex-1">{formError}</p>
+              <button
+                onClick={() => setFormError(null)}
+                className="text-red-400/60 hover:text-red-400 transition-colors flex-shrink-0"
+              >
+                <X size={14} />
+              </button>
+            </div>
+          )}
               {[
                 { label: 'Quantité disponible (ml)', field: 'quantite_disponible_ml', placeholder: '5000' },
                 { label: 'Seuil d\'alerte (ml)', field: 'seuil_alerte_ml', placeholder: '500' },

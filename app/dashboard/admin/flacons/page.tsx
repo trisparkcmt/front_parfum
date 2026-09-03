@@ -1,7 +1,7 @@
 ﻿'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { Loader2, Edit2, Trash2, Plus, Search, Filter, X, Image as ImageIcon } from 'lucide-react';
+import { Loader2, Edit2, Trash2, Plus, Search, Filter, X, Image as ImageIcon, AlertCircle } from 'lucide-react';
 import { InlineCell } from '@/components/admin/InlineCell';
 import { shopService, adminService } from '@/services/apiService';
 import { useTranslation } from 'react-i18next';
@@ -243,6 +243,7 @@ export default function FlaconsAdminPage() {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
   const [creatingType, setCreatingType] = useState(false);
   const [typeDraft, setTypeDraft] = useState({ nom: '', description: '' });
 
@@ -377,7 +378,11 @@ export default function FlaconsAdminPage() {
       addToast(t('toast_required'), 'error');
       return;
     }
+
+    // Clear previous error
+    setFormError(null);
     setSaving(true);
+
     try {
       const payload: Record<string, any> = {
         nom: form.nom,
@@ -392,15 +397,10 @@ export default function FlaconsAdminPage() {
         actif: form.actif,
       };
 
-      if (form.matiere) {
-        payload.matiere = form.matiere;
-      }
-      if (form.couleur) {
-        payload.couleur = form.couleur;
-      }
-      if (form.prix_achat) {
-        payload.prix_achat = form.prix_achat;
-      }
+      if (form.matiere) payload.matiere = form.matiere;
+      if (form.couleur) payload.couleur = form.couleur;
+      if (form.prix_achat) payload.prix_achat = form.prix_achat;
+
       if (imageFile) {
         const formData = new FormData();
         Object.entries(payload).forEach(([key, value]) => {
@@ -408,31 +408,26 @@ export default function FlaconsAdminPage() {
         });
         formData.append('image_principale', imageFile);
         if (editingBottle) {
-          setBottles(prev => prev.map(b => b.id === editingBottle.id ? { ...b, ...payload } : b));
-          setShowModal(false);
           await adminService.patchFormData(`shop/flacons/${editingBottle.id}/`, formData);
-          addToast(t('toast_update_ok'), 'success');
+          setBottles(prev => prev.map(b => b.id === editingBottle.id ? { ...b, ...payload } : b));
         } else {
-          setShowModal(false);
           await adminService.postFormData('shop/flacons/', formData);
-          addToast(t('toast_create_ok'), 'success');
         }
       } else {
         if (editingBottle) {
-          setBottles(prev => prev.map(b => b.id === editingBottle.id ? { ...b, ...payload } : b));
-          setShowModal(false);
           await shopService.updateBottle(editingBottle.id, payload);
-          addToast(t('toast_update_ok'), 'success');
+          setBottles(prev => prev.map(b => b.id === editingBottle.id ? { ...b, ...payload } : b));
         } else {
-          setShowModal(false);
           await shopService.createBottle(payload);
-          addToast(t('toast_create_ok'), 'success');
         }
       }
+
+      addToast(editingBottle ? t('toast_update_ok') : t('toast_create_ok'), 'success');
+      setShowModal(false);
       fetchBottlesAndTypes();
     } catch (error: any) {
-      const msg = error?.response?.data ? JSON.stringify(error.response.data) : 'Erreur lors de la sauvegarde';
-      addToast(msg, 'error');
+      const errorMessage = error?.response?.data?.detail || t('toast_save_error');
+      setFormError(errorMessage);
     } finally {
       setSaving(false);
     }
@@ -799,6 +794,19 @@ export default function FlaconsAdminPage() {
         }
       >
         <div className="p-6 lg:p-8">
+          {/* Error Banner */}
+          {formError && (
+            <div className="mb-6 rounded-xl bg-red-500/10 border border-red-500/20 p-4 flex items-start gap-3">
+              <AlertCircle size={20} className="text-red-400 shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <p className="text-sm font-medium text-red-400">{isEn ? 'Save Error' : 'Erreur lors de la sauvegarde'}</p>
+                <p className="mt-1 text-xs text-red-400/80">{formError}</p>
+              </div>
+              <button onClick={() => setFormError(null)} className="text-red-400/60 hover:text-red-400 transition-colors">
+                <X size={16} />
+              </button>
+            </div>
+          )}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-4">
               <div>

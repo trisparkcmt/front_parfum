@@ -188,6 +188,7 @@ export default function ProviderDashboardPage() {
   const [updateDisc, setUpdateDisc] = useState('');
   const [updateStatut, setUpdateStatut] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
 
   // Approval/Validation states
   const [approvingProvider, setApprovingProvider] = useState<Provider | null>(null);
@@ -275,6 +276,7 @@ export default function ProviderDashboardPage() {
   const handleUpdate = async () => {
     if (!selectedProvider) return;
     try {
+      setFormError(null);
       setIsSaving(true);
       await adminService.updateProvider(Number(selectedProvider.id), {
         taux_commission: parseFloat(updateComm),
@@ -284,10 +286,12 @@ export default function ProviderDashboardPage() {
       addToast('Règles financières mises à jour', 'success');
       
       setSelectedProvider((prev: Provider | null) => prev ? { ...prev, statut: updateStatut } : null);
-      fetchDashboard(selectedProvider.id);
+      await fetchDashboard(selectedProvider.id);
     } catch (error) {
       console.error('Update failed:', error);
-      addToast('Erreur lors de la mise à jour', 'error');
+      const errorMsg = (error as any)?.response?.data?.detail || (error as any)?.message || 'Erreur lors de la mise à jour';
+      setFormError(errorMsg);
+      addToast(errorMsg, 'error');
     } finally {
       setIsSaving(false);
     }
@@ -296,11 +300,14 @@ export default function ProviderDashboardPage() {
   // 4. Validate and activate a pending provider application
   const handleValidateProvider = async () => {
     if (!approvingProvider) return;
+    setFormError(null);
     const comm = parseFloat(validateComm);
     const disc = parseFloat(validateDisc);
     
     if (isNaN(comm) || comm < 0 || isNaN(disc) || disc < 0) {
-      addToast('Veuillez entrer des taux valides', 'error');
+      const errorMsg = 'Veuillez entrer des taux valides';
+      setFormError(errorMsg);
+      addToast(errorMsg, 'error');
       return;
     }
 
@@ -312,10 +319,13 @@ export default function ProviderDashboardPage() {
       });
       addToast('Le prestataire a été approuvé et activé avec succès', 'success');
       setApprovingProvider(null);
-      fetchProviders();
+      setFormError(null);
+      await fetchProviders();
     } catch (error) {
       console.error('Validation failed:', error);
-      addToast('Erreur lors de la validation du prestataire', 'error');
+      const errorMsg = (error as any)?.response?.data?.detail || (error as any)?.message || 'Erreur lors de la validation du prestataire';
+      setFormError(errorMsg);
+      addToast(errorMsg, 'error');
     } finally {
       setIsValidating(false);
     }
@@ -1083,14 +1093,14 @@ export default function ProviderDashboardPage() {
               <button
                 onClick={() => setApprovingProvider(null)}
                 disabled={isValidating}
-                className="flex-1 border border-white/10 rounded-xl py-3 text-xs font-bold uppercase tracking-wider text-foreground/60 hover:bg-white/5 transition-all"
+                className="flex-1 border border-white/10 rounded-xl py-3 text-xs font-bold uppercase tracking-wider text-foreground/60 hover:bg-white/5 transition-all disabled:opacity-50"
               >
                 Annuler
               </button>
               <button
                 onClick={handleValidateProvider}
                 disabled={isValidating}
-                className="flex-1 bg-gold text-black rounded-xl py-3 text-xs font-bold uppercase tracking-wider hover:bg-gold/80 transition-all flex items-center justify-center gap-1.5"
+                className="flex-1 bg-gold text-black rounded-xl py-3 text-xs font-bold uppercase tracking-wider hover:bg-gold/80 transition-all flex items-center justify-center gap-1.5 disabled:opacity-50"
               >
                 {isValidating ? <Loader2 className="animate-spin" size={14} /> : <CheckCircle size={14} />}
                 Approuver
@@ -1099,6 +1109,11 @@ export default function ProviderDashboardPage() {
           }
         >
           <div className="space-y-4">
+            {formError && (
+              <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-medium">
+                {formError}
+              </div>
+            )}
             <div>
               <label className="text-[10px] font-bold text-foreground/40 uppercase mb-2 block tracking-widest">
                 Taux Commission (%)
