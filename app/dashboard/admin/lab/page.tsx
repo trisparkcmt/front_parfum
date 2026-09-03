@@ -800,8 +800,8 @@ function LotsTab() {
         await labService.createLotEssence(payload as any);
         addToast(t('lot_toast_create'), 'success');
       }
+      await fetchItems();
       setShowModal(false);
-      fetchItems();
     } catch (e: any) {
       setFormError(extractApiError(e, t('lot_toast_save_error')));
     } finally {
@@ -1193,8 +1193,8 @@ function InventoryTab() {
         actif: form.actif,
       });
       addToast(t('inv_toast_update'), 'success');
+      await fetchItems();
       setShowModal(false);
-      fetchItems();
     } catch (e: any) {
       setFormError(e.response?.data?.detail || t('inv_toast_save_error'));
     } finally {
