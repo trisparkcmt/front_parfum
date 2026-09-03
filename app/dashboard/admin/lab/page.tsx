@@ -9,6 +9,9 @@ import { labService } from '@/services/apiService';
 import { InlineCell } from '@/components/admin/InlineCell';
 import { useTranslation } from 'react-i18next';
 import { CustomSelect } from '@/components/ui/CustomSelect';
+import { AdminTableSkeleton } from '@/components/ui/AdminTableSkeleton';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { mapErrorToUserMessage } from '@/lib/errorMapper';
 
 /* ── Inline translations ─────────────────────────────────────────────────── */
 const T = {
@@ -403,8 +406,9 @@ function IngredientsTab() {
       setLoading(true);
       const data = await labService.getIngredients(search ? { search } : undefined);
       setItems(extractCatalogList(data));
-    } catch {
-      addToast(t('ing_toast_load'), 'error');
+    } catch (error: any) {
+      const msg = mapErrorToUserMessage(error, isEn ? 'en' : 'fr');
+      addToast(msg, 'error');
     } finally {
       setLoading(false);
     }
@@ -540,10 +544,21 @@ function IngredientsTab() {
 
       <div className="rounded-xl border border-white/10 bg-white/[0.02] overflow-hidden min-h-[200px]">
         {loading ? (
-          <div className="flex items-center justify-center py-16 text-foreground/40 gap-2 text-xs">
-            <Loader2 className="animate-spin text-gold" size={16} />
-            <span>{t('ing_loading')}</span>
-          </div>
+          <AdminTableSkeleton columns={6} rows={5} />
+        ) : items.length === 0 ? (
+          <EmptyState
+            icon={<Package size={48} />}
+            title={isEn ? 'No ingredients' : 'Aucun ingrédient'}
+            description={isEn ? 'Create your first ingredient' : 'Créez votre premier ingrédient'}
+            action={
+              permissions.canCreate
+                ? {
+                    label: isEn ? 'Add ingredient' : t('ing_add'),
+                    onClick: openAdd,
+                  }
+                : undefined
+            }
+          />
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
@@ -597,13 +612,6 @@ function IngredientsTab() {
                     </tr>
                   );
                 })}
-                {items.length === 0 && (
-                  <tr>
-                    <td colSpan={6} className="py-16 text-center text-sm italic text-foreground/30">
-                      {t('ing_no_results')}
-                    </td>
-                  </tr>
-                )}
               </tbody>
             </table>
           </div>
@@ -938,10 +946,21 @@ function LotsTab() {
 
       <div className="rounded-xl border border-white/10 bg-white/[0.02] overflow-hidden min-h-[200px]">
         {loading ? (
-          <div className="flex items-center justify-center py-16 text-foreground/40 gap-2 text-xs">
-            <Loader2 className="animate-spin text-gold" size={16} />
-            <span>{t('ing_loading')}</span>
-          </div>
+          <AdminTableSkeleton columns={8} rows={5} />
+        ) : items.length === 0 ? (
+          <EmptyState
+            icon={<Layers size={48} />}
+            title={isEn ? 'No lots' : 'Aucun lot'}
+            description={isEn ? 'Create your first essence lot' : 'Créez votre premier lot d\'essence'}
+            action={
+              permissions.canCreate
+                ? {
+                    label: isEn ? 'Create lot' : t('lot_add'),
+                    onClick: openAdd,
+                  }
+                : undefined
+            }
+          />
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
@@ -1243,10 +1262,13 @@ function InventoryTab() {
 
       <div className="rounded-xl border border-white/10 bg-white/[0.02] overflow-hidden min-h-[200px]">
         {loading ? (
-          <div className="flex items-center justify-center py-16 text-foreground/40 gap-2 text-xs">
-            <Loader2 className="animate-spin text-gold" size={16} />
-            <span>{t('ing_loading')}</span>
-          </div>
+          <AdminTableSkeleton columns={5} rows={5} />
+        ) : items.length === 0 ? (
+          <EmptyState
+            icon={<Package size={48} />}
+            title={isEn ? 'No inventory' : 'Aucun inventaire'}
+            description={isEn ? 'No essences in lab inventory' : 'Aucune essence en inventaire labo'}
+          />
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">

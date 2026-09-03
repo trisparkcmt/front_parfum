@@ -7,6 +7,9 @@ import { type LucideIcon,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { InlineCell } from '@/components/admin/InlineCell';
+import { AdminTableSkeleton } from '@/components/ui/AdminTableSkeleton';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { mapErrorToUserMessage } from '@/lib/errorMapper';
 
 /* ── Inline translations ─────────────────────────────────────────────────── */
 const T = {
@@ -765,10 +768,13 @@ export default function EssencesPage() {
       {/* Table */}
       <div className="shadow-black/30 shadow-sm rounded-xl border border-white/10 overflow-hidden">
         {loading ? (
-          <div className="flex items-center justify-center py-12 text-foreground/40 gap-2 text-xs">
-            <Loader2 className="animate-spin text-gold" size={16} />
-            <span>{t('loading')}</span>
-          </div>
+          <AdminTableSkeleton columns={8} rows={6} />
+        ) : essences.length === 0 ? (
+          <EmptyState
+            icon={<ShoppingBag size={48} />}
+            title="No essences"
+            description="Create your first essence to get started"
+          />
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">

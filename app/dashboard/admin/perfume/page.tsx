@@ -7,6 +7,9 @@ import { adminService } from '@/services/apiService';
 import { InlineCell } from '@/components/admin/InlineCell';
 import { useTranslation } from 'react-i18next';
 import { CustomSelect } from '@/components/ui/CustomSelect';
+import { AdminTableSkeleton } from '@/components/ui/AdminTableSkeleton';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { mapErrorToUserMessage } from '@/lib/errorMapper';
 
 /* -- Inline translations --------------------------------------------------- */
 const T = {
@@ -706,10 +709,13 @@ export default function PerfumeAdminPage() {
         </div>
 
         {loading ? (
-          <div className="flex flex-col items-center justify-center py-20 text-foreground/40 gap-2">
-            <Loader2 className="animate-spin text-gold" size={20} />
-            <p className="text-xs">{t('loading')}</p>
-          </div>
+          <AdminTableSkeleton columns={9} rows={8} />
+        ) : filtered.length === 0 ? (
+          <EmptyState
+            icon={<Package size={48} />}
+            title="No perfumes"
+            description="Create your first perfume to get started"
+          />
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">

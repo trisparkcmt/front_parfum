@@ -6,6 +6,9 @@ import { adminService } from '@/services/apiService';
 import { useToastStore } from '@/store/useToastStore';
 import AppImage from '@/components/ui/AppImage';
 import { SlideOver } from '@/components/ui/SlideOver';
+import { AdminTableSkeleton } from '@/components/ui/AdminTableSkeleton';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { mapErrorToUserMessage } from '@/lib/errorMapper';
 
 // --- Types ---
 
@@ -259,10 +262,13 @@ export default function DeliveryPage() {
         </h2>
 
         {loading ? (
-          <div className="flex items-center justify-center py-16 text-foreground/40 text-xs gap-2">
-            <Loader2 className="animate-spin text-gold" size={16} />
-            <span>Chargement des livreurs...</span>
-          </div>
+          <AdminTableSkeleton columns={3} rows={4} />
+        ) : drivers.length === 0 ? (
+          <EmptyState
+            icon={<AlertCircle size={48} />}
+            title="No drivers"
+            description="Add your first delivery driver to the fleet"
+          />
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {drivers.map(d => {

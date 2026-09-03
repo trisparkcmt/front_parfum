@@ -11,6 +11,9 @@ import { SlideOver } from '@/components/ui/SlideOver';
 import { fromDatetimeLocalValue, formatPromotionPeriod, toDatetimeLocalValue } from '@/lib/promotionUtils';
 import { extractApiError } from '@/lib/apiError';
 import { useTranslation } from 'react-i18next';
+import { AdminTableSkeleton } from '@/components/ui/AdminTableSkeleton';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { mapErrorToUserMessage } from '@/lib/errorMapper';
 
 /* -------------------------------------------------------------------------- */
 /* Inline Translations Dictionary                                              */
@@ -657,10 +660,13 @@ export default function CategoriesAdminPage() {
             </div>
 
             {loading ? (
-              <div className="flex items-center justify-center gap-2 py-16 text-foreground/40">
-                <Loader2 className="animate-spin text-gold" size={18} />
-                <span className="text-xs">{t('loading')}</span>
-              </div>
+              <AdminTableSkeleton columns={6} rows={5} />
+            ) : items.length === 0 ? (
+              <EmptyState
+                icon={<Tag size={48} />}
+                title={activeTab === 'perfume_categories' ? 'No categories' : 'No types'}
+                description={activeTab === 'perfume_categories' ? 'Create your first category' : 'Create your first type'}
+              />
             ) : (
               <>
                 {/* Desktop View: Table */}

@@ -269,7 +269,7 @@ function RegisterFormContent() {
           </Link>.
         </p>
 
-        <Button type="submit" className="w-full mt-6" isLoading={isLoading} rightIcon={<UserPlus size={18} />}>
+        <Button type="submit" className="w-full mt-6" isLoading={isLoading} loadingText={t('register_loading', { defaultValue: 'Inscription...' })} rightIcon={<UserPlus size={18} />}>
           {t('register_btn')}
         </Button>
       </form>

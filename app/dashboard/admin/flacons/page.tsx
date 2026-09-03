@@ -6,6 +6,9 @@ import { InlineCell } from '@/components/admin/InlineCell';
 import { shopService, adminService } from '@/services/apiService';
 import { useTranslation } from 'react-i18next';
 import { CustomSelect } from '@/components/ui/CustomSelect';
+import { AdminTableSkeleton } from '@/components/ui/AdminTableSkeleton';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { mapErrorToUserMessage } from '@/lib/errorMapper';
 
 /* ── Inline translations ─────────────────────────────────────────────────── */
 const T = {
@@ -587,10 +590,13 @@ export default function FlaconsAdminPage() {
       {/* Table Section */}
       <div className="shadow-black/30 shadow-sm rounded-xl border border-white/10 bg-white/[0.02] overflow-hidden min-h-[300px]">
         {loading ? (
-          <div className="flex items-center justify-center py-20 text-foreground/40 gap-2 text-xs">
-            <Loader2 className="animate-spin text-gold" size={16} />
-            <span>{t('loading')}</span>
-          </div>
+          <AdminTableSkeleton columns={7} rows={5} />
+        ) : bottles.length === 0 ? (
+          <EmptyState
+            icon={<ImageIcon size={48} />}
+            title={isEn ? 'No bottles' : 'Aucun flacon'}
+            description={isEn ? 'Create your first bottle type' : 'Créez votre premier type de flacon'}
+          />
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">

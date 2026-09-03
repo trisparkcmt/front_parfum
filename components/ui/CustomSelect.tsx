@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 
 export interface SelectOption {
   value: string;
@@ -35,7 +36,21 @@ export function CustomSelect({
   size = 'md',
 }: CustomSelectProps) {
   const [open, setOpen] = useState(false);
+  const [position, setPosition] = useState({ top: 0, left: 0, width: 0 });
   const ref = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+
+  // Calculate dropdown position when opened
+  useEffect(() => {
+    if (!open || !buttonRef.current) return;
+
+    const rect = buttonRef.current.getBoundingClientRect();
+    setPosition({
+      top: rect.bottom + window.scrollY + 8,
+      left: rect.left + window.scrollX,
+      width: rect.width,
+    });
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
@@ -55,6 +70,7 @@ export function CustomSelect({
   return (
     <div ref={ref} className="relative" data-field={dataField}>
       <button
+        ref={buttonRef}
         type="button"
         disabled={disabled}
         onClick={() => !disabled && setOpen(v => !v)}
@@ -81,25 +97,39 @@ export function CustomSelect({
         </svg>
       </button>
 
-      {open && (
-        <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-neutral-900 border border-white/10 rounded-xl shadow-xl overflow-hidden">
-          <div className="max-h-52 overflow-y-auto">
-            {options.map(opt => (
-              <button
-                key={opt.value}
-                type="button"
-                onClick={() => { onChange(opt.value); setOpen(false); }}
-                className={[
-                  'w-full text-left px-4 py-2.5 text-sm transition-colors hover:bg-white/10',
-                  value === opt.value ? 'text-gold bg-gold/10' : 'text-foreground',
-                ].join(' ')}
-              >
-                {opt.label}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
+      {open &&
+        typeof document !== 'undefined' &&
+        createPortal(
+          <div
+            className="fixed z-[9999] bg-neutral-900 border border-white/10 rounded-xl shadow-xl overflow-hidden"
+            style={{
+              top: `${position.top}px`,
+              left: `${position.left}px`,
+              width: `${position.width}px`,
+            }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="max-h-52 overflow-y-auto">
+              {options.map(opt => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => {
+                    onChange(opt.value);
+                    setOpen(false);
+                  }}
+                  className={[
+                    'w-full text-left px-4 py-2.5 text-sm transition-colors hover:bg-white/10',
+                    value === opt.value ? 'text-gold bg-gold/10' : 'text-foreground',
+                  ].join(' ')}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>,
+          document.body
+        )}
     </div>
   );
 }
