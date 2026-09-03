@@ -1,7 +1,7 @@
 ﻿'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Loader2, Edit2, Trash2, Plus, Search, Image as ImageIcon, SlidersHorizontal, AlertCircle, X } from 'lucide-react';
+import { Loader2, Edit2, Trash2, Plus, Search, Image as ImageIcon, SlidersHorizontal, AlertCircle, X, Package } from 'lucide-react';
 import { shopService } from '@/services/apiService';
 import { adminService } from '@/services/apiService';
 import { InlineCell } from '@/components/admin/InlineCell';
