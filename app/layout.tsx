@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { lora } from "@/lib/fonts";
 import { LayoutWrapper } from "@/components/shared/LayoutWrapper";
@@ -6,9 +7,6 @@ import { ToastProvider } from "@/components/shared/ToastProvider";
 import { FCMProvider } from "@/components/pwa/FCMProvider";
 import { InstallPrompt } from "@/components/pwa/InstallPrompt";
 import { OfflineBanner } from "@/components/shared/OfflineBanner";
-
-// 1. Import the optimized Next.js Google Analytics component
-import { GoogleAnalytics } from '@next/third-parties/google';
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://accessoiresexclusifs.com'),
@@ -98,9 +96,22 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const gaId = process.env.NEXT_PUBLIC_GA_ID || "G-LZ9Y34PNZP";
+  
   return (
     <html lang="fr" className={`h-full antialiased ${lora.variable}`} suppressHydrationWarning>
       <head>
+        {/* GA4 gtag.js script — for GTM detection */}
+        <script async src={`https://www.googletagmanager.com/gtag/js?id=${gaId}`}></script>
+        <script dangerouslySetInnerHTML={{
+          __html: `
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', '${gaId}');
+          `
+        }} />
+
         {/* Critical inline script for theme — must run before paint */}
         <script
           dangerouslySetInnerHTML={{
@@ -131,9 +142,6 @@ export default function RootLayout({
         <FCMProvider />
         <InstallPrompt />
         <OfflineBanner />
-
-        {/* 2. Google Analytics tracking code */}
-        <GoogleAnalytics gaId={process.env.NEXT_PUBLIC_GA_ID || "G-LZ9Y34PNZP"} />
       </body>
     </html>
   );

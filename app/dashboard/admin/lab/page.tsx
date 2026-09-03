@@ -1364,7 +1364,7 @@ function InventoryTab() {
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function LabPage() {
-  const [activeTab, setActiveTab] = useState<TabKey>('ingredients');
+  const [activeTab, setActiveTab] = useState<TabKey>('lots');
   const { i18n } = useTranslation();
   const isEn = i18n.language?.startsWith('en') ?? false;
   const t = (k: TKey) => isEn ? T.en[k] : T.fr[k];

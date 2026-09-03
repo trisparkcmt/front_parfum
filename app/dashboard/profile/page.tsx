@@ -28,6 +28,7 @@ import { Modal } from '@/components/ui/Modal';
 import PasswordChangeModal from '@/components/shared/PasswordChangeModal';
 import ProfileEditModal from '@/components/shared/ProfileEditModal';
 import ConfirmDialog from '@/components/shared/ConfirmDialog';
+import { PWAInstallGuide } from '@/components/pwa/PWAInstallGuide';
 import type { UserRole } from '@/types';
 import { ThemeToggle } from '@/app/Toggle';
 
@@ -659,60 +660,7 @@ export default function ProfilePage() {
         title={isEn ? 'Add to Home Screen' : 'Ajouter à l’écran d’accueil'}
         size="lg"
       >
-        <div className="space-y-4 text-sm text-foreground/90">
-          <p>
-            {isEn
-              ? 'To install this application on your mobile device, follow the steps for your operating system below.'
-              : 'Pour installer l’application sur votre téléphone, suivez les étapes ci-dessous selon votre appareil.'}
-          </p>
-          <div className="rounded-xl border border-foreground/10 bg-foreground/[0.03] p-4">
-            <h3 className="text-sm font-semibold text-foreground mb-2">iPhone (iOS)</h3>
-            <ol className="list-decimal list-inside space-y-2 text-[13px] leading-6 text-foreground/70">
-              {isEn ? (
-                <>
-                  <li>Open Safari and visit this website.</li>
-                  <li>Tap the Share icon at the bottom of the screen.</li>
-                  <li>Select "Add to Home Screen".</li>
-                  <li>Confirm by tapping "Add".</li>
-                  <li>Launch the application directly from your home screen.</li>
-                </>
-              ) : (
-                <>
-                  <li>Ouvrez Safari et rendez-vous sur ce site.</li>
-                  <li>Tapez sur l’icône Partager en bas de l’écran.</li>
-                  <li>Choisissez « Ajouter à l’écran d’accueil ».</li>
-                  <li>Confirmez en appuyant sur « Ajouter ».</li>
-                  <li>Ouvrez l’application depuis votre écran d’accueil.</li>
-                </>
-              )}
-            </ol>
-          </div>
-          <div className="rounded-xl border border-foreground/10 bg-foreground/[0.03] p-4">
-            <h3 className="text-sm font-semibold text-foreground mb-2">Android</h3>
-            <ol className="list-decimal list-inside space-y-2 text-[13px] leading-6 text-foreground/70">
-              {isEn ? (
-                <>
-                  <li>Open your browser menu (three dots or menu icon).</li>
-                  <li>Select "Add to Home screen" or "Install app".</li>
-                  <li>Confirm the installation prompt.</li>
-                  <li>Launch the application directly from your home screen.</li>
-                </>
-              ) : (
-                <>
-                  <li>Ouvrez le menu du navigateur (trois points ou barre de menu).</li>
-                  <li>Choisissez « Ajouter à l’écran d’accueil » ou « Installer l’application ».</li>
-                  <li>Confirmez la demande d’ajout.</li>
-                  <li>Ouvrez l’application depuis votre écran d’accueil.</li>
-                </>
-              )}
-            </ol>
-          </div>
-          <p className="text-xs text-foreground/40">
-            {isEn
-              ? 'If your browser does not trigger an automatic prompt, use the share or browser settings menu to manually add this app to your home screen.'
-              : 'Si votre navigateur ne propose pas d’installation automatique, utilisez le menu de partage ou d’options pour ajouter manuellement ce site à l’écran d’accueil.'}
-          </p>
-        </div>
+        <PWAInstallGuide isEn={Boolean(isEn)} />
       </Modal>
     </div>
   );
