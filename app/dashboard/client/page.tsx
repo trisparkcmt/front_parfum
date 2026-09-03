@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import { useAuthStore } from '@/store/useAuthStore';
 import { formatPrice } from '@/lib/utils';
-import { Package, ShoppingBag, Heart, Calendar, CreditCard, ChevronRight, ChevronLeft, ChevronRight as ChevronRightIcon, X } from 'lucide-react';
+import { Package, ShoppingBag, Heart, Calendar, CreditCard, ChevronRight, ChevronLeft, ChevronRight as ChevronRightIcon, Star, X } from 'lucide-react';
 import { PerfumeIcon } from '@/components/icons/CustomIcons';
 import { useTranslation } from 'react-i18next';
 import { useRouter } from 'next/navigation';
