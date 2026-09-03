@@ -1079,9 +1079,10 @@ export const labService = {
 
   /**
    * Delete an essence (Admin)
+   * @param slugOrId - Slug or numeric ID of the essence to delete
    */
-  deleteEssence: async (id: number) => {
-    const response = await api.delete(`lab/essences/${id}/`, {
+  deleteEssence: async (slugOrId: number | string) => {
+    const response = await api.delete(`lab/essences/${slugOrId}/`, {
       headers: { 'X-Context': 'dashboard' },
     });
     return response.data;

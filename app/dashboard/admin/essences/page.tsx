@@ -223,7 +223,7 @@ export default function EssencesPage() {
     },
   });
   const [, setProduitFiniImageFile] = useState<File | null>(null);
-  const [selectedEssences, setSelectedEssences] = useState<Set<number>>(new Set());
+  const [selectedEssences, setSelectedEssences] = useState<Set<string>>(new Set());
 
   // Custom dropdown open states
   const [openDropdown, setOpenDropdown] = useState<'categorie' | 'intensite' | 'genreCible' | null>(null);
@@ -535,13 +535,13 @@ export default function EssencesPage() {
     }
   };
 
-  const handleDelete = async (id: number) => {
+  const handleDelete = async (slugOrId: string | number) => {
     if (!permissions.canDelete) return;
     if (!confirm(t('confirm_delete'))) return;
-    const snapshot = essences.find(e => e.id === id);
-    setEssences(prev => prev.filter(e => e.id !== id));
+    const snapshot = essences.find(e => (e.slug || String(e.id)) === String(slugOrId));
+    setEssences(prev => prev.filter(e => (e.slug || String(e.id)) !== String(slugOrId)));
     try {
-      await labService.deleteEssence(id);
+      await labService.deleteEssence(slugOrId);
       addToast(t('toast_delete_ok'), 'success');
     } catch {
       if (snapshot) setEssences(prev => [snapshot, ...prev]);
@@ -549,13 +549,13 @@ export default function EssencesPage() {
     }
   };
 
-  const toggleSelectEssence = (id: number) => {
+  const toggleSelectEssence = (slugOrId: string) => {
     setSelectedEssences(prev => {
       const newSet = new Set(prev);
-      if (newSet.has(id)) {
-        newSet.delete(id);
+      if (newSet.has(slugOrId)) {
+        newSet.delete(slugOrId);
       } else {
-        newSet.add(id);
+        newSet.add(slugOrId);
       }
       return newSet;
     });
@@ -564,15 +564,15 @@ export default function EssencesPage() {
   const handleBulkDelete = async () => {
     if (!permissions.canDelete || selectedEssences.size === 0) return;
     if (!confirm(`${t('confirm_bulk')} ${selectedEssences.size} ${t('essences_label')} ?`)) return;
-    const ids = Array.from(selectedEssences);
-    const snapshots = essences.filter(e => ids.includes(e.id));
-    setEssences(prev => prev.filter(e => !ids.includes(e.id)));
+    const slugsOrIds = Array.from(selectedEssences);
+    const snapshots = essences.filter(e => slugsOrIds.includes(e.slug || String(e.id)));
+    setEssences(prev => prev.filter(e => !slugsOrIds.includes(e.slug || String(e.id))));
     setSelectedEssences(new Set());
     try {
-      for (const id of ids) {
-        try { await labService.deleteEssence(id); } catch (e) { console.error(`Failed to delete essence ${id}:`, e); }
+      for (const slugOrId of slugsOrIds) {
+        try { await labService.deleteEssence(slugOrId); } catch (e) { console.error(`Failed to delete essence ${slugOrId}:`, e); }
       }
-      addToast(`${ids.length} ${t('toast_bulk_ok')}`, 'success');
+      addToast(`${slugsOrIds.length} ${t('toast_bulk_ok')}`, 'success');
     } catch {
       setEssences(prev => [...snapshots, ...prev]);
       addToast(t('toast_bulk_error'), 'error');
@@ -775,7 +775,7 @@ export default function EssencesPage() {
                       checked={currentItems.length > 0 && selectedEssences.size === essences.length && essences.length > 0}
                       onChange={(e) => {
                         if (e.target.checked) {
-                          setSelectedEssences(new Set(essences.map(e => e.id)));
+                          setSelectedEssences(new Set(essences.map(e => e.slug || String(e.id))));
                         } else {
                           setSelectedEssences(new Set());
                         }
@@ -794,12 +794,12 @@ export default function EssencesPage() {
               </thead>
               <tbody className="divide-y divide-white/5 text-xs">
                 {currentItems.map(essence => (
-                  <tr key={essence.id} className="hover:bg-white/[0.02] transition-colors">
+                  <tr key={essence.slug || essence.id} className="hover:bg-white/[0.02] transition-colors">
                     <td className="pl-4 py-3">
                       <input
                         type="checkbox"
-                        checked={selectedEssences.has(essence.id)}
-                        onChange={() => toggleSelectEssence(essence.id)}
+                        checked={selectedEssences.has(essence.slug || String(essence.id))}
+                        onChange={() => toggleSelectEssence(essence.slug || String(essence.id))}
                         className="rounded border-white/20 bg-white/5 text-gold focus:ring-0 cursor-pointer"
                       />
                     </td>
@@ -849,7 +849,7 @@ export default function EssencesPage() {
                         {permissions.canDelete && (
                           <IconButton 
                             icon={Trash2} 
-                            onClick={() => handleDelete(essence.id)} 
+                            onClick={() => handleDelete(essence.slug || essence.id)} 
                             title="Supprimer"
                             tint="red"
                           />
