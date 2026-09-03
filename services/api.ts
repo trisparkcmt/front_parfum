@@ -152,12 +152,7 @@ api.interceptors.request.use((config: any) => {
           }
     } else {
       delete config.headers.Authorization;
-      // Only send cookies (withCredentials: true) when the user logged in via web/cookie session.
-      // For unauthenticated requests (public shop, lab, etc.), keep withCredentials: false to avoid
-      // CORS preflight failures — the browser blocks cross-origin credentialed requests if the
-      // server responds with Access-Control-Allow-Origin: * instead of the exact origin.
-      const isWebSession = localStorage.getItem('auth_method') === 'web';
-      config.withCredentials = isWebSession;
+      config.withCredentials = true;
           if (config.url && config.url.includes('devices/register')) {
             console.log('[API Interceptor] FCM register request - NO token in localStorage');
           }
