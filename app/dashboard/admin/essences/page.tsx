@@ -101,6 +101,7 @@ type EssenceRecord = {
   description?: string;
   intensite?: string;
   genre_cible?: string;
+  actif?: boolean;
   prix_par_ml?: number | string;
   vendu_comme_produit_fini?: boolean;
   initial_lot?: {
@@ -214,6 +215,7 @@ export default function EssencesPage() {
     description: '',
     intensite: 'moyenne',
     genreCible: 'mixte',
+    actif: true,
     prixParMl: '',
     lotStockMl: '',
     lotSeuilAlerteMl: '',
@@ -302,6 +304,7 @@ export default function EssencesPage() {
       description: '',
       intensite: 'moyenne',
       genreCible: 'mixte',
+      actif: true,
       prixParMl: '',
       lotStockMl: '',
       lotSeuilAlerteMl: '',
@@ -355,6 +358,7 @@ export default function EssencesPage() {
       description: item.description || '',
       intensite: item.intensite || 'moyenne',
       genreCible: item.genre_cible || 'mixte',
+      actif: item.actif !== undefined ? Boolean(item.actif) : true,
       prixParMl: String(item.prix_par_ml || '0.00'),
       lotStockMl: String(item.initial_lot?.stock_ml ?? ''),
       lotSeuilAlerteMl: String(item.initial_lot?.seuil_alerte_ml ?? ''),
@@ -450,6 +454,7 @@ export default function EssencesPage() {
           intensite: form.intensite,
           genre_cible: form.genreCible,
           prix_par_ml: form.prixParMl,
+          actif: form.actif,
         };
         await labService.updateEssence(editingEssence.slug || editingEssence.id, payload);
         setEssences(prev => prev.map(e => (e.slug || String(e.id)) === (editingEssence.slug || String(editingEssence.id)) ? { ...e, ...payload } : e));
@@ -467,8 +472,8 @@ export default function EssencesPage() {
           intensite: string;
           genre_cible: string;
           prix_par_ml: string;
-          seuil_alerte_ml?: string;
           actif: boolean;
+          seuil_alerte_ml?: string;
           initial_lot?: {
             stock_ml: string;
             prix_achat_par_ml?: string;
@@ -489,8 +494,8 @@ export default function EssencesPage() {
           intensite: form.intensite,
           genre_cible: form.genreCible,
           prix_par_ml: form.prixParMl,
+          actif: form.actif,
           seuil_alerte_ml: form.lotSeuilAlerteMl || undefined,
-          actif: true,
         };
         if (form.lotStockMl) {
           payload.initial_lot = {
@@ -959,6 +964,16 @@ export default function EssencesPage() {
                 {formErrors.categorie && <p className="mt-1 text-xs text-red-500">{formErrors.categorie}</p>}
               </div>
             </div>
+
+            <label className="flex items-center gap-2 text-xs text-foreground/70">
+              <input
+                type="checkbox"
+                checked={form.actif}
+                onChange={e => updateForm('actif', e.target.checked)}
+                className="rounded border-white/10 bg-white/5 text-gold focus:ring-gold"
+              />
+              <span>Actif / disponible dans la boutique</span>
+            </label>
           </div>
 
           {/* Section 2: Profil & Prix */}

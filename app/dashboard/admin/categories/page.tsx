@@ -338,7 +338,6 @@ export default function CategoriesAdminPage() {
 
   const [form, setForm] = useState({
     nom: '',
-    slug: '',
     description: '',
     ordre_affichage: 0,
     actif: true,
@@ -386,7 +385,6 @@ export default function CategoriesAdminPage() {
   const resetForm = () => {
     setForm({
       nom: '',
-      slug: '',
       description: '',
       ordre_affichage: 0,
       actif: true,
@@ -410,7 +408,6 @@ export default function CategoriesAdminPage() {
     setEditingItem(item);
     setForm({
       nom: item.nom || '',
-      slug: item.slug || '',
       description: item.description || '',
       ordre_affichage: item.ordre_affichage || 0,
       actif: item.actif !== undefined ? item.actif : true,
@@ -429,7 +426,6 @@ export default function CategoriesAdminPage() {
     const errors: Record<string, string> = {};
     if (activeTab === 'perfume_categories' || activeTab === 'accessory_categories') {
       if (!form.nom.trim()) errors.nom = t('err_name');
-      if (!form.slug.trim()) errors.slug = t('err_slug');
       if (form.ordre_affichage === undefined || form.ordre_affichage === null)
         errors.ordre_affichage = t('err_order_required');
       else if (isNaN(Number(form.ordre_affichage)) || Number(form.ordre_affichage) < 0)
@@ -476,7 +472,6 @@ export default function CategoriesAdminPage() {
       if (activeTab === 'perfume_categories') {
         const formData = new FormData();
         formData.append('nom', form.nom);
-        if (form.slug) formData.append('slug', form.slug);
         formData.append('ordre_affichage', String(Number(form.ordre_affichage)));
         formData.append('actif', String(form.actif));
         formData.append('taux_reduction', form.taux_reduction);
@@ -1003,15 +998,6 @@ export default function CategoriesAdminPage() {
 
             {activeTab === 'perfume_categories' && (
               <>
-                <Field label={t('field_slug')} required error={formErrors.slug}>
-                  <input
-                    data-field="slug"
-                    value={form.slug}
-                    onChange={e => updateForm('slug', e.target.value)}
-                    className={inputClassName}
-                  />
-                </Field>
-
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <Field label={t('field_order')} required error={formErrors.ordre_affichage}>
                     <input

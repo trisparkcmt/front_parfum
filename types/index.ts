@@ -429,6 +429,7 @@ export interface BackendOrder {
   lignes_produit_fini_essence: BackendOrderLine[];
   lignes_parfums_perso: BackendOrderLine[];
   lignes_essence_personnalisee: BackendOrderLine[];
+  lignes_diffuseurs: BackendOrderLine[];
   facture?: {
     numero_facture: string;
     date_emission: string;

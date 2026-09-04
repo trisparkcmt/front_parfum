@@ -86,15 +86,7 @@ function AccessoriesShop() {
       try {
         setLoading(true);
 
-        const mappedProducts = await productService.getAccessories({
-          type_accessoire: activeTypeId !== 'all' ? String(activeTypeId) : undefined,
-          prix_max: maxPrice < 200000 ? maxPrice : undefined,
-          couleur: color !== 'all' ? color : undefined,
-          matiere: material !== 'all' ? material : undefined,
-          en_stock: inStockOnly ? true : undefined,
-          search: debouncedSearch || undefined,
-          ordering: ordering || undefined,
-        });
+        const mappedProducts = await productService.getAccessories();
 
         setProducts(mappedProducts);
       } catch (error) {

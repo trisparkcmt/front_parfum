@@ -1235,9 +1235,11 @@ function InventoryTab() {
     }
   };
 
-  const alertItems = items.filter(i =>
-    Number(i.quantite_disponible_ml) <= Number(i.seuil_alerte_ml || 100)
-  );
+  const alertItems = items.filter(i => {
+    const quantity = Number(i.stock_total_ml ?? i.quantite_disponible_ml ?? 0);
+    const threshold = Number(i.seuil_alerte_ml);
+    return Number.isFinite(threshold) && threshold > 0 && quantity <= threshold;
+  });
 
   return (
     <div className="space-y-4">
@@ -1265,7 +1267,7 @@ function InventoryTab() {
 
       <div className="rounded-xl border border-white/10 bg-white/[0.02] overflow-hidden min-h-[200px]">
         {loading ? (
-          <AdminTableSkeleton columns={5} rows={5} />
+          <AdminTableSkeleton columns={7} rows={5} />
         ) : items.length === 0 ? (
           <EmptyState
             icon={<Package size={48} />}
@@ -1278,23 +1280,30 @@ function InventoryTab() {
               <thead>
                 <tr className="bg-white/[0.02] border-b border-white/10 text-[10px] font-semibold uppercase tracking-wider text-foreground/35">
                   <th className="pl-4 py-3">{t('inv_col_essence')}</th>
+                  <th className="px-3 py-3">Catégorie</th>
                   <th className="px-3 py-3">{t('inv_col_qty')}</th>
                   <th className="px-3 py-3">{t('inv_col_alert')}</th>
+                  <th className="px-3 py-3">Prix / ml</th>
                   <th className="px-3 py-3">{t('inv_col_status')}</th>
                   <th className="pr-4 py-3 text-right">{t('inv_col_actions')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5 text-xs">
                 {items.map(item => {
-                  const qty = Number(item.quantite_disponible_ml || 0);
-                  const threshold = Number(item.seuil_alerte_ml || 100);
-                  const pct = Math.min((qty / (threshold * 2)) * 100, 100);
-                  const isLow = qty <= threshold;
+                  const qty = Number(item.stock_total_ml ?? item.quantite_disponible_ml ?? 0);
+                  const thresholdValue = item.seuil_alerte_ml;
+                  const hasThreshold = thresholdValue !== undefined && thresholdValue !== null && thresholdValue !== '';
+                  const threshold = Number(thresholdValue || 0);
+                  const pct = hasThreshold && threshold > 0 ? Math.min((qty / (threshold * 2)) * 100, 100) : qty > 0 ? 100 : 0;
+                  const isLow = hasThreshold && threshold > 0 && qty <= threshold;
+                  const name = item.nom || item.essence_details?.nom || item.essence_nom || `Essence #${item.essence || item.id}`;
                   return (
                     <tr key={item.id} className="hover:bg-white/[0.02] transition-colors">
                       <td className="pl-4 py-3 font-medium text-foreground">
-                        {item.essence_details?.nom || item.essence_nom || `Essence #${item.essence || item.id}`}
+                        <span className="block">{name}</span>
+                        {item.marque && <span className="mt-0.5 block text-[11px] font-normal text-foreground/40">{item.marque}</span>}
                       </td>
+                      <td className="px-3 py-3 text-foreground/60 capitalize">{item.categorie || '—'}</td>
                       <td className="px-3 py-3">
                         <div className="flex items-center gap-2.5">
                           <div className="w-20 h-1.5 bg-white/10 rounded-full overflow-hidden">
@@ -1307,7 +1316,12 @@ function InventoryTab() {
                         </div>
                       </td>
                       <td className="px-3 py-3 text-foreground/60 tabular-nums">
-                        <InlineCell value={String(threshold)} onSave={v => patchInventory(item.id, 'seuil_alerte_ml', v)} disabled={!permissions.canUpdate} inputType="number" display={<>{threshold.toLocaleString()} ml</>} className="text-foreground/60 tabular-nums" />
+                        {hasThreshold ? (
+                          <InlineCell value={String(threshold)} onSave={v => patchInventory(item.id, 'seuil_alerte_ml', v)} disabled={!permissions.canUpdate} inputType="number" display={<>{threshold.toLocaleString()} ml</>} className="text-foreground/60 tabular-nums" />
+                        ) : '—'}
+                      </td>
+                      <td className="px-3 py-3 text-foreground/70 tabular-nums">
+                        {item.prix_par_ml != null ? `${Number(item.prix_par_ml).toLocaleString()} FCFA` : '—'}
                       </td>
                       <td className="px-3 py-3">
                         <StatusChip
@@ -1323,7 +1337,7 @@ function InventoryTab() {
                 })}
                 {items.length === 0 && (
                   <tr>
-                    <td colSpan={5} className="py-16 text-center text-sm italic text-foreground/30">
+                    <td colSpan={7} className="py-16 text-center text-sm italic text-foreground/30">
                       {t('inv_no_results')}
                     </td>
                   </tr>

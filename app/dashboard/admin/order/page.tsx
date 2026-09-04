@@ -118,6 +118,9 @@ const T = {
     row_note_client: 'Note client',
     row_note_internal: 'Note interne',
     row_recipient: 'Destinataire',
+    row_client_email: 'E-mail client',
+    row_order_status: 'Statut commande',
+    row_delivery_status: 'Statut livraison',
     receipt_subtotal: 'Sous-total',
     receipt_delivery_fees: 'Frais de livraison',
     receipt_promo_discount: 'Remise promo',
@@ -127,6 +130,7 @@ const T = {
     group_perfumes: 'Parfums',
     group_accessories: 'Accessoires',
     group_essences: 'Essences finies',
+    group_diffuseurs: 'Diffuseurs',
     group_custom_perfumes: 'Parfums personnalisés',
     group_custom_essences: 'Essences personnalisées',
     flacon: 'Flacon',
@@ -239,6 +243,9 @@ const T = {
     row_note_client: 'Client note',
     row_note_internal: 'Internal note',
     row_recipient: 'Recipient',
+    row_client_email: 'Client email',
+    row_order_status: 'Order status',
+    row_delivery_status: 'Delivery status',
     receipt_subtotal: 'Subtotal',
     receipt_delivery_fees: 'Delivery fees',
     receipt_promo_discount: 'Promo discount',
@@ -248,6 +255,7 @@ const T = {
     group_perfumes: 'Perfumes',
     group_accessories: 'Accessories',
     group_essences: 'Finished essences',
+    group_diffuseurs: 'Diffusers',
     group_custom_perfumes: 'Custom perfumes',
     group_custom_essences: 'Custom essences',
     flacon: 'Bottle',
@@ -315,11 +323,12 @@ function fmtDate(d?: string | null, time = false) {
 
 function allLines(order: BackendOrder): BackendOrderLine[] {
   return [
-    ...order.lignes_parfums,
-    ...order.lignes_accessoires,
-    ...order.lignes_produit_fini_essence,
-    ...order.lignes_parfums_perso,
-    ...order.lignes_essence_personnalisee,
+    ...(order.lignes_parfums ?? []),
+    ...(order.lignes_accessoires ?? []),
+    ...(order.lignes_produit_fini_essence ?? []),
+    ...(order.lignes_parfums_perso ?? []),
+    ...(order.lignes_essence_personnalisee ?? []),
+    ...(order.lignes_diffuseurs ?? []),
   ];
 }
 
@@ -727,6 +736,7 @@ export default function OrdersPage() {
             ...(order.lignes_produit_fini_essence ?? []).map(l => ({ ...l, type: 'produit-fini-essence' })),
             ...(order.lignes_parfums_perso ?? []).map(l => ({ ...l, type: 'parfum-personnalise' })),
             ...(order.lignes_essence_personnalisee ?? []).map(l => ({ ...l, type: 'essence-personnalisee' })),
+            ...(order.lignes_diffuseurs ?? []).map(l => ({ ...l, type: 'diffuseur' })),
           ];
           trackPurchase({
             transactionId: order.numero_commande,
@@ -1461,6 +1471,7 @@ function OrderDetailModal({
     { title: t('group_perfumes'),        icon: <Package size={12} />, lines: order.lignes_parfums },
     { title: t('group_accessories'),     icon: <Package size={12} />, lines: order.lignes_accessoires },
     { title: t('group_essences'),        icon: <Package size={12} />, lines: order.lignes_produit_fini_essence },
+    { title: t('group_diffuseurs'),      icon: <Package size={12} />, lines: order.lignes_diffuseurs },
     { title: t('group_custom_perfumes'), icon: <Package size={12} />, lines: order.lignes_parfums_perso },
     { title: t('group_custom_essences'), icon: <Package size={12} />, lines: order.lignes_essence_personnalisee },
   ].filter(g => g.lines.length > 0);
@@ -1504,6 +1515,10 @@ function OrderDetailModal({
         <div className="grid grid-cols-2 gap-3 sm:flex sm:flex-wrap sm:items-center sm:gap-x-6 sm:gap-y-2 rounded-xl border border-white/10 bg-white/[0.02] p-3.5 sm:px-4 sm:py-3">
           <SummaryStat label={t('receipt_total')} value={fmt(order.total_ttc)} emphasize />
           <div className="hidden sm:block h-8 w-px bg-white/10" />
+          <SummaryStat label={t('row_order_status')} node={<StatusChip cfg={STATUT_CFG[order.statut]} />} />
+          <div className="hidden sm:block h-8 w-px bg-white/10" />
+          <SummaryStat label={t('row_delivery_status')} value={order.statut_livraison} />
+          <div className="hidden sm:block h-8 w-px bg-white/10" />
           <SummaryStat label={t('field_payment_status')} node={<StatusChip cfg={STATUT_PAIEMENT_CFG[order.statut_paiement]} />} />
           <div className="hidden sm:block h-8 w-px bg-white/10" />
           <SummaryStat label={t('section_delivery')} value={getDeliveryMethod(order, isEn)} />
@@ -1521,6 +1536,7 @@ function OrderDetailModal({
             <section className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
               <SectionLabel icon={<MapPin size={11} />}>{t('section_delivery')}</SectionLabel>
               <dl className="space-y-1.5 text-xs">
+                <RowKV k={t('row_client_email')} v={order.client_email} />
                 <RowKV k={t('row_recipient')} v={order.livraison_nom_complet} />
                 <RowKV k={t('row_phone')} v={order.livraison_telephone} />
                 {order.livraison_ville && (
@@ -1554,6 +1570,20 @@ function OrderDetailModal({
                 )}
               </section>
             )}
+
+            <section className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
+              <SectionLabel icon={<CreditCard size={11} />}>{t('section_receipt')}</SectionLabel>
+              <div className="space-y-1.5 text-xs">
+                <ReceiptRow k={t('receipt_subtotal')} v={fmt(order.sous_total)} />
+                <ReceiptRow k={t('receipt_delivery_fees')} v={fmt(order.frais_livraison)} />
+                {Number(order.remise_code_promo) > 0 && <ReceiptRow k={t('receipt_promo_discount')} v={`-${fmt(order.remise_code_promo)}`} negative />}
+                <div className="my-1.5 border-t border-dashed border-white/10" />
+                <ReceiptRow k={t('receipt_total')} v={fmt(order.total_ttc)} bold />
+                <div className="my-1.5 border-t border-white/10" />
+                <ReceiptRow k={t('receipt_commission')} v={`${fmt(order.commission_montant)} · ${order.commission_statut}`} muted />
+                <ReceiptRow k={t('receipt_provider')} v={order.prestataire_code ?? '—'} muted />
+              </div>
+            </section>
 
             {(order.facture || order.statut_paiement === 'payé') && (
               <section>
@@ -1594,27 +1624,13 @@ function OrderDetailModal({
 
           {/* Right: items + receipt */}
           <div className="space-y-5 lg:col-span-3">
-            <section className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
+            <section>
               <SectionLabel icon={<Package size={11} />}>{t('section_items')} ({lines.length})</SectionLabel>
-              <div className="max-h-[280px] space-y-4 overflow-y-auto pr-1">
+              <div className="max-h-[560px] space-y-4 overflow-y-auto pr-1">
                 {groups.map(g => (
                   <LinesGroup key={g.title} title={g.title} icon={g.icon} lines={g.lines} isEn={isEn} />
                 ))}
                 {lines.length === 0 && <p className="py-4 text-center text-xs italic text-foreground/30">{t('no_items')}</p>}
-              </div>
-            </section>
-
-            <section className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
-              <SectionLabel icon={<CreditCard size={11} />}>{t('section_receipt')}</SectionLabel>
-              <div className="space-y-1.5 text-xs">
-                <ReceiptRow k={t('receipt_subtotal')} v={fmt(order.sous_total)} />
-                <ReceiptRow k={t('receipt_delivery_fees')} v={fmt(order.frais_livraison)} />
-                {Number(order.remise_code_promo) > 0 && <ReceiptRow k={t('receipt_promo_discount')} v={`-${fmt(order.remise_code_promo)}`} negative />}
-                <div className="my-1.5 border-t border-dashed border-white/10" />
-                <ReceiptRow k={t('receipt_total')} v={fmt(order.total_ttc)} bold />
-                <div className="my-1.5 border-t border-white/10" />
-                <ReceiptRow k={t('receipt_commission')} v={`${fmt(order.commission_montant)} · ${order.commission_statut}`} muted />
-                <ReceiptRow k={t('receipt_provider')} v={order.prestataire_code ?? '—'} muted />
               </div>
             </section>
           </div>

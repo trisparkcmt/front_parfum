@@ -122,7 +122,7 @@ export default function DeliveryPage() {
   // Form state
   const [userIdVal, setUserIdVal] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
-  const [userSuggestions, setUserSuggestions] = useState<{ id: number; name: string }[]>([]);
+  const [userSuggestions, setUserSuggestions] = useState<{ id: number; name: string; email: string }[]>([]);
   const [formError, setFormError] = useState<string | null>(null);
   const [promoting, setPromoting] = useState(false);
 
@@ -174,6 +174,7 @@ export default function DeliveryPage() {
           list.map((user: any) => ({
             id: user.id,
             name: `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.email || `User #${user.id}`,
+            email: user.email || '',
           }))
         );
       } catch {
@@ -496,7 +497,7 @@ export default function DeliveryPage() {
 
           {userSuggestions.length > 0 && (
             <div className="space-y-1 p-3 bg-white/5 border border-white/10 rounded-lg max-h-60 overflow-y-auto">
-              {userSuggestions.map((user) => (
+                {userSuggestions.map((user) => (
                 <button
                   key={user.id}
                   type="button"
@@ -511,8 +512,11 @@ export default function DeliveryPage() {
                       ? 'bg-gold/20 text-gold font-semibold'
                       : 'text-foreground/70 hover:bg-white/5 hover:text-foreground'
                   )}
-                >
-                  {user.name}
+                  >
+                  <span className="block">{user.name}</span>
+                  <span className="mt-0.5 block text-[11px] font-normal text-foreground/40">
+                    {user.email}
+                  </span>
                 </button>
               ))}
             </div>

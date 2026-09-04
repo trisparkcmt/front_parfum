@@ -232,7 +232,6 @@ export default function AccessoriesPage() {
   const [form, setForm] = useState({
     marque: '',
     nom: '',
-    slug: '',
     reference_sku: '',
     type_accessoire: '',
     description_courte: '',
@@ -247,6 +246,7 @@ export default function AccessoriesPage() {
     stock_quantite: '',
     seuil_alerte_stock: '',
     poids_grammes: '',
+    actif: true,
   });
 
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
@@ -305,7 +305,6 @@ export default function AccessoriesPage() {
     setForm({
       marque: '',
       nom: '',
-      slug: '',
       reference_sku: '',
       type_accessoire: accessoryTypes[0]?.id ? String(accessoryTypes[0].id) : '',
       description_courte: '',
@@ -320,6 +319,7 @@ export default function AccessoriesPage() {
       stock_quantite: '',
       seuil_alerte_stock: '',
       poids_grammes: '',
+      actif: true,
     });
     setImageFiles({
       image_principale: null,
@@ -338,7 +338,6 @@ export default function AccessoriesPage() {
     setForm({
       marque: acc.marque || 'Accessoire Exclusif',
       nom: acc.nom || '',
-      slug: acc.slug || '',
       reference_sku: acc.reference_sku || '',
       type_accessoire: String(acc.type_accessoire?.id || acc.type_accessoire || ''),
       description_courte: acc.description_courte || '',
@@ -353,6 +352,7 @@ export default function AccessoriesPage() {
       stock_quantite: String(acc.stock_quantite || ''),
       seuil_alerte_stock: String(acc.seuil_alerte_stock || '3'),
       poids_grammes: String(acc.poids_grammes || ''),
+      actif: acc.actif !== undefined ? Boolean(acc.actif) : true,
     });
     setImageFiles({
       image_principale: null,
@@ -364,7 +364,7 @@ export default function AccessoriesPage() {
     setShowModal(true);
   };
 
-  const updateForm = (field: keyof typeof form, value: string) => {
+  const updateForm = (field: keyof typeof form, value: string | boolean) => {
     setForm(prev => ({ ...prev, [field]: value }));
   };
 
@@ -948,17 +948,6 @@ export default function AccessoriesPage() {
                     className={inputCls}
                   />
                 </Field>
-                <div className="sm:col-span-2">
-                  <Field label="Slug" error={formErrors.slug}>
-                    <input
-                      data-field="slug"
-                      value={form.slug}
-                      onChange={e => updateForm('slug', e.target.value)}
-                      placeholder="Généré automatiquement si vide"
-                      className={inputCls}
-                    />
-                  </Field>
-                </div>
               </div>
             </FormSection>
 
@@ -1091,6 +1080,15 @@ export default function AccessoriesPage() {
                   />
                 </Field>
               </div>
+              <label className="mt-3 flex items-center gap-2 text-xs text-foreground/70">
+                <input
+                  type="checkbox"
+                  checked={form.actif}
+                  onChange={e => setForm(prev => ({ ...prev, actif: Boolean(e.target.checked) }))}
+                  className="rounded border-white/10 bg-white/5 text-gold focus:ring-gold"
+                />
+                <span>Actif / visible dans la boutique</span>
+              </label>
             </FormSection>
           </div>
 

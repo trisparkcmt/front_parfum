@@ -245,7 +245,6 @@ export default function PerfumeAdminPage() {
   const [form, setForm] = useState({
     marque: 'Accessoire Exclusif',
     nom: '',
-    slug: '',
     reference_sku: '',
     description_courte: '',
     description_longue: '',
@@ -393,7 +392,6 @@ export default function PerfumeAdminPage() {
     setForm({
       marque: '',
       nom: '',
-      slug: '',
       reference_sku: '',
       description_courte: '',
       description_longue: '',
@@ -435,7 +433,6 @@ export default function PerfumeAdminPage() {
     setForm({
       marque: perf.marque || 'Accessoire Exclusif',
       nom: perf.nom || perf.name || '',
-      slug: perf.slug || '',
       reference_sku: perf.reference_sku || '',
       description_courte: perf.description_courte || '',
       description_longue: perf.description_longue || '',
@@ -971,15 +968,6 @@ export default function PerfumeAdminPage() {
                       className={`w-full bg-white/5 border rounded-lg px-3 py-2.5 text-base text-foreground outline-none focus:border-gold ${formErrors.nom ? 'border-red-500/50' : 'border-white/10'}`}
                     />
                     {formErrors.nom && <p className="mt-1 text-xs text-red-500">{formErrors.nom}</p>}
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">{t('field_slug')}</label>
-                    <input
-                      data-field="slug"
-                      value={form.slug}
-                      onChange={(e) => updateForm('slug', e.target.value)}
-                      className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-base text-foreground outline-none focus:border-gold"
-                    />
                   </div>
                   <div>
                     <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">{t('field_sku')}</label>

@@ -101,18 +101,7 @@ export default function PerfumesShopClient() {
         }
       }
 
-      const params = {
-        genre: genre !== 'all' ? genre : undefined,
-        famille_olfactive: olfactiveFamily !== 'all' ? olfactiveFamily : undefined,
-        intensite: intensity !== 'all' ? intensity : undefined,
-        prix_max: maxPrice < 150000 ? maxPrice : undefined,
-        search: debouncedSearch || undefined,
-        ordering: ordering || undefined,
-        page: currentPage,
-        categorie: activeTab !== 'all' && activeTab !== 'huile' && typeof activeTab === 'number' ? activeTab : undefined,
-      } as any;
-
-      const response = (await productService.getPerfumes(params)) as
+      const response = (await productService.getPerfumes()) as
         | Product[]
         | { results?: Product[]; resultats?: Product[]; pages?: number; count?: number };
 
