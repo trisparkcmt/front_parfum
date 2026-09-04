@@ -24,7 +24,7 @@
 
 import Link from 'next/link';
 import AppImage from '@/components/ui/AppImage';
-import { Heart, ShoppingBag, BellRing, Share2 } from 'lucide-react';
+import { Heart, ShoppingBag, BellRing, Share2, Droplets } from 'lucide-react';
 import { cn, formatPrice, sharePage, resolveImageUrl } from '@/lib/utils';
 import type { Product } from '@/types';
 import { useTranslation } from 'react-i18next';
@@ -154,6 +154,23 @@ export function ProductCard({
               loading="lazy"
               sizes="(max-width: 480px) 46vw, (max-width: 768px) 31vw, (max-width: 1024px) 23vw, 210px"
             />
+          ) : isHuile ? (
+            <div className="flex h-full w-full flex-col items-center justify-center p-4 text-center bg-gradient-to-b from-amber-500/10 via-gold/5 to-background border-b border-white/5 transition-transform duration-500 group-hover:scale-[1.02]">
+              <div className="w-12 h-12 rounded-2xl bg-gold/10 border border-gold/20 flex items-center justify-center mb-2.5 shadow-lg shadow-gold/5">
+                <Droplets size={22} className="text-gold" />
+              </div>
+              <span className="text-[10px] font-bold uppercase tracking-widest text-gold/90 mb-1">
+                Huile Pure
+              </span>
+              <span className="text-xs font-semibold text-foreground/80 line-clamp-2 leading-tight">
+                {product.name}
+              </span>
+              {product.brand && (
+                <span className="text-[9px] text-foreground/40 mt-1 uppercase tracking-wider">
+                  {product.brand}
+                </span>
+              )}
+            </div>
           ) : (
             <div className="flex h-full w-full items-center justify-center">
               <ShoppingBag size={24} className="text-foreground/10" />

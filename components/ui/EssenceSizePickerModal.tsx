@@ -2,47 +2,90 @@
 
 /**
  * @file components/ui/EssenceSizePickerModal.tsx
- * @description Size variant and quantity picker for Essences.
+ * @description Multi-format variant and quantity picker for Essences.
  *
- * Allows selecting a bottle size variant (produits_finis), choosing quantity,
- * and handles adding the selected finished product to the cart.
+ * Allows selecting multiple bottle size variants (produits_finis) simultaneously,
+ * adjusting quantity per format, and adding all selected formats to the cart.
  */
 
-import { useState, useEffect } from 'react';
-import { X, Droplets, ShoppingBag, Check } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
+import { X, Droplets, ShoppingBag, Check, Plus, Minus } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { Product, ProduitFiniEssence } from '@/types';
 import { formatPrice, resolveImageUrl } from '@/lib/utils';
 import AppImage from '@/components/ui/AppImage';
 
+export interface SelectedVariantItem {
+  variant: ProduitFiniEssence;
+  quantity: number;
+}
+
 interface EssenceSizePickerModalProps {
   product: Product; // The main Essence product containing produits_finis array
-  onConfirm: (essence: Product, variant: ProduitFiniEssence, quantity: number) => void;
+  onConfirm: (essence: Product, items: SelectedVariantItem[]) => void;
   onClose: () => void;
 }
 
 export function EssenceSizePickerModal({ product, onConfirm, onClose }: EssenceSizePickerModalProps) {
-  const [selectedVariant, setSelectedVariant] = useState<ProduitFiniEssence | null>(null);
-  const [quantity, setQuantity] = useState<number>(1);
+  // Map of variantId -> quantity (0 or undefined means not selected)
+  const [selectedQuantities, setSelectedQuantities] = useState<Record<number, number>>({});
 
-  const variants = product.produits_finis || [];
+  const variants = useMemo(() => product.produits_finis || [], [product.produits_finis]);
 
-  // Default select the first available variant if any
+  // Default select the first available variant with quantity 1
   useEffect(() => {
-    if (variants.length > 0 && !selectedVariant) {
+    if (variants.length > 0 && Object.keys(selectedQuantities).length === 0) {
       const firstAvailable = variants.find((v) => v.stock_disponible > 0) || variants[0];
-      setSelectedVariant(firstAvailable);
+      if (firstAvailable && firstAvailable.stock_disponible > 0) {
+        setSelectedQuantities({ [firstAvailable.id]: 1 });
+      }
     }
-  }, [variants, selectedVariant]);
+  }, [variants, selectedQuantities]);
 
-  // Reset quantity to 1 if selection changes
-  useEffect(() => {
-    setQuantity(1);
-  }, [selectedVariant]);
+  const toggleVariant = (variant: ProduitFiniEssence) => {
+    if (variant.stock_disponible <= 0) return;
+    setSelectedQuantities((prev) => {
+      const next = { ...prev };
+      if (next[variant.id]) {
+        delete next[variant.id];
+      } else {
+        next[variant.id] = 1;
+      }
+      return next;
+    });
+  };
+
+  const updateVariantQuantity = (variant: ProduitFiniEssence, delta: number) => {
+    setSelectedQuantities((prev) => {
+      const current = prev[variant.id] ?? 0;
+      const nextQty = Math.max(1, Math.min(variant.stock_disponible, current + delta));
+      return {
+        ...prev,
+        [variant.id]: nextQty,
+      };
+    });
+  };
+
+  const selectedItems: SelectedVariantItem[] = useMemo(() => {
+    return variants
+      .filter((v) => (selectedQuantities[v.id] ?? 0) > 0)
+      .map((v) => ({
+        variant: v,
+        quantity: selectedQuantities[v.id],
+      }));
+  }, [variants, selectedQuantities]);
+
+  const totalQuantity = useMemo(() => {
+    return selectedItems.reduce((sum, item) => sum + item.quantity, 0);
+  }, [selectedItems]);
+
+  const totalPrice = useMemo(() => {
+    return selectedItems.reduce((sum, item) => sum + item.variant.prix_actuel * item.quantity, 0);
+  }, [selectedItems]);
 
   const handleConfirm = () => {
-    if (!selectedVariant) return;
-    onConfirm(product, selectedVariant, quantity);
+    if (selectedItems.length === 0) return;
+    onConfirm(product, selectedItems);
     onClose();
   };
 
@@ -66,7 +109,7 @@ export function EssenceSizePickerModal({ product, onConfirm, onClose }: EssenceS
           exit={{ opacity: 0, y: 60 }}
           transition={{ type: 'spring', damping: 28, stiffness: 300 }}
           onClick={(e) => e.stopPropagation()}
-          className="bg-background border border-white/10 rounded-t-3xl sm:rounded-2xl w-full sm:max-w-md shadow-2xl overflow-hidden max-h-[90dvh] flex flex-col mb-24 sm:mb-0"
+          className="bg-background border border-white/10 rounded-t-3xl sm:rounded-2xl w-full sm:max-w-lg shadow-2xl overflow-hidden max-h-[90dvh] flex flex-col mb-24 sm:mb-0"
         >
           <div className="flex justify-center pt-3 pb-1 sm:hidden">
             <div className="w-10 h-1 rounded-full bg-white/20" />
@@ -114,121 +157,158 @@ export function EssenceSizePickerModal({ product, onConfirm, onClose }: EssenceS
           {/* Scrollable content */}
           <div className="p-6 overflow-y-auto space-y-5 flex-1 min-h-0">
             <div>
-              <p className="text-xs font-bold uppercase tracking-widest text-foreground/50 mb-3">
-                Sélectionnez un format
-              </p>
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-xs font-bold uppercase tracking-widest text-foreground/50">
+                  Sélectionnez les formats souhaités
+                </p>
+                {selectedItems.length > 0 && (
+                  <span className="text-[11px] font-semibold text-gold">
+                    {selectedItems.length} format{selectedItems.length > 1 ? 's' : ''} sélectionné{selectedItems.length > 1 ? 's' : ''}
+                  </span>
+                )}
+              </div>
 
-              <div className="flex flex-col gap-2.5">
+              <div className="flex flex-col gap-3">
                 {variants.map((v) => {
-                  const isSelected = selectedVariant?.id === v.id;
+                  const currentQty = selectedQuantities[v.id] ?? 0;
+                  const isSelected = currentQty > 0;
                   const isOutOfStock = v.stock_disponible <= 0;
                   const originalPriceNum = v.prix_promotionnel ? parseFloat(v.prix_promotionnel) : 0;
                   const hasReduction = originalPriceNum > 0 && originalPriceNum > v.prix_actuel;
 
                   return (
-                    <button
+                    <div
                       key={v.id}
-                      disabled={isOutOfStock}
-                      onClick={() => setSelectedVariant(v)}
-                      className={`relative w-full flex items-center justify-between p-4 rounded-2xl border text-left transition-all ${
+                      className={`relative w-full rounded-2xl border transition-all p-4 ${
                         isSelected
-                          ? 'bg-gold/10 border-gold text-gold shadow-md'
+                          ? 'bg-gold/[0.07] border-gold/60 shadow-md'
                           : isOutOfStock
-                          ? 'opacity-40 cursor-not-allowed border-white/5 bg-white/5 text-foreground/35'
-                          : 'border-white/10 bg-white/5 text-foreground hover:border-white/20 hover:bg-white/10'
+                          ? 'opacity-40 border-white/5 bg-white/5 text-foreground/35'
+                          : 'border-white/10 bg-white/5 hover:border-white/20'
                       }`}
                     >
-                      <div className="flex items-center gap-3">
-                        {/* Custom custom checkbox style */}
-                        <div className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 ${
-                          isSelected ? 'border-gold bg-gold text-black' : 'border-white/20'
-                        }`}>
-                          {isSelected && <Check size={11} strokeWidth={3} />}
+                      <div className="flex items-center justify-between gap-3">
+                        {/* Checkbox & Details */}
+                        <div
+                          onClick={() => !isOutOfStock && toggleVariant(v)}
+                          className={`flex items-center gap-3 flex-1 min-w-0 ${
+                            isOutOfStock ? 'cursor-not-allowed' : 'cursor-pointer'
+                          }`}
+                        >
+                          <div
+                            className={`w-5 h-5 rounded-lg border flex items-center justify-center shrink-0 transition-colors ${
+                              isSelected
+                                ? 'border-gold bg-gold text-black'
+                                : 'border-white/20 hover:border-white/40'
+                            }`}
+                          >
+                            {isSelected && <Check size={12} strokeWidth={3} />}
+                          </div>
+
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-bold text-foreground">{v.taille_ml} ml</span>
+                              {hasReduction && (
+                                <span className="bg-red-500/10 border border-red-500/20 text-red-400 text-[8px] font-bold px-1.5 py-0.5 uppercase tracking-wide rounded-md">
+                                  Promo
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-[10px] text-foreground/45 mt-0.5">
+                              {isOutOfStock ? (
+                                <span className="text-red-400 font-semibold">Rupture de stock</span>
+                              ) : v.stock_disponible <= 5 ? (
+                                <span className="text-amber-400 font-medium">Plus que {v.stock_disponible} restants</span>
+                              ) : (
+                                <span>En stock ({v.stock_disponible} flacons)</span>
+                              )}
+                            </div>
+                          </div>
                         </div>
 
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm font-bold text-foreground">{v.taille_ml} ml</span>
-                            {hasReduction && (
-                              <span className="bg-red-500/10 border border-red-500/20 text-red-400 text-[8px] font-bold px-1.5 py-0.5 uppercase tracking-wide rounded-md">
-                                Promo
+                        {/* Price display */}
+                        <div className="text-right shrink-0">
+                          {hasReduction ? (
+                            <div className="flex flex-col items-end">
+                              <span className="text-xs line-through text-foreground/40 font-mono">
+                                {formatPrice(originalPriceNum)}
                               </span>
-                            )}
-                          </div>
-                          <div className="text-[10px] text-foreground/45 mt-0.5">
-                            {isOutOfStock ? (
-                              <span className="text-red-400 font-semibold">Rupture de stock</span>
-                            ) : v.stock_disponible <= 5 ? (
-                              <span className="text-amber-400 font-medium font-sans">Plus que {v.stock_disponible} restants</span>
-                            ) : (
-                              <span>En stock</span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="text-right">
-                        {hasReduction ? (
-                          <div className="flex flex-col items-end">
-                            <span className="text-xs line-through text-foreground/40 font-mono">
-                              {formatPrice(originalPriceNum)}
-                            </span>
-                            <span className="text-sm font-bold text-gold font-mono">
+                              <span className="text-sm font-bold text-gold font-mono">
+                                {formatPrice(v.prix_actuel)}
+                              </span>
+                            </div>
+                          ) : (
+                            <span className={`text-sm font-bold font-mono ${isSelected ? 'text-gold' : 'text-foreground'}`}>
                               {formatPrice(v.prix_actuel)}
                             </span>
-                          </div>
-                        ) : (
-                          <span className={`text-sm font-bold font-mono ${isSelected ? 'text-gold' : 'text-foreground'}`}>
-                            {formatPrice(v.prix_actuel)}
-                          </span>
-                        )}
+                          )}
+                        </div>
                       </div>
-                    </button>
+
+                      {/* Quantity Stepper when selected */}
+                      {isSelected && (
+                        <div className="mt-3 pt-3 border-t border-white/10 flex items-center justify-between">
+                          <span className="text-[11px] font-medium text-foreground/60">
+                            Quantité :
+                          </span>
+
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => updateVariantQuantity(v, -1)}
+                              disabled={currentQty <= 1}
+                              className="w-7 h-7 rounded-lg bg-white/10 border border-white/10 flex items-center justify-center text-xs hover:bg-white/20 disabled:opacity-30 transition-all font-bold"
+                            >
+                              <Minus size={12} />
+                            </button>
+                            <span className="w-8 text-center font-mono font-bold text-sm text-foreground">
+                              {currentQty}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => updateVariantQuantity(v, 1)}
+                              disabled={currentQty >= v.stock_disponible}
+                              className="w-7 h-7 rounded-lg bg-white/10 border border-white/10 flex items-center justify-center text-xs hover:bg-white/20 disabled:opacity-30 transition-all font-bold"
+                            >
+                              <Plus size={12} />
+                            </button>
+
+                            <span className="ml-3 text-xs font-bold text-gold font-mono">
+                              = {formatPrice(v.prix_actuel * currentQty)}
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   );
                 })}
               </div>
             </div>
 
-            {selectedVariant && (
-              <div className="space-y-4">
-                {/* Quantity selection */}
+            {/* Total summary box */}
+            {selectedItems.length > 0 && (
+              <div className="bg-gold/5 border border-gold/20 rounded-2xl p-4 space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold uppercase tracking-widest text-foreground/50">
-                    Quantité
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-foreground/60">
+                    Récapitulatif de la sélection
                   </span>
-
-                  <div className="flex items-center gap-1">
-                    <button
-                      onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-                      disabled={quantity <= 1}
-                      className="w-8 h-8 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-sm hover:bg-white/10 disabled:opacity-30 transition-all font-bold"
-                    >
-                      -
-                    </button>
-                    <span className="w-10 text-center font-mono font-bold text-sm text-foreground">
-                      {quantity}
-                    </span>
-                    <button
-                      onClick={() => setQuantity((q) => Math.min(selectedVariant.stock_disponible, q + 1))}
-                      disabled={quantity >= selectedVariant.stock_disponible}
-                      className="w-8 h-8 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-sm hover:bg-white/10 disabled:opacity-30 transition-all font-bold"
-                    >
-                      +
-                    </button>
-                  </div>
+                  <span className="text-sm font-bold text-gold font-mono">
+                    {totalQuantity} flacon{totalQuantity > 1 ? 's' : ''}
+                  </span>
                 </div>
-
-                {/* Total box */}
-                <div className="flex items-center justify-between bg-gold/5 border border-gold/20 rounded-2xl px-4 py-3.5">
-                  <div>
-                    <p className="text-[10px] text-foreground/50 uppercase tracking-widest font-semibold">Total</p>
-                    <p className="text-[11px] text-foreground/40 mt-0.5">
-                      {quantity} × {selectedVariant.taille_ml}ml ({formatPrice(selectedVariant.prix_actuel)})
-                    </p>
-                  </div>
-                  <p className="text-lg font-black text-gold font-mono">
-                    {formatPrice(selectedVariant.prix_actuel * quantity)}
-                  </p>
+                <div className="text-[11px] text-foreground/50 space-y-0.5">
+                  {selectedItems.map((item) => (
+                    <div key={item.variant.id} className="flex justify-between">
+                      <span>• {item.quantity} × {item.variant.taille_ml}ml</span>
+                      <span className="font-mono">{formatPrice(item.variant.prix_actuel * item.quantity)}</span>
+                    </div>
+                  ))}
+                </div>
+                <div className="pt-2 border-t border-gold/15 flex items-center justify-between">
+                  <span className="text-xs font-bold uppercase tracking-wider text-foreground">Total</span>
+                  <span className="text-base font-black text-gold font-mono">
+                    {formatPrice(totalPrice)}
+                  </span>
                 </div>
               </div>
             )}
@@ -237,15 +317,15 @@ export function EssenceSizePickerModal({ product, onConfirm, onClose }: EssenceS
           {/* Action Footer */}
           <div className="p-6 border-t border-white/10 bg-white/[0.01]">
             <button
-              disabled={!selectedVariant}
+              disabled={selectedItems.length === 0}
               onClick={handleConfirm}
               className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl text-xs font-bold uppercase tracking-widest transition-all bg-gold text-black hover:bg-gold/90 disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-gold/20"
             >
               <ShoppingBag size={14} />
               Ajouter au panier
-              {selectedVariant && (
-                <span className="ml-1 text-[10px] font-normal opacity-70">
-                  ({quantity} flacon{quantity > 1 ? 's' : ''} {selectedVariant.taille_ml}ml)
+              {totalQuantity > 0 && (
+                <span className="ml-1 text-[10px] font-bold opacity-85">
+                  ({totalQuantity} flacon{totalQuantity > 1 ? 's' : ''} · {formatPrice(totalPrice)})
                 </span>
               )}
             </button>

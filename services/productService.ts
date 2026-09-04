@@ -1,5 +1,5 @@
 import { Product, ProductCategory, AccessorySubCategory } from '@/types';
-import { shopService as apiShopService } from './apiService';
+import { shopService as apiShopService, labService } from './apiService';
 
 // Internal map to store perfume category ID to frontend category type mapping
 let _perfumeCategoriesMap: Map<number, ProductCategory> | null = null;
@@ -275,27 +275,30 @@ export function mapBackendAccessoryToProduct(p: any): Product {
 // Helper to map backend finished essence to frontend Product model
 export function mapBackendFinishedEssenceToProduct(p: any): Product {
   const images = collectProductImages(p);
+  const currentPrice = parseFloat(p.prix_actuel || p.prix || '0');
+  const originalPrice = parseFloat(p.prix_original || p.prix_promotionnel || p.prix || '0');
+  const hasReduction = Boolean(p.en_promotion || (originalPrice > currentPrice && currentPrice > 0));
 
   return {
     id: String(p.id),
     name: p.nom || p.essence_details?.nom || `Essence #${p.essence || p.id}`,
-    description: p.description_courte || p.description_longue || '',
-    price: parseFloat(p.prix_actuel || p.prix || '0'),
-    originalPrice: parseFloat(p.prix_promotionnel || p.prix || '0'),
+    description: p.description_courte || p.description_longue || p.description || '',
+    price: currentPrice,
+    originalPrice: hasReduction ? originalPrice : undefined,
     taux_reduction: p.taux_reduction || (
-      p.prix && p.prix_promotionnel && parseFloat(p.prix) > parseFloat(p.prix_promotionnel)
-        ? String(Math.round((1 - parseFloat(p.prix_promotionnel) / parseFloat(p.prix)) * 100))
+      hasReduction && originalPrice > 0
+        ? String(Math.round((1 - currentPrice / originalPrice) * 100))
         : undefined
     ),
     category: 'huile',
     images,
-    brand: p.marque || 'Exclusif Collection',
-    inStock: (p.stock_disponible > 0 || p.actif !== false),
-    rating: p.rating || 4.5,
-    reviews: p.reviews || 5,
+    brand: p.marque || p.essence_details?.marque || 'Exclusif Collection',
+    inStock: (Number(p.stock_quantite ?? p.stock_disponible ?? 1) > 0 && p.actif !== false),
+    rating: p.rating || 4.8,
+    reviews: p.reviews || 8,
     volume: p.taille_ml ? `${p.taille_ml}ml` : undefined,
-    slug: p.slug || String(p.id),
-    isFeatured: p.est_bestseller || false,
+    slug: p.slug || (p.essence_slug || p.essence_details?.slug || String(p.essence || p.id)),
+    isFeatured: p.est_bestseller || (p.ventes && p.ventes > 0) || false,
     createdAt: p.date_creation || new Date().toISOString(),
     image_principale: p.image_principale || images[0],
     image_supp_1: p.image_supp_1 || images[1],
@@ -311,28 +314,43 @@ export function mapBackendEssenceToProduct(e: any): Product {
   const images = collectProductImages(e);
 
   const activePF = (e.produits_finis || [])
-    .filter((pf: any) => pf.actif)
+    .filter((pf: any) => pf.actif !== false)
     .map((pf: any) => ({
       id: pf.id,
       taille_ml: Number(pf.taille_ml),
       prix: pf.prix,
       prix_promotionnel: pf.prix_promotionnel,
       prix_actuel: parseFloat(pf.prix_actuel || pf.prix || '0'),
-      stock_disponible: Number(pf.stock_disponible),
-      actif: pf.actif,
+      stock_disponible: Number(pf.stock_disponible ?? 0),
+      actif: pf.actif !== false,
     }));
 
   const lowestPrice = activePF.reduce((min: number, pf: any) => {
     return min === 0 ? pf.prix_actuel : (pf.prix_actuel < min ? pf.prix_actuel : min);
   }, 0);
 
-  const hasStock = activePF.some((pf: any) => pf.stock_disponible > 0);
+  const hasStock = activePF.length > 0
+    ? activePF.some((pf: any) => pf.stock_disponible > 0)
+    : (e.stock_total_ml != null ? Number(e.stock_total_ml) > 0 : true);
+
+  const parseNotes = (val: any): string[] => {
+    if (Array.isArray(val)) return val.filter(Boolean).map(String);
+    if (typeof val === 'string' && val.trim()) {
+      return val.split(',').map((s: string) => s.trim()).filter(Boolean);
+    }
+    return [];
+  };
+
+  const top = parseNotes(e.notes_tete);
+  const middle = parseNotes(e.notes_coeur);
+  const base = parseNotes(e.notes_fond);
 
   return {
     id: String(e.id),
     name: e.nom || `Essence #${e.id}`,
+    nom: e.nom,
     description: e.description || e.description_ia || '',
-    price: lowestPrice,
+    price: lowestPrice || parseFloat(e.prix_par_ml || '0'),
     category: 'huile',
     images,
     brand: e.marque || 'Exclusif Collection',
@@ -345,7 +363,21 @@ export function mapBackendEssenceToProduct(e: any): Product {
     image_supp_1: e.image_supp_1 || images[1],
     stock_total_ml: e.stock_total_ml != null ? Number(e.stock_total_ml) : undefined,
     gender: e.genre_cible === 'homme' ? 'masculine' : e.genre_cible === 'femme' ? 'feminine' : 'unisex',
+    notes: (top.length || middle.length || base.length) ? { top, middle, base } : undefined,
     produits_finis: activePF,
+    intensite: e.intensite,
+    genre_cible: e.genre_cible,
+    code_reference: e.code_reference,
+    famille_olfactive: Array.isArray(e.famille_olfactive) ? e.famille_olfactive : [],
+    humeurs_compatibles: Array.isArray(e.humeurs_compatibles) ? e.humeurs_compatibles : [],
+    occasions: Array.isArray(e.occasions) ? e.occasions : [],
+    saisons_compatibles: Array.isArray(e.saisons_compatibles) ? e.saisons_compatibles : [],
+    moments_journee: Array.isArray(e.moments_journee) ? e.moments_journee : [],
+    prix_par_ml: e.prix_par_ml,
+    origine_pays: e.origine_pays,
+    concentration_max: e.concentration_max,
+    couleur: e.couleur,
+    duree: e.duree,
   };
 }
 
@@ -606,6 +638,22 @@ export const productService = {
         const perfume = await apiShopService.getPerfumeBySlug(candidate).catch(() => null);
         if (perfume) {
           return mapBackendPerfumeToProduct(perfume);
+        }
+
+        const essence = await labService.getEssenceBySlug(candidate).catch(() => null);
+        if (essence) {
+          return mapBackendEssenceToProduct(essence);
+        }
+
+        if (/^\d+$/.test(candidate)) {
+          const finishedEssence = await apiShopService.getFinishedEssenceById(Number(candidate)).catch(() => null);
+          if (finishedEssence) {
+            if (finishedEssence.essence) {
+              const parentEssence = await labService.getEssenceBySlug(String(finishedEssence.essence)).catch(() => null);
+              if (parentEssence) return mapBackendEssenceToProduct(parentEssence);
+            }
+            return mapBackendFinishedEssenceToProduct(finishedEssence);
+          }
         }
 
         const accessory = await apiShopService.getAccessoryBySlug(candidate).catch(() => null);

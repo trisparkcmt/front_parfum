@@ -247,30 +247,37 @@ export default function ProductDetailClient({ id }: { id: string }) {
     }
   };
 
-  const handleConfirmRelatedEssenceSize = (essence: Product, variant: ProduitFiniEssence, quantite: number) => {
-    const cartProduct: Product = {
-      id: String(variant.id),
-      name: `${essence.name} - ${variant.taille_ml}ml`,
-      description: essence.description || '',
-      price: variant.prix_actuel,
-      originalPrice: variant.prix_promotionnel ? parseFloat(variant.prix_promotionnel) : undefined,
-      taux_reduction: variant.prix_promotionnel && parseFloat(variant.prix_promotionnel) > variant.prix_actuel
-        ? String(Math.round((1 - variant.prix_actuel / parseFloat(variant.prix_promotionnel)) * 100))
-        : undefined,
-      category: 'huile',
-      images: essence.images,
-      brand: essence.brand,
-      inStock: true,
-      volume: `${variant.taille_ml}ml`,
-      taille_ml: variant.taille_ml,
-      stock_total_ml: essence.stock_total_ml,
-      essence_id: Number(essence.id),
-      createdAt: new Date().toISOString(),
-    };
+  const handleConfirmRelatedEssenceSize = async (essence: Product, items: { variant: ProduitFiniEssence; quantity: number }[]) => {
+    for (const item of items) {
+      const { variant, quantity } = item;
+      const cartProduct: Product = {
+        id: String(variant.id),
+        name: `${essence.name} - ${variant.taille_ml}ml`,
+        description: essence.description || '',
+        price: variant.prix_actuel,
+        originalPrice: variant.prix_promotionnel ? parseFloat(variant.prix_promotionnel) : undefined,
+        taux_reduction: variant.prix_promotionnel && parseFloat(variant.prix_promotionnel) > variant.prix_actuel
+          ? String(Math.round((1 - variant.prix_actuel / parseFloat(variant.prix_promotionnel)) * 100))
+          : undefined,
+        category: 'huile',
+        images: essence.images,
+        brand: essence.brand,
+        inStock: true,
+        volume: `${variant.taille_ml}ml`,
+        taille_ml: variant.taille_ml,
+        stock_total_ml: essence.stock_total_ml,
+        essence_id: Number(essence.id),
+        createdAt: new Date().toISOString(),
+      };
 
-    addProduct(cartProduct, quantite);
+      await addProduct(cartProduct, quantity);
+    }
+
+    const totalCount = items.reduce((s, it) => s + it.quantity, 0);
     addToast(
-      isEn ? `${cartProduct.name} added to bag` : `${cartProduct.name} ajouté au panier`,
+      isEn
+        ? `${essence.name} (${totalCount} bottle${totalCount > 1 ? 's' : ''}) added to bag`
+        : `${essence.name} (${totalCount} flacon${totalCount > 1 ? 's' : ''}) ajouté au panier`,
       'success'
     );
   };

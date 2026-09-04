@@ -1,12 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import Image from 'next/image';
+import { useEffect, useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Share2, Heart, ShoppingBag, Truck, ShieldCheck, RotateCcw,
   Check, ChevronRight, Minus, Plus, Droplets, Leaf, FlaskConical,
-  Info, Star,
+  Info, Star, Sparkles, Award
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { cn, formatPrice, sharePage } from '@/lib/utils';
@@ -24,25 +23,15 @@ export default function HuileDetailClient({ id }: { id: string }) {
 
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
-  const [activeImage, setActiveImage] = useState(0);
-  const [quantity, setQuantity] = useState(1);
-  const [selectedVariant, setSelectedVariant] = useState<ProduitFiniEssence | null>(null);
   const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
-  const [activeTab, setActiveTab] = useState<'description' | 'usage' | 'details'>('description');
+  const [activeTab, setActiveTab] = useState<'description' | 'notes' | 'details' | 'usage'>('description');
+
+  // Multi-format selection state: variantId -> quantity
+  const [selectedQuantities, setSelectedQuantities] = useState<Record<number, number>>({});
 
   const { addProduct } = useCartStore();
   const { addFavorite, removeFavorite, isFavorite } = useFavoritesStore();
   const { addToast } = useToastStore();
-
-  // Auto-select first available variant
-  useEffect(() => {
-    if (product?.produits_finis?.length) {
-      const first = product.produits_finis.find(v => v.stock_disponible > 0) ?? product.produits_finis[0];
-      setSelectedVariant(first);
-    } else {
-      setSelectedVariant(null);
-    }
-  }, [product]);
 
   useEffect(() => {
     if (!id) return;
@@ -53,10 +42,18 @@ export default function HuileDetailClient({ id }: { id: string }) {
         const p = await productService.getProductById(id);
         if (!mounted) return;
         setProduct(p);
-        setActiveImage(0);
+
+        // Pre-select first available finished product with quantity 1
+        if (p?.produits_finis?.length) {
+          const firstAvailable = p.produits_finis.find((v) => v.stock_disponible > 0) || p.produits_finis[0];
+          if (firstAvailable && firstAvailable.stock_disponible > 0) {
+            setSelectedQuantities({ [firstAvailable.id]: 1 });
+          }
+        }
+
         if (p) {
           try {
-            const related = await productService.getFinishedEssenceProducts({});
+            const related = await productService.getEssencesAsProducts({});
             if (mounted) setRelatedProducts(related.filter(r => r.id !== p.id).slice(0, 4));
           } catch { /* ignore */ }
         }
@@ -69,11 +66,55 @@ export default function HuileDetailClient({ id }: { id: string }) {
     return () => { mounted = false; };
   }, [id]);
 
+  const variants = useMemo(() => product?.produits_finis || [], [product]);
+
+  const toggleVariant = (variant: ProduitFiniEssence) => {
+    if (variant.stock_disponible <= 0) return;
+    setSelectedQuantities((prev) => {
+      const next = { ...prev };
+      if (next[variant.id]) {
+        delete next[variant.id];
+      } else {
+        next[variant.id] = 1;
+      }
+      return next;
+    });
+  };
+
+  const updateVariantQuantity = (variant: ProduitFiniEssence, delta: number) => {
+    setSelectedQuantities((prev) => {
+      const current = prev[variant.id] ?? 0;
+      const nextQty = Math.max(1, Math.min(variant.stock_disponible, current + delta));
+      return {
+        ...prev,
+        [variant.id]: nextQty,
+      };
+    });
+  };
+
+  const selectedItems = useMemo(() => {
+    return variants
+      .filter((v) => (selectedQuantities[v.id] ?? 0) > 0)
+      .map((v) => ({
+        variant: v,
+        quantity: selectedQuantities[v.id],
+      }));
+  }, [variants, selectedQuantities]);
+
+  const totalQuantity = useMemo(() => {
+    return selectedItems.reduce((sum, item) => sum + item.quantity, 0);
+  }, [selectedItems]);
+
+  const totalPrice = useMemo(() => {
+    return selectedItems.reduce((sum, item) => sum + item.variant.prix_actuel * item.quantity, 0);
+  }, [selectedItems]);
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="animate-pulse text-gold uppercase tracking-[0.2em] text-xs font-bold">
-          {isEn ? 'Loading…' : 'Chargement…'}
+        <div className="animate-pulse text-gold uppercase tracking-[0.2em] text-xs font-bold flex items-center gap-2">
+          <Droplets className="w-4 h-4 text-gold animate-bounce" />
+          {isEn ? 'Loading essential oil…' : 'Chargement de l\'huile…'}
         </div>
       </div>
     );
@@ -83,7 +124,7 @@ export default function HuileDetailClient({ id }: { id: string }) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-background gap-4">
         <p className="text-foreground/40 text-lg uppercase tracking-[0.2em]">
-          {isEn ? 'Product not found' : 'Produit introuvable'}
+          {isEn ? 'Oil not found' : 'Huile introuvable'}
         </p>
         <BackButton />
       </div>
@@ -93,48 +134,63 @@ export default function HuileDetailClient({ id }: { id: string }) {
   // ─── Handlers ────────────────────────────────────────────────────────────────
 
   const handleAddToCart = async () => {
-    if (!selectedVariant) return;
-    const cartProduct: Product = {
-      id: String(selectedVariant.id),
-      name: `${product.name} - ${selectedVariant.taille_ml}ml`,
-      description: product.description || '',
-      price: selectedVariant.prix_actuel,
-      originalPrice: selectedVariant.prix_promotionnel
-        ? parseFloat(selectedVariant.prix_promotionnel)
-        : undefined,
-      taux_reduction:
-        selectedVariant.prix_promotionnel &&
-        parseFloat(selectedVariant.prix_promotionnel) > selectedVariant.prix_actuel
-          ? String(
-              Math.round(
-                (1 - selectedVariant.prix_actuel / parseFloat(selectedVariant.prix_promotionnel)) * 100
-              )
-            )
+    if (selectedItems.length === 0) return;
+
+    for (const item of selectedItems) {
+      const { variant, quantity } = item;
+      const cartProduct: Product = {
+        id: String(variant.id),
+        name: `${product.name} - ${variant.taille_ml}ml`,
+        description: product.description || '',
+        price: variant.prix_actuel,
+        originalPrice: variant.prix_promotionnel
+          ? parseFloat(variant.prix_promotionnel)
           : undefined,
-      category: 'huile',
-      images: product.images,
-      brand: product.brand,
-      inStock: true,
-      volume: `${selectedVariant.taille_ml}ml`,
-      taille_ml: selectedVariant.taille_ml,
-      stock_total_ml: product.stock_total_ml,
-      essence_id: Number(product.id),
-      createdAt: new Date().toISOString(),
-    };
-    await addProduct(cartProduct, quantity);
+        taux_reduction:
+          variant.prix_promotionnel &&
+          parseFloat(variant.prix_promotionnel) > variant.prix_actuel
+            ? String(
+                Math.round(
+                  (1 - variant.prix_actuel / parseFloat(variant.prix_promotionnel)) * 100
+                )
+              )
+            : undefined,
+        category: 'huile',
+        images: product.images,
+        brand: product.brand,
+        inStock: true,
+        volume: `${variant.taille_ml}ml`,
+        taille_ml: variant.taille_ml,
+        stock_total_ml: product.stock_total_ml,
+        essence_id: Number(product.id),
+        createdAt: new Date().toISOString(),
+      };
+
+      await addProduct(cartProduct, quantity);
+      try {
+        const { trackAddToCart } = await import('@/lib/gtag');
+        trackAddToCart({
+          id: String(variant.id),
+          name: cartProduct.name,
+          price: variant.prix_actuel,
+          category: 'Huile',
+          quantity,
+        });
+      } catch { /* ignore analytics */ }
+    }
+
     addToast(
-      isEn ? `${cartProduct.name} added to bag` : `${cartProduct.name} ajouté au panier`,
+      isEn
+        ? `${product.name} (${totalQuantity} bottle${totalQuantity > 1 ? 's' : ''}) added to bag`
+        : `${product.name} (${totalQuantity} flacon${totalQuantity > 1 ? 's' : ''}) ajouté au panier`,
       'success'
     );
-    try {
-      const { trackAddToCart } = await import('@/lib/gtag');
-      trackAddToCart({ id: String(selectedVariant.id), name: cartProduct.name, price: selectedVariant.prix_actuel, category: 'Huile', quantity });
-    } catch { /* ignore analytics */ }
   };
 
   const handleToggleFavorite = () => {
     if (isFavorite(product.id)) {
       removeFavorite(product.id);
+      addToast(isEn ? `${product.name} removed from wishlist` : `${product.name} retiré des favoris`, 'info');
     } else {
       addFavorite(product);
       addToast(isEn ? `${product.name} added to wishlist` : `${product.name} ajouté aux favoris`, 'info');
@@ -146,33 +202,20 @@ export default function HuileDetailClient({ id }: { id: string }) {
       `/shop/huile/${product.slug || product.id}`,
       product.name,
       isEn
-        ? `Discover ${product.name} on Accessories Exclusif`
-        : `Découvrez ${product.name} sur Accessories Exclusif`
+        ? `Discover pure oil ${product.name} on Accessories Exclusif`
+        : `Découvrez l'huile pure ${product.name} sur Accessoires Exclusifs`
     );
     if (result === 'shared') addToast(isEn ? 'Link shared' : 'Lien partagé', 'success');
     else if (result === 'copied') addToast(isEn ? 'Link copied' : 'Lien copié', 'success');
   };
 
-  const currentPrice = selectedVariant
-    ? selectedVariant.prix_actuel
-    : product.price;
-
-  const promoPrice = selectedVariant?.prix_promotionnel
-    ? parseFloat(selectedVariant.prix_promotionnel)
-    : undefined;
-
-  const hasPromo = promoPrice && promoPrice > currentPrice;
-
-  const variants = product.produits_finis ?? [];
-  const totalStock = variants.reduce((s, v) => s + (v.stock_disponible ?? 0), 0);
-
   // ─── Render ───────────────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-background text-foreground pt-28 pb-24 px-4 md:px-8 relative overflow-hidden">
-      {/* Background glow */}
-      <div className="pointer-events-none absolute left-1/2 top-0 h-full w-full max-w-4xl -translate-x-1/2 rounded-full bg-gold/5 opacity-40 blur-[140px] -z-10" />
+      {/* Background ambient glow */}
+      <div className="pointer-events-none absolute left-1/2 top-0 h-[600px] w-full max-w-5xl -translate-x-1/2 rounded-full bg-gold/5 opacity-50 blur-[150px] -z-10" />
 
-      <div className="max-w-7xl mx-auto">
+      <div className="max-w-5xl mx-auto">
         <BackButton />
 
         {/* Breadcrumb */}
@@ -183,282 +226,329 @@ export default function HuileDetailClient({ id }: { id: string }) {
           <ChevronRight size={11} className="shrink-0" />
           <a href="/shop/perfumes?tab=huile" className="hover:text-gold transition-colors">{isEn ? 'Pure Oils' : 'Huiles Pures'}</a>
           <ChevronRight size={11} className="shrink-0" />
-          <span className="text-foreground/60 truncate max-w-[200px]">{product.name}</span>
+          <span className="text-foreground/60 truncate max-w-[240px]">{product.name}</span>
         </nav>
 
-        {/* Main grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20 mb-24">
-
-          {/* ─ Gallery ─ */}
-          <div className="space-y-4 lg:sticky lg:top-28 lg:self-start">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.97 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.5, ease: [0.23, 1, 0.32, 1] }}
-              className="relative aspect-square overflow-hidden rounded-3xl border border-foreground/10 bg-foreground/5 group"
-            >
-              {/* Badges */}
-              <div className="absolute left-4 top-4 z-10 flex gap-2">
-                {product.is_new && (
-                  <span className="rounded-full bg-gold px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-black">
-                    {isEn ? 'New' : 'Nouveau'}
-                  </span>
-                )}
-                {product.is_bestseller && (
-                  <span className="rounded-full bg-foreground px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-background">
-                    {isEn ? 'Bestseller' : 'Best-seller'}
-                  </span>
-                )}
-                {/* Natural / pure oil badge */}
-                <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-widest text-emerald-400">
-                  <Leaf size={9} className="inline mr-1" />
-                  {isEn ? 'Pure Oil' : 'Huile Pure'}
+        {/* ─── Hero Header & Information Card ──────────────────────────────── */}
+        <div className="rounded-3xl border border-white/10 bg-white/[0.02] backdrop-blur-sm p-6 sm:p-10 mb-12 shadow-2xl relative overflow-hidden">
+          <div className="flex flex-col md:flex-row md:items-start justify-between gap-6 pb-8 border-b border-white/10">
+            <div className="space-y-3 max-w-2xl">
+              <div className="flex flex-wrap items-center gap-2.5">
+                <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-emerald-400 inline-flex items-center gap-1.5">
+                  <Leaf size={11} />
+                  {isEn ? '100% Pure Essential Oil' : 'Huile Essentielle 100% Pure'}
                 </span>
-              </div>
-
-              <AnimatePresence mode="wait">
-                <motion.div
-                  key={activeImage}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.3 }}
-                  className="absolute inset-0"
-                >
-                  <Image
-                    src={product.images[activeImage]}
-                    alt={product.name}
-                    fill
-                    className="object-cover transition-transform duration-700 group-hover:scale-105"
-                    priority
-                  />
-                </motion.div>
-              </AnimatePresence>
-              <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
-
-              {product.images.length > 1 && (
-                <div className="absolute bottom-4 right-4 rounded-full bg-black/50 px-2.5 py-1 text-[11px] font-medium text-white tabular-nums backdrop-blur-sm">
-                  {activeImage + 1} / {product.images.length}
-                </div>
-              )}
-            </motion.div>
-
-            {/* Thumbnail strip */}
-            {product.images.filter(Boolean).length > 1 && (
-              <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
-                {product.images.filter(Boolean).map((img, idx) => (
-                  <motion.button
-                    key={idx}
-                    whileHover={{ scale: 1.05 }}
-                    onClick={() => setActiveImage(idx)}
-                    className={cn(
-                      'relative h-20 w-20 flex-shrink-0 overflow-hidden rounded-lg border-2 transition-all',
-                      activeImage === idx
-                        ? 'border-gold shadow-lg shadow-gold/20'
-                        : 'border-foreground/10 hover:border-foreground/30'
-                    )}
-                  >
-                    <Image src={img} alt={`${product.name} vue ${idx + 1}`} fill className="object-cover" />
-                  </motion.button>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* ─ Product info ─ */}
-          <div className="flex flex-col">
-            <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.15, duration: 0.5 }}>
-
-              {/* Header row */}
-              <div className="mb-5 flex items-start justify-between gap-4">
-                <div className="min-w-0">
-                  <p className="mb-3 text-xs font-medium uppercase tracking-widest text-gold">
-                    {product.brand || 'Exclusif Collection'}
-                  </p>
-                  <h1 className="font-display text-3xl font-bold leading-[1.08] text-foreground md:text-4xl lg:text-5xl">
-                    {product.name}
-                  </h1>
-                </div>
-                <div className="flex shrink-0 items-center gap-2">
-                  <button
-                    onClick={handleShare}
-                    className="rounded-full border border-foreground/10 bg-foreground/5 p-3 text-foreground transition-all hover:border-foreground/20 hover:bg-foreground/10"
-                    aria-label="Partager"
-                  >
-                    <Share2 size={18} />
-                  </button>
-                  <button
-                    onClick={handleToggleFavorite}
-                    className={cn(
-                      'rounded-full border p-3 transition-all',
-                      isFavorite(product.id)
-                        ? 'border-red-500 bg-red-500/10 text-red-500'
-                        : 'border-foreground/10 bg-foreground/5 text-foreground hover:border-foreground/20 hover:bg-foreground/10'
-                    )}
-                    aria-label="Favoris"
-                  >
-                    <Heart size={18} fill={isFavorite(product.id) ? 'currentColor' : 'none'} />
-                  </button>
-                </div>
-              </div>
-
-              {/* Price */}
-              <div className="mb-7 font-mono text-2xl font-light text-foreground md:text-3xl">
-                {hasPromo ? (
-                  <div className="flex items-baseline gap-3">
-                    <span className="font-bold text-gold">{formatPrice(currentPrice)}</span>
-                    <span className="text-sm line-through text-foreground/45 md:text-base">{formatPrice(promoPrice!)}</span>
-                  </div>
-                ) : (
-                  <span className="font-bold text-gold">{formatPrice(currentPrice)}</span>
+                {product.intensite && (
+                  <span className="rounded-full border border-gold/30 bg-gold/10 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-gold capitalize">
+                    Intensité : {product.intensite}
+                  </span>
+                )}
+                {product.genre_cible && (
+                  <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[10px] font-medium uppercase tracking-widest text-foreground/60 capitalize">
+                    {product.genre_cible}
+                  </span>
                 )}
               </div>
 
-              {/* Short description */}
+              <div>
+                <p className="text-xs font-bold uppercase tracking-widest text-gold mb-1">
+                  {product.brand || 'Exclusif Collection'} · Laboratoire
+                </p>
+                <h1 className="font-display text-3xl sm:text-4xl md:text-5xl font-bold leading-tight text-foreground">
+                  {product.name}
+                </h1>
+              </div>
+
               {product.description && (
-                <p className="mb-8 max-w-lg text-[15px] leading-relaxed text-foreground/70 md:text-base">
+                <p className="text-sm sm:text-base leading-relaxed text-foreground/70 pt-1">
                   {product.description}
                 </p>
               )}
+            </div>
 
-              {/* Stock indicator */}
-              <div className="mb-6 flex items-center gap-2 text-xs">
-                <span className={cn(
-                  'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium ring-1 ring-inset',
-                  totalStock > 10
-                    ? 'bg-emerald-500/10 text-emerald-400 ring-emerald-500/20'
-                    : totalStock > 0
-                    ? 'bg-amber-500/10 text-amber-400 ring-amber-500/20'
-                    : 'bg-red-500/10 text-red-400 ring-red-500/20'
-                )}>
-                  <span className={cn(
-                    'h-1.5 w-1.5 rounded-full',
-                    totalStock > 10 ? 'bg-emerald-400' : totalStock > 0 ? 'bg-amber-400' : 'bg-red-400'
-                  )} />
-                  {totalStock > 10
-                    ? (isEn ? 'In stock' : 'En stock')
-                    : totalStock > 0
-                    ? (isEn ? `${totalStock} left` : `${totalStock} restant(s)`)
-                    : (isEn ? 'Out of stock' : 'Épuisé')}
-                </span>
-                {product.brand && (
-                  <span className="text-foreground/35">·</span>
+            {/* Quick Actions (Share, Wishlist) */}
+            <div className="flex items-center gap-2.5 self-start shrink-0">
+              <button
+                onClick={handleShare}
+                className="rounded-2xl border border-foreground/10 bg-foreground/5 p-3.5 text-foreground transition-all hover:border-gold/30 hover:bg-gold/10 hover:text-gold"
+                aria-label="Partager"
+                title="Partager"
+              >
+                <Share2 size={18} />
+              </button>
+              <button
+                onClick={handleToggleFavorite}
+                className={cn(
+                  'rounded-2xl border p-3.5 transition-all',
+                  isFavorite(product.id)
+                    ? 'border-red-500 bg-red-500/10 text-red-500'
+                    : 'border-foreground/10 bg-foreground/5 text-foreground hover:border-red-500/30 hover:bg-red-500/10 hover:text-red-500'
                 )}
+                aria-label="Favoris"
+                title="Ajouter aux favoris"
+              >
+                <Heart size={18} fill={isFavorite(product.id) ? 'currentColor' : 'none'} />
+              </button>
+            </div>
+          </div>
+
+          {/* 4 Feature Badges */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5 pt-8">
+            <div className="flex items-center gap-3 rounded-2xl border border-white/8 bg-white/[0.02] p-3.5">
+              <div className="w-9 h-9 rounded-xl bg-gold/10 border border-gold/20 flex items-center justify-center shrink-0">
+                <Droplets size={17} className="text-gold" />
               </div>
-
-              {/* Size variants */}
-              {variants.length > 0 && (
-                <div className="mb-8">
-                  <h3 className="mb-3 text-xs font-bold uppercase tracking-widest text-foreground/60">
-                    {isEn ? 'Choose Size' : 'Format'}
-                  </h3>
-                  <div className="flex flex-wrap gap-2.5">
-                    {variants.map(v => {
-                      const isSelected = selectedVariant?.id === v.id;
-                      const outOfStock = v.stock_disponible <= 0;
-                      return (
-                        <button
-                          key={v.id}
-                          disabled={outOfStock}
-                          onClick={() => { setSelectedVariant(v); setQuantity(1); }}
-                          className={cn(
-                            'relative flex min-w-[72px] flex-col items-center gap-0.5 rounded-xl border px-4 py-2.5 text-xs font-bold transition-all',
-                            isSelected
-                              ? 'border-gold bg-gold/10 text-gold shadow-md'
-                              : outOfStock
-                              ? 'cursor-not-allowed border-white/5 bg-white/5 text-foreground/30 opacity-40'
-                              : 'border-white/10 bg-white/5 text-foreground hover:border-white/20'
-                          )}
-                        >
-                          <span className="text-sm font-bold">{v.taille_ml}ml</span>
-                          <span className="text-[10px] font-normal text-foreground/50">
-                            {formatPrice(v.prix_actuel)}
-                          </span>
-                          {outOfStock && (
-                            <span className="absolute inset-0 flex items-center justify-center rounded-xl bg-background/50 text-[9px] font-bold uppercase tracking-wider text-foreground/30">
-                              {isEn ? 'Out' : 'Épuisé'}
-                            </span>
-                          )}
-                          {isSelected && (
-                            <span className="absolute -right-1.5 -top-1.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-gold">
-                              <Check size={8} className="stroke-[3] text-black" />
-                            </span>
-                          )}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-
-              {/* Quantity + CTA */}
-              <div className="mb-10 flex flex-col gap-3 sm:flex-row">
-                <div className="flex h-14 items-center justify-between rounded-xl border border-foreground/10 bg-foreground/5 px-2 sm:w-36 sm:justify-start">
-                  <button
-                    onClick={() => setQuantity(q => Math.max(1, q - 1))}
-                    disabled={quantity <= 1}
-                    className="flex h-10 w-10 items-center justify-center rounded-lg text-foreground/60 transition-colors hover:bg-foreground/5 hover:text-gold disabled:opacity-30"
-                  >
-                    <Minus size={15} />
-                  </button>
-                  <span className="flex-1 text-center font-bold tabular-nums">{quantity}</span>
-                  <button
-                    onClick={() => setQuantity(q => q + 1)}
-                    disabled={!!selectedVariant && quantity >= selectedVariant.stock_disponible}
-                    className="flex h-10 w-10 items-center justify-center rounded-lg text-foreground/60 transition-colors hover:bg-foreground/5 hover:text-gold disabled:opacity-30"
-                  >
-                    <Plus size={15} />
-                  </button>
-                </div>
-
-                <button
-                  onClick={handleAddToCart}
-                  disabled={!selectedVariant || selectedVariant.stock_disponible <= 0}
-                  className="group flex h-14 flex-1 items-center justify-center gap-3 rounded-xl bg-foreground font-bold uppercase tracking-widest text-sm text-background transition-all duration-300 hover:bg-gold hover:text-black disabled:opacity-40"
-                >
-                  <ShoppingBag size={18} className="transition-transform group-hover:scale-110" />
-                  {isEn ? 'Add to Shopping Bag' : 'Ajouter au panier'}
-                </button>
+              <div>
+                <p className="text-[9px] font-bold uppercase tracking-wider text-foreground/40">{isEn ? 'Purity' : 'Pureté'}</p>
+                <p className="text-xs font-bold text-foreground">100% Non Diluée</p>
               </div>
+            </div>
 
-              {/* Trust badges */}
-              <div className="grid grid-cols-2 gap-x-4 gap-y-4 rounded-2xl border border-foreground/10 bg-foreground/[0.02] px-5 py-5">
-                <div className="flex items-center gap-3 text-sm text-foreground/60">
-                  <Truck size={17} className="shrink-0 text-gold" />
-                  {isEn ? 'Express Shipping' : 'Livraison Express'}
-                </div>
-                <div className="flex items-center gap-3 text-sm text-foreground/60">
-                  <ShieldCheck size={17} className="shrink-0 text-gold" />
-                  {isEn ? 'Guaranteed Authenticity' : 'Authenticité Garantie'}
-                </div>
-                <div className="flex items-center gap-3 text-sm text-foreground/60">
-                  <RotateCcw size={17} className="shrink-0 text-gold" />
-                  {isEn ? '30-Day Returns' : 'Retours sous 30 jours'}
-                </div>
-                <div className="flex items-center gap-3 text-sm text-foreground/60">
-                  <Check size={17} className="shrink-0 text-gold" />
-                  {isEn ? 'Secure Checkout' : 'Paiement Sécurisé'}
-                </div>
+            <div className="flex items-center gap-3 rounded-2xl border border-white/8 bg-white/[0.02] p-3.5">
+              <div className="w-9 h-9 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0">
+                <Leaf size={17} className="text-emerald-400" />
               </div>
-            </motion.div>
+              <div>
+                <p className="text-[9px] font-bold uppercase tracking-wider text-foreground/40">{isEn ? 'Origin' : 'Origine'}</p>
+                <p className="text-xs font-bold text-foreground">{product.origine_pays || 'Naturelle'}</p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 rounded-2xl border border-white/8 bg-white/[0.02] p-3.5">
+              <div className="w-9 h-9 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center shrink-0">
+                <FlaskConical size={17} className="text-blue-400" />
+              </div>
+              <div>
+                <p className="text-[9px] font-bold uppercase tracking-wider text-foreground/40">{isEn ? 'Grade' : 'Qualité'}</p>
+                <p className="text-xs font-bold text-foreground">Haute Parfumerie</p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 rounded-2xl border border-white/8 bg-white/[0.02] p-3.5">
+              <div className="w-9 h-9 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center shrink-0">
+                <Award size={17} className="text-purple-400" />
+              </div>
+              <div>
+                <p className="text-[9px] font-bold uppercase tracking-wider text-foreground/40">{isEn ? 'Category' : 'Catégorie'}</p>
+                <p className="text-xs font-bold text-foreground capitalize">{product.category === 'huile' ? 'Pure Oil' : product.category}</p>
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* ─ Tabs ─────────────────────────────────────────────────────────────── */}
-        <div className="mb-24">
-          <div className="mb-10 flex overflow-x-auto border-b border-foreground/10 scrollbar-hide">
+        {/* ─── Finished Product Formats Selector (Embedded directly on page) ─── */}
+        <div className="rounded-3xl border border-gold/30 bg-gold/[0.02] p-6 sm:p-10 mb-14 shadow-xl relative">
+          <div className="flex items-center justify-between gap-4 mb-6">
+            <div>
+              <div className="flex items-center gap-2">
+                <Sparkles size={18} className="text-gold" />
+                <h2 className="text-lg sm:text-xl font-bold uppercase tracking-wider text-foreground">
+                  {isEn ? 'Select Formats & Quantities' : 'Formats & Tailles Disponibles'}
+                </h2>
+              </div>
+              <p className="text-xs text-foreground/50 mt-1">
+                {isEn ? 'Select one or multiple bottle sizes and add them all to your bag.' : 'Sélectionnez un ou plusieurs formats de flacons et ajoutez-les directement au panier.'}
+              </p>
+            </div>
+
+            {selectedItems.length > 0 && (
+              <span className="hidden sm:inline-flex rounded-full bg-gold/15 border border-gold/30 text-gold text-xs font-bold px-3 py-1">
+                {selectedItems.length} format{selectedItems.length > 1 ? 's' : ''} choisi{selectedItems.length > 1 ? 's' : ''}
+              </span>
+            )}
+          </div>
+
+          {variants.length === 0 ? (
+            <div className="p-8 text-center rounded-2xl bg-white/5 border border-white/10 text-foreground/50 text-sm">
+              {isEn ? 'No finished bottle formats available for this oil currently.' : 'Aucun format boutique disponible pour cette huile actuellement.'}
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {variants.map((v) => {
+                  const currentQty = selectedQuantities[v.id] ?? 0;
+                  const isSelected = currentQty > 0;
+                  const isOutOfStock = v.stock_disponible <= 0;
+                  const originalPriceNum = v.prix_promotionnel ? parseFloat(v.prix_promotionnel) : 0;
+                  const hasReduction = originalPriceNum > 0 && originalPriceNum > v.prix_actuel;
+
+                  return (
+                    <div
+                      key={v.id}
+                      className={cn(
+                        'relative rounded-2xl border p-5 transition-all flex flex-col justify-between gap-4',
+                        isSelected
+                          ? 'bg-gold/[0.08] border-gold shadow-lg shadow-gold/10'
+                          : isOutOfStock
+                          ? 'opacity-40 border-white/5 bg-white/[0.02]'
+                          : 'border-white/10 bg-white/5 hover:border-white/20 hover:bg-white/[0.07]'
+                      )}
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div
+                          onClick={() => !isOutOfStock && toggleVariant(v)}
+                          className={cn(
+                            'flex items-center gap-3.5 flex-1 min-w-0',
+                            isOutOfStock ? 'cursor-not-allowed' : 'cursor-pointer'
+                          )}
+                        >
+                          <div
+                            className={cn(
+                              'w-6 h-6 rounded-lg border flex items-center justify-center shrink-0 transition-colors',
+                              isSelected
+                                ? 'border-gold bg-gold text-black'
+                                : 'border-white/20 hover:border-white/40'
+                            )}
+                          >
+                            {isSelected && <Check size={14} strokeWidth={3} />}
+                          </div>
+
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-base font-bold text-foreground font-mono">
+                                Flacon {v.taille_ml} ml
+                              </span>
+                              {hasReduction && (
+                                <span className="bg-red-500/10 border border-red-500/20 text-red-400 text-[9px] font-bold px-1.5 py-0.5 uppercase tracking-wide rounded-md">
+                                  Promo
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-[11px] text-foreground/45 mt-0.5">
+                              {isOutOfStock ? (
+                                <span className="text-red-400 font-semibold">Rupture de stock</span>
+                              ) : v.stock_disponible <= 5 ? (
+                                <span className="text-amber-400 font-medium">Plus que {v.stock_disponible} en stock</span>
+                              ) : (
+                                <span>{v.stock_disponible} flacons disponibles</span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Price column */}
+                        <div className="text-right shrink-0">
+                          {hasReduction ? (
+                            <div className="flex flex-col items-end">
+                              <span className="text-xs line-through text-foreground/40 font-mono">
+                                {formatPrice(originalPriceNum)}
+                              </span>
+                              <span className="text-base font-black text-gold font-mono">
+                                {formatPrice(v.prix_actuel)}
+                              </span>
+                            </div>
+                          ) : (
+                            <span className={cn('text-base font-black font-mono', isSelected ? 'text-gold' : 'text-foreground')}>
+                              {formatPrice(v.prix_actuel)}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Quantity Stepper & Subtotal when selected */}
+                      {isSelected && (
+                        <div className="pt-3 border-t border-white/10 flex items-center justify-between">
+                          <span className="text-xs font-medium text-foreground/60">
+                            Quantité :
+                          </span>
+
+                          <div className="flex items-center gap-2.5">
+                            <button
+                              type="button"
+                              onClick={() => updateVariantQuantity(v, -1)}
+                              disabled={currentQty <= 1}
+                              className="w-8 h-8 rounded-xl bg-white/10 border border-white/15 flex items-center justify-center text-xs hover:bg-white/20 disabled:opacity-30 transition-all font-bold"
+                            >
+                              <Minus size={13} />
+                            </button>
+                            <span className="w-8 text-center font-mono font-bold text-sm text-foreground">
+                              {currentQty}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => updateVariantQuantity(v, 1)}
+                              disabled={currentQty >= v.stock_disponible}
+                              className="w-8 h-8 rounded-xl bg-white/10 border border-white/15 flex items-center justify-center text-xs hover:bg-white/20 disabled:opacity-30 transition-all font-bold"
+                            >
+                              <Plus size={13} />
+                            </button>
+
+                            <span className="ml-2 text-xs font-black text-gold font-mono">
+                              = {formatPrice(v.prix_actuel * currentQty)}
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Summary & Checkout Action Box */}
+              {selectedItems.length > 0 && (
+                <div className="mt-6 rounded-2xl border border-gold/30 bg-gold/10 p-5 sm:p-6 flex flex-col sm:flex-row items-center justify-between gap-5">
+                  <div className="space-y-1 w-full sm:w-auto text-left">
+                    <p className="text-xs font-bold uppercase tracking-widest text-foreground/70">
+                      Total de votre commande
+                    </p>
+                    <p className="text-xs text-foreground/50">
+                      {selectedItems.map(it => `${it.quantity}× ${it.variant.taille_ml}ml`).join(' + ')}
+                    </p>
+                    <p className="text-2xl font-black text-gold font-mono pt-1">
+                      {formatPrice(totalPrice)}
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleAddToCart}
+                    className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-gold text-black font-bold uppercase tracking-widest text-xs hover:bg-gold/90 transition-all shadow-xl shadow-gold/20 flex items-center justify-center gap-2.5 shrink-0"
+                  >
+                    <ShoppingBag size={16} />
+                    Ajouter au panier ({totalQuantity} flacon{totalQuantity > 1 ? 's' : ''})
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* ─── Trust Badges ─────────────────────────────────────────────────── */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 rounded-2xl border border-foreground/10 bg-foreground/[0.02] p-5 mb-16">
+          <div className="flex items-center gap-3 text-xs sm:text-sm text-foreground/60">
+            <Truck size={17} className="shrink-0 text-gold" />
+            {isEn ? 'Express Shipping' : 'Livraison Express'}
+          </div>
+          <div className="flex items-center gap-3 text-xs sm:text-sm text-foreground/60">
+            <ShieldCheck size={17} className="shrink-0 text-gold" />
+            {isEn ? 'Guaranteed Authenticity' : 'Authenticité Garantie'}
+          </div>
+          <div className="flex items-center gap-3 text-xs sm:text-sm text-foreground/60">
+            <RotateCcw size={17} className="shrink-0 text-gold" />
+            {isEn ? '30-Day Returns' : 'Retours sous 30 jours'}
+          </div>
+          <div className="flex items-center gap-3 text-xs sm:text-sm text-foreground/60">
+            <Check size={17} className="shrink-0 text-gold" />
+            {isEn ? 'Secure Checkout' : 'Paiement Sécurisé'}
+          </div>
+        </div>
+
+        {/* ─── Tabs ─────────────────────────────────────────────────────────── */}
+        <div className="mb-20">
+          <div className="mb-8 flex overflow-x-auto border-b border-foreground/10 scrollbar-hide">
             {(
               [
                 { key: 'description', label: isEn ? 'Description' : 'Description' },
-                { key: 'usage',       label: isEn ? 'How to Use' : 'Mode d\'emploi' },
+                { key: 'notes',       label: isEn ? 'Olfactory Notes' : 'Profil Olfactif' },
                 { key: 'details',     label: isEn ? 'Specifications' : 'Caractéristiques' },
+                { key: 'usage',       label: isEn ? 'How to Use' : 'Mode d\'emploi' },
               ] as const
             ).map(tab => (
               <button
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key)}
                 className={cn(
-                  'relative whitespace-nowrap px-6 py-4 text-sm font-bold uppercase tracking-widest transition-all sm:px-8',
+                  'relative whitespace-nowrap px-6 py-4 text-xs sm:text-sm font-bold uppercase tracking-widest transition-all',
                   activeTab === tab.key ? 'text-gold' : 'text-foreground/40 hover:text-foreground'
                 )}
               >
@@ -470,96 +560,175 @@ export default function HuileDetailClient({ id }: { id: string }) {
             ))}
           </div>
 
-          <div className="min-h-[200px]">
+          <div className="min-h-[160px]">
             <AnimatePresence mode="wait">
               {activeTab === 'description' && (
                 <motion.div
                   key="desc"
-                  initial={{ opacity: 0, y: 10 }}
+                  initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  transition={{ duration: 0.3 }}
-                  className="grid grid-cols-1 gap-10 md:grid-cols-2"
+                  exit={{ opacity: 0, y: -8 }}
+                  transition={{ duration: 0.25 }}
+                  className="space-y-4 max-w-3xl"
                 >
-                  <div>
-                    <p className="text-[15px] leading-relaxed text-foreground/70 md:text-base">
-                      {product.description || (isEn ? 'No description available.' : 'Aucune description disponible.')}
+                  <p className="text-sm sm:text-base leading-relaxed text-foreground/75">
+                    {product.description || (isEn ? 'No description available.' : 'Aucune description disponible pour cette huile.')}
+                  </p>
+                </motion.div>
+              )}
+
+              {activeTab === 'notes' && (
+                <motion.div
+                  key="notes"
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -8 }}
+                  transition={{ duration: 0.25 }}
+                  className="max-w-2xl"
+                >
+                  {product.notes && (product.notes.top?.length || product.notes.middle?.length || product.notes.base?.length) ? (
+                    <div className="space-y-6">
+                      {product.notes.top && product.notes.top.length > 0 && (
+                        <div className="relative pl-7 border-l-2 border-gold/30">
+                          <span className="absolute -left-[5px] top-1.5 h-2.5 w-2.5 rounded-full bg-gold" />
+                          <p className="text-xs font-bold uppercase tracking-widest text-gold mb-1">Notes de Tête</p>
+                          <p className="text-sm leading-relaxed text-foreground/80">{product.notes.top.join(' · ')}</p>
+                        </div>
+                      )}
+                      {product.notes.middle && product.notes.middle.length > 0 && (
+                        <div className="relative pl-7 border-l-2 border-gold/30">
+                          <span className="absolute -left-[5px] top-1.5 h-2.5 w-2.5 rounded-full bg-gold" />
+                          <p className="text-xs font-bold uppercase tracking-widest text-gold mb-1">Notes de Cœur</p>
+                          <p className="text-sm leading-relaxed text-foreground/80">{product.notes.middle.join(' · ')}</p>
+                        </div>
+                      )}
+                      {product.notes.base && product.notes.base.length > 0 && (
+                        <div className="relative pl-7 border-l-2 border-gold/30">
+                          <span className="absolute -left-[5px] top-1.5 h-2.5 w-2.5 rounded-full bg-gold" />
+                          <p className="text-xs font-bold uppercase tracking-widest text-gold mb-1">Notes de Fond</p>
+                          <p className="text-sm leading-relaxed text-foreground/80">{product.notes.base.join(' · ')}</p>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-foreground/50">
+                      {isEn ? 'Olfactory notes are being updated by the laboratory.' : 'Les notes olfactives sont en cours de mise à jour par le laboratoire.'}
                     </p>
-
-                    {/* Key attributes highlights */}
-                    <div className="mt-8 grid grid-cols-2 gap-4">
-                      <div className="flex flex-col gap-1.5 rounded-xl border border-white/8 bg-white/[0.03] p-4">
-                        <Droplets size={18} className="text-gold" />
-                        <p className="text-[10px] font-bold uppercase tracking-widest text-foreground/40">
-                          {isEn ? 'Purity' : 'Pureté'}
-                        </p>
-                        <p className="text-sm font-medium text-foreground">100% Pure</p>
-                      </div>
-                      <div className="flex flex-col gap-1.5 rounded-xl border border-white/8 bg-white/[0.03] p-4">
-                        <Leaf size={18} className="text-emerald-400" />
-                        <p className="text-[10px] font-bold uppercase tracking-widest text-foreground/40">
-                          {isEn ? 'Origin' : 'Origine'}
-                        </p>
-                        <p className="text-sm font-medium text-foreground">
-                          {isEn ? 'Natural' : 'Naturelle'}
-                        </p>
-                      </div>
-                      <div className="flex flex-col gap-1.5 rounded-xl border border-white/8 bg-white/[0.03] p-4">
-                        <FlaskConical size={18} className="text-blue-400" />
-                        <p className="text-[10px] font-bold uppercase tracking-widest text-foreground/40">
-                          {isEn ? 'Concentration' : 'Concentration'}
-                        </p>
-                        <p className="text-sm font-medium text-foreground">
-                          {isEn ? 'Undiluted' : 'Non diluée'}
-                        </p>
-                      </div>
-                      <div className="flex flex-col gap-1.5 rounded-xl border border-white/8 bg-white/[0.03] p-4">
-                        <Star size={18} className="text-gold" />
-                        <p className="text-[10px] font-bold uppercase tracking-widest text-foreground/40">
-                          {isEn ? 'Grade' : 'Qualité'}
-                        </p>
-                        <p className="text-sm font-medium text-foreground">Premium</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Olfactory notes if present */}
-                  {product.notes && Object.values(product.notes).some(n => n?.length > 0) && (
-                    <div>
-                      <h3 className="mb-6 text-xs font-bold uppercase tracking-widest text-foreground/60">
-                        {isEn ? 'Olfactory Profile' : 'Profil Olfactif'}
-                      </h3>
-                      <div className="space-y-5">
-                        {Object.entries(product.notes)
-                          .filter(([, v]) => Array.isArray(v) && v.length > 0)
-                          .map(([key, val], idx, arr) => (
-                            <div key={key} className="relative pl-7">
-                              {idx < arr.length - 1 && (
-                                <span className="absolute left-[6px] top-4 bottom-[-20px] w-px bg-gradient-to-b from-gold/50 to-gold/0" />
-                              )}
-                              <span className="absolute left-0 top-1 h-3.5 w-3.5 rounded-full border-2 border-gold bg-background" />
-                              <p className="mb-1 text-xs font-bold uppercase tracking-widest text-gold">{key}</p>
-                              <p className="text-sm leading-relaxed text-foreground/70">
-                                {(val as string[]).join(' · ')}
-                              </p>
-                            </div>
-                          ))}
-                      </div>
-                    </div>
                   )}
+                </motion.div>
+              )}
+
+              {activeTab === 'details' && (
+                <motion.div
+                  key="details"
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -8 }}
+                  transition={{ duration: 0.25 }}
+                >
+                  <table className="max-w-2xl w-full border-collapse">
+                    <tbody>
+                      {product.code_reference && (
+                        <tr className="border-b border-foreground/10">
+                          <td className="w-1/3 py-3.5 text-xs uppercase tracking-widest text-foreground/40">
+                            {isEn ? 'Reference' : 'Code Réf.'}
+                          </td>
+                          <td className="py-3.5 font-medium text-foreground font-mono">
+                            {product.code_reference}
+                          </td>
+                        </tr>
+                      )}
+                      {product.intensite && (
+                        <tr className="border-b border-foreground/10">
+                          <td className="py-3.5 text-xs uppercase tracking-widest text-foreground/40">
+                            {isEn ? 'Intensity' : 'Intensité'}
+                          </td>
+                          <td className="py-3.5 font-medium text-foreground capitalize">
+                            {product.intensite}
+                          </td>
+                        </tr>
+                      )}
+                      {product.genre_cible && (
+                        <tr className="border-b border-foreground/10">
+                          <td className="py-3.5 text-xs uppercase tracking-widest text-foreground/40">
+                            {isEn ? 'Target' : 'Cible'}
+                          </td>
+                          <td className="py-3.5 font-medium text-foreground capitalize">
+                            {product.genre_cible}
+                          </td>
+                        </tr>
+                      )}
+                      {product.famille_olfactive && product.famille_olfactive.length > 0 && (
+                        <tr className="border-b border-foreground/10">
+                          <td className="py-3.5 text-xs uppercase tracking-widest text-foreground/40">
+                            {isEn ? 'Olfactive Family' : 'Famille olfactive'}
+                          </td>
+                          <td className="py-3.5 font-medium text-foreground">
+                            {product.famille_olfactive.join(', ')}
+                          </td>
+                        </tr>
+                      )}
+                      <tr className="border-b border-foreground/10">
+                        <td className="py-3.5 text-xs uppercase tracking-widest text-foreground/40">
+                          {isEn ? 'Type' : 'Type'}
+                        </td>
+                        <td className="py-3.5 font-medium text-foreground">
+                          {isEn ? 'Pure Essential Oil' : 'Huile Essentielle Pure'}
+                        </td>
+                      </tr>
+                      <tr className="border-b border-foreground/10">
+                        <td className="py-3.5 text-xs uppercase tracking-widest text-foreground/40">
+                          {isEn ? 'Brand' : 'Marque'}
+                        </td>
+                        <td className="py-3.5 font-medium text-foreground">
+                          {product.brand || 'Exclusif Collection'}
+                        </td>
+                      </tr>
+                      {product.origine_pays && (
+                        <tr className="border-b border-foreground/10">
+                          <td className="py-3.5 text-xs uppercase tracking-widest text-foreground/40">
+                            {isEn ? 'Origin' : 'Pays d\'origine'}
+                          </td>
+                          <td className="py-3.5 font-medium text-foreground">
+                            {product.origine_pays}
+                          </td>
+                        </tr>
+                      )}
+                      {variants.length > 0 && (
+                        <tr className="border-b border-foreground/10">
+                          <td className="py-3.5 text-xs uppercase tracking-widest text-foreground/40">
+                            {isEn ? 'Available sizes' : 'Formats disponibles'}
+                          </td>
+                          <td className="py-3.5 font-medium text-foreground">
+                            {variants.map(v => `${v.taille_ml}ml (${formatPrice(v.prix_actuel)})`).join(', ')}
+                          </td>
+                        </tr>
+                      )}
+                      {product.stock_total_ml != null && (
+                        <tr className="border-b border-foreground/10">
+                          <td className="py-3.5 text-xs uppercase tracking-widest text-foreground/40">
+                            {isEn ? 'Lab stock' : 'Stock laboratoire'}
+                          </td>
+                          <td className="py-3.5 font-medium text-foreground font-mono">
+                            {product.stock_total_ml.toLocaleString('fr-FR')} ml
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
                 </motion.div>
               )}
 
               {activeTab === 'usage' && (
                 <motion.div
                   key="usage"
-                  initial={{ opacity: 0, y: 10 }}
+                  initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  transition={{ duration: 0.3 }}
+                  exit={{ opacity: 0, y: -8 }}
+                  transition={{ duration: 0.25 }}
                   className="max-w-2xl"
                 >
-                  <div className="space-y-5">
+                  <div className="space-y-4">
                     {[
                       {
                         icon: <Droplets size={16} className="text-gold" />,
@@ -590,10 +759,10 @@ export default function HuileDetailClient({ id }: { id: string }) {
                           : 'Conservez dans un endroit frais et sombre, à l\'abri du soleil. Gardez le flacon bien fermé. Évitez le contact avec les yeux. Tenir hors de portée des enfants.',
                       },
                     ].map((item, i) => (
-                      <div key={i} className="flex gap-4 rounded-2xl border border-white/8 bg-white/[0.02] p-5">
+                      <div key={i} className="flex gap-4 rounded-2xl border border-white/8 bg-white/[0.02] p-4 sm:p-5">
                         <div className="mt-0.5 shrink-0">{item.icon}</div>
                         <div>
-                          <p className="mb-1.5 text-sm font-semibold text-foreground">{item.title}</p>
+                          <p className="mb-1 text-sm font-semibold text-foreground">{item.title}</p>
                           <p className="text-sm leading-relaxed text-foreground/60">{item.desc}</p>
                         </div>
                       </div>
@@ -601,74 +770,17 @@ export default function HuileDetailClient({ id }: { id: string }) {
                   </div>
                 </motion.div>
               )}
-
-              {activeTab === 'details' && (
-                <motion.div
-                  key="details"
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  transition={{ duration: 0.3 }}
-                >
-                  <table className="max-w-2xl w-full border-collapse">
-                    <tbody>
-                      <tr className="border-b border-foreground/10">
-                        <td className="w-1/3 py-4 text-xs uppercase tracking-widest text-foreground/40">
-                          {isEn ? 'Volume' : 'Volume'}
-                        </td>
-                        <td className="py-4 font-medium text-foreground">
-                          {selectedVariant ? `${selectedVariant.taille_ml}ml` : product.volume || '—'}
-                        </td>
-                      </tr>
-                      <tr className="border-b border-foreground/10">
-                        <td className="py-4 text-xs uppercase tracking-widest text-foreground/40">
-                          {isEn ? 'Type' : 'Type'}
-                        </td>
-                        <td className="py-4 font-medium text-foreground">
-                          {isEn ? 'Pure Essential Oil' : 'Huile Essentielle Pure'}
-                        </td>
-                      </tr>
-                      <tr className="border-b border-foreground/10">
-                        <td className="py-4 text-xs uppercase tracking-widest text-foreground/40">
-                          {isEn ? 'Brand' : 'Marque'}
-                        </td>
-                        <td className="py-4 font-medium text-foreground">
-                          {product.brand || 'Exclusif Collection'}
-                        </td>
-                      </tr>
-                      {variants.length > 0 && (
-                        <tr className="border-b border-foreground/10">
-                          <td className="py-4 text-xs uppercase tracking-widest text-foreground/40">
-                            {isEn ? 'Available sizes' : 'Formats disponibles'}
-                          </td>
-                          <td className="py-4 font-medium text-foreground">
-                            {variants.map(v => `${v.taille_ml}ml`).join(', ')}
-                          </td>
-                        </tr>
-                      )}
-                      <tr className="border-b border-foreground/10">
-                        <td className="py-4 text-xs uppercase tracking-widest text-foreground/40">
-                          {isEn ? 'Category' : 'Catégorie'}
-                        </td>
-                        <td className="py-4 font-medium text-foreground">
-                          {isEn ? 'Pure Oil' : 'Huile Pure'}
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </motion.div>
-              )}
             </AnimatePresence>
           </div>
         </div>
 
-        {/* ─ Related products ─ */}
+        {/* ─── Related Products ─────────────────────────────────────────────── */}
         {relatedProducts.length > 0 && (
           <div>
-            <div className="mb-10 flex items-end justify-between">
+            <div className="mb-8 flex items-end justify-between">
               <div>
                 <h2 className="font-display text-2xl font-bold text-foreground md:text-3xl mb-2">
-                  {isEn ? 'You May Also Like' : 'Autres Huiles'}
+                  {isEn ? 'You May Also Like' : 'Autres Huiles & Essences'}
                 </h2>
                 <div className="h-1 w-20 bg-gold" />
               </div>
@@ -680,7 +792,7 @@ export default function HuileDetailClient({ id }: { id: string }) {
                 <ChevronRight size={16} />
               </a>
             </div>
-            <div className="grid grid-cols-2 gap-6 md:grid-cols-3 lg:grid-cols-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
               {relatedProducts.map(p => (
                 <ProductCard
                   key={p.id}
@@ -697,3 +809,4 @@ export default function HuileDetailClient({ id }: { id: string }) {
     </div>
   );
 }
+
