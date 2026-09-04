@@ -274,7 +274,7 @@ export default function ProfitAnalyticsDashboard() {
 
   // Category breakdown — prefer flat benefices_par_type array, fall back to par_categorie map
   const beneficesParType: { type: string; nombre_articles: number; chiffre_affaires: string; cout_achat: string; benefice: string; marge_percent: number }[] =
-    profitData?.benefices_par_type ?? [];
+    profitData?.benefices_par_type ?? labData?.benefices_par_type ?? [];
 
   const parCategorie = profitData?.par_categorie || {};
   
@@ -449,10 +449,12 @@ export default function ProfitAnalyticsDashboard() {
                   };
                   return (
                     <div key={cat.type} className="bg-white/5 rounded-xl border border-white/5 p-4 space-y-2">
-                      <p className={`text-xs font-bold ${colorMap[cat.type] ?? 'text-foreground/60'}`}>
+                      <div className="flex items-center justify-between gap-2">
+                        <p className={`text-xs font-bold ${colorMap[cat.type] ?? 'text-foreground/60'}`}>
                         {TYPE_LABELS[cat.type] ?? cat.type}
-                        <span className="ml-2 text-foreground/30 font-normal">({cat.nombre_articles} {tp('articles')})</span>
-                      </p>
+                        </p>
+                        <span className="text-[10px] text-foreground/40">{cat.nombre_articles} {tp('articles')}</span>
+                      </div>
                       <div>
                         <p className="text-[10px] text-foreground/40 uppercase">{tp('col_revenue')}</p>
                         <p className="text-sm font-bold text-foreground">{ca.toLocaleString('fr-FR')} FCFA</p>

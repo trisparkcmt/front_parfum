@@ -354,7 +354,6 @@ export default function DeliveryPage() {
 
                     <div className="space-y-1 text-xs text-foreground/60 border-t border-white/5 pt-3 mb-4">
                       <p><span className="text-foreground/40">Téléphone:</span> {displayPhone}</p>
-                      <p><span className="text-foreground/40">Date Embauche:</span> {d.date_embauche ? new Date(d.date_embauche).toLocaleDateString() : '—'}</p>
                       <p><span className="text-foreground/40">Total Livraisons:</span> <span className="tabular-nums font-medium text-foreground/80">{displayDeliveriesCount}</span></p>
                       {d.date_creation && (
                         <p><span className="text-foreground/40">Créé le:</span> {new Date(d.date_creation).toLocaleDateString()}</p>

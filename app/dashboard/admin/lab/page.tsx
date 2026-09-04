@@ -1,20 +1,14 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import {
-  FlaskConical, Package, Layers, Plus, Edit2, Trash2,
-  Loader2, Search, RefreshCw, AlertTriangle, Filter, X, AlertCircle
-} from 'lucide-react';
-import { labService } from '@/services/apiService';
+import { Loader2, Edit2, Trash2, Plus, Search, Filter, X, Package, Layers, RefreshCw, AlertCircle, AlertTriangle } from 'lucide-react';
 import { InlineCell } from '@/components/admin/InlineCell';
+import { labService } from '@/services/apiService';
 import { useTranslation } from 'react-i18next';
 import { CustomSelect } from '@/components/ui/CustomSelect';
 import { AdminTableSkeleton } from '@/components/ui/AdminTableSkeleton';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { mapErrorToUserMessage } from '@/lib/errorMapper';
-import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
-import { SearchInput } from '@/components/ui/SearchInput';
-
 /* ── Inline translations ─────────────────────────────────────────────────── */
 const T = {
   fr: {
@@ -303,6 +297,48 @@ function StatusChip({
       <span className={cx('h-1.5 w-1.5 rounded-full shrink-0', current.dot)} />
       {label}
     </span>
+  );
+}
+
+function ConfirmDialog({
+  isOpen,
+  title,
+  message,
+  confirmLabel,
+  cancelLabel,
+  onConfirm,
+  onCancel,
+  isLoading,
+  variant = 'danger',
+}: {
+  isOpen: boolean;
+  title: string;
+  message: string;
+  confirmLabel: string;
+  cancelLabel: string;
+  onConfirm: () => void;
+  onCancel: () => void;
+  isLoading?: boolean;
+  variant?: 'danger' | 'default';
+}) {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
+      <div className="w-full max-w-sm rounded-xl border border-white/10 bg-background p-5 shadow-2xl">
+        <h2 className="text-sm font-semibold text-foreground">{title}</h2>
+        <p className="mt-2 text-xs text-foreground/55">{message}</p>
+        <div className="mt-5 flex gap-2">
+          <button type="button" onClick={onCancel} disabled={isLoading} className="flex-1 rounded-lg border border-white/10 py-2 text-xs text-foreground/60 hover:bg-white/5 disabled:opacity-50">
+            {cancelLabel}
+          </button>
+          <button type="button" onClick={onConfirm} disabled={isLoading} className={cx('flex-1 rounded-lg py-2 text-xs font-semibold disabled:opacity-50', variant === 'danger' ? 'bg-red-500 text-white hover:bg-red-400' : 'bg-gold text-black hover:bg-gold/90')}>
+            {isLoading && <Loader2 size={12} className="mr-1 inline animate-spin" />}
+            {confirmLabel}
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -1267,7 +1303,7 @@ function InventoryTab() {
 
       <div className="rounded-xl border border-white/10 bg-white/[0.02] overflow-hidden min-h-[200px]">
         {loading ? (
-          <AdminTableSkeleton columns={7} rows={5} />
+          <AdminTableSkeleton columns={6} rows={5} />
         ) : items.length === 0 ? (
           <EmptyState
             icon={<Package size={48} />}
@@ -1282,7 +1318,6 @@ function InventoryTab() {
                   <th className="pl-4 py-3">{t('inv_col_essence')}</th>
                   <th className="px-3 py-3">Catégorie</th>
                   <th className="px-3 py-3">{t('inv_col_qty')}</th>
-                  <th className="px-3 py-3">{t('inv_col_alert')}</th>
                   <th className="px-3 py-3">Prix / ml</th>
                   <th className="px-3 py-3">{t('inv_col_status')}</th>
                   <th className="pr-4 py-3 text-right">{t('inv_col_actions')}</th>
@@ -1294,7 +1329,6 @@ function InventoryTab() {
                   const thresholdValue = item.seuil_alerte_ml;
                   const hasThreshold = thresholdValue !== undefined && thresholdValue !== null && thresholdValue !== '';
                   const threshold = Number(thresholdValue || 0);
-                  const pct = hasThreshold && threshold > 0 ? Math.min((qty / (threshold * 2)) * 100, 100) : qty > 0 ? 100 : 0;
                   const isLow = hasThreshold && threshold > 0 && qty <= threshold;
                   const name = item.nom || item.essence_details?.nom || item.essence_nom || `Essence #${item.essence || item.id}`;
                   return (
@@ -1305,20 +1339,7 @@ function InventoryTab() {
                       </td>
                       <td className="px-3 py-3 text-foreground/60 capitalize">{item.categorie || '—'}</td>
                       <td className="px-3 py-3">
-                        <div className="flex items-center gap-2.5">
-                          <div className="w-20 h-1.5 bg-white/10 rounded-full overflow-hidden">
-                            <div
-                              className={cx('h-full rounded-full transition-all', isLow ? 'bg-red-400' : 'bg-emerald-400')}
-                              style={{ width: `${pct}%` }}
-                            />
-                          </div>
-                          <InlineCell value={String(qty)} onSave={v => patchInventory(item.id, 'quantite_disponible_ml', v)} disabled={!permissions.canUpdate} inputType="number" display={<span className="font-semibold text-foreground tabular-nums">{qty.toLocaleString()} ml</span>} className="font-semibold text-foreground tabular-nums" />
-                        </div>
-                      </td>
-                      <td className="px-3 py-3 text-foreground/60 tabular-nums">
-                        {hasThreshold ? (
-                          <InlineCell value={String(threshold)} onSave={v => patchInventory(item.id, 'seuil_alerte_ml', v)} disabled={!permissions.canUpdate} inputType="number" display={<>{threshold.toLocaleString()} ml</>} className="text-foreground/60 tabular-nums" />
-                        ) : '—'}
+                        <InlineCell value={String(qty)} onSave={v => patchInventory(item.id, 'quantite_disponible_ml', v)} disabled={!permissions.canUpdate} inputType="number" display={<span className="font-semibold text-foreground tabular-nums">{qty.toLocaleString()} ml</span>} className="font-semibold text-foreground tabular-nums" />
                       </td>
                       <td className="px-3 py-3 text-foreground/70 tabular-nums">
                         {item.prix_par_ml != null ? `${Number(item.prix_par_ml).toLocaleString()} FCFA` : '—'}
@@ -1337,7 +1358,7 @@ function InventoryTab() {
                 })}
                 {items.length === 0 && (
                   <tr>
-                    <td colSpan={7} className="py-16 text-center text-sm italic text-foreground/30">
+                    <td colSpan={6} className="py-16 text-center text-sm italic text-foreground/30">
                       {t('inv_no_results')}
                     </td>
                   </tr>
