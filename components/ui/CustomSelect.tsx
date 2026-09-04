@@ -36,29 +36,42 @@ export function CustomSelect({
   size = 'md',
 }: CustomSelectProps) {
   const [open, setOpen] = useState(false);
-  const [position, setPosition] = useState({ top: 0, left: 0, width: 0 });
+  const [position, setPosition] = useState({ top: 0, left: 0, width: 0, maxHeight: 0 });
   const ref = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
 
-  // Calculate dropdown position when opened
+  // Calculate dropdown position and constraints when opened
   useEffect(() => {
     if (!open || !buttonRef.current) return;
 
     const rect = buttonRef.current.getBoundingClientRect();
+    const viewportHeight = window.innerHeight;
+    const spaceBelow = viewportHeight - rect.bottom;
+    const spaceAbove = rect.top;
+    
+    // Calculate available height (leave 16px margin from edges)
+    const availableHeight = Math.max(spaceBelow, spaceAbove) - 16;
+    const maxDropdownHeight = Math.min(208, availableHeight); // max-h-52 = 208px
+
     setPosition({
-      top: rect.bottom + window.scrollY + 8,
-      left: rect.left + window.scrollX,
+      top: rect.bottom + 8, // viewport-relative
+      left: rect.left,
       width: rect.width,
+      maxHeight: maxDropdownHeight,
     });
   }, [open]);
 
+  // Handle clicks outside to close
   useEffect(() => {
     if (!open) return;
+    
     const handleOutside = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
-        setOpen(false);
+      if (ref.current && ref.current.contains(e.target as Node)) {
+        return;
       }
+      setOpen(false);
     };
+    
     document.addEventListener('mousedown', handleOutside);
     return () => document.removeEventListener('mousedown', handleOutside);
   }, [open]);
@@ -101,15 +114,19 @@ export function CustomSelect({
         typeof document !== 'undefined' &&
         createPortal(
           <div
-            className="fixed z-[9999] bg-neutral-900 border border-white/10 rounded-xl shadow-xl overflow-hidden"
+            className="fixed bg-neutral-900 border border-white/10 rounded-xl shadow-2xl overflow-hidden"
             style={{
               top: `${position.top}px`,
               left: `${position.left}px`,
               width: `${position.width}px`,
+              maxHeight: `${position.maxHeight}px`,
+              zIndex: 9999,
+              pointerEvents: 'auto',
             }}
             onClick={e => e.stopPropagation()}
+            role="listbox"
           >
-            <div className="max-h-52 overflow-y-auto">
+            <div className="overflow-y-auto h-full">
               {options.map(opt => (
                 <button
                   key={opt.value}
@@ -122,6 +139,8 @@ export function CustomSelect({
                     'w-full text-left px-4 py-2.5 text-sm transition-colors hover:bg-white/10',
                     value === opt.value ? 'text-gold bg-gold/10' : 'text-foreground',
                   ].join(' ')}
+                  role="option"
+                  aria-selected={value === opt.value}
                 >
                   {opt.label}
                 </button>

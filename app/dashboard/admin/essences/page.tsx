@@ -9,6 +9,7 @@ import { useTranslation } from 'react-i18next';
 import { InlineCell } from '@/components/admin/InlineCell';
 import { AdminTableSkeleton } from '@/components/ui/AdminTableSkeleton';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { CustomSelect } from '@/components/ui/CustomSelect';
 import { mapErrorToUserMessage } from '@/lib/errorMapper';
 
 /* ── Inline translations ─────────────────────────────────────────────────── */
@@ -991,68 +992,32 @@ export default function EssencesPage() {
             <div className="grid grid-cols-3 gap-3">
               <div>
                 <label className="text-[11px] font-bold text-foreground/50 uppercase block mb-1.5">Intensité *</label>
-                <div className="relative">
-                  <button
-                    type="button"
-                    data-field="intensite"
-                    onClick={() => setOpenDropdown(v => v === 'intensite' ? null : 'intensite')}
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-foreground text-left outline-none focus:border-gold/50 flex items-center justify-between capitalize"
-                  >
-                    <span>{isEn ? { 'légère': 'Light', 'moyenne': 'Medium', 'forte': 'Strong', 'très forte': 'Very strong' }[form.intensite] ?? form.intensite : form.intensite}</span>
-                    <svg className={`w-4 h-4 text-foreground/40 transition-transform ${openDropdown === 'intensite' ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
-                  </button>
-                  {openDropdown === 'intensite' && (
-                    <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-neutral-900 border border-white/10 rounded-xl shadow-xl overflow-hidden">
-                      {[
-                        { value: 'légère',     labelFr: 'Légère',     labelEn: 'Light' },
-                        { value: 'moyenne',    labelFr: 'Moyenne',    labelEn: 'Medium' },
-                        { value: 'forte',      labelFr: 'Forte',      labelEn: 'Strong' },
-                        { value: 'très forte', labelFr: 'Très forte', labelEn: 'Very strong' },
-                      ].map(opt => (
-                        <button
-                          key={opt.value}
-                          type="button"
-                          onClick={() => { updateForm('intensite', opt.value); setOpenDropdown(null); }}
-                          className={`w-full text-left px-4 py-2.5 text-sm transition-colors hover:bg-white/10 ${form.intensite === opt.value ? 'text-gold bg-gold/10' : 'text-foreground'}`}
-                        >
-                          {isEn ? opt.labelEn : opt.labelFr}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
+                <CustomSelect
+                  value={form.intensite}
+                  onChange={(value: string) => updateForm('intensite', value)}
+                  options={[
+                    { value: 'légère', label: isEn ? 'Light' : 'Légère' },
+                    { value: 'moyenne', label: isEn ? 'Medium' : 'Moyenne' },
+                    { value: 'forte', label: isEn ? 'Strong' : 'Forte' },
+                    { value: 'très forte', label: isEn ? 'Very strong' : 'Très forte' },
+                  ]}
+                  placeholder={isEn ? 'Select intensity...' : 'Sélectionner l\'intensité...'}
+                  data-field="intensite"
+                />
               </div>
               <div>
                 <label className="text-[11px] font-bold text-foreground/50 uppercase block mb-1.5">Cible *</label>
-                <div className="relative">
-                  <button
-                    type="button"
-                    data-field="genreCible"
-                    onClick={() => setOpenDropdown(v => v === 'genreCible' ? null : 'genreCible')}
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-foreground text-left outline-none focus:border-gold/50 flex items-center justify-between capitalize"
-                  >
-                    <span>{isEn ? { 'mixte': 'Unisex', 'homme': 'Men', 'femme': 'Women' }[form.genreCible] ?? form.genreCible : form.genreCible}</span>
-                    <svg className={`w-4 h-4 text-foreground/40 transition-transform ${openDropdown === 'genreCible' ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
-                  </button>
-                  {openDropdown === 'genreCible' && (
-                    <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-neutral-900 border border-white/10 rounded-xl shadow-xl overflow-hidden">
-                      {[
-                        { value: 'mixte',  labelFr: 'Mixte',  labelEn: 'Unisex' },
-                        { value: 'homme',  labelFr: 'Homme',  labelEn: 'Men' },
-                        { value: 'femme',  labelFr: 'Femme',  labelEn: 'Women' },
-                      ].map(opt => (
-                        <button
-                          key={opt.value}
-                          type="button"
-                          onClick={() => { updateForm('genreCible', opt.value); setOpenDropdown(null); }}
-                          className={`w-full text-left px-4 py-2.5 text-sm transition-colors hover:bg-white/10 ${form.genreCible === opt.value ? 'text-gold bg-gold/10' : 'text-foreground'}`}
-                        >
-                          {isEn ? opt.labelEn : opt.labelFr}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
+                <CustomSelect
+                  value={form.genreCible}
+                  onChange={(value: string) => updateForm('genreCible', value)}
+                  options={[
+                    { value: 'mixte', label: isEn ? 'Unisex' : 'Mixte' },
+                    { value: 'homme', label: isEn ? 'Men' : 'Homme' },
+                    { value: 'femme', label: isEn ? 'Women' : 'Femme' },
+                  ]}
+                  placeholder={isEn ? 'Select target...' : 'Sélectionner la cible...'}
+                  data-field="genreCible"
+                />
               </div>
               <div>
                 <FloatInput

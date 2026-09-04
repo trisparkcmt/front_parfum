@@ -12,6 +12,8 @@ import { CustomSelect } from '@/components/ui/CustomSelect';
 import { AdminTableSkeleton } from '@/components/ui/AdminTableSkeleton';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { mapErrorToUserMessage } from '@/lib/errorMapper';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { SearchInput } from '@/components/ui/SearchInput';
 
 /* ── Inline translations ─────────────────────────────────────────────────── */
 const T = {
@@ -388,6 +390,7 @@ function IngredientsTab() {
   const [editing, setEditing] = useState<any | null>(null);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [confirmDialog, setConfirmDialog] = useState<{ isOpen: boolean; id: any | null }>({ isOpen: false, id: null });
   const { addToast } = useToastStore();
 
   const [form, setForm] = useState({
@@ -488,15 +491,24 @@ function IngredientsTab() {
 
   const handleDelete = async (id: number) => {
     if (!permissions.canDelete) return;
-      if (!confirm(t('ing_confirm_delete'))) return;
-    const snapshot = items.find(i => i.id === id);
-    setItems(prev => prev.filter(i => i.id !== id));
+    setConfirmDialog({ isOpen: true, id });
+  };
+
+  const confirmDelete = async () => {
+    if (!confirmDialog.id) return;
+    setSaving(true);
+    const snapshot = items.find(i => i.id === confirmDialog.id);
+    setItems(prev => prev.filter(i => i.id !== confirmDialog.id));
     try {
-      await labService.deleteIngredient(id);
+      await labService.deleteIngredient(confirmDialog.id);
       addToast(t('ing_toast_delete'), 'success');
-    } catch {
+      setConfirmDialog({ isOpen: false, id: null });
+    } catch (error: any) {
       if (snapshot) setItems(prev => [snapshot, ...prev]);
-      addToast('Erreur lors de la suppression', 'error');
+      const msg = mapErrorToUserMessage(error, isEn ? 'en' : 'fr');
+      addToast(msg, 'error');
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -698,7 +710,7 @@ function IngredientsTab() {
 
 // ─── Lots Tab ─────────────────────────────────────────────────────────────────
 
-function LotsTab() {
+function LotsTab({ setConfirmDialog }: { setConfirmDialog: React.Dispatch<React.SetStateAction<{ isOpen: boolean; id: any | null }>> }) {
   const permissions = useCatalogPermissions('lots_essence');
   const { i18n } = useTranslation();
   const isEn = i18n.language?.startsWith('en') ?? false;
@@ -830,16 +842,7 @@ function LotsTab() {
 
   const handleDelete = async (id: number) => {
     if (!permissions.canDelete) return;
-    if (!confirm(t('lot_confirm_delete'))) return;
-    const snapshot = items.find(i => i.id === id);
-    setItems(prev => prev.filter(i => i.id !== id));
-    try {
-      await labService.deleteLotEssence(id);
-      addToast(t('lot_toast_delete'), 'success');
-    } catch {
-      if (snapshot) setItems(prev => [snapshot, ...prev]);
-      addToast(t('lot_toast_delete_error'), 'error');
-    }
+    setConfirmDialog({ isOpen: true, id });
   };
 
 
@@ -1387,9 +1390,24 @@ function InventoryTab() {
 
 export default function LabPage() {
   const [activeTab, setActiveTab] = useState<TabKey>('lots');
+  const [confirmDialog, setConfirmDialog] = useState<{ isOpen: boolean; id: any | null }>({ isOpen: false, id: null });
+  const [saving, setSaving] = useState(false);
   const { i18n } = useTranslation();
   const isEn = i18n.language?.startsWith('en') ?? false;
   const t = (k: TKey) => isEn ? T.en[k] : T.fr[k];
+
+  const confirmDelete = async () => {
+    if (!confirmDialog.id) return;
+    setSaving(true);
+    try {
+      await labService.deleteLotEssence(confirmDialog.id);
+      setConfirmDialog({ isOpen: false, id: null });
+    } catch (error) {
+      console.error('Delete error:', error);
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -1428,10 +1446,23 @@ export default function LabPage() {
 
         <div className="p-4 sm:p-5">
           {/* {activeTab === 'ingredients' && <IngredientsTab />} */}
-          {activeTab === 'lots' && <LotsTab />}
+          {activeTab === 'lots' && <LotsTab setConfirmDialog={setConfirmDialog} />}
           {activeTab === 'inventory' && <InventoryTab />}
         </div>
       </div>
+
+      {/* Confirm Delete Dialog */}
+      <ConfirmDialog
+        isOpen={confirmDialog.isOpen}
+        title={isEn ? 'Delete item?' : 'Supprimer cet élément ?'}
+        message={isEn ? 'This action cannot be undone.' : 'Cette action ne peut pas être annulée.'}
+        confirmLabel={isEn ? 'Delete' : 'Supprimer'}
+        cancelLabel={isEn ? 'Cancel' : 'Annuler'}
+        onConfirm={confirmDelete}
+        onCancel={() => setConfirmDialog({ isOpen: false, id: null })}
+        isLoading={saving}
+        variant="danger"
+      />
     </div>
   );
 }
