@@ -27,6 +27,21 @@ import { useToastStore } from '@/store/useToastStore';
 import { Product, ProduitFiniEssence } from '@/types';
 import { EssenceSizePickerModal } from '@/components/ui/EssenceSizePickerModal';
 
+function getProductCollectionPath(category?: Product['category']) {
+  switch (category) {
+    case 'accessory':
+      return '/shop/accessories';
+    case 'huile':
+    case 'produit-fini-essence':
+      return '/shop/perfumes?categorie=huile';
+    case 'perfume-brand':
+    case 'perfume-dupe':
+    case 'numba-creation':
+    default:
+      return '/shop/perfumes';
+  }
+}
+
 export default function ProductDetailClient({ id }: { id: string }) {
   const { i18n } = useTranslation();
   const isEn = i18n.language?.startsWith('en');
@@ -283,6 +298,7 @@ export default function ProductDetailClient({ id }: { id: string }) {
   };
 
   const noteEntries = product.notes ? Object.entries(product.notes) : [];
+  const collectionPath = getProductCollectionPath(product.category);
 
   return (
     <div className="min-h-screen bg-background text-foreground pt-28 pb-24 px-4 md:px-8 relative overflow-hidden">
@@ -297,7 +313,7 @@ export default function ProductDetailClient({ id }: { id: string }) {
             {isEn ? 'Home' : 'Accueil'}
           </a>
           <ChevronRight size={11} className="shrink-0" />
-          <a href={`/shop/${product.category}`} className="hover:text-gold transition-colors capitalize">
+          <a href={collectionPath} className="hover:text-gold transition-colors capitalize">
             {product.category?.replace('-', ' ')}
           </a>
           <ChevronRight size={11} className="shrink-0" />
@@ -497,8 +513,8 @@ export default function ProductDetailClient({ id }: { id: string }) {
                 </div>
               )}
 
-              <div className="flex flex-col sm:flex-row gap-3 mb-10">
-                <div className="flex items-center justify-between sm:justify-start border border-foreground/10 rounded-xl bg-foreground/5 px-2 h-14 sm:w-36">
+              <div className="flex flex-row gap-3 mb-10">
+                <div className="flex items-center justify-between border border-foreground/10 rounded-xl bg-foreground/5 px-2 h-14 w-28 sm:w-36 shrink-0">
                   <button
                     onClick={() => setQuantity(Math.max(1, quantity - 1))}
                     disabled={quantity <= 1}
@@ -522,7 +538,7 @@ export default function ProductDetailClient({ id }: { id: string }) {
                 <button
                   onClick={handleAddToCart}
                   disabled={product.category === 'huile' && !selectedVariant}
-                  className="flex-1 h-14 bg-foreground text-background font-bold uppercase tracking-widest text-sm rounded-xl hover:bg-gold hover:text-black transition-all duration-300 flex items-center justify-center gap-3 group disabled:opacity-40"
+                  className="flex-1 min-w-0 h-14 px-3 bg-foreground text-background font-bold uppercase tracking-widest text-xs sm:text-sm rounded-xl hover:bg-gold hover:text-black transition-all duration-300 flex items-center justify-center gap-2 sm:gap-3 group disabled:opacity-40 whitespace-nowrap"
                 >
                   <ShoppingBag size={18} className="group-hover:scale-110 transition-transform" />
                   {isEn ? 'Add to Shopping Bag' : 'Ajouter au panier'}
@@ -702,7 +718,7 @@ export default function ProductDetailClient({ id }: { id: string }) {
                 <div className="w-20 h-1 bg-gold" />
               </div>
               <a
-                href={`/shop/${product.category}`}
+                href={collectionPath}
                 className="text-gold hover:underline flex items-center gap-2 text-sm shrink-0"
               >
                 {isEn ? 'Explore Collection' : 'Voir tout'} <ChevronRight size={16} />

@@ -296,23 +296,32 @@ export default function ProfitAnalyticsDashboard() {
   const parfumsPersoCat = fallbackCategoryData.parfums_personnalises || {};
   const essencesSurMesureCat = fallbackCategoryData.essences_sur_mesure || {};
 
+  const firstNonEmptyArray = <T,>(...values: unknown[]): T[] => {
+    const value = values.find((candidate): candidate is T[] => Array.isArray(candidate) && candidate.length > 0);
+    return value ?? [];
+  };
+
   // Individual products from flat produits[] array
   const produits: { type: string; id: number; nom: string; prix_vente: string; prix_achat: string; benefice: string; marge_percent: number }[] =
-    profitData?.produits ?? [];
+    firstNonEmptyArray(profitData?.produits, labData?.produits);
 
   // Essence lots from flat lots[] array
   const lotsApi: { type: string; id: number; essence: string; chiffre_affaires_genere: string; benefice: string }[] =
-    profitData?.lots ?? [];
+    firstNonEmptyArray(profitData?.lots, labData?.lots);
 
-  const detailEssences: EssenceDetail[] = essencesCat.detail_par_essence || profitData?.benefices_par_essence || labData?.benefices_par_essence?.map((e: any) => ({
-    essence_id: e.essence_id || e.id,
-    essence_nom: e.essence || e.nom,
-    essence_categorie: e.categorie || 'Essence',
-    ca_total: e.chiffre_affaires || 0,
-    cout_total: e.cout_achat || 0,
-    benefice_total: e.benefice || 0,
-    lots: e.lots || []
-  })) || [];
+  const detailEssences: EssenceDetail[] = firstNonEmptyArray<EssenceDetail>(
+    essencesCat.detail_par_essence,
+    profitData?.benefices_par_essence,
+    labData?.benefices_par_essence
+  ).map((essence: any) => ({
+    essence_id: essence.essence_id || essence.id,
+    essence_nom: essence.essence_nom || essence.essence || essence.nom,
+    essence_categorie: essence.essence_categorie || essence.categorie || 'Essence',
+    ca_total: essence.ca_total ?? essence.chiffre_affaires ?? 0,
+    cout_total: essence.cout_total ?? essence.cout_achat ?? 0,
+    benefice_total: essence.benefice_total ?? essence.benefice ?? 0,
+    lots: essence.lots || []
+  }));
 
   const TYPE_LABELS: Record<string, string> = {
     parfum: tp('type_parfum'),
