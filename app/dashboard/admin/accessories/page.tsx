@@ -916,14 +916,28 @@ export default function AccessoriesPage() {
                   />
                 </Field>
                   <Field label="Type d'accessoire" required error={formErrors.type_accessoire}>
-                  <CustomSelect
-                    data-field="type_accessoire"
-                    value={form.type_accessoire}
-                    onChange={v => updateForm('type_accessoire', v)}
-                    placeholder="Choisir un type"
-                    error={!!formErrors.type_accessoire}
-                    options={accessoryTypes.map(t => ({ value: String(t.id), label: t.nom }))}
-                  />
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 relative z-[9999]">
+                      <CustomSelect
+                        data-field="type_accessoire"
+                        value={form.type_accessoire}
+                        onChange={v => updateForm('type_accessoire', v)}
+                        placeholder="Choisir un type"
+                        error={!!formErrors.type_accessoire}
+                        options={accessoryTypes.map(t => ({ value: String(t.id), label: t.nom }))}
+                        className="relative z-[9999]"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setIsTypeModalOpen(true)}
+                      className="flex h-11 w-11 items-center justify-center rounded-lg border border-gold/40 bg-gold/10 text-lg font-semibold text-gold transition-colors hover:bg-gold/20"
+                      aria-label="Créer un nouveau type d'accessoire"
+                      title="Créer un nouveau type d'accessoire"
+                    >
+                      +
+                    </button>
+                  </div>
                 </Field>
                 <Field label="Référence SKU" error={formErrors.reference_sku}>
                   <input

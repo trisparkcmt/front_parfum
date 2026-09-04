@@ -98,7 +98,7 @@ export function CustomSelect({
   const textSize = size === 'sm' ? 'text-xs' : 'text-sm';
 
   return (
-    <div ref={ref} className="relative" data-field={dataField}>
+    <div ref={ref} className="relative z-[9999]" data-field={dataField}>
       <button
         ref={buttonRef}
         type="button"

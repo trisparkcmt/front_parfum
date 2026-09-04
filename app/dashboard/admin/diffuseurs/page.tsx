@@ -14,6 +14,7 @@ import AppImage from '@/components/ui/AppImage';
 import { SlideOver } from '@/components/ui/SlideOver';
 import { useTranslation } from 'react-i18next';
 import { CustomSelect } from '@/components/ui/CustomSelect';
+import { MultiImageUpload } from '@/components/MultiImageUpload';
 
 /* ── Inline translations ─────────────────────────────────────────────────── */
 const T = {
@@ -260,6 +261,13 @@ export default function DiffuseursAdminPage() {
   const [editing, setEditing] = useState<any | null>(null);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [imageFiles, setImageFiles] = useState<{ [key: string]: File | null }>({
+    image_principale: null,
+    image_supp_1: null,
+    image_supp_2: null,
+    image_supp_3: null,
+    image_supp_4: null,
+  });
   const { addToast } = useToastStore();
 
   // ── Pagination & stock split ──────────────────────────────────────────────
@@ -316,6 +324,13 @@ export default function DiffuseursAdminPage() {
       a_jeux_de_lumiere: false,
       actif: true,
     });
+    setImageFiles({
+      image_principale: null,
+      image_supp_1: null,
+      image_supp_2: null,
+      image_supp_3: null,
+      image_supp_4: null,
+    });
     setShowModal(true);
   };
 
@@ -335,6 +350,13 @@ export default function DiffuseursAdminPage() {
       est_connecte: Boolean(item.est_connecte),
       a_jeux_de_lumiere: Boolean(item.a_jeux_de_lumiere),
       actif: item.actif !== undefined ? Boolean(item.actif) : true,
+    });
+    setImageFiles({
+      image_principale: null,
+      image_supp_1: null,
+      image_supp_2: null,
+      image_supp_3: null,
+      image_supp_4: null,
     });
     setShowModal(true);
   };
@@ -357,20 +379,42 @@ export default function DiffuseursAdminPage() {
         est_connecte: form.est_connecte,
         a_jeux_de_lumiere: form.a_jeux_de_lumiere,
         actif: form.actif,
+        image_principale: null,
+        image_supp_1: null,
+        image_supp_2: null,
+        image_supp_3: null,
+        image_supp_4: null,
       };
 
       if (form.prix_achat) payload.prix_achat = form.prix_achat;
       if (form.stock_quantite) payload.stock_quantite = parseInt(form.stock_quantite, 10);
       if (form.capacite_reservoir_ml) payload.capacite_reservoir_ml = parseInt(form.capacite_reservoir_ml, 10);
 
+      const formData = new FormData();
+      Object.entries(payload).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          formData.append(key, typeof value === 'boolean' ? String(value) : String(value));
+        } else {
+          formData.append(key, '');
+        }
+      });
+
+      Object.entries(imageFiles).forEach(([key, file]) => {
+        if (file instanceof File) {
+          formData.append(key, file);
+        } else {
+          formData.append(key, '');
+        }
+      });
+
       if (editing) {
-        await adminService.updateDiffuseur(editing.id, payload);
+        await adminService.patchFormData(`shop/diffuseurs/${editing.id}/`, formData);
         addToast(t('toast_update_ok'), 'success');
       } else {
-        await adminService.createDiffuseur(payload);
+        await adminService.postFormData('shop/diffuseurs/', formData);
         addToast(t('toast_create_ok'), 'success');
       }
-      
+
       setShowModal(false);
       fetchItems();
     } catch (err: any) {
@@ -849,6 +893,10 @@ export default function DiffuseursAdminPage() {
                 />
               </Field>
             </div>
+          </FormSection>
+
+          <FormSection title={isEn ? 'Images' : 'Images'} icon={<Settings2 size={11} />}>
+            <MultiImageUpload onImagesChange={(images) => setImageFiles(images)} />
           </FormSection>
 
           <FormSection title={isEn ? 'Features & status' : 'Fonctionnalités & statut'} icon={<Settings2 size={11} />}>

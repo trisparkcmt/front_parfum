@@ -497,25 +497,26 @@ export default function CategoriesAdminPage() {
           addToast(t('toast_perfume_created'), 'success');
         }
       } else if (activeTab === 'accessory_categories') {
-        const formData = new FormData();
-        formData.append('nom', form.nom);
-        formData.append('description', form.description);
-        formData.append('taux_reduction', form.taux_reduction);
-        formData.append('actif', String(form.actif));
+        const payload: Record<string, unknown> = {
+          nom: form.nom.trim(),
+          description: form.description.trim(),
+          taux_reduction: form.taux_reduction || '0.00',
+          actif: Boolean(form.actif),
+        };
         const dateDebut = fromDatetimeLocalValue(form.date_debut);
         const dateFin = fromDatetimeLocalValue(form.date_fin);
-        if (dateDebut) formData.append('date_depart', dateDebut);
-        if (dateFin) formData.append('date_fin', dateFin);
-        if (form.message_promotion) formData.append('message_promotion', form.message_promotion);
+        if (dateDebut) payload.date_depart = dateDebut;
+        if (dateFin) payload.date_fin = dateFin;
+        if (form.message_promotion) payload.message_promotion = form.message_promotion.trim();
         if (iconFile instanceof File) {
-          formData.append('icone', iconFile);
-          formData.append('image', iconFile);
+          payload.icone = iconFile;
+          payload.image = iconFile;
         }
         if (editingItem) {
-          await adminService.patchFormData(`shop/types-accessoire/${editingItem.id}/`, formData);
+          await shopService.updateAccessoryType(editingItem.id, payload);
           addToast(t('toast_accessory_updated'), 'success');
         } else {
-          await adminService.postFormData('shop/types-accessoire/', formData);
+          await shopService.createAccessoryType(payload);
           addToast(t('toast_accessory_created'), 'success');
         }
       } else if (activeTab === 'bottle_types') {

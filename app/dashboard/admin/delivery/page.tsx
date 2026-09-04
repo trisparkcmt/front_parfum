@@ -121,6 +121,8 @@ export default function DeliveryPage() {
 
   // Form state
   const [userIdVal, setUserIdVal] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [userSuggestions, setUserSuggestions] = useState<{ id: number; name: string }[]>([]);
   const [formError, setFormError] = useState<string | null>(null);
   const [promoting, setPromoting] = useState(false);
 
@@ -158,6 +160,30 @@ export default function DeliveryPage() {
     fetchDriversAndDeliveries();
   }, [fetchDriversAndDeliveries]);
 
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      setUserSuggestions([]);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      try {
+        const data = await adminService.getUsers({ search: searchQuery });
+        const list = data.resultats || data.results || (Array.isArray(data) ? data : []);
+        setUserSuggestions(
+          list.map((user: any) => ({
+            id: user.id,
+            name: `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.email || `User #${user.id}`,
+          }))
+        );
+      } catch {
+        setUserSuggestions([]);
+      }
+    }, 350);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
   const handlePromote = async () => {
     setFormError(null);
     if (!userIdVal) {
@@ -170,6 +196,8 @@ export default function DeliveryPage() {
       addToast('Utilisateur promu au rang de livreur avec succès', 'success');
       setShowModal(false);
       setUserIdVal('');
+      setSearchQuery('');
+      setUserSuggestions([]);
       fetchDriversAndDeliveries();
     } catch (error: any) {
       setFormError(error.response?.data?.detail || 'Erreur lors de la promotion');
@@ -226,7 +254,13 @@ export default function DeliveryPage() {
             <RefreshCw size={16} />
           </IconButton>
           <button
-            onClick={() => setShowModal(true)}
+            onClick={() => {
+              setFormError(null);
+              setUserIdVal('');
+              setSearchQuery('');
+              setUserSuggestions([]);
+              setShowModal(true);
+            }}
             className="flex items-center gap-2 bg-gold text-black px-3.5 py-2 rounded-lg text-xs font-semibold hover:bg-gold/90 transition-colors"
           >
             <Plus size={15} />
@@ -450,15 +484,43 @@ export default function DeliveryPage() {
             </div>
           )}
           <div>
-            <label className="text-[10px] font-bold text-foreground/40 uppercase mb-1 block">ID de l'utilisateur</label>
+            <label className="text-[10px] font-bold text-foreground/40 uppercase mb-1 block">Rechercher un utilisateur</label>
             <input
-              type="number"
-              placeholder="Ex: 42"
-              value={userIdVal}
-              onChange={e => setUserIdVal(e.target.value)}
+              type="text"
+              placeholder="Ex: Jean"
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
               className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
             />
           </div>
+
+          {userSuggestions.length > 0 && (
+            <div className="space-y-1 p-3 bg-white/5 border border-white/10 rounded-lg max-h-60 overflow-y-auto">
+              {userSuggestions.map((user) => (
+                <button
+                  key={user.id}
+                  type="button"
+                  onClick={() => {
+                    setUserIdVal(String(user.id));
+                    setSearchQuery(user.name);
+                    setUserSuggestions([]);
+                  }}
+                  className={cx(
+                    'w-full px-3 py-2 rounded-lg text-left text-sm transition-colors',
+                    userIdVal === String(user.id)
+                      ? 'bg-gold/20 text-gold font-semibold'
+                      : 'text-foreground/70 hover:bg-white/5 hover:text-foreground'
+                  )}
+                >
+                  {user.name}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {userIdVal && (
+            <p className="text-xs text-emerald-400 font-medium">✓ Utilisateur sélectionné : ID #{userIdVal}</p>
+          )}
         </div>
       </SlideOver>
     </div>
