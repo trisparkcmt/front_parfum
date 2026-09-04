@@ -39,26 +39,39 @@ export function CustomSelect({
   const [position, setPosition] = useState({ top: 0, left: 0, width: 0, maxHeight: 0 });
   const ref = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
+  const portalRef = useRef<HTMLDivElement>(null);
 
   // Calculate dropdown position and constraints when opened
   useEffect(() => {
     if (!open || !buttonRef.current) return;
 
-    const rect = buttonRef.current.getBoundingClientRect();
-    const viewportHeight = window.innerHeight;
-    const spaceBelow = viewportHeight - rect.bottom;
-    const spaceAbove = rect.top;
-    
-    // Calculate available height (leave 16px margin from edges)
-    const availableHeight = Math.max(spaceBelow, spaceAbove) - 16;
-    const maxDropdownHeight = Math.min(208, availableHeight); // max-h-52 = 208px
+    const updatePosition = () => {
+      if (!buttonRef.current) return;
+      const rect = buttonRef.current.getBoundingClientRect();
+      const viewportHeight = window.innerHeight;
+      const spaceBelow = viewportHeight - rect.bottom;
+      const spaceAbove = rect.top;
+      
+      // Calculate available height (leave 16px margin from edges)
+      const availableHeight = Math.max(spaceBelow, spaceAbove) - 16;
+      const maxDropdownHeight = Math.min(208, availableHeight); // max-h-52 = 208px
 
-    setPosition({
-      top: rect.bottom + 8, // viewport-relative
-      left: rect.left,
-      width: rect.width,
-      maxHeight: maxDropdownHeight,
-    });
+      setPosition({
+        top: rect.bottom + 8, // viewport-relative
+        left: rect.left,
+        width: rect.width,
+        maxHeight: maxDropdownHeight,
+      });
+    };
+
+    updatePosition();
+    window.addEventListener('resize', updatePosition);
+    window.addEventListener('scroll', updatePosition, true);
+
+    return () => {
+      window.removeEventListener('resize', updatePosition);
+      window.removeEventListener('scroll', updatePosition, true);
+    };
   }, [open]);
 
   // Handle clicks outside to close
@@ -66,7 +79,11 @@ export function CustomSelect({
     if (!open) return;
     
     const handleOutside = (e: MouseEvent) => {
-      if (ref.current && ref.current.contains(e.target as Node)) {
+      const target = e.target as Node;
+      if (
+        (ref.current && ref.current.contains(target)) ||
+        (portalRef.current && portalRef.current.contains(target))
+      ) {
         return;
       }
       setOpen(false);
@@ -114,6 +131,7 @@ export function CustomSelect({
         typeof document !== 'undefined' &&
         createPortal(
           <div
+            ref={portalRef}
             className="fixed bg-neutral-900 border border-white/10 rounded-xl shadow-2xl overflow-hidden"
             style={{
               top: `${position.top}px`,
@@ -131,6 +149,7 @@ export function CustomSelect({
                 <button
                   key={opt.value}
                   type="button"
+                  onMouseDown={e => e.stopPropagation()}
                   onClick={() => {
                     onChange(opt.value);
                     setOpen(false);

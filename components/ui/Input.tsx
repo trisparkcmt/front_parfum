@@ -104,19 +104,14 @@ interface FloatInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
 }
 
 export const FloatInput = forwardRef<HTMLInputElement, FloatInputProps>(
-  ({ label, error, icon, type, className, onFocus, onBlur, onChange, value, ...props }, ref) => {
+  ({ label, error, icon, type, className, onFocus, onBlur, onChange, value, defaultValue, ...props }, ref) => {
     const [isFocused, setIsFocused] = useState(false);
-    const [localValue, setLocalValue] = useState(value ?? '');
+    const [uncontrolledValue, setUncontrolledValue] = useState(defaultValue ?? '');
     const [showPassword, setShowPassword] = useState(false);
 
-    // Sync with external value changes
-    useEffect(() => {
-      if (value !== localValue) {
-        setLocalValue(value ?? '');
-      }
-    }, [value]);
-
-    const hasValue = localValue !== undefined && localValue !== null && String(localValue).length > 0;
+    const isControlled = value !== undefined;
+    const currentValue = isControlled ? value : uncontrolledValue;
+    const hasValue = currentValue !== undefined && currentValue !== null && String(currentValue).length > 0;
 
     const handleFocus = (e: React.FocusEvent<HTMLInputElement>) => {
       setIsFocused(true);
@@ -129,8 +124,9 @@ export const FloatInput = forwardRef<HTMLInputElement, FloatInputProps>(
     };
     
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-      const newValue = e.target.value;
-      setLocalValue(newValue);
+      if (!isControlled) {
+        setUncontrolledValue(e.target.value);
+      }
       onChange?.(e);
     };
 
@@ -150,7 +146,7 @@ export const FloatInput = forwardRef<HTMLInputElement, FloatInputProps>(
           <input
             ref={ref}
             type={finalType}
-            value={localValue}
+            value={currentValue}
             onFocus={handleFocus}
             onBlur={handleBlur}
             onChange={handleChange}

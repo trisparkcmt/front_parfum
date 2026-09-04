@@ -229,17 +229,6 @@ export default function EssencesPage() {
   const [, setProduitFiniImageFile] = useState<File | null>(null);
   const [selectedEssences, setSelectedEssences] = useState<Set<string>>(new Set());
 
-  // Custom dropdown open states
-  const [openDropdown, setOpenDropdown] = useState<'categorie' | 'intensite' | 'genreCible' | null>(null);
-
-  // Close custom dropdowns on outside click
-  useEffect(() => {
-    if (!openDropdown) return;
-    const close = () => setOpenDropdown(null);
-    document.addEventListener('mousedown', close);
-    return () => document.removeEventListener('mousedown', close);
-  }, [openDropdown]);
-
   const validateBoutiqueFormat = (nextForm = form) => {
     const nextErrors: Record<string, string> = {};
 
@@ -956,31 +945,17 @@ export default function EssencesPage() {
               />
               <div>
                 <label className="text-[11px] font-bold text-foreground/50 uppercase block mb-1.5">Catégorie *</label>
-                <div className="relative">
-                  <button
-                    type="button"
-                    data-field="categorie"
-                    onClick={() => setOpenDropdown(v => v === 'categorie' ? null : 'categorie')}
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-foreground text-left outline-none focus:border-gold/50 flex items-center justify-between capitalize"
-                  >
-                    <span>{form.categorie.replace('_', ' ')}</span>
-                    <svg className={`w-4 h-4 text-foreground/40 transition-transform ${openDropdown === 'categorie' ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
-                  </button>
-                  {openDropdown === 'categorie' && (
-                    <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-neutral-900 border border-white/10 rounded-xl shadow-xl overflow-hidden">
-                      {STATIC_CATEGORIES.map(cat => (
-                        <button
-                          key={cat}
-                          type="button"
-                          onClick={() => { updateForm('categorie', cat); setOpenDropdown(null); }}
-                          className={`w-full text-left px-4 py-2.5 text-sm capitalize transition-colors hover:bg-white/10 ${form.categorie === cat ? 'text-gold bg-gold/10' : 'text-foreground'}`}
-                        >
-                          {cat.replace('_', ' ')}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
+                <CustomSelect
+                  data-field="categorie"
+                  value={form.categorie}
+                  onChange={(value: string) => updateForm('categorie', value)}
+                  options={STATIC_CATEGORIES.map(cat => ({
+                    value: cat,
+                    label: cat === 'super_premium' ? 'Super Premium' : cat === 'premium' ? 'Premium' : 'High',
+                  }))}
+                  placeholder="Catégorie"
+                  error={!!formErrors.categorie}
+                />
                 {formErrors.categorie && <p className="mt-1 text-xs text-red-500">{formErrors.categorie}</p>}
               </div>
             </div>

@@ -15,6 +15,8 @@ import { useEffect, useRef, useCallback } from 'react';
 export function useFocusTrap(isOpen: boolean = true, onEscape?: () => void) {
   const elementRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLElement | null>(null);
+  const onEscapeRef = useRef(onEscape);
+  onEscapeRef.current = onEscape;
 
   const getFocusableElements = useCallback(() => {
     if (!elementRef.current) return [];
@@ -26,14 +28,15 @@ export function useFocusTrap(isOpen: boolean = true, onEscape?: () => void) {
     ) as HTMLElement[];
   }, []);
 
-  const handleKeyDown = useCallback(
-    (e: KeyboardEvent) => {
-      if (!isOpen) return;
+  useEffect(() => {
+    if (!isOpen) return;
 
+    // Handle keydown events
+    const handleKeyDown = (e: KeyboardEvent) => {
       // Handle Escape key
       if (e.key === 'Escape') {
         e.preventDefault();
-        onEscape?.();
+        onEscapeRef.current?.();
         return;
       }
 
@@ -49,37 +52,33 @@ export function useFocusTrap(isOpen: boolean = true, onEscape?: () => void) {
 
       // Shift + Tab: Focus previous element
       if (e.shiftKey) {
-        if (activeElement === firstElement) {
+        if (activeElement === firstElement || !elementRef.current?.contains(activeElement)) {
           e.preventDefault();
           lastElement.focus();
         }
       }
       // Tab: Focus next element
       else {
-        if (activeElement === lastElement) {
+        if (activeElement === lastElement || !elementRef.current?.contains(activeElement)) {
           e.preventDefault();
           firstElement.focus();
         }
       }
-    },
-    [isOpen, onEscape, getFocusableElements]
-  );
-
-  useEffect(() => {
-    if (!isOpen) return;
+    };
 
     // Store trigger element (element with focus before modal opened)
     triggerRef.current = document.activeElement as HTMLElement;
 
-    // Focus first focusable element
-    const focusableElements = getFocusableElements();
-    if (focusableElements.length > 0) {
-      focusableElements[0].focus();
-    }
-
-    // Add event listeners
+    // Focus first focusable element ONLY if current focus is outside this modal
     const modalElement = elementRef.current;
     if (modalElement) {
+      const activeEl = document.activeElement;
+      if (!activeEl || !modalElement.contains(activeEl)) {
+        const focusableElements = getFocusableElements();
+        if (focusableElements.length > 0) {
+          focusableElements[0].focus();
+        }
+      }
       modalElement.addEventListener('keydown', handleKeyDown);
     }
 
@@ -93,7 +92,7 @@ export function useFocusTrap(isOpen: boolean = true, onEscape?: () => void) {
         triggerRef.current.focus();
       }
     };
-  }, [isOpen, handleKeyDown, getFocusableElements]);
+  }, [isOpen, getFocusableElements]);
 
   return elementRef;
 }

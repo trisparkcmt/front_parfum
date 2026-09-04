@@ -135,11 +135,11 @@ export function Navbar() {
       <nav className={cn('hidden lg:block transition-all duration-300', scrolled ? 'py-2.5' : 'py-4')}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between relative">
-            <Link href="/" className={cn(glass, 'flex items-center gap-2 group flex-shrink-0 z-10 px-2')}>
+            <Link href="/" className={cn( 'flex items-center gap-2 group flex-shrink-0 z-10 px-2')}>
               <img
-                src="/logo/Logo only2.svg"
+                src="/logo/Longo only2.svg"
                 alt="Accessoires Exclusifs"
-                className="h-24 w-auto object-contain group-hover:scale-105 transition-transform duration-300"
+                className="h-20 w-auto object-contain group-hover:scale-105 transition-transform duration-300"
               />
             </Link>
 
