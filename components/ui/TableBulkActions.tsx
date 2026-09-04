@@ -3,6 +3,7 @@
 import React from 'react';
 import { X, Trash2, Eye, EyeOff } from 'lucide-react';
 import { ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 import { Button } from './Button';
 
@@ -54,6 +55,9 @@ export function TableBulkActions({
   actions,
   className,
 }: TableBulkActionsProps) {
+  const { i18n } = useTranslation();
+  const isEn = i18n.language?.startsWith('en') ?? false;
+
   if (selectedIds.length === 0) return null;
 
   const getActionVariant = (variant?: string) => {
@@ -78,11 +82,14 @@ export function TableBulkActions({
       <div className="flex items-center gap-3">
         <span className="text-sm font-semibold">
           {selectedIds.length === 1
-            ? `1 item selected`
-            : `${selectedIds.length} items selected`}
+            ? isEn ? `1 item selected` : `1 élément sélectionné`
+            : isEn 
+              ? `${selectedIds.length} items selected`
+              : `${selectedIds.length} éléments sélectionnés`
+          }
         </span>
         {totalCount && selectedIds.length === totalCount && (
-          <span className="text-xs opacity-75">(All)</span>
+          <span className="text-xs opacity-75">{isEn ? '(All)' : '(Tous)'}</span>
         )}
       </div>
 
@@ -107,7 +114,7 @@ export function TableBulkActions({
         <button
           onClick={onClear}
           className="ml-2 p-1.5 rounded-lg hover:bg-white/20 transition-colors"
-          aria-label="Clear selection"
+          aria-label={isEn ? 'Clear selection' : 'Effacer la sélection'}
         >
           <X size={18} />
         </button>

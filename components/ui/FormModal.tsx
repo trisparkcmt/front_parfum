@@ -3,6 +3,7 @@
 import { useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
 
@@ -43,6 +44,8 @@ export function FormModal({
 }: FormModalProps) {
   const modalRef = useRef<HTMLDivElement>(null);
   const focusTrapRef = useFocusTrap(isOpen, onClose);
+  const { i18n } = useTranslation();
+  const isEn = i18n.language?.startsWith('en') ?? false;
 
   // Handle scroll lock and focus management
   useEffect(() => {
@@ -135,7 +138,7 @@ export function FormModal({
                     <button
                       onClick={onClose}
                       className="ml-auto shrink-0 rounded-md p-1.5 text-foreground/40 transition-colors hover:bg-white/8 hover:text-foreground focus:outline-none focus:ring-2 focus:ring-gold/50"
-                      aria-label="Close dialog"
+                      aria-label={isEn ? 'Close dialog' : 'Fermer la boîte de dialogue'}
                       type="button"
                     >
                       <X size={16} />

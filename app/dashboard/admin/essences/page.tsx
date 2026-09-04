@@ -906,6 +906,7 @@ export default function EssencesPage() {
 
       {/* Modale d'Ajout / Modification (verbatim off-limits form logic) */}
       <SlideOver
+        key={editingEssence ? `edit-${editingEssence.id}` : 'new'}
         isOpen={showModal}
         onClose={() => setShowModal(false)}
         title={editingEssence ? t('modal_edit') : t('modal_new')}

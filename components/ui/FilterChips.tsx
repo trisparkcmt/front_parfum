@@ -2,6 +2,7 @@
 
 import { X } from 'lucide-react';
 import { ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 
 export interface FilterChip {
@@ -45,6 +46,9 @@ export function FilterChips({
   className,
   showClearAll = chips.length > 1,
 }: FilterChipsProps) {
+  const { i18n } = useTranslation();
+  const isEn = i18n.language?.startsWith('en') ?? false;
+
   if (chips.length === 0) return null;
 
   const getColorClasses = (color?: string) => {
@@ -69,9 +73,9 @@ export function FilterChips({
         <button
           onClick={onClear}
           className="text-xs px-2 py-1 rounded-full border border-white/10 text-foreground/60 hover:text-foreground hover:bg-white/5 transition-colors"
-          aria-label="Clear all filters"
+          aria-label={isEn ? 'Clear all filters' : 'Effacer tous les filtres'}
         >
-          Clear all
+          {isEn ? 'Clear all' : 'Tout effacer'}
         </button>
       )}
 
@@ -90,7 +94,7 @@ export function FilterChips({
           <button
             onClick={() => onRemove(chip.id)}
             className="ml-1 hover:opacity-70 transition-opacity flex-shrink-0"
-            aria-label={`Remove ${chip.label} filter`}
+            aria-label={isEn ? `Remove ${chip.label} filter` : `Supprimer le filtre ${chip.label}`}
           >
             <X size={12} />
           </button>
@@ -130,6 +134,9 @@ export function FilterBuilder({
   options: Record<string, any[]>;
   className?: string;
 }) {
+  const { i18n } = useTranslation();
+  const isEn = i18n.language?.startsWith('en') ?? false;
+
   const addFilter = () => {
     onChange([
       ...filters,
@@ -159,7 +166,7 @@ export function FilterBuilder({
             }
             className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-foreground outline-none focus:border-gold/50"
           >
-            <option value="">Select field...</option>
+            <option value="">{isEn ? 'Select field...' : 'Sélectionner un champ...'}</option>
             {Object.keys(options).map((key) => (
               <option key={key} value={key}>
                 {key}
@@ -175,11 +182,11 @@ export function FilterBuilder({
             }
             className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-foreground outline-none focus:border-gold/50"
           >
-            <option value="equals">Equals</option>
-            <option value="contains">Contains</option>
-            <option value="greater">Greater</option>
-            <option value="less">Less</option>
-            <option value="between">Between</option>
+            <option value="equals">{isEn ? 'Equals' : 'Égal à'}</option>
+            <option value="contains">{isEn ? 'Contains' : 'Contient'}</option>
+            <option value="greater">{isEn ? 'Greater' : 'Supérieur à'}</option>
+            <option value="less">{isEn ? 'Less' : 'Inférieur à'}</option>
+            <option value="between">{isEn ? 'Between' : 'Entre'}</option>
           </select>
 
           {/* Value input */}

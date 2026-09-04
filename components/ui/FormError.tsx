@@ -1,6 +1,7 @@
 'use client';
 
 import { AlertCircle, X } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 
 export interface FormErrorProps {
@@ -42,6 +43,9 @@ export function FormError({
   inline = false,
   severity = 'error',
 }: FormErrorProps) {
+  const { i18n } = useTranslation();
+  const isEn = i18n.language?.startsWith('en') ?? false;
+
   if (!errors) return null;
 
   // Convert errors to array of messages
@@ -99,7 +103,7 @@ export function FormError({
       <AlertCircle size={20} className={cn('shrink-0 mt-0.5', iconColor)} />
       <div className="flex-1">
         <p className={cn('text-sm font-medium', textColor)}>
-          {severity === 'error' ? 'Error' : 'Warning'}
+          {severity === 'error' ? (isEn ? 'Error' : 'Erreur') : (isEn ? 'Warning' : 'Avertissement')}
         </p>
         <p className={cn('mt-1 text-sm', textColor)}>
           {firstError}
@@ -116,7 +120,7 @@ export function FormError({
         <button
           onClick={onDismiss}
           className={cn('shrink-0 hover:opacity-70 transition-opacity', textColor)}
-          aria-label="Dismiss error"
+          aria-label={isEn ? 'Dismiss error' : 'Fermer l\'erreur'}
         >
           <X size={20} />
         </button>

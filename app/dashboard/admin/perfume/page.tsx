@@ -923,6 +923,7 @@ export default function PerfumeAdminPage() {
 
       {/* Form Modal (Verbatim copy of form structure & handlers to prevent broken logic) */}
       <FormModal
+        key={editingPerfume ? `edit-${editingPerfume.id}` : 'new'}
         isOpen={showModal && (permissions.canCreate || permissions.canUpdate)}
         onClose={() => setShowModal(false)}
         title={editingPerfume ? t('edit_modal') : t('new_modal')}

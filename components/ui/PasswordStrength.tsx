@@ -2,6 +2,7 @@
 
 import { evaluatePasswordStrength, type PasswordStrength as PasswordStrengthType } from '@/lib/validation';
 import { Check, X } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 import { useMemo } from 'react';
 
@@ -29,6 +30,8 @@ export function PasswordStrength({
     () => evaluatePasswordStrength(password),
     [password]
   );
+  const { i18n } = useTranslation();
+  const isEn = i18n.language?.startsWith('en') ?? false;
 
   const getStrengthColor = (str: PasswordStrengthType['strength']) => {
     switch (str) {
@@ -72,7 +75,7 @@ export function PasswordStrength({
       <div className="space-y-1.5">
         <div className="flex items-center justify-between">
           <label className="text-xs font-medium text-slate-600">
-            Password Strength
+            {isEn ? 'Password Strength' : 'Force du mot de passe'}
           </label>
           <span className={cn('text-xs font-medium', getTextColor(strength.strength))}>
             {getStrengthLabel(strength.strength)}
@@ -99,7 +102,7 @@ export function PasswordStrength({
       {/* Requirements checklist */}
       {showRequirements && (
         <div className="bg-slate-50 border border-slate-200 rounded-lg p-3 space-y-2">
-          <p className="text-xs font-medium text-slate-700">Requirements:</p>
+          <p className="text-xs font-medium text-slate-700">{isEn ? 'Requirements:' : 'Exigences :'}</p>
           <ul className="space-y-1.5">
             <li className="flex items-center gap-2 text-xs">
               {strength.requirements.hasMinLength ? (
@@ -114,7 +117,7 @@ export function PasswordStrength({
                     : 'text-slate-500'
                 }
               >
-                At least 8 characters
+                {isEn ? 'At least 8 characters' : 'Au moins 8 caractères'}
               </span>
             </li>
             <li className="flex items-center gap-2 text-xs">
@@ -130,7 +133,7 @@ export function PasswordStrength({
                     : 'text-slate-500'
                 }
               >
-                Uppercase letter (A-Z)
+                {isEn ? 'Uppercase letter (A-Z)' : 'Lettre majuscule (A-Z)'}
               </span>
             </li>
             <li className="flex items-center gap-2 text-xs">
@@ -146,7 +149,7 @@ export function PasswordStrength({
                     : 'text-slate-500'
                 }
               >
-                Lowercase letter (a-z)
+                {isEn ? 'Lowercase letter (a-z)' : 'Lettre minuscule (a-z)'}
               </span>
             </li>
             <li className="flex items-center gap-2 text-xs">
@@ -162,7 +165,7 @@ export function PasswordStrength({
                     : 'text-slate-500'
                 }
               >
-                Number (0-9)
+                {isEn ? 'Number (0-9)' : 'Chiffre (0-9)'}
               </span>
             </li>
             <li className="flex items-center gap-2 text-xs">
@@ -178,7 +181,7 @@ export function PasswordStrength({
                     : 'text-slate-500'
                 }
               >
-                Special character (!@#$%^&*)
+                {isEn ? 'Special character (!@#$%^&*)' : 'Caractère spécial (!@#$%^&*)'}
               </span>
             </li>
           </ul>

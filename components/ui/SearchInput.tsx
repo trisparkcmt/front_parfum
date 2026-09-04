@@ -2,6 +2,7 @@
 
 import { Search, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 
 export interface SearchInputProps {
@@ -28,7 +29,7 @@ export interface SearchInputProps {
 export function SearchInput({
   value,
   onChange,
-  placeholder = 'Search...',
+  placeholder,
   debounceMs = 300,
   disabled = false,
   className = '',
@@ -41,6 +42,10 @@ export function SearchInput({
   const [isFocused, setIsFocused] = useState(false);
   const debounceTimer = useRef<NodeJS.Timeout | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const { i18n } = useTranslation();
+  const isEn = i18n.language?.startsWith('en') ?? false;
+
+  const defaultPlaceholder = isEn ? 'Search...' : 'Rechercher...';
 
   // Debounce onChange
   useEffect(() => {
@@ -100,7 +105,7 @@ export function SearchInput({
         onChange={(e) => setLocalValue(e.target.value)}
         onFocus={() => setIsFocused(true)}
         onBlur={() => setIsFocused(false)}
-        placeholder={placeholder}
+        placeholder={placeholder || defaultPlaceholder}
         disabled={disabled}
         autoFocus={autoFocus}
         className={cn(
@@ -113,7 +118,7 @@ export function SearchInput({
           'disabled:opacity-50 disabled:cursor-not-allowed',
           isFocused && 'border-gold/50 bg-white/8'
         )}
-        aria-label="Search"
+        aria-label={isEn ? 'Search' : 'Recherche'}
       />
 
       {/* Clear button */}
@@ -121,8 +126,8 @@ export function SearchInput({
         <button
           onClick={handleClear}
           className="absolute right-3 top-1/2 -translate-y-1/2 text-foreground/40 hover:text-foreground transition-colors p-1 rounded hover:bg-white/5"
-          title="Clear search"
-          aria-label="Clear search"
+          title={isEn ? 'Clear search' : 'Effacer la recherche'}
+          aria-label={isEn ? 'Clear search' : 'Effacer la recherche'}
           type="button"
         >
           <X size={16} />

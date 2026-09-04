@@ -137,7 +137,7 @@ export function Navbar() {
           <div className="flex items-center justify-between relative">
             <Link href="/" className={cn(glass, 'flex items-center gap-2 group flex-shrink-0 z-10 px-2')}>
               <img
-                src="/logo/Logo only.svg"
+                src="/logo/Logo only2.svg"
                 alt="Accessoires Exclusifs"
                 className="h-24 w-auto object-contain group-hover:scale-105 transition-transform duration-300"
               />

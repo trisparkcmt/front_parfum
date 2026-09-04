@@ -1,6 +1,7 @@
 'use client';
 
 import { ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 import { Button } from './Button';
 
@@ -146,6 +147,9 @@ export function NoResults({
   onBack?: () => void;
   className?: string;
 }) {
+  const { i18n } = useTranslation();
+  const isEn = i18n.language?.startsWith('en') ?? false;
+
   return (
     <EmptyState
       icon={
@@ -163,19 +167,23 @@ export function NoResults({
           />
         </svg>
       }
-      title="No results found"
+      title={isEn ? 'No results found' : 'Aucun résultat trouvé'}
       description={
         searchTerm
-          ? `We couldn't find anything matching "${searchTerm}". Try different keywords or filters.`
-          : 'Try adjusting your search or filters'
+          ? isEn 
+            ? `We couldn't find anything matching "${searchTerm}". Try different keywords or filters.`
+            : `Aucun résultat pour "${searchTerm}". Essayez d'autres mots-clés ou filtres.`
+          : isEn 
+            ? 'Try adjusting your search or filters'
+            : 'Essayez d\'ajuster votre recherche ou vos filtres'
       }
       action={
         onClear
-          ? { label: 'Clear search', onClick: onClear }
+          ? { label: isEn ? 'Clear search' : 'Effacer la recherche', onClick: onClear }
           : undefined
       }
       secondaryAction={
-        onBack ? { label: 'Go back', onClick: onBack } : undefined
+        onBack ? { label: isEn ? 'Go back' : 'Retour', onClick: onBack } : undefined
       }
       className={className}
     />
@@ -186,7 +194,7 @@ export function NoResults({
  * NoData: Specialized empty state for empty tables/lists
  */
 export function NoData({
-  title = 'No data available',
+  title,
   description,
   actionLabel,
   onAction,
@@ -198,6 +206,9 @@ export function NoData({
   onAction?: () => void;
   className?: string;
 }) {
+  const { i18n } = useTranslation();
+  const isEn = i18n.language?.startsWith('en') ?? false;
+
   return (
     <EmptyState
       icon={
@@ -215,7 +226,7 @@ export function NoData({
           />
         </svg>
       }
-      title={title}
+      title={title || (isEn ? 'No data available' : 'Aucune donnée disponible')}
       description={description}
       action={
         actionLabel && onAction
@@ -237,6 +248,9 @@ export function NoPermission({
   onGoBack?: () => void;
   className?: string;
 }) {
+  const { i18n } = useTranslation();
+  const isEn = i18n.language?.startsWith('en') ?? false;
+
   return (
     <EmptyState
       icon={
@@ -254,10 +268,10 @@ export function NoPermission({
           />
         </svg>
       }
-      title="Access Denied"
-      description="You don't have permission to view this content."
+      title={isEn ? 'Access Denied' : 'Accès refusé'}
+      description={isEn ? "You don't have permission to view this content." : "Vous n'avez pas la permission de voir ce contenu."}
       secondaryAction={
-        onGoBack ? { label: 'Go back', onClick: onGoBack } : undefined
+        onGoBack ? { label: isEn ? 'Go back' : 'Retour', onClick: onGoBack } : undefined
       }
       className={className}
     />
@@ -268,7 +282,7 @@ export function NoPermission({
  * LoadingState: Placeholder while data is loading
  */
 export function LoadingState({
-  title = 'Loading...',
+  title,
   description,
   className,
 }: {
@@ -276,6 +290,9 @@ export function LoadingState({
   description?: string;
   className?: string;
 }) {
+  const { i18n } = useTranslation();
+  const isEn = i18n.language?.startsWith('en') ?? false;
+
   return (
     <div
       className={cn(
@@ -287,7 +304,7 @@ export function LoadingState({
         <div className="absolute inset-0 bg-gradient-to-r from-gold/20 to-transparent rounded-full animate-spin" />
         <div className="absolute inset-2 bg-white rounded-full" />
       </div>
-      <h3 className="font-semibold text-slate-900">{title}</h3>
+      <h3 className="font-semibold text-slate-900">{title || (isEn ? 'Loading...' : 'Chargement...')}</h3>
       {description && (
         <p className="mt-2 text-slate-600 text-sm">{description}</p>
       )}

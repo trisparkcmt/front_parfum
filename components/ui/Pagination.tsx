@@ -1,6 +1,7 @@
 'use client';
 
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 
 export interface PaginationProps {
@@ -34,6 +35,8 @@ export function Pagination({
 }: PaginationProps) {
   const canGoPrevious = currentPage > 1;
   const canGoNext = currentPage < totalPages;
+  const { i18n } = useTranslation();
+  const isEn = i18n.language?.startsWith('en') ?? false;
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
@@ -61,9 +64,19 @@ export function Pagination({
       {/* Info section */}
       {showInfo && totalItems !== undefined && (
         <div className="text-xs text-foreground/50">
-          Showing <span className="font-medium text-foreground">{startItem}</span> to{' '}
-          <span className="font-medium text-foreground">{endItem}</span> of{' '}
-          <span className="font-medium text-foreground">{totalItems}</span> results
+          {isEn ? (
+            <>
+              Showing <span className="font-medium text-foreground">{startItem}</span> to{' '}
+              <span className="font-medium text-foreground">{endItem}</span> of{' '}
+              <span className="font-medium text-foreground">{totalItems}</span> results
+            </>
+          ) : (
+            <>
+              Affichage de <span className="font-medium text-foreground">{startItem}</span> à{' '}
+              <span className="font-medium text-foreground">{endItem}</span> sur{' '}
+              <span className="font-medium text-foreground">{totalItems}</span> résultats
+            </>
+          )}
         </div>
       )}
 
@@ -74,8 +87,8 @@ export function Pagination({
           onClick={() => onPageChange(1)}
           disabled={disabled || !canGoPrevious}
           className="p-1.5 rounded hover:bg-white/5 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          title="First page"
-          aria-label="Go to first page"
+          title={isEn ? 'First page' : 'Première page'}
+          aria-label={isEn ? 'Go to first page' : 'Aller à la première page'}
         >
           <ChevronsLeft size={16} />
         </button>
@@ -85,8 +98,8 @@ export function Pagination({
           onClick={() => onPageChange(currentPage - 1)}
           disabled={disabled || !canGoPrevious}
           className="p-1.5 rounded hover:bg-white/5 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          title="Previous page"
-          aria-label="Go to previous page"
+          title={isEn ? 'Previous page' : 'Page précédente'}
+          aria-label={isEn ? 'Go to previous page' : 'Aller à la page précédente'}
         >
           <ChevronLeft size={16} />
         </button>
@@ -101,9 +114,9 @@ export function Pagination({
             onKeyDown={handleKeyDown}
             disabled={disabled}
             className="w-12 bg-white/5 border border-white/10 rounded px-2 py-1 text-center text-xs text-foreground outline-none focus:border-gold/50 disabled:opacity-50"
-            aria-label="Page number"
+            aria-label={isEn ? 'Page number' : 'Numéro de page'}
           />
-          <span className="text-foreground/50">of {totalPages}</span>
+          <span className="text-foreground/50">{isEn ? 'of' : 'sur'} {totalPages}</span>
         </div>
 
         {/* Next page */}
@@ -111,8 +124,8 @@ export function Pagination({
           onClick={() => onPageChange(currentPage + 1)}
           disabled={disabled || !canGoNext}
           className="p-1.5 rounded hover:bg-white/5 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          title="Next page"
-          aria-label="Go to next page"
+          title={isEn ? 'Next page' : 'Page suivante'}
+          aria-label={isEn ? 'Go to next page' : 'Aller à la page suivante'}
         >
           <ChevronRight size={16} />
         </button>
@@ -122,8 +135,8 @@ export function Pagination({
           onClick={() => onPageChange(totalPages)}
           disabled={disabled || !canGoNext}
           className="p-1.5 rounded hover:bg-white/5 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          title="Last page"
-          aria-label="Go to last page"
+          title={isEn ? 'Last page' : 'Dernière page'}
+          aria-label={isEn ? 'Go to last page' : 'Aller à la dernière page'}
         >
           <ChevronsRight size={16} />
         </button>

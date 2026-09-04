@@ -2,6 +2,7 @@
 
 import { AlertTriangle, Wifi, RefreshCw, Home } from 'lucide-react';
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Button } from './Button';
 import { cn } from '@/lib/utils';
 
@@ -38,13 +39,21 @@ export interface NetworkErrorProps {
  * />
  */
 export function NetworkError({
-  title = 'Connection Error',
-  description = 'Failed to connect to the server. Please check your connection and try again.',
+  title,
+  description,
   onRetry,
   isRetrying = false,
   className,
   inline = false,
 }: NetworkErrorProps) {
+  const { i18n } = useTranslation();
+  const isEn = i18n.language?.startsWith('en') ?? false;
+
+  const defaultTitle = isEn ? 'Connection Error' : 'Erreur de connexion';
+  const defaultDescription = isEn 
+    ? 'Failed to connect to the server. Please check your connection and try again.'
+    : 'Échec de la connexion au serveur. Veuillez vérifier votre connexion et réessayer.';
+
   if (inline) {
     return (
       <div
@@ -55,8 +64,8 @@ export function NetworkError({
       >
         <AlertTriangle size={20} className="text-red-400 shrink-0 mt-0.5" />
         <div className="flex-1">
-          <h3 className="font-medium text-red-400">{title}</h3>
-          <p className="text-sm text-red-400/80 mt-1">{description}</p>
+          <h3 className="font-medium text-red-400">{title || defaultTitle}</h3>
+          <p className="text-sm text-red-400/80 mt-1">{description || defaultDescription}</p>
           <Button
             onClick={onRetry}
             isLoading={isRetrying}
@@ -64,7 +73,7 @@ export function NetworkError({
             className="mt-3"
             leftIcon={<RefreshCw size={14} />}
           >
-            Retry
+            {isEn ? 'Retry' : 'Réessayer'}
           </Button>
         </div>
       </div>
@@ -92,13 +101,16 @@ export function NetworkError({
 
           {/* Title and description */}
           <div className="text-center space-y-2">
-            <h1 className="text-2xl font-bold text-slate-900">{title}</h1>
-            <p className="text-slate-600 text-sm leading-relaxed">{description}</p>
+            <h1 className="text-2xl font-bold text-slate-900">{title || defaultTitle}</h1>
+            <p className="text-slate-600 text-sm leading-relaxed">{description || defaultDescription}</p>
           </div>
 
           {/* Retry info */}
           <div className="bg-slate-50 border border-slate-200 rounded-lg p-3 text-xs text-slate-600 text-center">
-            Make sure you have an active internet connection
+            {isEn 
+              ? 'Make sure you have an active internet connection'
+              : 'Assurez-vous d\'avoir une connexion Internet active'
+            }
           </div>
 
           {/* Actions */}
@@ -109,7 +121,10 @@ export function NetworkError({
               className="flex-1"
               leftIcon={<RefreshCw size={16} />}
             >
-              {isRetrying ? 'Retrying...' : 'Try Again'}
+              {isRetrying 
+                ? (isEn ? 'Retrying...' : 'Nouvelle tentative...')
+                : (isEn ? 'Try Again' : 'Réessayer')
+              }
             </Button>
             <Button
               variant="ghost"
@@ -119,13 +134,16 @@ export function NetworkError({
               className="flex-1"
               leftIcon={<Home size={16} />}
             >
-              Go Home
+              {isEn ? 'Go Home' : 'Accueil'}
             </Button>
           </div>
 
           {/* Help text */}
           <p className="text-xs text-slate-500 text-center">
-            If the problem persists, please try again later or contact support
+            {isEn 
+              ? 'If the problem persists, please try again later or contact support'
+              : 'Si le problème persiste, veuillez réessayer plus tard ou contacter le support'
+            }
           </p>
         </div>
       </div>
