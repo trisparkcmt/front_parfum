@@ -1057,7 +1057,7 @@ export function GeminiChat({ onChatStarted }: GeminiChatProps) {
                  e.name === item.nom || 
                  String((e as unknown as { nom?: string }).nom || '') === item.nom
           );
-          
+
           if (!essence) {
             essence = {
               id: String(item.id),
@@ -1069,6 +1069,8 @@ export function GeminiChat({ onChatStarted }: GeminiChatProps) {
               itemType: 'essence',
             } as any;
           }
+
+          if (!essence) return;
 
           compositionEssences.push({ essence, quantityMl: item.quantite_ml });
           totalPrice += Number(item.prix_total_quantite);

@@ -1376,9 +1376,9 @@ Chaque section répertorie :
     ```
 
 ### 6.7 Suivi de l'Inventaire Labo
-*   **URL** : `/api/v1/lab/labo/essences/`
+*   **URL** : `/api/v1/lab/labo/essences/disponible/`
 *   **Méthodes** : `GET`, `POST` (Admin/Laborantin)
-*   **Détail, Modifier & Supprimer** : `GET`, `PUT`, `PATCH`, `DELETE` sur `/api/v1/lab/labo/essences/{id}/` (Admin)
+*   **Détail, Modifier & Supprimer** : `GET`, `PUT`, `PATCH`, `DELETE` sur `/api/v1/lab/labo/essences/disponible/{id}/` (Admin)
 
 ---
 

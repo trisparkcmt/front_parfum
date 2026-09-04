@@ -258,14 +258,14 @@ export default function ProfitAnalyticsDashboard() {
   // ─── Normalize API response ──────────────────────────────────────────────────
   // Support both the flat shape { benefice_total, chiffre_affaires_total, … }
   // and the older nested shape { totaux: { benefice_net, chiffre_affaires, … }, par_categorie: { … } }
+  const beneficeNet = parseFloat(
+    String(profitData?.benefice_total ?? profitData?.totaux?.benefice_net ?? labData?.benefice_total ?? 0)
+  );
   const caGlobal = parseFloat(
     String(profitData?.chiffre_affaires_total ?? profitData?.totaux?.chiffre_affaires ?? labData?.chiffre_affaires_total ?? 0)
   );
   const coutTotal = parseFloat(
-    String(profitData?.totaux?.cout_total ?? 0)
-  );
-  const beneficeNet = parseFloat(
-    String(profitData?.benefice_total ?? profitData?.totaux?.benefice_net ?? labData?.benefice_total ?? 0)
+    String(profitData?.cout_total ?? profitData?.totaux?.cout_total ?? (caGlobal - beneficeNet))
   );
   const nbCommandes = profitData?.nb_commandes ?? '—';
   const margeGlobale = profitData?.marge_globale != null
@@ -274,34 +274,7 @@ export default function ProfitAnalyticsDashboard() {
 
   // Category breakdown — prefer flat benefices_par_type array, fall back to par_categorie map
   const beneficesParType: { type: string; nombre_articles: number; chiffre_affaires: string; cout_achat: string; benefice: string; marge_percent: number }[] =
-    profitData?.benefices_par_type && profitData.benefices_par_type.length > 0
-      ? profitData.benefices_par_type
-      : [
-          {
-            type: "parfum",
-            nombre_articles: 86,
-            chiffre_affaires: "3788558.90",
-            cout_achat: "825018.00",
-            benefice: "2963540.90",
-            marge_percent: 78.22
-          },
-          {
-            type: "accessoire",
-            nombre_articles: 99,
-            chiffre_affaires: "97487823.28",
-            cout_achat: "39151797.00",
-            benefice: "58336026.28",
-            marge_percent: 59.84
-          },
-          {
-            type: "produit_fini_essence",
-            nombre_articles: 20,
-            chiffre_affaires: "707500.00",
-            cout_achat: "0.00",
-            benefice: "707500.00",
-            marge_percent: 100.0
-          }
-        ];
+    profitData?.benefices_par_type ?? [];
 
   const parCategorie = profitData?.par_categorie || {};
   

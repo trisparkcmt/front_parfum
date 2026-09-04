@@ -1187,7 +1187,7 @@ export const labService = {
    * Get available labo inventory list (Admin / Laborantin / Serveuse)
    */
   getLaboInventoryAvailable: async () => {
-    const response = await api.get('lab/labo/essences/disponible/');
+    const response = await api.get('lab/labo/essences/disponible/disponible/');
     return response.data;
   },
 
@@ -1195,7 +1195,7 @@ export const labService = {
    * Get labo inventory item detail by slug (Admin / Laborantin / Serveuse)
    */
   getLaboInventoryDetail: async (slug: string) => {
-    const response = await api.get(`lab/labo/essences/${slug}/detail/`);
+    const response = await api.get(`lab/labo/essences/disponible/${slug}/detail/`);
     return response.data;
   },
 
@@ -1203,7 +1203,7 @@ export const labService = {
    * Get labo inventory list (Admin / Laborantin)
    */
   getLaboInventory: async () => {
-    const response = await api.get('lab/labo/essences/');
+    const response = await api.get('lab/labo/essences/disponible/');
     return response.data;
   },
 
@@ -1211,7 +1211,7 @@ export const labService = {
    * Get labo inventory item detail (Admin / Laborantin)
    */
   getLaboInventoryById: async (id: number) => {
-    const response = await api.get(`lab/labo/essences/${id}/`);
+    const response = await api.get(`lab/labo/essences/disponible/${id}/`);
     return response.data;
   },
 
@@ -1219,7 +1219,7 @@ export const labService = {
    * Update labo inventory item (Admin / Laborantin)
    */
   updateLaboInventory: async (id: number, data: any) => {
-    const response = await api.patch(`lab/labo/essences/${id}/`, data);
+    const response = await api.patch(`lab/labo/essences/disponible/${id}/`, data);
     return response.data;
   },
 
@@ -1227,7 +1227,7 @@ export const labService = {
    * Delete labo inventory item (Admin / Laborantin)
    */
   deleteLaboInventory: async (id: number) => {
-    const response = await api.delete(`lab/labo/essences/${id}/`);
+    const response = await api.delete(`lab/labo/essences/disponible/${id}/`);
     return response.data;
   },
 };
