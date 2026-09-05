@@ -48,6 +48,7 @@ export interface FCMPayload extends MessagePayload {
  */
 let cachedFCMToken: string | null = null;
 let foregroundUnsubscribe: (() => void) | null = null;
+let initializationPromise: Promise<string | null> | null = null;
 
 /**
  * VAPID Key for Firebase Cloud Messaging (public key)
@@ -195,7 +196,7 @@ async function registerServiceWorker(): Promise<ServiceWorkerRegistration | null
  * 3. Get FCM token from Firebase
  * 4. Register device with backend via deviceService
  */
-export async function initializeFCM(user: User | null): Promise<string | null> {
+async function initializeFCMInternal(user: User | null): Promise<string | null> {
   if (typeof window === 'undefined') {
     console.log('[FCM Service] Running server-side, skipping FCM initialization');
     return null;
@@ -210,6 +211,12 @@ export async function initializeFCM(user: User | null): Promise<string | null> {
   // Check for cached token first
   const cachedToken = getCachedFCMToken();
   if (cachedToken) {
+    cachedFCMToken = cachedToken;
+    try {
+      await deviceService.registerDevice(cachedToken);
+    } catch (error) {
+      console.warn('[FCM Service] Failed to sync cached device with backend:', error);
+    }
     return cachedToken;
   }
 
@@ -269,6 +276,16 @@ export async function initializeFCM(user: User | null): Promise<string | null> {
     useToastStore.getState().addToast(`Erreur d'initialisation des notifications: ${error.message || error}`, 'error');
     return null;
   }
+}
+
+export function initializeFCM(user: User | null): Promise<string | null> {
+  if (initializationPromise) return initializationPromise;
+
+  initializationPromise = initializeFCMInternal(user).finally(() => {
+    initializationPromise = null;
+  });
+
+  return initializationPromise;
 }
 
 /**
