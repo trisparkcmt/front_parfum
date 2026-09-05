@@ -74,7 +74,7 @@ export async function registerPushNotifications(authToken: string): Promise<void
       },
       body: JSON.stringify({
         registration_token: fcmToken,
-        platform: 'web',
+        type_appareil: 'web',
       }),
     });
 

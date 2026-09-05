@@ -4,7 +4,7 @@
  * Handles registration and unregistration of devices with the Django backend API.
  * 
  * API Endpoints:
- * - POST /auth/fcm/register/ (Payload: { registration_token, platform })
+ * - POST /auth/fcm/register/ (Payload: { registration_token, type_appareil })
  * - POST /auth/fcm/unregister/ (Payload: { registration_token })
  * - GET /utilisateur/notifications/ (Fetch notification history)
  */
@@ -23,7 +23,7 @@ export type DevicePlatform = 'web' | 'ios' | 'android';
  */
 interface DeviceRegistrationPayload {
   registration_token: string;
-  platform: DevicePlatform;
+  type_appareil: DevicePlatform;
 }
 
 /**
@@ -39,7 +39,7 @@ interface DeviceUnregistrationPayload {
 interface DeviceRegistrationResponse {
   id?: string | number;
   registration_token: string;
-  platform: DevicePlatform;
+  type_appareil: DevicePlatform;
   created_at?: string;
   updated_at?: string;
 }
@@ -65,7 +65,7 @@ export const deviceService = {
 
     const payload: DeviceRegistrationPayload = {
       registration_token: registrationToken,
-      platform: typeof window === 'undefined' ? 'web' : getDevicePlatform(),
+      type_appareil: typeof window === 'undefined' ? 'web' : getDevicePlatform(),
     };
 
     try {
