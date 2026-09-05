@@ -28,8 +28,8 @@ messaging.onBackgroundMessage((payload) => {
   
   // SECURE FALLBACK: Extract title & body from payload.notification OR payload.data
   // This ensures that data-only payloads trigger the notification display.
-  const title = payload.notification?.title || data.title || 'Nouvelle notification';
-  const body = payload.notification?.body || data.body || 'Vous avez reçu un nouveau message';
+  const title = payload.notification?.title || data.title || 'Accessoire Exclusif';
+  const body = payload.notification?.body || data.message || data.body || '';
 
   const notificationOptions = {
     body: body,
