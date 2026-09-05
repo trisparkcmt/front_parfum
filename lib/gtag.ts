@@ -56,6 +56,38 @@ function categoryFromType(type?: string): string {
 // ─── Event helpers ────────────────────────────────────────────────────────────
 
 /**
+ * Fired when a user views a product listing page (shop, catalog, category page).
+ * Call this on page load for shop pages that display multiple products.
+ */
+export function trackViewItemList(params: {
+  items: GA4Item[];
+  item_list_id?: string;
+  item_list_name?: string;
+}) {
+  gtag('event', 'view_item_list', {
+    item_list_id: params.item_list_id,
+    item_list_name: params.item_list_name,
+    items: params.items,
+  });
+}
+
+/**
+ * Fired when a user views a product detail page.
+ * Call this on page load for individual product pages.
+ */
+export function trackViewItem(params: {
+  currency?: string;
+  value: number;
+  items: GA4Item[];
+}) {
+  gtag('event', 'view_item', {
+    currency: params.currency || 'XAF',
+    value: params.value,
+    items: params.items,
+  });
+}
+
+/**
  * Fired when the user clicks "Ajouter au panier".
  * Call this AFTER the cart store action resolves successfully.
  */
@@ -76,6 +108,32 @@ export function trackAddToCart(product: {
 
   gtag('event', 'add_to_cart', {
     currency: 'XAF',          // FCFA ISO code
+    value:    item.price * item.quantity,
+    items:    [item],
+  });
+}
+
+/**
+ * Fired when a user removes an item from the cart.
+ * Call this AFTER the cart store remove action resolves successfully.
+ */
+export function trackRemoveFromCart(product: {
+  id: string | number;
+  name: string;
+  price: number;
+  category?: string;
+  quantity?: number;
+}) {
+  const item: GA4Item = {
+    item_id:       String(product.id),
+    item_name:     product.name,
+    item_category: product.category,
+    price:         product.price,
+    quantity:      product.quantity ?? 1,
+  };
+
+  gtag('event', 'remove_from_cart', {
+    currency: 'XAF',
     value:    item.price * item.quantity,
     items:    [item],
   });

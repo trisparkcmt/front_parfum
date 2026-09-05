@@ -59,6 +59,26 @@ function DiffuseursShopContent() {
           ordering: ordering || undefined,
         });
         setProducts(mappedProducts);
+        
+        // Track view_item_list event for GA4
+        if (mappedProducts.length > 0) {
+          try {
+            const { trackViewItemList } = await import('@/lib/gtag');
+            trackViewItemList({
+              item_list_id: 'diffuseurs',
+              item_list_name: 'Diffusers',
+              items: mappedProducts.slice(0, 10).map(p => ({
+                item_id: String(p.id),
+                item_name: p.name,
+                item_category: 'Diffuseur',
+                price: p.price,
+                quantity: 1,
+              })),
+            });
+          } catch (error) {
+            console.warn('Failed to track view_item_list:', error);
+          }
+        }
       } catch (error) {
         console.error('Failed to load diffuseurs:', error);
       } finally {

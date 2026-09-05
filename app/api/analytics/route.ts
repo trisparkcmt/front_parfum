@@ -124,12 +124,24 @@ export async function GET() {
 
     const reports = allReports;
 
+    // DEBUG: Log the raw response structure
+    console.log('=== GA4 API Debug ===');
+    console.log('Total reports received:', reports.length);
+    console.log('Report 0 (Funnel Events) structure:', JSON.stringify(reports[0], null, 2));
+    console.log('Report 0 rows count:', reports[0]?.rows?.length || 0);
+    console.log('Report 1 (Revenue) rows count:', reports[1]?.rows?.length || 0);
+    console.log('Report 2 (Acquisition) rows count:', reports[2]?.rows?.length || 0);
+    console.log('Report 3 (Pages) rows count:', reports[3]?.rows?.length || 0);
+    console.log('Report 4 (Tech) rows count:', reports[4]?.rows?.length || 0);
+    console.log('Report 5 (Geo) rows count:', reports[5]?.rows?.length || 0);
+
     // Parse Report 0: Funnel Event Counts
     const funnelEventRows = reports[0]?.rows || [];
     const eventCountMap: Record<string, number> = {};
     funnelEventRows.forEach((row: any) => {
       const step = row.dimensionValues?.[0]?.value || '';
       const eventCount = parseInt(row.metricValues?.[0]?.value || '0', 10);
+      console.log(`Funnel step: ${step}, eventCount: ${eventCount}`);
       eventCountMap[step] = eventCount;
     });
 
@@ -194,7 +206,7 @@ export async function GET() {
       newUsers: parseInt(row.metricValues?.[1]?.value || '0', 10),
     }));
 
-    return NextResponse.json({
+    const responseData = {
       funnel: completeFunnel,
       acquisition,
       pages,
@@ -202,7 +214,18 @@ export async function GET() {
       geo,
       // GA4 does not support eventCount with the itemName dimension.
       shares: [],
-    });
+    };
+
+    console.log('Final response summary:');
+    console.log('- Funnel steps:', completeFunnel.length);
+    console.log('- Acquisition channels:', acquisition.length);
+    console.log('- Pages:', pages.length);
+    console.log('- Tech entries:', tech.length);
+    console.log('- Geo locations:', geo.length);
+    console.log('- Total purchase revenue:', purchaseRevenue);
+    console.log('=== End GA4 Debug ===');
+
+    return NextResponse.json(responseData);
   } catch (error: any) {
     console.error('Error fetching GA4 report batch:', error);
     return NextResponse.json(

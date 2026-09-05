@@ -259,18 +259,20 @@ export default function ProfitAnalyticsDashboard() {
   // Support both the flat shape { benefice_total, chiffre_affaires_total, … }
   // and the older nested shape { totaux: { benefice_net, chiffre_affaires, … }, par_categorie: { … } }
   const beneficeNet = parseFloat(
-    String(profitData?.benefice_total ?? profitData?.totaux?.benefice_net ?? labData?.benefice_total ?? 0)
+    String(labData?.benefice_total ?? profitData?.benefice_total ?? profitData?.totaux?.benefice_net ?? 0)
   );
   const caGlobal = parseFloat(
-    String(profitData?.chiffre_affaires_total ?? profitData?.totaux?.chiffre_affaires ?? labData?.chiffre_affaires_total ?? 0)
+    String(labData?.chiffre_affaires_total ?? profitData?.chiffre_affaires_total ?? profitData?.totaux?.chiffre_affaires ?? 0)
   );
   const coutTotal = parseFloat(
     String(profitData?.cout_total ?? profitData?.totaux?.cout_total ?? (caGlobal - beneficeNet))
   );
   const nbCommandes = profitData?.nb_commandes ?? '—';
-  const margeGlobale = profitData?.marge_globale != null
-    ? Number(profitData.marge_globale).toFixed(1)
-    : (caGlobal > 0 ? ((beneficeNet / caGlobal) * 100).toFixed(1) : (labData?.marge_globale ?? '0'));
+  const margeGlobale = labData?.marge_globale != null
+    ? Number(labData.marge_globale).toFixed(2)
+    : profitData?.marge_globale != null
+      ? Number(profitData.marge_globale).toFixed(2)
+      : (caGlobal > 0 ? ((beneficeNet / caGlobal) * 100).toFixed(2) : '0');
 
   // Category breakdown — prefer flat benefices_par_type array, fall back to par_categorie map
   const beneficesParType: { type: string; nombre_articles: number; chiffre_affaires: string; cout_achat: string; benefice: string; marge_percent: number }[] =

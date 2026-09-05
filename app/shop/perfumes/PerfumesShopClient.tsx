@@ -109,10 +109,51 @@ export default function PerfumesShopClient() {
         setProducts(response);
         setTotalPages(1);
         setTotalCount(response.length);
+        
+        // Track view_item_list event for GA4
+        if (response.length > 0) {
+          try {
+            const { trackViewItemList } = await import('@/lib/gtag');
+            trackViewItemList({
+              item_list_id: activeTab === 'all' ? 'all_perfumes' : `category_${activeTab}`,
+              item_list_name: activeTab === 'all' ? 'All Perfumes' : `Category ${activeTab}`,
+              items: response.slice(0, 10).map(p => ({
+                item_id: String(p.id),
+                item_name: p.name,
+                item_category: p.category,
+                price: p.price,
+                quantity: 1,
+              })),
+            });
+          } catch (error) {
+            console.warn('Failed to track view_item_list:', error);
+          }
+        }
       } else {
         setProducts(response.results ?? response.resultats ?? []);
         setTotalPages(response.pages ?? 1);
         setTotalCount(response.count ?? 0);
+        
+        // Track view_item_list event for GA4
+        const productList = response.results ?? response.resultats ?? [];
+        if (productList.length > 0) {
+          try {
+            const { trackViewItemList } = await import('@/lib/gtag');
+            trackViewItemList({
+              item_list_id: activeTab === 'all' ? 'all_perfumes' : `category_${activeTab}`,
+              item_list_name: activeTab === 'all' ? 'All Perfumes' : `Category ${activeTab}`,
+              items: productList.slice(0, 10).map(p => ({
+                item_id: String(p.id),
+                item_name: p.name,
+                item_category: p.category,
+                price: p.price,
+                quantity: 1,
+              })),
+            });
+          } catch (error) {
+            console.warn('Failed to track view_item_list:', error);
+          }
+        }
       }
 
       setLoading(false);

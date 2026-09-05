@@ -445,6 +445,16 @@ export const useCartStore = create<CartState>()(
         set({ isLoading: true, error: null });
         const addToast = useToastStore.getState().addToast;
         const state = get();
+        
+        // Find the item being removed for GA4 tracking
+        let removedItem: CartLine | undefined;
+        if (type === 'parfum') removedItem = state.cart?.lignes_parfums?.find(l => l.id === ligneId);
+        else if (type === 'accessoire') removedItem = state.cart?.lignes_accessoires?.find(l => l.id === ligneId);
+        else if (type === 'diffuseur-parfum') removedItem = state.cart?.lignes_diffuseurs?.find(l => l.id === ligneId);
+        else if (type === 'produit-fini-essence') removedItem = state.cart?.lignes_produit_fini_essence?.find(l => l.id === ligneId);
+        else if (type === 'parfum-personnalise') removedItem = state.cart?.lignes_parfums_perso?.find(l => l.id === ligneId);
+        else if (type === 'essence-personnalisee') removedItem = state.cart?.lignes_essence_personnalisee?.find(l => l.id === ligneId);
+        
         try {
           const cartData = await cartService.removeCartLine(
             type,
@@ -458,6 +468,22 @@ export const useCartStore = create<CartState>()(
             isLoading: false,
           });
           addToast('Removed', 'success');
+          
+          // Track remove_from_cart event for GA4
+          if (removedItem) {
+            try {
+              const { trackRemoveFromCart } = await import('@/lib/gtag');
+              trackRemoveFromCart({
+                id: String(removedItem.id),
+                name: removedItem.nom,
+                price: removedItem.prix_unitaire_snapshot,
+                category: type,
+                quantity: removedItem.quantite,
+              });
+            } catch (error) {
+              console.warn('Failed to track remove_from_cart:', error);
+            }
+          }
         } catch (error: any) {
           const errorMsg =
             error.response?.data?.detail || 'Erreur lors de la suppression du produit';

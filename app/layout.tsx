@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import Script from "next/script";
 import "./globals.css";
 import { lora } from "@/lib/fonts";
 import { LayoutWrapper } from "@/components/shared/LayoutWrapper";
@@ -100,17 +101,6 @@ export default function RootLayout({
   return (
     <html lang="fr" className={`h-full antialiased ${lora.variable}`} suppressHydrationWarning>
       <head>
-        {/* GA4 gtag.js script — for GTM detection */}
-        <script async src={`https://www.googletagmanager.com/gtag/js?id=${gaId}`}></script>
-        <script dangerouslySetInnerHTML={{
-          __html: `
-            window.dataLayer = window.dataLayer || [];
-            function gtag(){dataLayer.push(arguments);}
-            gtag('js', new Date());
-            gtag('config', '${gaId}');
-          `
-        }} />
-
         {/* Critical inline script for theme — must run before paint */}
         <script
           dangerouslySetInnerHTML={{
@@ -134,6 +124,29 @@ export default function RootLayout({
         />
       </head>
       <body className="min-h-full flex flex-col bg-background text-foreground selection:bg-gold selection:text-deep-black font-serif" suppressHydrationWarning>
+        
+        {/* Google Analytics 4 - Using Next.js Script component for proper loading */}
+        <Script
+          strategy="afterInteractive"
+          src={`https://www.googletagmanager.com/gtag/js?id=${gaId}`}
+        />
+        <Script
+          id="google-analytics"
+          strategy="afterInteractive"
+          dangerouslySetInnerHTML={{
+            __html: `
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments);}
+              gtag('js', new Date());
+              gtag('config', '${gaId}', {
+                debug_mode: true,
+                send_page_view: true
+              });
+              console.log('GA4 initialized with ID: ${gaId}');
+            `,
+          }}
+        />
+        
         <LayoutWrapper>
           {children}
         </LayoutWrapper>

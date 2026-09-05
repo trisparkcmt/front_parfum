@@ -426,7 +426,7 @@ function ActionButton({
 // ─────────────────────────────────────────────────────────────────────────
 
 function OrderPopupModal({
-  isOpen, onClose, title, subtitle, eyebrow, children, size = '2xl', footer,
+  isOpen, onClose, title, subtitle, eyebrow, children, size = '2xl', footer, bodyClassName,
 }: {
   isOpen: boolean;
   onClose: () => void;
@@ -436,6 +436,7 @@ function OrderPopupModal({
   children: React.ReactNode;
   size?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl';
   footer?: React.ReactNode;
+  bodyClassName?: string;
 }) {
   useEffect(() => {
     const mainEl = document.querySelector('main');
@@ -485,7 +486,7 @@ function OrderPopupModal({
             </button>
           </div>
         )}
-        <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-4 sm:py-5">{children}</div>
+        <div className={cx('flex-1 overflow-y-auto px-4 sm:px-6 py-4 sm:py-5', bodyClassName)}>{children}</div>
         {footer && <div className="shrink-0 border-t border-white/10 bg-background px-4 sm:px-6 py-3.5 sm:py-4">{footer}</div>}
       </div>
     </div>
@@ -1508,8 +1509,9 @@ function OrderDetailModal({
           </button>
         </div>
       }
+      bodyClassName="lg:overflow-hidden"
     >
-      <div className="space-y-6">
+      <div className="space-y-6 lg:flex lg:h-full lg:min-h-0 lg:flex-col">
 
         {/* Summary strip */}
         <div className="grid grid-cols-2 gap-3 sm:flex sm:flex-wrap sm:items-center sm:gap-x-6 sm:gap-y-2 rounded-xl border border-white/10 bg-white/[0.02] p-3.5 sm:px-4 sm:py-3">
@@ -1530,7 +1532,7 @@ function OrderDetailModal({
           )}
         </div>
 
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
+        <div className="grid grid-cols-1 gap-6 lg:min-h-0 lg:flex-1 lg:grid-cols-5">
           {/* Left: delivery + notes */}
           <div className="space-y-5 lg:col-span-2">
             <section className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
@@ -1623,10 +1625,10 @@ function OrderDetailModal({
           </div>
 
           {/* Right: items + receipt */}
-          <div className="space-y-5 lg:col-span-3">
+          <div className="space-y-5 overflow-y-auto pr-1 lg:col-span-3">
             <section>
               <SectionLabel icon={<Package size={11} />}>{t('section_items')} ({lines.length})</SectionLabel>
-              <div className="max-h-[560px] space-y-4 overflow-y-auto pr-1">
+              <div className="space-y-4">
                 {groups.map(g => (
                   <LinesGroup key={g.title} title={g.title} icon={g.icon} lines={g.lines} isEn={isEn} />
                 ))}

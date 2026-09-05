@@ -82,6 +82,25 @@ export default function ProductDetailClient({ id }: { id: string }) {
         setProduct(p);
         setActiveImage(0);
 
+        // Track view_item event for GA4
+        if (p) {
+          try {
+            const { trackViewItem } = await import('@/lib/gtag');
+            trackViewItem({
+              value: p.price,
+              items: [{
+                item_id: String(p.id),
+                item_name: p.name,
+                item_category: p.category,
+                price: p.price,
+                quantity: 1,
+              }],
+            });
+          } catch (error) {
+            console.warn('Failed to track view_item:', error);
+          }
+        }
+
         if (p) {
           try {
             if (p.category === 'accessory') {

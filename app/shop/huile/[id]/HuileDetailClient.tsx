@@ -43,6 +43,25 @@ export default function HuileDetailClient({ id }: { id: string }) {
         if (!mounted) return;
         setProduct(p);
 
+        // Track view_item event for GA4
+        if (p) {
+          try {
+            const { trackViewItem } = await import('@/lib/gtag');
+            trackViewItem({
+              value: p.price,
+              items: [{
+                item_id: String(p.id),
+                item_name: p.name,
+                item_category: p.category,
+                price: p.price,
+                quantity: 1,
+              }],
+            });
+          } catch (error) {
+            console.warn('Failed to track view_item:', error);
+          }
+        }
+
         // Pre-select first available finished product with quantity 1
         if (p?.produits_finis?.length) {
           const firstAvailable = p.produits_finis.find((v) => v.stock_disponible > 0) || p.produits_finis[0];
