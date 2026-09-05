@@ -24,6 +24,8 @@ const messaging = firebase.messaging();
 messaging.onBackgroundMessage((payload) => {
   console.log('[Service Worker] Received background message:', payload);
 
+  if (payload.notification) return;
+
   const data = payload.data || {};
   
   // SECURE FALLBACK: Extract title & body from payload.notification OR payload.data

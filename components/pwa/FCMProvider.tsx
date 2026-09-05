@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import { initializeFCM, setupForegroundMessageListener, cleanupFCM } from '@/services/fcmService';
+import { initializeFCM, cleanupFCM } from '@/services/fcmService';
 import { useToastStore } from '@/store/useToastStore';
 import { useAuthStore } from '@/store/useAuthStore';
 
@@ -14,7 +14,6 @@ import { useAuthStore } from '@/store/useAuthStore';
 export function FCMProvider() {
   const { addToast } = useToastStore();
   const { isAuthenticated, _hasHydrated, user } = useAuthStore();
-  const unsubscribeRef = useRef<(() => void) | null>(null);
   const prevAuthRef = useRef<boolean | null>(null);
 
   // Register main PWA service worker once on mount
@@ -65,23 +64,6 @@ export function FCMProvider() {
       cleanupFCM();
     }
   }, [isAuthenticated, _hasHydrated, user, addToast]);
-
-  // Set up foreground message handler through the shared FCM service
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-
-    unsubscribeRef.current = setupForegroundMessageListener((payload) => {
-      const title = payload.notification?.title || 'Nouvelle notification';
-      const body = payload.notification?.body || '';
-      addToast(`🔔 ${title}${body ? ` — ${body}` : ''}`, 'info' as any);
-    });
-
-    return () => {
-      if (unsubscribeRef.current) {
-        unsubscribeRef.current();
-      }
-    };
-  }, [addToast]);
 
   return null;
 }
