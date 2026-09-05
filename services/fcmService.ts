@@ -176,7 +176,7 @@ async function registerServiceWorker(): Promise<ServiceWorkerRegistration | null
     const registration = await navigator.serviceWorker.register(
       '/firebase-messaging-sw.js',
       {
-        scope: '/',
+        scope: '/firebase-cloud-messaging-push-scope',
       }
     );
     console.log('[FCM Service] Service Worker registered successfully');

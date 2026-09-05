@@ -36,7 +36,9 @@ export async function registerPushNotifications(authToken: string): Promise<void
 
     console.log('[FCM] Registering Service Worker...');
     // Register the SW
-    const swRegistration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+    const swRegistration = await navigator.serviceWorker.register('/firebase-messaging-sw.js', {
+      scope: '/firebase-cloud-messaging-push-scope',
+    });
     console.log('[FCM] Service Worker registered. Waiting for it to be ready...');
 
     // Wait until the Service Worker is fully active to avoid intermittent getToken failures

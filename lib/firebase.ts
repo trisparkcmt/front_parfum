@@ -88,7 +88,9 @@ export async function getFCMToken(): Promise<FCMTokenResult> {
     }
 
     // Ensure the Firebase SW is registered first
-    const swRegistration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+    const swRegistration = await navigator.serviceWorker.register('/firebase-messaging-sw.js', {
+      scope: '/firebase-cloud-messaging-push-scope',
+    });
 
     const token = await getToken(messaging, {
       vapidKey: VAPID_KEY,
