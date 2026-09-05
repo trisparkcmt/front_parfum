@@ -54,7 +54,7 @@ let foregroundUnsubscribe: (() => void) | null = null;
  * This is the same key defined in lib/firebase.ts
  */
 const RAW_VAPID_KEY = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY ||
-  'BIH086VT_ZEmPMDKIoJUfyaPmRQXF9sXGhGQpdQFHTK467Y4rKTm6TJHVNKZV1TPCLe8BCqNIRWVOXHqXLNd2r8';
+  'BMcSlBW2WMwTPNeJp8ixr6iafmob8SSDenxyGDALqBLjybbMtAFpd_9nMqgdwnaEM6bzJBnj-XUyyPTgszy5FK0';
 const VAPID_KEY = RAW_VAPID_KEY.replace(/^"|"$/g, '');
 
 /**

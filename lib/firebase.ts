@@ -15,7 +15,7 @@ const firebaseConfig = {
   appId: "1:712882537616:web:ff2b3fb7f68d598e188415",
 };
 
-const RAW_VAPID_KEY = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY || 'BIH086VT_ZEmPMDKIoJUfyaPmRQXF9sXGhGQpdQFHTK467Y4rKTm6TJHVNKZV1TPCLe8BCqNIRWVOXHqXLNd2r8';
+const RAW_VAPID_KEY = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY || 'BMcSlBW2WMwTPNeJp8ixr6iafmob8SSDenxyGDALqBLjybbMtAFpd_9nMqgdwnaEM6bzJBnj-XUyyPTgszy5FK0';
 const VAPID_KEY = RAW_VAPID_KEY.replace(/^"|"$/g, '');
 
 export type DevicePlatform = 'web' | 'ios' | 'android';
