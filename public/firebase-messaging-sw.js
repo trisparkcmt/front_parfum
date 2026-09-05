@@ -68,6 +68,7 @@ self.addEventListener('notificationclick', (event) => {
         if (client.url.includes(self.location.origin)) {
           if (client.focus) client.focus();
           if (client.navigate) client.navigate(url);
+          client.postMessage({ type: 'FCM_NOTIFICATION_CLICKED', data });
           return client;
         }
       }
@@ -78,6 +79,7 @@ self.addEventListener('notificationclick', (event) => {
     })
   );
 });
+
 
 // Immediate Activation & Claim
 self.addEventListener('install', () => {

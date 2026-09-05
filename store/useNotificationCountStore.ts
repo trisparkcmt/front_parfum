@@ -1,8 +1,7 @@
-'use client';
-
 import { create } from 'zustand';
 import { notificationService, orderService } from '@/services/apiService';
 import { deviceService } from '@/services/deviceService';
+import { useAuthStore } from '@/store/useAuthStore';
 
 export interface UnifiedNotificationItem {
   id: string | number;
@@ -52,11 +51,14 @@ export const useNotificationCountStore = create<NotificationCountState>((set, ge
   fetchCounts: async () => {
     set({ isLoading: true });
     try {
-      // Fetch unread notifications from shop, device FCM notifications, and pending orders
+      // Check user role: only staff (admin / serveuse) count pending orders
+      const user = useAuthStore.getState().user;
+      const isStaff = user?.roles?.some((r: string) => r.toLowerCase() === 'admin' || r.toLowerCase() === 'serveuse');
+
       const [notifsResult, deviceNotifsResult, ordersResult] = await Promise.allSettled([
         notificationService.getUnreadNotifications(),
         deviceService.fetchNotifications(),
-        orderService.getOrders({ statut: 'EN_ATTENTE_DE_PAIEMENT' }),
+        isStaff ? orderService.getOrders({ statut: 'EN_ATTENTE_DE_PAIEMENT' }) : Promise.resolve(null),
       ]);
 
       let shopUnread: UnifiedNotificationItem[] = [];
@@ -89,7 +91,7 @@ export const useNotificationCountStore = create<NotificationCountState>((set, ge
 
       let pendingOrders: UnifiedNotificationItem[] = [];
       let pendingCount = 0;
-      if (ordersResult.status === 'fulfilled' && ordersResult.value) {
+      if (isStaff && ordersResult.status === 'fulfilled' && ordersResult.value) {
         const rawOrders = ordersResult.value.results || ordersResult.value.resultats || (Array.isArray(ordersResult.value) ? ordersResult.value : []);
         pendingCount = ordersResult.value.count ?? rawOrders.length;
         pendingOrders = rawOrders.slice(0, 5).map((o: any) => ({
@@ -109,6 +111,7 @@ export const useNotificationCountStore = create<NotificationCountState>((set, ge
       const totalCount = unreadNotifCount + pendingCount;
 
       const recentItems = [...pendingOrders, ...combinedNotifs].slice(0, 8);
+
 
       set({
         unreadNotificationCount: unreadNotifCount,

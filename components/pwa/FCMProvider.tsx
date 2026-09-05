@@ -76,10 +76,34 @@ export function FCMProvider() {
       fetchCounts();
     }, 30000);
 
-    return () => clearInterval(interval);
+    // Refresh counts when window comes into focus (e.g., after clicking push notification)
+    const handleFocus = () => {
+      fetchCounts();
+    };
+
+    // Listen for Service Worker notification click postMessage
+    const handleSWMessage = (event: MessageEvent) => {
+      if (event.data?.type === 'FCM_NOTIFICATION_CLICKED') {
+        fetchCounts();
+      }
+    };
+
+    window.addEventListener('focus', handleFocus);
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.addEventListener('message', handleSWMessage);
+    }
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('focus', handleFocus);
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.removeEventListener('message', handleSWMessage);
+      }
+    };
   }, [isAuthenticated]);
 
   return null;
 }
+
 
 
