@@ -7,12 +7,13 @@ import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getMessaging, getToken, onMessage, Messaging } from 'firebase/messaging';
 
 const firebaseConfig = {
-  apiKey: "AIzaSyBKzplWfKfPTdAHVJu6i-wYsOQNhfvzP8g",
-  authDomain: "push-accessoire-exclusif.firebaseapp.com",
-  projectId: "push-accessoire-exclusif",
-  storageBucket: "push-accessoire-exclusif.firebasestorage.app",
-  messagingSenderId: "712882537616",
-  appId: "1:712882537616:web:ff2b3fb7f68d598e188415",
+  apiKey: "AIzaSyCFczwPMeGoRoXz5nmZ_eZN22V4sTfpmWU",
+  authDomain: "access-exclu.firebaseapp.com",
+  projectId: "access-exclu",
+  storageBucket: "access-exclu.firebasestorage.app",
+  messagingSenderId: "206783805033",
+  appId: "1:206783805033:web:855b8533e130dd570c54f8",
+  measurementId: "G-J5XT62JBBS",
 };
 
 const RAW_VAPID_KEY = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY || 'BMcSlBW2WMwTPNeJp8ixr6iafmob8SSDenxyGDALqBLjybbMtAFpd_9nMqgdwnaEM6bzJBnj-XUyyPTgszy5FK0';
