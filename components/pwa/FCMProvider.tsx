@@ -4,6 +4,7 @@ import { useEffect, useRef } from 'react';
 import { initializeFCM, cleanupFCM } from '@/services/fcmService';
 import { useToastStore } from '@/store/useToastStore';
 import { useAuthStore } from '@/store/useAuthStore';
+import { useNotificationCountStore } from '@/store/useNotificationCountStore';
 
 /**
  * FCMProvider — mounts once in layout.
@@ -65,6 +66,20 @@ export function FCMProvider() {
     }
   }, [isAuthenticated, _hasHydrated, user, addToast]);
 
+  // Connect to useNotificationCountStore to fetch & poll counts
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    const { fetchCounts } = useNotificationCountStore.getState();
+    fetchCounts();
+
+    const interval = setInterval(() => {
+      fetchCounts();
+    }, 30000);
+
+    return () => clearInterval(interval);
+  }, [isAuthenticated]);
+
   return null;
 }
+
 

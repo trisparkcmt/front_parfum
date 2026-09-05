@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useNotificationCountStore } from '@/store/useNotificationCountStore';
 import {
   LayoutDashboard, ShoppingCart, BarChart2,
   Package, Gem, X, ChevronDown, Sparkles, Bell, DollarSign
@@ -22,30 +23,12 @@ interface NavItem {
   children?: { label: string; href: string; badge?: string }[];
 }
 
-const menuItems: NavItem[] = [
-  { label: 'Dashboard', icon: <LayoutDashboard size={18} />, href: '/dashboard/serveuse/dashboard' },
-  { label: 'Expenses', icon: <DollarSign size={18} />, href: '/dashboard/serveuse/expenses' },
-  { label: 'Notifications', icon: <Bell size={18} />, href: '/dashboard/serveuse/notifications' }
-];
-
-const boutiqueItems: NavItem[] = [
-  { label: 'Orders', icon: <ShoppingCart size={18} />, href: '/dashboard/serveuse/order' },
-  { label: 'Perfumes', icon: <PerfumeIcon size={18} />, href: '/dashboard/serveuse/perfume' },
-  { label: 'Categories', icon: <Package size={18} />, href: '/dashboard/serveuse/categories' },
-  { label: 'Essences', icon: <EssenceIcon size={18} />, href: '/dashboard/serveuse/essences' },
-  { label: 'Essence Products', icon: <EssenceIcon size={18} />, href: '/dashboard/serveuse/produits-essence' },
-  { label: 'Laboratory', icon: <LaptopIcon size={18} />, href: '/dashboard/serveuse/lab' },
-  { label: 'Flacons', icon: <Package size={18} />, href: '/dashboard/serveuse/flacons' },
-  { label: 'Accessories', icon: <Gem size={18} />, href: '/dashboard/serveuse/accessories' },
-  { label: 'Diffusers', icon: <Sparkles size={18} />, href: '/dashboard/serveuse/diffuseurs' },
-  { label: 'Compositions', icon: <LaptopIcon size={18} />, href: '/dashboard/serveuse/compositions' },
-];
-
 function NavItemComponent({ item, onNavigate }: { item: NavItem; onNavigate: () => void }) {
   const pathname = usePathname();
   const [expanded, setExpanded] = useState(
     item.children?.some(c => pathname.startsWith(c.href)) || false
   );
+
 
   const hasChildren = item.children && item.children.length > 0;
   const isActive = item.href ? pathname === item.href : false;
@@ -129,7 +112,29 @@ function SectionLabel({ label }: { label: string }) {
 }
 
 export default function ServeuseSidebar({ open, setOpen }: SidebarProps) {
+  const { unreadNotificationCount, pendingOrderCount } = useNotificationCountStore();
+
+  const menuItems: NavItem[] = [
+    { label: 'Dashboard', icon: <LayoutDashboard size={18} />, href: '/dashboard/serveuse/dashboard' },
+    { label: 'Expenses', icon: <DollarSign size={18} />, href: '/dashboard/serveuse/expenses' },
+    { label: 'Notifications', icon: <Bell size={18} />, href: '/dashboard/serveuse/notifications', badge: unreadNotificationCount > 0 ? String(unreadNotificationCount) : undefined }
+  ];
+
+  const boutiqueItems: NavItem[] = [
+    { label: 'Orders', icon: <ShoppingCart size={18} />, href: '/dashboard/serveuse/order', badge: pendingOrderCount > 0 ? String(pendingOrderCount) : undefined },
+    { label: 'Perfumes', icon: <PerfumeIcon size={18} />, href: '/dashboard/serveuse/perfume' },
+    { label: 'Categories', icon: <Package size={18} />, href: '/dashboard/serveuse/categories' },
+    { label: 'Essences', icon: <EssenceIcon size={18} />, href: '/dashboard/serveuse/essences' },
+    { label: 'Essence Products', icon: <EssenceIcon size={18} />, href: '/dashboard/serveuse/produits-essence' },
+    { label: 'Laboratory', icon: <LaptopIcon size={18} />, href: '/dashboard/serveuse/lab' },
+    { label: 'Flacons', icon: <Package size={18} />, href: '/dashboard/serveuse/flacons' },
+    { label: 'Accessories', icon: <Gem size={18} />, href: '/dashboard/serveuse/accessories' },
+    { label: 'Diffusers', icon: <Sparkles size={18} />, href: '/dashboard/serveuse/diffuseurs' },
+    { label: 'Compositions', icon: <LaptopIcon size={18} />, href: '/dashboard/serveuse/compositions' },
+  ];
+
   return (
+
     <>
       {open && (
         <div

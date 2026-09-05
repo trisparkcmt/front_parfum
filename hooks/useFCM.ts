@@ -87,8 +87,21 @@ export function useFCM(options: UseFCMOptions = {}) {
           }
 
           // Setup foreground message listener after FCM is initialized
-          setupForegroundMessageListener((payload) => {
+          setupForegroundMessageListener(async (payload) => {
             console.log('[useFCM] Foreground message received:', payload);
+
+            // Increment unified notification store
+            const formatted = formatNotificationPayload(payload);
+            try {
+              const { useNotificationCountStore } = await import('@/store/useNotificationCountStore');
+              useNotificationCountStore.getState().onForegroundPushReceived({
+                title: formatted.title,
+                body: formatted.body,
+                url: formatted.data?.url,
+              });
+            } catch (e) {
+              console.warn('[useFCM] Failed to update count store:', e);
+            }
 
             // Call custom handler if provided
             if (onMessage) {
@@ -98,10 +111,11 @@ export function useFCM(options: UseFCMOptions = {}) {
 
             // Default: Show toast notification
             if (enableToasts) {
-              const formatted = formatNotificationPayload(payload);
               addToast(formatted.body || formatted.title, 'info');
             }
           });
+
+
         }
       } catch (error) {
         console.error('[useFCM] Error during FCM setup:', error);

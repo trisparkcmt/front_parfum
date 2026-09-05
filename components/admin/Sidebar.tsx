@@ -8,6 +8,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useTranslation } from 'react-i18next';
+import { useNotificationCountStore } from '@/store/useNotificationCountStore';
 import {
   LayoutDashboard, ShoppingCart, BarChart2, Users2,
   TrendingUp, Package, DollarSign, Truck,
@@ -133,6 +134,7 @@ function SectionLabel({ label }: { label: string }) {
 export default function Sidebar({ open, setOpen }: SidebarProps) {
   const { t, i18n } = useTranslation();
   const isEn = i18n.language?.startsWith('en');
+  const { unreadNotificationCount, pendingOrderCount } = useNotificationCountStore();
 
   const menuItems: NavItem[] = [
     {
@@ -153,6 +155,7 @@ export default function Sidebar({ open, setOpen }: SidebarProps) {
       label: t('admin_nav_notifications', { defaultValue: 'Notifications' }),
       icon: <Bell size={18} />,
       href: '/dashboard/admin/notifications',
+      badge: unreadNotificationCount > 0 ? String(unreadNotificationCount) : undefined,
     },
   ];
 
@@ -161,12 +164,14 @@ export default function Sidebar({ open, setOpen }: SidebarProps) {
       label: t('admin_nav_orders', { defaultValue: isEn ? 'Orders Management' : 'Gestion des Commandes' }),
       icon: <ShoppingCart size={18} />,
       href: '/dashboard/admin/order',
+      badge: pendingOrderCount > 0 ? String(pendingOrderCount) : undefined,
     },
     {
       label: t('admin_nav_perfumes', { defaultValue: isEn ? 'Perfumes' : 'Parfums' }),
       icon: <PerfumeIcon size={18} />,
       href: '/dashboard/admin/perfume',
     },
+
     {
       label: t('admin_nav_categories', { defaultValue: isEn ? 'Categories' : 'Catégories' }),
       icon: <Package size={18} />,

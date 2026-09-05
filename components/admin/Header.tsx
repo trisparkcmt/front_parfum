@@ -10,6 +10,7 @@ import {
 
 import { useAuthStore } from '@/store/useAuthStore';
 import { useThemeStore } from '@/store/useThemeStore';
+import { useNotificationCountStore } from '@/store/useNotificationCountStore';
 import { notificationService } from '@/services/apiService';
 
 interface HeaderProps {
@@ -156,32 +157,16 @@ export default function Header({ onMenuClick }: HeaderProps) {
 
   const profilePath = '/dashboard/profile';
   
-  const fetchNotifications = async () => {
-    try {
-      const data = await notificationService.getUnreadNotifications();
-      const list = data.results || data.resultats || (Array.isArray(data) ? data : []);
-      
-      setNotifications(list.slice(0, 8));
-      const count = list.length;
-      setUnreadCount(count);
-      
-      if (typeof navigator !== 'undefined' && 'setAppBadge' in navigator) {
-        if (count > 0) {
-          (navigator as any).setAppBadge(count).catch((err: any) => console.warn('App badge failed:', err));
-        } else {
-          (navigator as any).clearAppBadge().catch((err: any) => console.warn('App badge clear failed:', err));
-        }
-      }
-    } catch (error) {
-      console.error('Header notifications fetch failed:', error);
-    }
-  };
+  const { 
+    totalUnreadCount, 
+    recentItems, 
+    fetchCounts, 
+    markAsRead 
+  } = useNotificationCountStore();
 
   useEffect(() => {
-    fetchNotifications();
-    const interval = setInterval(fetchNotifications, 30000);
-    return () => clearInterval(interval);
-  }, []);
+    fetchCounts();
+  }, [fetchCounts]);
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
@@ -192,11 +177,10 @@ export default function Header({ onMenuClick }: HeaderProps) {
     return () => document.removeEventListener('mousedown', handleClick);
   }, []);
 
-  const handleMarkAsRead = async (id: number, e: React.MouseEvent) => {
+  const handleMarkAsRead = async (item: any, e: React.MouseEvent) => {
     e.stopPropagation();
     try {
-      await notificationService.markAsRead(id, true);
-      fetchNotifications();
+      await markAsRead(item.id, item.type);
     } catch (error) {
       console.error('Failed to mark notification as read:', error);
     }
@@ -295,9 +279,9 @@ export default function Header({ onMenuClick }: HeaderProps) {
             className="relative w-9 h-9 flex items-center justify-center rounded-lg hover:bg-white/5 text-foreground/60 transition-colors"
           >
             <Bell size={18} />
-            {unreadCount > 0 && (
+            {totalUnreadCount > 0 && (
               <span className="absolute top-1 right-1 w-4 h-4 bg-red-500 rounded-full text-foreground text-[9px] font-bold flex items-center justify-center animate-pulse">
-                {unreadCount}
+                {totalUnreadCount > 99 ? '99+' : totalUnreadCount}
               </span>
             )}
           </button>
@@ -307,13 +291,13 @@ export default function Header({ onMenuClick }: HeaderProps) {
               <div className="px-4 py-3 border-b border-white/10 flex items-center justify-between">
                 <h3 className="font-semibold text-sm text-foreground">Notifications</h3>
                 <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-red-500/10 text-red-500">
-                  {unreadCount} new
+                  {totalUnreadCount} new
                 </span>
               </div>
               <div className="max-h-72 overflow-y-auto">
-                {notifications.map(n => {
-                  const dateObj = new Date(n.cree_le || n.date_creation || Date.now());
-                  const timeString = dateObj.toLocaleDateString('en-US', {
+                {recentItems.map((n) => {
+                  const dateObj = new Date(n.created_at || Date.now());
+                  const timeString = dateObj.toLocaleDateString('fr-FR', {
                     day: '2-digit',
                     month: 'short',
                     hour: '2-digit',
@@ -325,7 +309,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
                       key={n.id}
                       onClick={() => {
                         const isServeuse = user?.roles?.includes('serveuse');
-                        if (n.isOrder) {
+                        if (n.type === 'order' || n.url?.includes('order')) {
                           router.push(isServeuse ? '/dashboard/serveuse/order' : '/dashboard/admin/order');
                         } else {
                           router.push(isServeuse ? '/dashboard/serveuse/notifications' : '/dashboard/admin/notifications');
@@ -335,15 +319,15 @@ export default function Header({ onMenuClick }: HeaderProps) {
                       className="px-4 py-3 border-b border-white/5 hover:bg-white/5 transition-colors cursor-pointer bg-white/[0.02]"
                     >
                       <div className="flex items-start gap-3">
-                        <div className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${n.isOrder ? 'bg-red-500' : 'bg-gold'}`} />
+                        <div className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${n.type === 'order' ? 'bg-red-500' : 'bg-gold'}`} />
                         <div className="flex-1 min-w-0">
-                          <p className="text-xs text-foreground font-medium truncate">{n.titre}</p>
+                          <p className="text-xs text-foreground font-medium truncate">{n.title}</p>
                           <p className="text-[11px] text-foreground/60 line-clamp-2 mt-0.5">{n.message}</p>
                           <p className="text-[10px] text-foreground/30 mt-1">{timeString}</p>
                         </div>
-                        {!n.isOrder && (
+                        {n.type !== 'order' && (
                           <button
-                            onClick={(e) => handleMarkAsRead(n.id, e)}
+                            onClick={(e) => handleMarkAsRead(n, e)}
                             className="p-1 rounded hover:bg-white/10 text-foreground/40 hover:text-foreground transition-colors shrink-0"
                             title="Mark as read"
                           >
@@ -354,7 +338,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
                     </div>
                   );
                 })}
-                {notifications.length === 0 && (
+                {recentItems.length === 0 && (
                   <div className="px-4 py-8 text-center text-xs text-foreground/40 italic">
                     No new notifications
                   </div>
@@ -372,6 +356,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
             </div>
           )}
         </div>
+
 
         <Link 
           href={profilePath}

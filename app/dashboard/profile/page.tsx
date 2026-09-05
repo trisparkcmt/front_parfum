@@ -8,9 +8,9 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
-  User, Mail, Phone, MapPin, Shield, Calendar, Edit2, Lock,
+  User, Mail, Phone, MapPin, Calendar, Edit2, Lock,
   Globe, Sun, Moon, Palette, ChevronRight, LogOut, Loader2,
-  LayoutGrid, ShoppingCart, Bell, Sparkles, BadgeCheck, Download,
+  LayoutGrid, ShoppingCart, Sparkles, BadgeCheck, Download,
   Heart, Info,
 } from 'lucide-react';
 
@@ -21,7 +21,6 @@ import { useTranslation } from 'react-i18next';
 import i18n from '@/lib/i18n';
 import { api } from '@/services/api';
 import { attemptPWAInstall, isPWAInstalled as checkPWAInstalled, isIOS, isAndroid } from '@/lib/pwa';
-import { triggerTestNotification } from '@/services/notifications';
 
 import { BackButton } from '@/components/ui/BackButton';
 import { Modal } from '@/components/ui/Modal';
@@ -175,7 +174,6 @@ export default function ProfilePage() {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [isApplyingPartner, setIsApplyingPartner] = useState(false);
   const [isInstallingPWA, setIsInstallingPWA] = useState(false);
-  const [isSendingTestNotification, setIsSendingTestNotification] = useState(false);
 
   const isPWAInstalled = checkPWAInstalled();
 
@@ -271,48 +269,6 @@ export default function ProfilePage() {
         'error'
       );
       setIsLoggingOut(false);
-    }
-  };
-
-  const handleTestNotification = async () => {
-    setIsSendingTestNotification(true);
-    try {
-      const sent = await triggerTestNotification(
-        isEn ? 'Notification Test' : 'Test de notification',
-        isEn
-          ? 'This notification confirms push messaging is correctly configured.'
-          : 'Cette notification confirme que l’affichage push est bien prêt.'
-      );
-
-      if (sent) {
-        addToast(
-          t('notification_sent', {
-            defaultValue: isEn ? 'Test notification sent.' : 'Notification de test envoyée.',
-          }),
-          'success'
-        );
-      } else {
-        addToast(
-          t('notification_permission_denied', {
-            defaultValue: isEn
-              ? 'Notification permission was not granted.'
-              : 'La permission de notification n’a pas été accordée.',
-          }),
-          'error'
-        );
-      }
-    } catch (error) {
-      console.error(error);
-      addToast(
-        t('notification_error', {
-          defaultValue: isEn
-            ? 'Unable to send test notification.'
-            : 'Impossible d’envoyer la notification de test.',
-        }),
-        'error'
-      );
-    } finally {
-      setIsSendingTestNotification(false);
     }
   };
 
@@ -576,50 +532,6 @@ export default function ProfilePage() {
                     }
                   />
                 )}
-              </div>
-            </Panel>
-          </div>
-
-          {/* ---------- SECURITY & NOTIFICATIONS ---------- */}
-          <div>
-            <SectionLabel>
-              {t('security_notifications', { defaultValue: isEn ? 'Security & Push Notifications' : 'Sécurité & notifications' })}
-            </SectionLabel>
-            <Panel>
-              <div className="divide-y divide-foreground/10">
-                <ActionRow
-                  icon={<Shield size={16} />}
-                  label={t('account_security', { defaultValue: isEn ? 'Account Security' : 'Sécurité du compte' })}
-                  hint={t('password_2fa', { defaultValue: isEn ? 'Password & credentials' : 'Mot de passe et authentification' })}
-                  onClick={() => setShowPasswordModal(true)}
-                />
-                <ActionRow
-                  icon={<Bell size={16} />}
-                  label={t('notifications', { defaultValue: isEn ? 'Notifications' : 'Notifications' })}
-                  hint={t('notification_channels', { defaultValue: isEn ? 'Push messaging channels' : 'Canaux de notification' })}
-                />
-                <div className="p-4 flex items-center justify-between gap-4">
-                  <div>
-                    <p className="text-sm font-semibold text-foreground">
-                      {isEn ? 'Test Push System' : 'Tester le système Push'}
-                    </p>
-                    <p className="text-xs text-foreground/40">
-                      {isEn ? 'Verify browser notification readiness' : 'Vérifier le bon fonctionnement des notifications du navigateur'}
-                    </p>
-                  </div>
-                  <button
-                    onClick={handleTestNotification}
-                    disabled={isSendingTestNotification}
-                    className="inline-flex items-center gap-2 rounded-lg border border-foreground/10 px-3 py-1.5 text-xs font-semibold text-foreground/60 hover:bg-foreground/5 transition-colors disabled:opacity-60 shrink-0"
-                  >
-                    {isSendingTestNotification ? (
-                      <Loader2 size={14} className="animate-spin text-gold" />
-                    ) : (
-                      <Bell size={14} />
-                    )}
-                    {isSendingTestNotification ? (isEn ? 'Sending...' : 'Envoi...') : (isEn ? 'Test' : 'Tester')}
-                  </button>
-                </div>
               </div>
             </Panel>
           </div>
