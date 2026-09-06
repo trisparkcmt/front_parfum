@@ -112,7 +112,7 @@ function SectionLabel({ label }: { label: string }) {
 }
 
 export default function ServeuseSidebar({ open, setOpen }: SidebarProps) {
-  const { unreadNotificationCount, pendingOrderCount } = useNotificationCountStore();
+  const { unreadNotificationCount, pendingActionCount } = useNotificationCountStore();
 
   const menuItems: NavItem[] = [
     { label: 'Dashboard', icon: <LayoutDashboard size={18} />, href: '/dashboard/serveuse/dashboard' },
@@ -121,7 +121,8 @@ export default function ServeuseSidebar({ open, setOpen }: SidebarProps) {
   ];
 
   const boutiqueItems: NavItem[] = [
-    { label: 'Orders', icon: <ShoppingCart size={18} />, href: '/dashboard/serveuse/order', badge: pendingOrderCount > 0 ? String(pendingOrderCount) : undefined },
+    { label: 'Orders', icon: <ShoppingCart size={18} />, href: '/dashboard/serveuse/order', badge: pendingActionCount > 0 ? String(pendingActionCount) : undefined },
+
     { label: 'Perfumes', icon: <PerfumeIcon size={18} />, href: '/dashboard/serveuse/perfume' },
     { label: 'Categories', icon: <Package size={18} />, href: '/dashboard/serveuse/categories' },
     { label: 'Essences', icon: <EssenceIcon size={18} />, href: '/dashboard/serveuse/essences' },

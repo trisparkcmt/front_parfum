@@ -69,22 +69,22 @@ export function FCMProvider() {
   // Connect to useNotificationCountStore to fetch & poll counts
   useEffect(() => {
     if (!isAuthenticated) return;
-    const { fetchCounts, clearPushNotifications } = useNotificationCountStore.getState();
+    const { fetchCounts } = useNotificationCountStore.getState();
     fetchCounts();
 
     const interval = setInterval(() => {
       fetchCounts();
     }, 30000);
 
-    // When user enters/focuses the app, clear push notifications & update count badge
+    // Refresh counts when window comes into focus or when notification is clicked
     const handleFocus = () => {
-      clearPushNotifications();
+      fetchCounts();
     };
 
     // Listen for Service Worker notification click postMessage
     const handleSWMessage = (event: MessageEvent) => {
       if (event.data?.type === 'FCM_NOTIFICATION_CLICKED') {
-        clearPushNotifications();
+        fetchCounts();
       }
     };
 
@@ -104,6 +104,7 @@ export function FCMProvider() {
 
   return null;
 }
+
 
 
 

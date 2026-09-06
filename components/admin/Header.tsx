@@ -158,7 +158,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
   const profilePath = '/dashboard/profile';
   
   const { 
-    totalUnreadCount, 
+    unreadNotificationCount, 
     recentItems, 
     fetchCounts, 
     markAsRead 
@@ -279,9 +279,9 @@ export default function Header({ onMenuClick }: HeaderProps) {
             className="relative w-9 h-9 flex items-center justify-center rounded-lg hover:bg-white/5 text-foreground/60 transition-colors"
           >
             <Bell size={18} />
-            {totalUnreadCount > 0 && (
+            {unreadNotificationCount > 0 && (
               <span className="absolute top-1 right-1 w-4 h-4 bg-red-500 rounded-full text-foreground text-[9px] font-bold flex items-center justify-center animate-pulse">
-                {totalUnreadCount > 99 ? '99+' : totalUnreadCount}
+                {unreadNotificationCount > 99 ? '99+' : unreadNotificationCount}
               </span>
             )}
           </button>
@@ -291,9 +291,10 @@ export default function Header({ onMenuClick }: HeaderProps) {
               <div className="px-4 py-3 border-b border-white/10 flex items-center justify-between">
                 <h3 className="font-semibold text-sm text-foreground">Notifications</h3>
                 <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-red-500/10 text-red-500">
-                  {totalUnreadCount} new
+                  {unreadNotificationCount} new
                 </span>
               </div>
+
               <div className="max-h-72 overflow-y-auto">
                 {recentItems.map((n) => {
                   const dateObj = new Date(n.created_at || Date.now());

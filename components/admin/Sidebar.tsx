@@ -134,7 +134,7 @@ function SectionLabel({ label }: { label: string }) {
 export default function Sidebar({ open, setOpen }: SidebarProps) {
   const { t, i18n } = useTranslation();
   const isEn = i18n.language?.startsWith('en');
-  const { unreadNotificationCount, pendingOrderCount } = useNotificationCountStore();
+  const { unreadNotificationCount, pendingActionCount } = useNotificationCountStore();
 
   const menuItems: NavItem[] = [
     {
@@ -164,8 +164,9 @@ export default function Sidebar({ open, setOpen }: SidebarProps) {
       label: t('admin_nav_orders', { defaultValue: isEn ? 'Orders Management' : 'Gestion des Commandes' }),
       icon: <ShoppingCart size={18} />,
       href: '/dashboard/admin/order',
-      badge: pendingOrderCount > 0 ? String(pendingOrderCount) : undefined,
+      badge: pendingActionCount > 0 ? String(pendingActionCount) : undefined,
     },
+
     {
       label: t('admin_nav_perfumes', { defaultValue: isEn ? 'Perfumes' : 'Parfums' }),
       icon: <PerfumeIcon size={18} />,

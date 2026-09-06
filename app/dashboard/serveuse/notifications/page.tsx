@@ -129,13 +129,9 @@ export default function NotificationsPage() {
         <div className="flex items-center gap-2">
           <button
             onClick={async () => {
-              await useNotificationCountStore.getState().clearPushNotifications();
-              if (stats?.non_lues > 0) {
-                await handleMarkAllAsRead();
-              } else {
-                await useNotificationCountStore.getState().fetchCounts();
-                addToast(t('counts_cleared', { defaultValue: 'Compteurs de notifications réinitialisés' }), 'success');
-              }
+              await useNotificationCountStore.getState().markAllNotificationsAsRead();
+              fetchNotifications();
+              addToast(t('counts_cleared', { defaultValue: 'Compteurs et notifications réinitialisés' }), 'success');
             }}
             className="flex items-center gap-2 bg-white/10 hover:bg-white/20 text-foreground px-4 py-2 rounded-xl text-sm font-medium transition-all border border-white/10"
             title="Effacer le badge de notification et réinitialiser les compteurs"
@@ -154,6 +150,7 @@ export default function NotificationsPage() {
             </button>
           )}
         </div>
+
       </div>
 
 
