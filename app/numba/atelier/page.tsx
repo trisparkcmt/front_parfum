@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useState, useCallback, useMemo, useEffect, Suspense } from 'react';
 import Link from 'next/link';
@@ -307,18 +307,38 @@ function AtelierContent() {
           setCompositionName(comp.nom || '');
           setSaveModalName(comp.nom || '');
           setSavedParfumId(Number(comp.id));
+          if (comp.couleur) {
+            setCouleur(comp.couleur);
+          }
 
           // Handle flacon — can be nested object or flat ID
           const flaconData = comp.composition?.flacon || comp.flacon;
+          const flaconDetail = comp.flacon_detail || comp.composition?.flacon_detail;
           if (flaconData) {
             const flaconId = typeof flaconData === 'object' ? flaconData.id : flaconData;
             if (flaconId) {
               setSelectedFlaconId(Number(flaconId));
-              const matchingFlacon = flacons.find(f => Number(f.id) === Number(flaconId));
-              if (matchingFlacon) {
-                const cap = Number(matchingFlacon.contenance_ml || matchingFlacon.capacite_ml || matchingFlacon.capacity_ml || matchingFlacon.size_ml || 100);
-                setBottleSize(cap);
+              let matchingFlacon = flacons.find(f => Number(f.id) === Number(flaconId));
+              if (!matchingFlacon && flaconDetail) {
+                matchingFlacon = {
+                  id: flaconDetail.id,
+                  nom: flaconDetail.nom || `Flacon ${flaconDetail.id}`,
+                  contenance_ml: flaconDetail.contenance_ml || 100,
+                  prix_unitaire: flaconDetail.prix_unitaire || '0',
+                  image_principale: flaconDetail.image_principale,
+                };
+                setFlacons(prev => [...prev, matchingFlacon]);
               }
+              const cap = Number(
+                flaconDetail?.contenance_ml ||
+                flaconDetail?.capacite_ml ||
+                matchingFlacon?.contenance_ml ||
+                matchingFlacon?.capacite_ml ||
+                matchingFlacon?.capacity_ml ||
+                matchingFlacon?.size_ml ||
+                100
+              );
+              setBottleSize(cap);
             }
           }
 
@@ -326,6 +346,8 @@ function AtelierContent() {
           // OR nested objects (essence: {id:...} / ingredient: {id:...})
           const lines = comp.composition?.lignes || comp.lignes || [];
           const newQuantities: Record<string, number> = {};
+          const extraEssences: EssenceClient[] = [];
+          const extraIngredients: EssenceClient[] = [];
 
           for (const line of lines) {
             // Extract essence ID — try nested object first, then flat field
@@ -344,22 +366,72 @@ function AtelierContent() {
             if (qtyMl <= 0) continue;
 
             if (essId != null) {
-              const matchingItem = ALL_ITEMS.find(item =>
+              let matchingItem = ALL_ITEMS.find(item =>
                 item.itemType === 'essence' &&
-                (Number(item.backendId) === Number(essId) || Number(item.id) === Number(essId))
+                (
+                  Number(item.backendId) === Number(essId) ||
+                  Number(item.id) === Number(essId) ||
+                  (item.lotEssenceId != null && Number(item.lotEssenceId) === Number(essId))
+                )
               );
+
+              if (!matchingItem && line.essence_detail) {
+                const detail = line.essence_detail;
+                matchingItem = {
+                  id: String(essId),
+                  backendId: Number(essId),
+                  itemType: 'essence',
+                  name: detail.nom || detail.name || `Essence ${essId}`,
+                  family: (detail.categorie || detail.family || 'high') as any,
+                  description: detail.description || '',
+                  pricePerMl: Number(detail.prix_par_ml || line.prix_par_ml_snapshot || 0),
+                  color: detail.couleur_hex || '#D4B87A',
+                  intensity: 'medium',
+                  available: true,
+                };
+                extraEssences.push(matchingItem);
+              }
+
               if (matchingItem) {
                 newQuantities[matchingItem.id] = qtyMl;
               }
             } else if (ingId != null) {
-              const matchingItem = ALL_ITEMS.find(item =>
+              let matchingItem = ALL_ITEMS.find(item =>
                 item.itemType === 'ingredient' &&
-                (Number(item.backendId) === Number(ingId) || Number(item.id) === Number(ingId))
+                (
+                  Number(item.backendId) === Number(ingId) ||
+                  Number(item.id) === Number(ingId)
+                )
               );
+
+              if (!matchingItem && line.ingredient_detail) {
+                const detail = line.ingredient_detail;
+                matchingItem = {
+                  id: String(ingId),
+                  backendId: Number(ingId),
+                  itemType: 'ingredient',
+                  name: detail.nom || detail.name || `Ingrédient ${ingId}`,
+                  family: (detail.family || detail.categorie || 'fresh') as any,
+                  description: detail.description || '',
+                  pricePerMl: Number(detail.prix_par_ml || line.prix_par_ml_snapshot || 0),
+                  color: detail.couleur_hex || '#D4B87A',
+                  intensity: 'medium',
+                  available: true,
+                };
+                extraIngredients.push(matchingItem);
+              }
+
               if (matchingItem) {
                 newQuantities[matchingItem.id] = qtyMl;
               }
             }
+          }
+
+          if (extraEssences.length > 0) {
+            setEssences(prev => [...prev, ...extraEssences]);
+          }
+          if (extraIngredients.length > 0) {
+            setIngredients(prev => [...prev, ...extraIngredients]);
           }
 
           setQuantities(newQuantities);
