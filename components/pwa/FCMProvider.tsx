@@ -56,15 +56,15 @@ export function FCMProvider() {
     const wasAuthenticated = prevAuthRef.current;
     prevAuthRef.current = isAuthenticated;
 
-    if (isAuthenticated && wasAuthenticated !== true && user) {
+    if (isAuthenticated && user) {
       initializeFCM(user).catch((error) => {
         console.error('[FCMProvider] FCM initialization failed:', error);
-        addToast('Erreur lors de l\'initialisation des notifications push.', 'error');
       });
     } else if (!isAuthenticated && wasAuthenticated === true) {
       cleanupFCM();
     }
-  }, [isAuthenticated, _hasHydrated, user, addToast]);
+  }, [isAuthenticated, _hasHydrated, user]);
+
 
   // Connect to useNotificationCountStore to fetch & poll counts
   useEffect(() => {

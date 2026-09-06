@@ -297,8 +297,19 @@ export const useAuthStore = create<AuthState>()(
             isLoading: false,
           });
           addToast(`Bienvenue, ${meUser.firstName} !`, 'success');
+
+          // Initialize FCM push notifications & device registration for Google Auth
+          try {
+            initializeFCM(meUser).catch((fcmError) => {
+              console.warn('[AuthStore] FCM initialization warning on Google login:', fcmError);
+            });
+          } catch (e) {
+            console.warn('[AuthStore] Failed to trigger initializeFCM:', e);
+          }
+
           useCartStore.getState().clearCart();
           return true;
+
         } catch (error: any) {
           console.error('Google login failed:', error);
           set({ isLoading: false });
