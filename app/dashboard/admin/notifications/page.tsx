@@ -3,10 +3,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import { 
   Bell, Check, Search, Filter, Loader2, AlertTriangle, 
-  Sparkles, Gem, Droplets, CheckCheck
+  Sparkles, Gem, Droplets, CheckCheck, Trash2
 } from 'lucide-react';
 import { notificationService } from '@/services/apiService';
 import { useToastStore } from '@/store/useToastStore';
+import { useNotificationCountStore } from '@/store/useNotificationCountStore';
 
 // Helper utilities / UI primitives
 const cx = (...classes: (string | boolean | undefined)[]) => classes.filter(Boolean).join(' ');
@@ -183,16 +184,36 @@ export default function NotificationsPage() {
           <h1 className="text-xl font-semibold text-foreground">Alertes & Notifications</h1>
           <p className="text-sm text-foreground/40 mt-0.5">Suivi en temps réel des stocks bas et alertes système</p>
         </div>
-        {stats?.non_lues > 0 && (
+        <div className="flex items-center gap-2">
           <button
-            onClick={handleMarkAllAsRead}
-            className="flex items-center gap-2 bg-gold text-black px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-gold/90 transition-colors"
+            onClick={async () => {
+              await useNotificationCountStore.getState().clearPushNotifications();
+              if (stats?.non_lues > 0) {
+                await handleMarkAllAsRead();
+              } else {
+                await useNotificationCountStore.getState().fetchCounts();
+                addToast('Compteurs de notifications réinitialisés', 'success');
+              }
+            }}
+            className="flex items-center gap-2 bg-white/10 hover:bg-white/20 text-foreground px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors border border-white/10"
+            title="Effacer le badge de notification et réinitialiser les compteurs"
           >
-            <CheckCheck size={14} />
-            Tout marquer comme lu
+            <Trash2 size={14} className="text-red-400" />
+            Effacer les compteurs
           </button>
-        )}
+
+          {stats?.non_lues > 0 && (
+            <button
+              onClick={handleMarkAllAsRead}
+              className="flex items-center gap-2 bg-gold text-black px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-gold/90 transition-colors"
+            >
+              <CheckCheck size={14} />
+              Tout marquer comme lu
+            </button>
+          )}
+        </div>
       </div>
+
 
       {/* KPIs Strip */}
       <div className="shadow-black/30 shadow-sm rounded-xl border border-white/10 bg-white/[0.02] grid grid-cols-2 md:grid-cols-4 divide-x divide-white/10">
