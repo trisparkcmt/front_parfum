@@ -78,15 +78,33 @@ export function FCMProvider() {
 
     // Refresh counts when window comes into focus or when notification is clicked
     const handleFocus = () => {
-      fetchCounts();
+      const currentUser = useAuthStore.getState().user;
+      const roles = (currentUser?.roles || []).map((r: string) => String(r).toLowerCase());
+      const isClient = !roles.some((r) => r === 'admin' || r === 'serveuse' || r === 'superadmin' || r === 'livreur' || r === 'delivery');
+
+      if (isClient) {
+        // For client: clear all notifications from phone notification tray, mark push read & clear badge
+        useNotificationCountStore.getState().markAllNotificationsAsRead();
+      } else {
+        fetchCounts();
+      }
     };
 
     // Listen for Service Worker notification click postMessage
     const handleSWMessage = (event: MessageEvent) => {
       if (event.data?.type === 'FCM_NOTIFICATION_CLICKED') {
-        fetchCounts();
+        const currentUser = useAuthStore.getState().user;
+        const roles = (currentUser?.roles || []).map((r: string) => String(r).toLowerCase());
+        const isClient = !roles.some((r) => r === 'admin' || r === 'serveuse' || r === 'superadmin' || r === 'livreur' || r === 'delivery');
+
+        if (isClient) {
+          useNotificationCountStore.getState().markAllNotificationsAsRead();
+        } else {
+          fetchCounts();
+        }
       }
     };
+
 
     window.addEventListener('focus', handleFocus);
     if ('serviceWorker' in navigator) {

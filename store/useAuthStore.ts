@@ -14,7 +14,9 @@ import { getCachedToken, cleanupFCM, initializeFCM } from '@/services/fcmService
 import { api, rawApi } from '@/services/api';
 import { useToastStore } from './useToastStore';
 import { useCartStore } from './useCartStore';
+import { useNotificationCountStore } from './useNotificationCountStore';
 import { normalizeRoles, resolvePrimaryRole } from '@/lib/roleUtils';
+
 
 function decodeJwt(token: string): any {
   try {
@@ -382,6 +384,13 @@ export const useAuthStore = create<AuthState>()(
 
       logout: async () => {
         try {
+          // Clear notification tray & reset notification store state on logout
+          useNotificationCountStore.getState().clearAllStoreData();
+        } catch (e) {
+          console.warn('[Auth] Notification store cleanup failed during logout:', e);
+        }
+
+        try {
           const fcmToken = getCachedToken();
           if (fcmToken) {
             try {
@@ -394,6 +403,7 @@ export const useAuthStore = create<AuthState>()(
         } catch (error) {
           console.warn('[Auth] FCM cleanup failed during logout:', error);
         }
+
 
         try {
           await api.post('auth/logout/');

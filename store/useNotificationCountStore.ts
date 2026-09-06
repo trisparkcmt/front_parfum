@@ -22,10 +22,13 @@ interface NotificationCountState {
   // Actions
   fetchCounts: () => Promise<void>;
   markAllNotificationsAsRead: () => Promise<void>;
+  clearNotificationTray: () => void;
+  clearAllStoreData: () => void;
   onForegroundPushReceived: (payload: { title?: string; body?: string; url?: string }) => void;
   markAsRead: (id: string | number, type: 'order' | 'system' | 'push') => Promise<void>;
   syncAppBadge: (count: number) => void;
 }
+
 
 export const useNotificationCountStore = create<NotificationCountState>((set, get) => ({
   unreadNotificationCount: 0,
@@ -121,9 +124,33 @@ export const useNotificationCountStore = create<NotificationCountState>((set, ge
     }
   },
 
+  clearNotificationTray: () => {
+    if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator && navigator.serviceWorker.controller) {
+      try {
+        navigator.serviceWorker.controller.postMessage({ action: 'CLEAR_NOTIFICATIONS' });
+      } catch (e) {
+        console.warn('[NotificationCountStore] Failed to postMessage to service worker:', e);
+      }
+    }
+  },
+
+  clearAllStoreData: () => {
+    get().clearNotificationTray();
+    set({
+      unreadNotificationCount: 0,
+      pendingActionCount: 0,
+      recentItems: [],
+      isLoading: false,
+    });
+    get().syncAppBadge(0);
+  },
+
   markAllNotificationsAsRead: async () => {
     const state = get();
     
+    // Clear notifications from phone notification tray
+    get().clearNotificationTray();
+
     // Mark system & push notifications as read
     await Promise.allSettled([
       notificationService.markAllAsRead().catch(() => {}),
@@ -139,6 +166,7 @@ export const useNotificationCountStore = create<NotificationCountState>((set, ge
 
     get().syncAppBadge(0);
   },
+
 
   onForegroundPushReceived: (payload) => {
     const newItem: UnifiedNotificationItem = {

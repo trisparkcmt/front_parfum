@@ -81,6 +81,15 @@ self.addEventListener('notificationclick', (event) => {
 });
 
 
+// Listen for commands from the main window (e.g., clear active notifications from tray)
+self.addEventListener('message', (event) => {
+  if (event.data?.action === 'CLEAR_NOTIFICATIONS') {
+    self.registration.getNotifications().then((notifications) => {
+      notifications.forEach((notification) => notification.close());
+    });
+  }
+});
+
 // Immediate Activation & Claim
 self.addEventListener('install', () => {
   self.skipWaiting();
@@ -89,3 +98,4 @@ self.addEventListener('install', () => {
 self.addEventListener('activate', (event) => {
   event.waitUntil(clients.claim());
 });
+
