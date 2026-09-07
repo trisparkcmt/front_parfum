@@ -117,6 +117,10 @@ function AccessoriesShop() {
   }, [mounted]);
 
   // Load products when filters or type changes
+  const { addProduct } = useCartStore();
+  const { addFavorite, removeFavorite, isFavorite } = useFavoritesStore();
+  const { addToast } = useToastStore();
+
   useEffect(() => {
     if (!mounted) return;
 
@@ -152,10 +156,6 @@ function AccessoriesShop() {
   useEffect(() => {
     setMounted(true);
   }, []);
-
-  const { addProduct } = useCartStore();
-  const { addFavorite, removeFavorite, isFavorite } = useFavoritesStore();
-  const { addToast } = useToastStore();
 
   const handleAddToCart = async (product: Product) => {
     try {

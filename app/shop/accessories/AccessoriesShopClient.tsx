@@ -88,6 +88,10 @@ export default function AccessoriesShop() {
     loadTypes();
   }, [mounted]);
 
+  const { addProduct } = useCartStore();
+  const { addFavorite, removeFavorite, isFavorite } = useFavoritesStore();
+  const { addToast } = useToastStore();
+
   useEffect(() => {
     if (!mounted) return;
 
@@ -127,11 +131,7 @@ export default function AccessoriesShop() {
     }
 
     fetchProducts();
-  }, [mounted, activeTypeId, maxPrice, color, material, inStockOnly, debouncedSearch, ordering]);
-
-  const { addProduct } = useCartStore();
-  const { addFavorite, removeFavorite, isFavorite } = useFavoritesStore();
-  const { addToast } = useToastStore();
+  }, [mounted, activeTypeId, maxPrice, color, material, inStockOnly, debouncedSearch, ordering, addToast, t]);
 
   const handleAddToCart = async (product: Product) => {
     try {
