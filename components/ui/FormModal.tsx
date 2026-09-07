@@ -103,7 +103,7 @@ export function FormModal({
               transition={{ type: 'spring', damping: 30, stiffness: 320 }}
               onClick={(e) => e.stopPropagation()}
               className={cn(
-                'relative flex h-screen max-h-screen w-full flex-col pointer-events-auto',
+                'relative flex h-[100dvh] max-h-[100dvh] w-full flex-col pointer-events-auto',
                 'border-l border-white/10 bg-background',
                 sizes[size],
                 className

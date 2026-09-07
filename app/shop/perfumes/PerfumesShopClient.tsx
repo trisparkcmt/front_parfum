@@ -101,7 +101,17 @@ export default function PerfumesShopClient() {
         }
       }
 
-      const response = (await productService.getPerfumes()) as
+      const filters: any = {};
+      if (debouncedSearch) filters.search = debouncedSearch;
+      if (genre !== 'all') filters.genre = genre;
+      if (olfactiveFamily !== 'all') filters.famille_olfactive = olfactiveFamily;
+      if (intensity !== 'all') filters.intensite = intensity;
+      if (maxPrice < 150000) filters.prix_max = maxPrice;
+      if (ordering) filters.ordering = ordering;
+      if (activeTab !== 'all' && activeTab !== 'huile') filters.categorie = Number(activeTab);
+      if (currentPage > 1) filters.page = currentPage;
+
+      const response = (await productService.getPerfumes(filters)) as
         | Product[]
         | { results?: Product[]; resultats?: Product[]; pages?: number; count?: number };
 
@@ -160,7 +170,7 @@ export default function PerfumesShopClient() {
     }
 
     fetchData();
-  }, [mounted, genre, olfactiveFamily, intensity, maxPrice, debouncedSearch, ordering, currentPage, categories.length]);
+  }, [mounted, activeTab, genre, olfactiveFamily, intensity, maxPrice, debouncedSearch, ordering, currentPage, categories.length]);
 
   useEffect(() => {
     setMounted(true);

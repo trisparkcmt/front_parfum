@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useState, useEffect, useCallback } from 'react';
 import { Loader2, Edit2, Trash2, Plus, Search, Image as ImageIcon, SlidersHorizontal, AlertCircle, X, Package } from 'lucide-react';
@@ -945,7 +945,7 @@ export default function PerfumeAdminPage() {
             </div>
           )}
 
-          <div className="grid grid-cols-1 xl:grid-cols-[1.7fr_0.9fr] gap-6">
+          <div className="space-y-6">
             <div className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-4">
@@ -1193,48 +1193,6 @@ export default function PerfumeAdminPage() {
                   </div>
                 </div>
               </div>
-
-              <div className="space-y-4">
-                <div className="space-y-1">
-                  <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">{t('field_desc_short')}</label>
-                  <textarea
-                    data-field="description_courte"
-                    value={form.description_courte}
-                    onChange={(e) => updateForm('description_courte', e.target.value)}
-                    rows={2}
-                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-base text-foreground outline-none focus:border-gold resize-none"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">{t('field_desc_long')}</label>
-                  <textarea
-                    data-field="description_longue"
-                    value={form.description_longue}
-                    onChange={(e) => updateForm('description_longue', e.target.value)}
-                    rows={4}
-                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-base text-foreground outline-none focus:border-gold resize-none"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">{t('field_desc_short')} IA</label>
-                  <textarea
-                    data-field="description_ia"
-                    value={form.description_ia}
-                    onChange={(e) => updateForm('description_ia', e.target.value)}
-                    rows={2}
-                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-base text-foreground outline-none focus:border-gold resize-none"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">{t('field_promo_msg')}</label>
-                  <textarea
-                    data-field="message_promotion"
-                    value={form.message_promotion}
-                    onChange={(e) => updateForm('message_promotion', e.target.value)}
-                    rows={2}
-                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-base text-foreground outline-none focus:border-gold resize-none"
-                  />
-                </div>
               </div>
 
               <div className="flex flex-wrap gap-4 pt-1">
@@ -1251,12 +1209,58 @@ export default function PerfumeAdminPage() {
                   <span className="text-xs text-foreground/60">{t('field_active')}</span>
                 </label>
               </div>
-            </div>
 
-            <div className="space-y-4">
-              <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-4 xl:sticky xl:top-6">
-                <h3 className="text-sm font-semibold text-foreground mb-4">Images</h3>
-                <MultiImageUpload onImagesChange={(images) => setImageFiles(images)} />
+              {/* Descriptions & Images Side by Side */}
+              <div className="grid grid-cols-1 xl:grid-cols-[1.5fr_1fr] gap-6">
+                <div className="space-y-4">
+                  <div className="space-y-1">
+                    <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">{t('field_desc_short')}</label>
+                    <textarea
+                      data-field="description_courte"
+                      value={form.description_courte}
+                      onChange={(e) => updateForm('description_courte', e.target.value)}
+                      rows={2}
+                      className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-base text-foreground outline-none focus:border-gold resize-none"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">{t('field_desc_long')}</label>
+                    <textarea
+                      data-field="description_longue"
+                      value={form.description_longue}
+                      onChange={(e) => updateForm('description_longue', e.target.value)}
+                      rows={4}
+                      className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-base text-foreground outline-none focus:border-gold resize-none"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">{t('field_desc_short')} IA</label>
+                    <textarea
+                      data-field="description_ia"
+                      value={form.description_ia}
+                      onChange={(e) => updateForm('description_ia', e.target.value)}
+                      rows={2}
+                      className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-base text-foreground outline-none focus:border-gold resize-none"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">{t('field_promo_msg')}</label>
+                    <textarea
+                      data-field="message_promotion"
+                      value={form.message_promotion}
+                      onChange={(e) => updateForm('message_promotion', e.target.value)}
+                      rows={2}
+                      className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-base text-foreground outline-none focus:border-gold resize-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-4 xl:sticky xl:top-6">
+                    <h3 className="text-sm font-semibold text-foreground mb-4">Images</h3>
+                    <MultiImageUpload onImagesChange={(images) => setImageFiles(images)} />
+                  </div>
+                </div>
               </div>
             </div>
           </div>

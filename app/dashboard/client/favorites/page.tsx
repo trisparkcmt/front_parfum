@@ -310,76 +310,186 @@ export default function FavoritesPage() {
             ))}
           </div>
 
-          {selectedCustom && (
-            <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/70 px-4 py-6 backdrop-blur-sm">
-              <div className="w-full max-w-lg rounded-3xl border border-white/10 bg-[#111111] p-6 shadow-2xl shadow-black/50">
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.25em] text-gold/70">{t('custom_perfume', 'Parfum sur mesure')}</p>
-                    <h3 className="mt-1 font-serif text-2xl text-foreground">{selectedCustom.name}</h3>
-                  </div>
-                  <button
-                    onClick={() => setSelectedCustom(null)}
-                    className="rounded-full border border-white/10 p-2 text-foreground/50 transition-colors hover:text-foreground"
-                  >
-                    <X size={16} />
-                  </button>
-                </div>
+          {selectedCustom && (() => {
+            const raw = selectedCustom.raw as any;
+            const totalMlComposed = (selectedCustom.lines || []).reduce((s, l) => s + Number(l.quantite_ml || 0), 0);
+            const statusColor = (selectedCustom.status || '') === 'validé'
+              ? 'text-emerald-400 bg-emerald-400/10 border-emerald-400/20'
+              : (selectedCustom.status || '') === 'en_preparation'
+              ? 'text-blue-400 bg-blue-400/10 border-blue-400/20'
+              : 'text-amber-400/80 bg-amber-400/5 border-amber-400/15';
+            const statusLabel = (selectedCustom.status || '') === 'validé'
+              ? 'Validé'
+              : (selectedCustom.status || '') === 'en_preparation'
+              ? 'En préparation'
+              : (selectedCustom.status || '') === 'brouillon'
+              ? 'Brouillon'
+              : (selectedCustom.status || '—');
 
-                <div className="mt-6 space-y-4 text-sm text-foreground/70">
-                  {selectedCustom.description && (
-                    <p className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-foreground/70">
-                      {selectedCustom.description}
-                    </p>
-                  )}
+            return (
+              <div
+                className="fixed inset-0 z-[120] flex items-end sm:items-center justify-center bg-black/75 px-0 sm:px-4 backdrop-blur-md"
+                onClick={() => setSelectedCustom(null)}
+              >
+                <div
+                  className="relative w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl border-t sm:border border-white/10 bg-[#0E0E0E] shadow-2xl shadow-black/60 overflow-hidden"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {/* Gradient Header */}
+                  <div className="relative overflow-hidden bg-gradient-to-br from-[#1a1508] via-[#111] to-[#0E0E0E] px-6 pt-6 pb-5">
+                    <div className="pointer-events-none absolute -right-8 -top-8 h-40 w-40 rounded-full bg-gold/[0.07] blur-3xl" />
+                    <div className="pointer-events-none absolute left-0 bottom-0 h-24 w-24 rounded-full bg-gold/[0.04] blur-2xl" />
 
-                  <div className="grid gap-3 rounded-2xl border border-white/10 bg-white/[0.03] p-4 sm:grid-cols-2">
-                    <div>
-                      <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-foreground/40">{t('bottle', 'Flacon')}</p>
-                      <p className="mt-1 text-foreground">{selectedCustom.bottleName || '—'}</p>
+                    <div className="relative flex items-start justify-between gap-4">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-gold/20 bg-gold/5">
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-gold/80">
+                            <path d="M9 3h6M10 3v2.5M14 3v2.5M7 7c0-1 .5-1.5 1.5-1.5h7c1 0 1.5.5 1.5 1.5v11c0 2-1 3-3 3H9c-2 0-3-1-3-3V7z"/>
+                            <path d="M9 12h6M9 15h4"/>
+                          </svg>
+                        </div>
+                        <div>
+                          <p className="text-[9px] font-bold uppercase tracking-[0.3em] text-gold/60">Parfum sur mesure</p>
+                          <h3 className="mt-0.5 font-serif text-xl leading-tight text-foreground">{selectedCustom.name}</h3>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => setSelectedCustom(null)}
+                        className="shrink-0 rounded-full border border-white/10 p-1.5 text-foreground/40 transition-colors hover:border-white/20 hover:text-foreground"
+                      >
+                        <X size={14} />
+                      </button>
                     </div>
-                    <div>
-                      <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-foreground/40">{t('status', 'Statut')}</p>
-                      <p className="mt-1 text-foreground">{selectedCustom.status || '—'}</p>
+
+                    <div className="relative mt-4 flex flex-wrap items-center gap-2">
+                      {selectedCustom.bottleName && (
+                        <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[11px] text-foreground/70">
+                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-gold/50">
+                            <path d="M8 2h8M9 2v3M15 2v3M6 6h12l-1 14H7L6 6z"/>
+                          </svg>
+                          {selectedCustom.bottleName}
+                        </span>
+                      )}
+                      <span className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[11px] font-medium ${statusColor}`}>
+                        <span className="h-1.5 w-1.5 rounded-full bg-current" />
+                        {statusLabel}
+                      </span>
+                      {raw?.date_creation && (
+                        <span className="inline-flex items-center gap-1.5 rounded-full border border-white/[0.08] bg-white/[0.02] px-3 py-1 text-[11px] text-foreground/35">
+                          {new Date(raw.date_creation).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })}
+                        </span>
+                      )}
                     </div>
                   </div>
 
-                  {selectedCustom.lines && selectedCustom.lines.length > 0 && (
-                    <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-                      <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-foreground/40">{t('composition', 'Composition')}</p>
-                      <div className="mt-3 space-y-2">
-                        {selectedCustom.lines.map((line, index) => (
-                          <div key={`${line.essence_nom}-${index}`} className="flex items-center justify-between gap-3 rounded-xl bg-black/20 px-3 py-2 text-sm">
-                            <span className="text-foreground">{line.essence_nom || t('essence', 'Essence')}</span>
-                            <span className="text-foreground/60">{line.quantite_ml || '—'} ml</span>
-                          </div>
-                        ))}
+                  {/* Body */}
+                  <div className="max-h-[55vh] overflow-y-auto px-6 py-5 space-y-4">
+                    {selectedCustom.description && (
+                      <p className="rounded-2xl border border-white/[0.08] bg-white/[0.02] px-4 py-3 text-sm italic text-foreground/50">
+                        {selectedCustom.description}
+                      </p>
+                    )}
+
+                    {selectedCustom.lines && selectedCustom.lines.length > 0 && (
+                      <div>
+                        <div className="mb-3 flex items-center justify-between">
+                          <p className="text-[10px] font-semibold uppercase tracking-[0.25em] text-foreground/35">
+                            Composition · {selectedCustom.lines.length} essence{selectedCustom.lines.length > 1 ? 's' : ''}
+                          </p>
+                          <p className="text-[11px] tabular-nums text-foreground/40">
+                            {Number(totalMlComposed) % 1 === 0
+                              ? Number(totalMlComposed).toFixed(0)
+                              : Number(totalMlComposed).toFixed(1)} ml total
+                          </p>
+                        </div>
+
+                        <div className="space-y-1.5">
+                          {selectedCustom.lines.map((line, index) => {
+                            const qty = Number(line.quantite_ml || 0);
+                            const pct = totalMlComposed > 0 ? (qty / totalMlComposed) * 100 : 0;
+                            const prixLigne = Number((line as any).prix_ligne || 0);
+                            const qtyDisplay = qty % 1 === 0 ? qty.toFixed(0) : qty.toFixed(1);
+                            const dotColors = ['#c5a059', '#a0785a', '#7a9e7e', '#7a8ea0', '#a07a9e'];
+
+                            return (
+                              <div key={`${line.essence_nom}-${index}`} className="group/line rounded-2xl border border-white/[0.06] bg-white/[0.02] px-4 py-3 transition-colors hover:border-gold/15 hover:bg-gold/[0.02]">
+                                <div className="flex items-center justify-between gap-3">
+                                  <div className="flex items-center gap-2 min-w-0">
+                                    <span
+                                      className="h-2 w-2 shrink-0 rounded-full"
+                                      style={{ backgroundColor: dotColors[index % dotColors.length] }}
+                                    />
+                                    <span className="truncate text-sm text-foreground/85 transition-colors group-hover/line:text-foreground">
+                                      {line.essence_nom || 'Essence'}
+                                    </span>
+                                  </div>
+                                  <div className="flex shrink-0 items-center gap-3">
+                                    {prixLigne > 0 && (
+                                      <span className="hidden sm:block text-[11px] tabular-nums text-foreground/30">
+                                        {prixLigne.toLocaleString('fr-FR')} FCFA
+                                      </span>
+                                    )}
+                                    <span className="rounded-lg bg-white/[0.05] px-2.5 py-0.5 text-[12px] tabular-nums font-medium text-gold/80">
+                                      {qtyDisplay} ml
+                                    </span>
+                                  </div>
+                                </div>
+                                <div className="mt-2 h-[2px] w-full overflow-hidden rounded-full bg-white/[0.05]">
+                                  <div
+                                    className="h-full rounded-full bg-gradient-to-r from-gold/50 to-gold/20"
+                                    style={{ width: `${Math.min(100, pct)}%` }}
+                                  />
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Footer */}
+                  <div className="border-t border-white/[0.07] px-6 py-4">
+                    <div className="flex items-center justify-between gap-4">
+                      <div>
+                        <p className="text-[10px] uppercase tracking-[0.2em] text-foreground/35">Prix total</p>
+                        <p className="mt-0.5 font-serif text-2xl text-gold leading-none">{formatPrice(selectedCustom.price)}</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={async () => {
+                            if (!raw?.id) return;
+                            const name = selectedCustom.name || 'Ma composition';
+                            await sharePage(
+                              `/numba/atelier/composition-${raw.id}`,
+                              name,
+                              `Découvrez ma création personnalisée « ${name} » sur Accessories Exclusif`
+                            );
+                          }}
+                          className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 text-foreground/40 transition-colors hover:border-white/20 hover:text-foreground"
+                          title="Partager"
+                        >
+                          <Share2 size={14} />
+                        </button>
+                        {raw?.id && (
+                          <button
+                            onClick={() => {
+                              setSelectedCustom(null);
+                              router.push(`/numba/atelier?composition=${raw.id}`);
+                            }}
+                            className="flex items-center gap-2 rounded-xl bg-gold px-5 py-2.5 text-[11px] font-bold uppercase tracking-[0.15em] text-black transition-colors hover:bg-cream"
+                          >
+                            <Pencil size={12} />
+                            Modifier
+                          </button>
+                        )}
                       </div>
                     </div>
-                  )}
-                </div>
-
-                <div className="mt-6 flex items-center justify-between border-t border-white/10 pt-4">
-                  <div className="flex items-center gap-3">
-                    <p className="text-sm text-foreground/50">{t('total_price', 'Prix total')}</p>
-                    <p className="font-serif text-xl text-gold">{formatPrice(selectedCustom.price)}</p>
                   </div>
-                  {selectedCustom.raw?.id && (
-                    <button
-                      onClick={() => {
-                        setSelectedCustom(null);
-                        router.push(`/numba/atelier?composition=${selectedCustom.raw.id}`);
-                      }}
-                      className="flex items-center gap-2 border border-gold/40 px-4 py-2 text-xs font-semibold uppercase tracking-[0.15em] text-gold hover:bg-gold hover:text-black transition-colors"
-                    >
-                      <Pencil size={13} />
-                      Modifier
-                    </button>
-                  )}
                 </div>
               </div>
-            </div>
-          )}
+            );
+          })()}
 
           <div className="flex justify-center pt-6">
             <button

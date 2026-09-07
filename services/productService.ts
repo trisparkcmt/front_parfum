@@ -396,6 +396,13 @@ export interface PerfumeFilterParams {
   search?: string;
   ordering?: string;
   categorie?: number;
+  page?: number;
+}
+
+export interface PerfumePaginatedResponse {
+  results: Product[];
+  pages: number;
+  count: number;
 }
 
 export interface AccessoryFilterParams {
@@ -414,7 +421,7 @@ export const productService = {
   /**
    * Fetch perfumes from API with optional filters - API ONLY
    */
-  async getPerfumes(filters?: PerfumeFilterParams): Promise<Product[]> {
+  async getPerfumes(filters?: PerfumeFilterParams): Promise<Product[] | PerfumePaginatedResponse> {
     await _loadPerfumeCategories(); // Ensure categories are loaded before fetching products
     const params: any = {};
     if (filters) {
@@ -432,23 +439,30 @@ export const productService = {
       if (filters.search) params.search = filters.search;
       if (filters.ordering) params.ordering = filters.ordering;
       if (filters.categorie) params.categorie = filters.categorie;
+      if (filters.page && filters.page > 1) params.page = filters.page;
     }
 
     const response = await apiShopService.getPerfumes(params);
-    
-    // Handle standard paginated response vs raw array
-    let results: any[] = [];
-    if (response) {
-      if (Array.isArray(response)) {
-        results = response;
-      } else if (Array.isArray(response.results)) {
-        results = response.results;
-      } else if (Array.isArray(response.resultats)) {
-        results = response.resultats;
-      }
-    }
 
-    return results.map(mapBackendPerfumeToProduct);
+    // Handle standard paginated response vs raw array
+    if (!response) return [];
+    if (Array.isArray(response)) {
+      return response.map(mapBackendPerfumeToProduct);
+    }
+    const rawResults: any[] = Array.isArray(response.results)
+      ? response.results
+      : Array.isArray(response.resultats)
+        ? response.resultats
+        : [];
+    // Return paginated wrapper when the backend gives us pagination info
+    if (response.count !== undefined || response.pages !== undefined) {
+      return {
+        results: rawResults.map(mapBackendPerfumeToProduct),
+        pages: response.pages ?? Math.ceil((response.count ?? rawResults.length) / (rawResults.length || 1)),
+        count: response.count ?? rawResults.length,
+      };
+    }
+    return rawResults.map(mapBackendPerfumeToProduct);
   },
 
   /**
