@@ -31,9 +31,14 @@ export default function NumbaLandingClient() {
               <img
               src="/logo/Numba gold.svg"
               alt="Accessoires Exclusifs"
-              className="-my-20 w-auto object-contain  group-hover:scale-105 transition-transform duration-300"
+              className="-my-20 w-auto object-contain mx-auto group-hover:scale-105 transition-transform duration-300"
             />
             </h1>
+            <div className="mt-12 text-center">
+              <span className="inline-block px-5 py-2.5 rounded-full border border-gold/40 bg-gold/10 text-gold text-xs sm:text-sm font-extrabold uppercase tracking-[0.25em] shadow-[0_0_20px_rgba(212,184,122,0.2)]">
+                The BEST OLFACTORY EXPERIENCE
+              </span>
+            </div>
           </div>
 
           <div className="mt-12 lg:mt-0">
@@ -108,15 +113,6 @@ export default function NumbaLandingClient() {
         </Link>
 
       </main>
-
-      <footer className="w-full px-4 sm:px-12 py-8 flex flex-col sm:flex-row justify-between items-center gap-4 text-[10px] font-mono tracking-[0.2em] text-foreground/40 uppercase">
-        <div>{t('numba_olfactory', { defaultValue: 'Numba Olfactory ©2026' })}</div>
-        <div className="flex gap-8">
-          <span className="hover:text-gold cursor-pointer transition-colors">{t('index', { defaultValue: 'Index' })}</span>
-          <span className="hover:text-gold cursor-pointer transition-colors">{t('specifications', { defaultValue: 'Specifications' })}</span>
-          <span className="hover:text-gold cursor-pointer transition-colors">{t('legal', { defaultValue: 'Legal' })}</span>
-        </div>
-      </footer>
     </div>
   );
 }

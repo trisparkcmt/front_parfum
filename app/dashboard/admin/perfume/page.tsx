@@ -98,6 +98,23 @@ const T = {
   },
 } as const;
 type TKey = keyof typeof T.fr;
+
+type PerfumeRecord = {
+  id?: number | string;
+  slug?: string;
+  name?: string;
+  nom?: string;
+  marque?: string;
+  categorie?: { id?: number | string } | number | string;
+  [key: string]: unknown;
+};
+
+type CategoryRecord = {
+  id?: number | string;
+  nom?: string;
+  [key: string]: unknown;
+};
+
 import { useToastStore } from '@/store/useToastStore';
 import { useCatalogPermissions } from '@/hooks/useCatalogPermissions';
 import CatalogAccessNotice from '@/components/catalog/CatalogAccessNotice';
@@ -226,15 +243,15 @@ export default function PerfumeAdminPage() {
   const isEn = i18n.language?.startsWith('en') ?? false;
   const t = (k: TKey) => isEn ? T.en[k] : T.fr[k];
   const isAdmin = Boolean(user?.is_staff || user?.is_superuser || user?.role === 'superadmin');
-  const [perfumes, setPerfumes] = useState<any[]>([]);
+  const [perfumes, setPerfumes] = useState<PerfumeRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [genreFilter, setGenreFilter] = useState('');
   const [estBestsellerFilter, setEstBestsellerFilter] = useState('');
   const [showFilters, setShowFilters] = useState(false);
   const [showModal, setShowModal] = useState(false);
-  const [editingPerfume, setEditingPerfume] = useState<any | null>(null);
-  const [categories, setCategories] = useState<any[]>([]);
+  const [editingPerfume, setEditingPerfume] = useState<PerfumeRecord | null>(null);
+  const [categories, setCategories] = useState<CategoryRecord[]>([]);
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
   const [selectedSlugs, setSelectedSlugs] = useState<string[]>([]);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
@@ -312,7 +329,7 @@ export default function PerfumeAdminPage() {
       .catch(() => addToast(t('toast_category_error'), 'error'));
   }, [addToast]);
 
-  const updateForm = (field: keyof typeof form, value: any) => {
+  const updateForm = (field: keyof typeof form, value: string | number | boolean | null | undefined) => {
     setForm(prev => ({ ...prev, [field]: value }));
     setFormErrors(prev => {
       if (!prev[field]) return prev;
@@ -429,7 +446,7 @@ export default function PerfumeAdminPage() {
     setShowModal(true);
   };
 
-  const handleOpenEdit = (perf: any) => {
+  const handleOpenEdit = (perf: PerfumeRecord) => {
     setEditingPerfume(perf);
     setForm({
       marque: perf.marque || 'Accessoire Exclusif',
@@ -518,8 +535,12 @@ export default function PerfumeAdminPage() {
         handleOpenAdd(); // reset form for next entry
         await fetchPerfumes();
       }
-    } catch (error: any) {
-      const errorMessage = error.response?.data?.detail || t('toast_save_error');
+    } catch (error: unknown) {
+      const responseDetail =
+        typeof error === 'object' && error !== null && 'response' in error
+          ? (error as { response?: { data?: { detail?: string } } }).response?.data?.detail
+          : undefined;
+      const errorMessage = responseDetail || t('toast_save_error');
       setFormError(errorMessage);
     } finally {
       setIsSubmitting(false);
@@ -728,7 +749,7 @@ export default function PerfumeAdminPage() {
                         if (selectedSlugs.length === filtered.length) {
                           setSelectedSlugs([]);
                         } else {
-                          setSelectedSlugs(filtered.map((p: any) => p.slug || String(p.id)));
+                          setSelectedSlugs(filtered.map((p: PerfumeRecord) => p.slug || String(p.id)));
                         }
                       }}
                       className="rounded border-white/10 bg-white/5 text-gold focus:ring-0 focus:ring-offset-0"

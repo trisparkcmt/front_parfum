@@ -14,6 +14,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import type { Product, ProduitFiniEssence } from '@/types';
 import { formatPrice, resolveImageUrl } from '@/lib/utils';
 import AppImage from '@/components/ui/AppImage';
+import { QuantityInput } from '@/components/ui/QuantityInput';
 
 export interface SelectedVariantItem {
   variant: ProduitFiniEssence;
@@ -271,25 +272,13 @@ export function EssenceSizePickerModal({ product, onConfirm, onClose }: EssenceS
                             >
                               <Minus size={12} />
                             </button>
-                            <input
-                              type="number"
+                            <QuantityInput
+                              value={currentQty}
                               min={1}
                               max={v.stock_disponible}
-                              value={currentQty}
-                              onChange={(e) => {
-                                const val = e.target.value;
-                                if (val === '') {
-                                  setVariantQuantityDirect(v, 1);
-                                  return;
-                                }
-                                const parsed = parseInt(val, 10);
-                                if (!isNaN(parsed)) {
-                                  setVariantQuantityDirect(v, parsed);
-                                }
-                              }}
-                              onFocus={(e) => e.target.select()}
-                              aria-label="Quantité"
-                              className="w-10 text-center font-mono font-bold text-sm text-foreground bg-transparent border-none outline-none focus:ring-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none cursor-pointer focus:cursor-text"
+                              onChange={(qty) => setVariantQuantityDirect(v, qty)}
+                              ariaLabel="Quantité"
+                              className="w-10 text-center font-mono font-bold text-sm text-foreground bg-transparent border-none outline-none focus:ring-0 cursor-pointer focus:cursor-text"
                             />
                             <button
                               type="button"
