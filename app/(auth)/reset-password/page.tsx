@@ -89,10 +89,10 @@ function ResetPasswordFormContent() {
   return (
     <div>
       <div className="mb-7">
-        <span className="inline-block text-[10px] uppercase tracking-[0.3em] text-gold/80 mb-2">Nouveau mot de passe</span>
+        <span className="inline-block text-[10px] uppercase tracking-[0.3em] text-gold/80 mb-2">{t('new_password_title', { defaultValue: 'Nouveau mot de passe' })}</span>
         <h1 className="font-display text-3xl font-bold mb-2">{t('new_password_title', { defaultValue: 'Nouveau mot de passe' })}</h1>
         <p className="text-foreground/60 text-sm leading-relaxed">
-          Choisissez un mot de passe fort contenant au moins 8 caractères pour sécuriser votre compte.
+          {t('password_requirements', { defaultValue: 'Choisissez un mot de passe fort contenant au moins 8 caractères pour sécuriser votre compte.' })}
         </p>
       </div>
 
