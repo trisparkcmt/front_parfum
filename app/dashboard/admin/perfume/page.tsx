@@ -1193,7 +1193,6 @@ export default function PerfumeAdminPage() {
                   </div>
                 </div>
               </div>
-              </div>
 
               <div className="flex flex-wrap gap-4 pt-1">
                 <label className="flex items-center gap-2 cursor-pointer">
