@@ -27,7 +27,7 @@ function ResetPasswordFormContent() {
     if (!uid || !token) {
       addToast(t('invalid_reset_link', { defaultValue: 'Lien de réinitialisation invalide ou manquant.' }), 'error');
     }
-  }, [uid, token]);
+  }, [addToast, t, uid, token]);
 
   const schema = z
     .object({
@@ -57,10 +57,15 @@ function ResetPasswordFormContent() {
       });
       setIsSuccess(true);
       addToast(t('password_reset_success', { defaultValue: 'Votre mot de passe a été réinitialisé avec succès.' }), 'success');
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const responseData =
+        typeof error === 'object' && error !== null && 'response' in error
+          ? (error as { response?: { data?: { detail?: string; non_field_errors?: string[] } } }).response?.data
+          : undefined;
+
       addToast(
-        error.response?.data?.detail ||
-          error.response?.data?.non_field_errors?.[0] ||
+        responseData?.detail ||
+          responseData?.non_field_errors?.[0] ||
           t('password_reset_confirm_error', { defaultValue: 'Échec de la réinitialisation du mot de passe.' }),
         'error',
       );
@@ -109,9 +114,7 @@ function ResetPasswordFormContent() {
 
 export default function ResetPasswordPage() {
   const { t } = useTranslation();
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
-  if (!mounted) return null;
+
   return (
     <Suspense fallback={<div className="text-gold">{t('loading', { defaultValue: 'Chargement...' })}</div>}>
       <ResetPasswordFormContent />

@@ -13,7 +13,7 @@ const firebaseConfig = {
   storageBucket: "access-exclu.firebasestorage.app",
   messagingSenderId: "206783805033",
   appId: "1:206783805033:web:855b8533e130dd570c54f8",
-  measurementId: "G-J5XT62JBBS"
+  measurementId: "G-LZ9Y34PNZP"
 };
 
 // Initialize Firebase in Service Worker context

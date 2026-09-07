@@ -72,11 +72,11 @@ export default function CategoryPills() {
 
         const accessoryEntries: CategoryEntry[] = accessoryTypes.map((tp: any) => {
           const subcat = tp.subcategory as AccessorySubCategory;
-          const trans = ACCESSORY_TRANSLATIONS[subcat] || { fr: tp.name, en: tp.name };
+          const name = tp.name || tp.nom || "";
           return {
             key: `accessory-${tp.id}`,
-            labelFr: trans.fr,
-            labelEn: trans.en,
+            labelFr: name,
+            labelEn: name,
             href: `/shop/accessories?type_accessoire=${tp.id}`,
             image: tp.icone || null,
             Icon: ACCESSORY_ICONS[subcat] || Package,

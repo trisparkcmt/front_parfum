@@ -42,7 +42,7 @@ function VerifyEmailContent() {
       }
     };
     run();
-  }, [key]);
+  }, [addToast, key, t]);
 
   const handleResend = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -54,10 +54,15 @@ function VerifyEmailContent() {
     try {
       await authService.resendVerificationEmail(email);
       addToast(t('verification_email_resent', { defaultValue: 'Lien de validation envoyé avec succès.' }), 'success');
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const responseData =
+        typeof error === 'object' && error !== null && 'response' in error
+          ? (error as { response?: { data?: { detail?: string; email?: string[] } } }).response?.data
+          : undefined;
+
       const errorMsg =
-        error.response?.data?.detail ||
-        error.response?.data?.email?.[0] ||
+        responseData?.detail ||
+        responseData?.email?.[0] ||
         t('resend_email_error', { defaultValue: "Impossible de renvoyer l'e-mail de validation." });
       addToast(errorMsg, 'error');
       
@@ -149,9 +154,7 @@ function VerifyEmailContent() {
 
 export default function VerifyEmailPage() {
   const { t } = useTranslation();
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
-  if (!mounted) return null;
+
   return (
     <Suspense fallback={<div className="text-gold">{t('loading', { defaultValue: 'Chargement...' })}</div>}>
       <VerifyEmailContent />

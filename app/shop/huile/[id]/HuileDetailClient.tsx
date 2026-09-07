@@ -111,6 +111,16 @@ export default function HuileDetailClient({ id }: { id: string }) {
     });
   };
 
+  const setVariantQuantityDirect = (variant: ProduitFiniEssence, qty: number) => {
+    setSelectedQuantities((prev) => {
+      const nextQty = Math.max(1, Math.min(variant.stock_disponible, qty));
+      return {
+        ...prev,
+        [variant.id]: nextQty,
+      };
+    });
+  };
+
   const selectedItems = useMemo(() => {
     return variants
       .filter((v) => (selectedQuantities[v.id] ?? 0) > 0)
@@ -480,9 +490,26 @@ export default function HuileDetailClient({ id }: { id: string }) {
                             >
                               <Minus size={13} />
                             </button>
-                            <span className="w-8 text-center font-mono font-bold text-sm text-foreground">
-                              {currentQty}
-                            </span>
+                            <input
+                              type="number"
+                              min={1}
+                              max={v.stock_disponible}
+                              value={currentQty}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                if (val === '') {
+                                  setVariantQuantityDirect(v, 1);
+                                  return;
+                                }
+                                const parsed = parseInt(val, 10);
+                                if (!isNaN(parsed)) {
+                                  setVariantQuantityDirect(v, parsed);
+                                }
+                              }}
+                              onFocus={(e) => e.target.select()}
+                              aria-label="Quantité"
+                              className="w-10 text-center font-mono font-bold text-sm text-foreground bg-transparent border-none outline-none focus:ring-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none cursor-pointer focus:cursor-text"
+                            />
                             <button
                               type="button"
                               onClick={() => updateVariantQuantity(v, 1)}

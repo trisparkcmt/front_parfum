@@ -31,10 +31,15 @@ export default function ForgotPasswordPage() {
       await authService.requestPasswordReset(data.email);
       setIsSubmitted(true);
       addToast(t('password_reset_sent', { defaultValue: 'E-mail de réinitialisation envoyé avec succès.' }), 'success');
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const responseData =
+        typeof error === 'object' && error !== null && 'response' in error
+          ? (error as { response?: { data?: { detail?: string; email?: string[] } } }).response?.data
+          : undefined;
+
       const errorMsg =
-        error.response?.data?.detail ||
-        error.response?.data?.email?.[0] ||
+        responseData?.detail ||
+        responseData?.email?.[0] ||
         t('password_reset_error', { defaultValue: 'Une erreur est survenue. Veuillez réessayer.' });
       addToast(errorMsg, 'error');
 

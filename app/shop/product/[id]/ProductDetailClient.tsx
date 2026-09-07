@@ -544,7 +544,34 @@ export default function ProductDetailClient({ id }: { id: string }) {
                   >
                     <Minus size={15} />
                   </button>
-                  <span className="flex-1 text-center font-bold tabular-nums">{quantity}</span>
+                  <input
+                    type="number"
+                    min={1}
+                    max={
+                      product.category === 'huile' && selectedVariant
+                        ? selectedVariant.stock_disponible
+                        : undefined
+                    }
+                    value={quantity}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      if (val === '') {
+                        setQuantity(1);
+                        return;
+                      }
+                      const parsed = parseInt(val, 10);
+                      if (!isNaN(parsed)) {
+                        const maxStock =
+                          product.category === 'huile' && selectedVariant
+                            ? selectedVariant.stock_disponible
+                            : Infinity;
+                        setQuantity(Math.max(1, Math.min(maxStock, parsed)));
+                      }
+                    }}
+                    onFocus={(e) => e.target.select()}
+                    aria-label="Quantity"
+                    className="w-10 sm:w-14 text-center font-bold tabular-nums bg-transparent border-none outline-none text-foreground focus:ring-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none cursor-pointer focus:cursor-text"
+                  />
                   <button
                     onClick={() => setQuantity(quantity + 1)}
                     disabled={

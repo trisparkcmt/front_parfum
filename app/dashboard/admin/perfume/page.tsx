@@ -271,6 +271,7 @@ export default function PerfumeAdminPage() {
   });
 
   const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imageResetKey, setImageResetKey] = useState(0);
   const [imageFiles, setImageFiles] = useState<{ [key: string]: File | null }>({
     image_principale: null,
     image_supp_1: null,
@@ -424,6 +425,7 @@ export default function PerfumeAdminPage() {
       image_supp_3: null,
       image_supp_4: null,
     });
+    setImageResetKey(prev => prev + 1);
     setFormErrors({});
     setShowModal(true);
   };
@@ -465,6 +467,7 @@ export default function PerfumeAdminPage() {
       image_supp_3: null,
       image_supp_4: null,
     });
+    setImageResetKey(prev => prev + 1);
     setFormErrors({});
     setShowModal(true);
   };
@@ -1257,7 +1260,10 @@ export default function PerfumeAdminPage() {
                 <div className="space-y-4">
                   <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-4 xl:sticky xl:top-6">
                     <h3 className="text-sm font-semibold text-foreground mb-4">Images</h3>
-                    <MultiImageUpload onImagesChange={(images) => setImageFiles(images)} />
+                    <MultiImageUpload
+                      key={imageResetKey}
+                      onImagesChange={(images) => setImageFiles(images)}
+                    />
                   </div>
                 </div>
               </div>
