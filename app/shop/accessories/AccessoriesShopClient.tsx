@@ -5,7 +5,7 @@
  * @description Main Marketplace Catalog for Luxury Accessories with Advanced Filtering.
  */
 import { useState, useEffect } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, SlidersHorizontal, X, RotateCcw, ChevronDown } from 'lucide-react';
 import { ProductCard } from '@/components/ui/ProductCard';
@@ -47,12 +47,22 @@ export default function AccessoriesShop() {
   }, []);
 
   useEffect(() => {
-    const typeParam = searchParams.get('type');
+    const typeAccessoireParam = searchParams.get('type_accessoire');
+    const legacyTypeParam = searchParams.get('type');
     const searchParam = searchParams.get('search');
-    if (typeParam) {
-      const parsed = parseInt(typeParam, 10);
-      if (!isNaN(parsed)) setActiveTypeId(parsed);
+
+    const nextTypeId = typeAccessoireParam
+      ? Number(typeAccessoireParam)
+      : legacyTypeParam
+        ? Number(legacyTypeParam)
+        : null;
+
+    if (nextTypeId && !Number.isNaN(nextTypeId)) {
+      setActiveTypeId(nextTypeId);
+    } else if (typeAccessoireParam === null && legacyTypeParam === null) {
+      setActiveTypeId('all');
     }
+
     if (searchParam) setSearch(searchParam);
   }, [searchParams]);
 

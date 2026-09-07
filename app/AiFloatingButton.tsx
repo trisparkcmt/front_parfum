@@ -10,10 +10,11 @@ const RIBBON_APPEAR_DELAY_MS = 700;
 const RIBBON_VISIBLE_MS = 4200;
 
 /**
- * A minimal line-drawn flacon (perfume bottle) — stands in for the generic
- * "bot" glyph with something that actually belongs to this brand's world.
+ * A minimal line-drawn robot glyph — makes it immediately legible as an
+ * AI chat entry point, drawn in the same restrained stroke style as the
+ * rest of the medallion so it still reads as part of this brand's world.
  */
-function FlaconIcon({ className }: { className?: string }) {
+function RobotIcon({ className }: { className?: string }) {
   return (
     <svg
       viewBox="0 0 24 24"
@@ -24,12 +25,22 @@ function FlaconIcon({ className }: { className?: string }) {
       strokeLinecap="round"
       strokeLinejoin="round"
     >
-      <path d="M10.5 3.5h3" />
-      <path d="M11 3.5v2.6" />
-      <path d="M13 3.5v2.6" />
-      <rect x="9.7" y="6.1" width="4.6" height="2.4" rx="0.4" />
-      <path d="M9 8.5c-1.1.9-1.6 2-1.6 3.4v6.6c0 1.1.9 2 2 2h5.2c1.1 0 2-.9 2-2v-6.6c0-1.4-.5-2.5-1.6-3.4" />
-      <path d="M8.4 13.2h7.2" />
+      {/* antenna */}
+      <path d="M12 3.5v2" />
+      <circle cx="12" cy="2.8" r="0.6" fill="currentColor" stroke="none" />
+      {/* head */}
+      <rect x="7" y="5.5" width="10" height="8" rx="2.2" />
+      {/* eyes */}
+      <circle cx="10.1" cy="9.3" r="0.9" fill="currentColor" stroke="none" />
+      <circle cx="13.9" cy="9.3" r="0.9" fill="currentColor" stroke="none" />
+      {/* side ears/receivers */}
+      <path d="M7 8.2h-1a1 1 0 0 0-1 1v1.4a1 1 0 0 0 1 1h1" />
+      <path d="M17 8.2h1a1 1 0 0 1 1 1v1.4a1 1 0 0 1-1 1h-1" />
+      {/* neck */}
+      <path d="M12 13.5v1.6" />
+      {/* body */}
+      <path d="M8.4 15.1c-.9.6-1.4 1.4-1.4 2.4v1.4c0 .9.7 1.6 1.6 1.6h6.8c.9 0 1.6-.7 1.6-1.6v-1.4c0-1-.5-1.8-1.4-2.4" />
+      <path d="M9.6 15.1h4.8" />
     </svg>
   );
 }
@@ -121,7 +132,7 @@ export default function AiFloatingButton() {
             >
               {/* Engraved inner rim — reads as a struck medallion, not a soft SaaS shadow */}
               <span className="absolute inset-[3px] rounded-full border border-gold/15 pointer-events-none" />
-              <FlaconIcon className="relative size-[18px] text-gold" />
+              <RobotIcon className="relative size-[18px] text-gold" />
             </Link>
           </div>
         </motion.div>

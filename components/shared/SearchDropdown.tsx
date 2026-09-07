@@ -97,7 +97,7 @@ export function SearchDropdown({ query, onClose, className }: SearchDropdownProp
             .forEach(c => catList.push({
               id: c.id,
               name: c.name,
-              href: `/shop/accessories?type=${c.id}`,
+              href: `/shop/accessories?type_accessoire=${c.id}`,
             }));
         }
 

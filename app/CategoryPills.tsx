@@ -77,7 +77,7 @@ export default function CategoryPills() {
             key: `accessory-${tp.id}`,
             labelFr: trans.fr,
             labelEn: trans.en,
-            href: `/shop/accessories?type=${tp.id}`,
+            href: `/shop/accessories?type_accessoire=${tp.id}`,
             image: tp.icone || null,
             Icon: ACCESSORY_ICONS[subcat] || Package,
           };

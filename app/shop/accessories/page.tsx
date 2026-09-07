@@ -5,7 +5,7 @@
  * @description Main Marketplace Catalog for Luxury Accessories with Advanced Filtering.
  */
 import { useState, useEffect, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, SlidersHorizontal, X, RotateCcw, ChevronDown, Check } from 'lucide-react';
 import { ProductCard } from '@/components/ui/ProductCard';
@@ -42,15 +42,53 @@ function AccessoriesShop() {
   const [showFilters, setShowFilters] = useState(false);
 
   const searchParams = useSearchParams();
+  const pathname = usePathname();
+  const router = useRouter();
+
+  const updateAccessoryCategory = (nextType: number | 'all') => {
+    setActiveTypeId(nextType);
+
+    const params = new URLSearchParams(searchParams.toString());
+    if (nextType === 'all') {
+      params.delete('type_accessoire');
+      params.delete('categorie');
+      params.delete('type');
+    } else {
+      params.set('type_accessoire', String(nextType));
+      params.delete('categorie');
+      params.delete('type');
+    }
+
+    const queryString = params.toString();
+    const nextUrl = queryString ? `${pathname}?${queryString}` : pathname;
+    router.replace(nextUrl, { scroll: false });
+  };
 
   // Pre-select type and search from URL params (e.g. from CategoryPills)
   useEffect(() => {
-    const typeParam = searchParams.get('type');
+    const typeAccessoireParam = searchParams.get('type_accessoire');
+    const categoryParam = searchParams.get('categorie');
+    const legacyTypeParam = searchParams.get('type');
     const searchParam = searchParams.get('search');
-    if (typeParam) {
-      const parsed = parseInt(typeParam, 10);
-      if (!isNaN(parsed)) setActiveTypeId(parsed);
+
+    const nextTypeId = typeAccessoireParam
+      ? Number(typeAccessoireParam)
+      : categoryParam
+        ? Number(categoryParam)
+        : legacyTypeParam
+          ? Number(legacyTypeParam)
+          : null;
+
+    if (nextTypeId && !Number.isNaN(nextTypeId)) {
+      setActiveTypeId(nextTypeId);
+    } else if (
+      typeAccessoireParam === null &&
+      categoryParam === null &&
+      legacyTypeParam === null
+    ) {
+      setActiveTypeId('all');
     }
+
     if (searchParam) setSearch(searchParam);
   }, [searchParams]);
 
@@ -86,7 +124,18 @@ function AccessoriesShop() {
       try {
         setLoading(true);
 
-        const mappedProducts = await productService.getAccessories();
+        const filters: any = {
+          ordering,
+        };
+
+        if (debouncedSearch) filters.search = debouncedSearch;
+        if (activeTypeId !== 'all') filters.type_accessoire = Number(activeTypeId);
+        if (maxPrice < 200000) filters.prix_max = maxPrice;
+        if (color !== 'all') filters.couleur = color;
+        if (material !== 'all') filters.matiere = material;
+        if (inStockOnly) filters.en_stock = true;
+
+        const mappedProducts = await productService.getAccessories(filters);
 
         setProducts(mappedProducts);
       } catch (error) {
@@ -98,7 +147,7 @@ function AccessoriesShop() {
     }
 
     fetchProducts();
-  }, [mounted, activeTypeId, maxPrice, color, material, inStockOnly, debouncedSearch, ordering]);
+  }, [mounted, activeTypeId, maxPrice, color, material, inStockOnly, debouncedSearch, ordering, addToast, t]);
 
   useEffect(() => {
     setMounted(true);
@@ -139,6 +188,7 @@ function AccessoriesShop() {
     setMaterial('all');
     setInStockOnly(false);
     setOrdering('-date_creation');
+    router.replace(pathname, { scroll: false });
   };
 
   const activeFiltersCount = 
@@ -183,7 +233,7 @@ function AccessoriesShop() {
       <div className="w-full border-b border-white/5 mb-8">
         <div className="flex items-center gap-8 overflow-x-auto pb-4 scrollbar-hide px-4 sm:px-0">
           <button
-            onClick={() => setActiveTypeId('all')}
+            onClick={() => updateAccessoryCategory('all')}
             className={`relative whitespace-nowrap text-[0.6rem] font-bold uppercase tracking-[0.2em] transition-all pb-2 ${
               activeTypeId === 'all'
                 ? 'text-gold font-extrabold'
@@ -203,7 +253,7 @@ function AccessoriesShop() {
           {accessoryTypes.map((type) => (
             <button
               key={type.id}
-              onClick={() => setActiveTypeId(type.id)}
+              onClick={() => updateAccessoryCategory(type.id)}
               className={`relative whitespace-nowrap text-[0.6rem] font-bold uppercase tracking-[0.2em] transition-all pb-2 ${
                 activeTypeId === type.id
                   ? 'text-gold font-extrabold'

@@ -41,7 +41,6 @@ export default function PerfumesShopClient() {
   const [olfactiveFamily, setOlfactiveFamily] = useState<string>('all');
   const [intensity, setIntensity] = useState<string>('all');
   const [maxPrice, setMaxPrice] = useState<number>(150000);
-  const [ordering, setOrdering] = useState<string>('-date_creation');
   const [showFilters, setShowFilters] = useState(false);
 
   // Initialise activeTab from URL ?categorie=<id> if present
@@ -65,7 +64,7 @@ export default function PerfumesShopClient() {
   // Reset to page 1 whenever any filter/search/tab changes
   useEffect(() => {
     setCurrentPage(1);
-  }, [genre, olfactiveFamily, intensity, maxPrice, debouncedSearch, ordering, activeTab]);
+  }, [genre, olfactiveFamily, intensity, maxPrice, debouncedSearch, activeTab]);
 
   // Load products when filters, tab, or page changes
   useEffect(() => {
@@ -107,13 +106,10 @@ export default function PerfumesShopClient() {
       if (olfactiveFamily !== 'all') filters.famille_olfactive = olfactiveFamily;
       if (intensity !== 'all') filters.intensite = intensity;
       if (maxPrice < 150000) filters.prix_max = maxPrice;
-      if (ordering) filters.ordering = ordering;
       if (activeTab !== 'all' && activeTab !== 'huile') filters.categorie = Number(activeTab);
       if (currentPage > 1) filters.page = currentPage;
 
-      const response = (await productService.getPerfumes(filters)) as
-        | Product[]
-        | { results?: Product[]; resultats?: Product[]; pages?: number; count?: number };
+      const response = await productService.getPerfumes(filters);
 
       if (Array.isArray(response)) {
         setProducts(response);
@@ -140,12 +136,12 @@ export default function PerfumesShopClient() {
           }
         }
       } else {
-        setProducts(response.results ?? response.resultats ?? []);
+        setProducts(response.results);
         setTotalPages(response.pages ?? 1);
         setTotalCount(response.count ?? 0);
         
         // Track view_item_list event for GA4
-        const productList = response.results ?? response.resultats ?? [];
+        const productList = response.results;
         if (productList.length > 0) {
           try {
             const { trackViewItemList } = await import('@/lib/gtag');
@@ -170,7 +166,7 @@ export default function PerfumesShopClient() {
     }
 
     fetchData();
-  }, [mounted, activeTab, genre, olfactiveFamily, intensity, maxPrice, debouncedSearch, ordering, currentPage, categories.length]);
+  }, [mounted, activeTab, genre, olfactiveFamily, intensity, maxPrice, debouncedSearch, currentPage, categories.length]);
 
   useEffect(() => {
     setMounted(true);
@@ -184,7 +180,6 @@ export default function PerfumesShopClient() {
       try {
         const response = await productService.getEssencesAsProducts({
           search: debouncedSearch || undefined,
-          ordering: ordering || undefined,
           genre: genre !== 'all' ? genre : undefined,
           famille_olfactive: olfactiveFamily !== 'all' ? olfactiveFamily : undefined,
           intensite: intensity !== 'all' ? intensity : undefined,
@@ -199,7 +194,7 @@ export default function PerfumesShopClient() {
     }
 
     loadEssenceProducts();
-  }, [mounted, activeTab, debouncedSearch, ordering, genre, olfactiveFamily, intensity, maxPrice]);
+  }, [mounted, activeTab, debouncedSearch, genre, olfactiveFamily, intensity, maxPrice]);
 
   // Scroll active tab to center
   useEffect(() => {
@@ -336,7 +331,6 @@ export default function PerfumesShopClient() {
     setOlfactiveFamily('all');
     setIntensity('all');
     setMaxPrice(150000);
-    setOrdering('-date_creation');
   };
 
   const activeFiltersCount =
