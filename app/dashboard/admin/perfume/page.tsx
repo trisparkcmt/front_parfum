@@ -105,7 +105,37 @@ type PerfumeRecord = {
   name?: string;
   nom?: string;
   marque?: string;
+  reference_sku?: string;
+  description_courte?: string;
+  description_longue?: string;
+  description_ia?: string;
+  contenance_ml?: number | string;
+  prix_unitaire?: number | string;
+  prix_achat?: number | string;
+  prix_promotionnel?: number | string;
+  taux_reduction?: number | string;
+  prix_actuel?: number | string;
+  date_debut?: string | null;
+  date_fin?: string | null;
+  genre_cible?: string;
+  intensite?: string;
+  notes_tete?: string;
+  notes_coeur?: string;
+  notes_fond?: string;
+  est_nouveau?: boolean;
+  est_bestseller?: boolean;
+  stock_quantite?: number | string;
+  stock?: number | string;
+  seuil_alerte_stock?: number | string;
   categorie?: { id?: number | string } | number | string;
+  actif?: boolean;
+  message_promotion?: string;
+  image_principale?: string | null;
+  image?: string | null;
+  image_supp_1?: string | null;
+  image_supp_2?: string | null;
+  image_supp_3?: string | null;
+  image_supp_4?: string | null;
   [key: string]: unknown;
 };
 
@@ -460,8 +490,8 @@ export default function PerfumeAdminPage() {
       prix_achat: perf.prix_achat ? String(perf.prix_achat) : '',
       prix_promotionnel: perf.prix_promotionnel ? String(perf.prix_promotionnel) : '',
       taux_reduction: perf.taux_reduction ? String(perf.taux_reduction) : '',
-      date_debut: toDatetimeLocalValue(perf.date_debut),
-      date_fin: toDatetimeLocalValue(perf.date_fin),
+      date_debut: toDatetimeLocalValue(typeof perf.date_debut === 'string' ? perf.date_debut : null),
+      date_fin: toDatetimeLocalValue(typeof perf.date_fin === 'string' ? perf.date_fin : null),
       genre_cible: perf.genre_cible || 'mixte',
       intensite: perf.intensite || 'moyenne',
       notes_tete: perf.notes_tete || '',
@@ -471,8 +501,8 @@ export default function PerfumeAdminPage() {
       est_bestseller: !!perf.est_bestseller,
       stock_quantite: String(perf.stock_quantite || ''),
       seuil_alerte_stock: String(perf.seuil_alerte_stock || '5'),
-      categorie: String(perf.categorie?.id || perf.categorie || ''),
-      actif: perf.actif !== undefined ? perf.actif : true,
+      categorie: String((typeof perf.categorie === 'object' && perf.categorie !== null ? perf.categorie.id : perf.categorie) || ''),
+      actif: perf.actif !== undefined ? Boolean(perf.actif) : true,
       message_promotion: perf.message_promotion || '',
     });
     setImageFile(null);
@@ -769,7 +799,7 @@ export default function PerfumeAdminPage() {
               </thead>
               <tbody className="divide-y divide-white/5">
                 {pagedInStock.map(p => {
-                  const productImg = p.image_principale || p.image;
+                  const productImg = (typeof p.image_principale === 'string' ? p.image_principale : null) || (typeof p.image === 'string' ? p.image : null);
                   const slugKey = p.slug || String(p.id);
                   const isSelected = selectedSlugs.includes(slugKey);
                   const prixVenteNum = parseFloat(String(p.prix_unitaire || 0));
@@ -818,7 +848,7 @@ export default function PerfumeAdminPage() {
                           ) : (
                             <StatusChip label={t('in_stock')} type="emerald" />
                           )}
-                          {p.est_bestseller && <StatusChip label="Bestseller" type="gold" />}
+                          {Boolean(p.est_bestseller) && <StatusChip label="Bestseller" type="gold" />}
                         </div>
                       </td>
                       <td className="px-4 py-3 text-xs tabular-nums text-foreground/60 whitespace-nowrap">
@@ -830,8 +860,8 @@ export default function PerfumeAdminPage() {
                       <td className="px-4 py-3 text-xs font-semibold tabular-nums text-foreground whitespace-nowrap">
                         <InlineCell value={String(p.prix_unitaire ?? '')} onSave={v => patchPerfume(p.slug || String(p.id), 'prix_unitaire', v)} disabled={!permissions.canUpdate} inputType="number" display={p.taux_reduction ? (
                           <div className="flex items-center gap-1.5">
-                            <span className="text-foreground/40 line-through text-[11px] font-normal">{p.prix_unitaire} FCFA</span>
-                            <span className="text-gold">{p.prix_actuel} FCFA</span>
+                            <span className="text-foreground/40 line-through text-[11px] font-normal">{String(p.prix_unitaire ?? '')} FCFA</span>
+                            <span className="text-gold">{String(p.prix_actuel ?? '')} FCFA</span>
                           </div>
                         ) : <span>{p.prix_unitaire ? `${p.prix_unitaire} FCFA` : '—'}</span>} className="font-semibold text-foreground tabular-nums" />
                       </td>
@@ -854,7 +884,7 @@ export default function PerfumeAdminPage() {
                             </IconButton>
                           )}
                           {permissions.canDelete && (
-                            <IconButton variant="red" onClick={() => handleDelete(p.slug)} title="Supprimer">
+                            <IconButton variant="red" onClick={() => handleDelete(p.slug || String(p.id))} title="Supprimer">
                               <Trash2 size={14} />
                             </IconButton>
                           )}
@@ -892,7 +922,7 @@ export default function PerfumeAdminPage() {
                 <table className="w-full text-left border-collapse">
                   <tbody className="divide-y divide-white/5 opacity-70">
                     {pagedOutOfStock.map(p => {
-                      const productImg = p.image_principale || p.image;
+                      const productImg = (typeof p.image_principale === 'string' ? p.image_principale : null) || (typeof p.image === 'string' ? p.image : null);
                       const slugKey = p.slug || String(p.id);
                       const stockQty = Number(p.stock_quantite ?? p.stock ?? 0);
                       return (
@@ -919,7 +949,7 @@ export default function PerfumeAdminPage() {
                           <td className="px-4 py-2.5 text-right">
                             <div className="flex items-center justify-end gap-1">
                               {permissions.canUpdate && <IconButton variant="gold" onClick={() => handleOpenEdit(p)} title="Modifier"><Edit2 size={13} /></IconButton>}
-                              {permissions.canDelete && <IconButton variant="red" onClick={() => handleDelete(p.slug)} title="Supprimer"><Trash2 size={13} /></IconButton>}
+                              {permissions.canDelete && <IconButton variant="red" onClick={() => handleDelete(p.slug || String(p.id))} title="Supprimer"><Trash2 size={13} /></IconButton>}
                             </div>
                           </td>
                         </tr>
@@ -1011,7 +1041,7 @@ export default function PerfumeAdminPage() {
                           onChange={(value) => updateForm('categorie', value)}
                           options={categories.map((c) => ({
                             value: String(c.id),
-                            label: c.nom,
+                            label: c.nom || '',
                           }))}
                           placeholder="Catégorie"
                           error={!!formErrors.categorie}
