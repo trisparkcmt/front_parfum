@@ -38,11 +38,11 @@ export function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12">
           {/* Brand */}
           <div className="space-y-4">
-            <Link href="/" className="flex items-center gap-2">
+            <Link href="/" className="flex items-center gap-3">
               <img
                 src="/logo/Logo Accessoirs Exclusifs black transparent.svg"
                 alt="Accessoires Exclusifs"
-                className="h-12 w-auto object-contain dark:invert"
+                className="h-24 w-auto object-contain dark:invert"
               />
               <span className="font-display text-lg font-bold">
                 <span className="text-gold">Accessoires</span>{' '}
@@ -129,9 +129,6 @@ export function Footer() {
             <h4 className="font-display text-sm font-semibold text-zinc-900 dark:text-zinc-100 mb-4 uppercase tracking-wider">Services</h4>
             <ul className="space-y-3 text-zinc-600 dark:text-zinc-400">
               {[
-                t('perfume_brand', 'Parfums de Marque'),
-                t('perfume_dupe', 'Dupes Premium'),
-                t('numba_creation', 'Créations Numba'),
                 t('custom_perfume', 'Parfum sur Mesure'),
                 t('ai_advisor', 'Sommelier IA'),
               ].map((item) => (
@@ -145,15 +142,17 @@ export function Footer() {
             <h4 className="font-display text-sm font-semibold text-zinc-900 dark:text-zinc-100 mb-4 uppercase tracking-wider">Contact</h4>
             <ul className="space-y-3 text-zinc-600 dark:text-zinc-400">
               <li className="flex items-center gap-2 text-sm">
-                <Phone size={14} className="text-gold" />
+                <Phone size={16} className="text-gold shrink-0" />
                 <span>+237 680 254 243</span>
               </li>
               <li className="flex items-center gap-2 text-sm">
-                <Mail size={14} className="text-gold" />
-                <a href="mailto:accessoiresexclusifs@gmail.com" className="hover:text-gold transition-colors">accessoiresexclusifs@gmail.com</a>
+                <Mail size={16} className="text-gold shrink-0" />
+                <a href="mailto:accessoiresexclusifs@gmail.com" className="hover:text-gold transition-colors flex items-center gap-1.5">
+                  accessoiresexclusifs@gmail.com
+                </a>
               </li>
-              <li className="flex items-start gap-2 text-sm ">
-                <MapPin size={14} className="text-gold mt-0.5" />
+              <li className="flex items-start gap-2 text-sm">
+                <MapPin size={16} className="text-gold mt-0.5 shrink-0" />
                 <span>Yaounde, Cameroun</span>
               </li>
             </ul>

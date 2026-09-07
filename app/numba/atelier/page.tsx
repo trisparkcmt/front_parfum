@@ -1428,12 +1428,18 @@ function AtelierContent() {
               className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-foreground placeholder-foreground/30 focus:outline-none focus:border-gold/50 mb-6 text-sm"
             />
 
-            <ColorPicker 
-              value={couleur}
-              onChange={setCouleur}
-              label={i18n.language === 'en' ? 'Bottle Color' : 'Couleur du Flacon'}
-              className="mb-6"
-            />
+            <div className="mb-6">
+              <ColorPicker 
+                value={couleur}
+                onChange={setCouleur}
+                label={i18n.language === 'en' ? 'Liquid Color' : 'Couleur du Liquide'}
+              />
+              <p className="text-[10px] text-foreground/40 mt-1.5 italic">
+                {i18n.language === 'en'
+                  ? '✦ This is the color of the fragrance liquid inside the bottle, not the bottle itself.'
+                  : '✦ Il s\'agit de la couleur du liquide parfumé à l\'intérieur du flacon, pas du flacon lui-même.'}
+              </p>
+            </div>
 
             <div className="flex gap-3">
               <button
@@ -1491,12 +1497,18 @@ function AtelierContent() {
               </div>
             </div>
 
-            <ColorPicker 
-              value={couleur}
-              onChange={setCouleur}
-              label={i18n.language === 'en' ? 'Bottle Color' : 'Couleur du Flacon'}
-              className="mb-6"
-            />
+            <div className="mb-6">
+              <ColorPicker 
+                value={couleur}
+                onChange={setCouleur}
+                label={i18n.language === 'en' ? 'Liquid Color' : 'Couleur du Liquide'}
+              />
+              <p className="text-[10px] text-foreground/40 mt-1.5 italic">
+                {i18n.language === 'en'
+                  ? '✦ This is the color of the fragrance liquid inside the bottle, not the bottle itself.'
+                  : '✦ Il s\'agit de la couleur du liquide parfumé à l\'intérieur du flacon, pas du flacon lui-même.'}
+              </p>
+            </div>
 
             <div className="space-y-4">
               <div className="rounded-xl border border-white/10 bg-white/5 p-4 text-sm text-foreground/70">
