@@ -64,9 +64,15 @@ export function SearchDropdown({ query, onClose, className }: SearchDropdownProp
         if (cancelled) return;
 
         // Combine perfume + accessory results, limit to 6
+        const perfumeResults = perfumes.status === 'fulfilled'
+          ? (Array.isArray(perfumes.value) ? perfumes.value : perfumes.value.results)
+          : [];
+        const accessoryResults = accessories.status === 'fulfilled'
+          ? accessories.value
+          : [];
         const allProducts: Product[] = [
-          ...(perfumes.status === 'fulfilled' ? perfumes.value : []),
-          ...(accessories.status === 'fulfilled' ? accessories.value : []),
+          ...perfumeResults,
+          ...accessoryResults,
         ].slice(0, 6);
 
         // Build category suggestions — filter by name match

@@ -108,9 +108,12 @@ export default function ProductDetailClient({ id }: { id: string }) {
               if (isMounted) setRelatedProducts(list.filter((item) => item.id !== p.id).slice(0, 4));
             } else {
               const list = await productService.getPerfumes();
+              const perfumes: Product[] = Array.isArray(list)
+                ? list
+                : list.results;
               if (isMounted) {
                 setRelatedProducts(
-                  list.filter((item) => item.category === p.category && item.id !== p.id).slice(0, 4)
+                  perfumes.filter((item: Product) => item.category === p.category && item.id !== p.id).slice(0, 4)
                 );
               }
             }
