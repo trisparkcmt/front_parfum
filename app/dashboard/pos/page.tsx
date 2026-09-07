@@ -6,10 +6,11 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Product, EssenceClient } from '@/types';
+import { Product } from '@/types';
+// EssenceClient import removed — was only used by the commented-out Atelier section below.
 import { productService } from '@/services/productService';
 import { orderService } from '@/services/orderService';
-import { labService } from '@/services/labService';
+// labService import removed — was only used by the commented-out Atelier section below.
 import { useToastStore } from '@/store/useToastStore';
 import { CartIcon } from '@/components/icons/CustomIcons';
 import { BackButton } from '@/components/ui/BackButton';
@@ -30,10 +31,9 @@ import {
   Phone,
   FileText,
   Tag,
-  FlaskConical,
-  RefreshCcw,
+  // FlaskConical, RefreshCcw — only used by the commented-out Atelier section below.
 } from 'lucide-react';
-import ColorPicker from '@/components/ui/ColorPicker';
+// ColorPicker import removed — was only used by the commented-out Atelier section below.
 
 interface CartItem {
   product: Product;
@@ -150,6 +150,9 @@ export default function POSPage() {
   const [codePromo, setCodePromo] = useState('');
 
   // UI state
+  // NOTE: "Création Atelier" tab is temporarily disabled (commented out below).
+  // activeTab is kept as state for when the tab is restored, but only 'products'
+  // is currently reachable from the UI.
   const [activeTab, setActiveTab] = useState<'products' | 'composition'>('products');
   const [isLoading, setIsLoading] = useState(false);
   const [isValidating, setIsValidating] = useState(false);
@@ -157,6 +160,8 @@ export default function POSPage() {
   const [lastOrderNumber, setLastOrderNumber] = useState<string>('');
   const searchInputRef = useRef<HTMLInputElement>(null);
   const { addToast } = useToastStore();
+
+  /* ── Atelier state & logic — commented out along with the tab, kept for restoration ──
 
   // Simplified Atelier space states
   const [essences, setEssences] = useState<EssenceClient[]>([]);
@@ -346,6 +351,8 @@ export default function POSPage() {
     setCouleur(''); // Reset color
     setActiveTab('products');
   };
+
+  ── end Atelier state & logic ── */
 
   // Debounce search term
   useEffect(() => {
@@ -586,6 +593,7 @@ export default function POSPage() {
             <ShoppingBag size={14} />
             Produits & Accessoires
           </button>
+          {/* Création Atelier tab — temporarily disabled
           <button
             onClick={() => setActiveTab('composition')}
             className={cx(
@@ -598,87 +606,87 @@ export default function POSPage() {
             <FlaskConical size={14} />
             Création Atelier
           </button>
+          */}
         </div>
 
         {/* Main Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 flex-1 min-h-0">
           {/* Left Panel : Product Catalog / Atelier Builder */}
           <section className="lg:col-span-6 border border-white/10 bg-white/[0.02] rounded-xl flex flex-col min-h-0 overflow-hidden">
-            {activeTab === 'products' ? (
-              <>
-                {/* Search Bar */}
-                <div className="p-4 border-b border-white/10 shrink-0">
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-foreground/35" />
-                    <input
-                      ref={searchInputRef}
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      placeholder="Rechercher un produit, une référence, une marque…"
-                      className="w-full bg-white/[0.03] border border-white/10 rounded-lg py-2 pl-9 pr-8 text-xs text-foreground placeholder:text-foreground/35 focus:outline-none focus:border-gold/50 transition-colors"
-                      autoFocus
-                    />
-                    {isLoading ? (
-                      <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 size-4 text-gold animate-spin" />
-                    ) : searchTerm ? (
-                      <button
-                        onClick={handleClearSearch}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-foreground/35 hover:text-foreground transition-colors"
-                      >
-                        <X size={14} />
-                      </button>
-                    ) : null}
-                  </div>
+            {/* Only the Produits & Accessoires panel is active; Création Atelier is commented out below */}
+            <>
+              {/* Search Bar */}
+              <div className="p-4 border-b border-white/10 shrink-0">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-foreground/35" />
+                  <input
+                    ref={searchInputRef}
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    placeholder="Rechercher un produit, une référence, une marque…"
+                    className="w-full bg-white/[0.03] border border-white/10 rounded-lg py-2 pl-9 pr-8 text-xs text-foreground placeholder:text-foreground/35 focus:outline-none focus:border-gold/50 transition-colors"
+                    autoFocus
+                  />
+                  {isLoading ? (
+                    <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 size-4 text-gold animate-spin" />
+                  ) : searchTerm ? (
+                    <button
+                      onClick={handleClearSearch}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-foreground/35 hover:text-foreground transition-colors"
+                    >
+                      <X size={14} />
+                    </button>
+                  ) : null}
                 </div>
+              </div>
 
-                {/* Search Results List */}
-                <div className="flex-1 min-h-0 overflow-y-auto">
-                  {!searchTerm ? (
-                    <EmptyState
-                      icon={
-                        <PackageSearch className="size-6 text-foreground/20" />
-                      }
-                      title="Saisissez un terme de recherche"
-                      subtitle="Les produits correspondants s'afficheront instantanément."
-                    />
-                  ) : isLoading ? (
-                    <div className="flex flex-col items-center justify-center py-16 gap-2">
-                      <Loader2 size={16} className="animate-spin text-gold" />
-                      <span className="text-xs text-foreground/40">
-                        Recherche en cours…
-                      </span>
-                    </div>
-                  ) : products.length === 0 ? (
-                    <p className="text-sm italic text-foreground/30 text-center py-16">
-                      Aucun produit ne correspond à « {searchTerm} ».
-                    </p>
-                  ) : (
-                    <ul className="divide-y divide-white/5">
-                      {products.map((product) => (
-                        <ProductRow
-                          key={product.id}
-                          product={product}
-                          isExpanded={expandedId === String(product.id)}
-                          onToggle={() =>
-                            handleToggleExpand(String(product.id))
-                          }
-                          draftQty={draftQty}
-                          onDraftQtyChange={setDraftQty}
-                          onAdd={(qty) => handleAddToCart(product, qty)}
-                          inCartQty={
-                            cartItems.find((c) => c.product.id === product.id)
-                              ?.quantity
-                          }
-                        />
-                      ))}
-                    </ul>
-                  )}
-                </div>
-              </>
-            ) : (
-              /* Atelier Custom Builder */
-              <div className="flex-1 flex flex-col min-h-0">
-                {/* Atelier Top Controls */}
+              {/* Search Results List */}
+              <div className="flex-1 min-h-0 overflow-y-auto">
+                {!searchTerm ? (
+                  <EmptyState
+                    icon={
+                      <PackageSearch className="size-6 text-foreground/20" />
+                    }
+                    title="Saisissez un terme de recherche"
+                    subtitle="Les produits correspondants s'afficheront instantanément."
+                  />
+                ) : isLoading ? (
+                  <div className="flex flex-col items-center justify-center py-16 gap-2">
+                    <Loader2 size={16} className="animate-spin text-gold" />
+                    <span className="text-xs text-foreground/40">
+                      Recherche en cours…
+                    </span>
+                  </div>
+                ) : products.length === 0 ? (
+                  <p className="text-sm italic text-foreground/30 text-center py-16">
+                    Aucun produit ne correspond à « {searchTerm} ».
+                  </p>
+                ) : (
+                  <ul className="divide-y divide-white/5">
+                    {products.map((product) => (
+                      <ProductRow
+                        key={product.id}
+                        product={product}
+                        isExpanded={expandedId === String(product.id)}
+                        onToggle={() =>
+                          handleToggleExpand(String(product.id))
+                        }
+                        draftQty={draftQty}
+                        onDraftQtyChange={setDraftQty}
+                        onAdd={(qty) => handleAddToCart(product, qty)}
+                        inCartQty={
+                          cartItems.find((c) => c.product.id === product.id)
+                            ?.quantity
+                        }
+                      />
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </>
+
+            {/* Atelier Custom Builder — commented out along with its tab, kept for restoration
+            <div className="flex-1 flex flex-col min-h-0">
                 <div className="p-4 border-b border-white/10 shrink-0 space-y-3">
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] font-semibold uppercase tracking-wider text-gold">
@@ -702,7 +710,6 @@ export default function POSPage() {
                     className="w-full bg-white/[0.03] border border-white/10 rounded-lg py-2 px-3 text-xs text-foreground placeholder:text-foreground/35 focus:outline-none focus:border-gold/50"
                   />
 
-                  {/* Flacon Selection */}
                   <div>
                     <span className="text-[10px] font-semibold uppercase tracking-wider text-foreground/35 block mb-1.5">
                       Contenance du Flacon
@@ -750,15 +757,13 @@ export default function POSPage() {
                     </div>
                   </div>
 
-                  {/* Color Picker */}
-                  <ColorPicker 
+                  <ColorPicker
                     value={couleur}
                     onChange={setCouleur}
                     label="Couleur du Flacon"
                     className=""
                   />
 
-                  {/* Volume Gauge Bar */}
                   <div className="space-y-1">
                     <div className="flex justify-between text-[10px] font-semibold uppercase tracking-wider text-foreground/40">
                       <span>Remplissage Huiles</span>
@@ -788,7 +793,6 @@ export default function POSPage() {
                   </div>
                 </div>
 
-                {/* Filters & Essence Tiers */}
                 <div className="px-4 pt-3 shrink-0 space-y-2">
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-foreground/35" />
@@ -825,7 +829,6 @@ export default function POSPage() {
                   </div>
                 </div>
 
-                {/* Essence Sliders List */}
                 <div className="flex-1 min-h-0 overflow-y-auto px-4 py-3 space-y-2">
                   {loadingEssences ? (
                     <div className="flex items-center justify-center py-8 gap-2">
@@ -905,7 +908,6 @@ export default function POSPage() {
                   )}
                 </div>
 
-                {/* Confirm Composition Strip */}
                 <div className="shrink-0 p-4 border-t border-white/10 flex items-center justify-between bg-white/[0.02]">
                   <div>
                     <span className="text-[10px] font-semibold uppercase tracking-wider text-foreground/35 block">
@@ -924,7 +926,7 @@ export default function POSPage() {
                   </button>
                 </div>
               </div>
-            )}
+            */}
           </section>
 
           {/* Right Panel : Ticket Checkout Counter */}
