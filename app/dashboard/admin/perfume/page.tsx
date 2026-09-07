@@ -9,7 +9,6 @@ import { useTranslation } from 'react-i18next';
 import { CustomSelect } from '@/components/ui/CustomSelect';
 import { AdminTableSkeleton } from '@/components/ui/AdminTableSkeleton';
 import { EmptyState } from '@/components/ui/EmptyState';
-import { mapErrorToUserMessage } from '@/lib/errorMapper';
 
 /* -- Inline translations --------------------------------------------------- */
 const T = {
