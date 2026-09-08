@@ -65,7 +65,8 @@ export default function Home() {
       {/* BEST SELLERS / FLASH */}
       <FlashSales />
 
-      
+      {/* TIKTOK CREATOR PROFILE */}
+      <TikTokCreatorEmbed />
 
       <section className="block ">   
         {/* EDITORIAL / BRAND STATEMENT */}
@@ -78,9 +79,6 @@ export default function Home() {
 
       {/* FAQ */}
       <HomeFAQ />
-
-      {/* TIKTOK CREATOR PROFILE */}
-      <TikTokCreatorEmbed />
 
       {/* STORE LOCATION */}
       <StoreSection />
