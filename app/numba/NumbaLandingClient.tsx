@@ -24,16 +24,21 @@ export default function NumbaLandingClient() {
         <div className="p-8 mt-18 lg:mt-0 sm:p-12 lg:p-16 lg:pt-25 flex flex-col justify-between rounded-2xl lg:rounded-none border border-[var(--t-border)] lg:border-t-0 lg:border-b-0 lg:border-l-0 lg:border-r bg-foreground/[0.03]">
           <div>
             <span className="text-[11px] font-mono tracking-[0.25em] uppercase text-gold block mb-2">
-              Concept Introduction
+              {t('concept_introduction', { defaultValue: 'Concept Introduction' })}
             </span>
             <h1 className="font-display text-center text-4xl sm:text-5xl xl:text-6xl font-bold tracking-tight text-foreground leading-[1.1] -mb-2">
               {t('welcome_at')}<br />
               <img
               src="/logo/Numba gold.svg"
               alt="Accessoires Exclusifs"
-              className="-my-20 w-auto object-contain  group-hover:scale-105 transition-transform duration-300"
+              className="-my-20 w-auto object-contain mx-auto group-hover:scale-105 transition-transform duration-300"
             />
             </h1>
+            <div className="mt-12 text-center">
+              <span className="inline-block px-5 py-2.5 rounded-full border border-gold/40 bg-gold/10 text-gold text-xs sm:text-sm font-extrabold uppercase tracking-[0.25em] shadow-[0_0_20px_rgba(212,184,122,0.2)]">
+                The BEST OLFACTORY EXPERIENCE
+              </span>
+            </div>
           </div>
 
           <div className="mt-12 lg:mt-0">
@@ -48,16 +53,16 @@ export default function NumbaLandingClient() {
           className="group block relative p-8 lg:mt-15 sm:p-12 lg:p-16 flex flex-col justify-between rounded-2xl lg:rounded-none border-2 border-gold/40 lg:border lg:border-t-0 lg:border-b-0 lg:border-l-0 lg:border-r bg-foreground/[0.01] hover:bg-gold/5 transition-all duration-500 shadow-sm shadow-gold/[0.02] lg:shadow-none"
         >
           <div className="lg:hidden absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-gold text-deep-black text-[9px] font-mono tracking-widest uppercase px-3 py-0.5 rounded-full font-bold">
-            Option A
+            {t('option_a', { defaultValue: 'Option A' })}
           </div>
 
           <div>
             <div className="flex justify-between items-baseline mb-16">
               <span className="text-[11px] font-mono tracking-[0.25em] uppercase text-foreground/40 group-hover:text-gold transition-colors">
-                Methodology A
+                {t('methodology_a', { defaultValue: 'Methodology A' })}
               </span>
               <span className="text-xs font-mono text-gold font-bold bg-gold/10 px-2 py-0.5 rounded lg:bg-transparent lg:p-0">
-                [ Guided ]
+                [{t('guided', { defaultValue: 'Guided' })}]
               </span>
             </div>
 
@@ -80,16 +85,16 @@ export default function NumbaLandingClient() {
           className="group block relative p-8 lg:mt-15 sm:p-12 lg:p-16 flex flex-col justify-between rounded-2xl lg:rounded-none border-2 border-blue/300 lg:border-none bg-foreground/[0.03] lg:bg-transparent hover:bg-foreground/5 transition-all duration-500"
         >
           <div className="lg:hidden absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-neutral-800 text-neutral-400 text-[9px] font-mono tracking-widest uppercase px-3 py-0.5 rounded-full border border-[var(--t-border)]">
-            Option B
+            {t('option_b', { defaultValue: 'Option B' })}
           </div>
 
           <div>
             <div className="flex justify-between items-baseline mb-16">
               <span className="text-[11px] font-mono tracking-[0.25em] uppercase text-foreground/40 group-hover:text-foreground transition-colors">
-                Methodology B
+                {t('methodology_b', { defaultValue: 'Methodology B' })}
               </span>
               <span className="text-xs font-mono text-foreground/50 bg-foreground/10 px-2 py-0.5 rounded lg:bg-transparent lg:p-0">
-                [ Autonomous ]
+                [{t('autonomous', { defaultValue: 'Autonomous' })}]
               </span>
             </div>
 
@@ -108,15 +113,6 @@ export default function NumbaLandingClient() {
         </Link>
 
       </main>
-
-      <footer className="w-full px-4 sm:px-12 py-8 flex flex-col sm:flex-row justify-between items-center gap-4 text-[10px] font-mono tracking-[0.2em] text-foreground/40 uppercase">
-        <div>Numba Olfactory ©2026</div>
-        <div className="flex gap-8">
-          <span className="hover:text-gold cursor-pointer transition-colors">Index</span>
-          <span className="hover:text-gold cursor-pointer transition-colors">Specifications</span>
-          <span className="hover:text-gold cursor-pointer transition-colors">Legal</span>
-        </div>
-      </footer>
     </div>
   );
 }

@@ -34,6 +34,11 @@ function isServeuse(user: { roles?: string[]; role?: string }) {
   return roles.includes('serveuse');
 }
 
+function isLivreur(user: { roles?: string[]; role?: string }) {
+  const roles = user.roles || (user.role ? [user.role] : []);
+  return roles.includes('livreur');
+}
+
 type Tab = 'clients' | 'meilleurs';
 
 const RANK_STYLES = [
@@ -131,6 +136,23 @@ export default function ClientsPage() {
       setPromoting(true);
       await adminService.promoteToServeuse(selected.id);
       addToast('Client promu serveuse avec succès', 'success');
+      fetchClients();
+      setSelected(null);
+    } catch (error: any) {
+      addToast(error.response?.data?.detail || 'Erreur lors de la promotion', 'error');
+    } finally {
+      setPromoting(false);
+    }
+  };
+
+  const handlePromoteToDriver = async () => {
+    if (!selected || isLivreur(selected)) return;
+    const name = `${selected.first_name || ''} ${selected.last_name || ''}`.trim() || selected.email;
+    if (!confirm(`Promouvoir ${name} au rang de livreur ?`)) return;
+    try {
+      setPromoting(true);
+      await adminService.promoteToDriver(selected.id);
+      addToast('Client promu livreur avec succès', 'success');
       fetchClients();
       setSelected(null);
     } catch (error: any) {
@@ -362,20 +384,38 @@ export default function ClientsPage() {
                 </div>
 
                 {/* Action CTA */}
-                {isServeuse(selected) ? (
-                  <p className="text-center text-xs font-medium text-emerald-400">Déjà serveuse</p>
-                ) : showAdminActions ? (
-                  <DashboardActionButton
-                    type="button"
-                    onClick={handlePromoteToServeuse}
-                    disabled={promoting}
-                    tone="neutral"
-                    className="flex w-full items-center justify-center gap-2 rounded-lg bg-gold py-2.5 text-sm font-semibold text-black transition-colors hover:bg-gold/85 disabled:opacity-50"
-                  >
-                    {promoting ? <Loader2 size={15} className="animate-spin" /> : <UserCheck size={15} />}
-                    Convertir en serveuse
-                  </DashboardActionButton>
-                ) : null}
+                {showAdminActions && (
+                  <div className="grid grid-cols-2 gap-2">
+                    {isServeuse(selected) ? (
+                      <p className="col-span-1 self-center text-center text-xs font-medium text-emerald-400">Déjà serveuse</p>
+                    ) : (
+                      <DashboardActionButton
+                        type="button"
+                        onClick={handlePromoteToServeuse}
+                        disabled={promoting}
+                        tone="neutral"
+                        className="flex w-full min-w-0 items-center justify-center gap-1 rounded-lg bg-gold px-2 py-2.5 text-center text-sm font-semibold text-black transition-colors hover:bg-gold/85 disabled:opacity-50"
+                      >
+                        {promoting ? <Loader2 size={15} className="animate-spin" /> : <UserCheck size={15} />}
+                        Convertir en serveuse
+                      </DashboardActionButton>
+                    )}
+                    {isLivreur(selected) ? (
+                      <p className="col-span-1 self-center text-center text-xs font-medium text-emerald-400">Déjà livreur</p>
+                    ) : (
+                      <DashboardActionButton
+                        type="button"
+                        onClick={handlePromoteToDriver}
+                        disabled={promoting}
+                        tone="neutral"
+                        className="flex w-full min-w-0 items-center justify-center gap-1 rounded-lg border border-gold/40 px-2 py-2.5 text-center text-sm font-semibold text-gold transition-colors hover:bg-gold/10 disabled:opacity-50"
+                      >
+                        {promoting ? <Loader2 size={15} className="animate-spin" /> : <UserCheck size={15} />}
+                        Convertir en livreur
+                      </DashboardActionButton>
+                    )}
+                  </div>
+                )}
               </div>
             </DashboardSlideOver>
           )}

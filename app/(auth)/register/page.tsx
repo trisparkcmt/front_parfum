@@ -4,7 +4,7 @@
  * @file app/(auth)/register/page.tsx
  * Refactored — visual chrome lives in shared (auth)/layout.tsx.
  */
-import { Suspense, useState } from 'react';
+import React, { Suspense, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { User, Mail, Lock, Phone, UserPlus } from 'lucide-react';
@@ -13,6 +13,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
+import { PasswordStrength } from '@/components/ui/PasswordStrength';
 import GoogleAuthButton from '@/components/auth/GoogleAuthButton';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useToastStore } from '@/store/useToastStore';
@@ -49,6 +50,7 @@ function RegisterFormContent() {
   const { register: registerUser, isLoading, loginWithGoogle } = useAuthStore();
   const { addToast } = useToastStore();
   const [formError, setFormError] = useState<string | null>(null);
+  const [passwordValue, setPasswordValue] = useState('');
 
   const {
     register: registerField,
@@ -56,11 +58,18 @@ function RegisterFormContent() {
     formState: { errors },
     setError,
     setFocus,
+    watch,
   } = useForm<RegisterForm>({
     resolver: zodResolver(registerSchema),
     mode: 'onBlur',
     reValidateMode: 'onChange',
   });
+
+  // Watch password field to show strength indicator
+  const watchedPassword = watch('password');
+  React.useEffect(() => {
+    setPasswordValue(watchedPassword || '');
+  }, [watchedPassword]);
 
   const onSubmit = async (data: RegisterForm) => {
     setFormError(null);
@@ -246,6 +255,7 @@ function RegisterFormContent() {
           data-field="password"
           {...registerField('password')}
         />
+        <PasswordStrength password={passwordValue} showRequirements={true} />
         <Input
           label={t('confirm_password', { defaultValue: 'Confirmer le mot de passe' })}
           type="password"
@@ -256,7 +266,20 @@ function RegisterFormContent() {
           {...registerField('passwordConfirm')}
         />
 
-        <Button type="submit" className="w-full mt-6" isLoading={isLoading} rightIcon={<UserPlus size={18} />}>
+        <p className="text-xs leading-relaxed text-foreground/50">
+          {t('register_terms_intro', {
+            defaultValue: "En créant un compte, vous acceptez nos ",
+          })}
+          <Link href="/terms" className="text-gold hover:underline">
+            {t('terms_short', { defaultValue: 'Conditions générales' })}
+          </Link>{' '}
+          {t('and', { defaultValue: 'et notre' })}{' '}
+          <Link href="/privacy" className="text-gold hover:underline">
+            {t('privacy_policy', { defaultValue: 'Politique de confidentialité' })}
+          </Link>.
+        </p>
+
+        <Button type="submit" className="w-full mt-6" isLoading={isLoading} loadingText={t('register_loading', { defaultValue: 'Inscription...' })} rightIcon={<UserPlus size={18} />}>
           {t('register_btn')}
         </Button>
       </form>

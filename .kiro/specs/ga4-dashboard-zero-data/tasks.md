@@ -1,0 +1,161 @@
+# Implementation Plan
+
+- [ ] 1. Write bug condition exploration test
+  - **Property 1: Bug Condition** - Empty GA4 Data Despite Valid Configuration
+  - **CRITICAL**: This test MUST FAIL on unfixed code - failure confirms the bug exists
+  - **DO NOT attempt to fix the test or the code when it fails**
+  - **NOTE**: This test encodes the expected behavior - it will validate the fix when it passes after implementation
+  - **GOAL**: Surface counterexamples that demonstrate the bug exists
+  - **Scoped PBT Approach**: Scope the property to the concrete failing case - valid GA4 configuration with actual data in property returns zero/empty metrics
+  - Test implementation details from Bug Condition in design:
+    - Test that calling `/api/analytics` with valid credentials (GA_PROPERTY_ID="552600412") returns populated data when GA4 property contains events
+    - Test that dashboard displays non-zero values for revenue, sales, visitors, conversion rate when data exists in GA4
+    - Test that funnel event data (view_item_list, view_item, add_to_cart, begin_checkout, purchase) returns non-empty rows arrays when events exist
+    - Test that acquisition channels, top pages, device/browser, and geographic data return populated rows arrays when sessions exist
+  - The test assertions should match the Expected Behavior Properties from design (sections 2.1-2.7)
+  - Run test on UNFIXED code
+  - **EXPECTED OUTCOME**: Test FAILS (this is correct - it proves the bug exists)
+  - Document counterexamples found to understand root cause (e.g., "API returns 200 but all reports have empty rows arrays", "Revenue displays 0 despite successful authentication")
+  - Mark task complete when test is written, run, and failure is documented
+  - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7_
+
+- [ ] 2. Write preservation property tests (BEFORE implementing fix)
+  - **Property 2: Preservation** - Error Handling and Non-Data Behaviors
+  - **IMPORTANT**: Follow observation-first methodology
+  - Observe behavior on UNFIXED code for non-buggy inputs (cases where configuration is invalid or missing)
+  - Write property-based tests capturing observed behavior patterns from Preservation Requirements:
+    - Test that missing or invalid GA4 credentials return 500 error with "Missing GA4 configuration variables." message
+    - Test that BetaAnalyticsDataClient authentication failures are caught and return error JSON with 500 status
+    - Test that dashboard loading state displays spinner with "Traitement batch des rapports Google Analytics 4…" message
+    - Test that API errors trigger error UI with AlertCircle icon and error message in dashboard
+    - Test that shares array returns empty by design (GA4 limitation)
+    - Test that private key formatting handles escaped newlines (\\n) correctly
+    - Test that batch reports process in chunks of 5 and aggregate properly
+    - Test that funnel data includes all six expected steps even with zero counts
+  - Property-based testing generates many test cases for stronger guarantees
+  - Run tests on UNFIXED code
+  - **EXPECTED OUTCOME**: Tests PASS (this confirms baseline behavior to preserve)
+  - Mark task complete when tests are written, run, and passing on unfixed code
+  - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7, 3.8_
+
+- [ ] 3. Fix for GA4 dashboard zero data bug
+
+  - [ ] 3.1 Add diagnostic logging to identify root cause
+    - Add console logging in `/api/analytics/route.ts` to capture:
+      - GA4 property ID being used
+      - Date range being requested (startDate, endDate)
+      - Number of reports in each batch request
+      - Raw response structure from BetaAnalyticsDataClient
+      - Number of rows returned in each report
+      - Sample dimension and metric values from first row of each report
+    - Add error boundary logging for GA4 API specific errors
+    - Log the actual request payload being sent to GA4
+    - _Bug_Condition: Valid GA4 configuration returns empty data (sections 1.1-1.7)_
+    - _Expected_Behavior: Populated report responses with non-zero metrics (sections 2.1-2.7)_
+    - _Preservation: Error handling, loading states, data formatting (sections 3.1-3.8)_
+    - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7_
+
+  - [ ] 3.2 Verify GA4 property configuration and permissions
+    - Verify that GA_PROPERTY_ID="552600412" matches the property containing actual event data
+    - Check that service account email has required GA4 API permissions:
+      - "Viewer" role on the GA4 property
+      - "Read and Analyze" permission for Google Analytics Data API
+    - Verify that GA4 data stream is actively collecting events
+    - Confirm that GA4 property is not in demo/test mode
+    - Check Google Cloud Console for API quotas and rate limits
+    - _Bug_Condition: Valid credentials but empty data responses (section 1.1)_
+    - _Expected_Behavior: Populated reports when property contains data (section 2.1)_
+    - _Preservation: Authentication error handling (section 3.1)_
+    - _Requirements: 1.1, 2.1, 3.1_
+
+  - [ ] 3.3 Validate and fix date range handling
+    - Review date range calculation logic in `/api/analytics/route.ts`
+    - Verify that `startDate` and `endDate` are formatted correctly for GA4 API (YYYY-MM-DD)
+    - Check for timezone issues that might shift the date range outside data availability
+    - Consider if "last 30 days" aligns with actual data collection period
+    - Test with alternative date ranges (e.g., last 7 days, yesterday only) to isolate issue
+    - Add validation to ensure date range is valid and within GA4 data retention period
+    - _Bug_Condition: Date range requests return empty rows (sections 1.3-1.7)_
+    - _Expected_Behavior: Date range includes actual event data (sections 2.3-2.7)_
+    - _Preservation: Existing date calculation logic structure (section 3.7)_
+    - _Requirements: 1.3, 1.4, 1.5, 1.6, 1.7, 2.3, 2.4, 2.5, 2.6, 2.7, 3.7_
+
+  - [ ] 3.4 Review and fix metric/dimension combinations
+    - Verify that all metric and dimension combinations in batch requests are valid for GA4 API
+    - Check GA4 documentation for incompatible metric/dimension pairs
+    - Review funnel event requests - ensure eventName dimension works with eventCount metric
+    - Review acquisition channel requests - validate sessionSourceMedium, activeUsers, purchaseRevenue compatibility
+    - Review top pages requests - validate pagePathPlusQueryString with screenPageViews compatibility
+    - Review device/browser requests - validate deviceCategory and browser dimension compatibility
+    - Review geographic requests - validate country, city with activeUsers, newUsers compatibility
+    - Replace any deprecated or invalid combinations with current GA4 API specifications
+    - _Bug_Condition: Requests return empty rows despite valid credentials (sections 1.3-1.7)_
+    - _Expected_Behavior: Valid combinations return populated rows (sections 2.3-2.7)_
+    - _Preservation: Shares array remains empty by design (section 3.5)_
+    - _Requirements: 1.3, 1.4, 1.5, 1.6, 1.7, 2.3, 2.4, 2.5, 2.6, 2.7, 3.5_
+
+  - [ ] 3.5 Add dimension filters if necessary
+    - Investigate if GA4 property has custom event names that differ from expected funnel events
+    - Check if data filtering or sampling is affecting the results
+    - Add dimension filters to exclude test traffic or internal users if configured in GA4
+    - Verify that no overly restrictive filters are applied in the batch requests
+    - Test requests with and without filters to identify if filtering is causing empty results
+    - _Bug_Condition: All data categories return empty results (sections 1.3-1.7)_
+    - _Expected_Behavior: Appropriate data filtering returns actual data (sections 2.3-2.7)_
+    - _Preservation: Funnel includes all six expected steps (section 3.8)_
+    - _Requirements: 1.3, 1.4, 1.5, 1.6, 1.7, 2.3, 2.4, 2.5, 2.6, 2.7, 3.8_
+
+  - [ ] 3.6 Improve error handling and response validation
+    - Add explicit validation of BetaAnalyticsDataClient response structure
+    - Check if `reports[i]?.rows` is undefined vs empty array vs null
+    - Add warning logs when reports return unexpectedly empty data
+    - Distinguish between "no data exists" vs "API error" vs "configuration issue"
+    - Return more descriptive error messages to the dashboard component
+    - Add fallback handling for partial batch failures
+    - _Bug_Condition: Silent empty data responses (section 1.1)_
+    - _Expected_Behavior: Clear indication of data presence or absence (section 2.1)_
+    - _Preservation: Existing error handling patterns (sections 3.2, 3.4)_
+    - _Requirements: 1.1, 2.1, 3.2, 3.4_
+
+  - [ ] 3.7 Test with minimal request to isolate issue
+    - Create a simplified test request with single metric and dimension
+    - Test basic GA4 connectivity with a known-working metric like `activeUsers`
+    - Gradually add complexity to identify which request components cause empty responses
+    - Compare working vs non-working request structures
+    - Use GA4 Query Explorer or similar tool to validate requests independently
+    - _Bug_Condition: Complex batch requests return empty data (section 1.1)_
+    - _Expected_Behavior: Properly structured requests return data (section 2.1)_
+    - _Preservation: Batch chunking of 5 reports (section 3.7)_
+    - _Requirements: 1.1, 2.1, 3.7_
+
+  - [ ] 3.8 Verify bug condition exploration test now passes
+    - **Property 1: Expected Behavior** - Populated GA4 Data With Valid Configuration
+    - **IMPORTANT**: Re-run the SAME test from task 1 - do NOT write a new test
+    - The test from task 1 encodes the expected behavior
+    - When this test passes, it confirms the expected behavior is satisfied
+    - Run bug condition exploration test from step 1
+    - **EXPECTED OUTCOME**: Test PASSES (confirms bug is fixed)
+    - Verify that API returns non-zero metrics when GA4 property contains data
+    - Verify that dashboard displays actual values for revenue, sales, visitors, conversion rate
+    - Verify that all data categories (funnel, acquisition, pages, devices, geographic) return populated rows
+    - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7_
+
+  - [ ] 3.9 Verify preservation tests still pass
+    - **Property 2: Preservation** - Error Handling and Non-Data Behaviors
+    - **IMPORTANT**: Re-run the SAME tests from task 2 - do NOT write new tests
+    - Run preservation property tests from step 2
+    - **EXPECTED OUTCOME**: Tests PASS (confirms no regressions)
+    - Confirm that error handling for invalid credentials still works
+    - Confirm that authentication failures are caught properly
+    - Confirm that loading states display correctly
+    - Confirm that shares array remains empty by design
+    - Confirm that private key formatting still works
+    - Confirm that batch chunking still processes correctly
+    - Confirm that funnel includes all six steps even with zero counts
+
+- [ ] 4. Checkpoint - Ensure all tests pass
+  - Ensure all tests pass, ask the user if questions arise
+  - Verify that the GA4 dashboard now displays actual analytics data
+  - Verify that all metrics show non-zero values when data exists in GA4 property
+  - Verify that error handling remains intact for configuration issues
+  - Verify that all eight preservation requirements still hold true

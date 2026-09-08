@@ -5,7 +5,7 @@
  * @description Main Marketplace Catalog for Luxury Accessories with Advanced Filtering.
  */
 import { useState, useEffect } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, SlidersHorizontal, X, RotateCcw, ChevronDown } from 'lucide-react';
 import { ProductCard } from '@/components/ui/ProductCard';
@@ -47,12 +47,22 @@ export default function AccessoriesShop() {
   }, []);
 
   useEffect(() => {
-    const typeParam = searchParams.get('type');
+    const typeAccessoireParam = searchParams.get('type_accessoire');
+    const legacyTypeParam = searchParams.get('type');
     const searchParam = searchParams.get('search');
-    if (typeParam) {
-      const parsed = parseInt(typeParam, 10);
-      if (!isNaN(parsed)) setActiveTypeId(parsed);
+
+    const nextTypeId = typeAccessoireParam
+      ? Number(typeAccessoireParam)
+      : legacyTypeParam
+        ? Number(legacyTypeParam)
+        : null;
+
+    if (nextTypeId && !Number.isNaN(nextTypeId)) {
+      setActiveTypeId(nextTypeId);
+    } else if (typeAccessoireParam === null && legacyTypeParam === null) {
+      setActiveTypeId('all');
     }
+
     if (searchParam) setSearch(searchParam);
   }, [searchParams]);
 
@@ -78,6 +88,10 @@ export default function AccessoriesShop() {
     loadTypes();
   }, [mounted]);
 
+  const { addProduct } = useCartStore();
+  const { addFavorite, removeFavorite, isFavorite } = useFavoritesStore();
+  const { addToast } = useToastStore();
+
   useEffect(() => {
     if (!mounted) return;
 
@@ -85,17 +99,29 @@ export default function AccessoriesShop() {
       try {
         setLoading(true);
 
-        const mappedProducts = await productService.getAccessories({
-          type_accessoire: activeTypeId !== 'all' ? String(activeTypeId) : undefined,
-          prix_max: maxPrice < 200000 ? maxPrice : undefined,
-          couleur: color !== 'all' ? color : undefined,
-          matiere: material !== 'all' ? material : undefined,
-          en_stock: inStockOnly ? true : undefined,
-          search: debouncedSearch || undefined,
-          ordering: ordering || undefined,
-        });
+        const mappedProducts = await productService.getAccessories();
 
         setProducts(mappedProducts);
+        
+        // Track view_item_list event for GA4
+        if (mappedProducts.length > 0) {
+          try {
+            const { trackViewItemList } = await import('@/lib/gtag');
+            trackViewItemList({
+              item_list_id: activeTypeId === 'all' ? 'all_accessories' : `accessory_type_${activeTypeId}`,
+              item_list_name: activeTypeId === 'all' ? 'All Accessories' : `Accessory Type ${activeTypeId}`,
+              items: mappedProducts.slice(0, 10).map(p => ({
+                item_id: String(p.id),
+                item_name: p.name,
+                item_category: p.category,
+                price: p.price,
+                quantity: 1,
+              })),
+            });
+          } catch (error) {
+            console.warn('Failed to track view_item_list:', error);
+          }
+        }
       } catch (error) {
         console.error('AccessoriesShop: Failed to fetch products', error);
         addToast(t('error_loading_products', { defaultValue: 'Erreur lors du chargement des accessoires' }), 'error');
@@ -105,11 +131,7 @@ export default function AccessoriesShop() {
     }
 
     fetchProducts();
-  }, [mounted, activeTypeId, maxPrice, color, material, inStockOnly, debouncedSearch, ordering]);
-
-  const { addProduct } = useCartStore();
-  const { addFavorite, removeFavorite, isFavorite } = useFavoritesStore();
-  const { addToast } = useToastStore();
+  }, [mounted, activeTypeId, maxPrice, color, material, inStockOnly, debouncedSearch, ordering, addToast, t]);
 
   const handleAddToCart = async (product: Product) => {
     try {

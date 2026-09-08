@@ -41,7 +41,6 @@ export default function PerfumesShopClient() {
   const [olfactiveFamily, setOlfactiveFamily] = useState<string>('all');
   const [intensity, setIntensity] = useState<string>('all');
   const [maxPrice, setMaxPrice] = useState<number>(150000);
-  const [ordering, setOrdering] = useState<string>('-date_creation');
   const [showFilters, setShowFilters] = useState(false);
 
   // Initialise activeTab from URL ?categorie=<id> if present
@@ -65,7 +64,7 @@ export default function PerfumesShopClient() {
   // Reset to page 1 whenever any filter/search/tab changes
   useEffect(() => {
     setCurrentPage(1);
-  }, [genre, olfactiveFamily, intensity, maxPrice, debouncedSearch, ordering, activeTab]);
+  }, [genre, olfactiveFamily, intensity, maxPrice, debouncedSearch, activeTab]);
 
   // Load products when filters, tab, or page changes
   useEffect(() => {
@@ -101,36 +100,73 @@ export default function PerfumesShopClient() {
         }
       }
 
-      const params = {
-        genre: genre !== 'all' ? genre : undefined,
-        famille_olfactive: olfactiveFamily !== 'all' ? olfactiveFamily : undefined,
-        intensite: intensity !== 'all' ? intensity : undefined,
-        prix_max: maxPrice < 150000 ? maxPrice : undefined,
-        search: debouncedSearch || undefined,
-        ordering: ordering || undefined,
-        page: currentPage,
-        categorie: activeTab !== 'all' && activeTab !== 'huile' && typeof activeTab === 'number' ? activeTab : undefined,
-      } as any;
+      const filters: any = {};
+      if (debouncedSearch) filters.search = debouncedSearch;
+      if (genre !== 'all') filters.genre = genre;
+      if (olfactiveFamily !== 'all') filters.famille_olfactive = olfactiveFamily;
+      if (intensity !== 'all') filters.intensite = intensity;
+      if (maxPrice < 150000) filters.prix_max = maxPrice;
+      if (activeTab !== 'all' && activeTab !== 'huile') filters.categorie = Number(activeTab);
+      if (currentPage > 1) filters.page = currentPage;
 
-      const response = (await productService.getPerfumes(params)) as
-        | Product[]
-        | { results?: Product[]; resultats?: Product[]; pages?: number; count?: number };
+      const response = await productService.getPerfumes(filters);
 
       if (Array.isArray(response)) {
         setProducts(response);
         setTotalPages(1);
         setTotalCount(response.length);
+        
+        // Track view_item_list event for GA4
+        if (response.length > 0) {
+          try {
+            const { trackViewItemList } = await import('@/lib/gtag');
+            trackViewItemList({
+              item_list_id: activeTab === 'all' ? 'all_perfumes' : `category_${activeTab}`,
+              item_list_name: activeTab === 'all' ? 'All Perfumes' : `Category ${activeTab}`,
+              items: response.slice(0, 10).map(p => ({
+                item_id: String(p.id),
+                item_name: p.name,
+                item_category: p.category,
+                price: p.price,
+                quantity: 1,
+              })),
+            });
+          } catch (error) {
+            console.warn('Failed to track view_item_list:', error);
+          }
+        }
       } else {
-        setProducts(response.results ?? response.resultats ?? []);
+        setProducts(response.results);
         setTotalPages(response.pages ?? 1);
         setTotalCount(response.count ?? 0);
+        
+        // Track view_item_list event for GA4
+        const productList = response.results;
+        if (productList.length > 0) {
+          try {
+            const { trackViewItemList } = await import('@/lib/gtag');
+            trackViewItemList({
+              item_list_id: activeTab === 'all' ? 'all_perfumes' : `category_${activeTab}`,
+              item_list_name: activeTab === 'all' ? 'All Perfumes' : `Category ${activeTab}`,
+              items: productList.slice(0, 10).map(p => ({
+                item_id: String(p.id),
+                item_name: p.name,
+                item_category: p.category,
+                price: p.price,
+                quantity: 1,
+              })),
+            });
+          } catch (error) {
+            console.warn('Failed to track view_item_list:', error);
+          }
+        }
       }
 
       setLoading(false);
     }
 
     fetchData();
-  }, [mounted, genre, olfactiveFamily, intensity, maxPrice, debouncedSearch, ordering, currentPage, categories.length]);
+  }, [mounted, activeTab, genre, olfactiveFamily, intensity, maxPrice, debouncedSearch, currentPage, categories.length]);
 
   useEffect(() => {
     setMounted(true);
@@ -144,7 +180,6 @@ export default function PerfumesShopClient() {
       try {
         const response = await productService.getEssencesAsProducts({
           search: debouncedSearch || undefined,
-          ordering: ordering || undefined,
           genre: genre !== 'all' ? genre : undefined,
           famille_olfactive: olfactiveFamily !== 'all' ? olfactiveFamily : undefined,
           intensite: intensity !== 'all' ? intensity : undefined,
@@ -159,7 +194,7 @@ export default function PerfumesShopClient() {
     }
 
     loadEssenceProducts();
-  }, [mounted, activeTab, debouncedSearch, ordering, genre, olfactiveFamily, intensity, maxPrice]);
+  }, [mounted, activeTab, debouncedSearch, genre, olfactiveFamily, intensity, maxPrice]);
 
   // Scroll active tab to center
   useEffect(() => {
@@ -206,41 +241,46 @@ export default function PerfumesShopClient() {
     }
   };
 
-  const handleConfirmEssenceSize = (essence: Product, variant: ProduitFiniEssence, quantite: number) => {
-    const cartProduct: Product = {
-      id: String(variant.id),
-      name: `${essence.name} - ${variant.taille_ml}ml`,
-      description: essence.description || '',
-      price: variant.prix_actuel,
-      originalPrice: variant.prix_promotionnel ? parseFloat(variant.prix_promotionnel) : undefined,
-      taux_reduction: variant.prix_promotionnel && parseFloat(variant.prix_promotionnel) > variant.prix_actuel
-        ? String(Math.round((1 - variant.prix_actuel / parseFloat(variant.prix_promotionnel)) * 100))
-        : undefined,
-      category: 'huile',
-      images: essence.images,
-      brand: essence.brand,
-      inStock: true,
-      volume: `${variant.taille_ml}ml`,
-      taille_ml: variant.taille_ml,
-      stock_total_ml: essence.stock_total_ml,
-      essence_id: Number(essence.id),
-      createdAt: new Date().toISOString(),
-    };
+  const handleConfirmEssenceSize = async (essence: Product, items: { variant: ProduitFiniEssence; quantity: number }[]) => {
+    for (const item of items) {
+      const { variant, quantity } = item;
+      const cartProduct: Product = {
+        id: String(variant.id),
+        name: `${essence.name} - ${variant.taille_ml}ml`,
+        description: essence.description || '',
+        price: variant.prix_actuel,
+        originalPrice: variant.prix_promotionnel ? parseFloat(variant.prix_promotionnel) : undefined,
+        taux_reduction: variant.prix_promotionnel && parseFloat(variant.prix_promotionnel) > variant.prix_actuel
+          ? String(Math.round((1 - variant.prix_actuel / parseFloat(variant.prix_promotionnel)) * 100))
+          : undefined,
+        category: 'huile',
+        images: essence.images,
+        brand: essence.brand,
+        inStock: true,
+        volume: `${variant.taille_ml}ml`,
+        taille_ml: variant.taille_ml,
+        stock_total_ml: essence.stock_total_ml,
+        essence_id: Number(essence.id),
+        createdAt: new Date().toISOString(),
+      };
 
-    addProduct(cartProduct, quantite);
+      await addProduct(cartProduct, quantity);
+      import('@/lib/gtag').then(({ trackAddToCart }) => {
+        trackAddToCart({
+          id: cartProduct.id,
+          name: cartProduct.name,
+          price: cartProduct.price,
+          category: 'Essence finie',
+          quantity,
+        });
+      }).catch(() => {});
+    }
+
+    const totalCount = items.reduce((s, it) => s + it.quantity, 0);
     addToast(
-      `${cartProduct.name} ${t('added_to_cart')}`,
+      `${essence.name} (${totalCount} flacon${totalCount > 1 ? 's' : ''}) ${t('added_to_cart')}`,
       'success'
     );
-    import('@/lib/gtag').then(({ trackAddToCart }) => {
-      trackAddToCart({
-        id: cartProduct.id,
-        name: cartProduct.name,
-        price: cartProduct.price,
-        category: 'Essence finie',
-        quantity: quantite,
-      });
-    });
   };
 
   const handleToggleFavorite = (product: Product) => {
@@ -291,7 +331,6 @@ export default function PerfumesShopClient() {
     setOlfactiveFamily('all');
     setIntensity('all');
     setMaxPrice(150000);
-    setOrdering('-date_creation');
   };
 
   const activeFiltersCount =

@@ -174,6 +174,19 @@ export interface Product {
   stock_total_ml?: number;  // total virtual stock available in ml (from LotEssence FIFO)
   essence_id?: number;      // backend essence ID
   produits_finis?: ProduitFiniEssence[];
+  intensite?: string;
+  genre_cible?: string;
+  code_reference?: string;
+  famille_olfactive?: string[];
+  humeurs_compatibles?: string[];
+  occasions?: string[];
+  saisons_compatibles?: string[];
+  moments_journee?: string[];
+  prix_par_ml?: string | number;
+  origine_pays?: string;
+  concentration_max?: number | null;
+  couleur?: string;
+  duree?: string;
 }
 
 export interface Accessory extends Product {}
@@ -416,6 +429,7 @@ export interface BackendOrder {
   lignes_produit_fini_essence: BackendOrderLine[];
   lignes_parfums_perso: BackendOrderLine[];
   lignes_essence_personnalisee: BackendOrderLine[];
+  lignes_diffuseurs: BackendOrderLine[];
   facture?: {
     numero_facture: string;
     date_emission: string;

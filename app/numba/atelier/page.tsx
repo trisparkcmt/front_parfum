@@ -272,11 +272,14 @@ function AtelierContent() {
     setMounted(true);
     async function loadData() {
       setLoadingData(true);
-      const [ingreds, esss, bottlesRes] = await Promise.all([
+      const [ingredientsResult, essencesResult, bottlesResult] = await Promise.allSettled([
         labService.getIngredients(),
         labService.getEssences(),
         shopService.getBottles({ en_stock: true }),
       ]);
+      const ingreds = ingredientsResult.status === 'fulfilled' ? ingredientsResult.value : [];
+      const esss = essencesResult.status === 'fulfilled' ? essencesResult.value : [];
+      const bottlesRes = bottlesResult.status === 'fulfilled' ? bottlesResult.value : [];
       const bottles = bottlesRes.results || bottlesRes.resultats || (Array.isArray(bottlesRes) ? bottlesRes : []);
       setIngredients(ingreds);
       setEssences(esss);
@@ -304,18 +307,38 @@ function AtelierContent() {
           setCompositionName(comp.nom || '');
           setSaveModalName(comp.nom || '');
           setSavedParfumId(Number(comp.id));
+          if (comp.couleur) {
+            setCouleur(comp.couleur);
+          }
 
           // Handle flacon — can be nested object or flat ID
           const flaconData = comp.composition?.flacon || comp.flacon;
+          const flaconDetail = comp.flacon_detail || comp.composition?.flacon_detail;
           if (flaconData) {
             const flaconId = typeof flaconData === 'object' ? flaconData.id : flaconData;
             if (flaconId) {
               setSelectedFlaconId(Number(flaconId));
-              const matchingFlacon = flacons.find(f => Number(f.id) === Number(flaconId));
-              if (matchingFlacon) {
-                const cap = Number(matchingFlacon.contenance_ml || matchingFlacon.capacite_ml || matchingFlacon.capacity_ml || matchingFlacon.size_ml || 100);
-                setBottleSize(cap);
+              let matchingFlacon = flacons.find(f => Number(f.id) === Number(flaconId));
+              if (!matchingFlacon && flaconDetail) {
+                matchingFlacon = {
+                  id: flaconDetail.id,
+                  nom: flaconDetail.nom || `Flacon ${flaconDetail.id}`,
+                  contenance_ml: flaconDetail.contenance_ml || 100,
+                  prix_unitaire: flaconDetail.prix_unitaire || '0',
+                  image_principale: flaconDetail.image_principale,
+                };
+                setFlacons(prev => [...prev, matchingFlacon]);
               }
+              const cap = Number(
+                flaconDetail?.contenance_ml ||
+                flaconDetail?.capacite_ml ||
+                matchingFlacon?.contenance_ml ||
+                matchingFlacon?.capacite_ml ||
+                matchingFlacon?.capacity_ml ||
+                matchingFlacon?.size_ml ||
+                100
+              );
+              setBottleSize(cap);
             }
           }
 
@@ -323,6 +346,8 @@ function AtelierContent() {
           // OR nested objects (essence: {id:...} / ingredient: {id:...})
           const lines = comp.composition?.lignes || comp.lignes || [];
           const newQuantities: Record<string, number> = {};
+          const extraEssences: EssenceClient[] = [];
+          const extraIngredients: EssenceClient[] = [];
 
           for (const line of lines) {
             // Extract essence ID — try nested object first, then flat field
@@ -341,22 +366,72 @@ function AtelierContent() {
             if (qtyMl <= 0) continue;
 
             if (essId != null) {
-              const matchingItem = ALL_ITEMS.find(item =>
+              let matchingItem = ALL_ITEMS.find(item =>
                 item.itemType === 'essence' &&
-                (Number(item.backendId) === Number(essId) || Number(item.id) === Number(essId))
+                (
+                  Number(item.backendId) === Number(essId) ||
+                  Number(item.id) === Number(essId) ||
+                  (item.lotEssenceId != null && Number(item.lotEssenceId) === Number(essId))
+                )
               );
+
+              if (!matchingItem && line.essence_detail) {
+                const detail = line.essence_detail;
+                matchingItem = {
+                  id: String(essId),
+                  backendId: Number(essId),
+                  itemType: 'essence',
+                  name: detail.nom || detail.name || `Essence ${essId}`,
+                  family: (detail.categorie || detail.family || 'high') as any,
+                  description: detail.description || '',
+                  pricePerMl: Number(detail.prix_par_ml || line.prix_par_ml_snapshot || 0),
+                  color: detail.couleur_hex || '#D4B87A',
+                  intensity: 'medium',
+                  available: true,
+                };
+                extraEssences.push(matchingItem);
+              }
+
               if (matchingItem) {
                 newQuantities[matchingItem.id] = qtyMl;
               }
             } else if (ingId != null) {
-              const matchingItem = ALL_ITEMS.find(item =>
+              let matchingItem = ALL_ITEMS.find(item =>
                 item.itemType === 'ingredient' &&
-                (Number(item.backendId) === Number(ingId) || Number(item.id) === Number(ingId))
+                (
+                  Number(item.backendId) === Number(ingId) ||
+                  Number(item.id) === Number(ingId)
+                )
               );
+
+              if (!matchingItem && line.ingredient_detail) {
+                const detail = line.ingredient_detail;
+                matchingItem = {
+                  id: String(ingId),
+                  backendId: Number(ingId),
+                  itemType: 'ingredient',
+                  name: detail.nom || detail.name || `Ingrédient ${ingId}`,
+                  family: (detail.family || detail.categorie || 'fresh') as any,
+                  description: detail.description || '',
+                  pricePerMl: Number(detail.prix_par_ml || line.prix_par_ml_snapshot || 0),
+                  color: detail.couleur_hex || '#D4B87A',
+                  intensity: 'medium',
+                  available: true,
+                };
+                extraIngredients.push(matchingItem);
+              }
+
               if (matchingItem) {
                 newQuantities[matchingItem.id] = qtyMl;
               }
             }
+          }
+
+          if (extraEssences.length > 0) {
+            setEssences(prev => [...prev, ...extraEssences]);
+          }
+          if (extraIngredients.length > 0) {
+            setIngredients(prev => [...prev, ...extraIngredients]);
           }
 
           setQuantities(newQuantities);
@@ -426,9 +501,10 @@ function AtelierContent() {
         ? item.name.toLowerCase().includes(searchQuery.toLowerCase()) || (item.description || '').toLowerCase().includes(searchQuery.toLowerCase())
         : true;
       if (!matchesSearch) return false;
-      const familyStr = item.family as string;
-      const cat = familyStr === 'premium' || familyStr === 'super-premium' || familyStr === 'high' 
-        ? item.family 
+      const familyStr = String(item.family || '').toLowerCase();
+      const normalizedFamily = familyStr.replace(/[_\s]+/g, '-');
+      const cat = normalizedFamily === 'premium' || normalizedFamily === 'super-premium' || normalizedFamily === 'high'
+        ? normalizedFamily
         : (item.id.includes('sprem') ? 'super-premium' : item.id.includes('high') ? 'high' : 'premium');
       return cat === essenceSubtab;
     });
@@ -974,8 +1050,9 @@ function AtelierContent() {
           {/* Unified Glassmorphism Tabs */}
           <div className="atelier-tab-row flex items-center gap-3 mb-3 overflow-x-auto pb-2">
             {[
-              /* Notes de Base tab — temporarily disabled, will be re-enabled in a future version
-              { id: 'ingredients', label: i18n.language === 'en' ? '🧪 Raw Notes' : '🧪 Notes de Base' }, */
+              /*
+              { id: 'ingredients', label: i18n.language === 'en' ? '🧪 Raw Notes' : '🧪 Notes de Base' },
+              */
               { id: 'essences', label: i18n.language === 'en' ? '✨ Premium Bases' : `✨ Essences d'Exception` },
               { id: 'recap', label: i18n.language === 'en' ? '📋 Formula' : '📋 Finalisation' }
             ].map(tab => (
@@ -994,53 +1071,28 @@ function AtelierContent() {
           </div>
 
           {/* Sub-tabs & Search Bar (only for essences/ingredients, not for recap) */}
-          {!loadingData && (activeTab === 'essences' || activeTab === 'ingredients') && (
+          {!loadingData && activeTab === 'essences' && (
             <div className="flex flex-col gap-3 mt-1">
               {/* Sub-tabs for essences */}
-              {activeTab === 'essences' && (
-                <div className="atelier-tab-row flex items-center gap-3 overflow-x-auto pb-2">
-                  {[
-                    { id: 'high', label: 'High Luxury' },
-                    { id: 'premium', label: 'Premium' },
-                    { id: 'super-premium', label: 'Super Premium' }
-                  ].map(sub => (
-                    <button
-                      key={sub.id}
-                      onClick={() => setEssenceSubtab(sub.id as any)}
-                      className={`whitespace-nowrap px-3 py-1 text-xs font-medium transition-colors border-b-2 ${
-                        essenceSubtab === sub.id 
-                          ? 'border-gold text-gold font-semibold' 
-                          : 'border-transparent text-foreground/60 hover:border-gold/50 hover:text-foreground'
-                      }`}
-                    >
-                      {sub.label}
-                    </button>
-                  ))}
-                </div>
-              )}
-
-              {/* Sub-tabs for ingredients */}
-              {activeTab === 'ingredients' && (
-                <div className="atelier-tab-row flex items-center gap-3 overflow-x-auto pb-2">
-                  {[
-                    { id: 'tete', label: i18n.language === 'en' ? 'Top Notes' : 'Notes de Tête' },
-                    { id: 'coeur', label: i18n.language === 'en' ? 'Heart Notes' : 'Notes de Cœur' },
-                    { id: 'fond', label: i18n.language === 'en' ? 'Base Notes' : 'Notes de Fond' }
-                  ].map(sub => (
-                    <button
-                      key={sub.id}
-                      onClick={() => setIngredientSubtab(sub.id as any)}
-                      className={`whitespace-nowrap px-3 py-1 text-xs font-medium transition-colors border-b-2 ${
-                        ingredientSubtab === sub.id 
-                          ? 'border-gold text-gold font-semibold' 
-                          : 'border-transparent text-foreground/60 hover:border-gold/50 hover:text-foreground'
-                      }`}
-                    >
-                      {sub.label}
-                    </button>
-                  ))}
-                </div>
-              )}
+              <div className="atelier-tab-row flex items-center gap-3 overflow-x-auto pb-2">
+                {[
+                  { id: 'high', label: 'High Luxury' },
+                  { id: 'premium', label: 'Premium' },
+                  { id: 'super-premium', label: 'Super Premium' }
+                ].map(sub => (
+                  <button
+                    key={sub.id}
+                    onClick={() => setEssenceSubtab(sub.id as any)}
+                    className={`whitespace-nowrap px-3 py-1 text-xs font-medium transition-colors border-b-2 ${
+                      essenceSubtab === sub.id 
+                        ? 'border-gold text-gold font-semibold' 
+                        : 'border-transparent text-foreground/60 hover:border-gold/50 hover:text-foreground'
+                    }`}
+                  >
+                    {sub.label}
+                  </button>
+                ))}
+              </div>
 
               {/* Search Bar */}
               <div className="relative">
@@ -1376,12 +1428,18 @@ function AtelierContent() {
               className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-foreground placeholder-foreground/30 focus:outline-none focus:border-gold/50 mb-6 text-sm"
             />
 
-            <ColorPicker 
-              value={couleur}
-              onChange={setCouleur}
-              label={i18n.language === 'en' ? 'Bottle Color' : 'Couleur du Flacon'}
-              className="mb-6"
-            />
+            <div className="mb-6">
+              <ColorPicker 
+                value={couleur}
+                onChange={setCouleur}
+                label={i18n.language === 'en' ? 'Liquid Color' : 'Couleur du Liquide'}
+              />
+              <p className="text-[10px] text-foreground/40 mt-1.5 italic">
+                {i18n.language === 'en'
+                  ? '✦ This is the color of the fragrance liquid inside the bottle, not the bottle itself.'
+                  : '✦ Il s\'agit de la couleur du liquide parfumé à l\'intérieur du flacon, pas du flacon lui-même.'}
+              </p>
+            </div>
 
             <div className="flex gap-3">
               <button
@@ -1439,12 +1497,18 @@ function AtelierContent() {
               </div>
             </div>
 
-            <ColorPicker 
-              value={couleur}
-              onChange={setCouleur}
-              label={i18n.language === 'en' ? 'Bottle Color' : 'Couleur du Flacon'}
-              className="mb-6"
-            />
+            <div className="mb-6">
+              <ColorPicker 
+                value={couleur}
+                onChange={setCouleur}
+                label={i18n.language === 'en' ? 'Liquid Color' : 'Couleur du Liquide'}
+              />
+              <p className="text-[10px] text-foreground/40 mt-1.5 italic">
+                {i18n.language === 'en'
+                  ? '✦ This is the color of the fragrance liquid inside the bottle, not the bottle itself.'
+                  : '✦ Il s\'agit de la couleur du liquide parfumé à l\'intérieur du flacon, pas du flacon lui-même.'}
+              </p>
+            </div>
 
             <div className="space-y-4">
               <div className="rounded-xl border border-white/10 bg-white/5 p-4 text-sm text-foreground/70">

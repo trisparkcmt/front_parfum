@@ -1,11 +1,14 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Plus, Loader2, RefreshCw, Trash2 } from 'lucide-react';
+import { Plus, Loader2, RefreshCw, Trash2, AlertCircle, X } from 'lucide-react';
 import { adminService } from '@/services/apiService';
 import { useToastStore } from '@/store/useToastStore';
 import AppImage from '@/components/ui/AppImage';
 import { SlideOver } from '@/components/ui/SlideOver';
+import { AdminTableSkeleton } from '@/components/ui/AdminTableSkeleton';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { mapErrorToUserMessage } from '@/lib/errorMapper';
 
 // --- Types ---
 
@@ -118,6 +121,10 @@ export default function DeliveryPage() {
 
   // Form state
   const [userIdVal, setUserIdVal] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [userSuggestions, setUserSuggestions] = useState<{ id: number; name: string; email: string }[]>([]);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [promoting, setPromoting] = useState(false);
 
   const { addToast } = useToastStore();
 
@@ -153,16 +160,50 @@ export default function DeliveryPage() {
     fetchDriversAndDeliveries();
   }, [fetchDriversAndDeliveries]);
 
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      setUserSuggestions([]);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      try {
+        const data = await adminService.getUsers({ search: searchQuery });
+        const list = data.resultats || data.results || (Array.isArray(data) ? data : []);
+        setUserSuggestions(
+          list.map((user: any) => ({
+            id: user.id,
+            name: `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.email || `User #${user.id}`,
+            email: user.email || '',
+          }))
+        );
+      } catch {
+        setUserSuggestions([]);
+      }
+    }, 350);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
   const handlePromote = async () => {
-    if (!userIdVal) return;
+    setFormError(null);
+    if (!userIdVal) {
+      setFormError('Veuillez sélectionner un utilisateur');
+      return;
+    }
     try {
+      setPromoting(true);
       await adminService.promoteToDriver(parseInt(userIdVal));
       addToast('Utilisateur promu au rang de livreur avec succès', 'success');
       setShowModal(false);
       setUserIdVal('');
+      setSearchQuery('');
+      setUserSuggestions([]);
       fetchDriversAndDeliveries();
     } catch (error: any) {
-      addToast(error.response?.data?.detail || 'Erreur lors de la promotion', 'error');
+      setFormError(error.response?.data?.detail || 'Erreur lors de la promotion');
+    } finally {
+      setPromoting(false);
     }
   };
 
@@ -214,7 +255,13 @@ export default function DeliveryPage() {
             <RefreshCw size={16} />
           </IconButton>
           <button
-            onClick={() => setShowModal(true)}
+            onClick={() => {
+              setFormError(null);
+              setUserIdVal('');
+              setSearchQuery('');
+              setUserSuggestions([]);
+              setShowModal(true);
+            }}
             className="flex items-center gap-2 bg-gold text-black px-3.5 py-2 rounded-lg text-xs font-semibold hover:bg-gold/90 transition-colors"
           >
             <Plus size={15} />
@@ -250,10 +297,13 @@ export default function DeliveryPage() {
         </h2>
 
         {loading ? (
-          <div className="flex items-center justify-center py-16 text-foreground/40 text-xs gap-2">
-            <Loader2 className="animate-spin text-gold" size={16} />
-            <span>Chargement des livreurs...</span>
-          </div>
+          <AdminTableSkeleton columns={3} rows={4} />
+        ) : drivers.length === 0 ? (
+          <EmptyState
+            icon={<AlertCircle size={48} />}
+            title="No drivers"
+            description="Add your first delivery driver to the fleet"
+          />
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {drivers.map(d => {
@@ -304,7 +354,6 @@ export default function DeliveryPage() {
 
                     <div className="space-y-1 text-xs text-foreground/60 border-t border-white/5 pt-3 mb-4">
                       <p><span className="text-foreground/40">Téléphone:</span> {displayPhone}</p>
-                      <p><span className="text-foreground/40">Date Embauche:</span> {d.date_embauche ? new Date(d.date_embauche).toLocaleDateString() : '—'}</p>
                       <p><span className="text-foreground/40">Total Livraisons:</span> <span className="tabular-nums font-medium text-foreground/80">{displayDeliveriesCount}</span></p>
                       {d.date_creation && (
                         <p><span className="text-foreground/40">Créé le:</span> {new Date(d.date_creation).toLocaleDateString()}</p>
@@ -405,30 +454,76 @@ export default function DeliveryPage() {
           <div className="flex gap-3 w-full justify-end">
             <button
               onClick={() => setShowModal(false)}
-              className="rounded-lg border border-white/10 px-4 py-2 text-xs font-medium text-foreground/60 hover:bg-white/5 transition-colors"
+              disabled={promoting}
+              className="rounded-lg border border-white/10 px-4 py-2 text-xs font-medium text-foreground/60 hover:bg-white/5 transition-colors disabled:opacity-50"
             >
               Annuler
             </button>
             <button
               onClick={handlePromote}
-              className="rounded-lg bg-gold px-4 py-2 text-xs font-semibold text-black hover:bg-gold/90 transition-colors"
+              disabled={promoting}
+              className="rounded-lg bg-gold px-4 py-2 text-xs font-semibold text-black hover:bg-gold/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
             >
-              Promouvoir
+              {promoting && <Loader2 size={12} className="animate-spin" />}
+              {promoting ? 'Promotion...' : 'Promouvoir'}
             </button>
           </div>
         }
       >
         <div className="space-y-3">
+          {formError && (
+            <div className="flex items-start gap-3 rounded-lg bg-red-500/10 border border-red-500/20 p-3">
+              <AlertCircle size={16} className="text-red-400 flex-shrink-0 mt-0.5" />
+              <p className="text-xs text-red-400 flex-1">{formError}</p>
+              <button
+                onClick={() => setFormError(null)}
+                className="text-red-400/60 hover:text-red-400 transition-colors flex-shrink-0"
+              >
+                <X size={14} />
+              </button>
+            </div>
+          )}
           <div>
-            <label className="text-[10px] font-bold text-foreground/40 uppercase mb-1 block">ID de l'utilisateur</label>
+            <label className="text-[10px] font-bold text-foreground/40 uppercase mb-1 block">Rechercher un utilisateur</label>
             <input
-              type="number"
-              placeholder="Ex: 42"
-              value={userIdVal}
-              onChange={e => setUserIdVal(e.target.value)}
+              type="text"
+              placeholder="Ex: Jean"
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
               className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
             />
           </div>
+
+          {userSuggestions.length > 0 && (
+            <div className="space-y-1 p-3 bg-white/5 border border-white/10 rounded-lg max-h-60 overflow-y-auto">
+                {userSuggestions.map((user) => (
+                <button
+                  key={user.id}
+                  type="button"
+                  onClick={() => {
+                    setUserIdVal(String(user.id));
+                    setSearchQuery(user.name);
+                    setUserSuggestions([]);
+                  }}
+                  className={cx(
+                    'w-full px-3 py-2 rounded-lg text-left text-sm transition-colors',
+                    userIdVal === String(user.id)
+                      ? 'bg-gold/20 text-gold font-semibold'
+                      : 'text-foreground/70 hover:bg-white/5 hover:text-foreground'
+                  )}
+                  >
+                  <span className="block">{user.name}</span>
+                  <span className="mt-0.5 block text-[11px] font-normal text-foreground/40">
+                    {user.email}
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
+
+          {userIdVal && (
+            <p className="text-xs text-emerald-400 font-medium">✓ Utilisateur sélectionné : ID #{userIdVal}</p>
+          )}
         </div>
       </SlideOver>
     </div>

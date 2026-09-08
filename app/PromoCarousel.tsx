@@ -77,7 +77,7 @@ function mapCategoryToEntry(category: any, type: 'perfume' | 'accessory', isEn: 
     description: category.message_promotion || undefined,
     link: type === 'perfume'
       ? `/shop/perfumes?categorie=${category.id}`
-      : `/shop/accessories?type=${category.id}`,
+      : `/shop/accessories?type_accessoire=${category.id}`,
     image: category.icone || category.image || null,
     type,
     rawId: String(category.id),

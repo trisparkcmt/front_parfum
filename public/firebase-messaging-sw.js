@@ -7,12 +7,13 @@ importScripts('https://www.gstatic.com/firebasejs/10.0.0/firebase-app-compat.js'
 importScripts('https://www.gstatic.com/firebasejs/10.0.0/firebase-messaging-compat.js');
 
 const firebaseConfig = {
-  apiKey: "AIzaSyBKzplWfKfPTdAHVJu6i-wYsOQNhfvzP8g",
-  authDomain: "push-accessoire-exclusif.firebaseapp.com",
-  projectId: "push-accessoire-exclusif",
-  storageBucket: "push-accessoire-exclusif.firebasestorage.app",
-  messagingSenderId: "712882537616",
-  appId: "1:712882537616:web:ff2b3fb7f68d598e188415"
+  apiKey: "AIzaSyCFczwPMeGoRoXz5nmZ_eZN22V4sTfpmWU",
+  authDomain: "access-exclu.firebaseapp.com",
+  projectId: "access-exclu",
+  storageBucket: "access-exclu.firebasestorage.app",
+  messagingSenderId: "206783805033",
+  appId: "1:206783805033:web:855b8533e130dd570c54f8",
+  measurementId: "G-LZ9Y34PNZP"
 };
 
 // Initialize Firebase in Service Worker context
@@ -23,12 +24,14 @@ const messaging = firebase.messaging();
 messaging.onBackgroundMessage((payload) => {
   console.log('[Service Worker] Received background message:', payload);
 
+  if (payload.notification) return;
+
   const data = payload.data || {};
   
   // SECURE FALLBACK: Extract title & body from payload.notification OR payload.data
   // This ensures that data-only payloads trigger the notification display.
-  const title = payload.notification?.title || data.title || 'Nouvelle notification';
-  const body = payload.notification?.body || data.body || 'Vous avez reçu un nouveau message';
+  const title = payload.notification?.title || data.title || 'Accessoire Exclusif';
+  const body = payload.notification?.body || data.message || data.body || '';
 
   const notificationOptions = {
     body: body,
@@ -65,6 +68,7 @@ self.addEventListener('notificationclick', (event) => {
         if (client.url.includes(self.location.origin)) {
           if (client.focus) client.focus();
           if (client.navigate) client.navigate(url);
+          client.postMessage({ type: 'FCM_NOTIFICATION_CLICKED', data });
           return client;
         }
       }
@@ -76,6 +80,16 @@ self.addEventListener('notificationclick', (event) => {
   );
 });
 
+
+// Listen for commands from the main window (e.g., clear active notifications from tray)
+self.addEventListener('message', (event) => {
+  if (event.data?.action === 'CLEAR_NOTIFICATIONS') {
+    self.registration.getNotifications().then((notifications) => {
+      notifications.forEach((notification) => notification.close());
+    });
+  }
+});
+
 // Immediate Activation & Claim
 self.addEventListener('install', () => {
   self.skipWaiting();
@@ -84,3 +98,4 @@ self.addEventListener('install', () => {
 self.addEventListener('activate', (event) => {
   event.waitUntil(clients.claim());
 });
+

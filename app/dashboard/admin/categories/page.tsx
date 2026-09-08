@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Loader2, Edit2, Trash2, Plus, Search, Gem, FlaskConical, Tag, Calendar, Image as ImageIcon } from 'lucide-react';
+import { Loader2, Edit2, Trash2, Plus, Search, Gem, FlaskConical, Tag, Calendar, Image as ImageIcon, AlertCircle, X } from 'lucide-react';
 import { PerfumeIcon } from '@/components/icons/CustomIcons';
 import { shopService, adminService } from '@/services/apiService';
 import { useToastStore } from '@/store/useToastStore';
@@ -11,6 +11,9 @@ import { SlideOver } from '@/components/ui/SlideOver';
 import { fromDatetimeLocalValue, formatPromotionPeriod, toDatetimeLocalValue } from '@/lib/promotionUtils';
 import { extractApiError } from '@/lib/apiError';
 import { useTranslation } from 'react-i18next';
+import { AdminTableSkeleton } from '@/components/ui/AdminTableSkeleton';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { mapErrorToUserMessage } from '@/lib/errorMapper';
 
 /* -------------------------------------------------------------------------- */
 /* Inline Translations Dictionary                                              */
@@ -44,6 +47,7 @@ const T = {
     field_start_date: 'Date début',
     field_end_date: 'Date fin',
     field_promo_msg: 'Message promotion',
+    btn_reset_dates: 'Réinitialiser les dates',
     field_category_icon: "Image / Icône de la catégorie",
     field_type_icon: 'Icône du type',
     field_active: 'Actif',
@@ -112,6 +116,7 @@ const T = {
     field_start_date: 'Start Date',
     field_end_date: 'End Date',
     field_promo_msg: 'Promo Message',
+    btn_reset_dates: 'Reset Dates',
     field_category_icon: 'Category Image / Icon',
     field_type_icon: 'Type Icon',
     field_active: 'Active',
@@ -333,7 +338,6 @@ export default function CategoriesAdminPage() {
 
   const [form, setForm] = useState({
     nom: '',
-    slug: '',
     description: '',
     ordre_affichage: 0,
     actif: true,
@@ -381,7 +385,6 @@ export default function CategoriesAdminPage() {
   const resetForm = () => {
     setForm({
       nom: '',
-      slug: '',
       description: '',
       ordre_affichage: 0,
       actif: true,
@@ -405,7 +408,6 @@ export default function CategoriesAdminPage() {
     setEditingItem(item);
     setForm({
       nom: item.nom || '',
-      slug: item.slug || '',
       description: item.description || '',
       ordre_affichage: item.ordre_affichage || 0,
       actif: item.actif !== undefined ? item.actif : true,
@@ -424,7 +426,6 @@ export default function CategoriesAdminPage() {
     const errors: Record<string, string> = {};
     if (activeTab === 'perfume_categories' || activeTab === 'accessory_categories') {
       if (!form.nom.trim()) errors.nom = t('err_name');
-      if (!form.slug.trim()) errors.slug = t('err_slug');
       if (form.ordre_affichage === undefined || form.ordre_affichage === null)
         errors.ordre_affichage = t('err_order_required');
       else if (isNaN(Number(form.ordre_affichage)) || Number(form.ordre_affichage) < 0)
@@ -440,16 +441,10 @@ export default function CategoriesAdminPage() {
 
         if (!form.message_promotion.trim())
           errors.message_promotion = t('err_promo_msg');
-        if (!form.date_debut)
-          errors.date_debut = t('err_start_date');
-        if (!form.date_fin)
-          errors.date_fin = t('err_end_date');
-        else if (form.date_debut && new Date(form.date_fin) < new Date(form.date_debut))
-          errors.date_fin = t('err_end_after_start');
-      } else if (form.date_debut || form.date_fin) {
-        if (form.date_debut && form.date_fin && new Date(form.date_fin) < new Date(form.date_debut))
-          errors.date_fin = t('err_end_after_start');
       }
+      // Allow empty dates, but validate date order if both are provided
+      if (form.date_debut && form.date_fin && new Date(form.date_fin) < new Date(form.date_debut))
+        errors.date_fin = t('err_end_after_start');
     }
 
     if (activeTab === 'accessory_categories' || activeTab === 'bottle_types') {
@@ -473,12 +468,10 @@ export default function CategoriesAdminPage() {
     }
 
     setIsSaving(true);
-    setShowModal(false);
     try {
       if (activeTab === 'perfume_categories') {
         const formData = new FormData();
         formData.append('nom', form.nom);
-        if (form.slug) formData.append('slug', form.slug);
         formData.append('ordre_affichage', String(Number(form.ordre_affichage)));
         formData.append('actif', String(form.actif));
         formData.append('taux_reduction', form.taux_reduction);
@@ -499,25 +492,26 @@ export default function CategoriesAdminPage() {
           addToast(t('toast_perfume_created'), 'success');
         }
       } else if (activeTab === 'accessory_categories') {
-        const formData = new FormData();
-        formData.append('nom', form.nom);
-        formData.append('description', form.description);
-        formData.append('taux_reduction', form.taux_reduction);
-        formData.append('actif', String(form.actif));
+        const payload: Record<string, unknown> = {
+          nom: form.nom.trim(),
+          description: form.description.trim(),
+          taux_reduction: form.taux_reduction || '0.00',
+          actif: Boolean(form.actif),
+        };
         const dateDebut = fromDatetimeLocalValue(form.date_debut);
         const dateFin = fromDatetimeLocalValue(form.date_fin);
-        if (dateDebut) formData.append('date_depart', dateDebut);
-        if (dateFin) formData.append('date_fin', dateFin);
-        if (form.message_promotion) formData.append('message_promotion', form.message_promotion);
+        if (dateDebut) payload.date_depart = dateDebut;
+        if (dateFin) payload.date_fin = dateFin;
+        if (form.message_promotion) payload.message_promotion = form.message_promotion.trim();
         if (iconFile instanceof File) {
-          formData.append('icone', iconFile);
-          formData.append('image', iconFile);
+          payload.icone = iconFile;
+          payload.image = iconFile;
         }
         if (editingItem) {
-          await adminService.patchFormData(`shop/types-accessoire/${editingItem.id}/`, formData);
+          await shopService.updateAccessoryType(editingItem.id, payload);
           addToast(t('toast_accessory_updated'), 'success');
         } else {
-          await adminService.postFormData('shop/types-accessoire/', formData);
+          await shopService.createAccessoryType(payload);
           addToast(t('toast_accessory_created'), 'success');
         }
       } else if (activeTab === 'bottle_types') {
@@ -531,9 +525,11 @@ export default function CategoriesAdminPage() {
         }
       }
 
+      setShowModal(false);
       fetchItems();
     } catch (error: any) {
-      setFormError(extractApiError(error, t('toast_save_error')));    } finally {
+      setFormError(extractApiError(error, t('toast_save_error')));
+    } finally {
       setIsSaving(false);
     }
   };
@@ -660,10 +656,13 @@ export default function CategoriesAdminPage() {
             </div>
 
             {loading ? (
-              <div className="flex items-center justify-center gap-2 py-16 text-foreground/40">
-                <Loader2 className="animate-spin text-gold" size={18} />
-                <span className="text-xs">{t('loading')}</span>
-              </div>
+              <AdminTableSkeleton columns={6} rows={5} />
+            ) : items.length === 0 ? (
+              <EmptyState
+                icon={<Tag size={48} />}
+                title={activeTab === 'perfume_categories' ? 'No categories' : 'No types'}
+                description={activeTab === 'perfume_categories' ? 'Create your first category' : 'Create your first type'}
+              />
             ) : (
               <>
                 {/* Desktop View: Table */}
@@ -973,6 +972,20 @@ export default function CategoriesAdminPage() {
         }
       >
         <div className="space-y-4">
+          {/* Error Banner */}
+          {formError && (
+            <div className="rounded-xl bg-red-500/10 border border-red-500/20 p-4 flex items-start gap-3">
+              <AlertCircle size={20} className="text-red-400 shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <p className="text-sm font-medium text-red-400">{isEn ? 'Save Error' : 'Erreur lors de la sauvegarde'}</p>
+                <p className="mt-1 text-xs text-red-400/80">{formError}</p>
+              </div>
+              <button onClick={() => setFormError('')} className="text-red-400/60 hover:text-red-400 transition-colors">
+                <X size={16} />
+              </button>
+            </div>
+          )}
+
           <FormSection title={t('section_general')} icon={Tag}>
             <Field label={t('field_name')} required error={formErrors.nom}>
               <input
@@ -985,15 +998,6 @@ export default function CategoriesAdminPage() {
 
             {activeTab === 'perfume_categories' && (
               <>
-                <Field label={t('field_slug')} required error={formErrors.slug}>
-                  <input
-                    data-field="slug"
-                    value={form.slug}
-                    onChange={e => updateForm('slug', e.target.value)}
-                    className={inputClassName}
-                  />
-                </Field>
-
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <Field label={t('field_order')} required error={formErrors.ordre_affichage}>
                     <input
@@ -1067,6 +1071,18 @@ export default function CategoriesAdminPage() {
                   />
                 </Field>
               </div>
+              <div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    updateForm('date_debut', '');
+                    updateForm('date_fin', '');
+                  }}
+                  className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-white/10 bg-white/[0.02] px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-foreground/60 transition-colors hover:border-white/20 hover:bg-white/[0.05] hover:text-foreground/80"
+                >
+                  {t('btn_reset_dates')}
+                </button>
+              </div>
               <Field label={t('field_promo_msg')} error={formErrors.message_promotion}>
                 <input
                   data-field="message_promotion"
@@ -1099,12 +1115,6 @@ export default function CategoriesAdminPage() {
                 <span className="text-xs text-foreground/70 font-medium">{t('field_active')}</span>
               </label>
             </FormSection>
-          )}
-
-          {formError && (
-            <p className="text-xs font-semibold text-red-400 bg-red-500/10 border border-red-500/20 px-3 py-2.5 rounded-lg text-center mt-4">
-              {formError}
-            </p>
           )}
         </div>
       </SlideOver>

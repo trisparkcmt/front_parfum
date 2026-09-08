@@ -14,25 +14,25 @@ export default function ShopByCategory() {
       key: "women",
       title: isEn ? "Women's Perfumes" : "Parfums Femme",
       href: "/shop/perfumes?gender=feminine",
-      img: "/perfumeW.jfif",
+      img: "/perfumeW.png",
     },
     {
       key: "men",
       title: isEn ? "Men's Perfumes" : "Parfums Homme",
       href: "/shop/perfumes?gender=masculine",
-      img: "/perfumeM.jfif",
+      img: "/perfumeM.png",
     },
     {
       key: "dupes",
       title: isEn ? "Our Dupes" : "Nos Dupes",
       href: "/shop/perfumes?type=dupe",
-      img: "/dupes.jfif",
+      img: "/dupes.png",
     },
     {
       key: "access",
       title: isEn ? "Accessories" : "Accessoires",
       href: "/shop/accessories",
-      img: "/accesoires.jfif",
+      img: "/accesoires.png",
     },
   ];
 

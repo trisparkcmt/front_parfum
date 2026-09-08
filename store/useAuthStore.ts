@@ -10,11 +10,13 @@ import { persist } from 'zustand/middleware';
 import type { User, UserRole } from '@/types';
 import { authService } from '@/services/apiService';
 import { deviceService } from '@/services/deviceService';
-import { getCachedToken, cleanupFCM } from '@/services/fcmService';
+import { getCachedToken, cleanupFCM, initializeFCM } from '@/services/fcmService';
 import { api, rawApi } from '@/services/api';
 import { useToastStore } from './useToastStore';
 import { useCartStore } from './useCartStore';
+import { useNotificationCountStore } from './useNotificationCountStore';
 import { normalizeRoles, resolvePrimaryRole } from '@/lib/roleUtils';
+
 
 function decodeJwt(token: string): any {
   try {
@@ -139,6 +141,7 @@ export const useAuthStore = create<AuthState>()(
           if (typeof window !== 'undefined') {
             if (access) {
               localStorage.setItem('auth_token', access);
+              localStorage.setItem('auth_method', 'web');
               api.defaults.headers.common['Authorization'] = `Bearer ${access}`;
               rawApi.defaults.headers.common['Authorization'] = `Bearer ${access}`;
             } else {
@@ -296,8 +299,20 @@ export const useAuthStore = create<AuthState>()(
             isLoading: false,
           });
           addToast(`Bienvenue, ${meUser.firstName} !`, 'success');
+
+          // Initialize FCM push notifications & device registration for Google Auth
+          try {
+            initializeFCM(meUser).catch((fcmError: unknown) => {
+              console.warn('[AuthStore] FCM initialization warning on Google login:', fcmError);
+            });
+          } catch (e) {
+            console.warn('[AuthStore] Failed to trigger initializeFCM:', e);
+          }
+
+
           useCartStore.getState().clearCart();
           return true;
+
         } catch (error: any) {
           console.error('Google login failed:', error);
           set({ isLoading: false });
@@ -369,6 +384,13 @@ export const useAuthStore = create<AuthState>()(
 
       logout: async () => {
         try {
+          // Clear notification tray & reset notification store state on logout
+          useNotificationCountStore.getState().clearAllStoreData();
+        } catch (e) {
+          console.warn('[Auth] Notification store cleanup failed during logout:', e);
+        }
+
+        try {
           const fcmToken = getCachedToken();
           if (fcmToken) {
             try {
@@ -382,6 +404,7 @@ export const useAuthStore = create<AuthState>()(
           console.warn('[Auth] FCM cleanup failed during logout:', error);
         }
 
+
         try {
           await api.post('auth/logout/');
         } catch (e) {
@@ -390,6 +413,7 @@ export const useAuthStore = create<AuthState>()(
         if (typeof window !== 'undefined') {
           localStorage.removeItem('auth_token');
           localStorage.removeItem('refresh_token');
+          localStorage.removeItem('auth_method');
           delete api.defaults.headers.common['Authorization'];
         }
         useToastStore.getState().addToast('Déconnexion réussie.', 'success');

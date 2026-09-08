@@ -42,7 +42,7 @@ function VerifyEmailContent() {
       }
     };
     run();
-  }, [key]);
+  }, [addToast, key, t]);
 
   const handleResend = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -54,10 +54,15 @@ function VerifyEmailContent() {
     try {
       await authService.resendVerificationEmail(email);
       addToast(t('verification_email_resent', { defaultValue: 'Lien de validation envoyé avec succès.' }), 'success');
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const responseData =
+        typeof error === 'object' && error !== null && 'response' in error
+          ? (error as { response?: { data?: { detail?: string; email?: string[] } } }).response?.data
+          : undefined;
+
       const errorMsg =
-        error.response?.data?.detail ||
-        error.response?.data?.email?.[0] ||
+        responseData?.detail ||
+        responseData?.email?.[0] ||
         t('resend_email_error', { defaultValue: "Impossible de renvoyer l'e-mail de validation." });
       addToast(errorMsg, 'error');
       
@@ -78,7 +83,7 @@ function VerifyEmailContent() {
       <div className="text-center">
         <div className="flex justify-center mb-6"><Loader2 className="h-16 w-16 text-gold animate-spin" /></div>
         <h1 className="font-display text-3xl font-bold mb-4">{t('verifying_email', { defaultValue: 'Validation de votre adresse...' })}</h1>
-        <p className="text-foreground/60 leading-relaxed">Veuillez patienter pendant que nous vérifions vos informations.</p>
+        <p className="text-foreground/60 leading-relaxed">{t('please_wait_verifying', { defaultValue: 'Veuillez patienter pendant que nous vérifions vos informations.' })}</p>
       </div>
     );
   }
@@ -89,7 +94,7 @@ function VerifyEmailContent() {
         <div className="flex justify-center mb-6"><CheckCircle2 className="h-16 w-16 text-gold animate-bounce" /></div>
         <h1 className="font-display text-3xl font-bold mb-4">{t('email_verified', { defaultValue: 'Compte activé !' })}</h1>
         <p className="text-foreground/60 mb-8 leading-relaxed">
-          Votre adresse e-mail a été validée. Vous pouvez dès à présent vous connecter.
+          {t('email_verified_success', { defaultValue: 'Votre adresse e-mail a été validée. Vous pouvez dès à présent vous connecter.' })}
         </p>
         <Link href="/login"><Button className="w-full">{t('login_btn', { defaultValue: 'Se connecter' })}</Button></Link>
       </div>
@@ -102,7 +107,7 @@ function VerifyEmailContent() {
         <div className="flex justify-center mb-6"><XCircle className="h-16 w-16 text-red-500 animate-pulse" /></div>
         <h1 className="font-display text-3xl font-bold mb-4">{t('verification_failed', { defaultValue: 'Validation impossible' })}</h1>
         <p className="text-foreground/60 mb-8 leading-relaxed">
-          Le lien semble expiré ou invalide. Demandez un nouveau lien de validation.
+          {t('verification_failed_desc', { defaultValue: 'Le lien semble expiré ou invalide. Demandez un nouveau lien de validation.' })}
         </p>
         <Button className="w-full" onClick={() => setStatus('resend')}>
           {t('ask_new_link', { defaultValue: 'Demander un nouveau lien' })}
@@ -115,10 +120,10 @@ function VerifyEmailContent() {
   return (
     <div>
       <div className="mb-7">
-        <span className="inline-block text-[10px] uppercase tracking-[0.3em] text-gold/80 mb-2">Validation</span>
+        <span className="inline-block text-[10px] uppercase tracking-[0.3em] text-gold/80 mb-2">{t('validation', { defaultValue: 'Validation' })}</span>
         <h1 className="font-display text-3xl font-bold mb-2">{t('resend_verification_title', { defaultValue: 'Validation de compte' })}</h1>
         <p className="text-foreground/60 text-sm leading-relaxed">
-          Entrez votre adresse e-mail pour recevoir un nouveau lien de validation.
+          {t('resend_verification_instructions', { defaultValue: 'Entrez votre adresse e-mail pour recevoir un nouveau lien de validation.' })}
         </p>
       </div>
 
@@ -149,9 +154,7 @@ function VerifyEmailContent() {
 
 export default function VerifyEmailPage() {
   const { t } = useTranslation();
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
-  if (!mounted) return null;
+
   return (
     <Suspense fallback={<div className="text-gold">{t('loading', { defaultValue: 'Chargement...' })}</div>}>
       <VerifyEmailContent />

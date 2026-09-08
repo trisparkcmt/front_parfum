@@ -4,8 +4,8 @@
  * Handles registration and unregistration of devices with the Django backend API.
  * 
  * API Endpoints:
- * - POST /utilisateur/devices/register/ (Payload: { registration_token, platform })
- * - POST /utilisateur/devices/unregister/ (Payload: { registration_token })
+ * - POST /auth/fcm/register/ (Payload: { registration_token, type_appareil })
+ * - POST /auth/fcm/unregister/ (Payload: { registration_token })
  * - GET /utilisateur/notifications/ (Fetch notification history)
  */
 
@@ -23,7 +23,7 @@ export type DevicePlatform = 'web' | 'ios' | 'android';
  */
 interface DeviceRegistrationPayload {
   registration_token: string;
-  platform: DevicePlatform;
+  type_appareil: DevicePlatform;
 }
 
 /**
@@ -39,7 +39,7 @@ interface DeviceUnregistrationPayload {
 interface DeviceRegistrationResponse {
   id?: string | number;
   registration_token: string;
-  platform: DevicePlatform;
+  type_appareil: DevicePlatform;
   created_at?: string;
   updated_at?: string;
 }
@@ -65,12 +65,12 @@ export const deviceService = {
 
     const payload: DeviceRegistrationPayload = {
       registration_token: registrationToken,
-      platform: typeof window === 'undefined' ? 'web' : getDevicePlatform(),
+      type_appareil: typeof window === 'undefined' ? 'web' : getDevicePlatform(),
     };
 
     try {
       const response = await api.post<DeviceRegistrationResponse>(
-        'utilisateur/devices/register/',
+        'auth/fcm/register/',
         payload
       );
       console.log('[Device Service] Device registered successfully:', response.data);
@@ -99,7 +99,7 @@ export const deviceService = {
     };
 
     try {
-      await api.post('utilisateur/devices/unregister/', payload);
+      await api.post('auth/fcm/unregister/', payload);
       console.log('[Device Service] Device unregistered successfully');
     } catch (error: any) {
       // Log but don't throw - unregistration should not block logout

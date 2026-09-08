@@ -1,11 +1,14 @@
-﻿'use client';
+'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Loader2, Edit2, Trash2, Plus, Search, Image as ImageIcon, SlidersHorizontal } from 'lucide-react';
+import { Loader2, Edit2, Trash2, Plus, Search, Image as ImageIcon, SlidersHorizontal, AlertCircle, X, Package } from 'lucide-react';
 import { shopService } from '@/services/apiService';
 import { adminService } from '@/services/apiService';
 import { InlineCell } from '@/components/admin/InlineCell';
 import { useTranslation } from 'react-i18next';
+import { CustomSelect } from '@/components/ui/CustomSelect';
+import { AdminTableSkeleton } from '@/components/ui/AdminTableSkeleton';
+import { EmptyState } from '@/components/ui/EmptyState';
 
 /* -- Inline translations --------------------------------------------------- */
 const T = {
@@ -95,6 +98,53 @@ const T = {
   },
 } as const;
 type TKey = keyof typeof T.fr;
+
+type PerfumeRecord = {
+  id?: number | string;
+  slug?: string;
+  name?: string;
+  nom?: string;
+  marque?: string;
+  reference_sku?: string;
+  description_courte?: string;
+  description_longue?: string;
+  description_ia?: string;
+  contenance_ml?: number | string;
+  prix_unitaire?: number | string;
+  prix_achat?: number | string;
+  prix_promotionnel?: number | string;
+  taux_reduction?: number | string;
+  prix_actuel?: number | string;
+  date_debut?: string | null;
+  date_fin?: string | null;
+  genre_cible?: string;
+  intensite?: string;
+  notes_tete?: string;
+  notes_coeur?: string;
+  notes_fond?: string;
+  est_nouveau?: boolean;
+  est_bestseller?: boolean;
+  stock_quantite?: number | string;
+  stock?: number | string;
+  seuil_alerte_stock?: number | string;
+  categorie?: { id?: number | string } | number | string;
+  actif?: boolean;
+  message_promotion?: string;
+  image_principale?: string | null;
+  image?: string | null;
+  image_supp_1?: string | null;
+  image_supp_2?: string | null;
+  image_supp_3?: string | null;
+  image_supp_4?: string | null;
+  [key: string]: unknown;
+};
+
+type CategoryRecord = {
+  id?: number | string;
+  nom?: string;
+  [key: string]: unknown;
+};
+
 import { useToastStore } from '@/store/useToastStore';
 import { useCatalogPermissions } from '@/hooks/useCatalogPermissions';
 import CatalogAccessNotice from '@/components/catalog/CatalogAccessNotice';
@@ -223,24 +273,24 @@ export default function PerfumeAdminPage() {
   const isEn = i18n.language?.startsWith('en') ?? false;
   const t = (k: TKey) => isEn ? T.en[k] : T.fr[k];
   const isAdmin = Boolean(user?.is_staff || user?.is_superuser || user?.role === 'superadmin');
-  const [perfumes, setPerfumes] = useState<any[]>([]);
+  const [perfumes, setPerfumes] = useState<PerfumeRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [genreFilter, setGenreFilter] = useState('');
   const [estBestsellerFilter, setEstBestsellerFilter] = useState('');
   const [showFilters, setShowFilters] = useState(false);
   const [showModal, setShowModal] = useState(false);
-  const [editingPerfume, setEditingPerfume] = useState<any | null>(null);
-  const [categories, setCategories] = useState<any[]>([]);
+  const [editingPerfume, setEditingPerfume] = useState<PerfumeRecord | null>(null);
+  const [categories, setCategories] = useState<CategoryRecord[]>([]);
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
   const [selectedSlugs, setSelectedSlugs] = useState<string[]>([]);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+  const [formError, setFormError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [form, setForm] = useState({
     marque: 'Accessoire Exclusif',
     nom: '',
-    slug: '',
     reference_sku: '',
     description_courte: '',
     description_longue: '',
@@ -267,6 +317,7 @@ export default function PerfumeAdminPage() {
   });
 
   const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imageResetKey, setImageResetKey] = useState(0);
   const [imageFiles, setImageFiles] = useState<{ [key: string]: File | null }>({
     image_principale: null,
     image_supp_1: null,
@@ -308,7 +359,7 @@ export default function PerfumeAdminPage() {
       .catch(() => addToast(t('toast_category_error'), 'error'));
   }, [addToast]);
 
-  const updateForm = (field: keyof typeof form, value: any) => {
+  const updateForm = (field: keyof typeof form, value: string | number | boolean | null | undefined) => {
     setForm(prev => ({ ...prev, [field]: value }));
     setFormErrors(prev => {
       if (!prev[field]) return prev;
@@ -388,7 +439,6 @@ export default function PerfumeAdminPage() {
     setForm({
       marque: '',
       nom: '',
-      slug: '',
       reference_sku: '',
       description_courte: '',
       description_longue: '',
@@ -421,16 +471,16 @@ export default function PerfumeAdminPage() {
       image_supp_3: null,
       image_supp_4: null,
     });
+    setImageResetKey(prev => prev + 1);
     setFormErrors({});
     setShowModal(true);
   };
 
-  const handleOpenEdit = (perf: any) => {
+  const handleOpenEdit = (perf: PerfumeRecord) => {
     setEditingPerfume(perf);
     setForm({
       marque: perf.marque || 'Accessoire Exclusif',
       nom: perf.nom || perf.name || '',
-      slug: perf.slug || '',
       reference_sku: perf.reference_sku || '',
       description_courte: perf.description_courte || '',
       description_longue: perf.description_longue || '',
@@ -440,8 +490,8 @@ export default function PerfumeAdminPage() {
       prix_achat: perf.prix_achat ? String(perf.prix_achat) : '',
       prix_promotionnel: perf.prix_promotionnel ? String(perf.prix_promotionnel) : '',
       taux_reduction: perf.taux_reduction ? String(perf.taux_reduction) : '',
-      date_debut: toDatetimeLocalValue(perf.date_debut),
-      date_fin: toDatetimeLocalValue(perf.date_fin),
+      date_debut: toDatetimeLocalValue(typeof perf.date_debut === 'string' ? perf.date_debut : null),
+      date_fin: toDatetimeLocalValue(typeof perf.date_fin === 'string' ? perf.date_fin : null),
       genre_cible: perf.genre_cible || 'mixte',
       intensite: perf.intensite || 'moyenne',
       notes_tete: perf.notes_tete || '',
@@ -451,8 +501,8 @@ export default function PerfumeAdminPage() {
       est_bestseller: !!perf.est_bestseller,
       stock_quantite: String(perf.stock_quantite || ''),
       seuil_alerte_stock: String(perf.seuil_alerte_stock || '5'),
-      categorie: String(perf.categorie?.id || perf.categorie || ''),
-      actif: perf.actif !== undefined ? perf.actif : true,
+      categorie: String((typeof perf.categorie === 'object' && perf.categorie !== null ? perf.categorie.id : perf.categorie) || ''),
+      actif: perf.actif !== undefined ? Boolean(perf.actif) : true,
       message_promotion: perf.message_promotion || '',
     });
     setImageFile(null);
@@ -463,6 +513,7 @@ export default function PerfumeAdminPage() {
       image_supp_3: null,
       image_supp_4: null,
     });
+    setImageResetKey(prev => prev + 1);
     setFormErrors({});
     setShowModal(true);
   };
@@ -474,6 +525,8 @@ export default function PerfumeAdminPage() {
       return;
     }
 
+    // Clear previous error
+    setFormError(null);
     setIsSubmitting(true);
 
     const formData = new FormData();
@@ -496,23 +549,29 @@ export default function PerfumeAdminPage() {
 
     try {
       if (editingPerfume) {
+        await adminService.patchFormData(`shop/parfums/${editingPerfume.slug}/`, formData);
         setPerfumes(prev => prev.map(p =>
           (p.slug || String(p.id)) === editingPerfume.slug
             ? { ...p, ...Object.fromEntries(Array.from(formData.entries()).filter(([k]) => !k.startsWith('image'))) }
             : p
         ));
-        setShowModal(false);
-        await adminService.patchFormData(`shop/parfums/${editingPerfume.slug}/`, formData);
         addToast(t('toast_update_ok'), 'success');
+        setShowModal(false);
         await fetchPerfumes();
       } else {
-        handleOpenAdd(); // reset form immediately for next entry
         await adminService.postFormData('shop/parfums/', formData);
         addToast(t('toast_create_ok'), 'success');
+        setShowModal(false);
+        handleOpenAdd(); // reset form for next entry
         await fetchPerfumes();
       }
-    } catch (error: any) {
-      addToast(error.response?.data?.detail || t('toast_save_error'), 'error');
+    } catch (error: unknown) {
+      const responseDetail =
+        typeof error === 'object' && error !== null && 'response' in error
+          ? (error as { response?: { data?: { detail?: string } } }).response?.data?.detail
+          : undefined;
+      const errorMessage = responseDetail || t('toast_save_error');
+      setFormError(errorMessage);
     } finally {
       setIsSubmitting(false);
     }
@@ -638,29 +697,33 @@ export default function PerfumeAdminPage() {
           <div className="shadow-black/30 shadow-sm flex flex-wrap items-center gap-3 rounded-xl border border-white/10 bg-white/[0.02] p-3">
             <div className="flex items-center gap-2">
               <span className="text-[10px] font-semibold uppercase tracking-wider text-foreground/35">Genre:</span>
-              <select
+              <CustomSelect
+                size="sm"
                 value={genreFilter}
-                onChange={(e) => setGenreFilter(e.target.value)}
-                className="rounded-lg border border-white/10 bg-background px-2.5 py-1.5 text-xs text-foreground outline-none"
-              >
-                <option value="">{t('filter_genre_all')}</option>
-                <option value="homme">{t('filter_genre_homme')}</option>
-                <option value="femme">{t('filter_genre_femme')}</option>
-                <option value="mixte">{t('filter_genre_mixte')}</option>
-              </select>
+                onChange={setGenreFilter}
+                options={[
+                  { value: '', label: t('filter_genre_all') },
+                  { value: 'homme', label: t('filter_genre_homme') },
+                  { value: 'femme', label: t('filter_genre_femme') },
+                  { value: 'mixte', label: t('filter_genre_mixte') },
+                ]}
+                className="min-w-[110px]"
+              />
             </div>
 
             <div className="flex items-center gap-2">
               <span className="text-[10px] font-semibold uppercase tracking-wider text-foreground/35">Bestseller:</span>
-              <select
+              <CustomSelect
+                size="sm"
                 value={estBestsellerFilter}
-                onChange={(e) => setEstBestsellerFilter(e.target.value)}
-                className="rounded-lg border border-white/10 bg-background px-2.5 py-1.5 text-xs text-foreground outline-none"
-              >
-                <option value="">{t('filter_bs_all')}</option>
-                <option value="true">{t('filter_bs_only')}</option>
-                <option value="false">{t('filter_bs_not')}</option>
-              </select>
+                onChange={setEstBestsellerFilter}
+                options={[
+                  { value: '', label: t('filter_bs_all') },
+                  { value: 'true', label: t('filter_bs_only') },
+                  { value: 'false', label: t('filter_bs_not') },
+                ]}
+                className="min-w-[110px]"
+              />
             </div>
 
             {activeFiltersCount > 0 && (
@@ -696,10 +759,13 @@ export default function PerfumeAdminPage() {
         </div>
 
         {loading ? (
-          <div className="flex flex-col items-center justify-center py-20 text-foreground/40 gap-2">
-            <Loader2 className="animate-spin text-gold" size={20} />
-            <p className="text-xs">{t('loading')}</p>
-          </div>
+          <AdminTableSkeleton columns={9} rows={8} />
+        ) : filtered.length === 0 ? (
+          <EmptyState
+            icon={<Package size={48} />}
+            title="No perfumes"
+            description="Create your first perfume to get started"
+          />
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
@@ -713,7 +779,7 @@ export default function PerfumeAdminPage() {
                         if (selectedSlugs.length === filtered.length) {
                           setSelectedSlugs([]);
                         } else {
-                          setSelectedSlugs(filtered.map((p: any) => p.slug || String(p.id)));
+                          setSelectedSlugs(filtered.map((p: PerfumeRecord) => p.slug || String(p.id)));
                         }
                       }}
                       className="rounded border-white/10 bg-white/5 text-gold focus:ring-0 focus:ring-offset-0"
@@ -733,7 +799,7 @@ export default function PerfumeAdminPage() {
               </thead>
               <tbody className="divide-y divide-white/5">
                 {pagedInStock.map(p => {
-                  const productImg = p.image_principale || p.image;
+                  const productImg = (typeof p.image_principale === 'string' ? p.image_principale : null) || (typeof p.image === 'string' ? p.image : null);
                   const slugKey = p.slug || String(p.id);
                   const isSelected = selectedSlugs.includes(slugKey);
                   const prixVenteNum = parseFloat(String(p.prix_unitaire || 0));
@@ -782,7 +848,7 @@ export default function PerfumeAdminPage() {
                           ) : (
                             <StatusChip label={t('in_stock')} type="emerald" />
                           )}
-                          {p.est_bestseller && <StatusChip label="Bestseller" type="gold" />}
+                          {Boolean(p.est_bestseller) && <StatusChip label="Bestseller" type="gold" />}
                         </div>
                       </td>
                       <td className="px-4 py-3 text-xs tabular-nums text-foreground/60 whitespace-nowrap">
@@ -794,8 +860,8 @@ export default function PerfumeAdminPage() {
                       <td className="px-4 py-3 text-xs font-semibold tabular-nums text-foreground whitespace-nowrap">
                         <InlineCell value={String(p.prix_unitaire ?? '')} onSave={v => patchPerfume(p.slug || String(p.id), 'prix_unitaire', v)} disabled={!permissions.canUpdate} inputType="number" display={p.taux_reduction ? (
                           <div className="flex items-center gap-1.5">
-                            <span className="text-foreground/40 line-through text-[11px] font-normal">{p.prix_unitaire} FCFA</span>
-                            <span className="text-gold">{p.prix_actuel} FCFA</span>
+                            <span className="text-foreground/40 line-through text-[11px] font-normal">{String(p.prix_unitaire ?? '')} FCFA</span>
+                            <span className="text-gold">{String(p.prix_actuel ?? '')} FCFA</span>
                           </div>
                         ) : <span>{p.prix_unitaire ? `${p.prix_unitaire} FCFA` : '—'}</span>} className="font-semibold text-foreground tabular-nums" />
                       </td>
@@ -818,7 +884,7 @@ export default function PerfumeAdminPage() {
                             </IconButton>
                           )}
                           {permissions.canDelete && (
-                            <IconButton variant="red" onClick={() => handleDelete(p.slug)} title="Supprimer">
+                            <IconButton variant="red" onClick={() => handleDelete(p.slug || String(p.id))} title="Supprimer">
                               <Trash2 size={14} />
                             </IconButton>
                           )}
@@ -856,7 +922,7 @@ export default function PerfumeAdminPage() {
                 <table className="w-full text-left border-collapse">
                   <tbody className="divide-y divide-white/5 opacity-70">
                     {pagedOutOfStock.map(p => {
-                      const productImg = p.image_principale || p.image;
+                      const productImg = (typeof p.image_principale === 'string' ? p.image_principale : null) || (typeof p.image === 'string' ? p.image : null);
                       const slugKey = p.slug || String(p.id);
                       const stockQty = Number(p.stock_quantite ?? p.stock ?? 0);
                       return (
@@ -883,7 +949,7 @@ export default function PerfumeAdminPage() {
                           <td className="px-4 py-2.5 text-right">
                             <div className="flex items-center justify-end gap-1">
                               {permissions.canUpdate && <IconButton variant="gold" onClick={() => handleOpenEdit(p)} title="Modifier"><Edit2 size={13} /></IconButton>}
-                              {permissions.canDelete && <IconButton variant="red" onClick={() => handleDelete(p.slug)} title="Supprimer"><Trash2 size={13} /></IconButton>}
+                              {permissions.canDelete && <IconButton variant="red" onClick={() => handleDelete(p.slug || String(p.id))} title="Supprimer"><Trash2 size={13} /></IconButton>}
                             </div>
                           </td>
                         </tr>
@@ -907,6 +973,7 @@ export default function PerfumeAdminPage() {
 
       {/* Form Modal (Verbatim copy of form structure & handlers to prevent broken logic) */}
       <FormModal
+        key={editingPerfume ? `edit-${editingPerfume.id}` : 'new'}
         isOpen={showModal && (permissions.canCreate || permissions.canUpdate)}
         onClose={() => setShowModal(false)}
         title={editingPerfume ? t('edit_modal') : t('new_modal')}
@@ -914,7 +981,24 @@ export default function PerfumeAdminPage() {
         size="3xl"
       >
         <div className="p-6 lg:p-8">
-          <div className="grid grid-cols-1 xl:grid-cols-[1.7fr_0.9fr] gap-6">
+          {/* Error Banner */}
+          {formError && (
+            <div className="mb-6 rounded-xl bg-red-500/10 border border-red-500/20 p-4 flex items-start gap-3">
+              <AlertCircle size={20} className="text-red-400 shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <p className="text-sm font-medium text-red-400">{isEn ? 'Save Error' : 'Erreur lors de la sauvegarde'}</p>
+                <p className="mt-1 text-xs text-red-400/80">{formError}</p>
+              </div>
+              <button
+                onClick={() => setFormError(null)}
+                className="text-red-400/60 hover:text-red-400 transition-colors"
+              >
+                <X size={16} />
+              </button>
+            </div>
+          )}
+
+          <div className="space-y-6">
             <div className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-4">
@@ -939,15 +1023,6 @@ export default function PerfumeAdminPage() {
                     {formErrors.nom && <p className="mt-1 text-xs text-red-500">{formErrors.nom}</p>}
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">{t('field_slug')}</label>
-                    <input
-                      data-field="slug"
-                      value={form.slug}
-                      onChange={(e) => updateForm('slug', e.target.value)}
-                      className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-base text-foreground outline-none focus:border-gold"
-                    />
-                  </div>
-                  <div>
                     <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">{t('field_sku')}</label>
                     <input
                       data-field="reference_sku"
@@ -959,17 +1034,19 @@ export default function PerfumeAdminPage() {
                   <div>
                     <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">{t('field_category')} *</label>
                     <div className="flex gap-2">
-                      <select
-                        data-field="categorie"
-                        value={form.categorie}
-                        onChange={(e) => updateForm('categorie', e.target.value)}
-                        className={`flex-1 bg-white/5 border rounded-lg px-3 py-2.5 text-base text-foreground outline-none focus:border-gold ${formErrors.categorie ? 'border-red-500/50' : 'border-white/10'}`}
-                      >
-                        <option value="" disabled className="bg-neutral-900">Catégorie</option>
-                        {categories.map((c) => (
-                          <option key={c.id} value={c.id} className="bg-neutral-900">{c.nom}</option>
-                        ))}
-                      </select>
+                      <div className="flex-1">
+                        <CustomSelect
+                          data-field="categorie"
+                          value={form.categorie}
+                          onChange={(value) => updateForm('categorie', value)}
+                          options={categories.map((c) => ({
+                            value: String(c.id),
+                            label: c.nom || '',
+                          }))}
+                          placeholder="Catégorie"
+                          error={!!formErrors.categorie}
+                        />
+                      </div>
                       <button
                         type="button"
                         onClick={() => setIsCategoryModalOpen(true)}
@@ -984,30 +1061,30 @@ export default function PerfumeAdminPage() {
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">{t('field_genre')}</label>
-                      <select
+                      <CustomSelect
                         data-field="genre_cible"
                         value={form.genre_cible}
-                        onChange={(e) => updateForm('genre_cible', e.target.value)}
-                        className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-base text-foreground outline-none focus:border-gold"
-                      >
-                        <option value="homme">{t('filter_genre_homme')}</option>
-                        <option value="femme">{t('filter_genre_femme')}</option>
-                        <option value="mixte">{t('filter_genre_mixte')}</option>
-                      </select>
+                        onChange={(value) => updateForm('genre_cible', value)}
+                        options={[
+                          { value: 'homme', label: t('filter_genre_homme') },
+                          { value: 'femme', label: t('filter_genre_femme') },
+                          { value: 'mixte', label: t('filter_genre_mixte') },
+                        ]}
+                      />
                     </div>
                     <div>
                       <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">{t('field_intensite')}</label>
-                      <select
+                      <CustomSelect
                         data-field="intensite"
                         value={form.intensite}
-                        onChange={(e) => updateForm('intensite', e.target.value)}
-                        className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-base text-foreground outline-none focus:border-gold"
-                      >
-                        <option value="légère">{isEn ? 'Light' : 'Légère'}</option>
-                        <option value="moyenne">{isEn ? 'Medium' : 'Moyenne'}</option>
-                        <option value="forte">{isEn ? 'Strong' : 'Forte'}</option>
-                        <option value="très forte">{isEn ? 'Very strong' : 'Très forte'}</option>
-                      </select>
+                        onChange={(value) => updateForm('intensite', value)}
+                        options={[
+                          { value: 'légère', label: isEn ? 'Light' : 'Légère' },
+                          { value: 'moyenne', label: isEn ? 'Medium' : 'Moyenne' },
+                          { value: 'forte', label: isEn ? 'Strong' : 'Forte' },
+                          { value: 'très forte', label: isEn ? 'Very strong' : 'Très forte' },
+                        ]}
+                      />
                     </div>
                   </div>
                   <div className="grid grid-cols-3 gap-2">
@@ -1133,71 +1210,40 @@ export default function PerfumeAdminPage() {
                       />
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1">
-                      <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">{t('field_date_debut')}</label>
-                      <input
-                        data-field="date_debut"
-                        type="datetime-local"
-                        value={form.date_debut}
-                        onChange={(e) => updateForm('date_debut', e.target.value)}
-                        className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-base text-foreground outline-none focus:border-gold"
-                      />
+                  <div className="space-y-3">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">{t('field_date_debut')}</label>
+                        <input
+                          data-field="date_debut"
+                          type="datetime-local"
+                          value={form.date_debut}
+                          onChange={(e) => updateForm('date_debut', e.target.value)}
+                          className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-base text-foreground outline-none focus:border-gold"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">{t('field_date_fin')}</label>
+                        <input
+                          data-field="date_fin"
+                          type="datetime-local"
+                          value={form.date_fin}
+                          onChange={(e) => updateForm('date_fin', e.target.value)}
+                          className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-base text-foreground outline-none focus:border-gold"
+                        />
+                      </div>
                     </div>
-                    <div className="space-y-1">
-                      <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">{t('field_date_fin')}</label>
-                      <input
-                        data-field="date_fin"
-                        type="datetime-local"
-                        value={form.date_fin}
-                        onChange={(e) => updateForm('date_fin', e.target.value)}
-                        className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-base text-foreground outline-none focus:border-gold"
-                      />
-                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        updateForm('date_debut', '');
+                        updateForm('date_fin', '');
+                      }}
+                      className="text-xs font-medium text-foreground/60 hover:text-gold transition-colors px-2 py-1"
+                    >
+                      Réinitialiser les dates
+                    </button>
                   </div>
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                <div className="space-y-1">
-                  <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">{t('field_desc_short')}</label>
-                  <textarea
-                    data-field="description_courte"
-                    value={form.description_courte}
-                    onChange={(e) => updateForm('description_courte', e.target.value)}
-                    rows={2}
-                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-base text-foreground outline-none focus:border-gold resize-none"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">{t('field_desc_long')}</label>
-                  <textarea
-                    data-field="description_longue"
-                    value={form.description_longue}
-                    onChange={(e) => updateForm('description_longue', e.target.value)}
-                    rows={4}
-                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-base text-foreground outline-none focus:border-gold resize-none"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">{t('field_desc_short')} IA</label>
-                  <textarea
-                    data-field="description_ia"
-                    value={form.description_ia}
-                    onChange={(e) => updateForm('description_ia', e.target.value)}
-                    rows={2}
-                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-base text-foreground outline-none focus:border-gold resize-none"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">{t('field_promo_msg')}</label>
-                  <textarea
-                    data-field="message_promotion"
-                    value={form.message_promotion}
-                    onChange={(e) => updateForm('message_promotion', e.target.value)}
-                    rows={2}
-                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-base text-foreground outline-none focus:border-gold resize-none"
-                  />
                 </div>
               </div>
 
@@ -1215,12 +1261,61 @@ export default function PerfumeAdminPage() {
                   <span className="text-xs text-foreground/60">{t('field_active')}</span>
                 </label>
               </div>
-            </div>
 
-            <div className="space-y-4">
-              <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-4 xl:sticky xl:top-6">
-                <h3 className="text-sm font-semibold text-foreground mb-4">Images</h3>
-                <MultiImageUpload onImagesChange={(images) => setImageFiles(images)} />
+              {/* Descriptions & Images Side by Side */}
+              <div className="grid grid-cols-1 xl:grid-cols-[1.5fr_1fr] gap-6">
+                <div className="space-y-4">
+                  <div className="space-y-1">
+                    <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">{t('field_desc_short')}</label>
+                    <textarea
+                      data-field="description_courte"
+                      value={form.description_courte}
+                      onChange={(e) => updateForm('description_courte', e.target.value)}
+                      rows={2}
+                      className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-base text-foreground outline-none focus:border-gold resize-none"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">{t('field_desc_long')}</label>
+                    <textarea
+                      data-field="description_longue"
+                      value={form.description_longue}
+                      onChange={(e) => updateForm('description_longue', e.target.value)}
+                      rows={4}
+                      className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-base text-foreground outline-none focus:border-gold resize-none"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">{t('field_desc_short')} IA</label>
+                    <textarea
+                      data-field="description_ia"
+                      value={form.description_ia}
+                      onChange={(e) => updateForm('description_ia', e.target.value)}
+                      rows={2}
+                      className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-base text-foreground outline-none focus:border-gold resize-none"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">{t('field_promo_msg')}</label>
+                    <textarea
+                      data-field="message_promotion"
+                      value={form.message_promotion}
+                      onChange={(e) => updateForm('message_promotion', e.target.value)}
+                      rows={2}
+                      className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-base text-foreground outline-none focus:border-gold resize-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-4 xl:sticky xl:top-6">
+                    <h3 className="text-sm font-semibold text-foreground mb-4">Images</h3>
+                    <MultiImageUpload
+                      key={imageResetKey}
+                      onImagesChange={(images) => setImageFiles(images)}
+                    />
+                  </div>
+                </div>
               </div>
             </div>
           </div>

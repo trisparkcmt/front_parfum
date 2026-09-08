@@ -13,6 +13,7 @@ import { useToastStore } from '@/store/useToastStore';
 import { useTranslation } from 'react-i18next';
 import type { BackendOrder, BackendOrderLine } from '@/types';
 import { useOptimisticOrders } from '@/hooks/useOptimisticOrders';
+import { CustomSelect } from '@/components/ui/CustomSelect';
 
 const T = {
   fr: {
@@ -117,6 +118,9 @@ const T = {
     row_note_client: 'Note client',
     row_note_internal: 'Note interne',
     row_recipient: 'Destinataire',
+    row_client_email: 'E-mail client',
+    row_order_status: 'Statut commande',
+    row_delivery_status: 'Statut livraison',
     receipt_subtotal: 'Sous-total',
     receipt_delivery_fees: 'Frais de livraison',
     receipt_promo_discount: 'Remise promo',
@@ -126,6 +130,7 @@ const T = {
     group_perfumes: 'Parfums',
     group_accessories: 'Accessoires',
     group_essences: 'Essences finies',
+    group_diffuseurs: 'Diffuseurs',
     group_custom_perfumes: 'Parfums personnalisés',
     group_custom_essences: 'Essences personnalisées',
     flacon: 'Flacon',
@@ -238,6 +243,9 @@ const T = {
     row_note_client: 'Client note',
     row_note_internal: 'Internal note',
     row_recipient: 'Recipient',
+    row_client_email: 'Client email',
+    row_order_status: 'Order status',
+    row_delivery_status: 'Delivery status',
     receipt_subtotal: 'Subtotal',
     receipt_delivery_fees: 'Delivery fees',
     receipt_promo_discount: 'Promo discount',
@@ -247,6 +255,7 @@ const T = {
     group_perfumes: 'Perfumes',
     group_accessories: 'Accessories',
     group_essences: 'Finished essences',
+    group_diffuseurs: 'Diffusers',
     group_custom_perfumes: 'Custom perfumes',
     group_custom_essences: 'Custom essences',
     flacon: 'Bottle',
@@ -314,11 +323,12 @@ function fmtDate(d?: string | null, time = false) {
 
 function allLines(order: BackendOrder): BackendOrderLine[] {
   return [
-    ...order.lignes_parfums,
-    ...order.lignes_accessoires,
-    ...order.lignes_produit_fini_essence,
-    ...order.lignes_parfums_perso,
-    ...order.lignes_essence_personnalisee,
+    ...(order.lignes_parfums ?? []),
+    ...(order.lignes_accessoires ?? []),
+    ...(order.lignes_produit_fini_essence ?? []),
+    ...(order.lignes_parfums_perso ?? []),
+    ...(order.lignes_essence_personnalisee ?? []),
+    ...(order.lignes_diffuseurs ?? []),
   ];
 }
 
@@ -416,7 +426,7 @@ function ActionButton({
 // ─────────────────────────────────────────────────────────────────────────
 
 function OrderPopupModal({
-  isOpen, onClose, title, subtitle, eyebrow, children, size = '2xl', footer,
+  isOpen, onClose, title, subtitle, eyebrow, children, size = '2xl', footer, bodyClassName,
 }: {
   isOpen: boolean;
   onClose: () => void;
@@ -426,6 +436,7 @@ function OrderPopupModal({
   children: React.ReactNode;
   size?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl';
   footer?: React.ReactNode;
+  bodyClassName?: string;
 }) {
   useEffect(() => {
     const mainEl = document.querySelector('main');
@@ -475,7 +486,7 @@ function OrderPopupModal({
             </button>
           </div>
         )}
-        <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-4 sm:py-5">{children}</div>
+        <div className={cx('flex-1 overflow-y-auto px-4 sm:px-6 py-4 sm:py-5', bodyClassName)}>{children}</div>
         {footer && <div className="shrink-0 border-t border-white/10 bg-background px-4 sm:px-6 py-3.5 sm:py-4">{footer}</div>}
       </div>
     </div>
@@ -726,6 +737,7 @@ export default function OrdersPage() {
             ...(order.lignes_produit_fini_essence ?? []).map(l => ({ ...l, type: 'produit-fini-essence' })),
             ...(order.lignes_parfums_perso ?? []).map(l => ({ ...l, type: 'parfum-personnalise' })),
             ...(order.lignes_essence_personnalisee ?? []).map(l => ({ ...l, type: 'essence-personnalisee' })),
+            ...(order.lignes_diffuseurs ?? []).map(l => ({ ...l, type: 'diffuseur' })),
           ];
           trackPurchase({
             transactionId: order.numero_commande,
@@ -1033,17 +1045,17 @@ export default function OrdersPage() {
           <FormSection title={t('section_logistics')} icon={<Bike size={11} />}>
             <div className="space-y-4">
               <Field label={t('field_assign_driver')}>
-                <select
+                <CustomSelect
                   value={editLivreur}
-                  onChange={e => setEditLivreur(e.target.value)}
-                  className="w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2.5 text-sm text-foreground outline-none transition-colors focus:border-gold/50"
-                >
-                  <option value="" className="bg-background">{t('none_driver')}</option>
-                  {drivers.map(d => {
-                    const id = d.id ?? d.user_id;
-                    return <option key={id} value={id} className="bg-background">{driverDisplayName(d)}</option>;
-                  })}
-                </select>
+                  onChange={setEditLivreur}
+                  options={[
+                    { value: '', label: t('none_driver') },
+                    ...drivers.map(d => ({
+                      value: d.id ?? d.user_id,
+                      label: driverDisplayName(d)
+                    })),
+                  ]}
+                />
               </Field>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -1122,17 +1134,17 @@ export default function OrdersPage() {
             <FormSection title={t('section_expedition')} icon={<Bike size={11} />}>
               <div className="space-y-4">
                 <Field label={t('field_choose_driver')}>
-                  <select
+                  <CustomSelect
                     value={valDriverId}
-                    onChange={e => setValDriverId(e.target.value)}
-                    className="w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2.5 text-sm text-foreground outline-none transition-colors focus:border-gold/50"
-                  >
-                    <option value="" className="bg-background">{t('assign_later')}</option>
-                    {drivers.map(d => {
-                      const id = d.id ?? d.user_id;
-                      return <option key={id} value={id} className="bg-background">{driverDisplayName(d)}</option>;
-                    })}
-                  </select>
+                    onChange={setValDriverId}
+                    options={[
+                      { value: '', label: t('assign_later') },
+                      ...drivers.map(d => ({
+                        value: d.id ?? d.user_id,
+                        label: driverDisplayName(d)
+                      })),
+                    ]}
+                  />
                 </Field>
 
                 <Field label={t('field_est_date_delivery')} icon={<Calendar size={11} />}>
@@ -1460,6 +1472,7 @@ function OrderDetailModal({
     { title: t('group_perfumes'),        icon: <Package size={12} />, lines: order.lignes_parfums },
     { title: t('group_accessories'),     icon: <Package size={12} />, lines: order.lignes_accessoires },
     { title: t('group_essences'),        icon: <Package size={12} />, lines: order.lignes_produit_fini_essence },
+    { title: t('group_diffuseurs'),      icon: <Package size={12} />, lines: order.lignes_diffuseurs },
     { title: t('group_custom_perfumes'), icon: <Package size={12} />, lines: order.lignes_parfums_perso },
     { title: t('group_custom_essences'), icon: <Package size={12} />, lines: order.lignes_essence_personnalisee },
   ].filter(g => g.lines.length > 0);
@@ -1496,12 +1509,17 @@ function OrderDetailModal({
           </button>
         </div>
       }
+      bodyClassName="lg:overflow-hidden"
     >
-      <div className="space-y-6">
+      <div className="space-y-6 lg:flex lg:h-full lg:min-h-0 lg:flex-col">
 
         {/* Summary strip */}
         <div className="grid grid-cols-2 gap-3 sm:flex sm:flex-wrap sm:items-center sm:gap-x-6 sm:gap-y-2 rounded-xl border border-white/10 bg-white/[0.02] p-3.5 sm:px-4 sm:py-3">
           <SummaryStat label={t('receipt_total')} value={fmt(order.total_ttc)} emphasize />
+          <div className="hidden sm:block h-8 w-px bg-white/10" />
+          <SummaryStat label={t('row_order_status')} node={<StatusChip cfg={STATUT_CFG[order.statut]} />} />
+          <div className="hidden sm:block h-8 w-px bg-white/10" />
+          <SummaryStat label={t('row_delivery_status')} value={order.statut_livraison} />
           <div className="hidden sm:block h-8 w-px bg-white/10" />
           <SummaryStat label={t('field_payment_status')} node={<StatusChip cfg={STATUT_PAIEMENT_CFG[order.statut_paiement]} />} />
           <div className="hidden sm:block h-8 w-px bg-white/10" />
@@ -1514,12 +1532,13 @@ function OrderDetailModal({
           )}
         </div>
 
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
+        <div className="grid grid-cols-1 gap-6 lg:min-h-0 lg:flex-1 lg:grid-cols-5">
           {/* Left: delivery + notes */}
           <div className="space-y-5 lg:col-span-2">
             <section className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
               <SectionLabel icon={<MapPin size={11} />}>{t('section_delivery')}</SectionLabel>
               <dl className="space-y-1.5 text-xs">
+                <RowKV k={t('row_client_email')} v={order.client_email} />
                 <RowKV k={t('row_recipient')} v={order.livraison_nom_complet} />
                 <RowKV k={t('row_phone')} v={order.livraison_telephone} />
                 {order.livraison_ville && (
@@ -1553,6 +1572,20 @@ function OrderDetailModal({
                 )}
               </section>
             )}
+
+            <section className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
+              <SectionLabel icon={<CreditCard size={11} />}>{t('section_receipt')}</SectionLabel>
+              <div className="space-y-1.5 text-xs">
+                <ReceiptRow k={t('receipt_subtotal')} v={fmt(order.sous_total)} />
+                <ReceiptRow k={t('receipt_delivery_fees')} v={fmt(order.frais_livraison)} />
+                {Number(order.remise_code_promo) > 0 && <ReceiptRow k={t('receipt_promo_discount')} v={`-${fmt(order.remise_code_promo)}`} negative />}
+                <div className="my-1.5 border-t border-dashed border-white/10" />
+                <ReceiptRow k={t('receipt_total')} v={fmt(order.total_ttc)} bold />
+                <div className="my-1.5 border-t border-white/10" />
+                <ReceiptRow k={t('receipt_commission')} v={`${fmt(order.commission_montant)} · ${order.commission_statut}`} muted />
+                <ReceiptRow k={t('receipt_provider')} v={order.prestataire_code ?? '—'} muted />
+              </div>
+            </section>
 
             {(order.facture || order.statut_paiement === 'payé') && (
               <section>
@@ -1592,28 +1625,14 @@ function OrderDetailModal({
           </div>
 
           {/* Right: items + receipt */}
-          <div className="space-y-5 lg:col-span-3">
-            <section className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
+          <div className="space-y-5 overflow-y-auto pr-1 lg:col-span-3">
+            <section>
               <SectionLabel icon={<Package size={11} />}>{t('section_items')} ({lines.length})</SectionLabel>
-              <div className="max-h-[280px] space-y-4 overflow-y-auto pr-1">
+              <div className="space-y-4">
                 {groups.map(g => (
                   <LinesGroup key={g.title} title={g.title} icon={g.icon} lines={g.lines} isEn={isEn} />
                 ))}
                 {lines.length === 0 && <p className="py-4 text-center text-xs italic text-foreground/30">{t('no_items')}</p>}
-              </div>
-            </section>
-
-            <section className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
-              <SectionLabel icon={<CreditCard size={11} />}>{t('section_receipt')}</SectionLabel>
-              <div className="space-y-1.5 text-xs">
-                <ReceiptRow k={t('receipt_subtotal')} v={fmt(order.sous_total)} />
-                <ReceiptRow k={t('receipt_delivery_fees')} v={fmt(order.frais_livraison)} />
-                {Number(order.remise_code_promo) > 0 && <ReceiptRow k={t('receipt_promo_discount')} v={`-${fmt(order.remise_code_promo)}`} negative />}
-                <div className="my-1.5 border-t border-dashed border-white/10" />
-                <ReceiptRow k={t('receipt_total')} v={fmt(order.total_ttc)} bold />
-                <div className="my-1.5 border-t border-white/10" />
-                <ReceiptRow k={t('receipt_commission')} v={`${fmt(order.commission_montant)} · ${order.commission_statut}`} muted />
-                <ReceiptRow k={t('receipt_provider')} v={order.prestataire_code ?? '—'} muted />
               </div>
             </section>
           </div>
@@ -1682,9 +1701,68 @@ function getOrderLineDetailMeta(line: BackendOrderLine) {
   return { essenceName, marque, tailleMl, categorie, prixParMl, prixActuel, codeReference };
 }
 
+function ColorPopup({ color, onClose }: { color: string; onClose: () => void }) {
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, [onClose]);
+
+  return (
+    <div
+      className="fixed inset-0 z-[80] flex items-center justify-center bg-black/70 backdrop-blur-sm p-6"
+      onClick={onClose}
+    >
+      <div
+        className="relative flex flex-col items-center gap-5 rounded-2xl border border-white/15 bg-background p-7 shadow-2xl w-full max-w-[260px]"
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Large color swatch */}
+        <div
+          className="h-32 w-32 rounded-full border-4 border-white/20 shadow-2xl"
+          style={{
+            backgroundColor: color,
+            boxShadow: `0 0 40px ${color}60, 0 0 80px ${color}30, inset 0 0 20px ${color}20`,
+          }}
+        />
+
+        {/* Hex code */}
+        <div className="text-center space-y-1">
+          <p className="text-[10px] font-semibold uppercase tracking-widest text-foreground/35">
+            Couleur du flacon
+          </p>
+          <code className="block rounded-lg border border-white/10 bg-white/[0.04] px-4 py-1.5 font-mono text-sm font-bold tracking-widest text-gold">
+            {color.toUpperCase()}
+          </code>
+        </div>
+
+        {/* Copy button */}
+        <button
+          onClick={() => { navigator.clipboard?.writeText(color); onClose(); }}
+          className="w-full rounded-xl border border-white/10 py-2 text-xs font-medium text-foreground/60 transition-colors hover:border-gold/30 hover:text-gold"
+        >
+          Copier
+        </button>
+
+        <button
+          onClick={onClose}
+          className="absolute top-3 right-3 rounded-full p-1.5 text-foreground/30 transition-colors hover:text-foreground"
+        >
+          <X size={14} />
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function LinesGroup({ title, icon, lines, isEn = false }: { title: string; icon: React.ReactNode; lines: BackendOrderLine[]; isEn?: boolean }) {
+  const [colorPreview, setColorPreview] = useState<string | null>(null);
+
   return (
     <div>
+      {/* Color popup */}
+      {colorPreview && <ColorPopup color={colorPreview} onClose={() => setColorPreview(null)} />}
+
       <p className="mb-1.5 flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-wider text-foreground/30">
         {icon}{title}
       </p>
@@ -1733,18 +1811,20 @@ function LinesGroup({ title, icon, lines, isEn = false }: { title: string; icon:
                       <span>{isEn ? 'Color' : 'Couleur'}</span>
                       <div className="flex items-center gap-2">
                         <code className="text-[10px] font-mono text-gold">{line.composition.couleur}</code>
-                        <div 
-                          className="w-5 h-5 rounded-full border border-white/20 shadow-md cursor-pointer hover:shadow-lg hover:border-white/40 transition-all"
+                        <button
+                          type="button"
+                          onClick={() => setColorPreview(line.composition!.couleur!)}
+                          title="Voir la couleur en grand"
+                          className="group relative w-6 h-6 rounded-full border-2 border-white/20 shadow-md transition-all hover:scale-125 hover:border-white/60 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-gold/50"
                           style={{ backgroundColor: line.composition.couleur }}
-                          title="Cliquer pour voir les détails"
                         >
-                          <div 
-                            className="w-full h-full rounded-full pointer-events-none"
+                          <span
+                            className="absolute inset-0 rounded-full pointer-events-none"
                             style={{
-                              boxShadow: `inset 0 0 4px ${line.composition.couleur}40, 0 0 6px ${line.composition.couleur}40`,
+                              boxShadow: `inset 0 0 4px ${line.composition.couleur}40, 0 0 8px ${line.composition.couleur}40`,
                             }}
                           />
-                        </div>
+                        </button>
                       </div>
                     </div>
                   )}

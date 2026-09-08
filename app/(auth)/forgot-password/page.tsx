@@ -31,10 +31,15 @@ export default function ForgotPasswordPage() {
       await authService.requestPasswordReset(data.email);
       setIsSubmitted(true);
       addToast(t('password_reset_sent', { defaultValue: 'E-mail de réinitialisation envoyé avec succès.' }), 'success');
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const responseData =
+        typeof error === 'object' && error !== null && 'response' in error
+          ? (error as { response?: { data?: { detail?: string; email?: string[] } } }).response?.data
+          : undefined;
+
       const errorMsg =
-        error.response?.data?.detail ||
-        error.response?.data?.email?.[0] ||
+        responseData?.detail ||
+        responseData?.email?.[0] ||
         t('password_reset_error', { defaultValue: 'Une erreur est survenue. Veuillez réessayer.' });
       addToast(errorMsg, 'error');
 
@@ -57,7 +62,7 @@ export default function ForgotPasswordPage() {
         </div>
         <h1 className="font-display text-3xl font-bold mb-4">{t('check_your_email', { defaultValue: 'Vérifiez vos e-mails' })}</h1>
         <p className="text-foreground/60 mb-8 leading-relaxed">
-          Nous vous avons envoyé un lien sécurisé pour réinitialiser votre mot de passe. Veuillez consulter votre boîte de réception et vos spams.
+          {t('password_reset_email_sent_desc', { defaultValue: 'Nous vous avons envoyé un lien sécurisé pour réinitialiser votre mot de passe. Veuillez consulter votre boîte de réception et vos spams.' })}
         </p>
         <Link href="/login">
           <Button className="w-full">{t('back_to_login', { defaultValue: 'Retour à la connexion' })}</Button>
@@ -69,10 +74,10 @@ export default function ForgotPasswordPage() {
   return (
     <div>
       <div className="mb-7">
-        <span className="inline-block text-[10px] uppercase tracking-[0.3em] text-gold/80 mb-2">Récupération</span>
+        <span className="inline-block text-[10px] uppercase tracking-[0.3em] text-gold/80 mb-2">{t('recovery', { defaultValue: 'Récupération' })}</span>
         <h1 className="font-display text-3xl font-bold mb-2">{t('forgot_password_title', { defaultValue: 'Mot de passe oublié' })}</h1>
         <p className="text-foreground/60 text-sm leading-relaxed">
-          Entrez votre adresse e-mail ci-dessous et nous vous enverrons un lien pour choisir un nouveau mot de passe.
+          {t('forgot_password_instructions', { defaultValue: 'Entrez votre adresse e-mail ci-dessous et nous vous enverrons un lien pour choisir un nouveau mot de passe.' })}
         </p>
       </div>
 

@@ -8,9 +8,9 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
-  User, Mail, Phone, MapPin, Shield, Calendar, Edit2, Lock,
+  User, Mail, Phone, MapPin, Calendar, Edit2, Lock,
   Globe, Sun, Moon, Palette, ChevronRight, LogOut, Loader2,
-  LayoutGrid, ShoppingCart, Bell, Sparkles, BadgeCheck, Download,
+  LayoutGrid, ShoppingCart, Sparkles, BadgeCheck, Download,
   Heart, Info,
 } from 'lucide-react';
 
@@ -21,13 +21,13 @@ import { useTranslation } from 'react-i18next';
 import i18n from '@/lib/i18n';
 import { api } from '@/services/api';
 import { attemptPWAInstall, isPWAInstalled as checkPWAInstalled, isIOS, isAndroid } from '@/lib/pwa';
-import { triggerTestNotification } from '@/services/notifications';
 
 import { BackButton } from '@/components/ui/BackButton';
 import { Modal } from '@/components/ui/Modal';
 import PasswordChangeModal from '@/components/shared/PasswordChangeModal';
 import ProfileEditModal from '@/components/shared/ProfileEditModal';
 import ConfirmDialog from '@/components/shared/ConfirmDialog';
+import { PWAInstallGuide } from '@/components/pwa/PWAInstallGuide';
 import type { UserRole } from '@/types';
 import { ThemeToggle } from '@/app/Toggle';
 
@@ -174,7 +174,6 @@ export default function ProfilePage() {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [isApplyingPartner, setIsApplyingPartner] = useState(false);
   const [isInstallingPWA, setIsInstallingPWA] = useState(false);
-  const [isSendingTestNotification, setIsSendingTestNotification] = useState(false);
 
   const isPWAInstalled = checkPWAInstalled();
 
@@ -270,48 +269,6 @@ export default function ProfilePage() {
         'error'
       );
       setIsLoggingOut(false);
-    }
-  };
-
-  const handleTestNotification = async () => {
-    setIsSendingTestNotification(true);
-    try {
-      const sent = await triggerTestNotification(
-        isEn ? 'Notification Test' : 'Test de notification',
-        isEn
-          ? 'This notification confirms push messaging is correctly configured.'
-          : 'Cette notification confirme que l’affichage push est bien prêt.'
-      );
-
-      if (sent) {
-        addToast(
-          t('notification_sent', {
-            defaultValue: isEn ? 'Test notification sent.' : 'Notification de test envoyée.',
-          }),
-          'success'
-        );
-      } else {
-        addToast(
-          t('notification_permission_denied', {
-            defaultValue: isEn
-              ? 'Notification permission was not granted.'
-              : 'La permission de notification n’a pas été accordée.',
-          }),
-          'error'
-        );
-      }
-    } catch (error) {
-      console.error(error);
-      addToast(
-        t('notification_error', {
-          defaultValue: isEn
-            ? 'Unable to send test notification.'
-            : 'Impossible d’envoyer la notification de test.',
-        }),
-        'error'
-      );
-    } finally {
-      setIsSendingTestNotification(false);
     }
   };
 
@@ -579,50 +536,6 @@ export default function ProfilePage() {
             </Panel>
           </div>
 
-          {/* ---------- SECURITY & NOTIFICATIONS ---------- */}
-          <div>
-            <SectionLabel>
-              {t('security_notifications', { defaultValue: isEn ? 'Security & Push Notifications' : 'Sécurité & notifications' })}
-            </SectionLabel>
-            <Panel>
-              <div className="divide-y divide-foreground/10">
-                <ActionRow
-                  icon={<Shield size={16} />}
-                  label={t('account_security', { defaultValue: isEn ? 'Account Security' : 'Sécurité du compte' })}
-                  hint={t('password_2fa', { defaultValue: isEn ? 'Password & credentials' : 'Mot de passe et authentification' })}
-                  onClick={() => setShowPasswordModal(true)}
-                />
-                <ActionRow
-                  icon={<Bell size={16} />}
-                  label={t('notifications', { defaultValue: isEn ? 'Notifications' : 'Notifications' })}
-                  hint={t('notification_channels', { defaultValue: isEn ? 'Push messaging channels' : 'Canaux de notification' })}
-                />
-                <div className="p-4 flex items-center justify-between gap-4">
-                  <div>
-                    <p className="text-sm font-semibold text-foreground">
-                      {isEn ? 'Test Push System' : 'Tester le système Push'}
-                    </p>
-                    <p className="text-xs text-foreground/40">
-                      {isEn ? 'Verify browser notification readiness' : 'Vérifier le bon fonctionnement des notifications du navigateur'}
-                    </p>
-                  </div>
-                  <button
-                    onClick={handleTestNotification}
-                    disabled={isSendingTestNotification}
-                    className="inline-flex items-center gap-2 rounded-lg border border-foreground/10 px-3 py-1.5 text-xs font-semibold text-foreground/60 hover:bg-foreground/5 transition-colors disabled:opacity-60 shrink-0"
-                  >
-                    {isSendingTestNotification ? (
-                      <Loader2 size={14} className="animate-spin text-gold" />
-                    ) : (
-                      <Bell size={14} />
-                    )}
-                    {isSendingTestNotification ? (isEn ? 'Sending...' : 'Envoi...') : (isEn ? 'Test' : 'Tester')}
-                  </button>
-                </div>
-              </div>
-            </Panel>
-          </div>
-
           {/* LOGOUT BUTTON (Mobile only) */}
           <button
             onClick={() => setShowLogoutConfirm(true)}
@@ -659,60 +572,7 @@ export default function ProfilePage() {
         title={isEn ? 'Add to Home Screen' : 'Ajouter à l’écran d’accueil'}
         size="lg"
       >
-        <div className="space-y-4 text-sm text-foreground/90">
-          <p>
-            {isEn
-              ? 'To install this application on your mobile device, follow the steps for your operating system below.'
-              : 'Pour installer l’application sur votre téléphone, suivez les étapes ci-dessous selon votre appareil.'}
-          </p>
-          <div className="rounded-xl border border-foreground/10 bg-foreground/[0.03] p-4">
-            <h3 className="text-sm font-semibold text-foreground mb-2">iPhone (iOS)</h3>
-            <ol className="list-decimal list-inside space-y-2 text-[13px] leading-6 text-foreground/70">
-              {isEn ? (
-                <>
-                  <li>Open Safari and visit this website.</li>
-                  <li>Tap the Share icon at the bottom of the screen.</li>
-                  <li>Select "Add to Home Screen".</li>
-                  <li>Confirm by tapping "Add".</li>
-                  <li>Launch the application directly from your home screen.</li>
-                </>
-              ) : (
-                <>
-                  <li>Ouvrez Safari et rendez-vous sur ce site.</li>
-                  <li>Tapez sur l’icône Partager en bas de l’écran.</li>
-                  <li>Choisissez « Ajouter à l’écran d’accueil ».</li>
-                  <li>Confirmez en appuyant sur « Ajouter ».</li>
-                  <li>Ouvrez l’application depuis votre écran d’accueil.</li>
-                </>
-              )}
-            </ol>
-          </div>
-          <div className="rounded-xl border border-foreground/10 bg-foreground/[0.03] p-4">
-            <h3 className="text-sm font-semibold text-foreground mb-2">Android</h3>
-            <ol className="list-decimal list-inside space-y-2 text-[13px] leading-6 text-foreground/70">
-              {isEn ? (
-                <>
-                  <li>Open your browser menu (three dots or menu icon).</li>
-                  <li>Select "Add to Home screen" or "Install app".</li>
-                  <li>Confirm the installation prompt.</li>
-                  <li>Launch the application directly from your home screen.</li>
-                </>
-              ) : (
-                <>
-                  <li>Ouvrez le menu du navigateur (trois points ou barre de menu).</li>
-                  <li>Choisissez « Ajouter à l’écran d’accueil » ou « Installer l’application ».</li>
-                  <li>Confirmez la demande d’ajout.</li>
-                  <li>Ouvrez l’application depuis votre écran d’accueil.</li>
-                </>
-              )}
-            </ol>
-          </div>
-          <p className="text-xs text-foreground/40">
-            {isEn
-              ? 'If your browser does not trigger an automatic prompt, use the share or browser settings menu to manually add this app to your home screen.'
-              : 'Si votre navigateur ne propose pas d’installation automatique, utilisez le menu de partage ou d’options pour ajouter manuellement ce site à l’écran d’accueil.'}
-          </p>
-        </div>
+        <PWAInstallGuide isEn={Boolean(isEn)} />
       </Modal>
     </div>
   );

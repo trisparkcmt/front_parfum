@@ -258,50 +258,25 @@ export default function ProfitAnalyticsDashboard() {
   // ─── Normalize API response ──────────────────────────────────────────────────
   // Support both the flat shape { benefice_total, chiffre_affaires_total, … }
   // and the older nested shape { totaux: { benefice_net, chiffre_affaires, … }, par_categorie: { … } }
+  const beneficeNet = parseFloat(
+    String(labData?.benefice_total ?? profitData?.benefice_total ?? profitData?.totaux?.benefice_net ?? 0)
+  );
   const caGlobal = parseFloat(
-    String(profitData?.chiffre_affaires_total ?? profitData?.totaux?.chiffre_affaires ?? labData?.chiffre_affaires_total ?? 0)
+    String(labData?.chiffre_affaires_total ?? profitData?.chiffre_affaires_total ?? profitData?.totaux?.chiffre_affaires ?? 0)
   );
   const coutTotal = parseFloat(
-    String(profitData?.totaux?.cout_total ?? 0)
-  );
-  const beneficeNet = parseFloat(
-    String(profitData?.benefice_total ?? profitData?.totaux?.benefice_net ?? labData?.benefice_total ?? 0)
+    String(profitData?.cout_total ?? profitData?.totaux?.cout_total ?? (caGlobal - beneficeNet))
   );
   const nbCommandes = profitData?.nb_commandes ?? '—';
-  const margeGlobale = profitData?.marge_globale != null
-    ? Number(profitData.marge_globale).toFixed(1)
-    : (caGlobal > 0 ? ((beneficeNet / caGlobal) * 100).toFixed(1) : (labData?.marge_globale ?? '0'));
+  const margeGlobale = labData?.marge_globale != null
+    ? Number(labData.marge_globale).toFixed(2)
+    : profitData?.marge_globale != null
+      ? Number(profitData.marge_globale).toFixed(2)
+      : (caGlobal > 0 ? ((beneficeNet / caGlobal) * 100).toFixed(2) : '0');
 
   // Category breakdown — prefer flat benefices_par_type array, fall back to par_categorie map
   const beneficesParType: { type: string; nombre_articles: number; chiffre_affaires: string; cout_achat: string; benefice: string; marge_percent: number }[] =
-    profitData?.benefices_par_type && profitData.benefices_par_type.length > 0
-      ? profitData.benefices_par_type
-      : [
-          {
-            type: "parfum",
-            nombre_articles: 86,
-            chiffre_affaires: "3788558.90",
-            cout_achat: "825018.00",
-            benefice: "2963540.90",
-            marge_percent: 78.22
-          },
-          {
-            type: "accessoire",
-            nombre_articles: 99,
-            chiffre_affaires: "97487823.28",
-            cout_achat: "39151797.00",
-            benefice: "58336026.28",
-            marge_percent: 59.84
-          },
-          {
-            type: "produit_fini_essence",
-            nombre_articles: 20,
-            chiffre_affaires: "707500.00",
-            cout_achat: "0.00",
-            benefice: "707500.00",
-            marge_percent: 100.0
-          }
-        ];
+    profitData?.benefices_par_type ?? labData?.benefices_par_type ?? [];
 
   const parCategorie = profitData?.par_categorie || {};
   
@@ -323,23 +298,32 @@ export default function ProfitAnalyticsDashboard() {
   const parfumsPersoCat = fallbackCategoryData.parfums_personnalises || {};
   const essencesSurMesureCat = fallbackCategoryData.essences_sur_mesure || {};
 
+  const firstNonEmptyArray = <T,>(...values: unknown[]): T[] => {
+    const value = values.find((candidate): candidate is T[] => Array.isArray(candidate) && candidate.length > 0);
+    return value ?? [];
+  };
+
   // Individual products from flat produits[] array
   const produits: { type: string; id: number; nom: string; prix_vente: string; prix_achat: string; benefice: string; marge_percent: number }[] =
-    profitData?.produits ?? [];
+    firstNonEmptyArray(profitData?.produits, labData?.produits);
 
   // Essence lots from flat lots[] array
   const lotsApi: { type: string; id: number; essence: string; chiffre_affaires_genere: string; benefice: string }[] =
-    profitData?.lots ?? [];
+    firstNonEmptyArray(profitData?.lots, labData?.lots);
 
-  const detailEssences: EssenceDetail[] = essencesCat.detail_par_essence || profitData?.benefices_par_essence || labData?.benefices_par_essence?.map((e: any) => ({
-    essence_id: e.essence_id || e.id,
-    essence_nom: e.essence || e.nom,
-    essence_categorie: e.categorie || 'Essence',
-    ca_total: e.chiffre_affaires || 0,
-    cout_total: e.cout_achat || 0,
-    benefice_total: e.benefice || 0,
-    lots: e.lots || []
-  })) || [];
+  const detailEssences: EssenceDetail[] = firstNonEmptyArray<EssenceDetail>(
+    essencesCat.detail_par_essence,
+    profitData?.benefices_par_essence,
+    labData?.benefices_par_essence
+  ).map((essence: any) => ({
+    essence_id: essence.essence_id || essence.id,
+    essence_nom: essence.essence_nom || essence.essence || essence.nom,
+    essence_categorie: essence.essence_categorie || essence.categorie || 'Essence',
+    ca_total: essence.ca_total ?? essence.chiffre_affaires ?? 0,
+    cout_total: essence.cout_total ?? essence.cout_achat ?? 0,
+    benefice_total: essence.benefice_total ?? essence.benefice ?? 0,
+    lots: essence.lots || []
+  }));
 
   const TYPE_LABELS: Record<string, string> = {
     parfum: tp('type_parfum'),
@@ -476,10 +460,12 @@ export default function ProfitAnalyticsDashboard() {
                   };
                   return (
                     <div key={cat.type} className="bg-white/5 rounded-xl border border-white/5 p-4 space-y-2">
-                      <p className={`text-xs font-bold ${colorMap[cat.type] ?? 'text-foreground/60'}`}>
+                      <div className="flex items-center justify-between gap-2">
+                        <p className={`text-xs font-bold ${colorMap[cat.type] ?? 'text-foreground/60'}`}>
                         {TYPE_LABELS[cat.type] ?? cat.type}
-                        <span className="ml-2 text-foreground/30 font-normal">({cat.nombre_articles} {tp('articles')})</span>
-                      </p>
+                        </p>
+                        <span className="text-[10px] text-foreground/40">{cat.nombre_articles} {tp('articles')}</span>
+                      </div>
                       <div>
                         <p className="text-[10px] text-foreground/40 uppercase">{tp('col_revenue')}</p>
                         <p className="text-sm font-bold text-foreground">{ca.toLocaleString('fr-FR')} FCFA</p>

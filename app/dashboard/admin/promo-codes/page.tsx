@@ -18,7 +18,7 @@ const promoApi = {
   delete: async (id: number) => { await api.delete(`orders/admin/codes-promo/${id}/`); },
 };
 
-interface PromoCode { id: number; code: string; reduction_pourcentage: string; est_actif: boolean; clients_autorises: number[]; date_creation: string; }
+interface PromoCode { id: number; code: string; reduction_pourcentage: string; est_actif: boolean; clients_autorises: number[]; date_creation: string; date_debut?: string | null; date_fin?: string | null; }
 interface Client { id: number; first_name: string; last_name: string; email: string; telephone?: string; }
 
 // --- Shared UI Primitives ---
@@ -81,12 +81,16 @@ export default function PromoCodesPage() {
   const [showModal, setShowModal] = useState(false);
   const [editingCode, setEditingCode] = useState<PromoCode | null>(null);
   const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
   const [showClientPicker, setShowClientPicker] = useState(false);
   const [formCode, setFormCode] = useState('');
   const [formReduction, setFormReduction] = useState('10.00');
   const [formActif, setFormActif] = useState(true);
   const [formClients, setFormClients] = useState<number[]>([]);
+  const [formDateDebut, setFormDateDebut] = useState<string | null>(null);
+  const [formDateFin, setFormDateFin] = useState<string | null>(null);
   const [selectedPromoForDetails, setSelectedPromoForDetails] = useState<PromoCode | null>(null);
+  const [groupLoading, setGroupLoading] = useState<string | null>(null);
 
   const fetchCodes = useCallback(async () => {
     setLoading(true);
@@ -114,25 +118,26 @@ export default function PromoCodesPage() {
     return () => { if (clientDebounce.current) clearTimeout(clientDebounce.current); };
   }, [clientSearch, fetchClients]);
 
-  const openCreate = () => { setEditingCode(null); setFormCode(''); setFormReduction('10.00'); setFormActif(true); setFormClients([]); setShowModal(true); setClientSearch(''); setShowClientPicker(false); };
-  const openEdit = (code: PromoCode) => { setEditingCode(code); setFormCode(code.code); setFormReduction(code.reduction_pourcentage); setFormActif(code.est_actif); setFormClients(code.clients_autorises ?? []); setShowModal(true); setClientSearch(''); setShowClientPicker(false); };
+  const openCreate = () => { setFormError(null); setEditingCode(null); setFormCode(''); setFormReduction('10.00'); setFormActif(true); setFormClients([]); setFormDateDebut(null); setFormDateFin(null); setShowModal(true); setClientSearch(''); setShowClientPicker(false); };
+  const openEdit = (code: PromoCode) => { setFormError(null); setEditingCode(code); setFormCode(code.code); setFormReduction(code.reduction_pourcentage); setFormActif(code.est_actif); setFormClients(code.clients_autorises ?? []); setShowModal(true); setClientSearch(''); setShowClientPicker(false); };
 
   const handleSave = async () => {
     if (!formCode.trim()) { addToast('Le code est requis', 'error'); return; }
     const pct = parseFloat(formReduction);
     if (isNaN(pct) || pct < 0 || pct > 100) { addToast('La reduction doit etre entre 0 et 100%', 'error'); return; }
+    setFormError(null);
     setSaving(true);
     try {
       const payload = { code: formCode.trim().toUpperCase(), reduction_pourcentage: pct.toFixed(2), est_actif: formActif, clients_autorises: formClients };
       if (editingCode) {
         setCodes(prev => prev.map(c => c.id === editingCode.id ? { ...c, ...payload } : c));
-        setShowModal(false);
         await promoApi.update(editingCode.id, payload);
+        setShowModal(false);
         addToast('Code promo mis a jour', 'success');
         fetchCodes();
       } else {
-        setShowModal(false);
         const created = await promoApi.create(payload);
+        setShowModal(false);
         if (created?.id) {
           setCodes(prev => [created, ...prev]);
         } else {
@@ -141,7 +146,9 @@ export default function PromoCodesPage() {
         addToast('Code promo cree - emails & notifications envoyes aux clients selectionnes', 'success');
       }
     } catch (err: any) {
-      addToast(err?.response?.data ? JSON.stringify(err.response.data) : 'Erreur lors de la sauvegarde', 'error');
+      const errorMessage = err?.response?.data ? JSON.stringify(err.response.data) : 'Erreur lors de la sauvegarde';
+      setFormError(errorMessage);
+      addToast(errorMessage, 'error');
     } finally { setSaving(false); }
   };
 
@@ -169,6 +176,35 @@ export default function PromoCodesPage() {
   };
 
   const toggleClient = (id: number) => setFormClients(prev => prev.includes(id) ? prev.filter(c => c !== id) : [...prev, id]);
+
+  // Fetch a named group from the API and add all returned client IDs to formClients
+  const selectGroup = async (groupKey: string) => {
+    setGroupLoading(groupKey);
+    try {
+      const paramMap: Record<string, Record<string, any>> = {
+        bestsellers:   { ordering: '-total_depense', page_size: 50 },
+        recents:       { ordering: '-date_joined',   page_size: 50 },
+        active:        { is_active: true,            page_size: 50 },
+        inactive:      { is_active: false,           page_size: 50 },
+        all:           { page_size: 200 },
+      };
+      const data = await adminService.getUsers(paramMap[groupKey] ?? {});
+      const list: Client[] = data.results ?? data.resultats ?? (Array.isArray(data) ? data : []);
+      // Merge — keep existing + add new without duplicates
+      setClients(prev => {
+        const merged = [...prev];
+        list.forEach(c => { if (!merged.find(m => m.id === c.id)) merged.push(c); });
+        return merged;
+      });
+      const ids = list.map(c => c.id);
+      setFormClients(prev => Array.from(new Set([...prev, ...ids])));
+      addToast(`${ids.length} client(s) ajouté(s)`, 'success');
+    } catch {
+      addToast('Erreur lors du chargement du groupe', 'error');
+    } finally {
+      setGroupLoading(null);
+    }
+  };
   const fmt = (d: string) => new Date(d).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
 
   return (
@@ -314,7 +350,7 @@ export default function PromoCodesPage() {
               {saving ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle size={16} />}
               {editingCode ? 'Enregistrer les modifications' : 'Creer et envoyer'}
             </button>
-            <button onClick={() => setShowModal(false)} className="px-5 border border-white/10 rounded-xl py-3 text-sm text-foreground/60 hover:bg-white/5 transition-all">Annuler</button>
+            <button onClick={() => setShowModal(false)} disabled={saving} className="px-5 border border-white/10 rounded-xl py-3 text-sm text-foreground/60 hover:bg-white/5 transition-all disabled:opacity-50">Annuler</button>
           </div>
         }
       >
@@ -355,6 +391,39 @@ export default function PromoCodesPage() {
             </button>
             {showClientPicker && (
               <div className="mt-2 border border-white/10 rounded-xl overflow-hidden">
+                {/* Group shortcuts */}
+                <div className="px-3 py-2.5 border-b border-white/10 bg-white/[0.02]">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-foreground/35 mb-2">Sélection rapide par groupe</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {[
+                      { key: 'bestsellers', label: '⭐ Meilleurs clients',  title: 'Top 50 clients par dépense totale' },
+                      { key: 'recents',     label: '🆕 Nouveaux clients',   title: 'Les 50 inscrits les plus récents' },
+                      { key: 'active',      label: '✅ Comptes actifs',     title: 'Tous les comptes actifs' },
+                      { key: 'all',         label: '👥 Tous',               title: 'Sélectionner tous les clients (max 200)' },
+                    ].map(g => (
+                      <button
+                        key={g.key}
+                        type="button"
+                        title={g.title}
+                        disabled={groupLoading !== null}
+                        onClick={() => selectGroup(g.key)}
+                        className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[11px] font-medium text-foreground/60 transition-colors hover:border-gold/30 hover:bg-gold/8 hover:text-gold disabled:opacity-40 disabled:cursor-wait"
+                      >
+                        {groupLoading === g.key && <Loader2 size={10} className="animate-spin" />}
+                        {g.label}
+                      </button>
+                    ))}
+                    {formClients.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setFormClients([])}
+                        className="inline-flex items-center gap-1 rounded-full border border-red-500/20 bg-red-500/8 px-2.5 py-1 text-[11px] font-medium text-red-400 transition-colors hover:bg-red-500/15"
+                      >
+                        <X size={9} /> Tout désélectionner
+                      </button>
+                    )}
+                  </div>
+                </div>
                 <div className="px-3 py-2 border-b border-white/10 flex items-center gap-2">
                   <Search size={14} className="text-foreground/40" />
                   <input autoFocus value={clientSearch} onChange={e => setClientSearch(e.target.value)} placeholder="Rechercher par nom ou email..." className="flex-1 bg-transparent text-sm outline-none text-foreground placeholder:text-foreground/30" />

@@ -172,7 +172,8 @@ export function generateWhatsAppLink(
   paymentMethod?: string,
   mobileNetwork?: string,
   deliveryType?: string,
-  deliveryLocation?: string
+  deliveryLocation?: string,
+  orderNumber?: string
 ): string {
   let message = '🛍️ *Nouvelle Commande — Accessories Exclusif*\n\n';
 
@@ -197,6 +198,10 @@ export function generateWhatsAppLink(
 
   message += `💳 *Paiement:* ${paymentMethod === 'cash' ? 'Espèces' : `Mobile Money (${mobileNetwork?.toUpperCase()})`}\n`;
   message += `🚚 *Mode:* ${deliveryType === 'delivery' ? `Livraison à : ${deliveryLocation}` : 'Retrait en boutique'}\n\n`;
+
+  if (orderNumber) {
+    message += `🔖 *N° de commande:* ${orderNumber}\n\n`;
+  }
 
   message += `Merci de confirmer cette commande 🙏`;
 

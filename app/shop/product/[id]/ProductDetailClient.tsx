@@ -26,6 +26,22 @@ import { useFavoritesStore } from '@/store/useFavoritesStore';
 import { useToastStore } from '@/store/useToastStore';
 import { Product, ProduitFiniEssence } from '@/types';
 import { EssenceSizePickerModal } from '@/components/ui/EssenceSizePickerModal';
+import { QuantityInput } from '@/components/ui/QuantityInput';
+
+function getProductCollectionPath(category?: Product['category']) {
+  switch (category) {
+    case 'accessory':
+      return '/shop/accessories';
+    case 'huile':
+    case 'produit-fini-essence':
+      return '/shop/perfumes?categorie=huile';
+    case 'perfume-brand':
+    case 'perfume-dupe':
+    case 'numba-creation':
+    default:
+      return '/shop/perfumes';
+  }
+}
 
 export default function ProductDetailClient({ id }: { id: string }) {
   const { i18n } = useTranslation();
@@ -67,6 +83,25 @@ export default function ProductDetailClient({ id }: { id: string }) {
         setProduct(p);
         setActiveImage(0);
 
+        // Track view_item event for GA4
+        if (p) {
+          try {
+            const { trackViewItem } = await import('@/lib/gtag');
+            trackViewItem({
+              value: p.price,
+              items: [{
+                item_id: String(p.id),
+                item_name: p.name,
+                item_category: p.category,
+                price: p.price,
+                quantity: 1,
+              }],
+            });
+          } catch (error) {
+            console.warn('Failed to track view_item:', error);
+          }
+        }
+
         if (p) {
           try {
             if (p.category === 'accessory') {
@@ -74,9 +109,12 @@ export default function ProductDetailClient({ id }: { id: string }) {
               if (isMounted) setRelatedProducts(list.filter((item) => item.id !== p.id).slice(0, 4));
             } else {
               const list = await productService.getPerfumes();
+              const perfumes: Product[] = Array.isArray(list)
+                ? list
+                : list.results;
               if (isMounted) {
                 setRelatedProducts(
-                  list.filter((item) => item.category === p.category && item.id !== p.id).slice(0, 4)
+                  perfumes.filter((item: Product) => item.category === p.category && item.id !== p.id).slice(0, 4)
                 );
               }
             }
@@ -247,35 +285,43 @@ export default function ProductDetailClient({ id }: { id: string }) {
     }
   };
 
-  const handleConfirmRelatedEssenceSize = (essence: Product, variant: ProduitFiniEssence, quantite: number) => {
-    const cartProduct: Product = {
-      id: String(variant.id),
-      name: `${essence.name} - ${variant.taille_ml}ml`,
-      description: essence.description || '',
-      price: variant.prix_actuel,
-      originalPrice: variant.prix_promotionnel ? parseFloat(variant.prix_promotionnel) : undefined,
-      taux_reduction: variant.prix_promotionnel && parseFloat(variant.prix_promotionnel) > variant.prix_actuel
-        ? String(Math.round((1 - variant.prix_actuel / parseFloat(variant.prix_promotionnel)) * 100))
-        : undefined,
-      category: 'huile',
-      images: essence.images,
-      brand: essence.brand,
-      inStock: true,
-      volume: `${variant.taille_ml}ml`,
-      taille_ml: variant.taille_ml,
-      stock_total_ml: essence.stock_total_ml,
-      essence_id: Number(essence.id),
-      createdAt: new Date().toISOString(),
-    };
+  const handleConfirmRelatedEssenceSize = async (essence: Product, items: { variant: ProduitFiniEssence; quantity: number }[]) => {
+    for (const item of items) {
+      const { variant, quantity } = item;
+      const cartProduct: Product = {
+        id: String(variant.id),
+        name: `${essence.name} - ${variant.taille_ml}ml`,
+        description: essence.description || '',
+        price: variant.prix_actuel,
+        originalPrice: variant.prix_promotionnel ? parseFloat(variant.prix_promotionnel) : undefined,
+        taux_reduction: variant.prix_promotionnel && parseFloat(variant.prix_promotionnel) > variant.prix_actuel
+          ? String(Math.round((1 - variant.prix_actuel / parseFloat(variant.prix_promotionnel)) * 100))
+          : undefined,
+        category: 'huile',
+        images: essence.images,
+        brand: essence.brand,
+        inStock: true,
+        volume: `${variant.taille_ml}ml`,
+        taille_ml: variant.taille_ml,
+        stock_total_ml: essence.stock_total_ml,
+        essence_id: Number(essence.id),
+        createdAt: new Date().toISOString(),
+      };
 
-    addProduct(cartProduct, quantite);
+      await addProduct(cartProduct, quantity);
+    }
+
+    const totalCount = items.reduce((s, it) => s + it.quantity, 0);
     addToast(
-      isEn ? `${cartProduct.name} added to bag` : `${cartProduct.name} ajouté au panier`,
+      isEn
+        ? `${essence.name} (${totalCount} bottle${totalCount > 1 ? 's' : ''}) added to bag`
+        : `${essence.name} (${totalCount} flacon${totalCount > 1 ? 's' : ''}) ajouté au panier`,
       'success'
     );
   };
 
   const noteEntries = product.notes ? Object.entries(product.notes) : [];
+  const collectionPath = getProductCollectionPath(product.category);
 
   return (
     <div className="min-h-screen bg-background text-foreground pt-28 pb-24 px-4 md:px-8 relative overflow-hidden">
@@ -290,7 +336,7 @@ export default function ProductDetailClient({ id }: { id: string }) {
             {isEn ? 'Home' : 'Accueil'}
           </a>
           <ChevronRight size={11} className="shrink-0" />
-          <a href={`/shop/${product.category}`} className="hover:text-gold transition-colors capitalize">
+          <a href={collectionPath} className="hover:text-gold transition-colors capitalize">
             {product.category?.replace('-', ' ')}
           </a>
           <ChevronRight size={11} className="shrink-0" />
@@ -490,8 +536,8 @@ export default function ProductDetailClient({ id }: { id: string }) {
                 </div>
               )}
 
-              <div className="flex flex-col sm:flex-row gap-3 mb-10">
-                <div className="flex items-center justify-between sm:justify-start border border-foreground/10 rounded-xl bg-foreground/5 px-2 h-14 sm:w-36">
+              <div className="flex flex-row gap-3 mb-10">
+                <div className="flex items-center justify-between border border-foreground/10 rounded-xl bg-foreground/5 px-2 h-14 w-28 sm:w-36 shrink-0">
                   <button
                     onClick={() => setQuantity(Math.max(1, quantity - 1))}
                     disabled={quantity <= 1}
@@ -499,7 +545,18 @@ export default function ProductDetailClient({ id }: { id: string }) {
                   >
                     <Minus size={15} />
                   </button>
-                  <span className="flex-1 text-center font-bold tabular-nums">{quantity}</span>
+                  <QuantityInput
+                    value={quantity}
+                    min={1}
+                    max={
+                      product.category === 'huile' && selectedVariant
+                        ? selectedVariant.stock_disponible
+                        : undefined
+                    }
+                    onChange={setQuantity}
+                    ariaLabel="Quantity"
+                    className="w-10 sm:w-14 text-center font-bold tabular-nums bg-transparent border-none outline-none text-foreground focus:ring-0 cursor-pointer focus:cursor-text"
+                  />
                   <button
                     onClick={() => setQuantity(quantity + 1)}
                     disabled={
@@ -515,7 +572,7 @@ export default function ProductDetailClient({ id }: { id: string }) {
                 <button
                   onClick={handleAddToCart}
                   disabled={product.category === 'huile' && !selectedVariant}
-                  className="flex-1 h-14 bg-foreground text-background font-bold uppercase tracking-widest text-sm rounded-xl hover:bg-gold hover:text-black transition-all duration-300 flex items-center justify-center gap-3 group disabled:opacity-40"
+                  className="flex-1 min-w-0 h-14 px-3 bg-foreground text-background font-bold uppercase tracking-widest text-xs sm:text-sm rounded-xl hover:bg-gold hover:text-black transition-all duration-300 flex items-center justify-center gap-2 sm:gap-3 group disabled:opacity-40 whitespace-nowrap"
                 >
                   <ShoppingBag size={18} className="group-hover:scale-110 transition-transform" />
                   {isEn ? 'Add to Shopping Bag' : 'Ajouter au panier'}
@@ -695,7 +752,7 @@ export default function ProductDetailClient({ id }: { id: string }) {
                 <div className="w-20 h-1 bg-gold" />
               </div>
               <a
-                href={`/shop/${product.category}`}
+                href={collectionPath}
                 className="text-gold hover:underline flex items-center gap-2 text-sm shrink-0"
               >
                 {isEn ? 'Explore Collection' : 'Voir tout'} <ChevronRight size={16} />

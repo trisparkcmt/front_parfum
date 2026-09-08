@@ -285,8 +285,8 @@ CRUD identique parfums. **POST Req** : `nom`, `type_accessoire`, `prix_unitaire`
 | CRUD    | `/lab/lots-essence/`                  | write Admin/Serveuse            | essence, stock_ml                        |                                                              |
 | CRUD    | `/lab/ingredients/`                   | write Admin/Serveuse            | nom, prix_par_ml                         |                                                              |
 | CRUD    | `/lab/tags-essence/`                  | write Admin/Serveuse            | nom, type                                |                                                              |
-| GET     | `/lab/labo/essences/disponible/`      | Public                          | —                                        | essences en stock                                            |
-| GET     | `/lab/labo/essences/{slug}/detail/`   | Public                          | —                                        | détail + stock_total_ml                                      |
+| GET     | `/lab/labo/essences/disponible/disponible/`      | Public                          | —                                        | essences en stock                                            |
+| GET     | `/lab/labo/essences/disponible/{slug}/detail/`   | Public                          | —                                        | détail + stock_total_ml                                      |
 | CRUD    | `/lab/parfums-perso/`                 | Auth (client créateur ou staff) | flacon, lignes[]                         | prix Auto, max 45% flacon                                    |
 | POST    | `/lab/parfums-perso/{id}/recalculer/` | Auth                            | `{}`                                     | recalcule prix                                               |
 | CRUD    | `/lab/essences-perso/`                | Auth client                     | nom, lignes[{ingredient, quantite_ml}]   | prix_par_ml_calcule Auto                                     |

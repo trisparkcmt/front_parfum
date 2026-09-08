@@ -8,6 +8,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useTranslation } from 'react-i18next';
+import { useNotificationCountStore } from '@/store/useNotificationCountStore';
 import {
   LayoutDashboard, ShoppingCart, BarChart2, Users2,
   TrendingUp, Package, DollarSign, Truck,
@@ -133,6 +134,7 @@ function SectionLabel({ label }: { label: string }) {
 export default function Sidebar({ open, setOpen }: SidebarProps) {
   const { t, i18n } = useTranslation();
   const isEn = i18n.language?.startsWith('en');
+  const { unreadNotificationCount, pendingActionCount } = useNotificationCountStore();
 
   const menuItems: NavItem[] = [
     {
@@ -153,6 +155,7 @@ export default function Sidebar({ open, setOpen }: SidebarProps) {
       label: t('admin_nav_notifications', { defaultValue: 'Notifications' }),
       icon: <Bell size={18} />,
       href: '/dashboard/admin/notifications',
+      badge: unreadNotificationCount > 0 ? String(unreadNotificationCount) : undefined,
     },
   ];
 
@@ -161,21 +164,19 @@ export default function Sidebar({ open, setOpen }: SidebarProps) {
       label: t('admin_nav_orders', { defaultValue: isEn ? 'Orders Management' : 'Gestion des Commandes' }),
       icon: <ShoppingCart size={18} />,
       href: '/dashboard/admin/order',
+      badge: pendingActionCount > 0 ? String(pendingActionCount) : undefined,
     },
+
     {
       label: t('admin_nav_perfumes', { defaultValue: isEn ? 'Perfumes' : 'Parfums' }),
       icon: <PerfumeIcon size={18} />,
       href: '/dashboard/admin/perfume',
     },
+
     {
       label: t('admin_nav_categories', { defaultValue: isEn ? 'Categories' : 'Catégories' }),
       icon: <Package size={18} />,
       href: '/dashboard/admin/categories',
-    },
-    {
-      label: t('admin_nav_company_info', { defaultValue: isEn ? 'Company Info' : 'Infos Entreprise' }),
-      icon: <FileText size={18} />,
-      href: '/dashboard/admin/company-info',
     },
     {
       label: t('admin_nav_essences', { defaultValue: 'Essences' }),
@@ -212,16 +213,6 @@ export default function Sidebar({ open, setOpen }: SidebarProps) {
       icon: <LaptopIcon size={18} />,
       href: '/dashboard/admin/compositions',
     },
-    {
-      label: t('admin_nav_expenses', { defaultValue: isEn ? 'Expenses' : 'Dépenses' }),
-      icon: <DollarSign size={18} />,
-      href: '/dashboard/admin/expenses',
-    },
-    {
-      label: t('admin_nav_promo_codes', { defaultValue: isEn ? 'Promo Codes' : 'Codes Promo' }),
-      icon: <Tag size={18} />,
-      href: '/dashboard/admin/promo-codes',
-    },
   ];
 
   const gestionItems: NavItem[] = [
@@ -249,6 +240,24 @@ export default function Sidebar({ open, setOpen }: SidebarProps) {
       label: t('admin_nav_invoices', { defaultValue: isEn ? 'Invoices' : 'Factures' }),
       icon: <FileText size={18} />,
       href: '/dashboard/admin/factures',
+    },
+  ];
+
+  const bottomItems: NavItem[] = [
+    {
+      label: t('admin_nav_expenses', { defaultValue: isEn ? 'Expenses' : 'Dépenses' }),
+      icon: <DollarSign size={18} />,
+      href: '/dashboard/admin/expenses',
+    },
+    {
+      label: t('admin_nav_promo_codes', { defaultValue: isEn ? 'Promo Codes' : 'Codes Promo' }),
+      icon: <Tag size={18} />,
+      href: '/dashboard/admin/promo-codes',
+    },
+    {
+      label: t('admin_nav_company_info', { defaultValue: isEn ? 'Company Info' : 'Infos Entreprise' }),
+      icon: <FileText size={18} />,
+      href: '/dashboard/admin/company-info',
     },
   ];
 
@@ -303,6 +312,11 @@ export default function Sidebar({ open, setOpen }: SidebarProps) {
 
           <SectionLabel label={t('admin_nav_management', { defaultValue: isEn ? 'MANAGEMENT' : 'GESTION' })} />
           {gestionItems.map((item) => (
+            <NavItemComponent key={item.label} item={item} onNavigate={() => setOpen(false)} />
+          ))}
+
+          <SectionLabel label={t('admin_nav_more', { defaultValue: isEn ? 'MORE' : 'PLUS' })} />
+          {bottomItems.map((item) => (
             <NavItemComponent key={item.label} item={item} onNavigate={() => setOpen(false)} />
           ))}
         </nav>

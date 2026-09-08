@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { Loader2, Edit2, Plus, Save, X } from 'lucide-react';
+import { Loader2, Edit2, Plus, Save, X, AlertCircle } from 'lucide-react';
 import { shopService } from '@/services/apiService';
 import { useToastStore } from '@/store/useToastStore';
 import { useTranslation } from 'react-i18next';
@@ -70,6 +70,66 @@ function createDefaultOpeningDays() {
   }));
 }
 
+function groupOpeningDays(days: any[] = [], localeIsEn = false) {
+  if (!days.length) return [];
+
+  const normalized = days.map((day, index) => ({
+    ...day,
+    index,
+    label: day.jour,
+  }));
+
+  const groups: { start: number; end: number; days: any[]; isOpen: boolean; openingTime: string | null; closingTime: string | null }[] = [];
+  let currentGroup = {
+    start: 0,
+    end: 0,
+    days: [normalized[0]],
+    isOpen: normalized[0].ouvert,
+    openingTime: normalized[0].heure_ouverture ?? null,
+    closingTime: normalized[0].heure_fermeture ?? null,
+  };
+
+  for (let i = 1; i < normalized.length; i += 1) {
+    const current = normalized[i];
+    const sameSchedule =
+      current.ouvert === currentGroup.isOpen &&
+      (current.heure_ouverture ?? null) === currentGroup.openingTime &&
+      (current.heure_fermeture ?? null) === currentGroup.closingTime;
+
+    if (sameSchedule && i === currentGroup.end + 1) {
+      currentGroup.days.push(current);
+      currentGroup.end = i;
+      continue;
+    }
+
+    groups.push(currentGroup);
+    currentGroup = {
+      start: i,
+      end: i,
+      days: [current],
+      isOpen: current.ouvert,
+      openingTime: current.heure_ouverture ?? null,
+      closingTime: current.heure_fermeture ?? null,
+    };
+  }
+
+  groups.push(currentGroup);
+
+  return groups.map((group) => {
+    const labels = group.days.map((day) => day.label);
+    const firstLabel = labels[0];
+    const lastLabel = labels[labels.length - 1];
+    const rangeLabel = labels.length === 1 ? firstLabel : `${firstLabel} – ${lastLabel}`;
+
+    return {
+      rangeLabel,
+      text: group.isOpen
+        ? `${group.openingTime} — ${group.closingTime}`
+        : (localeIsEn ? 'Closed' : 'Fermé'),
+    };
+  });
+}
+
 export default function AdminCompanyInfoPage() {
   const { i18n } = useTranslation();
   const isEn = i18n.language?.startsWith('en');
@@ -81,6 +141,7 @@ export default function AdminCompanyInfoPage() {
   const [formState, setFormState] = useState<Partial<CompanyInfo>>({});
   const [isEditing, setIsEditing] = useState(false);
   const [showForm, setShowForm] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
   const { addToast } = useToastStore();
 
   const fetchCompanyInfo = async () => {
@@ -115,6 +176,7 @@ export default function AdminCompanyInfoPage() {
       instagram_url: '',
       jours_ouverture: createDefaultOpeningDays(),
     });
+    setFormError(null);
     setIsEditing(false);
     setShowForm(true);
   };
@@ -131,6 +193,7 @@ export default function AdminCompanyInfoPage() {
       instagram_url: companyInfo.instagram_url || '',
       jours_ouverture: companyInfo.jours_ouverture || createDefaultOpeningDays(),
     });
+    setFormError(null);
     setIsEditing(true);
     setShowForm(true);
   };
@@ -140,26 +203,27 @@ export default function AdminCompanyInfoPage() {
   };
 
   const handleSave = async () => {
+    setFormError(null);
     if (!formState.nom || !formState.telephone_principal || !formState.jours_ouverture) {
-      addToast(isEn ? 'Name, primary phone and opening hours are required.' : 'Nom, téléphone principal et horaires sont requis.', 'error');
+      setFormError(isEn ? 'Name, primary phone and opening hours are required.' : 'Nom, téléphone principal et horaires sont requis.');
       return;
     }
 
-    const jours = formState.jours_ouverture.map((day) => {
-      if (day.ouvert && (!day.heure_ouverture || !day.heure_fermeture)) {
-        throw new Error('Les jours ouverts doivent avoir des heures d ouverture et de fermeture.');
-      }
-      return {
-        jour: day.jour,
-        ouvert: day.ouvert,
-        heure_ouverture: day.ouvert ? day.heure_ouverture : null,
-        heure_fermeture: day.ouvert ? day.heure_fermeture : null,
-        note: day.note || '',
-      };
-    });
-
-    setSaving(true);
     try {
+      const jours = formState.jours_ouverture.map((day) => {
+        if (day.ouvert && (!day.heure_ouverture || !day.heure_fermeture)) {
+          throw new Error('Les jours ouverts doivent avoir des heures d ouverture et de fermeture.');
+        }
+        return {
+          jour: day.jour,
+          ouvert: day.ouvert,
+          heure_ouverture: day.ouvert ? day.heure_ouverture : null,
+          heure_fermeture: day.ouvert ? day.heure_fermeture : null,
+          note: day.note || '',
+        };
+      });
+
+      setSaving(true);
       const payload = {
         nom: formState.nom,
         localisation: formState.localisation,
@@ -178,11 +242,11 @@ export default function AdminCompanyInfoPage() {
       }
 
       addToast(text.saveSuccess, 'success');
-      setShowForm(false);
       fetchCompanyInfo();
+      setShowForm(false);
     } catch (error: any) {
       console.error('Company info save failed', error);
-      addToast(error?.message || text.saveError, 'error');
+      setFormError(error?.message || text.saveError);
     } finally {
       setSaving(false);
     }
@@ -265,11 +329,11 @@ export default function AdminCompanyInfoPage() {
             <div className="rounded-3xl border border-white/10 bg-white/5 p-6">
               <p className="text-sm uppercase tracking-[0.3em] text-neutral-400">{text.hours}</p>
               <div className="mt-4 space-y-3">
-                {companyInfo.jours_ouverture.map((day) => (
-                  <div key={day.jour} className="flex items-center justify-between gap-4 rounded-2xl bg-white/5 p-4">
-                    <span className="text-sm text-foreground/80">{day.jour}</span>
+                {groupOpeningDays(companyInfo.jours_ouverture, isEn).map((range, index) => (
+                  <div key={`${range.rangeLabel}-${index}`} className="flex items-center justify-between gap-4 rounded-2xl bg-white/5 p-4">
+                    <span className="text-sm text-foreground/80">{range.rangeLabel}</span>
                     <span className="text-sm font-semibold text-foreground">
-                      {day.ouvert ? `${day.heure_ouverture} — ${day.heure_fermeture}` : (isEn ? 'Closed' : 'Fermé')}
+                      {range.text}
                     </span>
                   </div>
                 ))}
@@ -292,11 +356,25 @@ export default function AdminCompanyInfoPage() {
           <button
             type="button"
             onClick={() => setShowForm(false)}
-            className="inline-flex items-center justify-center rounded-full border border-white/10 p-2 text-foreground/60 transition hover:bg-white/5"
+            disabled={saving}
+            className="inline-flex items-center justify-center rounded-full border border-white/10 p-2 text-foreground/60 transition hover:bg-white/5 disabled:opacity-50"
           >
             <X size={18} />
           </button>
         </div>
+
+        {formError && (
+          <div className="flex items-start gap-3 rounded-lg bg-red-500/10 border border-red-500/20 p-3">
+            <AlertCircle size={16} className="text-red-400 flex-shrink-0 mt-0.5" />
+            <p className="text-xs text-red-400 flex-1">{formError}</p>
+            <button
+              onClick={() => setFormError(null)}
+              className="text-red-400/60 hover:text-red-400 transition-colors flex-shrink-0"
+            >
+              <X size={14} />
+            </button>
+          </div>
+        )}
 
         <div className="grid gap-4 sm:grid-cols-2">
           <label className="space-y-2 text-sm text-neutral-300">
@@ -441,7 +519,8 @@ export default function AdminCompanyInfoPage() {
           <button
             type="button"
             onClick={() => setShowForm(false)}
-            className="rounded-2xl border border-white/10 px-4 py-3 text-sm text-neutral-300 transition hover:border-white/20"
+            disabled={saving}
+            className="rounded-2xl border border-white/10 px-4 py-3 text-sm text-neutral-300 transition hover:border-white/20 disabled:opacity-50"
           >
             {text.cancel}
           </button>

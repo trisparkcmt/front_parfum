@@ -59,7 +59,6 @@ export default function Home() {
         <ShopByCategory />
       </section>
       
-        <ThemeToggle/>
       
 
       {/* BEST SELLERS / FLASH */}

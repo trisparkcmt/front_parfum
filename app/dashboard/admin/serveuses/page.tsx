@@ -69,6 +69,8 @@ export default function ServeusesPage() {
   const [serveuses, setServeuses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
   const [userIdVal, setUserIdVal] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [userSuggestions, setUserSuggestions] = useState<{ id: number; name: string }[]>([]);
@@ -115,14 +117,20 @@ export default function ServeusesPage() {
 
   const handlePromote = async () => {
     if (!userIdVal) return;
+    setFormError(null);
     try {
+      setSaving(true);
       await adminService.promoteToServeuse(parseInt(userIdVal));
       addToast('Utilisateur promu au rang de serveuse avec succès', 'success');
       setShowModal(false);
       setUserIdVal('');
       fetchServeuses();
     } catch (error: any) {
-      addToast(error.response?.data?.detail || 'Erreur lors de la promotion', 'error');
+      const errorMessage = error.response?.data?.detail || 'Erreur lors de la promotion';
+      setFormError(errorMessage);
+      addToast(errorMessage, 'error');
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -175,7 +183,7 @@ export default function ServeusesPage() {
           </button>
           <button
             type="button"
-            onClick={() => setShowModal(true)}
+            onClick={() => { setFormError(null); setShowModal(true); }}
             className="flex items-center gap-2 bg-gold text-black px-3.5 py-2 rounded-lg text-xs font-semibold hover:bg-gold/90 transition-colors"
           >
             <Plus size={14} />
@@ -293,9 +301,29 @@ export default function ServeusesPage() {
         description="Attribue le rôle opérationnel à l'utilisateur."
         size="md"
         footer={
-          <div className="flex gap-3 mt-5">
-            <button onClick={() => setShowModal(false)} className="flex-1 border border-white/10 rounded-lg py-2.5 text-sm text-foreground/60 hover:bg-white/5 transition-colors">Annuler</button>
-            <button onClick={handlePromote} className="flex-1 bg-gold text-black rounded-lg py-2.5 text-sm font-medium hover:bg-gold/80 transition-colors">Promouvoir</button>
+          <div className="space-y-3 mt-5">
+            {formError && (
+              <div className="rounded-lg bg-red-500/10 border border-red-500/20 p-3">
+                <p className="text-sm text-red-400">{formError}</p>
+              </div>
+            )}
+            <div className="flex gap-3">
+              <button 
+                onClick={() => setShowModal(false)} 
+                disabled={saving}
+                className="flex-1 border border-white/10 rounded-lg py-2.5 text-sm text-foreground/60 hover:bg-white/5 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                Annuler
+              </button>
+              <button 
+                onClick={handlePromote} 
+                disabled={saving}
+                className="flex-1 bg-gold text-black rounded-lg py-2.5 text-sm font-medium hover:bg-gold/80 transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {saving && <Loader2 size={14} className="animate-spin" />}
+                <span>{saving ? 'Promotion en cours...' : 'Promouvoir'}</span>
+              </button>
+            </div>
           </div>
         }
       >

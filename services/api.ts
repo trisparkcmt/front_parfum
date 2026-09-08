@@ -14,7 +14,7 @@ export const getBaseURL = () => {
 /** Routes where a 401 must not trigger the global refresh interceptor. */
 const AUTH_PATHS_SKIP_REFRESH = /auth\/(mobile|web)\/login|auth\/registration|auth\/token\/refresh|auth\/logout/;
 
-const isDashboardContext = () => {
+export const isDashboardContext = () => {
   if (typeof window === 'undefined') return false;
 
   return /^\/dashboard\/(admin|serveuse)(?:\/|$)/.test(window.location.pathname);

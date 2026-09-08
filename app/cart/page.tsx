@@ -256,24 +256,8 @@ export default function CartPage() {
       unitPrice: item.prix_unitaire_snapshot,
     }));
 
-    const waLink = generateWhatsAppLink(
-      formattedItems,
-      subtotal,
-      total,
-      cart?.code_promo_applique,
-      cart?.remise_pourcentage ? Number(cart.remise_pourcentage) : undefined,
-      form.paymentMethod,
-      form.mobileNetwork || undefined,
-      form.deliveryType,
-      form.deliveryType === 'delivery'
-        ? `${form.deliveryCity.trim()} - ${form.deliveryLocation.trim()}`
-        : isEn
-        ? 'In-store pickup'
-        : 'Retrait magasin'
-    );
-
     try {
-      await orderService.placeOrder({
+      const orderResponse = await orderService.placeOrder({
         panier_id: panierId ?? undefined,
         livraison_quartier:
           form.deliveryType === 'delivery' ? form.deliveryLocation.trim() || undefined : undefined,
@@ -286,6 +270,26 @@ export default function CartPage() {
         note_client: form.noteClient.trim() || undefined,
         code_promo: cart?.code_promo_applique ?? undefined,
       });
+      const orderNumber =
+        orderResponse?.numero_commande ||
+        orderResponse?.order?.numero_commande ||
+        orderResponse?.commande?.numero_commande;
+      const waLink = generateWhatsAppLink(
+        formattedItems,
+        subtotal,
+        total,
+        cart?.code_promo_applique,
+        cart?.remise_pourcentage ? Number(cart.remise_pourcentage) : undefined,
+        form.paymentMethod,
+        form.mobileNetwork || undefined,
+        form.deliveryType,
+        form.deliveryType === 'delivery'
+          ? `${form.deliveryCity.trim()} - ${form.deliveryLocation.trim()}`
+          : isEn
+          ? 'In-store pickup'
+          : 'Retrait magasin',
+        orderNumber
+      );
 
       addToast(
         t('order_success', {

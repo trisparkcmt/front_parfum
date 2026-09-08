@@ -3,7 +3,7 @@ import { getMessaging, getToken, onMessage } from 'firebase/messaging';
 import { firebaseApp } from '@/lib/firebase';
 import { useToastStore } from '@/store/useToastStore';
 
-const RAW_VAPID_KEY = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY || "BIH086VT_ZEmPMDKIoJUfyaPmRQXF9sXGhGQpdQFHTK467Y4rKTm6TJHVNKZV1TPCLe8BCqNIRWVOXHqXLNd2r8";
+const RAW_VAPID_KEY = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY || "BMcSlBW2WMwTPNeJp8ixr6iafmob8SSDenxyGDALqBLjybbMtAFpd_9nMqgdwnaEM6bzJBnj-XUyyPTgszy5FK0";
 const VAPID_KEY = RAW_VAPID_KEY.replace(/^"|"$/g, '');
 const STORAGE_KEY = 'fcm_token';
 
@@ -36,7 +36,9 @@ export async function registerPushNotifications(authToken: string): Promise<void
 
     console.log('[FCM] Registering Service Worker...');
     // Register the SW
-    const swRegistration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+    const swRegistration = await navigator.serviceWorker.register('/firebase-messaging-sw.js', {
+      scope: '/firebase-cloud-messaging-push-scope',
+    });
     console.log('[FCM] Service Worker registered. Waiting for it to be ready...');
 
     // Wait until the Service Worker is fully active to avoid intermittent getToken failures
@@ -66,15 +68,15 @@ export async function registerPushNotifications(authToken: string): Promise<void
 
     console.log('[FCM] Registering token with backend...');
     // Use raw fetch to ensure Authorization header is formatted correctly and handle timeout/re-wake ups
-    const response = await fetch('https://api.accessoiresexclusifs.com/api/v1/utilisateur/devices/register/', {
+    const response = await fetch('https://api.accessoiresexclusifs.com/api/v1/auth/fcm/register/', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Token ${authToken}`,
+        'Authorization': `Bearer ${authToken}`,
       },
       body: JSON.stringify({
         registration_token: fcmToken,
-        platform: 'web',
+        type_appareil: 'web',
       }),
     });
 
@@ -99,11 +101,11 @@ export async function unregisterPushNotifications(authToken: string): Promise<vo
 
   try {
     console.log('[FCM] Unregistering token from backend...');
-    const response = await fetch('https://api.accessoiresexclusifs.com/api/v1/utilisateur/devices/unregister/', {
+    const response = await fetch('https://api.accessoiresexclusifs.com/api/v1/auth/fcm/unregister/', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Token ${authToken}`,
+        'Authorization': `Bearer ${authToken}`,
       },
       body: JSON.stringify({
         registration_token: fcmToken,

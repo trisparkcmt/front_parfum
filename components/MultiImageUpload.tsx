@@ -17,18 +17,20 @@ interface MultiImageUploadProps {
   accept?: string;
 }
 
+const getEmptyImages = (): ImageFile[] => [
+  { key: 'image_principale', file: null, preview: null, label: 'Image Principale' },
+  { key: 'image_supp_1', file: null, preview: null, label: 'Image Supplémentaire 1' },
+  { key: 'image_supp_2', file: null, preview: null, label: 'Image Supplémentaire 2' },
+  { key: 'image_supp_3', file: null, preview: null, label: 'Image Supplémentaire 3' },
+  { key: 'image_supp_4', file: null, preview: null, label: 'Image Supplémentaire 4' },
+];
+
 export const MultiImageUpload: React.FC<MultiImageUploadProps> = ({
   onImagesChange,
   maxSize = 5 * 1024 * 1024,
   accept = 'image/jpeg,image/png,image/webp',
 }) => {
-  const [images, setImages] = useState<ImageFile[]>([
-    { key: 'image_principale', file: null, preview: null, label: 'Image Principale' },
-    { key: 'image_supp_1', file: null, preview: null, label: 'Image Supplémentaire 1' },
-    { key: 'image_supp_2', file: null, preview: null, label: 'Image Supplémentaire 2' },
-    { key: 'image_supp_3', file: null, preview: null, label: 'Image Supplémentaire 3' },
-    { key: 'image_supp_4', file: null, preview: null, label: 'Image Supplémentaire 4' },
-  ]);
+  const [images, setImages] = useState<ImageFile[]>(getEmptyImages());
 
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const principalInputRef = useRef<HTMLInputElement | null>(null);
@@ -288,7 +290,7 @@ export const MultiImageUpload: React.FC<MultiImageUploadProps> = ({
                 <div className="relative w-full max-w-[110px] aspect-square group">
                   {image.preview ? (
                     <>
-                              <AppImage
+                      <AppImage
                         src={image.preview}
                         alt={image.label}
                         fill
@@ -300,7 +302,8 @@ export const MultiImageUpload: React.FC<MultiImageUploadProps> = ({
                           e.stopPropagation();
                           handleRemoveImage(index + 1);
                         }}
-                        className="absolute -top-2 -right-2 bg-red-500 text-white p-0.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                        className="absolute -top-2 -right-2 bg-red-500 text-white p-1 rounded-full shadow-lg hover:scale-105 transition-transform z-10"
+                        aria-label={`Remove ${image.label}`}
                       >
                         <X size={14} />
                       </button>

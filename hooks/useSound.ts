@@ -17,11 +17,18 @@ export function useSound() {
     if (typeof window === 'undefined') return;
 
     try {
+      if (window.localStorage.getItem('app-sounds-enabled') !== 'true') return;
+    } catch {
+      return;
+    }
+
+    try {
       const path = SOUND_PATHS[type];
 
       // Cache audio objects to avoid re-creating them on every call
       if (!audioCache.current[path]) {
         audioCache.current[path] = new Audio(path);
+        audioCache.current[path].setAttribute('playsinline', 'true');
       }
 
       const audio = audioCache.current[path];

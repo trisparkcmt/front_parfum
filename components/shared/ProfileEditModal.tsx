@@ -66,7 +66,8 @@ export default function ProfileEditModal({
       if (success) {
         addToast(t('profile_updated_success', 'Profile updated successfully'), 'success');
         onSuccess?.();
-        onClose();
+        // Delay close to allow toast to show
+        setTimeout(() => onClose(), 1000);
       }
     } catch (error: any) {
       console.error('Profile update failed:', error);

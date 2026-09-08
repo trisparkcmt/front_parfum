@@ -1,14 +1,14 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import {
-  FlaskConical, Package, Layers, Plus, Edit2, Trash2,
-  Loader2, Search, RefreshCw, AlertTriangle, Filter, X
-} from 'lucide-react';
-import { labService } from '@/services/apiService';
+import { Loader2, Edit2, Trash2, Plus, Search, Filter, X, Package, Layers, RefreshCw, AlertCircle, AlertTriangle } from 'lucide-react';
 import { InlineCell } from '@/components/admin/InlineCell';
+import { labService } from '@/services/apiService';
 import { useTranslation } from 'react-i18next';
-
+import { CustomSelect } from '@/components/ui/CustomSelect';
+import { AdminTableSkeleton } from '@/components/ui/AdminTableSkeleton';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { mapErrorToUserMessage } from '@/lib/errorMapper';
 /* ── Inline translations ─────────────────────────────────────────────────── */
 const T = {
   fr: {
@@ -300,6 +300,48 @@ function StatusChip({
   );
 }
 
+function ConfirmDialog({
+  isOpen,
+  title,
+  message,
+  confirmLabel,
+  cancelLabel,
+  onConfirm,
+  onCancel,
+  isLoading,
+  variant = 'danger',
+}: {
+  isOpen: boolean;
+  title: string;
+  message: string;
+  confirmLabel: string;
+  cancelLabel: string;
+  onConfirm: () => void;
+  onCancel: () => void;
+  isLoading?: boolean;
+  variant?: 'danger' | 'default';
+}) {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
+      <div className="w-full max-w-sm rounded-xl border border-white/10 bg-background p-5 shadow-2xl">
+        <h2 className="text-sm font-semibold text-foreground">{title}</h2>
+        <p className="mt-2 text-xs text-foreground/55">{message}</p>
+        <div className="mt-5 flex gap-2">
+          <button type="button" onClick={onCancel} disabled={isLoading} className="flex-1 rounded-lg border border-white/10 py-2 text-xs text-foreground/60 hover:bg-white/5 disabled:opacity-50">
+            {cancelLabel}
+          </button>
+          <button type="button" onClick={onConfirm} disabled={isLoading} className={cx('flex-1 rounded-lg py-2 text-xs font-semibold disabled:opacity-50', variant === 'danger' ? 'bg-red-500 text-white hover:bg-red-400' : 'bg-gold text-black hover:bg-gold/90')}>
+            {isLoading && <Loader2 size={12} className="mr-1 inline animate-spin" />}
+            {confirmLabel}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function IconButton({
   icon: Icon,
   onClick,
@@ -383,6 +425,8 @@ function IngredientsTab() {
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState<any | null>(null);
   const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [confirmDialog, setConfirmDialog] = useState<{ isOpen: boolean; id: any | null }>({ isOpen: false, id: null });
   const { addToast } = useToastStore();
 
   const [form, setForm] = useState({
@@ -401,8 +445,9 @@ function IngredientsTab() {
       setLoading(true);
       const data = await labService.getIngredients(search ? { search } : undefined);
       setItems(extractCatalogList(data));
-    } catch {
-      addToast(t('ing_toast_load'), 'error');
+    } catch (error: any) {
+      const msg = mapErrorToUserMessage(error, isEn ? 'en' : 'fr');
+      addToast(msg, 'error');
     } finally {
       setLoading(false);
     }
@@ -416,6 +461,7 @@ function IngredientsTab() {
   const openAdd = () => {
     if (!permissions.canCreate) return;
     setEditing(null);
+    setFormError(null);
     setForm({ nom: '', description: '', prix_par_ml: '', prix_achat_par_ml: '', stock_ml: '', seuil_alerte_ml: '0', actif: true });
     setShowModal(true);
   };
@@ -423,6 +469,7 @@ function IngredientsTab() {
   const openEdit = (item: any) => {
     if (!permissions.canUpdate) return;
     setEditing(item);
+    setFormError(null);
     setForm({
       nom: item.nom || '',
       description: item.description || '',
@@ -436,9 +483,10 @@ function IngredientsTab() {
   };
 
   const handleSave = async () => {
+    setFormError(null);
     if (!permissions.canCreate && !permissions.canUpdate) return;
     if (!form.nom || !form.prix_par_ml || !form.stock_ml) {
-      addToast(t('ing_required'), 'error'); return;
+      setFormError(t('ing_required')); return;
     }
     try {
       setSaving(true);
@@ -451,19 +499,16 @@ function IngredientsTab() {
         actif: form.actif,
       };
       if (editing) {
-        setItems(prev => prev.map(i => i.id === editing.id ? { ...i, ...payload } : i));
-        setShowModal(false);
         await labService.updateIngredient(editing.id, payload);
         addToast(t('ing_toast_update'), 'success');
-        fetchItems();
       } else {
-        setShowModal(false);
         await labService.createIngredient(payload);
         addToast(t('ing_toast_create'), 'success');
-        fetchItems();
       }
+      await fetchItems();
+      setShowModal(false);
     } catch (e: any) {
-      addToast(e.response?.data?.detail || t('ing_toast_save_error'), 'error');
+      setFormError(e.response?.data?.detail || t('ing_toast_save_error'));
     } finally {
       setSaving(false);
     }
@@ -482,15 +527,24 @@ function IngredientsTab() {
 
   const handleDelete = async (id: number) => {
     if (!permissions.canDelete) return;
-      if (!confirm(t('ing_confirm_delete'))) return;
-    const snapshot = items.find(i => i.id === id);
-    setItems(prev => prev.filter(i => i.id !== id));
+    setConfirmDialog({ isOpen: true, id });
+  };
+
+  const confirmDelete = async () => {
+    if (!confirmDialog.id) return;
+    setSaving(true);
+    const snapshot = items.find(i => i.id === confirmDialog.id);
+    setItems(prev => prev.filter(i => i.id !== confirmDialog.id));
     try {
-      await labService.deleteIngredient(id);
+      await labService.deleteIngredient(confirmDialog.id);
       addToast(t('ing_toast_delete'), 'success');
-    } catch {
+      setConfirmDialog({ isOpen: false, id: null });
+    } catch (error: any) {
       if (snapshot) setItems(prev => [snapshot, ...prev]);
-      addToast('Erreur lors de la suppression', 'error');
+      const msg = mapErrorToUserMessage(error, isEn ? 'en' : 'fr');
+      addToast(msg, 'error');
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -538,10 +592,21 @@ function IngredientsTab() {
 
       <div className="rounded-xl border border-white/10 bg-white/[0.02] overflow-hidden min-h-[200px]">
         {loading ? (
-          <div className="flex items-center justify-center py-16 text-foreground/40 gap-2 text-xs">
-            <Loader2 className="animate-spin text-gold" size={16} />
-            <span>{t('ing_loading')}</span>
-          </div>
+          <AdminTableSkeleton columns={6} rows={5} />
+        ) : items.length === 0 ? (
+          <EmptyState
+            icon={<Package size={48} />}
+            title={isEn ? 'No ingredients' : 'Aucun ingrédient'}
+            description={isEn ? 'Create your first ingredient' : 'Créez votre premier ingrédient'}
+            action={
+              permissions.canCreate
+                ? {
+                    label: isEn ? 'Add ingredient' : t('ing_add'),
+                    onClick: openAdd,
+                  }
+                : undefined
+            }
+          />
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
@@ -595,13 +660,6 @@ function IngredientsTab() {
                     </tr>
                   );
                 })}
-                {items.length === 0 && (
-                  <tr>
-                    <td colSpan={6} className="py-16 text-center text-sm italic text-foreground/30">
-                      {t('ing_no_results')}
-                    </td>
-                  </tr>
-                )}
               </tbody>
             </table>
           </div>
@@ -616,7 +674,7 @@ function IngredientsTab() {
         size="lg"
         footer={
           <div className="flex gap-3">
-            <button onClick={() => setShowModal(false)} className="flex-1 border border-white/10 rounded-lg py-2.5 text-sm text-foreground/60 hover:bg-white/5 transition-colors">
+            <button onClick={() => setShowModal(false)} disabled={saving} className="flex-1 border border-white/10 rounded-lg py-2.5 text-sm text-foreground/60 hover:bg-white/5 transition-colors disabled:opacity-50">
               {t('cancel')}
             </button>
             <button onClick={handleSave} disabled={saving} className="flex-1 bg-gold text-black rounded-lg py-2.5 text-sm font-bold hover:bg-gold/80 transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
@@ -627,6 +685,18 @@ function IngredientsTab() {
         }
       >
         <div className="space-y-3">
+          {formError && (
+            <div className="flex items-start gap-3 rounded-lg bg-red-500/10 border border-red-500/20 p-3">
+              <AlertCircle size={16} className="text-red-400 flex-shrink-0 mt-0.5" />
+              <p className="text-xs text-red-400 flex-1">{formError}</p>
+              <button
+                onClick={() => setFormError(null)}
+                className="text-red-400/60 hover:text-red-400 transition-colors flex-shrink-0"
+              >
+                <X size={14} />
+              </button>
+            </div>
+          )}
               {[
                 { label: 'Nom *', field: 'nom', placeholder: 'Ex: Huile de Rose' },
                 { label: 'Description', field: 'description', placeholder: 'Description de l\'ingrédient' },
@@ -676,7 +746,7 @@ function IngredientsTab() {
 
 // ─── Lots Tab ─────────────────────────────────────────────────────────────────
 
-function LotsTab() {
+function LotsTab({ setConfirmDialog }: { setConfirmDialog: React.Dispatch<React.SetStateAction<{ isOpen: boolean; id: any | null }>> }) {
   const permissions = useCatalogPermissions('lots_essence');
   const { i18n } = useTranslation();
   const isEn = i18n.language?.startsWith('en') ?? false;
@@ -690,14 +760,15 @@ function LotsTab() {
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState<any | null>(null);
   const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
   const { addToast } = useToastStore();
 
   const [form, setForm] = useState({
     essence: '',
-    quantite_initiale_ml: '',
-    prix_achat_par_ml: '',
     stock_ml: '',
-    seuil_alerte_ml: '',
+    seuil_alerte_ml: '0',
+    prix_achat_par_ml: '',
+    quantite_initiale_ml: '',
     reference_fournisseur: '',
     actif: true,
   });
@@ -732,12 +803,13 @@ function LotsTab() {
   const openAdd = () => {
     if (!permissions.canCreate) return;
     setEditing(null);
+    setFormError(null);
     setForm({
       essence: essences[0]?.id ? String(essences[0].id) : '',
-      quantite_initiale_ml: '',
-      prix_achat_par_ml: '',
       stock_ml: '',
-      seuil_alerte_ml: '',
+      seuil_alerte_ml: '0',
+      prix_achat_par_ml: '',
+      quantite_initiale_ml: '',
       reference_fournisseur: '',
       actif: true,
     });
@@ -747,12 +819,13 @@ function LotsTab() {
   const openEdit = (item: any) => {
     if (!permissions.canUpdate) return;
     setEditing(item);
+    setFormError(null);
     setForm({
       essence: String(item.essence || item.essence_id || ''),
-      quantite_initiale_ml: String(item.quantite_initiale_ml ?? item.quantite_initiale ?? ''),
+      stock_ml: String(item.stock_ml ?? item.quantite_initiale_ml ?? item.quantite_initiale ?? ''),
+      seuil_alerte_ml: String(item.seuil_alerte_ml ?? '0'),
       prix_achat_par_ml: item.prix_achat_par_ml ? String(item.prix_achat_par_ml) : '',
-      stock_ml: String(item.stock_ml ?? item.quantite_ml ?? ''),
-      seuil_alerte_ml: String(item.seuil_alerte_ml ?? ''),
+      quantite_initiale_ml: String(item.quantite_initiale_ml ?? ''),
       reference_fournisseur: item.reference_fournisseur || '',
       actif: item.actif !== undefined ? item.actif : true,
     });
@@ -760,35 +833,33 @@ function LotsTab() {
   };
 
   const handleSave = async () => {
+    setFormError(null);
     if (!permissions.canCreate && !permissions.canUpdate) return;
-    if (!form.essence || (!form.stock_ml && !form.quantite_initiale_ml)) {
-      addToast(t('lot_required'), 'error'); return;
+    if (!form.essence || !form.stock_ml) {
+      setFormError(t('lot_required')); return;
     }
     try {
       setSaving(true);
       const payload: Record<string, unknown> = {
         essence: Number(form.essence),
-        stock_ml: form.stock_ml || form.quantite_initiale_ml,
+        stock_ml: form.stock_ml,
+        seuil_alerte_ml: form.seuil_alerte_ml,
         actif: form.actif,
       };
       if (form.quantite_initiale_ml) payload.quantite_initiale_ml = form.quantite_initiale_ml;
       if (form.prix_achat_par_ml) payload.prix_achat_par_ml = form.prix_achat_par_ml;
-      if (form.seuil_alerte_ml) payload.seuil_alerte_ml = form.seuil_alerte_ml;
       if (form.reference_fournisseur) payload.reference_fournisseur = form.reference_fournisseur;
       if (editing) {
-        setItems(prev => prev.map(i => i.id === editing.id ? { ...i, ...payload } : i));
-        setShowModal(false);
         await labService.updateLotEssence(editing.id, payload as any);
         addToast(t('lot_toast_update'), 'success');
-        fetchItems();
       } else {
-        setShowModal(false);
         await labService.createLotEssence(payload as any);
         addToast(t('lot_toast_create'), 'success');
-        fetchItems();
       }
+      await fetchItems();
+      setShowModal(false);
     } catch (e: any) {
-      addToast(extractApiError(e, t('lot_toast_save_error')), 'error');
+      setFormError(extractApiError(e, t('lot_toast_save_error')));
     } finally {
       setSaving(false);
     }
@@ -807,16 +878,7 @@ function LotsTab() {
 
   const handleDelete = async (id: number) => {
     if (!permissions.canDelete) return;
-    if (!confirm(t('lot_confirm_delete'))) return;
-    const snapshot = items.find(i => i.id === id);
-    setItems(prev => prev.filter(i => i.id !== id));
-    try {
-      await labService.deleteLotEssence(id);
-      addToast(t('lot_toast_delete'), 'success');
-    } catch {
-      if (snapshot) setItems(prev => [snapshot, ...prev]);
-      addToast(t('lot_toast_delete_error'), 'error');
-    }
+    setConfirmDialog({ isOpen: true, id });
   };
 
 
@@ -881,29 +943,29 @@ function LotsTab() {
           <div className="rounded-xl border border-white/10 bg-white/[0.02] p-3 flex flex-wrap items-center gap-4">
             <div className="flex items-center gap-2">
               <span className="text-xs text-foreground/50">Essence :</span>
-              <select
+              <CustomSelect
                 value={essenceFilter}
-                onChange={e => setEssenceFilter(e.target.value)}
-                className="text-xs bg-white/5 border border-white/10 rounded-lg px-2.5 py-1 text-foreground outline-none focus:border-white/20"
-              >
-                <option value="" className="bg-background text-foreground">{t('all')}</option>
-                {essences.map(e => (
-                  <option key={e.id} value={e.id} className="bg-background text-foreground">{e.nom}</option>
-                ))}
-              </select>
+                onChange={setEssenceFilter}
+                size="sm"
+                options={[
+                  { value: '', label: t('all') },
+                  ...essences.map(e => ({ value: e.id, label: e.nom })),
+                ]}
+              />
             </div>
 
             <div className="flex items-center gap-2">
               <span className="text-xs text-foreground/50">Statut :</span>
-              <select
+              <CustomSelect
                 value={actifFilter}
-                onChange={e => setActifFilter(e.target.value)}
-                className="text-xs bg-white/5 border border-white/10 rounded-lg px-2.5 py-1 text-foreground outline-none focus:border-white/20"
-              >
-                <option value="" className="bg-background text-foreground">{t('status_all')}</option>
-                <option value="true" className="bg-background text-foreground">{t('status_active')}</option>
-                <option value="false" className="bg-background text-foreground">{t('status_inactive')}</option>
-              </select>
+                onChange={setActifFilter}
+                size="sm"
+                options={[
+                  { value: '', label: t('status_all') },
+                  { value: 'true', label: t('status_active') },
+                  { value: 'false', label: t('status_inactive') },
+                ]}
+              />
             </div>
 
             {activeFiltersCount > 0 && (
@@ -923,10 +985,21 @@ function LotsTab() {
 
       <div className="rounded-xl border border-white/10 bg-white/[0.02] overflow-hidden min-h-[200px]">
         {loading ? (
-          <div className="flex items-center justify-center py-16 text-foreground/40 gap-2 text-xs">
-            <Loader2 className="animate-spin text-gold" size={16} />
-            <span>{t('ing_loading')}</span>
-          </div>
+          <AdminTableSkeleton columns={8} rows={5} />
+        ) : items.length === 0 ? (
+          <EmptyState
+            icon={<Layers size={48} />}
+            title={isEn ? 'No lots' : 'Aucun lot'}
+            description={isEn ? 'Create your first essence lot' : 'Créez votre premier lot d\'essence'}
+            action={
+              permissions.canCreate
+                ? {
+                    label: isEn ? 'Create lot' : t('lot_add'),
+                    onClick: openAdd,
+                  }
+                : undefined
+            }
+          />
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
@@ -964,7 +1037,10 @@ function LotsTab() {
                         {item.essence_details?.nom || `ID: ${item.essence || '—'}`}
                       </td>
                       <td className="px-3 py-3 font-semibold text-foreground tabular-nums">
-                        <InlineCell value={String(item.stock_ml ?? item.quantite_ml ?? '0')} onSave={v => patchLot(item.id, 'stock_ml', v)} disabled={!permissions.canUpdate} inputType="number" display={<>{Number(item.stock_ml ?? item.quantite_ml ?? 0).toLocaleString()} ml{item.quantite_initiale_ml && <span className="text-[10px] text-foreground/40 block font-normal">/ {item.quantite_initiale_ml} ml reçus</span>}</>} className="font-semibold text-foreground tabular-nums" />
+                        <span>
+                          {Number(item.stock_ml ?? item.quantite_ml ?? 0).toLocaleString()} ml
+                          {item.quantite_initiale_ml && <span className="text-[10px] text-foreground/40 block font-normal">/ {item.quantite_initiale_ml} ml reçus</span>}
+                        </span>
                       </td>
                       <td className="px-3 py-3 text-foreground/70 tabular-nums">
                         {coutTotal !== null ? `${coutTotal.toLocaleString()} FCFA` : '—'}
@@ -1020,7 +1096,7 @@ function LotsTab() {
         size="lg"
         footer={
           <div className="flex gap-3">
-            <button onClick={() => setShowModal(false)} className="flex-1 border border-white/10 rounded-lg py-2.5 text-sm text-foreground/60 hover:bg-white/5 transition-colors">
+            <button onClick={() => setShowModal(false)} disabled={saving} className="flex-1 border border-white/10 rounded-lg py-2.5 text-sm text-foreground/60 hover:bg-white/5 transition-colors disabled:opacity-50">
               {t('cancel')}
             </button>
             <button onClick={handleSave} disabled={saving} className="flex-1 bg-gold text-black rounded-lg py-2.5 text-sm font-bold hover:bg-gold/80 transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
@@ -1031,82 +1107,87 @@ function LotsTab() {
         }
       >
         <div className="space-y-4">
-              <div>
-                <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Essence *</label>
-                <select
-                  value={form.essence}
-                  onChange={e => setForm(p => ({ ...p, essence: e.target.value }))}
-                  className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
-                >
-                  <option value="" disabled>Sélectionner une essence</option>
-                  {essences.map(e => (
-                    <option key={e.id} value={e.id}>{e.nom} ({e.code_reference})</option>
-                  ))}
-                </select>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Quantité initiale reçue (ml) *</label>
-                  <input
-                    type="number"
-                    value={form.quantite_initiale_ml}
-                    onChange={e => setForm(p => ({ ...p, quantite_initiale_ml: e.target.value }))}
-                    placeholder="ex: 500"
-                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
-                  />
-                </div>
-                <div>
-                  <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Prix d'achat par ml (FCFA) *</label>
-                  <input
-                    type="number"
-                    value={form.prix_achat_par_ml}
-                    onChange={e => setForm(p => ({ ...p, prix_achat_par_ml: e.target.value }))}
-                    placeholder="ex: 2.50"
-                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
-                  />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Stock restant (ml)</label>
-                  <input
-                    type="number"
-                    value={form.stock_ml}
-                    onChange={e => setForm(p => ({ ...p, stock_ml: e.target.value }))}
-                    placeholder="ex: 500"
-                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
-                  />
-                </div>
-                <div>
-                  <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Seuil alerte (ml)</label>
-                  <input
-                    type="number"
-                    value={form.seuil_alerte_ml}
-                    onChange={e => setForm(p => ({ ...p, seuil_alerte_ml: e.target.value }))}
-                    placeholder="50"
-                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Référence fournisseur</label>
-                <input
-                  value={form.reference_fournisseur}
-                  onChange={e => setForm(p => ({ ...p, reference_fournisseur: e.target.value }))}
-                  placeholder="LOT-GRASSET-PATCH-09"
-                  className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
-                />
-              </div>
-              <label className="flex items-center gap-2 cursor-pointer pt-1">
-                <input
-                  type="checkbox"
-                  checked={form.actif}
-                  onChange={e => setForm(p => ({ ...p, actif: e.target.checked }))}
-                  className="rounded border-white/10 bg-white/5 text-gold focus:ring-gold"
-                />
-                <span className="text-sm text-foreground/60">{t('lot_field_active')}</span>
-              </label>
+          {formError && (
+            <div className="flex items-start gap-3 rounded-lg bg-red-500/10 border border-red-500/20 p-3">
+              <AlertCircle size={16} className="text-red-400 flex-shrink-0 mt-0.5" />
+              <p className="text-xs text-red-400 flex-1">{formError}</p>
+              <button
+                onClick={() => setFormError(null)}
+                className="text-red-400/60 hover:text-red-400 transition-colors flex-shrink-0"
+              >
+                <X size={14} />
+              </button>
             </div>
+          )}
+          <div>
+            <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Essence *</label>
+            <CustomSelect
+              value={form.essence}
+              onChange={e => setForm(p => ({ ...p, essence: e }))}
+              options={[
+                { value: '', label: 'Sélectionner une essence' },
+                ...essences.map(e => ({ value: e.id, label: `${e.nom} (${e.code_reference})` })),
+              ]}
+              data-field="essence"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Stock initial (ml) *</label>
+              <input
+                type="number"
+                value={form.stock_ml}
+                onChange={e => setForm(p => ({ ...p, stock_ml: e.target.value }))}
+                placeholder="ex: 500"
+                className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
+              />
+            </div>
+            <div>
+              <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Prix d'achat par ml (FCFA) *</label>
+              <input
+                type="number"
+                value={form.prix_achat_par_ml}
+                onChange={e => setForm(p => ({ ...p, prix_achat_par_ml: e.target.value }))}
+                placeholder="ex: 2.50"
+                className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 gap-3">
+            <div>
+              <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Seuil alerte (ml)</label>
+              <input
+                type="number"
+                value={form.seuil_alerte_ml}
+                onChange={e => setForm(p => ({ ...p, seuil_alerte_ml: e.target.value }))}
+                placeholder="50"
+                className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="text-[10px] font-bold text-foreground/40 uppercase block mb-1">Référence fournisseur</label>
+            <input
+              value={form.reference_fournisseur}
+              onChange={e => setForm(p => ({ ...p, reference_fournisseur: e.target.value }))}
+              placeholder="LOT-GRASSET-PATCH-09"
+              className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
+            />
+          </div>
+
+          <label className="flex items-center gap-2 cursor-pointer pt-1">
+            <input
+              type="checkbox"
+              checked={form.actif}
+              onChange={e => setForm(p => ({ ...p, actif: e.target.checked }))}
+              className="rounded border-white/10 bg-white/5 text-gold focus:ring-gold"
+            />
+            <span className="text-sm text-foreground/60">{t('lot_field_active')}</span>
+          </label>
+        </div>
       </SlideOver>
     </div>
   );
@@ -1124,6 +1205,7 @@ function InventoryTab() {
   const [editing, setEditing] = useState<any | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
   const { addToast } = useToastStore();
 
   const [form, setForm] = useState({
@@ -1149,6 +1231,7 @@ function InventoryTab() {
 
   const openEdit = (item: any) => {
     setEditing(item);
+    setFormError(null);
     setForm({
       quantite_disponible_ml: String(item.quantite_disponible_ml || ''),
       seuil_alerte_ml: String(item.seuil_alerte_ml || ''),
@@ -1158,6 +1241,7 @@ function InventoryTab() {
   };
 
   const handleSave = async () => {
+    setFormError(null);
     if (!editing) return;
     try {
       setSaving(true);
@@ -1167,10 +1251,10 @@ function InventoryTab() {
         actif: form.actif,
       });
       addToast(t('inv_toast_update'), 'success');
+      await fetchItems();
       setShowModal(false);
-      fetchItems();
     } catch (e: any) {
-      addToast(e.response?.data?.detail || t('inv_toast_save_error'), 'error');
+      setFormError(e.response?.data?.detail || t('inv_toast_save_error'));
     } finally {
       setSaving(false);
     }
@@ -1187,9 +1271,11 @@ function InventoryTab() {
     }
   };
 
-  const alertItems = items.filter(i =>
-    Number(i.quantite_disponible_ml) <= Number(i.seuil_alerte_ml || 100)
-  );
+  const alertItems = items.filter(i => {
+    const quantity = Number(i.stock_total_ml ?? i.quantite_disponible_ml ?? 0);
+    const threshold = Number(i.seuil_alerte_ml);
+    return Number.isFinite(threshold) && threshold > 0 && quantity <= threshold;
+  });
 
   return (
     <div className="space-y-4">
@@ -1217,46 +1303,46 @@ function InventoryTab() {
 
       <div className="rounded-xl border border-white/10 bg-white/[0.02] overflow-hidden min-h-[200px]">
         {loading ? (
-          <div className="flex items-center justify-center py-16 text-foreground/40 gap-2 text-xs">
-            <Loader2 className="animate-spin text-gold" size={16} />
-            <span>{t('ing_loading')}</span>
-          </div>
+          <AdminTableSkeleton columns={6} rows={5} />
+        ) : items.length === 0 ? (
+          <EmptyState
+            icon={<Package size={48} />}
+            title={isEn ? 'No inventory' : 'Aucun inventaire'}
+            description={isEn ? 'No essences in lab inventory' : 'Aucune essence en inventaire labo'}
+          />
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-white/[0.02] border-b border-white/10 text-[10px] font-semibold uppercase tracking-wider text-foreground/35">
                   <th className="pl-4 py-3">{t('inv_col_essence')}</th>
+                  <th className="px-3 py-3">Catégorie</th>
                   <th className="px-3 py-3">{t('inv_col_qty')}</th>
-                  <th className="px-3 py-3">{t('inv_col_alert')}</th>
+                  <th className="px-3 py-3">Prix / ml</th>
                   <th className="px-3 py-3">{t('inv_col_status')}</th>
                   <th className="pr-4 py-3 text-right">{t('inv_col_actions')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5 text-xs">
                 {items.map(item => {
-                  const qty = Number(item.quantite_disponible_ml || 0);
-                  const threshold = Number(item.seuil_alerte_ml || 100);
-                  const pct = Math.min((qty / (threshold * 2)) * 100, 100);
-                  const isLow = qty <= threshold;
+                  const qty = Number(item.stock_total_ml ?? item.quantite_disponible_ml ?? 0);
+                  const thresholdValue = item.seuil_alerte_ml;
+                  const hasThreshold = thresholdValue !== undefined && thresholdValue !== null && thresholdValue !== '';
+                  const threshold = Number(thresholdValue || 0);
+                  const isLow = hasThreshold && threshold > 0 && qty <= threshold;
+                  const name = item.nom || item.essence_details?.nom || item.essence_nom || `Essence #${item.essence || item.id}`;
                   return (
                     <tr key={item.id} className="hover:bg-white/[0.02] transition-colors">
                       <td className="pl-4 py-3 font-medium text-foreground">
-                        {item.essence_details?.nom || item.essence_nom || `Essence #${item.essence || item.id}`}
+                        <span className="block">{name}</span>
+                        {item.marque && <span className="mt-0.5 block text-[11px] font-normal text-foreground/40">{item.marque}</span>}
                       </td>
+                      <td className="px-3 py-3 text-foreground/60 capitalize">{item.categorie || '—'}</td>
                       <td className="px-3 py-3">
-                        <div className="flex items-center gap-2.5">
-                          <div className="w-20 h-1.5 bg-white/10 rounded-full overflow-hidden">
-                            <div
-                              className={cx('h-full rounded-full transition-all', isLow ? 'bg-red-400' : 'bg-emerald-400')}
-                              style={{ width: `${pct}%` }}
-                            />
-                          </div>
-                          <InlineCell value={String(qty)} onSave={v => patchInventory(item.id, 'quantite_disponible_ml', v)} disabled={!permissions.canUpdate} inputType="number" display={<span className="font-semibold text-foreground tabular-nums">{qty.toLocaleString()} ml</span>} className="font-semibold text-foreground tabular-nums" />
-                        </div>
+                        <InlineCell value={String(qty)} onSave={v => patchInventory(item.id, 'quantite_disponible_ml', v)} disabled={!permissions.canUpdate} inputType="number" display={<span className="font-semibold text-foreground tabular-nums">{qty.toLocaleString()} ml</span>} className="font-semibold text-foreground tabular-nums" />
                       </td>
-                      <td className="px-3 py-3 text-foreground/60 tabular-nums">
-                        <InlineCell value={String(threshold)} onSave={v => patchInventory(item.id, 'seuil_alerte_ml', v)} disabled={!permissions.canUpdate} inputType="number" display={<>{threshold.toLocaleString()} ml</>} className="text-foreground/60 tabular-nums" />
+                      <td className="px-3 py-3 text-foreground/70 tabular-nums">
+                        {item.prix_par_ml != null ? `${Number(item.prix_par_ml).toLocaleString()} FCFA` : '—'}
                       </td>
                       <td className="px-3 py-3">
                         <StatusChip
@@ -1272,7 +1358,7 @@ function InventoryTab() {
                 })}
                 {items.length === 0 && (
                   <tr>
-                    <td colSpan={5} className="py-16 text-center text-sm italic text-foreground/30">
+                    <td colSpan={6} className="py-16 text-center text-sm italic text-foreground/30">
                       {t('inv_no_results')}
                     </td>
                   </tr>
@@ -1291,7 +1377,7 @@ function InventoryTab() {
         size="lg"
         footer={
           <div className="flex gap-3">
-            <button onClick={() => setShowModal(false)} className="flex-1 border border-white/10 rounded-lg py-2.5 text-sm text-foreground/60 hover:bg-white/5 transition-colors">
+            <button onClick={() => setShowModal(false)} disabled={saving} className="flex-1 border border-white/10 rounded-lg py-2.5 text-sm text-foreground/60 hover:bg-white/5 transition-colors disabled:opacity-50">
               {t('cancel')}
             </button>
             <button onClick={handleSave} disabled={saving} className="flex-1 bg-gold text-black rounded-lg py-2.5 text-sm font-bold hover:bg-gold/80 transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
@@ -1302,6 +1388,18 @@ function InventoryTab() {
         }
       >
         <div className="space-y-3">
+          {formError && (
+            <div className="flex items-start gap-3 rounded-lg bg-red-500/10 border border-red-500/20 p-3">
+              <AlertCircle size={16} className="text-red-400 flex-shrink-0 mt-0.5" />
+              <p className="text-xs text-red-400 flex-1">{formError}</p>
+              <button
+                onClick={() => setFormError(null)}
+                className="text-red-400/60 hover:text-red-400 transition-colors flex-shrink-0"
+              >
+                <X size={14} />
+              </button>
+            </div>
+          )}
               {[
                 { label: 'Quantité disponible (ml)', field: 'quantite_disponible_ml', placeholder: '5000' },
                 { label: 'Seuil d\'alerte (ml)', field: 'seuil_alerte_ml', placeholder: '500' },
@@ -1326,10 +1424,25 @@ function InventoryTab() {
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function LabPage() {
-  const [activeTab, setActiveTab] = useState<TabKey>('ingredients');
+  const [activeTab, setActiveTab] = useState<TabKey>('lots');
+  const [confirmDialog, setConfirmDialog] = useState<{ isOpen: boolean; id: any | null }>({ isOpen: false, id: null });
+  const [saving, setSaving] = useState(false);
   const { i18n } = useTranslation();
   const isEn = i18n.language?.startsWith('en') ?? false;
   const t = (k: TKey) => isEn ? T.en[k] : T.fr[k];
+
+  const confirmDelete = async () => {
+    if (!confirmDialog.id) return;
+    setSaving(true);
+    try {
+      await labService.deleteLotEssence(confirmDialog.id);
+      setConfirmDialog({ isOpen: false, id: null });
+    } catch (error) {
+      console.error('Delete error:', error);
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -1344,12 +1457,14 @@ export default function LabPage() {
       {/* Tabs & Content Container */}
       <div className="shadow-black/30 shadow-sm rounded-xl border border-white/10 bg-white/[0.02] overflow-hidden">
         <div className="flex border-b border-white/10 overflow-x-auto px-2 pt-1">
+          {/*
           <TabButton
             active={activeTab === 'ingredients'}
             onClick={() => setActiveTab('ingredients')}
             icon={<FlaskConical size={14} />}
             label={t('tab_ingredients')}
           />
+          */}
           <TabButton
             active={activeTab === 'lots'}
             onClick={() => setActiveTab('lots')}
@@ -1365,11 +1480,24 @@ export default function LabPage() {
         </div>
 
         <div className="p-4 sm:p-5">
-          {activeTab === 'ingredients' && <IngredientsTab />}
-          {activeTab === 'lots' && <LotsTab />}
+          {/* {activeTab === 'ingredients' && <IngredientsTab />} */}
+          {activeTab === 'lots' && <LotsTab setConfirmDialog={setConfirmDialog} />}
           {activeTab === 'inventory' && <InventoryTab />}
         </div>
       </div>
+
+      {/* Confirm Delete Dialog */}
+      <ConfirmDialog
+        isOpen={confirmDialog.isOpen}
+        title={isEn ? 'Delete item?' : 'Supprimer cet élément ?'}
+        message={isEn ? 'This action cannot be undone.' : 'Cette action ne peut pas être annulée.'}
+        confirmLabel={isEn ? 'Delete' : 'Supprimer'}
+        cancelLabel={isEn ? 'Cancel' : 'Annuler'}
+        onConfirm={confirmDelete}
+        onCancel={() => setConfirmDialog({ isOpen: false, id: null })}
+        isLoading={saving}
+        variant="danger"
+      />
     </div>
   );
 }

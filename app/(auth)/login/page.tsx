@@ -171,7 +171,7 @@ function LoginFormContent() {
           </label>
         </div>
 
-        <Button type="submit" className="w-full mt-6" isLoading={isLoading} rightIcon={<LogIn size={18} />}>
+        <Button type="submit" className="w-full mt-6" isLoading={isLoading} loadingText={t('login_loading', { defaultValue: 'Connexion...' })} rightIcon={<LogIn size={18} />}>
           {t('login_btn')}
         </Button>
       </form>

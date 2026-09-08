@@ -104,28 +104,29 @@ interface FloatInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
 }
 
 export const FloatInput = forwardRef<HTMLInputElement, FloatInputProps>(
-  ({ label, error, icon, type, className, onFocus, onBlur, onChange, value, ...props }, ref) => {
+  ({ label, error, icon, type, className, onFocus, onBlur, onChange, value, defaultValue, ...props }, ref) => {
     const [isFocused, setIsFocused] = useState(false);
-    const [hasValue, setHasValue] = useState(() =>
-      value !== undefined && value !== null && String(value).length > 0
-    );
+    const [uncontrolledValue, setUncontrolledValue] = useState(defaultValue ?? '');
     const [showPassword, setShowPassword] = useState(false);
 
-    useEffect(() => {
-      setHasValue(value !== undefined && value !== null && String(value).length > 0);
-    }, [value]);
+    const isControlled = value !== undefined;
+    const currentValue = isControlled ? value : uncontrolledValue;
+    const hasValue = currentValue !== undefined && currentValue !== null && String(currentValue).length > 0;
 
     const handleFocus = (e: React.FocusEvent<HTMLInputElement>) => {
       setIsFocused(true);
       onFocus?.(e);
     };
+    
     const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
       setIsFocused(false);
-      setHasValue(e.target.value.length > 0);
       onBlur?.(e);
     };
+    
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-      setHasValue(e.target.value.length > 0);
+      if (!isControlled) {
+        setUncontrolledValue(e.target.value);
+      }
       onChange?.(e);
     };
 
@@ -145,7 +146,7 @@ export const FloatInput = forwardRef<HTMLInputElement, FloatInputProps>(
           <input
             ref={ref}
             type={finalType}
-            value={value}
+            value={currentValue}
             onFocus={handleFocus}
             onBlur={handleBlur}
             onChange={handleChange}

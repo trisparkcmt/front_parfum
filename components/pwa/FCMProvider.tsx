@@ -1,9 +1,10 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import { initializeFCM, setupForegroundMessageListener, cleanupFCM } from '@/services/fcmService';
+import { initializeFCM, cleanupFCM } from '@/services/fcmService';
 import { useToastStore } from '@/store/useToastStore';
 import { useAuthStore } from '@/store/useAuthStore';
+import { useNotificationCountStore } from '@/store/useNotificationCountStore';
 
 /**
  * FCMProvider — mounts once in layout.
@@ -14,7 +15,6 @@ import { useAuthStore } from '@/store/useAuthStore';
 export function FCMProvider() {
   const { addToast } = useToastStore();
   const { isAuthenticated, _hasHydrated, user } = useAuthStore();
-  const unsubscribeRef = useRef<(() => void) | null>(null);
   const prevAuthRef = useRef<boolean | null>(null);
 
   // Register main PWA service worker once on mount
@@ -56,33 +56,74 @@ export function FCMProvider() {
     const wasAuthenticated = prevAuthRef.current;
     prevAuthRef.current = isAuthenticated;
 
-    if (isAuthenticated && wasAuthenticated !== true && user) {
+    if (isAuthenticated && user) {
       initializeFCM(user).catch((error) => {
         console.error('[FCMProvider] FCM initialization failed:', error);
-        addToast('Erreur lors de l\'initialisation des notifications push.', 'error');
       });
     } else if (!isAuthenticated && wasAuthenticated === true) {
       cleanupFCM();
     }
-  }, [isAuthenticated, _hasHydrated, user, addToast]);
+  }, [isAuthenticated, _hasHydrated, user]);
 
-  // Set up foreground message handler through the shared FCM service
+
+  // Connect to useNotificationCountStore to fetch & poll counts
   useEffect(() => {
-    if (typeof window === 'undefined') return;
+    if (!isAuthenticated) return;
+    const { fetchCounts } = useNotificationCountStore.getState();
+    fetchCounts();
 
-    unsubscribeRef.current = setupForegroundMessageListener((payload) => {
-      const title = payload.notification?.title || 'Nouvelle notification';
-      const body = payload.notification?.body || '';
-      addToast(`🔔 ${title}${body ? ` — ${body}` : ''}`, 'info' as any);
-    });
+    const interval = setInterval(() => {
+      fetchCounts();
+    }, 30000);
 
-    return () => {
-      if (unsubscribeRef.current) {
-        unsubscribeRef.current();
+    // Refresh counts when window comes into focus or when notification is clicked
+    const handleFocus = () => {
+      const currentUser = useAuthStore.getState().user;
+      const roles = (currentUser?.roles || []).map((r: string) => String(r).toLowerCase());
+      const isClient = !roles.some((r) => r === 'admin' || r === 'serveuse' || r === 'superadmin' || r === 'livreur' || r === 'delivery');
+
+      if (isClient) {
+        // For client: clear all notifications from phone notification tray, mark push read & clear badge
+        useNotificationCountStore.getState().markAllNotificationsAsRead();
+      } else {
+        fetchCounts();
       }
     };
-  }, [addToast]);
+
+    // Listen for Service Worker notification click postMessage
+    const handleSWMessage = (event: MessageEvent) => {
+      if (event.data?.type === 'FCM_NOTIFICATION_CLICKED') {
+        const currentUser = useAuthStore.getState().user;
+        const roles = (currentUser?.roles || []).map((r: string) => String(r).toLowerCase());
+        const isClient = !roles.some((r) => r === 'admin' || r === 'serveuse' || r === 'superadmin' || r === 'livreur' || r === 'delivery');
+
+        if (isClient) {
+          useNotificationCountStore.getState().markAllNotificationsAsRead();
+        } else {
+          fetchCounts();
+        }
+      }
+    };
+
+
+    window.addEventListener('focus', handleFocus);
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.addEventListener('message', handleSWMessage);
+    }
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('focus', handleFocus);
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.removeEventListener('message', handleSWMessage);
+      }
+    };
+  }, [isAuthenticated]);
 
   return null;
 }
+
+
+
+
 

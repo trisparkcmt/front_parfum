@@ -4,7 +4,7 @@
  * Implements all endpoints from the API documentation.
  */
 
-import { api } from './api';
+import { api, isDashboardContext } from './api';
 import type {
   User,
   Essence,
@@ -716,7 +716,10 @@ export const shopService = {
     search?: string;
     ordering?: string;
   }) => {
-    const response = await api.get('shop/produits-essence/', { params });
+    const response = await api.get('shop/produits-essence/', {
+      params,
+      headers: { 'X-Context': isDashboardContext() ? 'dashboard' : 'boutique' },
+    });
     return response.data;
   },
 
@@ -738,7 +741,10 @@ export const shopService = {
     ordering?: string;
     actif?: boolean;
   }) => {
-    const response = await api.get('lab/essences/', { params });
+    const response = await api.get('lab/essences/', {
+      params,
+      headers: { 'X-Context': 'boutique' },
+    });
     return response.data;
   },
 
@@ -754,7 +760,9 @@ export const shopService = {
     prix_promotionnel?: string | null;
     actif?: boolean;
   } | FormData) => {
-    const response = await api.post('shop/produits-essence/', data);
+    const response = await api.post('shop/produits-essence/', data, {
+      headers: { 'X-Context': 'dashboard' },
+    });
     return response.data;
   },
 
@@ -762,7 +770,9 @@ export const shopService = {
    * Get finished essence by ID
    */
   getFinishedEssenceById: async (id: number) => {
-    const response = await api.get(`shop/produits-essence/${id}/`);
+    const response = await api.get(`shop/produits-essence/${id}/`, {
+      headers: { 'X-Context': isDashboardContext() ? 'dashboard' : 'boutique' },
+    });
     return response.data;
   },
 
@@ -775,7 +785,9 @@ export const shopService = {
     taille_ml?: number;
     actif?: boolean;
   } | FormData) => {
-    const response = await api.patch(`shop/produits-essence/${id}/`, data);
+    const response = await api.patch(`shop/produits-essence/${id}/`, data, {
+      headers: { 'X-Context': 'dashboard' },
+    });
     return response.data;
   },
 
@@ -783,7 +795,9 @@ export const shopService = {
    * Delete finished essence (Admin / Serveuse)
    */
   deleteFinishedEssence: async (id: number) => {
-    const response = await api.delete(`shop/produits-essence/${id}/`);
+    const response = await api.delete(`shop/produits-essence/${id}/`, {
+      headers: { 'X-Context': 'dashboard' },
+    });
     return response.data;
   },
 
@@ -821,7 +835,12 @@ export const labService = {
     page?: number;
     ordering?: string;
   }): Promise<Essence[]> => {
-    const response = await api.get('lab/essences/', { params });
+    const response = await api.get('lab/essences/', {
+      params,
+      headers: {
+        'X-Context': typeof window !== 'undefined' && isDashboardContext() ? 'dashboard' : 'labo',
+      },
+    });
     return response.data.resultats || response.data.results || response.data;
   },
 
@@ -850,10 +869,33 @@ export const labService = {
 
   /**
    * Get a single custom perfume composition by ID
+   *
+   * Some shared links may hit the detail endpoint before the object is visible to
+   * the current session (for example, a private composition shared by another user).
+   * In that case, fall back to the list endpoint and resolve by id so the atelier
+   * can still handle the link gracefully instead of crashing on a 404.
    */
   getCustomPerfume: async (id: number) => {
-    const response = await api.get(`lab/parfums-perso/${id}/`);
-    return response.data;
+    try {
+      const response = await api.get(`lab/parfums-perso/${id}/`);
+      return response.data;
+    } catch (error: any) {
+      if (error?.response?.status !== 404) {
+        throw error;
+      }
+
+      const listResponse = await api.get('lab/parfums-perso/');
+      const list = listResponse.data?.results || listResponse.data?.resultats || listResponse.data || [];
+      const found = Array.isArray(list)
+        ? list.find((item: any) => Number(item.id) === Number(id))
+        : null;
+
+      if (!found) {
+        throw error;
+      }
+
+      return found;
+    }
   },
 
   /**
@@ -985,7 +1027,9 @@ export const labService = {
       prix_promotionnel?: string | null;
     }>;
   } | FormData) => {
-    const response = await api.post('lab/essences/', data);
+    const response = await api.post('lab/essences/', data, {
+      headers: { 'X-Context': 'dashboard' },
+    });
     return response.data;
   },
 
@@ -1017,7 +1061,9 @@ export const labService = {
     const endpoint = typeof slugOrId === 'number'
       ? `lab/essences/${slugOrId}/`
       : `lab/essences/${slugOrId}/modifier/`;
-    const response = await api.patch(endpoint, data);
+    const response = await api.patch(endpoint, data, {
+      headers: { 'X-Context': 'dashboard' },
+    });
     return response.data;
   },
 
@@ -1025,15 +1071,20 @@ export const labService = {
    * Get a single essence by slug
    */
   getEssenceBySlug: async (slug: string) => {
-    const response = await api.get(`lab/essences/${slug}/`);
+    const response = await api.get(`lab/essences/${slug}/`, {
+      headers: { 'X-Context': typeof window !== 'undefined' && isDashboardContext() ? 'dashboard' : 'labo' },
+    });
     return response.data;
   },
 
   /**
    * Delete an essence (Admin)
+   * @param slugOrId - Slug or numeric ID of the essence to delete
    */
-  deleteEssence: async (id: number) => {
-    const response = await api.delete(`lab/essences/${id}/`);
+  deleteEssence: async (slugOrId: number | string) => {
+    const response = await api.delete(`lab/essences/${slugOrId}/`, {
+      headers: { 'X-Context': 'dashboard' },
+    });
     return response.data;
   },
 
@@ -1070,7 +1121,10 @@ export const labService = {
     actif?: boolean;
     page?: number;
   }) => {
-    const response = await api.get('lab/lots-essence/', { params });
+    const response = await api.get('lab/lots-essence/', {
+      params,
+      headers: { 'X-Context': 'dashboard' },
+    });
     return response.data;
   },
 
@@ -1078,7 +1132,9 @@ export const labService = {
    * Get single essence lot by ID
    */
   getLotEssenceById: async (id: number) => {
-    const response = await api.get(`lab/lots-essence/${id}/`);
+    const response = await api.get(`lab/lots-essence/${id}/`, {
+      headers: { 'X-Context': 'dashboard' },
+    });
     return response.data;
   },
 
@@ -1094,7 +1150,9 @@ export const labService = {
     reference_fournisseur?: string;
     actif?: boolean;
   }) => {
-    const response = await api.post('lab/lots-essence/', data);
+    const response = await api.post('lab/lots-essence/', data, {
+      headers: { 'X-Context': 'dashboard' },
+    });
     return response.data;
   },
 
@@ -1109,7 +1167,9 @@ export const labService = {
     reference_fournisseur?: string;
     actif?: boolean;
   }) => {
-    const response = await api.patch(`lab/lots-essence/${id}/`, data);
+    const response = await api.patch(`lab/lots-essence/${id}/`, data, {
+      headers: { 'X-Context': 'dashboard' },
+    });
     return response.data;
   },
 
@@ -1117,7 +1177,9 @@ export const labService = {
    * Delete an essence lot (Admin / Laborantin)
    */
   deleteLotEssence: async (id: number) => {
-    const response = await api.delete(`lab/lots-essence/${id}/`);
+    const response = await api.delete(`lab/lots-essence/${id}/`, {
+      headers: { 'X-Context': 'dashboard' },
+    });
     return response.data;
   },
 
@@ -1125,7 +1187,7 @@ export const labService = {
    * Get available labo inventory list (Admin / Laborantin / Serveuse)
    */
   getLaboInventoryAvailable: async () => {
-    const response = await api.get('lab/labo/essences/disponible/');
+    const response = await api.get('lab/labo/essences/disponible/disponible/');
     return response.data;
   },
 
@@ -1133,7 +1195,7 @@ export const labService = {
    * Get labo inventory item detail by slug (Admin / Laborantin / Serveuse)
    */
   getLaboInventoryDetail: async (slug: string) => {
-    const response = await api.get(`lab/labo/essences/${slug}/detail/`);
+    const response = await api.get(`lab/labo/essences/disponible/${slug}/detail/`);
     return response.data;
   },
 
@@ -1141,7 +1203,7 @@ export const labService = {
    * Get labo inventory list (Admin / Laborantin)
    */
   getLaboInventory: async () => {
-    const response = await api.get('lab/labo/essences/');
+    const response = await api.get('lab/labo/essences/disponible/');
     return response.data;
   },
 
@@ -1149,7 +1211,7 @@ export const labService = {
    * Get labo inventory item detail (Admin / Laborantin)
    */
   getLaboInventoryById: async (id: number) => {
-    const response = await api.get(`lab/labo/essences/${id}/`);
+    const response = await api.get(`lab/labo/essences/disponible/${id}/`);
     return response.data;
   },
 
@@ -1157,7 +1219,7 @@ export const labService = {
    * Update labo inventory item (Admin / Laborantin)
    */
   updateLaboInventory: async (id: number, data: any) => {
-    const response = await api.patch(`lab/labo/essences/${id}/`, data);
+    const response = await api.patch(`lab/labo/essences/disponible/${id}/`, data);
     return response.data;
   },
 
@@ -1165,7 +1227,7 @@ export const labService = {
    * Delete labo inventory item (Admin / Laborantin)
    */
   deleteLaboInventory: async (id: number) => {
-    const response = await api.delete(`lab/labo/essences/${id}/`);
+    const response = await api.delete(`lab/labo/essences/disponible/${id}/`);
     return response.data;
   },
 };

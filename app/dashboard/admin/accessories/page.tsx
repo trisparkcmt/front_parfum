@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Search, Plus, Edit2, Trash2, Loader2, SlidersHorizontal, X, Tag, Layers, Palette, DollarSign, Boxes } from 'lucide-react';
+import { Search, Plus, Edit2, Trash2, Loader2, SlidersHorizontal, X, Tag, Layers, Palette, DollarSign, Boxes, AlertCircle } from 'lucide-react';
 import { shopService, adminService } from '@/services/apiService';
 import { useToastStore } from '@/store/useToastStore';
 import { useCatalogPermissions } from '@/hooks/useCatalogPermissions';
@@ -15,6 +15,7 @@ import { SlideOver } from '@/components/ui/SlideOver';
 import { InlineCell } from '@/components/admin/InlineCell';
 import { TablePagination } from '@/components/admin/TablePagination';
 import { useTranslation } from 'react-i18next';
+import { CustomSelect } from '@/components/ui/CustomSelect';
 
 /* ── Inline translations ─────────────────────────────────────────────────── */
 const T = {
@@ -231,7 +232,6 @@ export default function AccessoriesPage() {
   const [form, setForm] = useState({
     marque: '',
     nom: '',
-    slug: '',
     reference_sku: '',
     type_accessoire: '',
     description_courte: '',
@@ -246,9 +246,11 @@ export default function AccessoriesPage() {
     stock_quantite: '',
     seuil_alerte_stock: '',
     poids_grammes: '',
+    actif: true,
   });
 
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+  const [formError, setFormError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
   const { addToast } = useToastStore();
@@ -303,7 +305,6 @@ export default function AccessoriesPage() {
     setForm({
       marque: '',
       nom: '',
-      slug: '',
       reference_sku: '',
       type_accessoire: accessoryTypes[0]?.id ? String(accessoryTypes[0].id) : '',
       description_courte: '',
@@ -318,6 +319,7 @@ export default function AccessoriesPage() {
       stock_quantite: '',
       seuil_alerte_stock: '',
       poids_grammes: '',
+      actif: true,
     });
     setImageFiles({
       image_principale: null,
@@ -336,7 +338,6 @@ export default function AccessoriesPage() {
     setForm({
       marque: acc.marque || 'Accessoire Exclusif',
       nom: acc.nom || '',
-      slug: acc.slug || '',
       reference_sku: acc.reference_sku || '',
       type_accessoire: String(acc.type_accessoire?.id || acc.type_accessoire || ''),
       description_courte: acc.description_courte || '',
@@ -351,6 +352,7 @@ export default function AccessoriesPage() {
       stock_quantite: String(acc.stock_quantite || ''),
       seuil_alerte_stock: String(acc.seuil_alerte_stock || '3'),
       poids_grammes: String(acc.poids_grammes || ''),
+      actif: acc.actif !== undefined ? Boolean(acc.actif) : true,
     });
     setImageFiles({
       image_principale: null,
@@ -362,7 +364,7 @@ export default function AccessoriesPage() {
     setShowModal(true);
   };
 
-  const updateForm = (field: keyof typeof form, value: string) => {
+  const updateForm = (field: keyof typeof form, value: string | boolean) => {
     setForm(prev => ({ ...prev, [field]: value }));
   };
 
@@ -375,6 +377,9 @@ export default function AccessoriesPage() {
 
   const handleSave = async () => {
     if (!permissions.canCreate && !permissions.canUpdate) return;
+
+    // Clear previous error
+    setFormError(null);
 
     const errors: Record<string, string> = {};
     if (!form.marque) errors.marque = t('err_brand');
@@ -411,24 +416,26 @@ export default function AccessoriesPage() {
 
     try {
       if (editingAccessory) {
-        // Optimistic: update in state immediately
+        await adminService.patchFormData(`shop/accessoires/${editingAccessory.slug}/`, formData);
         setAccessories(prev => prev.map(a =>
           (a.slug || a.id) === (editingAccessory.slug || editingAccessory.id)
             ? { ...a, ...Object.fromEntries(formData.entries()) }
             : a
         ));
-        setShowModal(false);
-        await adminService.patchFormData(`shop/accessoires/${editingAccessory.slug}/`, formData);
         addToast(t('toast_update_ok'), 'success');
+        setShowModal(false);
+        setFormError(null);
         fetchAccessories(); // sync to get server-normalised data
       } else {
-        setShowModal(false);
         await adminService.postFormData('shop/accessoires/', formData);
         addToast(t('toast_create_ok'), 'success');
+        setShowModal(false);
+        setFormError(null);
         fetchAccessories(); // add new item
       }
     } catch (error: any) {
-      addToast(error.response?.data?.detail || t('toast_save_error'), 'error');
+      const errorMessage = error.response?.data?.detail || t('toast_save_error');
+      setFormError(errorMessage);
     } finally {
       setSaving(false);
     }
@@ -631,15 +638,16 @@ export default function AccessoriesPage() {
             </div>
             <div>
               <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-foreground/35">Stock</p>
-              <select
+              <CustomSelect
                 value={enStockFilter}
-                onChange={e => setEnStockFilter(e.target.value)}
-                className="w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-foreground outline-none transition-colors focus:border-gold/50"
-              >
-                <option value="" className="bg-background">{t('all')}</option>
-                <option value="true" className="bg-background">{t('filter_in_stock')}</option>
-                <option value="false" className="bg-background">{t('filter_low_stock')}</option>
-              </select>
+                onChange={setEnStockFilter}
+                size="sm"
+                options={[
+                  { value: '', label: t('all') },
+                  { value: 'true', label: t('filter_in_stock') },
+                  { value: 'false', label: t('filter_low_stock') },
+                ]}
+              />
             </div>
           </div>
         )}
@@ -869,6 +877,23 @@ export default function AccessoriesPage() {
           </div>
         }
       >
+        {/* Error Banner */}
+        {formError && (
+          <div className="mb-4 rounded-xl bg-red-500/10 border border-red-500/20 p-4 flex items-start gap-3">
+            <AlertCircle size={20} className="text-red-400 shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <p className="text-sm font-medium text-red-400">{isEn ? 'Save Error' : 'Erreur lors de la sauvegarde'}</p>
+              <p className="mt-1 text-xs text-red-400/80">{formError}</p>
+            </div>
+            <button
+              onClick={() => setFormError(null)}
+              className="text-red-400/60 hover:text-red-400 transition-colors"
+            >
+              <X size={16} />
+            </button>
+          </div>
+        )}
+
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.6fr_0.9fr]">
           <div className="space-y-4">
 
@@ -890,18 +915,29 @@ export default function AccessoriesPage() {
                     className={inputCls}
                   />
                 </Field>
-                <Field label="Type d'accessoire" required error={formErrors.type_accessoire}>
-                  <select
-                    data-field="type_accessoire"
-                    value={form.type_accessoire}
-                    onChange={e => updateForm('type_accessoire', e.target.value)}
-                    className={inputCls}
-                  >
-                    <option value="" disabled className="bg-background">Choisir un type</option>
-                    {accessoryTypes.map(t => (
-                      <option key={t.id} value={t.id} className="bg-background">{t.nom}</option>
-                    ))}
-                  </select>
+                  <Field label="Type d'accessoire" required error={formErrors.type_accessoire}>
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 relative z-[9999]">
+                      <CustomSelect
+                        data-field="type_accessoire"
+                        value={form.type_accessoire}
+                        onChange={v => updateForm('type_accessoire', v)}
+                        placeholder="Choisir un type"
+                        error={!!formErrors.type_accessoire}
+                        options={accessoryTypes.map(t => ({ value: String(t.id), label: t.nom }))}
+                        className="relative z-[9999]"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setIsTypeModalOpen(true)}
+                      className="flex h-11 w-11 items-center justify-center rounded-lg border border-gold/40 bg-gold/10 text-lg font-semibold text-gold transition-colors hover:bg-gold/20"
+                      aria-label="Créer un nouveau type d'accessoire"
+                      title="Créer un nouveau type d'accessoire"
+                    >
+                      +
+                    </button>
+                  </div>
                 </Field>
                 <Field label="Référence SKU" error={formErrors.reference_sku}>
                   <input
@@ -912,17 +948,6 @@ export default function AccessoriesPage() {
                     className={inputCls}
                   />
                 </Field>
-                <div className="sm:col-span-2">
-                  <Field label="Slug" error={formErrors.slug}>
-                    <input
-                      data-field="slug"
-                      value={form.slug}
-                      onChange={e => updateForm('slug', e.target.value)}
-                      placeholder="Généré automatiquement si vide"
-                      className={inputCls}
-                    />
-                  </Field>
-                </div>
               </div>
             </FormSection>
 
@@ -1055,6 +1080,15 @@ export default function AccessoriesPage() {
                   />
                 </Field>
               </div>
+              <label className="mt-3 flex items-center gap-2 text-xs text-foreground/70">
+                <input
+                  type="checkbox"
+                  checked={form.actif}
+                  onChange={e => setForm(prev => ({ ...prev, actif: Boolean(e.target.checked) }))}
+                  className="rounded border-white/10 bg-white/5 text-gold focus:ring-gold"
+                />
+                <span>Actif / visible dans la boutique</span>
+              </label>
             </FormSection>
           </div>
 

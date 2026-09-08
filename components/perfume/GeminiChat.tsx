@@ -156,9 +156,10 @@ interface AiProduct {
 
 interface AiEssence {
   id: number;
+  lot_essence_id?: number;
   nom: string;
-  code_reference: string;
-  prix_par_ml: string;
+  code_reference?: string;
+  prix_par_ml?: string;
   quantite_ml: number;
   prix_total_quantite: string;
 }
@@ -1039,7 +1040,7 @@ export function GeminiChat({ onChatStarted }: GeminiChatProps) {
       const apiResponse = await api.post(
         'lab/ia-recommandation/',
         { prompt: fullPrompt },
-        { signal: abortControllerRef.current.signal }
+        { signal: abortControllerRef.current.signal, timeout: 60000 }
       );
 
       const response: AiResponse = apiResponse.data;
@@ -1050,14 +1051,30 @@ export function GeminiChat({ onChatStarted }: GeminiChatProps) {
 
       if (response.essences_pre_faites && response.essences_pre_faites.length > 0) {
         response.essences_pre_faites.forEach(item => {
-          const essence = essences.find(
-            e => e.id === String(item.id) || e.name === item.nom || String((e as unknown as { nom?: string }).nom || '') === item.nom
+          let essence = essences.find(
+            e => e.id === String(item.id) || 
+                 (e.lotEssenceId && item.lot_essence_id && String(e.lotEssenceId) === String(item.lot_essence_id)) || 
+                 e.name === item.nom || 
+                 String((e as unknown as { nom?: string }).nom || '') === item.nom
           );
-          if (essence) {
-            compositionEssences.push({ essence, quantityMl: item.quantite_ml });
-            totalPrice += Number(item.prix_total_quantite);
-            totalMl += item.quantite_ml;
+
+          if (!essence) {
+            essence = {
+              id: String(item.id),
+              name: item.nom,
+              pricePerMl: Number(item.prix_par_ml || 0),
+              inStock: true,
+              backendId: item.id,
+              lotEssenceId: item.lot_essence_id,
+              itemType: 'essence',
+            } as any;
           }
+
+          if (!essence) return;
+
+          compositionEssences.push({ essence, quantityMl: item.quantite_ml });
+          totalPrice += Number(item.prix_total_quantite);
+          totalMl += item.quantite_ml;
         });
       } else if (response.ingredients_sur_mesure && response.ingredients_sur_mesure.length > 0) {
         response.ingredients_sur_mesure.forEach(item => {

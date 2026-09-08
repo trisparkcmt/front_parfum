@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { GoogleAnalytics } from "@next/third-parties/google";
 import "./globals.css";
 import { lora } from "@/lib/fonts";
 import { LayoutWrapper } from "@/components/shared/LayoutWrapper";
@@ -6,9 +7,6 @@ import { ToastProvider } from "@/components/shared/ToastProvider";
 import { FCMProvider } from "@/components/pwa/FCMProvider";
 import { InstallPrompt } from "@/components/pwa/InstallPrompt";
 import { OfflineBanner } from "@/components/shared/OfflineBanner";
-
-// 1. Import the optimized Next.js Google Analytics component
-import { GoogleAnalytics } from '@next/third-parties/google';
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://accessoiresexclusifs.com'),
@@ -98,6 +96,8 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const gaId = process.env.NEXT_PUBLIC_GA_ID || "G-LZ9Y34PNZP";
+  
   return (
     <html lang="fr" className={`h-full antialiased ${lora.variable}`} suppressHydrationWarning>
       <head>
@@ -124,6 +124,7 @@ export default function RootLayout({
         />
       </head>
       <body className="min-h-full flex flex-col bg-background text-foreground selection:bg-gold selection:text-deep-black font-serif" suppressHydrationWarning>
+        
         <LayoutWrapper>
           {children}
         </LayoutWrapper>
@@ -131,9 +132,9 @@ export default function RootLayout({
         <FCMProvider />
         <InstallPrompt />
         <OfflineBanner />
-
-        {/* 2. Google Analytics tracking code */}
-        <GoogleAnalytics gaId="G-JG0NYEN3VL" />
+        
+        {/* Official Next.js Google Analytics component */}
+        <GoogleAnalytics gaId={gaId} />
       </body>
     </html>
   );

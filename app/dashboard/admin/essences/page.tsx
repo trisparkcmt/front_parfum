@@ -1,12 +1,16 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { 
-  Search, Plus, Edit2, Trash2, Droplets, Loader2, 
-  ShoppingBag, RefreshCw, ChevronLeft, ChevronRight, X, AlertCircle, Layers, Filter
+import { type LucideIcon,
+  Search, Plus, Edit2, Trash2, Loader2,
+  ShoppingBag, RefreshCw, ChevronLeft, ChevronRight, X, AlertCircle, Filter
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { InlineCell } from '@/components/admin/InlineCell';
+import { AdminTableSkeleton } from '@/components/ui/AdminTableSkeleton';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { CustomSelect } from '@/components/ui/CustomSelect';
+import { mapErrorToUserMessage } from '@/lib/errorMapper';
 
 /* ── Inline translations ─────────────────────────────────────────────────── */
 const T = {
@@ -86,7 +90,34 @@ const T = {
   },
 } as const;
 type TKey = keyof typeof T.fr;
-import { labService, adminService } from '@/services/apiService';
+
+type EssenceRecord = {
+  id: number;
+  slug?: string;
+  nom?: string;
+  marque?: string;
+  code_reference?: string;
+  categorie?: string;
+  description?: string;
+  intensite?: string;
+  genre_cible?: string;
+  actif?: boolean;
+  prix_par_ml?: number | string;
+  vendu_comme_produit_fini?: boolean;
+  initial_lot?: {
+    stock_ml?: number | string;
+    seuil_alerte_ml?: number | string;
+    reference_fournisseur?: string;
+  };
+  produits_finis?: Array<{
+    taille_ml?: number | string;
+    prix?: number | string;
+    prix_promotionnel?: number | string | null;
+    stock_disponible?: number | string;
+  }>;
+};
+
+import { labService } from '@/services/apiService';
 import { useToastStore } from '@/store/useToastStore';
 import { useCatalogPermissions } from '@/hooks/useCatalogPermissions';
 import CatalogAccessNotice from '@/components/catalog/CatalogAccessNotice';
@@ -101,7 +132,7 @@ function cx(...classes: (string | boolean | undefined | null)[]) {
 }
 
 // Reusable Status Chip Primitive
-function StatusChip({ variant, label, icon: Icon }: { variant: 'emerald' | 'blue' | 'amber' | 'red' | 'purple' | 'neutral', label: string, icon?: any }) {
+function StatusChip({ variant, label, icon: Icon }: { variant: 'emerald' | 'blue' | 'amber' | 'red' | 'purple' | 'neutral', label: string, icon?: LucideIcon }) {
   const styles = {
     emerald: 'text-emerald-400 bg-emerald-500/10 ring-emerald-500/20',
     blue: 'text-blue-400 bg-blue-500/10 ring-blue-500/20',
@@ -132,7 +163,7 @@ function StatusChip({ variant, label, icon: Icon }: { variant: 'emerald' | 'blue
 }
 
 // Reusable Action Button Primitive
-function IconButton({ icon: Icon, onClick, title, tint = 'gold' }: { icon: any, onClick?: () => void, title?: string, tint?: 'gold' | 'red' | 'blue' | 'neutral' }) {
+function IconButton({ icon: Icon, onClick, title, tint = 'gold' }: { icon: LucideIcon, onClick?: () => void, title?: string, tint?: 'gold' | 'red' | 'blue' | 'neutral' }) {
   const tintStyles = {
     gold: 'hover:text-gold hover:bg-gold/10',
     red: 'hover:text-red-400 hover:bg-red-500/10',
@@ -158,14 +189,14 @@ export default function EssencesPage() {
   const permissions = useCatalogPermissions('essences');
   const { i18n } = useTranslation();
   const isEn = i18n.language?.startsWith('en') ?? false;
-  const t = (k: TKey) => isEn ? T.en[k] : T.fr[k];
-  const [essences, setEssences] = useState<any[]>([]);
+  const t = useCallback((k: TKey) => isEn ? T.en[k] : T.fr[k], [isEn]);
+  const [essences, setEssences] = useState<EssenceRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [showFilters, setShowFilters] = useState(false);
   const [showModal, setShowModal] = useState(false);
-  const [editingEssence, setEditingEssence] = useState<any | null>(null);
+  const [editingEssence, setEditingEssence] = useState<EssenceRecord | null>(null);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
@@ -184,6 +215,7 @@ export default function EssencesPage() {
     description: '',
     intensite: 'moyenne',
     genreCible: 'mixte',
+    actif: true,
     prixParMl: '',
     lotStockMl: '',
     lotSeuilAlerteMl: '',
@@ -196,21 +228,71 @@ export default function EssencesPage() {
       stock_disponible: '',
     },
   });
-  const [produitFiniImageFile, setProduitFiniImageFile] = useState<File | null>(null);
-  const [selectedEssences, setSelectedEssences] = useState<Set<number>>(new Set());
+  const [, setProduitFiniImageFile] = useState<File | null>(null);
+  const [selectedEssences, setSelectedEssences] = useState<Set<string>>(new Set());
 
-  const updateForm = (field: string, value: any) => {
-    setForm(prev => ({
-      ...prev,
-      [field]: value,
-    }));
-    if (formErrors[field]) {
-      setFormErrors(prev => {
-        const updated = { ...prev };
-        delete updated[field];
-        return updated;
-      });
+  const validateBoutiqueFormat = (nextForm = form) => {
+    const nextErrors: Record<string, string> = {};
+
+    if (!nextForm.includeProduitsFinis) {
+      return nextErrors;
     }
+
+    const tailleMl = Number(nextForm.produitFini.taille_ml);
+    const stockDisponible = Number(nextForm.produitFini.stock_disponible);
+
+    if (nextForm.produitFini.taille_ml !== '' && (!Number.isFinite(tailleMl) || tailleMl <= 0)) {
+      nextErrors['produitFini.taille_ml'] = 'La taille doit être supérieure à 0';
+    }
+
+    if (nextForm.produitFini.stock_disponible !== '' && (!Number.isFinite(stockDisponible) || stockDisponible < 0)) {
+      nextErrors['produitFini.stock_disponible'] = 'Le stock disponible doit être supérieur ou égal à 0';
+    }
+
+    return nextErrors;
+  };
+
+  const updateForm = (field: string, value: string | boolean | File | null | Record<string, string | number | boolean | null>) => {
+    // Support nested dot-notation keys like "produitFini.taille_ml"
+    let nextForm = form;
+
+    if (field.includes('.')) {
+      const [parent, child] = field.split('.');
+      const parentValue = form[parent as keyof typeof form];
+      const currentNested = typeof parentValue === 'object' && parentValue !== null ? parentValue as Record<string, string | number | boolean | null> : {};
+      nextForm = {
+        ...form,
+        [parent]: {
+          ...currentNested,
+          [child]: value,
+        },
+      };
+    } else {
+      nextForm = {
+        ...form,
+        [field]: value,
+      };
+    }
+
+    setForm(nextForm);
+
+    setFormErrors(prev => {
+      const updated = { ...prev };
+      delete updated[field];
+
+      if (field === 'includeProduitsFinis' || field === 'lotStockMl' || field.includes('produitFini')) {
+        const validationErrors = validateBoutiqueFormat(nextForm);
+        Object.keys(validationErrors).forEach((key) => {
+          updated[key] = validationErrors[key];
+        });
+        if (!nextForm.includeProduitsFinis) {
+          delete updated['produitFini.taille_ml'];
+          delete updated['produitFini.prix'];
+        }
+      }
+
+      return updated;
+    });
   };
 
   const resetForm = () => {
@@ -222,6 +304,7 @@ export default function EssencesPage() {
       description: '',
       intensite: 'moyenne',
       genreCible: 'mixte',
+      actif: true,
       prixParMl: '',
       lotStockMl: '',
       lotSeuilAlerteMl: '',
@@ -243,23 +326,19 @@ export default function EssencesPage() {
     try {
       setLoading(true);
       const essencesData = await labService.getEssences();
-      const essList = Array.isArray(essencesData) ? essencesData : (essencesData as any)?.results || (essencesData as any)?.resultats || [];
-      setEssences(essList);
+      const essList = Array.isArray(essencesData) ? essencesData : (essencesData as Record<string, unknown>)?.results || (essencesData as Record<string, unknown>)?.resultats || [];
+      setEssences(essList as EssenceRecord[]);
     } catch {
       addToast(t('toast_load_error'), 'error');
     } finally {
       setLoading(false);
     }
-  }, [addToast]);
+  }, [addToast, t]);
 
   useEffect(() => {
-    fetchData();
+    const timer = window.setTimeout(() => void fetchData(), 0);
+    return () => window.clearTimeout(timer);
   }, [fetchData]);
-
-  // Réinitialiser la page quand la recherche change
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [search, selectedCategory]);
 
   const openAdd = () => {
     if (!permissions.canCreate) return;
@@ -268,7 +347,7 @@ export default function EssencesPage() {
     setShowModal(true);
   };
 
-  const openEdit = (item: any) => {
+  const openEdit = (item: EssenceRecord) => {
     if (!permissions.canUpdate) return;
     setEditingEssence(item);
     setForm({
@@ -279,16 +358,17 @@ export default function EssencesPage() {
       description: item.description || '',
       intensite: item.intensite || 'moyenne',
       genreCible: item.genre_cible || 'mixte',
+      actif: item.actif !== undefined ? Boolean(item.actif) : true,
       prixParMl: String(item.prix_par_ml || '0.00'),
-      lotStockMl: item.initial_lot?.stock_ml || '',
-      lotSeuilAlerteMl: item.initial_lot?.seuil_alerte_ml || '',
+      lotStockMl: String(item.initial_lot?.stock_ml ?? ''),
+      lotSeuilAlerteMl: String(item.initial_lot?.seuil_alerte_ml ?? ''),
       lotReferenceFournisseur: item.initial_lot?.reference_fournisseur || '',
       includeProduitsFinis: !!item.produits_finis?.length,
       produitFini: item.produits_finis?.[0] ? {
         taille_ml: String(item.produits_finis[0].taille_ml || ''),
         prix: String(item.produits_finis[0].prix || ''),
-        prix_promotionnel: item.produits_finis[0].prix_promotionnel || '',
-        stock_disponible: String(item.produits_finis[0].stock_disponible || ''),
+        prix_promotionnel: String(item.produits_finis[0].prix_promotionnel ?? ''),
+        stock_disponible: String(item.produits_finis[0].stock_disponible ?? ''),
       } : {
         taille_ml: '',
         prix: '',
@@ -304,6 +384,9 @@ export default function EssencesPage() {
 
   const handleSave = async () => {
     if (!permissions.canCreate && !permissions.canUpdate) return;
+    
+    // Clear previous error banner
+    setFormError(null);
     
     const errors: Record<string, string> = {};
     
@@ -321,12 +404,9 @@ export default function EssencesPage() {
       errors.description = 'La description doit contenir au moins 10 caractères';
     
     if (!editingEssence) {
-      if (!form.lotStockMl) errors.lotStockMl = 'Le stock ML est requis';
-      else if (isNaN(Number(form.lotStockMl)) || Number(form.lotStockMl) <= 0) 
+      if (form.lotStockMl && (isNaN(Number(form.lotStockMl)) || Number(form.lotStockMl) <= 0))
         errors.lotStockMl = 'Le stock ML doit être supérieur à 0';
-      
-      if (!form.lotSeuilAlerteMl) errors.lotSeuilAlerteMl = 'Le seuil d\'alerte ML est requis';
-      else if (isNaN(Number(form.lotSeuilAlerteMl)) || Number(form.lotSeuilAlerteMl) < 0) 
+      if (form.lotSeuilAlerteMl && (isNaN(Number(form.lotSeuilAlerteMl)) || Number(form.lotSeuilAlerteMl) < 0))
         errors.lotSeuilAlerteMl = 'Le seuil d\'alerte ML doit être supérieur ou égal à 0';
     }
     
@@ -334,24 +414,19 @@ export default function EssencesPage() {
       if (!form.produitFini.taille_ml) errors['produitFini.taille_ml'] = 'La taille du format boutique est requise';
       else if (isNaN(Number(form.produitFini.taille_ml)) || Number(form.produitFini.taille_ml) <= 0) 
         errors['produitFini.taille_ml'] = 'La taille doit être supérieure à 0';
-      
+
       if (!form.produitFini.prix) errors['produitFini.prix'] = 'Le prix du format boutique est requis';
       else if (isNaN(Number(form.produitFini.prix)) || Number(form.produitFini.prix) <= 0) 
         errors['produitFini.prix'] = 'Le prix doit être supérieur à 0';
-      
-      if (form.produitFini.stock_disponible === '') errors['produitFini.stock_disponible'] = 'Le stock est requis';
-      else if (isNaN(Number(form.produitFini.stock_disponible)) || Number(form.produitFini.stock_disponible) < 0) 
-        errors['produitFini.stock_disponible'] = 'Le stock doit être supérieur ou égal à 0';
-      
-      if (!produitFiniImageFile) errors.produitFiniImageFile = 'Une image est requise pour le format boutique';
-      
-      if (form.produitFini.stock_disponible !== '' && form.lotStockMl !== '') {
-        const boutiqueStock = Number(form.produitFini.stock_disponible);
-        const lotStock = Number(form.lotStockMl);
-        if (!isNaN(boutiqueStock) && !isNaN(lotStock) && boutiqueStock > lotStock) {
-          errors['produitFini.stock_disponible'] = 'Le stock boutique doit être ≤ au stock initial du lot';
-        }
+
+      if (form.produitFini.stock_disponible === '') {
+        errors['produitFini.stock_disponible'] = 'Le stock disponible est requis';
+      } else if (isNaN(Number(form.produitFini.stock_disponible)) || Number(form.produitFini.stock_disponible) < 0) {
+        errors['produitFini.stock_disponible'] = 'Le stock disponible doit être supérieur ou égal à 0';
       }
+
+      const boutiqueFormatErrors = validateBoutiqueFormat(form);
+      Object.assign(errors, boutiqueFormatErrors);
     }
     
     if (Object.keys(errors).length > 0) {
@@ -379,41 +454,73 @@ export default function EssencesPage() {
           intensite: form.intensite,
           genre_cible: form.genreCible,
           prix_par_ml: form.prixParMl,
+          actif: form.actif,
         };
-        setEssences(prev => prev.map(e => (e.slug || String(e.id)) === (editingEssence.slug || String(editingEssence.id)) ? { ...e, ...payload } : e));
-        setShowModal(false);
         await labService.updateEssence(editingEssence.slug || editingEssence.id, payload);
+        setEssences(prev => prev.map(e => (e.slug || String(e.id)) === (editingEssence.slug || String(editingEssence.id)) ? { ...e, ...payload } : e));
         addToast(t('toast_update_ok'), 'success');
+        setShowModal(false);
+        resetForm();
         fetchData();
       } else {
-        const formData = new FormData();
-        formData.append('nom', form.nom);
-        formData.append('marque', form.marque);
-        formData.append('code_reference', form.codeReference);
-        formData.append('categorie', form.categorie);
-        formData.append('description', form.description || '');
-        formData.append('intensite', form.intensite);
-        formData.append('genre_cible', form.genreCible);
-        formData.append('prix_par_ml', form.prixParMl);
-        formData.append('initial_lot[stock_ml]', form.lotStockMl);
-        formData.append('initial_lot[seuil_alerte_ml]', form.lotSeuilAlerteMl || '0');
-        formData.append('initial_lot[reference_fournisseur]', form.lotReferenceFournisseur || '');
-        if (form.includeProduitsFinis) {
-          formData.append('produits_finis[0][taille_ml]', form.produitFini.taille_ml);
-          formData.append('produits_finis[0][prix]', form.produitFini.prix);
-          formData.append('produits_finis[0][prix_promotionnel]', form.produitFini.prix_promotionnel || '');
-          formData.append('produits_finis[0][stock_disponible]', form.produitFini.stock_disponible);
-          if (produitFiniImageFile) {
-            formData.append('produits_finis[0][image_principale]', produitFiniImageFile);
-          }
+        const payload: {
+          marque: string;
+          nom: string;
+          categorie: string;
+          code_reference: string;
+          description?: string;
+          intensite: string;
+          genre_cible: string;
+          prix_par_ml: string;
+          actif: boolean;
+          seuil_alerte_ml?: string;
+          initial_lot?: {
+            stock_ml: string;
+            prix_achat_par_ml?: string;
+            reference_fournisseur?: string;
+            actif?: boolean;
+          };
+          produits_finis?: Array<{
+            taille_ml: number;
+            prix: string;
+            prix_promotionnel?: string | null;
+          }>;
+        } = {
+          marque: form.marque,
+          nom: form.nom,
+          categorie: form.categorie,
+          code_reference: form.codeReference,
+          description: form.description || undefined,
+          intensite: form.intensite,
+          genre_cible: form.genreCible,
+          prix_par_ml: form.prixParMl,
+          actif: form.actif,
+          seuil_alerte_ml: form.lotSeuilAlerteMl || undefined,
+        };
+        if (form.lotStockMl) {
+          payload.initial_lot = {
+            stock_ml: form.lotStockMl,
+            prix_achat_par_ml: undefined,
+            reference_fournisseur: form.lotReferenceFournisseur || undefined,
+            actif: true,
+          };
         }
-        setShowModal(false);
-        await adminService.postFormData('lab/essences/', formData);
+        if (form.includeProduitsFinis) {
+          payload.produits_finis = [{
+            taille_ml: Number(form.produitFini.taille_ml),
+            prix: form.produitFini.prix,
+            prix_promotionnel: form.produitFini.prix_promotionnel || null,
+          }];
+        }
+        await labService.createEssence(payload);
         addToast(t('toast_create_ok'), 'success');
+        setShowModal(false);
+        resetForm();
         fetchData();
       }
-    } catch (e: any) {
-      const errorMessage = e.response?.data?.detail || e.response?.data?.error || t('toast_save_error');
+    } catch (e: unknown) {
+      const errorResponse = e as { response?: { data?: { detail?: string; error?: string } } };
+      const errorMessage = errorResponse.response?.data?.detail || errorResponse.response?.data?.error || t('toast_save_error');
       setFormError(errorMessage);
     } finally {
       setSaving(false);
@@ -431,13 +538,13 @@ export default function EssencesPage() {
     }
   };
 
-  const handleDelete = async (id: number) => {
+  const handleDelete = async (slugOrId: string | number) => {
     if (!permissions.canDelete) return;
     if (!confirm(t('confirm_delete'))) return;
-    const snapshot = essences.find(e => e.id === id);
-    setEssences(prev => prev.filter(e => e.id !== id));
+    const snapshot = essences.find(e => (e.slug || String(e.id)) === String(slugOrId));
+    setEssences(prev => prev.filter(e => (e.slug || String(e.id)) !== String(slugOrId)));
     try {
-      await labService.deleteEssence(id);
+      await labService.deleteEssence(slugOrId);
       addToast(t('toast_delete_ok'), 'success');
     } catch {
       if (snapshot) setEssences(prev => [snapshot, ...prev]);
@@ -445,13 +552,13 @@ export default function EssencesPage() {
     }
   };
 
-  const toggleSelectEssence = (id: number) => {
+  const toggleSelectEssence = (slugOrId: string) => {
     setSelectedEssences(prev => {
       const newSet = new Set(prev);
-      if (newSet.has(id)) {
-        newSet.delete(id);
+      if (newSet.has(slugOrId)) {
+        newSet.delete(slugOrId);
       } else {
-        newSet.add(id);
+        newSet.add(slugOrId);
       }
       return newSet;
     });
@@ -460,16 +567,16 @@ export default function EssencesPage() {
   const handleBulkDelete = async () => {
     if (!permissions.canDelete || selectedEssences.size === 0) return;
     if (!confirm(`${t('confirm_bulk')} ${selectedEssences.size} ${t('essences_label')} ?`)) return;
-    const ids = Array.from(selectedEssences);
-    const snapshots = essences.filter(e => ids.includes(e.id));
-    setEssences(prev => prev.filter(e => !ids.includes(e.id)));
+    const slugsOrIds = Array.from(selectedEssences);
+    const snapshots = essences.filter(e => slugsOrIds.includes(e.slug || String(e.id)));
+    setEssences(prev => prev.filter(e => !slugsOrIds.includes(e.slug || String(e.id))));
     setSelectedEssences(new Set());
     try {
-      for (const id of ids) {
-        try { await labService.deleteEssence(id); } catch (e) { console.error(`Failed to delete essence ${id}:`, e); }
+      for (const slugOrId of slugsOrIds) {
+        try { await labService.deleteEssence(slugOrId); } catch (e) { console.error(`Failed to delete essence ${slugOrId}:`, e); }
       }
-      addToast(`${ids.length} ${t('toast_bulk_ok')}`, 'success');
-    } catch (error) {
+      addToast(`${slugsOrIds.length} ${t('toast_bulk_ok')}`, 'success');
+    } catch {
       setEssences(prev => [...snapshots, ...prev]);
       addToast(t('toast_bulk_error'), 'error');
     }
@@ -575,7 +682,10 @@ export default function EssencesPage() {
             <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-foreground/40" />
             <input
               value={search}
-              onChange={e => setSearch(e.target.value)}
+              onChange={e => {
+                setSearch(e.target.value);
+                setCurrentPage(1);
+              }}
               placeholder={t('search_placeholder')}
               className="w-full bg-white/[0.02] border border-white/10 rounded-lg pl-9 pr-8 py-1.5 text-xs text-foreground placeholder:text-foreground/40 outline-none focus:border-white/20 transition-all"
             />
@@ -637,7 +747,10 @@ export default function EssencesPage() {
             </div>
             {activeFiltersCount > 0 && (
               <button
-                onClick={() => setSelectedCategory('all')}
+                onClick={() => {
+                  setSelectedCategory('all');
+                  setCurrentPage(1);
+                }}
                 className="text-[11px] text-foreground/40 hover:text-foreground underline ml-auto"
               >
                 {t('filter_reset')}
@@ -650,10 +763,13 @@ export default function EssencesPage() {
       {/* Table */}
       <div className="shadow-black/30 shadow-sm rounded-xl border border-white/10 overflow-hidden">
         {loading ? (
-          <div className="flex items-center justify-center py-12 text-foreground/40 gap-2 text-xs">
-            <Loader2 className="animate-spin text-gold" size={16} />
-            <span>{t('loading')}</span>
-          </div>
+          <AdminTableSkeleton columns={8} rows={6} />
+        ) : essences.length === 0 ? (
+          <EmptyState
+            icon={<ShoppingBag size={48} />}
+            title="No essences"
+            description="Create your first essence to get started"
+          />
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
@@ -665,7 +781,7 @@ export default function EssencesPage() {
                       checked={currentItems.length > 0 && selectedEssences.size === essences.length && essences.length > 0}
                       onChange={(e) => {
                         if (e.target.checked) {
-                          setSelectedEssences(new Set(essences.map(e => e.id)));
+                          setSelectedEssences(new Set(essences.map(e => e.slug || String(e.id))));
                         } else {
                           setSelectedEssences(new Set());
                         }
@@ -684,19 +800,19 @@ export default function EssencesPage() {
               </thead>
               <tbody className="divide-y divide-white/5 text-xs">
                 {currentItems.map(essence => (
-                  <tr key={essence.id} className="hover:bg-white/[0.02] transition-colors">
+                  <tr key={essence.slug || essence.id} className="hover:bg-white/[0.02] transition-colors">
                     <td className="pl-4 py-3">
                       <input
                         type="checkbox"
-                        checked={selectedEssences.has(essence.id)}
-                        onChange={() => toggleSelectEssence(essence.id)}
+                        checked={selectedEssences.has(essence.slug || String(essence.id))}
+                        onChange={() => toggleSelectEssence(essence.slug || String(essence.id))}
                         className="rounded border-white/20 bg-white/5 text-gold focus:ring-0 cursor-pointer"
                       />
                     </td>
                     <td className="px-3 py-3">
                       <div>
                         <p className="font-medium text-foreground">
-                          <InlineCell value={essence.nom} onSave={(v: string) => patchEssence(essence.slug || String(essence.id), 'nom', v)} disabled={!permissions.canUpdate} className="font-medium text-foreground" />
+                          <InlineCell value={essence.nom || ''} onSave={(v: string) => patchEssence(essence.slug || String(essence.id), 'nom', v)} disabled={!permissions.canUpdate} className="font-medium text-foreground" />
                         </p>
                         <p className="text-[11px] text-foreground/40">
                           <InlineCell value={essence.marque || ''} onSave={(v: string) => patchEssence(essence.slug || String(essence.id), 'marque', v)} disabled={!permissions.canUpdate} className="text-foreground/40" />
@@ -739,7 +855,7 @@ export default function EssencesPage() {
                         {permissions.canDelete && (
                           <IconButton 
                             icon={Trash2} 
-                            onClick={() => handleDelete(essence.id)} 
+                            onClick={() => handleDelete(essence.slug || essence.id)} 
                             title="Supprimer"
                             tint="red"
                           />
@@ -784,6 +900,7 @@ export default function EssencesPage() {
 
       {/* Modale d'Ajout / Modification (verbatim off-limits form logic) */}
       <SlideOver
+        key={editingEssence ? `edit-${editingEssence.id}` : 'new'}
         isOpen={showModal}
         onClose={() => setShowModal(false)}
         title={editingEssence ? t('modal_edit') : t('modal_new')}
@@ -815,7 +932,7 @@ export default function EssencesPage() {
               <div>
                 <FloatInput
                   data-field="codeReference"
-                  label="{t('col_ref')} // Code Référence *"
+                  label="Code Référence *"
                   value={form.codeReference}
                   onChange={e => updateForm('codeReference', e.target.value)}
                   error={formErrors.codeReference}
@@ -833,19 +950,30 @@ export default function EssencesPage() {
               />
               <div>
                 <label className="text-[11px] font-bold text-foreground/50 uppercase block mb-1.5">Catégorie *</label>
-                <select
+                <CustomSelect
                   data-field="categorie"
                   value={form.categorie}
-                  onChange={e => updateForm('categorie', e.target.value)}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-foreground outline-none focus:border-gold/50 bg-neutral-900 capitalize"
-                >
-                  {STATIC_CATEGORIES.map(cat => (
-                    <option key={cat} value={cat}>{cat.replace('_', ' ')}</option>
-                  ))}
-                </select>
+                  onChange={(value: string) => updateForm('categorie', value)}
+                  options={STATIC_CATEGORIES.map(cat => ({
+                    value: cat,
+                    label: cat === 'super_premium' ? 'Super Premium' : cat === 'premium' ? 'Premium' : 'High',
+                  }))}
+                  placeholder="Catégorie"
+                  error={!!formErrors.categorie}
+                />
                 {formErrors.categorie && <p className="mt-1 text-xs text-red-500">{formErrors.categorie}</p>}
               </div>
             </div>
+
+            <label className="flex items-center gap-2 text-xs text-foreground/70">
+              <input
+                type="checkbox"
+                checked={form.actif}
+                onChange={e => updateForm('actif', e.target.checked)}
+                className="rounded border-white/10 bg-white/5 text-gold focus:ring-gold"
+              />
+              <span>Actif / disponible dans la boutique</span>
+            </label>
           </div>
 
           {/* Section 2: Profil & Prix */}
@@ -855,30 +983,32 @@ export default function EssencesPage() {
             <div className="grid grid-cols-3 gap-3">
               <div>
                 <label className="text-[11px] font-bold text-foreground/50 uppercase block mb-1.5">Intensité *</label>
-                <select
-                  data-field="intensite"
+                <CustomSelect
                   value={form.intensite}
-                  onChange={e => updateForm('intensite', e.target.value)}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-foreground outline-none focus:border-gold/50 bg-neutral-900"
-                >
-                  <option value="légère">{isEn ? 'Light' : 'Légère'}</option>
-                  <option value="moyenne">{isEn ? 'Medium' : 'Moyenne'}</option>
-                  <option value="forte">{isEn ? 'Strong' : 'Forte'}</option>
-                  <option value="très forte">{isEn ? 'Very strong' : 'Très forte'}</option>
-                </select>
+                  onChange={(value: string) => updateForm('intensite', value)}
+                  options={[
+                    { value: 'légère', label: isEn ? 'Light' : 'Légère' },
+                    { value: 'moyenne', label: isEn ? 'Medium' : 'Moyenne' },
+                    { value: 'forte', label: isEn ? 'Strong' : 'Forte' },
+                    { value: 'très forte', label: isEn ? 'Very strong' : 'Très forte' },
+                  ]}
+                  placeholder={isEn ? 'Select intensity...' : 'Sélectionner l\'intensité...'}
+                  data-field="intensite"
+                />
               </div>
               <div>
                 <label className="text-[11px] font-bold text-foreground/50 uppercase block mb-1.5">Cible *</label>
-                <select
-                  data-field="genreCible"
+                <CustomSelect
                   value={form.genreCible}
-                  onChange={e => updateForm('genreCible', e.target.value)}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-foreground outline-none focus:border-gold/50 bg-neutral-900"
-                >
-                  <option value="mixte">{isEn ? 'Unisex' : 'Mixte'}</option>
-                  <option value="homme">{isEn ? 'Men' : 'Homme'}</option>
-                  <option value="femme">{isEn ? 'Women' : 'Femme'}</option>
-                </select>
+                  onChange={(value: string) => updateForm('genreCible', value)}
+                  options={[
+                    { value: 'mixte', label: isEn ? 'Unisex' : 'Mixte' },
+                    { value: 'homme', label: isEn ? 'Men' : 'Homme' },
+                    { value: 'femme', label: isEn ? 'Women' : 'Femme' },
+                  ]}
+                  placeholder={isEn ? 'Select target...' : 'Sélectionner la cible...'}
+                  data-field="genreCible"
+                />
               </div>
               <div>
                 <FloatInput
@@ -909,6 +1039,24 @@ export default function EssencesPage() {
           </div>
 
           {/* Section 3: Stock Initial (à la création uniquement) */}
+          {/* Error Banner */}
+          {formError && (
+            <div className="mb-4 rounded-xl bg-red-500/10 border border-red-500/20 p-4 flex items-start gap-3">
+              <AlertCircle size={20} className="text-red-400 shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <p className="text-sm font-medium text-red-400">Erreur lors de la sauvegarde</p>
+                <p className="mt-1 text-xs text-red-400/80">{formError}</p>
+              </div>
+              <button
+                onClick={() => setFormError(null)}
+                className="text-red-400/60 hover:text-red-400 transition-colors"
+              >
+                <X size={16} />
+              </button>
+            </div>
+          )}
+
+          {/* Form Content */}
           {!editingEssence && (
             <div className="space-y-4 pt-2 border-t border-white/10">
               <p className="text-xs font-bold text-gold uppercase tracking-wider">{t('section_lot')}</p>
@@ -993,7 +1141,7 @@ export default function EssencesPage() {
                     
                     <div className="col-span-2">
                       <label className="block text-xs font-bold text-foreground/50 uppercase tracking-wider mb-2">
-                        Image Principale *
+                        Image Principale
                       </label>
                       <input
                         data-field="produitFiniImageFile"
@@ -1029,10 +1177,15 @@ export default function EssencesPage() {
               type="button"
               onClick={handleSave} 
               disabled={saving}
-              className="flex-1 px-4 py-3 rounded-xl bg-gold hover:bg-gold/90 text-black font-bold text-sm transition-all flex items-center justify-center gap-2 disabled:opacity-50 shadow-lg shadow-gold/10"
+              className="flex-1 px-4 py-3 rounded-xl bg-gold hover:bg-gold/90 text-black font-bold text-sm transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-gold/10"
             >
               {saving && <Loader2 size={16} className="animate-spin" />}
-              {editingEssence ? (isEn ? 'Update' : 'Mettre à jour') : (isEn ? "Save essence" : "Enregistrer l'essence")}
+              {saving 
+                ? (isEn ? 'Saving...' : 'Enregistrement...')
+                : editingEssence 
+                  ? (isEn ? 'Update' : 'Mettre à jour') 
+                  : (isEn ? "Save essence" : "Enregistrer l'essence")
+              }
             </button>
           </div>
         </div>

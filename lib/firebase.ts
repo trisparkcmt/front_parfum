@@ -7,15 +7,16 @@ import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getMessaging, getToken, onMessage, Messaging } from 'firebase/messaging';
 
 const firebaseConfig = {
-  apiKey: "AIzaSyBKzplWfKfPTdAHVJu6i-wYsOQNhfvzP8g",
-  authDomain: "push-accessoire-exclusif.firebaseapp.com",
-  projectId: "push-accessoire-exclusif",
-  storageBucket: "push-accessoire-exclusif.firebasestorage.app",
-  messagingSenderId: "712882537616",
-  appId: "1:712882537616:web:ff2b3fb7f68d598e188415",
+  apiKey: "AIzaSyCFczwPMeGoRoXz5nmZ_eZN22V4sTfpmWU",
+  authDomain: "access-exclu.firebaseapp.com",
+  projectId: "access-exclu",
+  storageBucket: "access-exclu.firebasestorage.app",
+  messagingSenderId: "206783805033",
+  appId: "1:206783805033:web:855b8533e130dd570c54f8",
+  measurementId: "G-LZ9Y34PNZP",
 };
 
-const RAW_VAPID_KEY = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY || 'BIH086VT_ZEmPMDKIoJUfyaPmRQXF9sXGhGQpdQFHTK467Y4rKTm6TJHVNKZV1TPCLe8BCqNIRWVOXHqXLNd2r8';
+const RAW_VAPID_KEY = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY || 'BMcSlBW2WMwTPNeJp8ixr6iafmob8SSDenxyGDALqBLjybbMtAFpd_9nMqgdwnaEM6bzJBnj-XUyyPTgszy5FK0';
 const VAPID_KEY = RAW_VAPID_KEY.replace(/^"|"$/g, '');
 
 export type DevicePlatform = 'web' | 'ios' | 'android';
@@ -87,7 +88,9 @@ export async function getFCMToken(): Promise<FCMTokenResult> {
     }
 
     // Ensure the Firebase SW is registered first
-    const swRegistration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+    const swRegistration = await navigator.serviceWorker.register('/firebase-messaging-sw.js', {
+      scope: '/firebase-cloud-messaging-push-scope',
+    });
 
     const token = await getToken(messaging, {
       vapidKey: VAPID_KEY,

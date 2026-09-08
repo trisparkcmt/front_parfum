@@ -3,11 +3,13 @@
 import { useState, useEffect, useCallback } from 'react';
 import { 
   Bell, Check, Search, RefreshCw, AlertTriangle, 
-  Sparkles, Gem, Droplets, CheckCheck
+  Sparkles, Gem, Droplets, CheckCheck, Trash2
 } from 'lucide-react';
 import { notificationService } from '@/services/apiService';
 import { useToastStore } from '@/store/useToastStore';
+import { useNotificationCountStore } from '@/store/useNotificationCountStore';
 import { useTranslation } from 'react-i18next';
+
 
 export default function NotificationsPage() {
   const { t } = useTranslation();
@@ -124,16 +126,33 @@ export default function NotificationsPage() {
           <h1 className="text-2xl font-bold text-foreground">{t('notifications_title', { defaultValue: 'Alertes & Notifications' })}</h1>
           <p className="text-sm text-foreground/40 mt-0.5">{t('notifications_subtitle', { defaultValue: 'Suivi en temps réel des stocks bas et alertes système' })}</p>
         </div>
-        {stats?.non_lues > 0 && (
+        <div className="flex items-center gap-2">
           <button
-            onClick={handleMarkAllAsRead}
-            className="flex items-center gap-2 bg-gold/10 text-gold hover:bg-gold/20 border border-gold/20 px-4 py-2 rounded-xl text-sm font-medium transition-all"
+            onClick={async () => {
+              await useNotificationCountStore.getState().markAllNotificationsAsRead();
+              fetchNotifications();
+              addToast(t('counts_cleared', { defaultValue: 'Compteurs et notifications réinitialisés' }), 'success');
+            }}
+            className="flex items-center gap-2 bg-white/10 hover:bg-white/20 text-foreground px-4 py-2 rounded-xl text-sm font-medium transition-all border border-white/10"
+            title="Effacer le badge de notification et réinitialiser les compteurs"
           >
-            <CheckCheck size={16} />
-            {t('mark_all_read', { defaultValue: 'Tout marquer comme lu' })}
+            <Trash2 size={16} className="text-red-400" />
+            {t('clear_counts', { defaultValue: 'Effacer les compteurs' })}
           </button>
-        )}
+
+          {stats?.non_lues > 0 && (
+            <button
+              onClick={handleMarkAllAsRead}
+              className="flex items-center gap-2 bg-gold/10 text-gold hover:bg-gold/20 border border-gold/20 px-4 py-2 rounded-xl text-sm font-medium transition-all"
+            >
+              <CheckCheck size={16} />
+              {t('mark_all_read', { defaultValue: 'Tout marquer comme lu' })}
+            </button>
+          )}
+        </div>
+
       </div>
+
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
