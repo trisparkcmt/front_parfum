@@ -80,8 +80,8 @@ export const useThemeStore = create<ThemeState>((set, get) => ({
       // Check if user has a saved preference
       const saved = localStorage.getItem('ae-theme') as Theme | null;
       
-      // If no saved preference, detect system theme
-      const theme = saved || getSystemTheme();
+      // If no saved preference, always default to dark (ignore OS system theme)
+      const theme: Theme = saved ?? 'dark';
       
       set({ theme });
       document.documentElement.setAttribute('data-theme', theme);
@@ -92,38 +92,8 @@ export const useThemeStore = create<ThemeState>((set, get) => ({
       }
       updateViewportThemeColor(theme);
 
-      // Listen to system theme changes
-      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-      const handleChange = (e: MediaQueryListEvent) => {
-        // Only apply system theme if user hasn't set an explicit preference
-        if (!localStorage.getItem('ae-theme')) {
-          const newTheme = e.matches ? 'dark' : 'light';
-          set({ theme: newTheme });
-          document.documentElement.setAttribute('data-theme', newTheme);
-          if (newTheme === 'dark') {
-            document.documentElement.classList.add('dark');
-          } else {
-            document.documentElement.classList.remove('dark');
-          }
-          updateViewportThemeColor(newTheme);
-        }
-      };
-
-      // Support both old and new browser API
-      if (mediaQuery.addEventListener) {
-        mediaQuery.addEventListener('change', handleChange);
-      } else if (mediaQuery.addListener) {
-        mediaQuery.addListener(handleChange);
-      }
-
-      // Cleanup listener
-      return () => {
-        if (mediaQuery.removeEventListener) {
-          mediaQuery.removeEventListener('change', handleChange);
-        } else if (mediaQuery.removeListener) {
-          mediaQuery.removeListener(handleChange);
-        }
-      };
+      // Listen to system theme changes ONLY if user has no saved preference
+      // (and even then, we no longer follow system theme - user must toggle manually)
     }
   },
 }));

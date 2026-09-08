@@ -1,6 +1,8 @@
 @import url('https://fonts.googleapis.com/css2?family=Lora:wght@400;700&display=swap');
 @import "tailwindcss";
 
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
 /* ============================================================
    THEME TOKENS
    ============================================================ */
@@ -214,6 +216,11 @@
 
 html {
   scroll-behavior: smooth;
+  color-scheme: dark; /* Prevent browser from forcing light-mode inversions */
+}
+
+[data-theme="light"] {
+  color-scheme: light;
 }
 
 body {
