@@ -10,7 +10,7 @@ import { persist } from 'zustand/middleware';
 import type { User, UserRole } from '@/types';
 import { authService } from '@/services/apiService';
 import { deviceService } from '@/services/deviceService';
-import { getCachedToken, cleanupFCM, initializeFCM } from '@/services/fcmService';
+import { getCachedToken, cleanupFCM } from '@/services/fcmService';
 import { api, rawApi } from '@/services/api';
 import { useToastStore } from './useToastStore';
 import { useCartStore } from './useCartStore';
@@ -299,16 +299,8 @@ export const useAuthStore = create<AuthState>()(
             isLoading: false,
           });
           addToast(`Bienvenue, ${meUser.firstName} !`, 'success');
-
-          // Initialize FCM push notifications & device registration for Google Auth
-          try {
-            initializeFCM(meUser).catch((fcmError: unknown) => {
-              console.warn('[AuthStore] FCM initialization warning on Google login:', fcmError);
-            });
-          } catch (e) {
-            console.warn('[AuthStore] Failed to trigger initializeFCM:', e);
-          }
-
+          // NOTE: FCM device registration is handled by FCMProvider which watches
+          // isAuthenticated — no need to call initializeFCM here (would cause race condition).
 
           useCartStore.getState().clearCart();
           return true;

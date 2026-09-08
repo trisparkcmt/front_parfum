@@ -57,9 +57,14 @@ export function FCMProvider() {
     prevAuthRef.current = isAuthenticated;
 
     if (isAuthenticated && user) {
-      initializeFCM(user).catch((error) => {
-        console.error('[FCMProvider] FCM initialization failed:', error);
-      });
+      // Small delay to ensure auth_token is fully written to localStorage
+      // before FCM tries to register the device with the backend
+      const timer = setTimeout(() => {
+        initializeFCM(user).catch((error) => {
+          console.error('[FCMProvider] FCM initialization failed:', error);
+        });
+      }, 500);
+      return () => clearTimeout(timer);
     } else if (!isAuthenticated && wasAuthenticated === true) {
       cleanupFCM();
     }

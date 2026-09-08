@@ -65,17 +65,19 @@ export default function Home() {
       {/* BEST SELLERS / FLASH */}
       <FlashSales />
 
-      {/* TIKTOK CREATOR PROFILE */}
-      <TikTokCreatorEmbed />
-
+     
       <section className="block ">   
         {/* EDITORIAL / BRAND STATEMENT */}
       <EditorialQuote />
       </section>
-      
 
-      {/* TRUST FEATURES */}
-      <FeatureStrip />
+      
+       {/* TIKTOK CREATOR PROFILE */}
+      <TikTokCreatorEmbed />
+
+
+      {/* TRUST FEATURES
+      <FeatureStrip /> */}
 
       {/* FAQ */}
       <HomeFAQ />
