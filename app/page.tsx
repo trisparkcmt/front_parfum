@@ -15,7 +15,6 @@ import WelcomeMessage from './WelcomeMessage';
 import StoreSection from './StoreSection';
 import HomeFAQ from './HomeFAQ';
 import AiFloatingButton from './AiFloatingButton';
-import TikTokCreatorEmbed from './TikTokCreatorEmbed';
 import { useTranslation } from 'react-i18next';
 import {ThemeToggle} from './Toggle'
 
@@ -78,9 +77,6 @@ export default function Home() {
 
       {/* FAQ */}
       <HomeFAQ />
-
-      {/* TIKTOK CREATOR PROFILE */}
-      <TikTokCreatorEmbed />
 
       {/* STORE LOCATION */}
       <StoreSection />

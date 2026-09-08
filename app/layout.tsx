@@ -18,6 +18,9 @@ export const metadata: Metadata = {
   
   verification: {
     google: '5nPGSz3ynU22pUw1Ycf-uzj-WYM1a6yx3GNfRBlFEGM',
+    other: {
+      'tiktok-developers-site-verification': 'AGVhw98jlzLb0Ezhj2mxgARnh9fxadKW',
+    },
   },
 
   keywords: [
