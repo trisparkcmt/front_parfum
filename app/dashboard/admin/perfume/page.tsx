@@ -21,7 +21,7 @@ const T = {
     in_stock: 'En stock', low_stock: 'Stock bas', out_of_stock: 'Rupture',
     bestseller: 'Bestseller', new_label: 'Nouveau',
     filter_genre: 'Genre :', filter_genre_all: 'Tous les genres',
-    filter_genre_homme: 'Homme', filter_genre_femme: 'Femme', filter_genre_mixte: 'Mixte',
+    filter_genre_homme: 'Homme', filter_genre_femme: 'Femme', filter_genre_mixte: 'Unisex',
     filter_bestseller: 'Bestseller :', filter_bs_all: 'Tous',
     filter_bs_only: 'Bestsellers uniquement', filter_bs_not: 'Non bestsellers',
     filter_reset: 'Réinitialiser', filter_btn: 'Filtres',
@@ -117,6 +117,7 @@ type PerfumeRecord = {
   prix_actuel?: number | string;
   date_debut?: string | null;
   date_fin?: string | null;
+  date_creation?: string | null;
   genre_cible?: string;
   intensite?: string;
   notes_tete?: string;
@@ -278,6 +279,8 @@ export default function PerfumeAdminPage() {
   const [search, setSearch] = useState('');
   const [genreFilter, setGenreFilter] = useState('');
   const [estBestsellerFilter, setEstBestsellerFilter] = useState('');
+  const [createdFrom, setCreatedFrom] = useState('');
+  const [createdTo, setCreatedTo] = useState('');
   const [showFilters, setShowFilters] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [editingPerfume, setEditingPerfume] = useState<PerfumeRecord | null>(null);
@@ -325,6 +328,7 @@ export default function PerfumeAdminPage() {
     image_supp_3: null,
     image_supp_4: null,
   });
+  const [existingImages, setExistingImages] = useState<Partial<Record<'image_principale' | 'image_supp_1' | 'image_supp_2' | 'image_supp_3' | 'image_supp_4', string | null>>>({});
   const { addToast } = useToastStore();
 
   const fetchPerfumes = useCallback(async () => {
@@ -336,8 +340,15 @@ export default function PerfumeAdminPage() {
       if (genreFilter) params.genre = genreFilter;
       if (estBestsellerFilter === 'true') params.est_bestseller = true;
       if (estBestsellerFilter === 'false') params.est_bestseller = false;
-      const data = await shopService.getPerfumes(params);
-      setPerfumes(extractCatalogList(data));
+      const allItems: PerfumeRecord[] = [];
+      let page = 1;
+      while (true) {
+        const data = await shopService.getPerfumes({ ...params, page, limit: 50 });
+        allItems.push(...extractCatalogList<PerfumeRecord>(data));
+        if (Array.isArray(data) || !data?.next || extractCatalogList(data).length === 0) break;
+        page += 1;
+      }
+      setPerfumes(allItems);
     } catch {
       addToast(t('toast_load_error'), 'error');
     } finally {
@@ -471,6 +482,7 @@ export default function PerfumeAdminPage() {
       image_supp_3: null,
       image_supp_4: null,
     });
+    setExistingImages({});
     setImageResetKey(prev => prev + 1);
     setFormErrors({});
     setShowModal(true);
@@ -513,6 +525,13 @@ export default function PerfumeAdminPage() {
       image_supp_3: null,
       image_supp_4: null,
     });
+    setExistingImages({
+      image_principale: perf.image_principale || perf.image || null,
+      image_supp_1: perf.image_supp_1 || null,
+      image_supp_2: perf.image_supp_2 || null,
+      image_supp_3: perf.image_supp_3 || null,
+      image_supp_4: perf.image_supp_4 || null,
+    });
     setImageResetKey(prev => prev + 1);
     setFormErrors({});
     setShowModal(true);
@@ -545,6 +564,9 @@ export default function PerfumeAdminPage() {
       if (file instanceof File) {
         formData.append(key, file);
       }
+    });
+    Object.entries(existingImages).forEach(([key, url]) => {
+      if (editingPerfume && url === null) formData.append(key, '');
     });
 
     try {
@@ -591,8 +613,13 @@ export default function PerfumeAdminPage() {
     }
   };
 
-  const filtered = perfumes;
-  const activeFiltersCount = (genreFilter ? 1 : 0) + (estBestsellerFilter ? 1 : 0);
+  const filtered = perfumes.filter((perfume) => {
+    const created = perfume.date_creation ? new Date(perfume.date_creation).getTime() : 0;
+    const from = createdFrom ? new Date(`${createdFrom}T00:00:00`).getTime() : null;
+    const to = createdTo ? new Date(`${createdTo}T23:59:59.999`).getTime() : null;
+    return (!from || (created > 0 && created >= from)) && (!to || (created > 0 && created <= to));
+  });
+  const activeFiltersCount = (genreFilter ? 1 : 0) + (estBestsellerFilter ? 1 : 0) + (createdFrom ? 1 : 0) + (createdTo ? 1 : 0);
 
   // ── Pagination & stock split ──────────────────────────────────────────────
   const ITEMS_PER_PAGE = 50;
@@ -609,7 +636,7 @@ export default function PerfumeAdminPage() {
   const pagedOutOfStock = outOfStockItems.slice((pageOutOfStock - 1) * ITEMS_PER_PAGE, pageOutOfStock * ITEMS_PER_PAGE);
 
   // Reset to page 1 when filters change
-  useEffect(() => { setPageInStock(1); setPageOutOfStock(1); }, [search, genreFilter, estBestsellerFilter]);
+  useEffect(() => { setPageInStock(1); setPageOutOfStock(1); }, [search, genreFilter, estBestsellerFilter, createdFrom, createdTo]);
 
   if (!permissions.canRead) {
     return (
@@ -705,7 +732,7 @@ export default function PerfumeAdminPage() {
                   { value: '', label: t('filter_genre_all') },
                   { value: 'homme', label: t('filter_genre_homme') },
                   { value: 'femme', label: t('filter_genre_femme') },
-                  { value: 'mixte', label: t('filter_genre_mixte') },
+                  { value: 'mixte', label: 'Unisex' },
                 ]}
                 className="min-w-[110px]"
               />
@@ -725,12 +752,22 @@ export default function PerfumeAdminPage() {
                 className="min-w-[110px]"
               />
             </div>
+            <label className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-wider text-foreground/35">
+              Créé du
+              <input type="date" value={createdFrom} onChange={e => setCreatedFrom(e.target.value)} className="rounded-lg border border-white/10 bg-white/[0.03] px-2 py-1.5 text-xs font-normal normal-case text-foreground" />
+            </label>
+            <label className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-wider text-foreground/35">
+              au
+              <input type="date" value={createdTo} onChange={e => setCreatedTo(e.target.value)} className="rounded-lg border border-white/10 bg-white/[0.03] px-2 py-1.5 text-xs font-normal normal-case text-foreground" />
+            </label>
 
             {activeFiltersCount > 0 && (
               <button
                 onClick={() => {
                   setGenreFilter('');
                   setEstBestsellerFilter('');
+                  setCreatedFrom('');
+                  setCreatedTo('');
                 }}
                 className="ml-auto text-[11px] text-foreground/45 hover:text-foreground"
               >
@@ -1068,7 +1105,7 @@ export default function PerfumeAdminPage() {
                         options={[
                           { value: 'homme', label: t('filter_genre_homme') },
                           { value: 'femme', label: t('filter_genre_femme') },
-                          { value: 'mixte', label: t('filter_genre_mixte') },
+                          { value: 'mixte', label: 'Unisex' },
                         ]}
                       />
                     </div>
@@ -1312,6 +1349,8 @@ export default function PerfumeAdminPage() {
                     <h3 className="text-sm font-semibold text-foreground mb-4">Images</h3>
                     <MultiImageUpload
                       key={imageResetKey}
+                      initialImages={existingImages}
+                      onExistingImagesChange={(changes) => setExistingImages(prev => ({ ...prev, ...changes }))}
                       onImagesChange={(images) => setImageFiles(images)}
                     />
                   </div>

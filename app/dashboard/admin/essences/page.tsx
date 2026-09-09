@@ -1002,7 +1002,7 @@ export default function EssencesPage() {
                   value={form.genreCible}
                   onChange={(value: string) => updateForm('genreCible', value)}
                   options={[
-                    { value: 'mixte', label: isEn ? 'Unisex' : 'Mixte' },
+                    { value: 'mixte', label: 'Unisex' },
                     { value: 'homme', label: isEn ? 'Men' : 'Homme' },
                     { value: 'femme', label: isEn ? 'Women' : 'Femme' },
                   ]}

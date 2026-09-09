@@ -13,6 +13,8 @@ interface ImageFile {
 
 interface MultiImageUploadProps {
   onImagesChange: (images: { [key: string]: File | null }) => void;
+  initialImages?: Partial<Record<ImageFile['key'], string | null>>;
+  onExistingImagesChange?: (images: Partial<Record<ImageFile['key'], string | null>>) => void;
   maxSize?: number; // in bytes, default 5MB
   accept?: string;
 }
@@ -27,10 +29,14 @@ const getEmptyImages = (): ImageFile[] => [
 
 export const MultiImageUpload: React.FC<MultiImageUploadProps> = ({
   onImagesChange,
+  initialImages,
+  onExistingImagesChange,
   maxSize = 5 * 1024 * 1024,
   accept = 'image/jpeg,image/png,image/webp',
 }) => {
-  const [images, setImages] = useState<ImageFile[]>(getEmptyImages());
+  const [images, setImages] = useState<ImageFile[]>(() =>
+    getEmptyImages().map((image) => ({ ...image, preview: initialImages?.[image.key] || null }))
+  );
 
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const principalInputRef = useRef<HTMLInputElement | null>(null);
@@ -178,6 +184,9 @@ export const MultiImageUpload: React.FC<MultiImageUploadProps> = ({
   };
 
   const handleRemoveImage = (index: number) => {
+    if (images[index].preview && !images[index].file) {
+      onExistingImagesChange?.({ [images[index].key]: null });
+    }
     const newImages = [...images];
     newImages[index] = {
       ...newImages[index],

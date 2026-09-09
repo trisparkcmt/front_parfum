@@ -214,6 +214,8 @@ export default function AccessoriesPage() {
   const [matiereFilter, setMatiereFilter] = useState('');
   const [couleurFilter, setCouleurFilter] = useState('');
   const [enStockFilter, setEnStockFilter] = useState('');
+  const [createdFrom, setCreatedFrom] = useState('');
+  const [createdTo, setCreatedTo] = useState('');
   const [showFilters, setShowFilters] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [editingAccessory, setEditingAccessory] = useState<any | null>(null);
@@ -225,6 +227,7 @@ export default function AccessoriesPage() {
     image_supp_3: null,
     image_supp_4: null,
   });
+  const [existingImages, setExistingImages] = useState<Partial<Record<'image_principale' | 'image_supp_1' | 'image_supp_2' | 'image_supp_3' | 'image_supp_4', string | null>>>({});
   const [accessoryTypes, setAccessoryTypes] = useState<any[]>([]);
   const [isTypeModalOpen, setIsTypeModalOpen] = useState(false);
 
@@ -272,14 +275,26 @@ export default function AccessoriesPage() {
       if (couleurFilter) params.couleur = couleurFilter;
       if (enStockFilter === 'true') params.en_stock = true;
       if (enStockFilter === 'false') params.en_stock = false;
-      const data = await shopService.getAccessories(params);
-      setAccessories(extractCatalogList(data));
+      const allItems: any[] = [];
+      let page = 1;
+      while (true) {
+        const data = await shopService.getAccessories({ ...params, page });
+        allItems.push(...extractCatalogList(data));
+        if (Array.isArray(data) || !data?.next || extractCatalogList(data).length === 0) break;
+        page += 1;
+      }
+      const from = createdFrom ? new Date(`${createdFrom}T00:00:00`).getTime() : null;
+      const to = createdTo ? new Date(`${createdTo}T23:59:59.999`).getTime() : null;
+      setAccessories(allItems.filter(item => {
+        const created = item.date_creation ? new Date(item.date_creation).getTime() : 0;
+        return (!from || (created > 0 && created >= from)) && (!to || (created > 0 && created <= to));
+      }));
     } catch {
       addToast(t('toast_load_error'), 'error');
     } finally {
       setLoading(false);
     }
-  }, [search, filter, marqueFilter, matiereFilter, couleurFilter, enStockFilter, addToast, permissions.canRead]);
+  }, [search, filter, marqueFilter, matiereFilter, couleurFilter, enStockFilter, createdFrom, createdTo, addToast, permissions.canRead]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -328,6 +343,7 @@ export default function AccessoriesPage() {
       image_supp_3: null,
       image_supp_4: null,
     });
+    setExistingImages({});
     setShowModal(true);
   };
 
@@ -360,6 +376,13 @@ export default function AccessoriesPage() {
       image_supp_2: null,
       image_supp_3: null,
       image_supp_4: null,
+    });
+    setExistingImages({
+      image_principale: acc.image_principale || acc.image || null,
+      image_supp_1: acc.image_supp_1 || null,
+      image_supp_2: acc.image_supp_2 || null,
+      image_supp_3: acc.image_supp_3 || null,
+      image_supp_4: acc.image_supp_4 || null,
     });
     setShowModal(true);
   };
@@ -412,6 +435,9 @@ export default function AccessoriesPage() {
       if (file instanceof File) {
         formData.append(key, file);
       }
+    });
+    Object.entries(existingImages).forEach(([key, url]) => {
+      if (editingAccessory && url === null) formData.append(key, '');
     });
 
     try {
@@ -509,7 +535,7 @@ export default function AccessoriesPage() {
     );
   }
 
-  const activeFilterCount = [marqueFilter, matiereFilter, couleurFilter, enStockFilter].filter(Boolean).length;
+  const activeFilterCount = [marqueFilter, matiereFilter, couleurFilter, enStockFilter, createdFrom, createdTo].filter(Boolean).length;
 
   const profitPreview = form.prix_unitaire && form.prix_achat
     ? (parseFloat(form.prix_unitaire) - parseFloat(form.prix_achat))
@@ -648,6 +674,14 @@ export default function AccessoriesPage() {
                   { value: 'false', label: t('filter_low_stock') },
                 ]}
               />
+            </div>
+            <div>
+              <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-foreground/35">{isEn ? 'Created from' : 'Créé du'}</p>
+              <input type="date" value={createdFrom} onChange={e => setCreatedFrom(e.target.value)} className="w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 py-1.5 text-sm text-foreground outline-none focus:border-gold/50" />
+            </div>
+            <div>
+              <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-foreground/35">{isEn ? 'Created to' : 'Créé au'}</p>
+              <input type="date" value={createdTo} onChange={e => setCreatedTo(e.target.value)} className="w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 py-1.5 text-sm text-foreground outline-none focus:border-gold/50" />
             </div>
           </div>
         )}
@@ -1096,7 +1130,12 @@ export default function AccessoriesPage() {
             <p className="mb-4 text-[10px] font-semibold uppercase tracking-widest text-foreground/40">
               Images
             </p>
-            <MultiImageUpload onImagesChange={(images) => setImageFiles(images)} />
+            <MultiImageUpload
+              key={editingAccessory?.slug || editingAccessory?.id || 'new'}
+              initialImages={existingImages}
+              onExistingImagesChange={(changes) => setExistingImages(prev => ({ ...prev, ...changes }))}
+              onImagesChange={(images) => setImageFiles(images)}
+            />
           </div>
         </div>
       </SlideOver>
