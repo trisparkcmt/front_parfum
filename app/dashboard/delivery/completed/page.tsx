@@ -40,7 +40,7 @@ export default function CompletedDeliveriesPage() {
   useEffect(() => { load(); }, [load]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 px-4 sm:px-6">
       <BackButton />
       <div className="flex items-center justify-between gap-3">
         <div>

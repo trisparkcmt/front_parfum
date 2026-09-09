@@ -150,7 +150,7 @@ export default function DeliveryDashboard() {
 
   // ─────────────────────────────────────────────────────────────────────────
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 px-4 sm:px-6">
       <BackButton />
 
       {/* Welcome banner */}
@@ -294,7 +294,7 @@ export default function DeliveryDashboard() {
       {/* Quick nav */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <button
-          onClick={() => router.push('/dashboard/delivery/orders')}
+          onClick={() => router.push('/dashboard/delivery//completed')}
           className="bg-white/5 rounded-2xl border border-white/10 p-5 shadow-sm hover:shadow-gold/5 transition-all text-left group"
         >
           <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center text-foreground mb-3 group-hover:scale-110 transition-transform">
@@ -303,12 +303,14 @@ export default function DeliveryDashboard() {
           <p className="font-semibold text-sm text-foreground">Mes Livraisons</p>
           <p className="text-xs text-foreground/40 mt-0.5 flex items-center gap-1">Voir toutes mes livraisons <ChevronRight size={12} /></p>
         </button>
+
+
         <button
           onClick={() => router.push('/dashboard/delivery/completed')}
           className="bg-white/5 rounded-2xl border border-white/10 p-5 shadow-sm hover:shadow-gold/5 transition-all text-left group"
         >
-          <div className="w-10 h-10 rounded-xl bg-emerald-400/10 flex items-center justify-center text-emerald-400 mb-3 group-hover:scale-110 transition-transform">
-            <CheckCircle size={20} />
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center text-foreground mb-3 group-hover:scale-110 transition-transform">
+            <Truck size={20} />
           </div>
           <p className="font-semibold text-sm text-foreground">{t('completed_deliveries', { defaultValue: 'Livraisons terminées' })}</p>
           <p className="text-xs text-foreground/40 mt-0.5 flex items-center gap-1">{t('view_completed_deliveries', { defaultValue: 'Voir l’historique' })} <ChevronRight size={12} /></p>
