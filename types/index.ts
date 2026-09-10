@@ -559,6 +559,26 @@ export interface TagEssence {
   type: TagType;
 }
 
+export interface TagDefinition {
+  id: number;
+  nom: string;
+  slug: string;
+}
+
+export interface TagSelectOption {
+  id: number;
+  nom?: string;
+  libelle?: string;
+  slug: string;
+}
+
+export interface ProductTagValue {
+  id?: number;
+  tag: number;
+  tag_nom?: string;
+  valeur: string;
+}
+
 export interface PromotionSchedule {
   taux_reduction?: string;
   prix_promotionnel?: string;

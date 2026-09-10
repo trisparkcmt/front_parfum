@@ -553,6 +553,38 @@ export const shopService = {
   },
 
   /**
+   * Get active perfume tags for select/dropdown lists
+   */
+  getPerfumeTags: async (params?: { search?: string; ordering?: string }) => {
+    const response = await api.get('shop/tags-parfum/', { params });
+    return response.data;
+  },
+
+  /**
+   * Get active essence tags for select/dropdown lists
+   */
+  getEssenceTags: async (params?: { search?: string; ordering?: string }) => {
+    const response = await api.get('shop/tags-essence/', { params });
+    return response.data;
+  },
+
+  /**
+   * Get active accessory tags for select/dropdown lists
+   */
+  getAccessoryTags: async (params?: { search?: string; ordering?: string }) => {
+    const response = await api.get('shop/tags-accessoire/', { params });
+    return response.data;
+  },
+
+  /**
+   * Get active tag list in lab/essence context
+   */
+  getLabEssenceTags: async (params?: { search?: string; ordering?: string }) => {
+    const response = await api.get('lab/tags-essence/', { params });
+    return response.data;
+  },
+
+  /**
    * Create new tag (Admin)
    */
   createTag: async (data: any) => {

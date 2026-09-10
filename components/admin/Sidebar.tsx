@@ -179,6 +179,11 @@ export default function Sidebar({ open, setOpen }: SidebarProps) {
       href: '/dashboard/admin/categories',
     },
     {
+      label: t('admin_nav_tags', { defaultValue: isEn ? 'Tags' : 'Tags' }),
+      icon: <Tag size={18} />,
+      href: '/dashboard/admin/tags',
+    },
+    {
       label: t('admin_nav_essences', { defaultValue: 'Essences' }),
       icon: <EssenceIcon size={18} />,
       href: '/dashboard/admin/essences',
