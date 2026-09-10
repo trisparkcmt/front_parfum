@@ -19,7 +19,7 @@ const T = {
     filter_size_all: 'Toutes tailles', filter_btn: 'Filtres', filter_size_label: 'Taille',
     modal_new: 'Nouveau', modal_edit: 'Modifier',
     modal_desc: 'Formulaire complet, sans popup ni défilement gênant.',
-    field_name: 'Nom du produit *', field_brand: 'Marque', field_category: 'Catégorie',
+    field_brand: 'Marque', field_category: 'Catégorie',
     field_essence: 'Essence *', field_size: 'Taille (ml) *', field_price: 'Prix (FCFA) *',
     field_promo: 'Prix promotionnel (FCFA)', field_stock: 'Stock disponible *',
     field_active: 'Produit actif', field_image: 'Image principale',
@@ -41,7 +41,7 @@ const T = {
     filter_size_all: 'All sizes', filter_btn: 'Filters', filter_size_label: 'Size',
     modal_new: 'New', modal_edit: 'Edit',
     modal_desc: 'Full form with no popup or scroll issues.',
-    field_name: 'Product name *', field_brand: 'Brand', field_category: 'Category',
+    field_brand: 'Brand', field_category: 'Category',
     field_essence: 'Essence *', field_size: 'Size (ml) *', field_price: 'Price (FCFA) *',
     field_promo: 'Promotional price (FCFA)', field_stock: 'Available stock *',
     field_active: 'Active product', field_image: 'Main image',
@@ -142,7 +142,6 @@ export default function FinishedEssenceAdminPage() {
     prix: '',
     prix_promotionnel: '',
     actif: true,
-    nom: '',
     marque: '',
     categorie: '',
   });
@@ -180,14 +179,13 @@ export default function FinishedEssenceAdminPage() {
   const validateForm = useCallback(() => {
     const errors: Record<string, string> = {};
     if (!form.essence || form.essence === '') errors.essence = 'Une essence doit être sélectionnée';
-    if (!form.nom.trim()) errors.nom = 'Le nom du produit est requis';
     if (!form.marque.trim()) errors.marque = 'La marque est requise';
     if (!form.categorie.trim()) errors.categorie = 'La catégorie est requise';
     if (!form.taille_ml || Number(form.taille_ml) <= 0) errors.taille_ml = 'La taille doit être supérieure à 0';
     if (!form.prix || Number(form.prix) <= 0) errors.prix = 'Le prix doit être supérieur à 0';
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
-  }, [form.essence, form.nom, form.marque, form.categorie, form.taille_ml, form.prix]);
+  }, [form.essence, form.marque, form.categorie, form.taille_ml, form.prix]);
 
   const updateFormField = (field: keyof typeof form, value: string | boolean) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -205,7 +203,6 @@ export default function FinishedEssenceAdminPage() {
     setForm(prev => ({
       ...prev,
       essence: essenceId,
-      nom: prev.nom || e.nom || '',        // only prefill if not already set (edit mode)
       marque: e.marque || '',
       categorie: e.categorie || '',
     }));
@@ -226,7 +223,6 @@ export default function FinishedEssenceAdminPage() {
       prix: '',
       prix_promotionnel: '',
       actif: true,
-      nom: '',
       marque: '',
       categorie: '',
     });
@@ -245,7 +241,6 @@ export default function FinishedEssenceAdminPage() {
       prix: String(priceValue ?? ''),
       prix_promotionnel: item.prix_promotionnel ? String(item.prix_promotionnel) : '',
       actif: item.actif !== false,
-      nom: item.nom ?? '',
       marque: item.marque ?? '',
       categorie: item.categorie ?? '',
     });
@@ -673,7 +668,7 @@ export default function FinishedEssenceAdminPage() {
               <p className="text-[10px] font-bold uppercase tracking-widest text-foreground/35 mb-2">
                 {isEn ? 'Details from selected essence' : 'Détails issus de l\'essence'}
               </p>
-              <div className="grid grid-cols-3 gap-3 text-xs">
+              <div className="grid grid-cols-2 gap-3 text-xs">
                 <div>
                   <p className="text-foreground/40 mb-0.5">{isEn ? 'Brand' : 'Marque'}</p>
                   <p className="font-medium text-foreground">{form.marque || '—'}</p>
@@ -682,33 +677,11 @@ export default function FinishedEssenceAdminPage() {
                   <p className="text-foreground/40 mb-0.5">{isEn ? 'Category' : 'Catégorie'}</p>
                   <p className="font-medium text-foreground capitalize">{form.categorie?.replace('_', ' ') || '—'}</p>
                 </div>
-                <div>
-                  <p className="text-foreground/40 mb-0.5">{isEn ? 'Name' : 'Nom'}</p>
-                  <p className="font-medium text-foreground truncate">{form.nom || '—'}</p>
-                </div>
               </div>
-              <p className="text-[10px] text-foreground/30 pt-1">
-                {isEn ? 'You can override the product name below.' : 'Vous pouvez modifier le nom du produit ci-dessous.'}
-              </p>
             </div>
           )}
 
-          {/* ── 2. Product name (editable override of essence name) ────────── */}
-          <div>
-            <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">
-              {isEn ? 'Product name *' : 'Nom du produit *'}
-            </label>
-            <input
-              data-field="nom"
-              value={form.nom}
-              onChange={(e) => updateFormField('nom', e.target.value)}
-              placeholder={isEn ? 'e.g. Oud Premium 50ml' : 'Ex: Oud Premium 50ml'}
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-foreground outline-none focus:border-gold/50 placeholder:text-foreground/25"
-            />
-            {formErrors.nom && <p className="mt-1 text-xs text-red-500">{formErrors.nom}</p>}
-          </div>
-
-          {/* ── 3. Size + Stock ────────────────────────────────────────────── */}
+          {/* ── 2. Size + Stock ────────────────────────────────────────────── */}
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">
