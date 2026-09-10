@@ -294,6 +294,24 @@ export default function HuileDetailClient({ id }: { id: string }) {
                   {product.description}
                 </p>
               )}
+
+              {Array.isArray(product.tags) && product.tags.length > 0 && (
+                <div className="pt-4">
+                  <h3 className="text-[10px] font-bold uppercase tracking-widest text-foreground/50 mb-2">
+                    {isEn ? 'Highlights' : 'Détails'}
+                  </h3>
+                  <div className="flex flex-wrap gap-2">
+                    {product.tags.map((tag, idx) => (
+                      <span
+                        key={`${tag.tag ?? tag.id ?? idx}`}
+                        className="rounded-full border border-gold/30 bg-gold/10 px-2.5 py-1 text-[10px] font-medium text-gold"
+                      >
+                        {tag.tag_nom || tag.nom || (isEn ? 'Tag' : 'Étiquette')}: {tag.valeur}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Quick Actions (Share, Wishlist) */}

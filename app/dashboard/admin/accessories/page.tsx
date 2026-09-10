@@ -229,6 +229,8 @@ export default function AccessoriesPage() {
   });
   const [existingImages, setExistingImages] = useState<Partial<Record<'image_principale' | 'image_supp_1' | 'image_supp_2' | 'image_supp_3' | 'image_supp_4', string | null>>>({});
   const [accessoryTypes, setAccessoryTypes] = useState<any[]>([]);
+  const [tagTypes, setTagTypes] = useState<Array<{ id: number; nom: string; slug?: string }>>([]);
+  const [tagValues, setTagValues] = useState<Record<number, string>>({});
   const [isTypeModalOpen, setIsTypeModalOpen] = useState(false);
 
   // Consolidate form state into a single object based on requested schema
@@ -311,7 +313,18 @@ export default function AccessoriesPage() {
         setAccessoryTypes(list);
       })
       .catch(() => addToast('Erreur lors du chargement des types d\'accessoires', 'error'));
+
+    shopService.getTags()
+      .then(data => {
+        const list = data.results || data.resultats || (Array.isArray(data) ? data : []);
+        setTagTypes(list);
+      })
+      .catch(() => undefined);
   }, [addToast]);
+
+  const updateTagValue = (tagId: number, value: string) => {
+    setTagValues(prev => ({ ...prev, [tagId]: value }));
+  };
 
   const handleOpenAdd = () => {
     if (!permissions.canCreate) return;
@@ -344,6 +357,7 @@ export default function AccessoriesPage() {
       image_supp_4: null,
     });
     setExistingImages({});
+    setTagValues({});
     setShowModal(true);
   };
 
@@ -384,6 +398,12 @@ export default function AccessoriesPage() {
       image_supp_3: acc.image_supp_3 || null,
       image_supp_4: acc.image_supp_4 || null,
     });
+    const nextTagValues: Record<number, string> = {};
+    (Array.isArray((acc as any).tags) ? (acc as any).tags : []).forEach((tag: any) => {
+      const tagId = Number(tag.tag ?? tag.id ?? 0);
+      if (tagId > 0 && tag.valeur !== undefined) nextTagValues[tagId] = String(tag.valeur);
+    });
+    setTagValues(nextTagValues);
     setShowModal(true);
   };
 
@@ -439,6 +459,11 @@ export default function AccessoriesPage() {
     Object.entries(existingImages).forEach(([key, url]) => {
       if (editingAccessory && url === null) formData.append(key, '');
     });
+
+    const normalizedTags = Object.entries(tagValues)
+      .filter(([, value]) => typeof value === 'string' && value.trim() !== '')
+      .map(([tagId, valeur]) => ({ tag: Number(tagId), valeur: valeur.trim() }));
+    formData.append('tags', JSON.stringify(normalizedTags));
 
     try {
       if (editingAccessory) {
@@ -1095,7 +1120,7 @@ export default function AccessoriesPage() {
                     className={inputCls}
                   />
                 </Field>
-                <Field label="Seuil d'alerte" error={formErrors.seuil_alerte_stock}>
+                <Field label={'Seuil d\'alerte'} error={formErrors.seuil_alerte_stock}>
                   <input
                     data-field="seuil_alerte_stock"
                     type="number"
@@ -1124,6 +1149,23 @@ export default function AccessoriesPage() {
                 <span>Actif / visible dans la boutique</span>
               </label>
             </FormSection>
+
+            {tagTypes.length > 0 && (
+              <FormSection title="Tags" icon={<Tag size={11} />}>
+                <div className="space-y-3">
+                  {tagTypes.map((tagType) => (
+                    <Field key={tagType.id} label={tagType.nom}>
+                      <input
+                        value={tagValues[tagType.id] ?? ''}
+                        onChange={e => updateTagValue(Number(tagType.id), e.target.value)}
+                        placeholder={tagType.nom}
+                        className={inputCls}
+                      />
+                    </Field>
+                  ))}
+                </div>
+              </FormSection>
+            )}
           </div>
 
           <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4 xl:sticky xl:top-0">

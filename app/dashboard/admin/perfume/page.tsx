@@ -285,6 +285,8 @@ export default function PerfumeAdminPage() {
   const [showModal, setShowModal] = useState(false);
   const [editingPerfume, setEditingPerfume] = useState<PerfumeRecord | null>(null);
   const [categories, setCategories] = useState<CategoryRecord[]>([]);
+  const [tagTypes, setTagTypes] = useState<Array<{ id: number; nom: string; slug?: string }>>([]);
+  const [tagValues, setTagValues] = useState<Record<number, string>>({});
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
   const [selectedSlugs, setSelectedSlugs] = useState<string[]>([]);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
@@ -368,6 +370,13 @@ export default function PerfumeAdminPage() {
         setCategories(list);
       })
       .catch(() => addToast(t('toast_category_error'), 'error'));
+
+    shopService.getTags()
+      .then(data => {
+        const list = data.results || data.resultats || (Array.isArray(data) ? data : []);
+        setTagTypes(list);
+      })
+      .catch(() => undefined);
   }, [addToast]);
 
   const updateForm = (field: keyof typeof form, value: string | number | boolean | null | undefined) => {
@@ -382,6 +391,10 @@ export default function PerfumeAdminPage() {
 
   const toggleSelectedSlug = (slug: string) => {
     setSelectedSlugs(prev => prev.includes(slug) ? prev.filter(item => item !== slug) : [...prev, slug]);
+  };
+
+  const updateTagValue = (tagId: number, value: string) => {
+    setTagValues(prev => ({ ...prev, [tagId]: value }));
   };
 
   const patchPerfume = async (slug: string, field: string, value: string) => {
@@ -484,6 +497,7 @@ export default function PerfumeAdminPage() {
     });
     setExistingImages({});
     setImageResetKey(prev => prev + 1);
+    setTagValues({});
     setFormErrors({});
     setShowModal(true);
   };
@@ -533,6 +547,12 @@ export default function PerfumeAdminPage() {
       image_supp_4: perf.image_supp_4 || null,
     });
     setImageResetKey(prev => prev + 1);
+    const nextTagValues: Record<number, string> = {};
+    (Array.isArray((perf as any).tags) ? (perf as any).tags : []).forEach((tag: any) => {
+      const tagId = Number(tag.tag ?? tag.id ?? 0);
+      if (tagId > 0 && tag.valeur !== undefined) nextTagValues[tagId] = String(tag.valeur);
+    });
+    setTagValues(nextTagValues);
     setFormErrors({});
     setShowModal(true);
   };
@@ -568,6 +588,11 @@ export default function PerfumeAdminPage() {
     Object.entries(existingImages).forEach(([key, url]) => {
       if (editingPerfume && url === null) formData.append(key, '');
     });
+
+    const normalizedTags = Object.entries(tagValues)
+      .filter(([, value]) => typeof value === 'string' && value.trim() !== '')
+      .map(([tagId, valeur]) => ({ tag: Number(tagId), valeur: valeur.trim() }));
+    formData.append('tags', JSON.stringify(normalizedTags));
 
     try {
       if (editingPerfume) {
@@ -1283,6 +1308,27 @@ export default function PerfumeAdminPage() {
                   </div>
                 </div>
               </div>
+
+              {tagTypes.length > 0 && (
+                <div className="space-y-3 pt-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-foreground/40">Tags</span>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {tagTypes.map((tagType) => (
+                      <div key={tagType.id} className="space-y-1">
+                        <label className="block text-[10px] font-bold uppercase tracking-wider text-foreground/40">{tagType.nom}</label>
+                        <input
+                          value={tagValues[tagType.id] ?? ''}
+                          onChange={(e) => updateTagValue(tagType.id, e.target.value)}
+                          placeholder={tagType.nom}
+                          className="w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-foreground outline-none placeholder:text-foreground/30 focus:border-gold"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               <div className="flex flex-wrap gap-4 pt-1">
                 <label className="flex items-center gap-2 cursor-pointer">

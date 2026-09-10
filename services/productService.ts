@@ -82,6 +82,7 @@ export function mapBackendPerfumeToProduct(p: any): Product {
     rating: p.rating || 4.5,
     reviews: p.reviews || 12,
     notes: { top, middle, base },
+    tags: normalizeProductTags(p.tags),
     volume: p.contenance_ml ? `${p.contenance_ml}ml` : '100ml',
     longevity: p.longevite || 'Longue durée (8-10h)',
     sillage: p.sillage || 'Modéré',
@@ -117,6 +118,27 @@ function collectProductImages(p: any): string[] {
     images.push('/parfume1.png');
   }
   return images;
+}
+
+function normalizeProductTags(rawTags: any): Array<{ id?: number; tag: number; tag_nom?: string; nom?: string; valeur: string }> {
+  if (!Array.isArray(rawTags)) return [];
+
+  return rawTags
+    .filter(Boolean)
+    .map((tag: any) => {
+      const tagId = Number(tag?.tag ?? tag?.id ?? 0);
+      const displayedName = tag?.tag_nom || tag?.nom || tag?.libelle || tag?.name || 'Tag';
+      const value = tag?.valeur ?? tag?.value ?? '';
+
+      return {
+        id: tag?.id,
+        tag: Number.isFinite(tagId) ? tagId : 0,
+        tag_nom: displayedName,
+        nom: displayedName,
+        valeur: typeof value === 'string' ? value : String(value ?? ''),
+      };
+    })
+    .filter((tag) => tag.valeur !== '');
 }
 
 function inferCatalogItemKind(item: any): 'perfume' | 'accessory' | 'diffuseur' | 'essence' | 'unknown' {
@@ -269,6 +291,7 @@ export function mapBackendAccessoryToProduct(p: any): Product {
     createdAt: p.date_creation || new Date().toISOString(),
     image_principale: p.image_principale || images[0],
     image_supp_1: p.image_supp_1 || images[1],
+    tags: normalizeProductTags(p.tags),
   };
 }
 
@@ -302,6 +325,7 @@ export function mapBackendFinishedEssenceToProduct(p: any): Product {
     createdAt: p.date_creation || new Date().toISOString(),
     image_principale: p.image_principale || images[0],
     image_supp_1: p.image_supp_1 || images[1],
+    tags: normalizeProductTags(p.tags),
     // Essence-specific
     taille_ml: p.taille_ml ? Number(p.taille_ml) : undefined,
     stock_total_ml: p.stock_total_ml != null ? Number(p.stock_total_ml) : undefined,
@@ -361,6 +385,7 @@ export function mapBackendEssenceToProduct(e: any): Product {
     createdAt: e.date_creation || new Date().toISOString(),
     image_principale: e.image_principale || images[0],
     image_supp_1: e.image_supp_1 || images[1],
+    tags: normalizeProductTags(e.tags),
     stock_total_ml: e.stock_total_ml != null ? Number(e.stock_total_ml) : undefined,
     gender: e.genre_cible === 'homme' ? 'masculine' : e.genre_cible === 'femme' ? 'feminine' : 'unisex',
     notes: (top.length || middle.length || base.length) ? { top, middle, base } : undefined,

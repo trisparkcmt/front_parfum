@@ -145,6 +145,7 @@ export interface Product {
     middle: string[];
     base: string[];
   };
+  tags?: ProductTagValue[];
   volume?: string; // e.g., "100ml"
   longevity?: string; // e.g., "Longue durée (8-10h)"
   sillage?: string; // e.g., "Modéré"
@@ -574,8 +575,9 @@ export interface TagSelectOption {
 
 export interface ProductTagValue {
   id?: number;
-  tag: number;
+  tag?: number | string;
   tag_nom?: string;
+  nom?: string;
   valeur: string;
 }
 
