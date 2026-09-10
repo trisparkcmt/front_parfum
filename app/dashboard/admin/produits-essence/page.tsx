@@ -127,6 +127,8 @@ export default function FinishedEssenceAdminPage() {
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+  const [tagTypes, setTagTypes] = useState<Array<{ id: number; nom: string; slug?: string }>>([]);
+  const [tagValues, setTagValues] = useState<Record<number, string>>({});
   const { addToast } = useToastStore();
 
   // ── Pagination & stock split ──────────────────────────────────────────────
@@ -172,7 +174,18 @@ export default function FinishedEssenceAdminPage() {
       .getEssences()
       .then((data) => setEssences(extractCatalogList(data)))
       .catch(() => {});
+
+    shopService.getTags()
+      .then((data) => {
+        const list = data.results || data.resultats || (Array.isArray(data) ? data : []);
+        setTagTypes(list);
+      })
+      .catch(() => undefined);
   }, []);
+
+  const updateTagValue = (tagId: number, value: string) => {
+    setTagValues(prev => ({ ...prev, [tagId]: value }));
+  };
 
   const validateForm = useCallback(() => {
     const errors: Record<string, string> = {};
@@ -224,6 +237,7 @@ export default function FinishedEssenceAdminPage() {
       marque: '',
       categorie: '',
     });
+    setTagValues({});
     setFormError(null);
     setFormErrors({});
     setShowModal(true);
@@ -242,6 +256,12 @@ export default function FinishedEssenceAdminPage() {
       marque: item.marque ?? '',
       categorie: item.categorie ?? '',
     });
+    const nextTagValues: Record<number, string> = {};
+    (Array.isArray(item.tags) ? item.tags : []).forEach((tag: any) => {
+      const tagId = Number(tag.tag ?? tag.id ?? 0);
+      if (tagId > 0 && tag.valeur !== undefined) nextTagValues[tagId] = String(tag.valeur);
+    });
+    setTagValues(nextTagValues);
     setFormError(null);
     setFormErrors({});
     setShowModal(true);
@@ -269,19 +289,23 @@ export default function FinishedEssenceAdminPage() {
       return;
     }
 
-    const payload = {
-      essence: Number(form.essence),
-      taille_ml: Number(form.taille_ml),
-      prix: form.prix,
-      prix_promotionnel: form.prix_promotionnel || null,
-      actif: form.actif,
-    };
+    const normalizedTags = Object.entries(tagValues)
+      .filter(([, value]) => typeof value === 'string' && value.trim() !== '')
+      .map(([tagId, valeur]) => ({ tag: Number(tagId), valeur: valeur.trim() }));
+
+    const payload = new FormData();
+    payload.append('essence', String(Number(form.essence)));
+    payload.append('taille_ml', String(Number(form.taille_ml)));
+    payload.append('prix', String(form.prix));
+    payload.append('prix_promotionnel', form.prix_promotionnel || '');
+    payload.append('actif', String(form.actif));
+    payload.append('tags', JSON.stringify(normalizedTags));
 
     try {
       setFormError(null);
       setSaving(true);
       if (editing) {
-        setItems(prev => prev.map(i => i.id === editing.id ? { ...i, ...payload } : i));
+        setItems(prev => prev.map(i => i.id === editing.id ? { ...i, essence: Number(form.essence), taille_ml: Number(form.taille_ml), prix: form.prix, prix_promotionnel: form.prix_promotionnel || null, actif: form.actif } : i));
         await shopService.updateFinishedEssence(editing.id, payload);
         setShowModal(false);
         addToast('Produit essence mis à jour', 'success');
@@ -729,6 +753,27 @@ export default function FinishedEssenceAdminPage() {
               {formErrors.prix_promotionnel && <p className="mt-1 text-xs text-red-500">{formErrors.prix_promotionnel}</p>}
             </div>
           </div>
+
+          {tagTypes.length > 0 && (
+            <div className="space-y-3 rounded-xl border border-white/8 bg-white/[0.02] p-4">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-foreground/35">
+                {isEn ? 'Tags' : 'Tags'}
+              </p>
+              {tagTypes.map((tagType) => (
+                <div key={tagType.id}>
+                  <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-foreground/40">
+                    {tagType.nom}
+                  </label>
+                  <input
+                    value={tagValues[tagType.id] ?? ''}
+                    onChange={(e) => updateTagValue(Number(tagType.id), e.target.value)}
+                    placeholder={tagType.nom}
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-foreground outline-none focus:border-gold/50"
+                  />
+                </div>
+              ))}
+            </div>
+          )}
 
           {/* ── 5. Active toggle ──────────────────────────────────────────── */}
           <label className="flex items-center gap-3 cursor-pointer select-none">
