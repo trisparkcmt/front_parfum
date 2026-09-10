@@ -51,7 +51,7 @@ export default function ProductDetailClient({ id }: { id: string }) {
   const [loading, setLoading] = useState(true);
   const [activeImage, setActiveImage] = useState(0);
   const [quantity, setQuantity] = useState(1);
-  const [activeTab, setActiveTab] = useState<'description' | 'details'>('description');
+  const [activeTab, setActiveTab] = useState<'details' | 'supplementary'>('details');
   const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
   const [selectedVariant, setSelectedVariant] = useState<ProduitFiniEssence | null>(null);
   const [selectedEssence, setSelectedEssence] = useState<Product | null>(null);
@@ -477,24 +477,6 @@ export default function ProductDetailClient({ id }: { id: string }) {
                 {product.description}
               </p>
 
-              {Array.isArray(product.tags) && product.tags.length > 0 && (
-                <div className="mb-8">
-                  <h3 className="text-xs font-bold uppercase tracking-widest text-foreground/60 mb-3">
-                    {isEn ? 'Highlights' : 'Détails'}
-                  </h3>
-                  <div className="flex flex-wrap gap-2">
-                    {product.tags.map((tag, idx) => (
-                      <span
-                        key={`${tag.tag ?? tag.id ?? idx}`}
-                        className="rounded-full border border-gold/30 bg-gold/10 px-2.5 py-1 text-[11px] font-medium text-gold"
-                      >
-                        {tag.tag_nom || tag.nom || (isEn ? 'Tag' : 'Étiquette')}: {tag.valeur}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-
               {product.availableColors && product.availableColors.length > 0 && (
                 <div className="mb-8">
                   <h3 className="text-xs font-bold uppercase tracking-widest text-foreground/60 mb-4">
@@ -623,26 +605,26 @@ export default function ProductDetailClient({ id }: { id: string }) {
         <div className="mb-24">
           <div className="flex border-b border-foreground/10 mb-10 overflow-x-auto scrollbar-hide">
             <button
-              onClick={() => setActiveTab('description')}
-              className={cn(
-                'px-6 sm:px-8 py-4 text-sm font-bold uppercase tracking-widest transition-all relative whitespace-nowrap',
-                activeTab === 'description' ? 'text-gold' : 'text-foreground/40 hover:text-foreground'
-              )}
-            >
-              {isEn ? 'Overview' : 'Description'}
-              {activeTab === 'description' && (
-                <motion.div layoutId="tab-active" className="absolute bottom-0 left-0 right-0 h-0.5 bg-gold" />
-              )}
-            </button>
-            <button
               onClick={() => setActiveTab('details')}
               className={cn(
                 'px-6 sm:px-8 py-4 text-sm font-bold uppercase tracking-widest transition-all relative whitespace-nowrap',
                 activeTab === 'details' ? 'text-gold' : 'text-foreground/40 hover:text-foreground'
               )}
             >
-              {isEn ? 'Specifications' : 'Informations Complémentaires'}
+              {isEn ? 'Details' : 'Détails'}
               {activeTab === 'details' && (
+                <motion.div layoutId="tab-active" className="absolute bottom-0 left-0 right-0 h-0.5 bg-gold" />
+              )}
+            </button>
+            <button
+              onClick={() => setActiveTab('supplementary')}
+              className={cn(
+                'px-6 sm:px-8 py-4 text-sm font-bold uppercase tracking-widest transition-all relative whitespace-nowrap',
+                activeTab === 'supplementary' ? 'text-gold' : 'text-foreground/40 hover:text-foreground'
+              )}
+            >
+              {isEn ? 'Supplementary Info' : 'Informations Complémentaires'}
+              {activeTab === 'supplementary' && (
                 <motion.div layoutId="tab-active" className="absolute bottom-0 left-0 right-0 h-0.5 bg-gold" />
               )}
             </button>
@@ -650,19 +632,15 @@ export default function ProductDetailClient({ id }: { id: string }) {
 
           <div className="min-h-[200px]">
             <AnimatePresence mode="wait">
-              {activeTab === 'description' ? (
+              {activeTab === 'details' ? (
                 <motion.div
-                  key="desc"
+                  key="details"
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -10 }}
                   transition={{ duration: 0.3 }}
-                  className="grid grid-cols-1 md:grid-cols-2 gap-12"
+                  className="space-y-12"
                 >
-                  <p className="text-foreground/70 leading-relaxed text-[15px] md:text-base">
-                    {product.description}
-                  </p>
-
                   {noteEntries.length > 0 && (
                     <div>
                       <h3 className="text-xs font-bold uppercase tracking-widest text-foreground/60 mb-6">
@@ -686,73 +664,96 @@ export default function ProductDetailClient({ id }: { id: string }) {
                       </div>
                     </div>
                   )}
+
+                  <div>
+                    <table className="w-full border-collapse max-w-2xl">
+                      <tbody>
+                        <tr className="border-b border-foreground/10">
+                          <td className="py-4 text-foreground/40 uppercase text-xs tracking-widest w-1/3">
+                            {isEn ? 'Volume' : 'Volume'}
+                          </td>
+                          <td className="py-4 text-foreground font-medium">
+                            {product.category === 'huile' && selectedVariant
+                              ? `${selectedVariant.taille_ml}ml`
+                              : product.volume || 'N/A'}
+                          </td>
+                        </tr>
+                        {product.category?.includes('perfume') && (
+                          <>
+                            <tr className="border-b border-foreground/10">
+                              <td className="py-4 text-foreground/40 uppercase text-xs tracking-widest">
+                                {isEn ? 'Longevity' : 'Longévité'}
+                              </td>
+                              <td className="py-4 text-foreground font-medium">
+                                {product.longevity || (isEn ? 'Long-lasting (8-10 hrs)' : 'Longue durée (8-10h)')}
+                              </td>
+                            </tr>
+                            <tr className="border-b border-foreground/10">
+                              <td className="py-4 text-foreground/40 uppercase text-xs tracking-widest">
+                                {isEn ? 'Sillage' : 'Sillage'}
+                              </td>
+                              <td className="py-4 text-foreground font-medium">
+                                {product.sillage || (isEn ? 'Moderate' : 'Modéré')}
+                              </td>
+                            </tr>
+                            <tr className="border-b border-foreground/10">
+                              <td className="py-4 text-foreground/40 uppercase text-xs tracking-widest">
+                                {isEn ? 'Gender Profile' : 'Genre'}
+                              </td>
+                              <td className="py-4 text-foreground font-medium capitalize">
+                                {product.gender || (isEn ? 'Unisex' : 'Unisexe')}
+                              </td>
+                            </tr>
+                          </>
+                        )}
+                        <tr className="border-b border-foreground/10">
+                          <td className="py-4 text-foreground/40 uppercase text-xs tracking-widest">
+                            {isEn ? 'Category' : 'Catégorie'}
+                          </td>
+                          <td className="py-4 text-foreground font-medium capitalize">
+                            {product.category?.replace('-', ' ')}
+                          </td>
+                        </tr>
+                        {product.brand && (
+                          <tr className="border-b border-foreground/10">
+                            <td className="py-4 text-foreground/40 uppercase text-xs tracking-widest">
+                              {isEn ? 'House / Brand' : 'Marque'}
+                            </td>
+                            <td className="py-4 text-foreground font-medium">{product.brand}</td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
                 </motion.div>
               ) : (
                 <motion.div
-                  key="details"
+                  key="supplementary"
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -10 }}
                   transition={{ duration: 0.3 }}
                 >
-                  <table className="w-full border-collapse max-w-2xl">
-                    <tbody>
-                      <tr className="border-b border-foreground/10">
-                        <td className="py-4 text-foreground/40 uppercase text-xs tracking-widest w-1/3">
-                          {isEn ? 'Volume' : 'Volume'}
-                        </td>
-                        <td className="py-4 text-foreground font-medium">
-                          {product.category === 'huile' && selectedVariant
-                            ? `${selectedVariant.taille_ml}ml`
-                            : product.volume || 'N/A'}
-                        </td>
-                      </tr>
-                      {product.category?.includes('perfume') && (
-                        <>
-                          <tr className="border-b border-foreground/10">
-                            <td className="py-4 text-foreground/40 uppercase text-xs tracking-widest">
-                              {isEn ? 'Longevity' : 'Longévité'}
+                  {Array.isArray(product.tags) && product.tags.length > 0 ? (
+                    <table className="w-full border-collapse max-w-2xl">
+                      <tbody>
+                        {product.tags.map((tag, idx) => (
+                          <tr key={`${tag.tag ?? tag.id ?? idx}`} className="border-b border-foreground/10">
+                            <td className="py-4 text-foreground/40 uppercase text-xs tracking-widest w-1/3">
+                              {tag.tag_nom || tag.nom || (isEn ? 'Tag' : 'Étiquette')}
                             </td>
                             <td className="py-4 text-foreground font-medium">
-                              {product.longevity || (isEn ? 'Long-lasting (8-10 hrs)' : 'Longue durée (8-10h)')}
+                              {tag.valeur}
                             </td>
                           </tr>
-                          <tr className="border-b border-foreground/10">
-                            <td className="py-4 text-foreground/40 uppercase text-xs tracking-widest">
-                              {isEn ? 'Sillage' : 'Sillage'}
-                            </td>
-                            <td className="py-4 text-foreground font-medium">
-                              {product.sillage || (isEn ? 'Moderate' : 'Modéré')}
-                            </td>
-                          </tr>
-                          <tr className="border-b border-foreground/10">
-                            <td className="py-4 text-foreground/40 uppercase text-xs tracking-widest">
-                              {isEn ? 'Gender Profile' : 'Genre'}
-                            </td>
-                            <td className="py-4 text-foreground font-medium capitalize">
-                              {product.gender || (isEn ? 'Unisex' : 'Unisexe')}
-                            </td>
-                          </tr>
-                        </>
-                      )}
-                      <tr className="border-b border-foreground/10">
-                        <td className="py-4 text-foreground/40 uppercase text-xs tracking-widest">
-                          {isEn ? 'Category' : 'Catégorie'}
-                        </td>
-                        <td className="py-4 text-foreground font-medium capitalize">
-                          {product.category?.replace('-', ' ')}
-                        </td>
-                      </tr>
-                      {product.brand && (
-                        <tr className="border-b border-foreground/10">
-                          <td className="py-4 text-foreground/40 uppercase text-xs tracking-widest">
-                            {isEn ? 'House / Brand' : 'Marque'}
-                          </td>
-                          <td className="py-4 text-foreground font-medium">{product.brand}</td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
+                        ))}
+                      </tbody>
+                    </table>
+                  ) : (
+                    <p className="text-foreground/50 text-sm">
+                      {isEn ? 'No supplementary information available.' : 'Aucune information complémentaire disponible.'}
+                    </p>
+                  )}
                 </motion.div>
               )}
             </AnimatePresence>
