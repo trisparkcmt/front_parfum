@@ -201,7 +201,6 @@ export default function FinishedEssenceAdminPage() {
     setForm(prev => ({
       ...prev,
       essence: essenceId,
-
       marque: e.marque || '',
       categorie: e.categorie || '',
     }));
@@ -240,7 +239,6 @@ export default function FinishedEssenceAdminPage() {
       prix: String(priceValue ?? ''),
       prix_promotionnel: item.prix_promotionnel ? String(item.prix_promotionnel) : '',
       actif: item.actif !== false,
-
       marque: item.marque ?? '',
       categorie: item.categorie ?? '',
     });
