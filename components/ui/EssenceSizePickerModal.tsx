@@ -123,8 +123,7 @@ export function EssenceSizePickerModal({ product, onConfirm, onClose }: EssenceS
   }, [selectedItems]);
 
   const getAvailableAfterSelection = (variant: ProduitFiniEssence) => {
-    const maxQ = getVariantMaxQuantity(variant);
-    return maxQ;
+    return getVariantMaxQuantity(variant);
   };
 
   const handleConfirm = () => {
@@ -144,35 +143,31 @@ export function EssenceSizePickerModal({ product, onConfirm, onClose }: EssenceS
         exit={{ opacity: 0 }}
         transition={{ duration: 0.2 }}
         onClick={onClose}
-        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
+        className="fixed inset-0 bg-black/70 backdrop-blur-md z-50 flex items-center justify-center p-4 sm:p-6 pb-24 sm:pb-6"
       >
         <motion.div
           key="size-modal-panel"
-          initial={{ opacity: 0, y: 60 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: 60 }}
+          initial={{ opacity: 0, scale: 0.95, y: 20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.95, y: 20 }}
           transition={{ type: 'spring', damping: 28, stiffness: 300 }}
           onClick={(e) => e.stopPropagation()}
-          className="bg-background border border-white/10 rounded-t-3xl sm:rounded-2xl w-full sm:max-w-lg shadow-2xl overflow-hidden max-h-[85dvh] flex flex-col"
+          className="bg-background border border-white/10 rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden h-[75dvh] max-h-[620px] flex flex-col"
         >
-          <div className="flex justify-center pt-3 pb-1 sm:hidden shrink-0">
-            <div className="w-10 h-1 rounded-full bg-white/20" />
-          </div>
-
           {/* Header */}
-          <div className="flex items-center gap-4 px-6 pt-3 pb-3 border-b border-white/10 shrink-0">
-            <div className="relative w-12 h-12 rounded-xl overflow-hidden bg-white/5 border border-white/10 shrink-0">
+          <div className="flex items-center gap-4 px-6 py-3.5 border-b border-white/10 shrink-0 bg-white/[0.02]">
+            <div className="relative w-11 h-11 rounded-xl overflow-hidden bg-white/5 border border-white/10 shrink-0">
               {mainImage ? (
                 <AppImage
                   src={resolveImageUrl(mainImage)}
                   alt={product.name}
                   fill
                   className="object-cover"
-                  sizes="48px"
+                  sizes="44px"
                 />
               ) : (
                 <div className="flex h-full w-full items-center justify-center">
-                  <ShoppingBag size={18} className="text-foreground/20" />
+                  <ShoppingBag size={16} className="text-foreground/20" />
                 </div>
               )}
             </div>
@@ -186,7 +181,7 @@ export function EssenceSizePickerModal({ product, onConfirm, onClose }: EssenceS
               {product.stock_total_ml != null && (
                 <p className="text-[10px] text-foreground/45 mt-0.5 flex items-center gap-1">
                   <Droplets size={10} className="text-gold" />
-                  Stock laboratoire: {product.stock_total_ml.toLocaleString('fr-FR')} ml (Restant: {Math.max(0, labTotalMl - totalMlUsed)} ml)
+                  Stock: {product.stock_total_ml.toLocaleString('fr-FR')} ml (Dispo: {Math.max(0, labTotalMl - totalMlUsed)} ml)
                 </p>
               )}
             </div>
@@ -199,24 +194,24 @@ export function EssenceSizePickerModal({ product, onConfirm, onClose }: EssenceS
           </div>
 
           {/* Scrollable content */}
-          <div className="p-6 overflow-y-auto space-y-4 flex-1 min-h-0">
+          <div className="p-5 overflow-y-auto space-y-4 flex-1 min-h-0">
             <div>
-              <div className="flex items-center justify-between mb-3">
-                <p className="text-xs font-bold uppercase tracking-widest text-foreground/50">
+              <div className="flex items-center justify-between mb-2.5">
+                <p className="text-[11px] font-bold uppercase tracking-widest text-foreground/50">
                   Sélectionnez les formats souhaités
                 </p>
                 {selectedItems.length > 0 && (
                   <span className="text-[11px] font-semibold text-gold">
-                    {selectedItems.length} format{selectedItems.length > 1 ? 's' : ''} sélectionné{selectedItems.length > 1 ? 's' : ''}
+                    {selectedItems.length} format{selectedItems.length > 1 ? 's' : ''}
                   </span>
                 )}
               </div>
 
-              <div className="flex flex-col gap-3">
+              <div className="flex flex-col gap-2.5">
                 {variants.map((v) => {
                   const currentQty = selectedQuantities[v.id] ?? 0;
                   const isSelected = currentQty > 0;
-                  const isOutOfStock = v.stock_disponible <= 0 || getVariantMaxQuantity(v) <= 0 && !isSelected;
+                  const isOutOfStock = v.stock_disponible <= 0 || (getVariantMaxQuantity(v) <= 0 && !isSelected);
                   const remainingQuantity = getAvailableAfterSelection(v);
                   const maxQty = getVariantMaxQuantity(v);
                   const originalPriceNum = v.prix_promotionnel ? parseFloat(v.prix_promotionnel) : 0;
@@ -225,7 +220,7 @@ export function EssenceSizePickerModal({ product, onConfirm, onClose }: EssenceS
                   return (
                     <div
                       key={v.id}
-                      className={`relative w-full rounded-2xl border transition-all p-4 ${
+                      className={`relative w-full rounded-xl border transition-all p-3.5 ${
                         isSelected
                           ? 'bg-gold/[0.07] border-gold/60 shadow-md'
                           : isOutOfStock
@@ -242,18 +237,18 @@ export function EssenceSizePickerModal({ product, onConfirm, onClose }: EssenceS
                           }`}
                         >
                           <div
-                            className={`w-5 h-5 rounded-lg border flex items-center justify-center shrink-0 transition-colors ${
+                            className={`w-4.5 h-4.5 rounded-lg border flex items-center justify-center shrink-0 transition-colors ${
                               isSelected
                                 ? 'border-gold bg-gold text-black'
                                 : 'border-white/20 hover:border-white/40'
                             }`}
                           >
-                            {isSelected && <Check size={12} strokeWidth={3} />}
+                            {isSelected && <Check size={11} strokeWidth={3} />}
                           </div>
 
                           <div className="min-w-0">
                             <div className="flex items-center gap-2">
-                              <span className="text-sm font-bold text-foreground">{v.taille_ml} ml</span>
+                              <span className="text-xs font-bold text-foreground">{v.taille_ml} ml</span>
                               {hasReduction && (
                                 <span className="bg-red-500/10 border border-red-500/20 text-red-400 text-[8px] font-bold px-1.5 py-0.5 uppercase tracking-wide rounded-md">
                                   Promo
@@ -262,10 +257,10 @@ export function EssenceSizePickerModal({ product, onConfirm, onClose }: EssenceS
                             </div>
                             <div className="text-[10px] text-foreground/45 mt-0.5">
                               {isOutOfStock ? (
-                                <span className="text-red-400 font-semibold">Rupture de stock / Volume insuffisant</span>
+                                <span className="text-red-400 font-semibold">Rupture / Volume épuisé</span>
                               ) : (
                                 <span className={remainingQuantity <= 5 ? 'text-amber-400 font-medium' : 'text-foreground/45'}>
-                                  Max possible : {remainingQuantity} flacon{remainingQuantity > 1 ? 's' : ''}
+                                  Max : {remainingQuantity} flacon{remainingQuantity > 1 ? 's' : ''}
                                 </span>
                               )}
                             </div>
@@ -276,15 +271,15 @@ export function EssenceSizePickerModal({ product, onConfirm, onClose }: EssenceS
                         <div className="text-right shrink-0">
                           {hasReduction ? (
                             <div className="flex flex-col items-end">
-                              <span className="text-xs line-through text-foreground/40 font-mono">
+                              <span className="text-[11px] line-through text-foreground/40 font-mono">
                                 {formatPrice(originalPriceNum)}
                               </span>
-                              <span className="text-sm font-bold text-gold font-mono">
+                              <span className="text-xs font-bold text-gold font-mono">
                                 {formatPrice(v.prix_actuel)}
                               </span>
                             </div>
                           ) : (
-                            <span className={`text-sm font-bold font-mono ${isSelected ? 'text-gold' : 'text-foreground'}`}>
+                            <span className={`text-xs font-bold font-mono ${isSelected ? 'text-gold' : 'text-foreground'}`}>
                               {formatPrice(v.prix_actuel)}
                             </span>
                           )}
@@ -293,8 +288,8 @@ export function EssenceSizePickerModal({ product, onConfirm, onClose }: EssenceS
 
                       {/* Quantity Stepper when selected */}
                       {isSelected && (
-                        <div className="mt-3 pt-3 border-t border-white/10 flex items-center justify-between">
-                          <span className="text-[11px] font-medium text-foreground/60">
+                        <div className="mt-2.5 pt-2.5 border-t border-white/10 flex items-center justify-between">
+                          <span className="text-[10px] font-medium text-foreground/60">
                             Quantité :
                           </span>
 
@@ -303,9 +298,9 @@ export function EssenceSizePickerModal({ product, onConfirm, onClose }: EssenceS
                               type="button"
                               onClick={() => updateVariantQuantity(v, -1)}
                               disabled={currentQty <= 1}
-                              className="w-7 h-7 rounded-lg bg-white/10 border border-white/10 flex items-center justify-center text-xs hover:bg-white/20 disabled:opacity-30 transition-all font-bold"
+                              className="w-6 h-6 rounded-lg bg-white/10 border border-white/10 flex items-center justify-center text-xs hover:bg-white/20 disabled:opacity-30 transition-all font-bold"
                             >
-                              <Minus size={12} />
+                              <Minus size={11} />
                             </button>
                             <QuantityInput
                               value={currentQty}
@@ -313,18 +308,18 @@ export function EssenceSizePickerModal({ product, onConfirm, onClose }: EssenceS
                               max={Math.max(1, maxQty)}
                               onChange={(qty) => setVariantQuantityDirect(v, qty)}
                               ariaLabel="Quantité"
-                              className="w-10 text-center font-mono font-bold text-sm text-foreground bg-transparent border-none outline-none focus:ring-0 cursor-pointer focus:cursor-text"
+                              className="w-8 text-center font-mono font-bold text-xs text-foreground bg-transparent border-none outline-none focus:ring-0 cursor-pointer focus:cursor-text"
                             />
                             <button
                               type="button"
                               onClick={() => updateVariantQuantity(v, 1)}
                               disabled={maxQty <= currentQty}
-                              className="w-7 h-7 rounded-lg bg-white/10 border border-white/10 flex items-center justify-center text-xs hover:bg-white/20 disabled:opacity-30 transition-all font-bold"
+                              className="w-6 h-6 rounded-lg bg-white/10 border border-white/10 flex items-center justify-center text-xs hover:bg-white/20 disabled:opacity-30 transition-all font-bold"
                             >
-                              <Plus size={12} />
+                              <Plus size={11} />
                             </button>
 
-                            <span className="ml-3 text-xs font-bold text-gold font-mono">
+                            <span className="ml-2 text-xs font-bold text-gold font-mono">
                               = {formatPrice(v.prix_actuel * currentQty)}
                             </span>
                           </div>
@@ -338,26 +333,18 @@ export function EssenceSizePickerModal({ product, onConfirm, onClose }: EssenceS
 
             {/* Total summary box */}
             {selectedItems.length > 0 && (
-              <div className="bg-gold/5 border border-gold/20 rounded-2xl p-4 space-y-2">
+              <div className="bg-gold/5 border border-gold/20 rounded-xl p-3.5 space-y-1.5">
                 <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-foreground/60">
-                    Récapitulatif de la sélection
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-foreground/60">
+                    Récapitulatif
                   </span>
-                  <span className="text-sm font-bold text-gold font-mono">
+                  <span className="text-xs font-bold text-gold font-mono">
                     {totalQuantity} flacon{totalQuantity > 1 ? 's' : ''} ({totalMlUsed} ml)
                   </span>
                 </div>
-                <div className="text-[11px] text-foreground/50 space-y-0.5">
-                  {selectedItems.map((item) => (
-                    <div key={item.variant.id} className="flex justify-between">
-                      <span>• {item.quantity} × {item.variant.taille_ml}ml</span>
-                      <span className="font-mono">{formatPrice(item.variant.prix_actuel * item.quantity)}</span>
-                    </div>
-                  ))}
-                </div>
-                <div className="pt-2 border-t border-gold/15 flex items-center justify-between">
+                <div className="pt-1.5 border-t border-gold/15 flex items-center justify-between">
                   <span className="text-xs font-bold uppercase tracking-wider text-foreground">Total</span>
-                  <span className="text-base font-black text-gold font-mono">
+                  <span className="text-sm font-black text-gold font-mono">
                     {formatPrice(totalPrice)}
                   </span>
                 </div>
@@ -366,11 +353,11 @@ export function EssenceSizePickerModal({ product, onConfirm, onClose }: EssenceS
           </div>
 
           {/* Action Footer */}
-          <div className="p-4 sm:p-6 border-t border-white/10 bg-white/[0.01] shrink-0">
+          <div className="p-4 border-t border-white/10 bg-white/[0.01] shrink-0">
             <button
               disabled={selectedItems.length === 0}
               onClick={handleConfirm}
-              className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl text-xs font-bold uppercase tracking-widest transition-all bg-gold text-black hover:bg-gold/90 disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-gold/20"
+              className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-xs font-bold uppercase tracking-widest transition-all bg-gold text-black hover:bg-gold/90 disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-gold/20"
             >
               <ShoppingBag size={14} />
               Ajouter au panier
