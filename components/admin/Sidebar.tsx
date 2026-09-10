@@ -12,7 +12,7 @@ import { useNotificationCountStore } from '@/store/useNotificationCountStore';
 import {
   LayoutDashboard, ShoppingCart, BarChart2, Users2,
   TrendingUp, Package, DollarSign, Truck,
-  Sparkles, Gem, X, ChevronDown, Bell, FileText,
+  Sparkles, Gem, X, ChevronDown, Bell, FileText, Tag,
 } from 'lucide-react';
 import { PerfumeIcon, EssenceIcon, DiffuseurIcon, LaptopIcon } from '@/components/icons/CustomIcons';
 
