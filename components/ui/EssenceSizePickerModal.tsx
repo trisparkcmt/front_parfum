@@ -184,6 +184,7 @@ export function EssenceSizePickerModal({ product, onConfirm, onClose }: EssenceS
                   const currentQty = selectedQuantities[v.id] ?? 0;
                   const isSelected = currentQty > 0;
                   const isOutOfStock = v.stock_disponible <= 0;
+                  const remainingQuantity = Math.max(0, v.stock_disponible - currentQty);
                   const originalPriceNum = v.prix_promotionnel ? parseFloat(v.prix_promotionnel) : 0;
                   const hasReduction = originalPriceNum > 0 && originalPriceNum > v.prix_actuel;
 
@@ -228,6 +229,10 @@ export function EssenceSizePickerModal({ product, onConfirm, onClose }: EssenceS
                             <div className="text-[10px] text-foreground/45 mt-0.5">
                               {isOutOfStock ? (
                                 <span className="text-red-400 font-semibold">Rupture de stock</span>
+                              ) : isSelected ? (
+                                <span className={remainingQuantity <= 5 ? 'text-amber-400 font-medium' : 'text-foreground/45'}>
+                                  Disponible après sélection : {remainingQuantity}
+                                </span>
                               ) : v.stock_disponible <= 5 ? (
                                 <span className="text-amber-400 font-medium">Plus que {v.stock_disponible} restants</span>
                               ) : (
