@@ -28,6 +28,7 @@ const T = {
     tab_perfume: 'Catégories parfums',
     tab_accessory: 'Catégories accessoires',
     tab_bottle: 'Types flacons',
+    tab_tags: 'Types de tags',
     col_icon: 'Icône',
     col_name: 'Nom',
     col_slug: 'Slug',
@@ -69,6 +70,9 @@ const T = {
     toast_accessory_updated: 'Type accessoire mis à jour',
     toast_bottle_created: 'Type flacon créé',
     toast_bottle_updated: 'Type flacon mis à jour',
+    toast_tag_created: 'Type de tag créé',
+    toast_tag_updated: 'Type de tag mis à jour',
+    toast_tag_deleted: 'Type de tag supprimé',
     toast_save_error: 'Erreur lors de la sauvegarde',
     toast_delete_success: 'Élément supprimé',
     toast_delete_error: 'Erreur lors de la suppression',
@@ -80,6 +84,8 @@ const T = {
     modal_edit_accessory: 'Modifier le type',
     modal_add_bottle: 'Nouveau type flacon',
     modal_edit_bottle: 'Modifier le flacon',
+    modal_add_tag: 'Nouveau type de tag',
+    modal_edit_tag: 'Modifier le type de tag',
     add: 'Ajouter',
     edit: 'Modifier',
     delete: 'Supprimer',
@@ -97,6 +103,7 @@ const T = {
     tab_perfume: 'Perfume Categories',
     tab_accessory: 'Accessory Categories',
     tab_bottle: 'Bottle Types',
+    tab_tags: 'Tag Types',
     col_icon: 'Icon',
     col_name: 'Name',
     col_slug: 'Slug',
@@ -138,6 +145,9 @@ const T = {
     toast_accessory_updated: 'Accessory type updated',
     toast_bottle_created: 'Bottle type created',
     toast_bottle_updated: 'Bottle type updated',
+    toast_tag_created: 'Tag type created',
+    toast_tag_updated: 'Tag type updated',
+    toast_tag_deleted: 'Tag type deleted',
     toast_save_error: 'Error saving item',
     toast_delete_success: 'Item deleted',
     toast_delete_error: 'Error deleting item',
@@ -149,6 +159,8 @@ const T = {
     modal_edit_accessory: 'Edit Type',
     modal_add_bottle: 'New Bottle Type',
     modal_edit_bottle: 'Edit Bottle Type',
+    modal_add_tag: 'New Tag Type',
+    modal_edit_tag: 'Edit Tag Type',
     add: 'Add',
     edit: 'Edit',
     delete: 'Delete',
@@ -162,7 +174,7 @@ const T = {
 
 type TKey = keyof typeof T.fr;
 
-type TabKey = 'perfume_categories' | 'accessory_categories' | 'bottle_types';
+type TabKey = 'perfume_categories' | 'accessory_categories' | 'bottle_types' | 'tag_types';
 
 function cx(...parts: Array<string | false | null | undefined>) {
   return parts.filter(Boolean).join(' ');
@@ -364,6 +376,8 @@ export default function CategoriesAdminPage() {
         data = await shopService.getAccessoryTypes();
       } else if (activeTab === 'bottle_types') {
         data = await shopService.getBottleTypes();
+      } else if (activeTab === 'tag_types') {
+        data = await shopService.getTags();
       }
       const list = data?.results || data?.resultats || (Array.isArray(data) ? data : []);
       setItems(list);
@@ -447,8 +461,8 @@ export default function CategoriesAdminPage() {
         errors.date_fin = t('err_end_after_start');
     }
 
-    if (activeTab === 'accessory_categories' || activeTab === 'bottle_types') {
-      if (!form.description.trim()) errors.description = t('err_description');
+    if (activeTab === 'accessory_categories' || activeTab === 'bottle_types' || activeTab === 'tag_types') {
+      if (activeTab !== 'tag_types' && !form.description.trim()) errors.description = t('err_description');
     }
 
     if (Object.keys(errors).length > 0) {
@@ -523,6 +537,15 @@ export default function CategoriesAdminPage() {
           await shopService.createBottleType(payload);
           addToast(t('toast_bottle_created'), 'success');
         }
+      } else if (activeTab === 'tag_types') {
+        const payload = { nom: form.nom.trim() };
+        if (editingItem) {
+          await shopService.updateTag(editingItem.slug, payload);
+          addToast(t('toast_tag_updated') || 'Tag type updated', 'success');
+        } else {
+          await shopService.createTag(payload);
+          addToast(t('toast_tag_created') || 'Tag type created', 'success');
+        }
       }
 
       setShowModal(false);
@@ -545,6 +568,11 @@ export default function CategoriesAdminPage() {
         await shopService.deleteAccessoryType(id);
       } else if (activeTab === 'bottle_types') {
         await shopService.deleteBottleType(id);
+      } else if (activeTab === 'tag_types') {
+        const tag = items.find(i => i.id === id);
+        if (tag?.slug) await shopService.deleteTag(tag.slug);
+        addToast(t('toast_tag_deleted') || 'Tag type deleted', 'success');
+        return;
       }
       addToast(t('toast_delete_success'), 'success');
     } catch {
@@ -569,6 +597,11 @@ export default function CategoriesAdminPage() {
         await adminService.patchFormData(`shop/types-accessoire/${id}/`, formData);
       } else if (activeTab === 'bottle_types') {
         await shopService.updateBottleType(id, { [field]: value });
+      } else if (activeTab === 'tag_types') {
+        if (field === 'nom') {
+          const tag = items.find(item => item.id === id);
+          if (tag?.slug) await shopService.updateTag(tag.slug, { nom: value });
+        }
       }
     } catch {
       // Roll back on failure
@@ -583,19 +616,23 @@ export default function CategoriesAdminPage() {
       (c.slug || '').toLowerCase().includes(search.toLowerCase())
   );
 
-  const colSpan = activeTab === 'perfume_categories' ? 7 : activeTab === 'accessory_categories' ? 6 : 3;
+  const colSpan = activeTab === 'perfume_categories' ? 7 : activeTab === 'accessory_categories' ? 6 : activeTab === 'tag_types' ? 3 : 3;
 
   const modalTitle = editingItem
     ? activeTab === 'perfume_categories'
       ? t('modal_edit_perfume')
       : activeTab === 'accessory_categories'
       ? t('modal_edit_accessory')
-      : t('modal_edit_bottle')
+      : activeTab === 'bottle_types'
+      ? t('modal_edit_bottle')
+      : t('modal_edit_tag')
     : activeTab === 'perfume_categories'
     ? t('modal_add_perfume')
     : activeTab === 'accessory_categories'
     ? t('modal_add_accessory')
-    : t('modal_add_bottle');
+    : activeTab === 'bottle_types'
+    ? t('modal_add_bottle')
+    : t('modal_add_tag');
 
   return (
     <>
@@ -640,6 +677,12 @@ export default function CategoriesAdminPage() {
               onClick={() => setActiveTab('bottle_types')}
               icon={<FlaskConical size={14} />}
               label={t('tab_bottle')}
+            />
+            <TabButton
+              active={activeTab === 'tag_types'}
+              onClick={() => setActiveTab('tag_types')}
+              icon={<Tag size={14} />}
+              label={t('tab_tags')}
             />
           </div>
 
@@ -718,6 +761,16 @@ export default function CategoriesAdminPage() {
                             </th>
                             <th className="px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-foreground/35">
                               {t('col_description')}
+                            </th>
+                          </>
+                        )}
+                        {activeTab === 'tag_types' && (
+                          <>
+                            <th className="px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-foreground/35">
+                              {t('col_name')}
+                            </th>
+                            <th className="px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-foreground/35">
+                              {t('col_slug')}
                             </th>
                           </>
                         )}
@@ -826,6 +879,16 @@ export default function CategoriesAdminPage() {
                               </td>
                             </>
                           )}
+                          {activeTab === 'tag_types' && (
+                            <>
+                              <td className="px-4 py-2.5 font-medium text-foreground">
+                                <InlineCell id={c.id} field="nom" value={c.nom || ''} inlineEdit={inlineEdit} setInlineEdit={setInlineEdit} onSave={handleInlineSave} className="font-medium text-foreground" />
+                              </td>
+                              <td className="px-4 py-2.5 text-foreground/50 font-mono text-[11px]">
+                                {c.slug || '—'}
+                              </td>
+                            </>
+                          )}
                           <td className="px-4 py-2.5 text-right">
                             <div className="inline-flex items-center gap-1">
                               <button
@@ -906,7 +969,13 @@ export default function CategoriesAdminPage() {
                             <InlineCell id={c.id} field="description" value={c.description || ''} inlineEdit={inlineEdit} setInlineEdit={setInlineEdit} onSave={handleInlineSave} className="text-foreground/70 line-clamp-2" />
                           </div>
                         )}
-                        {activeTab !== 'bottle_types' && formatPromotionPeriod(c.date_debut, c.date_fin) && (
+                        {activeTab === 'tag_types' && (
+                          <div className="text-foreground/60">
+                            <span className="block text-[10px] font-semibold uppercase text-foreground/40">{t('col_slug')}:</span>
+                            <span className="text-foreground/70 font-mono text-[10px]">{c.slug || '—'}</span>
+                          </div>
+                        )}
+                        {activeTab !== 'bottle_types' && activeTab !== 'tag_types' && formatPromotionPeriod(c.date_debut, c.date_fin) && (
                           <div className="flex justify-between text-foreground/60">
                             <span className="text-foreground/40">{t('col_promo_period')}:</span>
                             <span className="text-foreground/70">{formatPromotionPeriod(c.date_debut, c.date_fin)}</span>

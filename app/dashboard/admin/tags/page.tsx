@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Loader2, Plus, Search, Edit2, Trash2, Tag as TagIcon, X } from 'lucide-react';
 import { shopService } from '@/services/apiService';
 import { useToastStore } from '@/store/useToastStore';
@@ -68,7 +69,8 @@ const inputClassName =
 
 export default function AdminTagsPage() {
   const { addToast } = useToastStore();
-  const locale = 'fr';
+  const { i18n } = useTranslation();
+  const locale = i18n.language?.startsWith('en') ? 'en' : 'fr';
   const text = T[locale];
 
   const [tags, setTags] = useState<TagDefinition[]>([]);

@@ -12,7 +12,7 @@ import { useNotificationCountStore } from '@/store/useNotificationCountStore';
 import {
   LayoutDashboard, ShoppingCart, BarChart2, Users2,
   TrendingUp, Package, DollarSign, Truck,
-  Sparkles, Gem, Tag, X, ChevronDown, Bell, FileText,
+  Sparkles, Gem, X, ChevronDown, Bell, FileText,
 } from 'lucide-react';
 import { PerfumeIcon, EssenceIcon, DiffuseurIcon, LaptopIcon } from '@/components/icons/CustomIcons';
 
@@ -177,11 +177,6 @@ export default function Sidebar({ open, setOpen }: SidebarProps) {
       label: t('admin_nav_categories', { defaultValue: isEn ? 'Categories' : 'Catégories' }),
       icon: <Package size={18} />,
       href: '/dashboard/admin/categories',
-    },
-    {
-      label: t('admin_nav_tags', { defaultValue: isEn ? 'Tags' : 'Tags' }),
-      icon: <Tag size={18} />,
-      href: '/dashboard/admin/tags',
     },
     {
       label: t('admin_nav_essences', { defaultValue: 'Essences' }),
