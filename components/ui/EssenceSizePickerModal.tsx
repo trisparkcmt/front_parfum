@@ -46,12 +46,19 @@ export function EssenceSizePickerModal({ product, onConfirm, onClose }: EssenceS
   const toggleVariant = (variant: ProduitFiniEssence) => {
     if (variant.stock_disponible <= 0) return;
     setSelectedQuantities((prev) => {
+      const remainingCapacity = Math.max(0, variant.stock_disponible - totalSelectedAcrossFormats);
       const next = { ...prev };
+
       if (next[variant.id]) {
         delete next[variant.id];
-      } else {
-        next[variant.id] = 1;
+        return next;
       }
+
+      if (remainingCapacity <= 0) {
+        return prev;
+      }
+
+      next[variant.id] = 1;
       return next;
     });
   };
@@ -59,7 +66,15 @@ export function EssenceSizePickerModal({ product, onConfirm, onClose }: EssenceS
   const updateVariantQuantity = (variant: ProduitFiniEssence, delta: number) => {
     setSelectedQuantities((prev) => {
       const current = prev[variant.id] ?? 0;
-      const nextQty = Math.max(1, Math.min(variant.stock_disponible, current + delta));
+      const maxQty = getVariantMaxQuantity(variant);
+
+      if (maxQty <= 0) {
+        const next = { ...prev };
+        delete next[variant.id];
+        return next;
+      }
+
+      const nextQty = Math.max(1, Math.min(maxQty, current + delta));
       return {
         ...prev,
         [variant.id]: nextQty,
@@ -69,7 +84,15 @@ export function EssenceSizePickerModal({ product, onConfirm, onClose }: EssenceS
 
   const setVariantQuantityDirect = (variant: ProduitFiniEssence, qty: number) => {
     setSelectedQuantities((prev) => {
-      const nextQty = Math.max(1, Math.min(variant.stock_disponible, qty));
+      const maxQty = getVariantMaxQuantity(variant);
+
+      if (maxQty <= 0) {
+        const next = { ...prev };
+        delete next[variant.id];
+        return next;
+      }
+
+      const nextQty = Math.max(1, Math.min(maxQty, qty));
       return {
         ...prev,
         [variant.id]: nextQty,
@@ -86,6 +109,10 @@ export function EssenceSizePickerModal({ product, onConfirm, onClose }: EssenceS
       }));
   }, [variants, selectedQuantities]);
 
+  const totalSelectedAcrossFormats = useMemo(() => {
+    return Object.values(selectedQuantities).reduce((sum, qty) => sum + (Number(qty) || 0), 0);
+  }, [selectedQuantities]);
+
   const totalQuantity = useMemo(() => {
     return selectedItems.reduce((sum, item) => sum + item.quantity, 0);
   }, [selectedItems]);
@@ -93,6 +120,16 @@ export function EssenceSizePickerModal({ product, onConfirm, onClose }: EssenceS
   const totalPrice = useMemo(() => {
     return selectedItems.reduce((sum, item) => sum + item.variant.prix_actuel * item.quantity, 0);
   }, [selectedItems]);
+
+  const getVariantMaxQuantity = (variant: ProduitFiniEssence) => {
+    const currentQty = selectedQuantities[variant.id] ?? 0;
+    const otherSelectedQty = totalSelectedAcrossFormats - currentQty;
+    return Math.max(0, variant.stock_disponible - otherSelectedQty);
+  };
+
+  const getAvailableAfterSelection = (variant: ProduitFiniEssence) => {
+    return Math.max(0, variant.stock_disponible - totalSelectedAcrossFormats);
+  };
 
   const handleConfirm = () => {
     if (selectedItems.length === 0) return;
@@ -184,7 +221,8 @@ export function EssenceSizePickerModal({ product, onConfirm, onClose }: EssenceS
                   const currentQty = selectedQuantities[v.id] ?? 0;
                   const isSelected = currentQty > 0;
                   const isOutOfStock = v.stock_disponible <= 0;
-                  const remainingQuantity = Math.max(0, v.stock_disponible - currentQty);
+                  const remainingQuantity = getAvailableAfterSelection(v);
+                  const maxQty = getVariantMaxQuantity(v);
                   const originalPriceNum = v.prix_promotionnel ? parseFloat(v.prix_promotionnel) : 0;
                   const hasReduction = originalPriceNum > 0 && originalPriceNum > v.prix_actuel;
 
@@ -280,7 +318,7 @@ export function EssenceSizePickerModal({ product, onConfirm, onClose }: EssenceS
                             <QuantityInput
                               value={currentQty}
                               min={1}
-                              max={v.stock_disponible}
+                              max={maxQty}
                               onChange={(qty) => setVariantQuantityDirect(v, qty)}
                               ariaLabel="Quantité"
                               className="w-10 text-center font-mono font-bold text-sm text-foreground bg-transparent border-none outline-none focus:ring-0 cursor-pointer focus:cursor-text"
@@ -288,7 +326,7 @@ export function EssenceSizePickerModal({ product, onConfirm, onClose }: EssenceS
                             <button
                               type="button"
                               onClick={() => updateVariantQuantity(v, 1)}
-                              disabled={currentQty >= v.stock_disponible}
+                              disabled={maxQty <= currentQty}
                               className="w-7 h-7 rounded-lg bg-white/10 border border-white/10 flex items-center justify-center text-xs hover:bg-white/20 disabled:opacity-30 transition-all font-bold"
                             >
                               <Plus size={12} />

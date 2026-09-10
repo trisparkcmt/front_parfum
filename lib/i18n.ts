@@ -132,7 +132,7 @@ const resources = {
       "profile_all": "Toutes",
       "profile_male": "Homme",
       "profile_female": "Femme",
-      "profile_unisex": "Mixte",
+      "profile_unisex": "Unisex",
       "family_woody": "Boisé",
       "family_citrus": "Hespéridé / Agrumes",
       "family_oriental": "Oriental",
