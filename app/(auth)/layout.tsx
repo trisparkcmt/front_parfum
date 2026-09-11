@@ -63,7 +63,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
             className="h-14 w-auto object-contain invert group-hover:scale-105 transition-transform duration-300"
           />
           <span className="font-display text-2xl font-bold tracking-tight text-foreground">
-            <span className="text-gold">Accessories</span> Exclusif
+            <span className="text-gold">Accessories</span> Exclusifs
           </span>
         </Link>
 
