@@ -20,9 +20,7 @@ export function TablePagination({
   onPageChange,
   itemLabel = 'éléments',
 }: TablePaginationProps) {
-  if (totalPages <= 1) return null;
-
-  const start = (currentPage - 1) * itemsPerPage + 1;
+  const start = totalItems === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1;
   const end = Math.min(currentPage * itemsPerPage, totalItems);
 
   // Build a compact page range: always show first, last, current ± 1
@@ -45,43 +43,45 @@ export function TablePagination({
         {start}–{end} sur {totalItems} {itemLabel}
       </span>
 
-      <div className="flex items-center gap-1">
-        <button
-          onClick={() => onPageChange(currentPage - 1)}
-          disabled={currentPage === 1}
-          className="p-1.5 rounded-md hover:bg-white/8 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-          aria-label="Page précédente"
-        >
-          <ChevronLeft size={13} />
-        </button>
+      {totalPages > 1 && (
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => onPageChange(currentPage - 1)}
+            disabled={currentPage === 1}
+            className="p-1.5 rounded-md hover:bg-white/8 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+            aria-label="Page précédente"
+          >
+            <ChevronLeft size={13} />
+          </button>
 
-        {pages.map((p, i) =>
-          p === '...' ? (
-            <span key={`ellipsis-${i}`} className="px-1.5 py-1">…</span>
-          ) : (
-            <button
-              key={p}
-              onClick={() => onPageChange(p as number)}
-              className={`min-w-[28px] h-7 rounded-md px-1.5 text-[11px] font-medium transition-colors ${
-                p === currentPage
-                  ? 'bg-gold/15 text-gold ring-1 ring-gold/30'
-                  : 'hover:bg-white/8 text-foreground/50 hover:text-foreground'
-              }`}
-            >
-              {p}
-            </button>
-          )
-        )}
+          {pages.map((p, i) =>
+            p === '...' ? (
+              <span key={`ellipsis-${i}`} className="px-1.5 py-1">…</span>
+            ) : (
+              <button
+                key={p}
+                onClick={() => onPageChange(p as number)}
+                className={`min-w-[28px] h-7 rounded-md px-1.5 text-[11px] font-medium transition-colors ${
+                  p === currentPage
+                    ? 'bg-gold/15 text-gold ring-1 ring-gold/30'
+                    : 'hover:bg-white/8 text-foreground/50 hover:text-foreground'
+                }`}
+              >
+                {p}
+              </button>
+            )
+          )}
 
-        <button
-          onClick={() => onPageChange(currentPage + 1)}
-          disabled={currentPage === totalPages}
-          className="p-1.5 rounded-md hover:bg-white/8 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-          aria-label="Page suivante"
-        >
-          <ChevronRight size={13} />
-        </button>
-      </div>
+          <button
+            onClick={() => onPageChange(currentPage + 1)}
+            disabled={currentPage === totalPages}
+            className="p-1.5 rounded-md hover:bg-white/8 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+            aria-label="Page suivante"
+          >
+            <ChevronRight size={13} />
+          </button>
+        </div>
+      )}
     </div>
   );
 }
