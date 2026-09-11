@@ -149,7 +149,7 @@ type CategoryRecord = {
 import { useToastStore } from '@/store/useToastStore';
 import { useCatalogPermissions } from '@/hooks/useCatalogPermissions';
 import CatalogAccessNotice from '@/components/catalog/CatalogAccessNotice';
-import { extractCatalogList } from '@/lib/catalogUtils';
+import { extractCatalogList, fetchAllCatalogPages } from '@/lib/catalogUtils';
 import { fromDatetimeLocalValue, toDatetimeLocalValue } from '@/lib/promotionUtils';
 import AppImage from '@/components/ui/AppImage';
 import { MultiImageUpload } from '@/components/MultiImageUpload';
@@ -342,14 +342,10 @@ export default function PerfumeAdminPage() {
       if (genreFilter) params.genre = genreFilter;
       if (estBestsellerFilter === 'true') params.est_bestseller = true;
       if (estBestsellerFilter === 'false') params.est_bestseller = false;
-      const allItems: PerfumeRecord[] = [];
-      let page = 1;
-      while (true) {
-        const data = await shopService.getPerfumes({ ...params, page, limit: 50 });
-        allItems.push(...extractCatalogList<PerfumeRecord>(data));
-        if (Array.isArray(data) || !data?.next || extractCatalogList(data).length === 0) break;
-        page += 1;
-      }
+
+      const allItems = await fetchAllCatalogPages<PerfumeRecord>(async (page) =>
+        shopService.getPerfumes({ ...params, page, limit: 50 })
+      );
       setPerfumes(allItems);
     } catch {
       addToast(t('toast_load_error'), 'error');

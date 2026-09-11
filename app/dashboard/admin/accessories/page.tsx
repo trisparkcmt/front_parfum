@@ -6,7 +6,7 @@ import { shopService, adminService } from '@/services/apiService';
 import { useToastStore } from '@/store/useToastStore';
 import { useCatalogPermissions } from '@/hooks/useCatalogPermissions';
 import CatalogAccessNotice from '@/components/catalog/CatalogAccessNotice';
-import { extractCatalogList } from '@/lib/catalogUtils';
+import { extractCatalogList, fetchAllCatalogPages } from '@/lib/catalogUtils';
 import { MultiImageUpload } from '@/components/MultiImageUpload';
 import { CreateCategoryModal } from '@/components/CreateCategoryModal';
 import { useAuthStore } from '@/store/useAuthStore';
@@ -277,14 +277,11 @@ export default function AccessoriesPage() {
       if (couleurFilter) params.couleur = couleurFilter;
       if (enStockFilter === 'true') params.en_stock = true;
       if (enStockFilter === 'false') params.en_stock = false;
-      const allItems: any[] = [];
-      let page = 1;
-      while (true) {
-        const data = await shopService.getAccessories({ ...params, page });
-        allItems.push(...extractCatalogList(data));
-        if (Array.isArray(data) || !data?.next || extractCatalogList(data).length === 0) break;
-        page += 1;
-      }
+
+      const allItems = await fetchAllCatalogPages<any>(async (page) =>
+        shopService.getAccessories({ ...params, page })
+      );
+
       const from = createdFrom ? new Date(`${createdFrom}T00:00:00`).getTime() : null;
       const to = createdTo ? new Date(`${createdTo}T23:59:59.999`).getTime() : null;
       setAccessories(allItems.filter(item => {

@@ -58,7 +58,7 @@ import { useToastStore } from '@/store/useToastStore';
 import { useCatalogPermissions } from '@/hooks/useCatalogPermissions';
 import CatalogAccessNotice from '@/components/catalog/CatalogAccessNotice';
 import AppImage from '@/components/ui/AppImage';
-import { extractCatalogList } from '@/lib/catalogUtils';
+import { extractCatalogList, fetchAllCatalogPages } from '@/lib/catalogUtils';
 import { extractApiError } from '@/lib/apiError';
 import { SlideOver } from '@/components/ui/SlideOver';
 
@@ -155,10 +155,13 @@ export default function FinishedEssenceAdminPage() {
       const params: Record<string, unknown> = {};
       if (search) params.search = search;
       if (tailleFilter) params.taille_ml = Number(tailleFilter);
-      const data = await shopService.getFinishedEssences(params);
-      setItems(extractCatalogList(data));
+
+      const allItems = await fetchAllCatalogPages<any>(async (page) =>
+        shopService.getFinishedEssences({ ...params, page })
+      );
+      setItems(allItems);
     } catch {
-    addToast(t('toast_load_error'), 'error');
+      addToast(t('toast_load_error'), 'error');
     } finally {
       setLoading(false);
     }

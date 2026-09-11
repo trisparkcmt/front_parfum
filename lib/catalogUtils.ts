@@ -16,3 +16,25 @@ export function extractCatalogCount(data: unknown, fallbackLength = 0): number {
   }
   return fallbackLength;
 }
+
+export async function fetchAllCatalogPages<T = unknown>(
+  fetchPage: (page: number) => Promise<unknown>
+): Promise<T[]> {
+  const allItems: T[] = [];
+  let page = 1;
+
+  while (true) {
+    const data = await fetchPage(page);
+    const items = extractCatalogList<T>(data);
+    allItems.push(...items);
+
+    const nextUrl = data && typeof data === 'object' ? (data as Record<string, unknown>).next : null;
+    if (Array.isArray(data) || !data || typeof data !== 'object' || !('next' in data) || !nextUrl || items.length === 0) {
+      break;
+    }
+
+    page += 1;
+  }
+
+  return allItems;
+}

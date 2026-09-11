@@ -3,13 +3,15 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { type LucideIcon,
   Search, Plus, Edit2, Trash2, Loader2,
-  ShoppingBag, RefreshCw, ChevronLeft, ChevronRight, X, AlertCircle, Filter
+  ShoppingBag, RefreshCw, X, AlertCircle, Filter
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { InlineCell } from '@/components/admin/InlineCell';
+import { TablePagination } from '@/components/admin/TablePagination';
 import { AdminTableSkeleton } from '@/components/ui/AdminTableSkeleton';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { CustomSelect } from '@/components/ui/CustomSelect';
+import { fetchAllCatalogPages } from '@/lib/catalogUtils';
 import { mapErrorToUserMessage } from '@/lib/errorMapper';
 
 /* ── Inline translations ─────────────────────────────────────────────────── */
@@ -326,9 +328,10 @@ export default function EssencesPage() {
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
-      const essencesData = await labService.getEssences();
-      const essList = Array.isArray(essencesData) ? essencesData : (essencesData as Record<string, unknown>)?.results || (essencesData as Record<string, unknown>)?.resultats || [];
-      setEssences(essList as EssenceRecord[]);
+      const allEssences = await fetchAllCatalogPages<EssenceRecord>(async (page) =>
+        labService.getEssences({ page })
+      );
+      setEssences(allEssences);
     } catch {
       addToast(t('toast_load_error'), 'error');
     } finally {
@@ -871,26 +874,14 @@ export default function EssencesPage() {
         )}
       </div>
 
-      {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="flex items-center justify-between pt-1">
-          <span className="text-xs text-foreground/40">
-            Page <b className="text-foreground/80">{currentPage}</b> sur <b className="text-foreground/80">{totalPages}</b>
-          </span>
-          <div className="flex items-center gap-1">
-            <IconButton 
-              icon={ChevronLeft}
-              onClick={() => setCurrentPage(p => p - 1)}
-              tint="neutral"
-            />
-            <IconButton 
-              icon={ChevronRight}
-              onClick={() => setCurrentPage(p => p + 1)}
-              tint="neutral"
-            />
-          </div>
-        </div>
-      )}
+      <TablePagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        totalItems={filtered.length}
+        itemsPerPage={itemsPerPage}
+        onPageChange={setCurrentPage}
+        itemLabel={isEn ? 'essences' : 'essences'}
+      />
 
       {/* Modale d'Ajout / Modification (verbatim off-limits form logic) */}
       <SlideOver
