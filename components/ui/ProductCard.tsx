@@ -53,12 +53,15 @@ export function ProductCard({
   const { addToast } = useToastStore();
   const [isHovered, setIsHovered] = useState(false);
 
-  const mainImage = product.image_principale || (product.images && product.images[0]) || '';
-  const secondImage = product.image_supp_1 || (product.images && product.images[1]) || '';
-
   const isDiffuseur = !!(product.type_technologie || product.capacite_reservoir_ml);
-
   const isHuile = product.category === 'huile' || product.category === 'produit-fini-essence';
+
+  const mainImage = isHuile
+    ? '/huile.png'
+    : product.image_principale || (product.images && product.images[0]) || '';
+  const secondImage = isHuile
+    ? ''
+    : product.image_supp_1 || (product.images && product.images[1]) || '';
 
   const productUrl = isDiffuseur
     ? `/shop/diffuseurs/${product.id || product.slug}`
@@ -73,7 +76,7 @@ export function ProductCard({
       : product.type_technologie === 'chaleur' ? 'Chaleur douce'
       : product.type_technologie === 'connecte' ? 'Connecté'
       : 'Diffuseur')
-    : product.category === 'huile' || product.category === 'produit-fini-essence'
+    : isHuile
     ? `Huile${product.volume ? ` • ${product.volume}` : ''}`
     : product.category && product.category.includes('perfume')
     ? `Parfum${product.volume ? ` • ${product.volume}` : ''}`
@@ -154,23 +157,6 @@ export function ProductCard({
               loading="lazy"
               sizes="(max-width: 480px) 46vw, (max-width: 768px) 31vw, (max-width: 1024px) 23vw, 210px"
             />
-          ) : isHuile ? (
-            <div className="flex h-full w-full flex-col items-center justify-center p-4 text-center bg-gradient-to-b from-amber-500/10 via-gold/5 to-background border-b border-white/5 transition-transform duration-500 group-hover:scale-[1.02]">
-              <div className="w-12 h-12 rounded-2xl bg-gold/10 border border-gold/20 flex items-center justify-center mb-2.5 shadow-lg shadow-gold/5">
-                <Droplets size={22} className="text-gold" />
-              </div>
-              <span className="text-[10px] font-bold uppercase tracking-widest text-gold/90 mb-1">
-                Huile Pure
-              </span>
-              <span className="text-xs font-semibold text-foreground/80 line-clamp-2 leading-tight">
-                {product.name}
-              </span>
-              {product.brand && (
-                <span className="text-[9px] text-foreground/40 mt-1 uppercase tracking-wider">
-                  {product.brand}
-                </span>
-              )}
-            </div>
           ) : (
             <div className="flex h-full w-full items-center justify-center">
               <ShoppingBag size={24} className="text-foreground/10" />
@@ -212,22 +198,22 @@ export function ProductCard({
               onClick={handleToggleFavorite}
               aria-label="Toggle favourite"
               className="flex h-6 w-6 sm:h-7 sm:w-7 items-center justify-center rounded-full bg-black/50 text-white/80 backdrop-blur-sm transition-colors hover:bg-black/70 hover:text-white"
-            >
+          >
               <Heart
                 size={12}
                 className={cn(
                   'sm:hidden transition-all duration-300',
                   isFavorite ? 'fill-red-500 stroke-red-500' : 'stroke-white/80'
-                )}
-              />
-              <Heart
-                size={13}
-                className={cn(
+              )}
+            />
+            <Heart
+              size={13}
+              className={cn(
                   'hidden sm:block transition-all duration-300',
                   isFavorite ? 'fill-red-500 stroke-red-500' : 'stroke-white/80'
-                )}
-              />
-            </button>
+              )}
+            />
+          </button>
           )}
         </div>
       </div>
@@ -259,9 +245,9 @@ export function ProductCard({
               <span className="line-through text-foreground/40 mr-1 sm:mr-1.5">{formatPrice(product.originalPrice!)}</span>
               <span className="text-gold">{formatPrice(product.price)}</span>
             </>
-          ) : (
+        ) : (
             formatPrice(product.price)
-          )}
+        )}
         </p>
       </div>
 
@@ -278,14 +264,14 @@ export function ProductCard({
             <button
               onClick={() => onAddToCart(product)}
               className="w-full flex items-center justify-center gap-1.5 sm:gap-2 py-2 sm:py-2.5 text-[10px] sm:text-[11px] font-semibold uppercase tracking-[0.12em] sm:tracking-[0.15em] bg-transparent border border-[var(--t-btn-ghost-border)] text-[var(--t-btn-ghost-text)] transition-colors duration-200 hover:bg-[var(--t-btn-ghost-hover-bg)] hover:text-[var(--t-btn-ghost-hover-text)] "
-            >
+          >
               <ShoppingBag size={12} className="sm:hidden" />
               <ShoppingBag size={13} className="hidden sm:block" />
               {t('add_to_cart') ?? 'Ajouter au Panier'}
             </button>
-          )
-        )}
+        )
+      )}
       </div>
-    </div>
+  </div>
   );
 }
