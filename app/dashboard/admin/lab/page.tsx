@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Loader2, Edit2, Trash2, Plus, Search, Filter, X, Package, Layers, RefreshCw, AlertCircle, AlertTriangle } from 'lucide-react';
 import { InlineCell } from '@/components/admin/InlineCell';
+import { TablePagination } from '@/components/admin/TablePagination';
 import { labService } from '@/services/apiService';
 import { useTranslation } from 'react-i18next';
 import { CustomSelect } from '@/components/ui/CustomSelect';
@@ -427,7 +428,19 @@ function IngredientsTab() {
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [confirmDialog, setConfirmDialog] = useState<{ isOpen: boolean; id: any | null }>({ isOpen: false, id: null });
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 20;
   const { addToast } = useToastStore();
+
+  const totalPages = Math.max(1, Math.ceil(items.length / itemsPerPage));
+  const currentItems = useMemo(
+    () => items.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage),
+    [items, currentPage]
+  );
+
+  useEffect(() => {
+    setCurrentPage((page) => Math.min(page, totalPages));
+  }, [totalPages]);
 
   const [form, setForm] = useState({
     nom: '',
@@ -560,12 +573,18 @@ function IngredientsTab() {
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-foreground/40" />
           <input
             value={search}
-            onChange={e => setSearch(e.target.value)}
+            onChange={e => {
+              setSearch(e.target.value);
+              setCurrentPage(1);
+            }}
             placeholder="Rechercher un ingrédient..."
             className="shadow-black/30 shadow-sm w-full bg-white/[0.02] border border-white/10 rounded-lg pl-9 pr-8 py-1.5 text-xs text-foreground placeholder:text-foreground/40 outline-none focus:border-white/20 transition-all"
           />
           {search && (
-            <button onClick={() => setSearch('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-foreground/40 hover:text-foreground">
+            <button onClick={() => {
+              setSearch('');
+              setCurrentPage(1);
+            }} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-foreground/40 hover:text-foreground">
               <X size={12} />
             </button>
           )}
@@ -621,7 +640,7 @@ function IngredientsTab() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5 text-xs">
-                {items.map(item => {
+                {currentItems.map(item => {
                   const stockVal = Number(item.stock_ml ?? item.stock_disponible ?? 0);
                   const statusType: StatusType = stockVal > 50 ? 'emerald' : stockVal > 10 ? 'amber' : 'red';
                   return (
@@ -665,6 +684,15 @@ function IngredientsTab() {
           </div>
         )}
       </div>
+
+      <TablePagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        totalItems={items.length}
+        itemsPerPage={itemsPerPage}
+        onPageChange={setCurrentPage}
+        itemLabel="ingrédients"
+      />
 
       <SlideOver
         isOpen={showModal}
@@ -761,7 +789,19 @@ function LotsTab({ setConfirmDialog }: { setConfirmDialog: React.Dispatch<React.
   const [editing, setEditing] = useState<any | null>(null);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 20;
   const { addToast } = useToastStore();
+
+  const totalPages = Math.max(1, Math.ceil(items.length / itemsPerPage));
+  const currentItems = useMemo(
+    () => items.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage),
+    [items, currentPage]
+  );
+
+  useEffect(() => {
+    setCurrentPage((page) => Math.min(page, totalPages));
+  }, [totalPages]);
 
   const [form, setForm] = useState({
     essence: '',
@@ -945,7 +985,10 @@ function LotsTab({ setConfirmDialog }: { setConfirmDialog: React.Dispatch<React.
               <span className="text-xs text-foreground/50">Essence :</span>
               <CustomSelect
                 value={essenceFilter}
-                onChange={setEssenceFilter}
+                onChange={(value) => {
+                  setEssenceFilter(value);
+                  setCurrentPage(1);
+                }}
                 size="sm"
                 options={[
                   { value: '', label: t('all') },
@@ -958,7 +1001,10 @@ function LotsTab({ setConfirmDialog }: { setConfirmDialog: React.Dispatch<React.
               <span className="text-xs text-foreground/50">Statut :</span>
               <CustomSelect
                 value={actifFilter}
-                onChange={setActifFilter}
+                onChange={(value) => {
+                  setActifFilter(value);
+                  setCurrentPage(1);
+                }}
                 size="sm"
                 options={[
                   { value: '', label: t('status_all') },
@@ -973,6 +1019,7 @@ function LotsTab({ setConfirmDialog }: { setConfirmDialog: React.Dispatch<React.
                 onClick={() => {
                   setEssenceFilter('');
                   setActifFilter('');
+                  setCurrentPage(1);
                 }}
                 className="text-[11px] text-foreground/40 hover:text-foreground underline ml-auto"
               >
@@ -1016,7 +1063,7 @@ function LotsTab({ setConfirmDialog }: { setConfirmDialog: React.Dispatch<React.
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5 text-xs">
-                {items.map(item => {
+                {currentItems.map(item => {
                   const coutTotal = item.cout_achat_total 
                     ? parseFloat(item.cout_achat_total) 
                     : (item.quantite_initiale_ml && item.prix_achat_par_ml 
@@ -1087,6 +1134,15 @@ function LotsTab({ setConfirmDialog }: { setConfirmDialog: React.Dispatch<React.
           </div>
         )}
       </div>
+
+      <TablePagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        totalItems={items.length}
+        itemsPerPage={itemsPerPage}
+        onPageChange={setCurrentPage}
+        itemLabel="lots"
+      />
 
       <SlideOver
         isOpen={showModal}
@@ -1206,7 +1262,19 @@ function InventoryTab() {
   const [showModal, setShowModal] = useState(false);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 20;
   const { addToast } = useToastStore();
+
+  const totalPages = Math.max(1, Math.ceil(items.length / itemsPerPage));
+  const currentItems = useMemo(
+    () => items.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage),
+    [items, currentPage]
+  );
+
+  useEffect(() => {
+    setCurrentPage((page) => Math.min(page, totalPages));
+  }, [totalPages]);
 
   const [form, setForm] = useState({
     quantite_disponible_ml: '',
@@ -1324,7 +1392,7 @@ function InventoryTab() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5 text-xs">
-                {items.map(item => {
+                {currentItems.map(item => {
                   const qty = Number(item.stock_total_ml ?? item.quantite_disponible_ml ?? 0);
                   const thresholdValue = item.seuil_alerte_ml;
                   const hasThreshold = thresholdValue !== undefined && thresholdValue !== null && thresholdValue !== '';
@@ -1368,6 +1436,15 @@ function InventoryTab() {
           </div>
         )}
       </div>
+
+      <TablePagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        totalItems={items.length}
+        itemsPerPage={itemsPerPage}
+        onPageChange={setCurrentPage}
+        itemLabel="inventaires"
+      />
 
       <SlideOver
         isOpen={Boolean(showModal && editing)}
