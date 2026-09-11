@@ -60,7 +60,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
           <img
             src="/logo/Logo Accessoirs Exclusifs black transparent.svg"
             alt="Accessoires Exclusifs"
-            className="h-14 w-auto object-contain invert group-hover:scale-105 transition-transform duration-300"
+            className="h-30 w-30 object-contain invert group-hover:scale-105 transition-transform duration-300"
           />
           <span className="font-display text-2xl font-bold tracking-tight text-foreground">
             <span className="text-gold">Accessories</span> Exclusifs

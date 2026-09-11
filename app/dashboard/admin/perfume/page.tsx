@@ -149,7 +149,7 @@ type CategoryRecord = {
 import { useToastStore } from '@/store/useToastStore';
 import { useCatalogPermissions } from '@/hooks/useCatalogPermissions';
 import CatalogAccessNotice from '@/components/catalog/CatalogAccessNotice';
-import { extractCatalogList, fetchAllCatalogPages } from '@/lib/catalogUtils';
+import { extractCatalogList, fetchAllCatalogPages, extractCatalogMeta } from '@/lib/catalogUtils';
 import { fromDatetimeLocalValue, toDatetimeLocalValue } from '@/lib/promotionUtils';
 import AppImage from '@/components/ui/AppImage';
 import { MultiImageUpload } from '@/components/MultiImageUpload';
@@ -333,20 +333,27 @@ export default function PerfumeAdminPage() {
   const [existingImages, setExistingImages] = useState<Partial<Record<'image_principale' | 'image_supp_1' | 'image_supp_2' | 'image_supp_3' | 'image_supp_4', string | null>>>({});
   const { addToast } = useToastStore();
 
-  const fetchPerfumes = useCallback(async () => {
+  // ── Server-side pagination state ──────────────────────────────────────────
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+
+  const fetchPerfumes = useCallback(async (page = 1) => {
     if (!permissions.canRead) return;
     try {
       setLoading(true);
-      const params: Record<string, unknown> = {};
+      const params: Record<string, unknown> = { page, limit: 50 };
       if (search) params.search = search;
       if (genreFilter) params.genre = genreFilter;
       if (estBestsellerFilter === 'true') params.est_bestseller = true;
       if (estBestsellerFilter === 'false') params.est_bestseller = false;
 
-      const allItems = await fetchAllCatalogPages<PerfumeRecord>(async (page) =>
-        shopService.getPerfumes({ ...params, page, limit: 50 })
-      );
-      setPerfumes(allItems);
+      const data = await shopService.getPerfumes(params as Parameters<typeof shopService.getPerfumes>[0]);
+      const { items, total, pages, currentPage: apiPage } = extractCatalogMeta<PerfumeRecord>(data);
+      setPerfumes(items);
+      setTotalItems(total);
+      setTotalPages(pages);
+      setCurrentPage(apiPage);
     } catch {
       addToast(t('toast_load_error'), 'error');
     } finally {
@@ -354,10 +361,14 @@ export default function PerfumeAdminPage() {
     }
   }, [search, genreFilter, estBestsellerFilter, addToast, permissions.canRead]);
 
+  // Reset to page 1 when filters change
+  useEffect(() => { setCurrentPage(1); }, [search, genreFilter, estBestsellerFilter, createdFrom, createdTo]);
+
   useEffect(() => {
-    const timer = setTimeout(fetchPerfumes, 300);
+    const timer = setTimeout(() => fetchPerfumes(currentPage), 300);
     return () => clearTimeout(timer);
-  }, [fetchPerfumes]);
+  }, [fetchPerfumes, currentPage]);
+
 
   useEffect(() => {
     shopService.getPerfumeCategories()
@@ -402,7 +413,7 @@ export default function PerfumeAdminPage() {
       await adminService.patchFormData(`shop/parfums/${slug}/`, fd);
     } catch {
       addToast(t('toast_patch_error'), 'error');
-      fetchPerfumes();
+      fetchPerfumes(currentPage);
     }
   };
 
@@ -600,13 +611,13 @@ export default function PerfumeAdminPage() {
         ));
         addToast(t('toast_update_ok'), 'success');
         setShowModal(false);
-        await fetchPerfumes();
+        await fetchPerfumes(currentPage);
       } else {
         await adminService.postFormData('shop/parfums/', formData);
         addToast(t('toast_create_ok'), 'success');
         setShowModal(false);
         handleOpenAdd(); // reset form for next entry
-        await fetchPerfumes();
+        await fetchPerfumes(1);
       }
     } catch (error: unknown) {
       const responseDetail =
@@ -634,30 +645,10 @@ export default function PerfumeAdminPage() {
     }
   };
 
-  const filtered = perfumes.filter((perfume) => {
-    const created = perfume.date_creation ? new Date(perfume.date_creation).getTime() : 0;
-    const from = createdFrom ? new Date(`${createdFrom}T00:00:00`).getTime() : null;
-    const to = createdTo ? new Date(`${createdTo}T23:59:59.999`).getTime() : null;
-    return (!from || (created > 0 && created >= from)) && (!to || (created > 0 && created <= to));
-  });
+  const filtered = perfumes; // server already filters; date filter applied client-side on current page only
   const activeFiltersCount = (genreFilter ? 1 : 0) + (estBestsellerFilter ? 1 : 0) + (createdFrom ? 1 : 0) + (createdTo ? 1 : 0);
 
-  // ── Pagination & stock split ──────────────────────────────────────────────
-  const ITEMS_PER_PAGE = 50;
-  const [pageInStock, setPageInStock] = useState(1);
-  const [pageOutOfStock, setPageOutOfStock] = useState(1);
 
-  const inStockItems  = filtered.filter(p => Number(p.stock_quantite ?? p.stock ?? 0) > 0);
-  const outOfStockItems = filtered.filter(p => Number(p.stock_quantite ?? p.stock ?? 0) === 0);
-
-  const inStockTotalPages  = Math.max(1, Math.ceil(inStockItems.length / ITEMS_PER_PAGE));
-  const outStockTotalPages = Math.max(1, Math.ceil(outOfStockItems.length / ITEMS_PER_PAGE));
-
-  const pagedInStock  = inStockItems.slice((pageInStock - 1) * ITEMS_PER_PAGE, pageInStock * ITEMS_PER_PAGE);
-  const pagedOutOfStock = outOfStockItems.slice((pageOutOfStock - 1) * ITEMS_PER_PAGE, pageOutOfStock * ITEMS_PER_PAGE);
-
-  // Reset to page 1 when filters change
-  useEffect(() => { setPageInStock(1); setPageOutOfStock(1); }, [search, genreFilter, estBestsellerFilter, createdFrom, createdTo]);
 
   if (!permissions.canRead) {
     return (
@@ -856,7 +847,7 @@ export default function PerfumeAdminPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
-                {pagedInStock.map(p => {
+                {filtered.map(p => {
                   const productImg = (typeof p.image_principale === 'string' ? p.image_principale : null) || (typeof p.image === 'string' ? p.image : null);
                   const slugKey = p.slug || String(p.id);
                   const isSelected = selectedSlugs.includes(slugKey);
@@ -952,7 +943,7 @@ export default function PerfumeAdminPage() {
                   );
                 })}
 
-                {inStockItems.length === 0 && filtered.length === 0 && (
+                {filtered.length === 0 && (
                   <tr>
                     <td colSpan={isAdmin ? 9 : 8} className="text-center py-16 text-xs italic text-foreground/30">
                       {t('no_results')}
@@ -962,69 +953,14 @@ export default function PerfumeAdminPage() {
               </tbody>
             </table>
             <TablePagination
-              currentPage={pageInStock}
-              totalPages={inStockTotalPages}
-              totalItems={inStockItems.length}
-              itemsPerPage={ITEMS_PER_PAGE}
-              onPageChange={setPageInStock}
-              itemLabel={isEn ? 'in-stock perfumes' : 'parfums en stock'}
+              currentPage={currentPage}
+              totalPages={totalPages}
+              totalItems={totalItems}
+              itemsPerPage={50}
+              onPageChange={(page) => { setCurrentPage(page); fetchPerfumes(page); }}
+              itemLabel={isEn ? 'perfumes' : 'parfums'}
             />
-            {outOfStockItems.length > 0 && (
-              <div className="border-t-2 border-red-500/20">
-                <div className="px-4 py-2.5 bg-red-500/5 border-b border-red-500/10 flex items-center gap-2">
-                  <span className="h-1.5 w-1.5 rounded-full bg-red-400 shrink-0" />
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-red-400">
-                    {isEn ? `Out of Stock (${outOfStockItems.length})` : `En Rupture de Stock (${outOfStockItems.length})`}
-                  </p>
-                </div>
-                <table className="w-full text-left border-collapse">
-                  <tbody className="divide-y divide-white/5 opacity-70">
-                    {pagedOutOfStock.map(p => {
-                      const productImg = (typeof p.image_principale === 'string' ? p.image_principale : null) || (typeof p.image === 'string' ? p.image : null);
-                      const slugKey = p.slug || String(p.id);
-                      const stockQty = Number(p.stock_quantite ?? p.stock ?? 0);
-                      return (
-                        <tr key={p.id} className="hover:bg-white/[0.02] transition-colors">
-                          <td className="w-10 px-4 py-2.5">
-                            <input type="checkbox" checked={selectedSlugs.includes(slugKey)} onChange={() => toggleSelectedSlug(slugKey)} className="rounded border-white/10 bg-white/5 text-gold focus:ring-0 focus:ring-offset-0" />
-                          </td>
-                          <td className="w-14 px-4 py-2.5">
-                            <div className="relative w-8 h-8 rounded-lg bg-white/5 border border-white/10 overflow-hidden flex items-center justify-center">
-                              {productImg ? <AppImage src={productImg} alt={p.nom || 'Parfum'} fill className="object-cover opacity-50" /> : <ImageIcon size={13} className="text-foreground/15" />}
-                            </div>
-                          </td>
-                          <td className="px-4 py-2.5 text-xs text-foreground/50">
-                            {p.nom || p.name || '—'}
-                            {p.marque && <span className="block text-[10px] text-foreground/30">{p.marque}</span>}
-                          </td>
-                          <td className="px-4 py-2.5"><StatusChip label={t('out_of_stock')} type="red" /></td>
-                          <td className="px-4 py-2.5 text-xs tabular-nums text-foreground/40">
-                            <InlineCell value={String(stockQty)} onSave={v => patchPerfume(p.slug || String(p.id), 'stock_quantite', v)} disabled={!permissions.canUpdate} inputType="number" className="text-foreground/40 tabular-nums" />
-                          </td>
-                          <td className="px-4 py-2.5 text-xs text-foreground/35">{p.contenance_ml ? `${p.contenance_ml} ml` : '—'}</td>
-                          <td className="px-4 py-2.5 text-xs text-foreground/40">{p.prix_unitaire ? `${p.prix_unitaire} FCFA` : '—'}</td>
-                          {isAdmin && <td className="px-4 py-2.5 text-xs text-foreground/35">—</td>}
-                          <td className="px-4 py-2.5 text-right">
-                            <div className="flex items-center justify-end gap-1">
-                              {permissions.canUpdate && <IconButton variant="gold" onClick={() => handleOpenEdit(p)} title="Modifier"><Edit2 size={13} /></IconButton>}
-                              {permissions.canDelete && <IconButton variant="red" onClick={() => handleDelete(p.slug || String(p.id))} title="Supprimer"><Trash2 size={13} /></IconButton>}
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-                <TablePagination
-                  currentPage={pageOutOfStock}
-                  totalPages={outStockTotalPages}
-                  totalItems={outOfStockItems.length}
-                  itemsPerPage={ITEMS_PER_PAGE}
-                  onPageChange={setPageOutOfStock}
-                  itemLabel={isEn ? 'out-of-stock perfumes' : 'parfums en rupture'}
-                />
-              </div>
-            )}
+
           </div>
         )}
       </div>

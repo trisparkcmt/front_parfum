@@ -6,7 +6,7 @@ import { shopService, adminService } from '@/services/apiService';
 import { useToastStore } from '@/store/useToastStore';
 import { useCatalogPermissions } from '@/hooks/useCatalogPermissions';
 import CatalogAccessNotice from '@/components/catalog/CatalogAccessNotice';
-import { extractCatalogList, fetchAllCatalogPages } from '@/lib/catalogUtils';
+import { extractCatalogList, fetchAllCatalogPages, extractCatalogMeta } from '@/lib/catalogUtils';
 import { MultiImageUpload } from '@/components/MultiImageUpload';
 import { CreateCategoryModal } from '@/components/CreateCategoryModal';
 import { useAuthStore } from '@/store/useAuthStore';
@@ -260,16 +260,17 @@ export default function AccessoriesPage() {
 
   const { addToast } = useToastStore();
 
-  // ── Pagination & stock split ──────────────────────────────────────────────
+  // ── Server-side pagination state ──────────────────────────────────────────
   const ITEMS_PER_PAGE = 50;
-  const [pageInStock, setPageInStock] = useState(1);
-  const [pageOutOfStock, setPageOutOfStock] = useState(1);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
 
-  const fetchAccessories = useCallback(async () => {
+  const fetchAccessories = useCallback(async (page = 1) => {
     if (!permissions.canRead) return;
     try {
       setLoading(true);
-      const params: Record<string, unknown> = {};
+      const params: Record<string, unknown> = { page, limit: 50 };
       if (search) params.search = search;
       if (filter !== 'all') params.type_accessoire = Number(filter);
       if (marqueFilter) params.marque = marqueFilter;
@@ -278,29 +279,29 @@ export default function AccessoriesPage() {
       if (enStockFilter === 'true') params.en_stock = true;
       if (enStockFilter === 'false') params.en_stock = false;
 
-      const allItems = await fetchAllCatalogPages<any>(async (page) =>
-        shopService.getAccessories({ ...params, page })
-      );
-
-      const from = createdFrom ? new Date(`${createdFrom}T00:00:00`).getTime() : null;
-      const to = createdTo ? new Date(`${createdTo}T23:59:59.999`).getTime() : null;
-      setAccessories(allItems.filter(item => {
-        const created = item.date_creation ? new Date(item.date_creation).getTime() : 0;
-        return (!from || (created > 0 && created >= from)) && (!to || (created > 0 && created <= to));
-      }));
+      const data = await shopService.getAccessories(params as Parameters<typeof shopService.getAccessories>[0]);
+      const { items, total, pages, currentPage: apiPage } = extractCatalogMeta<any>(data);
+      setAccessories(items);
+      setTotalItems(total);
+      setTotalPages(pages);
+      setCurrentPage(apiPage);
     } catch {
       addToast(t('toast_load_error'), 'error');
     } finally {
       setLoading(false);
     }
-  }, [search, filter, marqueFilter, matiereFilter, couleurFilter, enStockFilter, createdFrom, createdTo, addToast, permissions.canRead]);
+  }, [search, filter, marqueFilter, matiereFilter, couleurFilter, enStockFilter, addToast, permissions.canRead]);
+
+  // Reset to page 1 when filters change
+  useEffect(() => { setCurrentPage(1); }, [search, filter, marqueFilter, matiereFilter, couleurFilter, enStockFilter, createdFrom, createdTo]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      fetchAccessories();
+      fetchAccessories(currentPage);
     }, 300);
     return () => clearTimeout(timer);
-  }, [fetchAccessories]);
+  }, [fetchAccessories, currentPage]);
+
 
   // Load accessory types for dropdowns and filtering
   useEffect(() => {
@@ -473,13 +474,13 @@ export default function AccessoriesPage() {
         addToast(t('toast_update_ok'), 'success');
         setShowModal(false);
         setFormError(null);
-        fetchAccessories(); // sync to get server-normalised data
+        fetchAccessories(currentPage); // sync to get server-normalised data
       } else {
         await adminService.postFormData('shop/accessoires/', formData);
         addToast(t('toast_create_ok'), 'success');
         setShowModal(false);
         setFormError(null);
-        fetchAccessories(); // add new item
+        fetchAccessories(1); // add new item
       }
     } catch (error: any) {
       const errorMessage = error.response?.data?.detail || t('toast_save_error');
@@ -500,7 +501,7 @@ export default function AccessoriesPage() {
       await adminService.patchFormData(`shop/accessoires/${slugOrId}/`, fd);
     } catch {
       addToast(t('toast_patch_error'), 'error');
-      fetchAccessories();
+      fetchAccessories(currentPage);
     }
   };
 
@@ -746,7 +747,7 @@ export default function AccessoriesPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
-                {accessories.filter(a => Number(a.stock_quantite || 0) > 0).slice((pageInStock - 1) * ITEMS_PER_PAGE, pageInStock * ITEMS_PER_PAGE).map(a => {
+                {accessories.map(a => {
                   const aName = a.nom || 'Accessoire';
                   const aPrice = a.prix_unitaire || 0;
                   const aStock = a.stock_quantite || 0;
@@ -848,7 +849,7 @@ export default function AccessoriesPage() {
                     </tr>
                   );
                 })}
-                {accessories.filter(a => Number(a.stock_quantite || 0) > 0).length === 0 && accessories.length === 0 && (
+                {accessories.length === 0 && (
                   <tr>
                       <td colSpan={7} className="py-16 text-center text-sm italic text-foreground/30">{t('no_results')}</td>
                   </tr>
@@ -856,65 +857,19 @@ export default function AccessoriesPage() {
               </tbody>
             </table>
             <TablePagination
-              currentPage={pageInStock}
-              totalPages={Math.max(1, Math.ceil(accessories.filter(a => Number(a.stock_quantite || 0) > 0).length / ITEMS_PER_PAGE))}
-              totalItems={accessories.filter(a => Number(a.stock_quantite || 0) > 0).length}
+              currentPage={currentPage}
+              totalPages={totalPages}
+              totalItems={totalItems}
               itemsPerPage={ITEMS_PER_PAGE}
-              onPageChange={setPageInStock}
-              itemLabel={isEn ? 'in-stock accessories' : 'accessoires en stock'}
+              onPageChange={(page) => { setCurrentPage(page); fetchAccessories(page); }}
+              itemLabel={isEn ? 'accessories' : 'accessoires'}
             />
-            {accessories.filter(a => Number(a.stock_quantite || 0) === 0).length > 0 && (
-              <div className="border-t-2 border-red-500/20">
-                <div className="px-4 py-2.5 bg-red-500/5 border-b border-red-500/10 flex items-center gap-2">
-                  <span className="h-1.5 w-1.5 rounded-full bg-red-400 shrink-0" />
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-red-400">
-                    {isEn ? `Out of Stock (${accessories.filter(a => Number(a.stock_quantite || 0) === 0).length})` : `En Rupture de Stock (${accessories.filter(a => Number(a.stock_quantite || 0) === 0).length})`}
-                  </p>
-                </div>
-                <table className="w-full text-left border-collapse">
-                  <tbody className="divide-y divide-white/5 opacity-70">
-                    {accessories.filter(a => Number(a.stock_quantite || 0) === 0).slice((pageOutOfStock - 1) * ITEMS_PER_PAGE, pageOutOfStock * ITEMS_PER_PAGE).map(a => {
-                      const aName = a.nom || 'Accessoire';
-                      const aPrice = a.prix_unitaire || 0;
-                      const aStock = a.stock_quantite || 0;
-                      const typeName = typeof a.type_accessoire === 'object' ? a.type_accessoire?.nom : (accessoryTypes.find(t => t.id === a.type_accessoire)?.nom || '—');
-                      return (
-                        <tr key={a.slug || a.id} className="hover:bg-white/[0.02] transition-colors">
-                          <td className="w-12 px-4 py-2.5"><input type="checkbox" checked={selectedAccessories.has(a.slug || a.id)} onChange={() => toggleSelectAccessory(a.slug || a.id)} className="rounded border-white/10 bg-white/5 text-gold focus:ring-0 focus:ring-offset-0" /></td>
-                          <td className="px-4 py-2.5 text-xs text-foreground/50">
-                            {aName}
-                            {typeName && <span className="block text-[10px] text-foreground/30">{typeName}</span>}
-                          </td>
-                          <td className="px-4 py-2.5"><span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium ring-1 ring-inset bg-red-500/10 text-red-400 ring-red-500/20"><span className="h-1.5 w-1.5 rounded-full bg-red-400" />{isEn ? 'Out of stock' : 'Rupture'}</span></td>
-                          <td className="px-4 py-2.5 text-xs text-foreground/40">{aPrice ? `${aPrice} FCFA` : '—'}</td>
-                          {isAdmin && <td className="px-4 py-2.5 text-xs text-foreground/35">—</td>}
-                          <td className="px-4 py-2.5 text-xs tabular-nums text-foreground/40">0 {t('units')}</td>
-                          <td className="px-4 py-2.5 text-right">
-                            <div className="flex items-center justify-end gap-1">
-                              {permissions.canUpdate && <button onClick={() => handleOpenEdit(a)} className="rounded-md p-1.5 text-foreground/45 hover:text-gold hover:bg-gold/10 transition-colors" title="Modifier"><Edit2 size={13} /></button>}
-                              {permissions.canDelete && <button onClick={() => handleDelete(a.slug || a.id)} className="rounded-md p-1.5 text-foreground/45 hover:text-red-400 hover:bg-red-500/10 transition-colors" title="Supprimer"><Trash2 size={13} /></button>}
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-                <TablePagination
-                  currentPage={pageOutOfStock}
-                  totalPages={Math.max(1, Math.ceil(accessories.filter(a => Number(a.stock_quantite || 0) === 0).length / ITEMS_PER_PAGE))}
-                  totalItems={accessories.filter(a => Number(a.stock_quantite || 0) === 0).length}
-                  itemsPerPage={ITEMS_PER_PAGE}
-                  onPageChange={setPageOutOfStock}
-                  itemLabel={isEn ? 'out-of-stock accessories' : 'accessoires en rupture'}
-                />
-              </div>
-            )}
           </div>
         )}
       </div>
 
       {/* ── Form modal — now restyled inside too ──────────────────────────── */}
+
       <SlideOver
         isOpen={showModal}
         onClose={() => setShowModal(false)}

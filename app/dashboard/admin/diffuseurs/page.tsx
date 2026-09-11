@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Search, Plus, Edit2, Trash2, Loader2, Wifi, Zap, Tag, DollarSign, Boxes, Settings2, AlertCircle, X } from 'lucide-react';
@@ -8,7 +8,7 @@ import { adminService } from '@/services/apiService';
 import { useToastStore } from '@/store/useToastStore';
 import { useCatalogPermissions } from '@/hooks/useCatalogPermissions';
 import CatalogAccessNotice from '@/components/catalog/CatalogAccessNotice';
-import { extractCatalogList } from '@/lib/catalogUtils';
+import { extractCatalogList, extractCatalogMeta } from '@/lib/catalogUtils';
 import { useAuthStore } from '@/store/useAuthStore';
 import AppImage from '@/components/ui/AppImage';
 import { SlideOver } from '@/components/ui/SlideOver';
@@ -270,10 +270,11 @@ export default function DiffuseursAdminPage() {
   });
   const { addToast } = useToastStore();
 
-  // ── Pagination & stock split ──────────────────────────────────────────────
+  // ── Server-side pagination state ──────────────────────────────────────────
   const ITEMS_PER_PAGE = 50;
-  const [pageInStock, setPageInStock] = useState(1);
-  const [pageOutOfStock, setPageOutOfStock] = useState(1);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
 
   const [form, setForm] = useState({
     nom: '',
@@ -289,12 +290,18 @@ export default function DiffuseursAdminPage() {
     actif: true,
   });
 
-  const fetchItems = useCallback(async () => {
+  const fetchItems = useCallback(async (page = 1) => {
     if (!permissions.canRead) return;
     try {
       setLoading(true);
-      const data = await adminService.getDiffuseurs(search ? { search } : undefined);
-      setDiffuseurs(extractCatalogList(data));
+      const params: Record<string, unknown> = { page, limit: 50 };
+      if (search) params.search = search;
+      const data = await adminService.getDiffuseurs(params as Parameters<typeof adminService.getDiffuseurs>[0]);
+      const { items, total, pages, currentPage: apiPage } = extractCatalogMeta<any>(data);
+      setDiffuseurs(items);
+      setTotalItems(total);
+      setTotalPages(pages);
+      setCurrentPage(apiPage);
     } catch {
       addToast(t('toast_load_error'), 'error');
     } finally {
@@ -302,10 +309,14 @@ export default function DiffuseursAdminPage() {
     }
   }, [addToast, permissions.canRead, search]);
 
+  // Reset to page 1 when search changes
+  useEffect(() => { setCurrentPage(1); }, [search]);
+
   useEffect(() => {
-    const timer = setTimeout(() => fetchItems(), 300);
+    const timer = setTimeout(() => fetchItems(currentPage), 300);
     return () => clearTimeout(timer);
-  }, [fetchItems]);
+  }, [fetchItems, currentPage]);
+
 
   const openAdd = () => {
     if (!permissions.canCreate) return;
@@ -416,7 +427,7 @@ export default function DiffuseursAdminPage() {
       }
 
       setShowModal(false);
-      fetchItems();
+      fetchItems(editing ? currentPage : 1);
     } catch (err: any) {
       setFormError(err?.message || t('toast_save_error'));
     } finally {
@@ -431,7 +442,7 @@ export default function DiffuseursAdminPage() {
       await adminService.updateDiffuseur(id, { [field]: field === 'nom' ? value : Number(value) });
     } catch {
       addToast(t('toast_patch_error'), 'error');
-      fetchItems();
+      fetchItems(currentPage);
     }
   };
 
@@ -537,7 +548,7 @@ export default function DiffuseursAdminPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
-                {diffuseurs.filter(item => Number(item.stock_quantite ?? 0) > 0).slice((pageInStock - 1) * ITEMS_PER_PAGE, pageInStock * ITEMS_PER_PAGE).map((item) => {
+                {diffuseurs.map((item) => {
                   const pVente = parseFloat(item.prix_unitaire || 0);
                   const pAchat = item.prix_achat ? parseFloat(item.prix_achat) : null;
                   const benefice = item.benefice_unitaire
@@ -545,6 +556,7 @@ export default function DiffuseursAdminPage() {
                     : pAchat !== null
                     ? pVente - pAchat
                     : null;
+                  const stockQty = Number(item.stock_quantite ?? 0);
 
                   return (
                     <tr key={item.id} className="hover:bg-white/[0.02] transition-colors">
@@ -552,149 +564,87 @@ export default function DiffuseursAdminPage() {
                         <div className="flex items-center gap-3">
                           <div className="w-9 h-9 rounded-lg bg-white/5 border border-white/10 overflow-hidden relative flex-shrink-0">
                             {item.image_principale ? (
-                              <AppImage src={item.image_principale} alt={item.nom} fill className="object-cover" />
+                              <AppImage src={item.image_principale} alt={item.nom || 'Diffuseur'} fill className="object-cover" />
                             ) : (
-                              <div className="w-full h-full flex items-center justify-center text-foreground/20">
-                                <span className="text-[10px] uppercase font-bold text-foreground/30">Diff</span>
-                              </div>
+                              <div className="w-full h-full flex items-center justify-center text-base">💨</div>
                             )}
                           </div>
                           <div>
-                            <p className="font-medium text-foreground">
-                              <InlineCell value={item.nom} onSave={v => patchDiffuseur(item.id, 'nom', v)} disabled={!permissions.canUpdate} className="font-medium text-foreground" />
-                            </p>
-                            <div className="flex items-center gap-1.5 mt-1">
-                              {item.est_connecte && (
-                                <StatusChip
-                                  variant="blue"
-                                  label="Connecté"
-                                  icon={<Wifi size={10} className="text-blue-400" />}
-                                />
-                              )}
-                              {item.a_jeux_de_lumiere && (
-                                <StatusChip
-                                  variant="purple"
-                                  label="LED"
-                                  icon={<Zap size={10} className="text-purple-400" />}
-                                />
-                              )}
-                            </div>
+                            <InlineCell value={item.nom || ''} onSave={v => patchDiffuseur(item.id, 'nom', v)} disabled={!permissions.canUpdate} className="font-medium text-foreground text-xs" />
+                            {stockQty === 0 ? (
+                              <span className="inline-flex items-center gap-1 text-[10px] text-red-400/80 mt-0.5"><span className="h-1 w-1 rounded-full bg-red-400" />{isEn ? 'Out of stock' : 'Rupture'}</span>
+                            ) : stockQty <= Number(item.seuil_alerte_stock || 5) ? (
+                              <span className="inline-flex items-center gap-1 text-[10px] text-amber-400/80 mt-0.5"><span className="h-1 w-1 rounded-full bg-amber-400" />{isEn ? 'Low stock' : 'Stock bas'}</span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 text-[10px] text-emerald-400/70 mt-0.5"><span className="h-1 w-1 rounded-full bg-emerald-400" />{isEn ? 'In stock' : 'En stock'}</span>
+                            )}
                           </div>
                         </div>
                       </td>
-                      <td className="px-4 py-3 text-xs text-foreground/60 capitalize">
-                        {item.type_technologie || 'ultrasons'}
+                      <td className="px-4 py-3 text-xs text-foreground/60">
+                        <span className="px-2 py-0.5 rounded-full bg-white/5 border border-white/8 text-[10px] font-medium">
+                          {item.type_technologie}
+                        </span>
                       </td>
-                      <td className="px-4 py-3 text-xs text-foreground/60 tabular-nums">
-                        <InlineCell value={String(item.capacite_reservoir_ml ?? '')} onSave={v => patchDiffuseur(item.id, 'capacite_reservoir_ml', v)} disabled={!permissions.canUpdate} inputType="number" display={item.capacite_reservoir_ml ? <>{item.capacite_reservoir_ml} ml</> : <>—</>} className="text-foreground/60 tabular-nums" />
+                      <td className="px-4 py-3 text-xs tabular-nums text-foreground/60">
+                        {item.capacite_reservoir_ml ? `${item.capacite_reservoir_ml} ml` : '—'}
                       </td>
-                      <td className="px-4 py-3 text-xs font-semibold tabular-nums text-foreground">
-                        <InlineCell value={String(item.prix_unitaire ?? '')} onSave={v => patchDiffuseur(item.id, 'prix_unitaire', v)} disabled={!permissions.canUpdate} inputType="number" display={<>{pVente.toLocaleString()} FCFA</>} className="font-semibold text-foreground tabular-nums" />
+                      <td className="px-4 py-3 text-xs font-semibold text-foreground tabular-nums">
+                        <InlineCell value={String(item.prix_unitaire || '')} onSave={v => patchDiffuseur(item.id, 'prix_unitaire', v)} disabled={!permissions.canUpdate} inputType="number" display={<>{Number(item.prix_unitaire || 0).toLocaleString()} FCFA</>} className="font-semibold text-foreground tabular-nums" />
                       </td>
                       {isAdmin && (
-                        <td className="px-4 py-3 text-xs tabular-nums text-gold/90">
-                          {pAchat !== null ? `${pAchat.toLocaleString()} FCFA` : '—'}
+                        <td className="px-4 py-3 text-xs tabular-nums text-gold/80">
+                          {pAchat !== null ? `${pAchat.toLocaleString()} FCFA` : <span className="text-foreground/30 italic">—</span>}
                         </td>
                       )}
                       {isAdmin && (
-                        <td className="px-4 py-3 text-xs tabular-nums font-semibold">
+                        <td className="px-4 py-3 text-xs tabular-nums">
                           {benefice !== null ? (
-                            <span className={benefice >= 0 ? 'text-emerald-400' : 'text-red-400'}>
+                            <span className={benefice >= 0 ? 'text-emerald-400 font-medium' : 'text-red-400 font-medium'}>
                               {benefice >= 0 ? '+' : ''}{benefice.toLocaleString()} FCFA
                             </span>
-                          ) : '—'}
+                          ) : <span className="text-foreground/30 italic">—</span>}
                         </td>
                       )}
-                      <td className="px-4 py-3 text-xs">
-                        <InlineCell value={String(item.stock_quantite ?? 0)} onSave={v => patchDiffuseur(item.id, 'stock_quantite', v)} disabled={!permissions.canUpdate} inputType="number" display={item.stock_quantite > 0 ? <span className="text-emerald-400 tabular-nums">{item.stock_quantite} {t('in_stock')}</span> : <span className="text-red-400">{t('out_of_stock')}</span>} className="tabular-nums" />
+                      <td className="px-4 py-3 text-xs tabular-nums">
+                        <InlineCell value={String(stockQty)} onSave={v => patchDiffuseur(item.id, 'stock_quantite', v)} disabled={!permissions.canUpdate} inputType="number" display={<span className={stockQty === 0 ? 'text-red-400' : stockQty <= 5 ? 'text-amber-400' : 'text-foreground/60'}>{stockQty}</span>} className="tabular-nums" />
                       </td>
                       <td className="px-4 py-3 text-right">
-                        <div className="inline-flex items-center gap-1">
+                        <div className="flex items-center justify-end gap-1">
                           {permissions.canUpdate && (
-                            <IconButton variant="gold" onClick={() => openEdit(item)} title="Modifier">
-                              <Edit2 size={14} />
-                            </IconButton>
+                            <button onClick={() => openEdit(item)} className="rounded-md p-1.5 text-foreground/45 hover:text-gold hover:bg-gold/10 transition-colors" title="Modifier"><Edit2 size={14} /></button>
                           )}
                           {permissions.canDelete && (
-                            <IconButton variant="red" onClick={() => handleDelete(item.id)} title="Supprimer">
-                              <Trash2 size={14} />
-                            </IconButton>
+                            <button onClick={() => handleDelete(item.id)} className="rounded-md p-1.5 text-foreground/45 hover:text-red-400 hover:bg-red-500/10 transition-colors" title="Supprimer"><Trash2 size={14} /></button>
                           )}
                         </div>
                       </td>
                     </tr>
                   );
                 })}
-                {diffuseurs.filter(i => Number(i.stock_quantite ?? 0) > 0).length === 0 && diffuseurs.length === 0 && (
+                {diffuseurs.length === 0 && (
                   <tr>
-                    <td colSpan={isAdmin ? 8 : 6} className="text-center py-12 text-xs italic text-foreground/30">{t('no_results')}</td>
+                    <td colSpan={isAdmin ? 8 : 6} className="text-center py-16 text-xs italic text-foreground/30">
+                      {t('no_results')}
+                    </td>
                   </tr>
                 )}
               </tbody>
             </table>
             <TablePagination
-              currentPage={pageInStock}
-              totalPages={Math.max(1, Math.ceil(diffuseurs.filter(i => Number(i.stock_quantite ?? 0) > 0).length / ITEMS_PER_PAGE))}
-              totalItems={diffuseurs.filter(i => Number(i.stock_quantite ?? 0) > 0).length}
+              currentPage={currentPage}
+              totalPages={totalPages}
+              totalItems={totalItems}
               itemsPerPage={ITEMS_PER_PAGE}
-              onPageChange={setPageInStock}
-              itemLabel={isEn ? 'in-stock diffusers' : 'diffuseurs en stock'}
+              onPageChange={(page) => { setCurrentPage(page); fetchItems(page); }}
+              itemLabel={isEn ? 'diffusers' : 'diffuseurs'}
             />
-            {diffuseurs.filter(i => Number(i.stock_quantite ?? 0) === 0).length > 0 && (
-              <div className="border-t-2 border-red-500/20">
-                <div className="px-4 py-2.5 bg-red-500/5 border-b border-red-500/10 flex items-center gap-2">
-                  <span className="h-1.5 w-1.5 rounded-full bg-red-400 shrink-0" />
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-red-400">
-                    {isEn ? `Out of Stock (${diffuseurs.filter(i => Number(i.stock_quantite ?? 0) === 0).length})` : `En Rupture de Stock (${diffuseurs.filter(i => Number(i.stock_quantite ?? 0) === 0).length})`}
-                  </p>
-                </div>
-                <table className="w-full text-left border-collapse">
-                  <tbody className="divide-y divide-white/5 opacity-70">
-                    {diffuseurs.filter(i => Number(i.stock_quantite ?? 0) === 0).slice((pageOutOfStock - 1) * ITEMS_PER_PAGE, pageOutOfStock * ITEMS_PER_PAGE).map((item) => {
-                      const pVente = parseFloat(item.prix_unitaire || 0);
-                      const pAchat = item.prix_achat ? parseFloat(item.prix_achat) : null;
-                      return (
-                        <tr key={item.id} className="hover:bg-white/[0.02] transition-colors">
-                          <td className="px-4 py-2.5 text-xs text-foreground/50">
-                            <div className="flex items-center gap-3">
-                              <div className="w-8 h-8 rounded-lg bg-white/5 border border-white/10 overflow-hidden relative flex-shrink-0">
-                                {item.image_principale ? <AppImage src={item.image_principale} alt={item.nom || ''} fill className="object-cover opacity-50" /> : null}
-                              </div>
-                              <span>{item.nom || '—'}</span>
-                            </div>
-                          </td>
-                          <td className="px-4 py-2.5 text-xs text-foreground/35">{item.technologie || '—'}</td>
-                          <td className="px-4 py-2.5 text-xs text-foreground/35">{item.capacite_reservoir_ml ? `${item.capacite_reservoir_ml} ml` : '—'}</td>
-                          <td className="px-4 py-2.5 text-xs text-foreground/40">{pVente ? `${pVente.toLocaleString()} FCFA` : '—'}</td>
-                          {isAdmin && <td className="px-4 py-2.5 text-xs text-foreground/35">{pAchat ? `${pAchat.toLocaleString()} FCFA` : '—'}</td>}
-                          {isAdmin && <td className="px-4 py-2.5 text-xs text-foreground/35">—</td>}
-                          <td className="px-4 py-2.5"><span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium ring-1 ring-inset bg-red-500/10 text-red-400 ring-red-500/20"><span className="h-1.5 w-1.5 rounded-full bg-red-400" />{isEn ? 'Out of stock' : 'Rupture'}</span></td>
-                          <td className="px-4 py-2.5 text-right">
-                            <div className="flex items-center justify-end gap-1">
-                              {permissions.canUpdate && <button onClick={() => openEdit(item)} className="rounded-md p-1.5 text-foreground/45 hover:text-gold hover:bg-gold/10 transition-colors" title="Modifier"><Edit2 size={13} /></button>}
-                              {permissions.canDelete && <button onClick={() => handleDelete(item.id)} className="rounded-md p-1.5 text-foreground/45 hover:text-red-400 hover:bg-red-500/10 transition-colors" title="Supprimer"><Trash2 size={13} /></button>}
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-                <TablePagination
-                  currentPage={pageOutOfStock}
-                  totalPages={Math.max(1, Math.ceil(diffuseurs.filter(i => Number(i.stock_quantite ?? 0) === 0).length / ITEMS_PER_PAGE))}
-                  totalItems={diffuseurs.filter(i => Number(i.stock_quantite ?? 0) === 0).length}
-                  itemsPerPage={ITEMS_PER_PAGE}
-                  onPageChange={setPageOutOfStock}
-                  itemLabel={isEn ? 'out-of-stock diffusers' : 'diffuseurs en rupture'}
-                />
-              </div>
-            )}
           </div>
         )}
       </div>
 
       {/* Cards — mobile */}
+
       <div className="md:hidden space-y-3">
         {loading ? (
           <div className="shadow-black/30 shadow-sm flex items-center justify-center py-20 text-foreground/40 gap-2 rounded-xl border border-white/10 bg-white/[0.02]">

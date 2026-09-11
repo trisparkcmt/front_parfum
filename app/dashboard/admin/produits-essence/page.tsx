@@ -58,7 +58,7 @@ import { useToastStore } from '@/store/useToastStore';
 import { useCatalogPermissions } from '@/hooks/useCatalogPermissions';
 import CatalogAccessNotice from '@/components/catalog/CatalogAccessNotice';
 import AppImage from '@/components/ui/AppImage';
-import { extractCatalogList, fetchAllCatalogPages } from '@/lib/catalogUtils';
+import { extractCatalogList, fetchAllCatalogPages, extractCatalogMeta } from '@/lib/catalogUtils';
 import { extractApiError } from '@/lib/apiError';
 import { SlideOver } from '@/components/ui/SlideOver';
 
@@ -131,10 +131,11 @@ export default function FinishedEssenceAdminPage() {
   const [tagValues, setTagValues] = useState<Record<number, string>>({});
   const { addToast } = useToastStore();
 
-  // ── Pagination & stock split ──────────────────────────────────────────────
+  // ── Server-side pagination state ──────────────────────────────────────────
   const ITEMS_PER_PAGE = 50;
-  const [pageInStock, setPageInStock] = useState(1);
-  const [pageOutOfStock, setPageOutOfStock] = useState(1);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
 
   const [form, setForm] = useState({
     essence: '',
@@ -148,18 +149,20 @@ export default function FinishedEssenceAdminPage() {
   const [essenceSearch, setEssenceSearch] = useState('');
   const [showEssenceDropdown, setShowEssenceDropdown] = useState(false);
 
-  const fetchItems = useCallback(async () => {
+  const fetchItems = useCallback(async (page = 1) => {
     if (!permissions.canRead) return;
     try {
       setLoading(true);
-      const params: Record<string, unknown> = {};
+      const params: Record<string, unknown> = { page, limit: 50 };
       if (search) params.search = search;
       if (tailleFilter) params.taille_ml = Number(tailleFilter);
 
-      const allItems = await fetchAllCatalogPages<any>(async (page) =>
-        shopService.getFinishedEssences({ ...params, page })
-      );
-      setItems(allItems);
+      const data = await shopService.getFinishedEssences(params as Parameters<typeof shopService.getFinishedEssences>[0]);
+      const { items, total, pages, currentPage: apiPage } = extractCatalogMeta<any>(data);
+      setItems(items);
+      setTotalItems(total);
+      setTotalPages(pages);
+      setCurrentPage(apiPage);
     } catch {
       addToast(t('toast_load_error'), 'error');
     } finally {
@@ -167,10 +170,14 @@ export default function FinishedEssenceAdminPage() {
     }
   }, [search, tailleFilter, addToast, permissions.canRead]);
 
+  // Reset to page 1 when filters change
+  useEffect(() => { setCurrentPage(1); }, [search, tailleFilter]);
+
   useEffect(() => {
-    const timer = setTimeout(fetchItems, 300);
+    const timer = setTimeout(() => fetchItems(currentPage), 300);
     return () => clearTimeout(timer);
-  }, [fetchItems]);
+  }, [fetchItems, currentPage]);
+
 
   useEffect(() => {
     labService
@@ -312,12 +319,12 @@ export default function FinishedEssenceAdminPage() {
         await shopService.updateFinishedEssence(editing.id, payload);
         setShowModal(false);
         addToast('Produit essence mis à jour', 'success');
-        fetchItems();
+        fetchItems(currentPage);
       } else {
         await shopService.createFinishedEssence(payload);
         setShowModal(false);
         addToast(t('toast_create_ok'), 'success');
-        fetchItems();
+        fetchItems(1);
       }
     } catch (err: any) {
       setFormError(extractApiError(err, 'Erreur lors de la sauvegarde'));
@@ -336,7 +343,7 @@ export default function FinishedEssenceAdminPage() {
       await adm.patchFormData(`shop/produits-essence/${id}/`, fd);
     } catch {
       addToast(t('toast_patch_error'), 'error');
-      fetchItems();
+      fetchItems(currentPage);
     }
   };
 
@@ -374,7 +381,7 @@ export default function FinishedEssenceAdminPage() {
         </div>
         <div className="flex items-center gap-2">
           <button
-            onClick={() => fetchItems()}
+            onClick={() => fetchItems(currentPage)}
             className="flex items-center gap-2 border border-white/10 px-3 py-2 rounded-lg text-xs font-medium text-foreground/60 hover:bg-white/[0.06] transition-colors"
           >
             <RefreshCw size={14} />{t('refresh')}
@@ -469,7 +476,7 @@ export default function FinishedEssenceAdminPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
-                {items.filter(item => Number(item.stock_disponible ?? 0) > 0).slice((pageInStock - 1) * ITEMS_PER_PAGE, pageInStock * ITEMS_PER_PAGE).map((item) => (
+                {items.map((item) => (
                   <tr key={item.id} className="hover:bg-white/[0.02] transition-colors">
                     <td className="px-4 py-3">
                       {item.image_principale ? (
@@ -535,7 +542,7 @@ export default function FinishedEssenceAdminPage() {
                     </td>
                   </tr>
                 ))}
-                {items.filter(i => Number(i.stock_disponible ?? 0) > 0).length === 0 && items.length === 0 && (
+                {items.length === 0 && (
                   <tr>
                     <td colSpan={8} className="text-center py-12 text-sm italic text-foreground/30">
                       {t('no_results')}
@@ -545,59 +552,19 @@ export default function FinishedEssenceAdminPage() {
               </tbody>
             </table>
             <TablePagination
-              currentPage={pageInStock}
-              totalPages={Math.max(1, Math.ceil(items.filter(i => Number(i.stock_disponible ?? 0) > 0).length / ITEMS_PER_PAGE))}
-              totalItems={items.filter(i => Number(i.stock_disponible ?? 0) > 0).length}
+              currentPage={currentPage}
+              totalPages={totalPages}
+              totalItems={totalItems}
               itemsPerPage={ITEMS_PER_PAGE}
-              onPageChange={setPageInStock}
-              itemLabel={isEn ? 'in-stock essence products' : 'produits essences en stock'}
+              onPageChange={(page) => { setCurrentPage(page); fetchItems(page); }}
+              itemLabel={isEn ? 'essence products' : 'produits essences'}
             />
-            {items.filter(i => Number(i.stock_disponible ?? 0) === 0).length > 0 && (
-              <div className="border-t-2 border-red-500/20">
-                <div className="px-4 py-2.5 bg-red-500/5 border-b border-red-500/10 flex items-center gap-2">
-                  <span className="h-1.5 w-1.5 rounded-full bg-red-400 shrink-0" />
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-red-400">
-                    {isEn ? `Out of Stock (${items.filter(i => Number(i.stock_disponible ?? 0) === 0).length})` : `En Rupture de Stock (${items.filter(i => Number(i.stock_disponible ?? 0) === 0).length})`}
-                  </p>
-                </div>
-                <table className="w-full text-left border-collapse">
-                  <tbody className="divide-y divide-white/5 opacity-70">
-                    {items.filter(i => Number(i.stock_disponible ?? 0) === 0).slice((pageOutOfStock - 1) * ITEMS_PER_PAGE, pageOutOfStock * ITEMS_PER_PAGE).map((item) => (
-                      <tr key={item.id} className="hover:bg-white/[0.02] transition-colors">
-                        <td className="px-4 py-2.5">
-                          {item.image_principale && <AppImage src={item.image_principale} alt={item.nom || 'Produit'} width={28} height={28} className="size-7 rounded-lg object-cover border border-white/10 opacity-50" />}
-                        </td>
-                        <td className="px-4 py-2.5 text-xs text-foreground/50">{item.nom || '—'}</td>
-                        <td className="px-4 py-2.5 text-xs text-foreground/35">{item.essence_details?.nom || '—'}</td>
-                        <td className="px-4 py-2.5 text-xs text-foreground/35">{item.taille_ml ? `${item.taille_ml} ml` : '—'}</td>
-                        <td className="px-4 py-2.5 text-xs text-foreground/40">{item.prix ? `${item.prix} FCFA` : '—'}</td>
-                        <td className="px-4 py-2.5 text-xs tabular-nums text-red-400/70 font-mono">0</td>
-                        <td className="px-4 py-2.5"><span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium ring-1 ring-inset bg-red-500/10 text-red-400 ring-red-500/20"><span className="h-1.5 w-1.5 rounded-full bg-red-400" />{isEn ? 'Out of stock' : 'Rupture'}</span></td>
-                        <td className="px-4 py-2.5 text-right">
-                          <div className="flex items-center justify-end gap-1">
-                            {permissions.canUpdate && <button onClick={() => openEdit(item)} className="rounded-md p-1.5 text-foreground/45 hover:text-gold hover:bg-gold/10 transition-colors" title="Modifier"><Edit2 size={13} /></button>}
-                            {permissions.canDelete && <button onClick={() => handleDelete(item.id)} className="rounded-md p-1.5 text-foreground/45 hover:text-red-400 hover:bg-red-500/10 transition-colors" title="Supprimer"><Trash2 size={13} /></button>}
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-                <TablePagination
-                  currentPage={pageOutOfStock}
-                  totalPages={Math.max(1, Math.ceil(items.filter(i => Number(i.stock_disponible ?? 0) === 0).length / ITEMS_PER_PAGE))}
-                  totalItems={items.filter(i => Number(i.stock_disponible ?? 0) === 0).length}
-                  itemsPerPage={ITEMS_PER_PAGE}
-                  onPageChange={setPageOutOfStock}
-                  itemLabel={isEn ? 'out-of-stock essence products' : 'produits essences en rupture'}
-                />
-              </div>
-            )}
           </div>
         )}
       </div>
 
       {/* Untouched Off-limits Create/Edit Form Modal */}
+
       <SlideOver
         isOpen={Boolean(showModal && (permissions.canCreate || permissions.canUpdate))}
         onClose={() => setShowModal(false)}
