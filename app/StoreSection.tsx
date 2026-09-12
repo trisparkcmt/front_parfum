@@ -62,16 +62,16 @@ function LeafletMap() {
         maxZoom: 19,
       }).addTo(map);
 
-      const goldIcon = L.default.divIcon({
+      const redIcon = L.default.divIcon({
         className: "",
         html: `
           <div style="
             width: 36px; height: 36px;
-            background: #C5A059;
+            background: #ef4444;
             border: 3px solid #fff;
             border-radius: 50% 50% 50% 0;
             transform: rotate(-45deg);
-            box-shadow: 0 4px 20px rgba(197,160,89,0.6);
+            box-shadow: 0 4px 20px rgba(239, 68, 68, 0.6);
           "></div>
         `,
         iconSize: [36, 36],
@@ -79,7 +79,7 @@ function LeafletMap() {
         popupAnchor: [0, -40],
       });
 
-      L.default.marker([LAT, LNG], { icon: goldIcon })
+      L.default.marker([LAT, LNG], { icon: redIcon })
         .addTo(map)
         .bindPopup(`
           <div style="font-family: sans-serif; padding: 4px 2px; text-align:center;">

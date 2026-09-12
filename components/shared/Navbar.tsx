@@ -82,7 +82,7 @@ export function Navbar() {
 
       {/* MOBILE */}
       <div className="flex items-center lg:hidden bg-background border-b border-foreground/10 px-4 py-2.5 relative">
-        <div className="flex items-center gap-1 flex-shrink-0">
+        <div className="flex items-center gap-3  flex-shrink-0">
           <LanguageSelector />
           {isAuthenticated && user ? (
             <Link
