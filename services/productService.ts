@@ -387,6 +387,7 @@ export function mapBackendEssenceToProduct(e: any): Product {
     image_supp_1: e.image_supp_1 || images[1],
     tags: normalizeProductTags(e.tags),
     stock_total_ml: e.stock_total_ml != null ? Number(e.stock_total_ml) : undefined,
+    essence_id: Number(e.id),
     gender: e.genre_cible === 'homme' ? 'masculine' : e.genre_cible === 'femme' ? 'feminine' : 'unisex',
     notes: (top.length || middle.length || base.length) ? { top, middle, base } : undefined,
     produits_finis: activePF,
