@@ -24,6 +24,7 @@ import { attemptPWAInstall, isPWAInstalled as checkPWAInstalled, isIOS, isAndroi
 
 import { BackButton } from '@/components/ui/BackButton';
 import { Modal } from '@/components/ui/Modal';
+import { NotificationCenter } from '@/components/notifications/NotificationCenter';
 import PasswordChangeModal from '@/components/shared/PasswordChangeModal';
 import ProfileEditModal from '@/components/shared/ProfileEditModal';
 import ConfirmDialog from '@/components/shared/ConfirmDialog';
@@ -284,7 +285,10 @@ export default function ProfilePage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-6 space-y-6">
-      <BackButton href="/" />
+      <div className="flex items-center justify-between">
+        <BackButton href="/" />
+        <NotificationCenter showBadge={true} pollIntervalMs={60000} />
+      </div>
 
       {/* ============ DESKTOP MAIN GRID LAYOUT (12 Columns) ============ */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">

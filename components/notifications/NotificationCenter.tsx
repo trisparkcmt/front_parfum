@@ -15,6 +15,7 @@ import React, { useState, useEffect } from 'react';
 import { Bell, X, Trash2, Loader2 } from 'lucide-react';
 import { deviceService } from '@/services/deviceService';
 import { useToastStore } from '@/store/useToastStore';
+import { useAuthStore } from '@/store/useAuthStore';
 import type { Notification as NotificationType } from '@/types';
 
 export interface NotificationCenterProps {
@@ -55,8 +56,20 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
     setIsLoading(true);
     try {
       const data = await deviceService.fetchNotifications();
-      setNotifications(data);
-      console.log('[NotificationCenter] Fetched', data.length, 'notifications');
+      const user = useAuthStore.getState().user;
+      const roles = (user?.roles || []).map((r: string) => String(r).toLowerCase());
+      const isAdminOrServeuse = roles.some((r) => r === 'admin' || r === 'serveuse' || r === 'superadmin');
+
+      let filteredData = data;
+      if (!isAdminOrServeuse && user) {
+        filteredData = data.filter((n: any) => {
+          const text = `${n.title || ''} ${n.message || n.body || ''}`.toLowerCase();
+          return text.includes('code promo') || text.includes('livr') || text.includes('delivered');
+        });
+      }
+
+      setNotifications(filteredData);
+      console.log('[NotificationCenter] Fetched', filteredData.length, 'notifications');
     } catch (error: any) {
       console.error('[NotificationCenter] Failed to fetch notifications:', error);
       addToast('Erreur lors du chargement des notifications', 'error');
@@ -164,7 +177,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
 
       {/* Dropdown Panel */}
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-96 max-h-96 bg-background border border-foreground/10 rounded-lg shadow-sm flex flex-col z-50">
+        <div className="absolute right-[-1rem] sm:right-0 mt-2 w-[calc(100vw-2rem)] sm:w-96 max-h-[80vh] bg-background border border-foreground/10 rounded-lg shadow-xl shadow-black/20 flex flex-col z-[100]">
           {/* Header */}
           <div className="p-4 border-b border-foreground/10 flex items-center justify-between">
             <h3 className="font-semibold text-foreground">
