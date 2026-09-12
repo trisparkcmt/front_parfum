@@ -677,7 +677,11 @@ export const productService = {
       const uniqueCandidates = Array.from(new Set(candidates.filter(Boolean)));
 
       for (const candidate of uniqueCandidates) {
-        // Try diffuseur endpoint first if requested or available
+        const perfume = await apiShopService.getPerfumeBySlug(candidate).catch(() => null);
+        if (perfume) {
+          return mapBackendPerfumeToProduct(perfume);
+        }
+
         const diffuseur = await apiShopService.getDiffuseurBySlug(candidate).catch(() => null);
         if (diffuseur) {
           const images = collectProductImages(diffuseur);
@@ -707,11 +711,6 @@ export const productService = {
             est_connecte: diffuseur.est_connecte,
             a_jeux_de_lumiere: diffuseur.a_jeux_de_lumiere,
           };
-        }
-
-        const perfume = await apiShopService.getPerfumeBySlug(candidate).catch(() => null);
-        if (perfume) {
-          return mapBackendPerfumeToProduct(perfume);
         }
 
         const essence = await labService.getEssenceBySlug(candidate).catch(() => null);
