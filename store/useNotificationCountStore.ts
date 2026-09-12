@@ -11,6 +11,7 @@ export interface UnifiedNotificationItem {
   is_read: boolean;
   type: 'order' | 'system' | 'push';
   url?: string;
+  original_id?: string | number;
 }
 
 interface NotificationCountState {
@@ -40,7 +41,7 @@ export const useNotificationCountStore = create<NotificationCountState>((set, ge
     if (typeof navigator !== 'undefined' && 'setAppBadge' in navigator) {
       try {
         if (count > 0) {
-          (navigator as any).setAppBadge(count).catch(() => {});
+          (navigator as any).setAppBadge(count > 99 ? 99 : count).catch(() => {});
         } else {
           (navigator as any).clearAppBadge().catch(() => {});
         }
@@ -87,7 +88,24 @@ export const useNotificationCountStore = create<NotificationCountState>((set, ge
       let deviceNotifs: UnifiedNotificationItem[] = [];
       if (deviceNotifsResult.status === 'fulfilled' && deviceNotifsResult.value) {
         const raw = Array.isArray(deviceNotifsResult.value) ? deviceNotifsResult.value : [];
-        deviceNotifs = raw
+        
+        let filteredRaw = raw;
+        if (!isAdminOrServeuse && user) {
+          // Auto-clear logic: keep promo codes and delivery notifications
+          const toKeep = raw.filter((n: any) => {
+            const text = `${n.title || ''} ${n.message || n.body || ''}`.toLowerCase();
+            return text.includes('code promo') || text.includes('livr') || text.includes('delivered');
+          });
+          
+          const toDelete = raw.filter((n: any) => !toKeep.includes(n)).map((n: any) => n.id);
+          
+          if (toDelete.length > 0) {
+            deviceService.deleteMultipleNotifications(toDelete).catch(() => {});
+          }
+          filteredRaw = toKeep;
+        }
+
+        deviceNotifs = filteredRaw
           .filter((n: any) => !n.is_read)
           .map((n: any) => ({
             id: `dev-${n.id}`,
@@ -96,6 +114,7 @@ export const useNotificationCountStore = create<NotificationCountState>((set, ge
             created_at: n.created_at || new Date().toISOString(),
             is_read: false,
             type: 'push' as const,
+            original_id: n.id,
           }));
       }
 
@@ -107,7 +126,7 @@ export const useNotificationCountStore = create<NotificationCountState>((set, ge
       }
 
       // Header Bell Badge ONLY counts unread messaging notifications (Push + System alerts)
-      const totalUnreadMessages = shopUnread.length + deviceNotifs.length;
+      const totalUnreadMessages = deviceNotifs.length; // relying only on the notifs sent at the notif endpoint
       const recentItems = [...shopUnread, ...deviceNotifs].slice(0, 8);
 
       set({
@@ -169,27 +188,9 @@ export const useNotificationCountStore = create<NotificationCountState>((set, ge
 
 
   onForegroundPushReceived: (payload) => {
-    const newItem: UnifiedNotificationItem = {
-      id: `push-${Date.now()}`,
-      title: payload.title || 'Nouvelle notification',
-      message: payload.body || '',
-      created_at: new Date().toISOString(),
-      is_read: false,
-      type: 'push',
-      url: payload.url,
-    };
-
-    set((state) => {
-      const newUnreadNotifCount = state.unreadNotificationCount + 1;
-      const updatedItems = [newItem, ...state.recentItems].slice(0, 8);
-
-      get().syncAppBadge(newUnreadNotifCount);
-
-      return {
-        unreadNotificationCount: newUnreadNotifCount,
-        recentItems: updatedItems,
-      };
-    });
+    // Relying only on notifs sent at the notif endpoint, so we don't increment badge or unread count here
+    // But we might want to refresh the notifications from API to get the updated list
+    get().fetchCounts();
   },
 
   markAsRead: async (id, type) => {

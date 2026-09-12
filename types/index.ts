@@ -188,6 +188,7 @@ export interface Product {
   concentration_max?: number | null;
   couleur?: string;
   duree?: string;
+  is_favori?: boolean;
 }
 
 export interface Accessory extends Product {}

@@ -147,16 +147,41 @@ export const deviceService = {
 
   /**
    * Clear all notifications for the current user.
-   * Optional endpoint if backend supports it.
-   * 
-   * @throws Error if clearing fails
    */
   clearAllNotifications: async (): Promise<void> => {
     try {
-      await api.post('utilisateur/notifications/clear/', {});
+      await api.delete('utilisateur/notifications/');
       console.log('[Device Service] All notifications cleared');
     } catch (error: any) {
       console.warn('[Device Service] Failed to clear notifications:', error);
+    }
+  },
+
+  /**
+   * Delete a specific notification by ID.
+   */
+  deleteNotification: async (notificationId: string | number): Promise<void> => {
+    try {
+      await api.delete(`utilisateur/notifications/${notificationId}/`);
+      console.log(`[Device Service] Notification ${notificationId} deleted`);
+    } catch (error: any) {
+      console.warn('[Device Service] Failed to delete notification:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Delete multiple notifications by IDs.
+   */
+  deleteMultipleNotifications: async (notificationIds: (string | number)[]): Promise<void> => {
+    try {
+      await api.delete('utilisateur/notifications/', {
+        data: { notification_ids: notificationIds }
+      });
+      console.log(`[Device Service] Notifications deleted`);
+    } catch (error: any) {
+      console.warn('[Device Service] Failed to delete notifications:', error);
+      throw error;
     }
   },
 };

@@ -218,12 +218,15 @@ export default function HuileDetailClient({ id }: { id: string }) {
   };
 
   const handleToggleFavorite = () => {
-    if (isFavorite(product.id)) {
+    const currentlyFav = product.is_favori ?? isFavorite(product.id);
+    if (currentlyFav) {
       removeFavorite(product.id);
       addToast(isEn ? `${product.name} removed from wishlist` : `${product.name} retiré des favoris`, 'info');
+      setProduct({ ...product, is_favori: false });
     } else {
       addFavorite(product);
       addToast(isEn ? `${product.name} added to wishlist` : `${product.name} ajouté aux favoris`, 'info');
+      setProduct({ ...product, is_favori: true });
     }
   };
 
@@ -328,14 +331,14 @@ export default function HuileDetailClient({ id }: { id: string }) {
                 onClick={handleToggleFavorite}
                 className={cn(
                   'rounded-2xl border p-3.5 transition-all',
-                  isFavorite(product.id)
+                  (product.is_favori ?? isFavorite(product.id))
                     ? 'border-red-500 bg-red-500/10 text-red-500'
                     : 'border-foreground/10 bg-foreground/5 text-foreground hover:border-red-500/30 hover:bg-red-500/10 hover:text-red-500'
                 )}
                 aria-label="Favoris"
                 title="Ajouter aux favoris"
               >
-                <Heart size={18} fill={isFavorite(product.id) ? 'currentColor' : 'none'} />
+                <Heart size={18} fill={(product.is_favori ?? isFavorite(product.id)) ? 'currentColor' : 'none'} />
               </button>
             </div>
           </div>

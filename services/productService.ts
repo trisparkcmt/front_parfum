@@ -92,6 +92,7 @@ export function mapBackendPerfumeToProduct(p: any): Product {
     createdAt: p.date_creation || new Date().toISOString(),
     image_principale: p.image_principale || images[0],
     image_supp_1: p.image_supp_1 || images[1],
+    is_favori: p.is_favori,
   };
 }
 
@@ -244,6 +245,7 @@ function mapBackendDiffuseurToProduct(p: any): Product {
     capacite_reservoir_ml: p.capacite_reservoir_ml,
     est_connecte: p.est_connecte,
     a_jeux_de_lumiere: p.a_jeux_de_lumiere,
+    is_favori: p.is_favori,
   };
 }
 
@@ -292,6 +294,7 @@ export function mapBackendAccessoryToProduct(p: any): Product {
     image_principale: p.image_principale || images[0],
     image_supp_1: p.image_supp_1 || images[1],
     tags: normalizeProductTags(p.tags),
+    is_favori: p.is_favori,
   };
 }
 
@@ -330,6 +333,7 @@ export function mapBackendFinishedEssenceToProduct(p: any): Product {
     taille_ml: p.taille_ml ? Number(p.taille_ml) : undefined,
     stock_total_ml: p.stock_total_ml != null ? Number(p.stock_total_ml) : undefined,
     essence_id: p.essence != null ? Number(p.essence) : undefined,
+    is_favori: p.is_favori,
   };
 }
 
@@ -404,6 +408,7 @@ export function mapBackendEssenceToProduct(e: any): Product {
     concentration_max: e.concentration_max,
     couleur: e.couleur,
     duree: e.duree,
+    is_favori: e.is_favori,
   };
 }
 

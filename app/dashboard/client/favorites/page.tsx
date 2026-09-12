@@ -132,6 +132,13 @@ export default function FavoritesPage() {
       return;
     }
 
+    if (product.category === 'huile' || product.category === 'produit-fini-essence') {
+      const numericId = Number(product.id);
+      if (!numericId) return;
+      await cartStore.addFinishedEssence(numericId, 1);
+      return;
+    }
+
     const numericId = Number(product.id);
     if (!numericId) return;
     await cartStore.addPerfume(numericId, 1);
@@ -143,12 +150,15 @@ export default function FavoritesPage() {
       return;
     }
 
+    const isEssence = product.category === 'huile' || product.category === 'produit-fini-essence';
+    const basePath = isEssence ? '/shop/huile' : '/shop/product';
+
     if (product.slug) {
-      router.push(`/shop/product/${product.slug}`);
+      router.push(`${basePath}/${product.slug}`);
       return;
     }
 
-    router.push(`/shop/product/${product.id}`);
+    router.push(`${basePath}/${product.id}`);
   };
 
   return (

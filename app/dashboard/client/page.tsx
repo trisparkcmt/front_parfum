@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import { useAuthStore } from '@/store/useAuthStore';
 import { formatPrice } from '@/lib/utils';
-import { Package, ShoppingBag, Heart, Calendar, CreditCard, ChevronRight, ChevronLeft, ChevronRight as ChevronRightIcon, Star, X } from 'lucide-react';
+import { Package, ShoppingBag, Heart, Calendar, CreditCard, ChevronRight, ChevronLeft, ChevronRight as ChevronRightIcon, Star, X, Bell } from 'lucide-react';
 import { PerfumeIcon } from '@/components/icons/CustomIcons';
 import { useTranslation } from 'react-i18next';
 import { useRouter } from 'next/navigation';
@@ -279,11 +279,12 @@ export default function ClientDashboard() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {[
           { label: tr('my_orders_action'), desc: tr('my_orders_desc'), icon: <Package size={20} />, color: 'from-blue-500 to-blue-700', href: '/dashboard/client/orders' },
           { label: t('create_perfume_action'), desc: tr('atelier_numba_desc'), icon: <PerfumeIcon size={20} />, color: 'from-purple-500 to-purple-700', href: '/numba' },
           { label: t('my_favorites_action'), desc: tr('saved_products_desc'), icon: <Heart size={20} />, color: 'from-red-400 to-red-600', href: '/dashboard/client/favorites' },
+          { label: t('my_notifications', 'Centre de Notifications'), desc: t('your_messages', 'Vos messages'), icon: <Bell size={20} />, color: 'from-amber-400 to-amber-600', href: '/dashboard/client/notifications' },
         ].map(a => (
           <button
             key={a.label}

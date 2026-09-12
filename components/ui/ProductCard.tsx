@@ -226,14 +226,14 @@ export function ProductCard({
                 size={12}
                 className={cn(
                   'sm:hidden transition-all duration-300',
-                  isFavorite ? 'fill-red-500 stroke-red-500' : 'stroke-white/80'
+                  (product.is_favori ?? isFavorite) ? 'fill-red-500 stroke-red-500' : 'stroke-white/80'
                 )}
               />
               <Heart
                 size={13}
                 className={cn(
                   'hidden sm:block transition-all duration-300',
-                  isFavorite ? 'fill-red-500 stroke-red-500' : 'stroke-white/80'
+                  (product.is_favori ?? isFavorite) ? 'fill-red-500 stroke-red-500' : 'stroke-white/80'
                 )}
               />
             </button>

@@ -30,12 +30,12 @@ messaging.onBackgroundMessage((payload) => {
   
   // SECURE FALLBACK: Extract title & body from payload.notification OR payload.data
   // This ensures that data-only payloads trigger the notification display.
-  const title = payload.notification?.title || data.title || 'Accessoire Exclusif';
+  const title = 'Accessoires Exclusifs';
   const body = payload.notification?.body || data.message || data.body || '';
 
   const notificationOptions = {
     body: body,
-    icon: payload.notification?.icon || data.icon || '/logo.png',
+    icon: payload.notification?.icon || data.icon || '/icons/icon-192x192.jpeg',
     badge: '/icons/badge-72x72.png',
     vibrate: [200, 100, 200],
     data: data, // Keep reference to data for click action handling

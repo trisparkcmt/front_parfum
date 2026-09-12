@@ -41,8 +41,8 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
     >
       {/* photo */}
       <div
-        className="absolute inset-0 bg-cover bg-center opacity-30 mix-blend-luminosity"
-        style={{ backgroundImage: "url('https://images.unsplash.com/photo-1596462502278-27bfdc403348?q=80&w=2000&auto=format&fit=crop')" }}
+        className="absolute bg-cover bg-center  "
+        style={{ backgroundImage: "url('/flyerlogin.jpg')" }}
       />
       {/* animated gold sheen */}
       <motion.div
@@ -52,8 +52,8 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         transition={{ duration: 40, repeat: Infinity, ease: 'linear' }}
       />
       <div className="absolute inset-0 bg-gradient-to-t from-deep-black via-deep-black/20 to-transparent" />
-      <div className="absolute inset-0 opacity-[0.07] mix-blend-overlay"
-           style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")" }} />
+      <div className="absolute "
+          style={{ backgroundImage: "url('/flyerlogin.jpg')" }} />
 
       <div className="relative z-10 w-full p-12 flex flex-col justify-between h-full">
         <Link href="/" className="flex items-center gap-2 group w-fit">

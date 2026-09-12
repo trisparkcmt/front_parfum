@@ -44,6 +44,8 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
   const [isOpen, setIsOpen] = useState(false);
   const [notifications, setNotifications] = useState<NotificationType[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string | number>>(new Set());
+  const [isSelectionMode, setIsSelectionMode] = useState(false);
   const addToast = useToastStore((state) => state.addToast);
 
   // Fetch notifications from backend
@@ -111,6 +113,35 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
     }
   };
 
+  const handleBulkDelete = async () => {
+    if (selectedIds.size === 0) {
+      setIsSelectionMode(false);
+      return;
+    }
+    if (!confirm(`Supprimer ${selectedIds.size} notification(s) ?`)) return;
+
+    try {
+      await deviceService.deleteMultipleNotifications(Array.from(selectedIds));
+      setNotifications((prev) => prev.filter((n) => !selectedIds.has(n.id)));
+      setSelectedIds(new Set());
+      setIsSelectionMode(false);
+      addToast('Notifications supprimées', 'success');
+    } catch (error) {
+      addToast('Erreur lors de la suppression', 'error');
+    }
+  };
+
+  const handleDeleteNotification = async (id: string | number, e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      await deviceService.deleteNotification(id);
+      setNotifications((prev) => prev.filter((n) => n.id !== id));
+      addToast('Notification supprimée', 'success');
+    } catch (error) {
+      addToast('Erreur lors de la suppression de la notification', 'error');
+    }
+  };
+
   const unreadCount = notifications.filter((n) => !n.is_read).length;
 
   return (
@@ -126,7 +157,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
         {/* Unread Badge */}
         {showBadge && unreadCount > 0 && (
           <span className="absolute top-0 right-0 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-semibold">
-            {unreadCount > 99 ? '99+' : unreadCount}
+            {unreadCount > 99 ? '+99' : unreadCount}
           </span>
         )}
       </button>
@@ -136,16 +167,35 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
         <div className="absolute right-0 mt-2 w-96 max-h-96 bg-background border border-foreground/10 rounded-lg shadow-sm flex flex-col z-50">
           {/* Header */}
           <div className="p-4 border-b border-foreground/10 flex items-center justify-between">
-            <h3 className="font-semibold text-foreground">Notifications</h3>
+            <h3 className="font-semibold text-foreground">
+              {isSelectionMode ? `${selectedIds.size} sélectionnée(s)` : 'Notifications'}
+            </h3>
             <div className="flex gap-2">
               {notifications.length > 0 && (
-                <button
-                  onClick={handleClearAll}
-                  className="p-1 hover:bg-foreground/10 rounded transition-colors"
-                  title="Supprimer tout"
-                >
-                  <Trash2 className="w-4 h-4 text-foreground/50" />
-                </button>
+                <>
+                  {isSelectionMode ? (
+                    <button
+                      onClick={handleBulkDelete}
+                      className="text-xs px-2 py-1 bg-red-500/10 text-red-500 rounded hover:bg-red-500/20 transition-colors"
+                    >
+                      Supprimer
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => setIsSelectionMode(true)}
+                      className="text-xs px-2 py-1 text-foreground/50 hover:bg-foreground/10 rounded transition-colors"
+                    >
+                      Sélectionner
+                    </button>
+                  )}
+                  <button
+                    onClick={handleClearAll}
+                    className="p-1 hover:bg-foreground/10 rounded transition-colors"
+                    title="Supprimer tout"
+                  >
+                    <Trash2 className="w-4 h-4 text-foreground/50" />
+                  </button>
+                </>
               )}
               <button
                 onClick={() => setIsOpen(false)}
@@ -175,12 +225,31 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
                       notification.is_read ? '' : 'bg-gold/5'
                     }`}
                     onClick={() => {
+                      if (isSelectionMode) {
+                        setSelectedIds((prev) => {
+                          const next = new Set(prev);
+                          if (next.has(notification.id)) next.delete(notification.id);
+                          else next.add(notification.id);
+                          return next;
+                        });
+                        return;
+                      }
                       if (!notification.is_read) {
                         handleMarkAsRead(notification.id);
                       }
                     }}
                   >
-                    <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-start gap-3">
+                      {isSelectionMode && (
+                        <div className="pt-0.5">
+                          <input
+                            type="checkbox"
+                            checked={selectedIds.has(notification.id)}
+                            readOnly
+                            className="w-4 h-4 rounded border-foreground/30 text-gold focus:ring-gold"
+                          />
+                        </div>
+                      )}
                       <div className="flex-1 min-w-0">
                         <h4 className="font-medium text-foreground text-sm truncate">
                           {notification.title || 'Notification'}
@@ -193,10 +262,19 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
                         </p>
                       </div>
 
-                      {/* Unread Indicator */}
-                      {!notification.is_read && (
-                        <div className="w-2 h-2 bg-gold rounded-full flex-shrink-0 mt-1.5" />
-                      )}
+                      <div className="flex flex-col items-end gap-2 ml-auto">
+                        {/* Unread Indicator */}
+                        {!notification.is_read && (
+                          <div className="w-2 h-2 bg-gold rounded-full flex-shrink-0 mt-1.5" />
+                        )}
+                        <button
+                          onClick={(e) => handleDeleteNotification(notification.id, e)}
+                          className="p-1 hover:bg-foreground/10 rounded transition-colors mt-auto"
+                          title="Supprimer la notification"
+                        >
+                          <Trash2 className="w-3.5 h-3.5 text-foreground/50 hover:text-red-500" />
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ))}
