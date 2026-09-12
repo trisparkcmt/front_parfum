@@ -103,23 +103,9 @@ export default function ProductDetailClient({ id }: { id: string }) {
         }
 
         if (p) {
-          try {
-            if (p.category === 'accessory') {
-              const list = await productService.getAccessories({ type_accessoire: p.subCategory });
-              if (isMounted) setRelatedProducts(list.filter((item) => item.id !== p.id).slice(0, 4));
-            } else {
-              const list = await productService.getPerfumes();
-              const perfumes: Product[] = Array.isArray(list)
-                ? list
-                : list.results;
-              if (isMounted) {
-                setRelatedProducts(
-                  perfumes.filter((item: Product) => item.category === p.category && item.id !== p.id).slice(0, 4)
-                );
-              }
-            }
-          } catch (relatedError) {
-            console.warn('Failed to load related products:', relatedError);
+          if (p.relatedProducts && p.relatedProducts.length > 0) {
+            if (isMounted) setRelatedProducts(p.relatedProducts.slice(0, 4));
+          } else {
             if (isMounted) setRelatedProducts([]);
           }
         } else if (isMounted) {

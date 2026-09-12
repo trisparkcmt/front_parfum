@@ -189,6 +189,7 @@ export interface Product {
   couleur?: string;
   duree?: string;
   is_favori?: boolean;
+  relatedProducts?: Product[];
 }
 
 export interface Accessory extends Product {}

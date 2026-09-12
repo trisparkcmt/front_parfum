@@ -72,10 +72,11 @@ export default function HuileDetailClient({ id }: { id: string }) {
         }
 
         if (p) {
-          try {
-            const related = await productService.getEssencesAsProducts({});
-            if (mounted) setRelatedProducts(related.filter(r => r.id !== p.id).slice(0, 4));
-          } catch { /* ignore */ }
+          if (p.relatedProducts && p.relatedProducts.length > 0) {
+            if (mounted) setRelatedProducts(p.relatedProducts.slice(0, 4));
+          } else {
+            if (mounted) setRelatedProducts([]);
+          }
         }
       } catch {
         if (mounted) setProduct(null);

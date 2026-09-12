@@ -93,6 +93,20 @@ export function mapBackendPerfumeToProduct(p: any): Product {
     image_principale: p.image_principale || images[0],
     image_supp_1: p.image_supp_1 || images[1],
     is_favori: p.is_favori,
+    relatedProducts: Array.isArray(p.produits_similaires)
+      ? p.produits_similaires.map((sim: any) => ({
+          id: String(sim.id),
+          name: sim.nom,
+          slug: sim.slug,
+          price: parseFloat(sim.prix_actuel || sim.prix_unitaire || '0'),
+          originalPrice: parseFloat(sim.prix_unitaire || sim.prix_actuel || '0'),
+          images: sim.image_principale ? [sim.image_principale] : ['/parfume1.png'],
+          image_principale: sim.image_principale,
+          description: '',
+          category: category,
+          inStock: true, // Optimistic, usually similar items endpoint doesn't return full stock
+        }))
+      : undefined,
   };
 }
 
@@ -295,6 +309,20 @@ export function mapBackendAccessoryToProduct(p: any): Product {
     image_supp_1: p.image_supp_1 || images[1],
     tags: normalizeProductTags(p.tags),
     is_favori: p.is_favori,
+    relatedProducts: Array.isArray(p.produits_similaires)
+      ? p.produits_similaires.map((sim: any) => ({
+          id: String(sim.id),
+          name: sim.nom,
+          slug: sim.slug,
+          price: parseFloat(sim.prix_actuel || sim.prix_unitaire || '0'),
+          originalPrice: parseFloat(sim.prix_unitaire || sim.prix_actuel || '0'),
+          images: sim.image_principale ? [sim.image_principale] : ['/parfume1.png'],
+          image_principale: sim.image_principale,
+          description: '',
+          category: 'accessory',
+          inStock: true,
+        }))
+      : undefined,
   };
 }
 
@@ -471,6 +499,7 @@ export const productService = {
       if (filters.ordering) params.ordering = filters.ordering;
       if (filters.categorie) params.categorie = filters.categorie;
       if (filters.page && filters.page > 1) params.page = filters.page;
+      if (filters.limit) params.limit = filters.limit;
     }
 
     const response = await apiShopService.getPerfumes(params);
@@ -708,14 +737,6 @@ export const productService = {
       }
 
 
-      const fallbackResponse = await apiShopService.getPerfumes({ search: id }).catch(() => null);
-      if (fallbackResponse) {
-        const list = Array.isArray(fallbackResponse)
-          ? fallbackResponse
-          : (fallbackResponse.results || fallbackResponse.resultats || []);
-        const matched = list.find((item: any) => String(item.id) === String(id) || item.slug === id || item.slug === decodeURIComponent(id));
-        if (matched) return mapBackendPerfumeToProduct(matched);
-      }
 
       return null;
     } catch (error) {
