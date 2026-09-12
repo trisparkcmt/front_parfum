@@ -499,7 +499,7 @@ export const productService = {
       if (filters.ordering) params.ordering = filters.ordering;
       if (filters.categorie) params.categorie = filters.categorie;
       if (filters.page && filters.page > 1) params.page = filters.page;
-      if (filters.limit) params.limit = filters.limit;
+
     }
 
     const response = await apiShopService.getPerfumes(params);
