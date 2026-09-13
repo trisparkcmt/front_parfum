@@ -227,6 +227,13 @@ function blendHexColors(colors: { hex: string; weight: number }[]): string {
   return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
 }
 
+function getAiBottleId(flacon: AiResponse['flacon']): number | null {
+  if (!flacon) return null;
+  const rawId = flacon.id ?? flacon.flacon_id ?? (flacon as { bottle_id?: unknown }).bottle_id;
+  const bottleId = Number(rawId);
+  return Number.isInteger(bottleId) && bottleId > 0 ? bottleId : null;
+}
+
 // ── Sub-components ──────────────────────────────────────────────────────────
 
 // ── NameCreationModal ──────────────────────────────────────────────────────
@@ -291,6 +298,7 @@ function NameCreationModal({
 
         <div className="flex gap-2">
           <button
+            type="button"
             onClick={onClose}
             disabled={isLoading}
             className="flex-1 rounded-xl border border-white/10 py-2.5 text-xs font-medium text-foreground/60 hover:bg-white/5 transition-colors disabled:opacity-40"
@@ -298,6 +306,7 @@ function NameCreationModal({
             {t.nameModalCancel}
           </button>
           <button
+            type="button"
             onClick={() => {
               if (!name.trim()) { setError(t.nameRequired); return; }
               onSave(name.trim(), color);
@@ -309,6 +318,7 @@ function NameCreationModal({
             {t.saveComposition}
           </button>
           <button
+            type="button"
             onClick={handleConfirm}
             disabled={isLoading}
             className="flex-1 rounded-xl bg-gold py-2.5 text-xs font-bold text-black hover:bg-gold/85 transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
@@ -815,7 +825,11 @@ function AiBubble({
     .filter((line): line is NonNullable<typeof line> => line !== null) ?? [], [composition]);
 
   const handleConfirmCompositionName = useCallback(async (name: string, color: string) => {
-    if (!composition || !aiData?.flacon) return;
+    const bottleId = getAiBottleId(aiData?.flacon);
+    if (!composition || !bottleId) {
+      addToast(t.addCartError, 'error');
+      return;
+    }
     setIsAddingComposition(true);
     try {
       const lignes = buildCompositionLines();
@@ -826,7 +840,7 @@ function AiBubble({
       }
 
       await addDirectComposition({
-        flacon_id: aiData.flacon.id,
+        flacon_id: bottleId,
         lignes,
         nom: name,
         couleur: color || undefined,
@@ -843,7 +857,11 @@ function AiBubble({
   }, [composition, aiData, buildCompositionLines, addDirectComposition, addToast, t]);
 
   const handleSaveComposition = useCallback(async (name: string, color: string) => {
-    if (!composition || !aiData?.flacon) return;
+    const bottleId = getAiBottleId(aiData?.flacon);
+    if (!composition || !bottleId) {
+      addToast(t.saveError, 'error');
+      return;
+    }
     setIsAddingComposition(true);
     try {
       const lignes = buildCompositionLines().map(line =>
@@ -858,7 +876,7 @@ function AiBubble({
 
       const response = await apiLabService.createCustomPerfume({
         nom: name,
-        flacon: aiData.flacon.id,
+        flacon: bottleId,
         lignes,
         couleur: color || undefined,
       });
