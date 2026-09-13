@@ -96,15 +96,20 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const gaId = process.env.NEXT_PUBLIC_GA_ID || "G-LZ9Y34PNZP";
+  const gaId = process.env.NEXT_PUBLIC_GA_ID || "G-QTY77C8NBH";
   
   return (
     <html lang="fr" className={`h-full antialiased ${lora.variable}`} suppressHydrationWarning>
       <head>
-        {/* Critical inline script for theme — must run before paint */}
+        <script async src="https://www.googletagmanager.com/gtag/js?id=G-QTY77C8NBH" />
         <script
           dangerouslySetInnerHTML={{
             __html: `
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments);}
+              gtag('js', new Date());
+              gtag('config', 'G-QTY77C8NBH');
+
               (function() {
                 function syncThemeColor() {
                   try {
@@ -158,7 +163,6 @@ export default function RootLayout({
         <InstallPrompt />
         <OfflineBanner />
         
-        {/* Official Next.js Google Analytics component */}
         <GoogleAnalytics gaId={gaId} />
       </body>
     </html>

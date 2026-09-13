@@ -1,11 +1,3 @@
-POST https://api.accessoiresexclusifs.com/api/v1/login/
-content-type:Application/json
 
-{
-   "email":"darrentankam@gmail.com",
-   "password":"Yaounde1234"
-}
-
-//
-POST https:accessoires
+get https://www.googletagmanager.com/gtag/js?id=G-LZ9Y34PNZP
 
