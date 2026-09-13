@@ -8,6 +8,8 @@ import { useFavoritesStore } from '@/store/useFavoritesStore';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useToastStore } from '@/store/useToastStore';
 import { generateId, sharePage } from '@/lib/utils';
+import { WHATSAPP_BASE_URL, WHATSAPP_NUMBER } from '@/lib/constants';
+import GoogleAuthButton from '@/components/auth/GoogleAuthButton';
 import { useTranslation } from 'react-i18next';
 import { ArrowLeft, Minus, Plus, ChevronLeft, ChevronRight, RefreshCcw, Loader2, Save, ShoppingCart, X, Send, Share2, Eye, Search } from 'lucide-react';
 import AppImage from '@/components/ui/AppImage';
@@ -216,10 +218,53 @@ function Bottle30({ totalMl, maxFillMl, quantities, allItems }: any) {
 /* ═══════════════════════════════════════
    MAIN COMPONENT
    ═══════════════════════════════════════ */
+function buildDirectCompositionWhatsAppLink({
+  compositionName,
+  bottleSize,
+  items,
+  total,
+  orderNumber,
+  contactName,
+  phone,
+}: {
+  compositionName: string;
+  bottleSize: number;
+  items: Array<{ name: string; quantity: number; unitPrice: number }>; 
+  total: number;
+  orderNumber?: string | null;
+  contactName?: string;
+  phone?: string;
+}) {
+  const messageLines = [
+    '🧴 *Nouvelle commande Atelier Numba*',
+    '',
+    `*Composition:* ${compositionName}`,
+    `*Flacon:* ${bottleSize}ml`,
+    '',
+    ...items.map((item, index) => `${index + 1}. ${item.name} — ${item.quantity} x ${item.unitPrice.toLocaleString()} FCFA`),
+    '',
+    `*Total:* ${total.toLocaleString()} FCFA`,
+  ];
+
+  if (contactName || phone) {
+    messageLines.push('', `*Contact:* ${contactName || '—'}`);
+    if (phone) messageLines.push(`*Téléphone:* ${phone}`);
+  }
+
+  if (orderNumber) {
+    messageLines.push('', `*Commande:* ${orderNumber}`);
+  }
+
+  messageLines.push('', 'Merci de confirmer cette commande 🙏');
+
+  const encodedMessage = encodeURIComponent(messageLines.join('\n'));
+  return `${WHATSAPP_BASE_URL}/${WHATSAPP_NUMBER}?text=${encodedMessage}`;
+}
+
 function AtelierContent() {
   const { addCustomPerfume, addComposition, addDirectComposition } = useCartStore();
   const { addFavorite } = useFavoritesStore();
-  const { user, isAuthenticated } = useAuthStore();
+  const { user, isAuthenticated, loginWithGoogle } = useAuthStore();
   const { addToast } = useToastStore();
   const { playSound } = useSound();
   const { i18n } = useTranslation();
@@ -257,6 +302,7 @@ function AtelierContent() {
 
   // Direct Order Workflow states
   const [showDirectOrderModal, setShowDirectOrderModal] = useState(false);
+  const [showGuestSignupPrompt, setShowGuestSignupPrompt] = useState(false);
   const [isOrderingDirect, setIsOrderingDirect] = useState(false);
   const [createdOrderNumber, setCreatedOrderNumber] = useState<string | null>(null);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
@@ -267,6 +313,12 @@ function AtelierContent() {
     city: '',
     quartier: '',
   }), [user]);
+
+  useEffect(() => {
+    if (compositionIdParam && !isAuthenticated) {
+      setShowGuestSignupPrompt(true);
+    }
+  }, [compositionIdParam, isAuthenticated]);
 
   useEffect(() => {
     setMounted(true);
@@ -905,23 +957,55 @@ function AtelierContent() {
         })
         .filter((line): line is DirectCompositionLine => line !== null);
 
-      // Single endpoint — creates an isolated ephemeral cart and places the order atomically.
-      // The user's active cart is never touched.
+      const orderName = saveModalName || compositionName || `Création Numba ${bottleSize}ml`;
       const orderResponse = await orderService.placeDirectCompositionOrder({
         flacon_id: selectedFlaconId,
         lignes,
-        nom: saveModalName || compositionName || `Création Numba ${bottleSize}ml`,
+        nom: orderName,
         couleur: couleur,
         quantite: 1,
         livraison_nom_complet: orderProfileDetails.fullName || undefined,
         livraison_telephone: orderProfileDetails.phone || undefined,
       });
 
-      setCreatedOrderNumber(orderResponse.numero_commande || `#${orderResponse.id}`);
+      const orderNumber = orderResponse.numero_commande || orderResponse.order?.numero_commande || `#${orderResponse.id ?? 'DIRECT'}`;
+      const messageItems = Object.entries(quantities)
+        .filter(([_, qty]) => Number(qty) > 0)
+        .map(([id, qty]) => {
+          const item = ALL_ITEMS.find(entry => entry.id === id);
+          return {
+            name: item?.name || 'Essence',
+            quantity: Number(qty),
+            unitPrice: Number(item?.pricePerMl || 0),
+          };
+        });
+
+      const waLink = buildDirectCompositionWhatsAppLink({
+        compositionName: orderName,
+        bottleSize,
+        items: messageItems,
+        total: calcPrice,
+        orderNumber,
+        contactName: orderProfileDetails.fullName || undefined,
+        phone: orderProfileDetails.phone || undefined,
+      });
+
+      setCreatedOrderNumber(String(orderNumber));
       setShowDirectOrderModal(false);
-      setShowSuccessModal(true);
-      setQuantities({}); // Reset composition quantities on success
-      addToast(i18n.language === 'en' ? 'Order placed successfully!' : 'Commande passée avec succès !', 'success');
+      setShowSuccessModal(false);
+      setQuantities({});
+
+      const popupWindow = window.open('', '_blank');
+      if (popupWindow) {
+        try {
+          popupWindow.opener = null;
+        } catch (_) {}
+        popupWindow.location.href = waLink;
+      } else {
+        window.location.assign(waLink);
+      }
+
+      addToast(i18n.language === 'en' ? 'Order placed successfully. Redirecting to WhatsApp...' : 'Commande passée avec succès. Redirection vers WhatsApp...', 'success');
     } catch (error: any) {
       const errorMsg = error?.response?.data?.detail || (i18n.language === 'en' ? 'Error processing your order.' : 'Erreur lors du traitement de votre commande.');
       addToast(errorMsg, 'error');
@@ -934,6 +1018,52 @@ function AtelierContent() {
 
   return (
     <div className="atelier-layout !pt-0">
+      {showGuestSignupPrompt && !isAuthenticated && compositionIdParam && (
+        <div className="fixed top-5 right-5 z-[80] w-[min(92vw,360px)] rounded-2xl border border-gold/30 bg-[#0d0d0d]/95 p-4 shadow-2xl shadow-black/50 backdrop-blur-md">
+          <div className="flex items-start justify-between gap-3 mb-3">
+            <div>
+              <p className="text-[10px] uppercase tracking-[0.22em] text-gold/70">Atelier</p>
+              <h3 className="text-base font-semibold text-white mt-1">
+                {i18n.language === 'en' ? 'Sign up to save this perfume' : 'Créez un compte pour enregistrer ce parfum'}
+              </h3>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowGuestSignupPrompt(false)}
+              className="rounded-full border border-white/10 p-1.5 text-foreground/50 hover:text-white transition-colors"
+              aria-label="Close"
+            >
+              <X size={14} />
+            </button>
+          </div>
+
+          <p className="text-sm text-foreground/70 leading-6 mb-4">
+            {i18n.language === 'en'
+              ? 'Sign in with Google to keep this composition, save it to your profile, and continue your custom order without losing your work.'
+              : 'Connectez-vous avec Google pour garder cette composition, la sauvegarder dans votre profil et poursuivre votre commande sans perdre votre travail.'}
+          </p>
+
+          <div className="space-y-2">
+            <GoogleAuthButton
+              label={i18n.language === 'en' ? 'Sign up with Google' : 'S’inscrire avec Google'}
+              onTokenReceived={async (accessToken) => {
+                const success = await loginWithGoogle(accessToken);
+                if (success) {
+                  setShowGuestSignupPrompt(false);
+                }
+              }}
+            />
+            <button
+              type="button"
+              onClick={() => setShowGuestSignupPrompt(false)}
+              className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm font-medium text-foreground/70 transition-colors hover:border-white/20 hover:text-white"
+            >
+              {i18n.language === 'en' ? 'Decline' : 'Refuser'}
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Floating Back Button */}
       <div className="fixed top-6 left-6 z-[60]">
         <Link 

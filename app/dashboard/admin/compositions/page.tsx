@@ -11,6 +11,45 @@ import { LaptopIcon } from '@/components/icons/CustomIcons';
 
 const cx = (...classes: (string | boolean | undefined)[]) => classes.filter(Boolean).join(' ');
 
+const toNumber = (value: any) => {
+  if (value === null || value === undefined || value === '') return 0;
+  const n = Number(String(value).replace(/[^0-9.-]/g, ''));
+  return Number.isFinite(n) ? n : 0;
+};
+
+const normalizeComposition = (item: any) => {
+  const name = item?.nom || item?.name || item?.titre || `Composition #${item?.id ?? '—'}`;
+  const author =
+    [item?.user_details?.first_name, item?.user_details?.last_name]
+      .filter(Boolean)
+      .join(' ') ||
+    item?.user_name ||
+    item?.client_name ||
+    item?.client_details?.first_name ||
+    'Client';
+
+  const flaconLabel =
+    item?.flacon_detail?.nom ||
+    item?.flacon_nom ||
+    item?.flacon?.nom ||
+    item?.flacon_detail?.type_flacon?.nom ||
+    (item?.flacon ? `Flacon #${item.flacon}` : '—');
+
+  const price = toNumber(item?.prix_total ?? item?.prix ?? item?.prix_final ?? item?.montant ?? 0);
+  const lines = Array.isArray(item?.lignes) ? item.lignes : [];
+  const isAI = Boolean(item?.type === 'ia' || item?.is_ai || item?.source === 'ia' || item?.generated_by === 'ia');
+
+  return {
+    ...item,
+    name,
+    author,
+    flaconLabel,
+    price,
+    lines,
+    isAI,
+  };
+};
+
 function StatusChip({ isAI }: { isAI: boolean }) {
   return (
     <span
@@ -76,7 +115,7 @@ export default function CompositionsPage() {
       setLoading(true);
       const data = await labService.getCustomPerfumes();
       const list = data.results || data.resultats || (Array.isArray(data) ? data : []);
-      setCompositions(list);
+      setCompositions((Array.isArray(list) ? list : []).map(normalizeComposition));
     } catch (error) {
       addToast('Erreur lors du chargement des compositions', 'error');
     } finally {
@@ -88,10 +127,10 @@ export default function CompositionsPage() {
     fetchCompositions();
   }, [fetchCompositions]);
 
-  const iaCount = compositions.filter(c => c.type === 'ia' || c.is_ai).length;
-  const manualCount = compositions.filter(c => !(c.type === 'ia' || c.is_ai)).length;
+  const iaCount = compositions.filter(c => c.isAI).length;
+  const manualCount = compositions.filter(c => !c.isAI).length;
   const avgPrice = compositions.length
-    ? Math.round(compositions.reduce((s, c) => s + (c.prix || 0), 0) / compositions.length)
+    ? Math.round(compositions.reduce((s, c) => s + (c.price || 0), 0) / compositions.length)
     : 0;
 
   return (
@@ -144,32 +183,30 @@ export default function CompositionsPage() {
               </thead>
               <tbody className="divide-y divide-white/5">
                 {compositions.map(c => {
-                  const isAI = c.type === 'ia' || c.is_ai;
-                  const cName = c.nom || c.name || `Custom #${c.id}`;
-                  const author = c.user_details?.first_name || c.user_name || 'Client';
+                  const item = normalizeComposition(c);
 
                   return (
-                    <tr key={c.id} className="hover:bg-white/[0.02] transition-colors">
+                    <tr key={item.id} className="hover:bg-white/[0.02] transition-colors">
                       <td className="px-5 py-3.5">
-                        <div className="font-medium text-foreground text-sm">{cName}</div>
-                        <div className="text-[11px] text-foreground/40 font-mono">ID: {c.id}</div>
+                        <div className="font-medium text-foreground text-sm">{item.name}</div>
+                        <div className="text-[11px] text-foreground/40 font-mono">ID: {item.id}</div>
                       </td>
                       <td className="px-5 py-3.5">
-                        <StatusChip isAI={isAI} />
+                        <StatusChip isAI={item.isAI} />
                       </td>
                       <td className="px-5 py-3.5">
-                        <span className="text-sm text-foreground/80 font-medium">{author}</span>
+                        <span className="text-sm text-foreground/80 font-medium">{item.author}</span>
                       </td>
                       <td className="px-5 py-3.5">
-                        <span className="text-xs text-foreground/60">Flacon ID: {c.flacon || '—'}</span>
+                        <span className="text-xs text-foreground/60">{item.flaconLabel}</span>
                       </td>
                       <td className="px-5 py-3.5">
                         <span className="text-sm font-semibold tabular-nums text-foreground">
-                          {(c.prix || 0).toLocaleString()} FCFA
+                          {item.price.toLocaleString()} FCFA
                         </span>
                       </td>
                       <td className="px-5 py-3.5 text-right">
-                        <IconButton onClick={() => setSelected(c)} variant="gold" title="Voir détails">
+                        <IconButton onClick={() => setSelected(item)} variant="gold" title="Voir détails">
                           <Eye size={16} />
                         </IconButton>
                       </td>
@@ -194,8 +231,8 @@ export default function CompositionsPage() {
         <SlideOver
           isOpen={!!selected}
           onClose={() => setSelected(null)}
-          title={selected.nom || selected.name || `Composition #${selected.id}`}
-          description={`Créé par ${selected.user_details?.first_name || selected.user_name || 'Client'}`}
+          title={selected.name}
+          description={`Créé par ${selected.author}`}
           size="md"
           footer={
             <div className="w-full flex justify-end">
@@ -211,7 +248,7 @@ export default function CompositionsPage() {
           <div className="space-y-6">
             {/* Status Chip Badge */}
             <div>
-              <StatusChip isAI={selected.type === 'ia' || selected.is_ai} />
+              <StatusChip isAI={selected.isAI} />
             </div>
 
             {/* Modal Summary Strip */}
@@ -219,34 +256,34 @@ export default function CompositionsPage() {
               <div>
                 <p className="text-[10px] font-semibold uppercase tracking-wider text-foreground/35">Prix Total</p>
                 <p className="text-base font-semibold tabular-nums text-foreground mt-0.5">
-                  {(selected.prix || 0).toLocaleString()} FCFA
+                  {selected.price.toLocaleString()} FCFA
                 </p>
               </div>
               <div className="pl-3">
                 <p className="text-[10px] font-semibold uppercase tracking-wider text-foreground/35">Flacon</p>
                 <p className="text-base font-semibold text-foreground mt-0.5">
-                  {selected.flacon ? `#${selected.flacon}` : '—'}
+                  {selected.flaconLabel}
                 </p>
               </div>
             </div>
 
             {/* Color Display */}
-            {selected.couleur && (
+            {(selected.couleur || selected.flacon_detail?.couleur) && (
               <div className="rounded-xl border border-white/10 bg-white/[0.02] p-3">
                 <p className="text-[10px] font-semibold uppercase tracking-wider text-foreground/35 mb-2">Couleur du Flacon</p>
                 <div className="flex items-center gap-3">
                   <code className="text-xs font-mono text-gold bg-white/5 px-3 py-2 rounded border border-white/10 flex-1">
-                    {selected.couleur}
+                    {selected.couleur || selected.flacon_detail?.couleur}
                   </code>
                   <div 
                     className="w-12 h-12 rounded-lg border-2 border-white/20 shadow-md cursor-pointer hover:shadow-lg hover:border-white/40 transition-all flex-shrink-0"
-                    style={{ backgroundColor: selected.couleur }}
+                    style={{ backgroundColor: selected.couleur || selected.flacon_detail?.couleur }}
                     title="Couleur du flacon"
                   >
                     <div 
                       className="w-full h-full rounded-lg pointer-events-none"
                       style={{
-                        boxShadow: `inset 0 0 6px ${selected.couleur}40, 0 0 8px ${selected.couleur}40`,
+                        boxShadow: `inset 0 0 6px ${(selected.couleur || selected.flacon_detail?.couleur) || '#000000'}40, 0 0 8px ${(selected.couleur || selected.flacon_detail?.couleur) || '#000000'}40`,
                       }}
                     />
                   </div>
@@ -269,21 +306,26 @@ export default function CompositionsPage() {
                 Ingrédients & Formule
               </p>
               <div className="divide-y divide-white/5 border-t border-b border-white/10">
-                {selected.lignes?.map((ligne: any, i: number) => {
+                {(selected.lines || []).map((ligne: any, i: number) => {
                   const name =
+                    ligne.essence_detail?.nom ||
+                    ligne.essence_detail?.name ||
+                    ligne.ingredient_detail?.nom ||
                     ligne.essence_details?.nom ||
                     ligne.essence_details?.name ||
-                    `Essence #${ligne.essence_catalogue || ligne.essence_personnalisee}`;
+                    `Essence #${ligne.essence_catalogue ?? ligne.essence_personnalisee ?? ligne.essence ?? ligne.ingredient ?? i + 1}`;
+                  const quantity = ligne.quantite_ml ?? ligne.quantite ?? ligne.quantite_ml_snapshot ?? 0;
+
                   return (
                     <div key={i} className="py-2.5 flex justify-between items-center text-xs">
                       <span className="text-foreground/80 font-medium">{name}</span>
-                      <span className="text-foreground/40 tabular-nums font-mono">{ligne.quantite_ml} ml</span>
+                      <span className="text-foreground/40 tabular-nums font-mono">{Number(quantity).toFixed(1)} ml</span>
                     </div>
                   );
                 })}
               </div>
 
-              {(!selected.lignes || selected.lignes.length === 0) && (
+              {(!selected.lines || selected.lines.length === 0) && (
                 <p className="text-xs text-foreground/30 italic py-2">
                   Aucun détail sur les lignes de formulation.
                 </p>

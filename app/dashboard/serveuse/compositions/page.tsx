@@ -6,6 +6,45 @@ import { labService } from '@/services/apiService';
 import { useToastStore } from '@/store/useToastStore';
 import { LaptopIcon } from '@/components/icons/CustomIcons';
 
+const toNumber = (value: any) => {
+  if (value === null || value === undefined || value === '') return 0;
+  const n = Number(String(value).replace(/[^0-9.-]/g, ''));
+  return Number.isFinite(n) ? n : 0;
+};
+
+const normalizeComposition = (item: any) => {
+  const name = item?.nom || item?.name || item?.titre || `Composition #${item?.id ?? '—'}`;
+  const author =
+    [item?.user_details?.first_name, item?.user_details?.last_name]
+      .filter(Boolean)
+      .join(' ') ||
+    item?.user_name ||
+    item?.client_name ||
+    item?.client_details?.first_name ||
+    'Client';
+
+  const flaconLabel =
+    item?.flacon_detail?.nom ||
+    item?.flacon_nom ||
+    item?.flacon?.nom ||
+    item?.flacon_detail?.type_flacon?.nom ||
+    (item?.flacon ? `Flacon #${item.flacon}` : '—');
+
+  const price = toNumber(item?.prix_total ?? item?.prix ?? item?.prix_final ?? item?.montant ?? 0);
+  const lines = Array.isArray(item?.lignes) ? item.lignes : [];
+  const isAI = Boolean(item?.type === 'ia' || item?.is_ai || item?.source === 'ia' || item?.generated_by === 'ia');
+
+  return {
+    ...item,
+    name,
+    author,
+    flaconLabel,
+    price,
+    lines,
+    isAI,
+  };
+};
+
 export default function CompositionsPage() {
   const [compositions, setCompositions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -17,7 +56,7 @@ export default function CompositionsPage() {
       setLoading(true);
       const data = await labService.getCustomPerfumes();
       const list = data.results || data.resultats || (Array.isArray(data) ? data : []);
-      setCompositions(list);
+      setCompositions((Array.isArray(list) ? list : []).map(normalizeComposition));
     } catch (error) {
       addToast('Erreur lors du chargement des compositions', 'error');
     } finally {
@@ -42,9 +81,9 @@ export default function CompositionsPage() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
           { label: 'Total compositions', value: compositions.length, icon: <FlaskConical size={18} />, color: 'text-gold bg-gold/10' },
-          { label: 'Via IA', value: compositions.filter(c => c.type === 'ia' || c.is_ai).length, icon: <LaptopIcon size={18} />, color: 'text-purple-400 bg-purple-500/10' },
-          { label: 'Manuelles', value: compositions.filter(c => !(c.type === 'ia' || c.is_ai)).length, icon: <Pencil size={18} />, color: 'text-amber-400 bg-amber-500/10' },
-          { label: 'Prix moyen', value: `${(compositions.reduce((s, c) => s + (c.prix || 0), 0) / (compositions.length || 1)).toFixed(0)} FCFA`, icon: <FlaskConical size={18} />, color: 'text-emerald-400 bg-emerald-500/10' },
+          { label: 'Via IA', value: compositions.filter(c => c.isAI).length, icon: <LaptopIcon size={18} />, color: 'text-purple-400 bg-purple-500/10' },
+          { label: 'Manuelles', value: compositions.filter(c => !c.isAI).length, icon: <Pencil size={18} />, color: 'text-amber-400 bg-amber-500/10' },
+          { label: 'Prix moyen', value: `${(compositions.reduce((s, c) => s + (c.price || 0), 0) / (compositions.length || 1)).toFixed(0)} FCFA`, icon: <FlaskConical size={18} />, color: 'text-emerald-400 bg-emerald-500/10' },
         ].map(k => (
           <div key={k.label} className="bg-white/5 rounded-2xl border border-white/10 p-5 shadow-sm">
             <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-3 ${k.color}`}>
@@ -77,35 +116,33 @@ export default function CompositionsPage() {
               </thead>
               <tbody className="divide-y divide-white/5">
                 {compositions.map(c => {
-                  const isAI = c.type === 'ia' || c.is_ai;
-                  const cName = c.nom || c.name || `Custom #${c.id}`;
-                  const author = c.user_details?.first_name || c.user_name || 'Client';
+                  const item = normalizeComposition(c);
 
                   return (
-                    <tr key={c.id} className="hover:bg-white/5 transition-colors group">
+                    <tr key={item.id} className="hover:bg-white/5 transition-colors group">
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-4">
                           <div className={`w-10 h-10 rounded-xl flex items-center justify-center
-                            ${isAI ? 'bg-purple-500/10 text-purple-400' : 'bg-amber-500/10 text-amber-400'}`}>
-                            {isAI ? <LaptopIcon size={18} /> : <Pencil size={18} />}
+                            ${item.isAI ? 'bg-purple-500/10 text-purple-400' : 'bg-amber-500/10 text-amber-400'}`}>
+                            {item.isAI ? <LaptopIcon size={18} /> : <Pencil size={18} />}
                           </div>
                           <div>
-                            <p className="font-semibold text-foreground text-sm">{cName}</p>
-                            <p className="text-[11px] text-foreground/40">ID: {c.id}</p>
+                            <p className="font-semibold text-foreground text-sm">{item.name}</p>
+                            <p className="text-[11px] text-foreground/40">ID: {item.id}</p>
                           </div>
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        <p className="text-sm text-foreground font-medium">{author}</p>
+                        <p className="text-sm text-foreground font-medium">{item.author}</p>
                       </td>
                       <td className="px-6 py-4">
-                        <span className="text-xs text-foreground/60">Flacon ID: {c.flacon || '—'}</span>
+                        <span className="text-xs text-foreground/60">{item.flaconLabel}</span>
                       </td>
                       <td className="px-6 py-4">
-                        <span className="font-semibold text-foreground">{(c.prix || 0).toLocaleString()} FCFA</span>
+                        <span className="font-semibold text-foreground">{item.price.toLocaleString()} FCFA</span>
                       </td>
                       <td className="px-6 py-4 text-right">
-                        <button onClick={() => setSelected(c)} className="p-2 rounded-lg hover:bg-white/5 text-foreground/40 hover:text-gold transition-colors">
+                        <button onClick={() => setSelected(item)} className="p-2 rounded-lg hover:bg-white/5 text-foreground/40 hover:text-gold transition-colors">
                           <Eye size={18} />
                         </button>
                       </td>
@@ -127,25 +164,32 @@ export default function CompositionsPage() {
       {selected && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-background rounded-2xl p-6 w-full max-w-md shadow-sm border border-white/10">
-            <h3 className="font-bold text-foreground mb-1">{selected.nom || selected.name || `Composition #${selected.id}`}</h3>
-            <p className="text-xs text-foreground/40 mb-4">Auteur: {selected.user_details?.first_name || 'Client'}</p>
+            <h3 className="font-bold text-foreground mb-1">{selected.name}</h3>
+            <p className="text-xs text-foreground/40 mb-4">Auteur: {selected.author}</p>
             {selected.description && (
               <p className="text-sm text-foreground/60 italic mb-4">"{selected.description}"</p>
             )}
             <div className="space-y-3 mb-5">
               <p className="text-xs font-semibold text-foreground/40 uppercase">Ingrédients & Formule</p>
-              {selected.lignes?.map((ligne: any, i: number) => {
-                const name = ligne.essence_details?.nom || ligne.essence_details?.name || `Essence #${ligne.essence_catalogue || ligne.essence_personnalisee}`;
+              {(selected.lines || []).map((ligne: any, i: number) => {
+                const name =
+                  ligne.essence_detail?.nom ||
+                  ligne.essence_detail?.name ||
+                  ligne.ingredient_detail?.nom ||
+                  ligne.essence_details?.nom ||
+                  ligne.essence_details?.name ||
+                  `Essence #${ligne.essence_catalogue ?? ligne.essence_personnalisee ?? ligne.essence ?? ligne.ingredient ?? i + 1}`;
+                const quantity = ligne.quantite_ml ?? ligne.quantite ?? ligne.quantite_ml_snapshot ?? 0;
                 return (
                   <div key={i}>
                     <div className="flex justify-between text-xs mb-1">
                       <span className="text-foreground font-medium">{name}</span>
-                      <span className="text-foreground/40">{ligne.quantite_ml} ml</span>
+                      <span className="text-foreground/40">{Number(quantity).toFixed(1)} ml</span>
                     </div>
                   </div>
                 );
               })}
-              {(!selected.lignes || selected.lignes.length === 0) && (
+              {(!selected.lines || selected.lines.length === 0) && (
                 <p className="text-xs text-foreground/40 italic">Aucun détail sur les lignes de formulation.</p>
               )}
             </div>
@@ -153,24 +197,24 @@ export default function CompositionsPage() {
             {/* Flacon Info */}
             <div className="space-y-2 mb-5 pb-5 border-b border-white/10">
               <p className="text-xs font-semibold text-foreground/40 uppercase">Flacon</p>
-              {selected.flacon && (
+              {selected.flaconLabel && selected.flaconLabel !== '—' && (
                 <div className="text-xs text-foreground/60">
-                  <p>ID: {selected.flacon}</p>
+                  <p>{selected.flaconLabel}</p>
                 </div>
               )}
-              {selected.couleur && (
+              {(selected.couleur || selected.flacon_detail?.couleur) && (
                 <div className="flex items-center gap-2 pt-2">
                   <span className="text-xs text-foreground/40">Couleur:</span>
-                  <code className="text-xs font-mono text-gold bg-white/5 px-2 py-1 rounded border border-white/10">{selected.couleur}</code>
+                  <code className="text-xs font-mono text-gold bg-white/5 px-2 py-1 rounded border border-white/10">{selected.couleur || selected.flacon_detail?.couleur}</code>
                   <div 
                     className="w-6 h-6 rounded-full border border-white/20 shadow-md cursor-pointer hover:shadow-lg hover:border-white/40 transition-all"
-                    style={{ backgroundColor: selected.couleur }}
+                    style={{ backgroundColor: selected.couleur || selected.flacon_detail?.couleur }}
                     title="Couleur du flacon"
                   >
                     <div 
                       className="w-full h-full rounded-full pointer-events-none"
                       style={{
-                        boxShadow: `inset 0 0 4px ${selected.couleur}40, 0 0 6px ${selected.couleur}40`,
+                        boxShadow: `inset 0 0 4px ${(selected.couleur || selected.flacon_detail?.couleur) || '#000000'}40, 0 0 6px ${(selected.couleur || selected.flacon_detail?.couleur) || '#000000'}40`,
                       }}
                     />
                   </div>
