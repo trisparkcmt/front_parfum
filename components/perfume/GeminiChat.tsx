@@ -359,7 +359,7 @@ function LoadingBubble() {
     <div className="flex items-end gap-3 justify-start">
       <div className="w-9 h-9 rounded-full bg-gradient-to-br from-gold/30 to-gold/10 border border-gold/30 flex items-center justify-center flex-shrink-0 shadow-sm p-1.5">
         <img
-          src="/logo/NOM II.svg"
+          src="/logo/Numba gold.svg"
           alt="Numba"
           className="w-full h-full object-contain dark:invert"
         />
@@ -523,7 +523,7 @@ function extractAiResponseFromMetadata(metadata?: Record<string, unknown>): Part
     seen.add(current);
 
     const obj = current as Record<string, unknown>;
-    const candidateKeys = ['message', 'quantite_demandee_ml', 'flacon', 'parfums_existants', 'essences_pre_faites', 'ingredients_sur_mesure', 'accessoires', 'diffuseurs'];
+    const candidateKeys = ['message', 'quantite_demandee_ml', 'flacon', 'flacon_id', 'parfums_existants', 'essences_pre_faites', 'ingredients_sur_mesure', 'accessoires', 'diffuseurs'];
     const presentKeys = candidateKeys.filter((key) => obj[key] !== undefined && obj[key] !== null);
 
     if (presentKeys.length > 0) {
@@ -533,6 +533,15 @@ function extractAiResponseFromMetadata(metadata?: Record<string, unknown>): Part
           (extracted as Record<string, unknown>)[key] = obj[key];
         }
       }
+      const extractedRecord = extracted as Record<string, unknown>;
+      const historicalBottleId = obj['flacon_id'];
+      if (extractedRecord.flacon === undefined && historicalBottleId !== undefined) {
+        const bottleId = Number(historicalBottleId);
+        if (Number.isInteger(bottleId) && bottleId > 0) {
+          extractedRecord.flacon = bottleId;
+        }
+      }
+      delete extractedRecord.flacon_id;
       return extracted;
     }
 
@@ -928,7 +937,7 @@ function AiBubble({
       <div className="flex items-start gap-3 justify-start">
       <div className="w-9 h-9 rounded-full bg-gradient-to-br from-gold/30 to-gold/10 border border-gold/30 flex items-center justify-center flex-shrink-0 shadow-sm mt-1 p-1.5">
         <img
-          src="/logo/NOM II.svg"
+          src="/logo/Numba gold.svg"
           alt="Numba"
           className="w-full h-full object-contain dark:invert"
         />
@@ -1353,7 +1362,7 @@ export function GeminiChat({ onChatStarted }: GeminiChatProps) {
             >
               <div className="w-20 h-20 rounded-3xl bg-gold/10 border border-gold/20 flex items-center justify-center shadow-sm shadow-gold/10 p-4">
                 <img
-                  src="/logo/NOM II.svg"
+                  src="/logo/Numba gold.svg"
                   alt="Numba"
                   className="w-full h-full object-contain dark:invert"
                 />
