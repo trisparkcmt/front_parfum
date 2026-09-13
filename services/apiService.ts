@@ -1983,6 +1983,7 @@ export const cartService = {
     note_client?: string;
     flacon_id: number;
     lignes: Array<{ ingredient?: number; lot_essence_id?: number; quantite_ml: number }>;
+    couleur?: string;
   }) => {
     const response = await api.post(
       'orders/panier/ajouter/composition-directe/',

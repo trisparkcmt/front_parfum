@@ -182,6 +182,7 @@ interface CartState {
     nom?: string;
     note_client?: string;
     quantite?: number;
+    couleur?: string;
   }, options?: { silent?: boolean }) => Promise<void>;
 
   // Legacy API compatibility

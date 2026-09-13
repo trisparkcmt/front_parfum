@@ -20,14 +20,17 @@ import {
   Droplets,
   AlertTriangle,
   Loader2,
+  Save,
 } from 'lucide-react';
 import { InputBar } from './InputBar';
+import ColorPicker from '@/components/ui/ColorPicker';
 import { API_ROOT } from '@/services/api';
 import { api, labService as apiLabService } from '@/services/apiService';
 import { labService } from '@/services/labService';
 import { useCartStore } from '@/store/useCartStore';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useToastStore } from '@/store/useToastStore';
+import { useFavoritesStore } from '@/store/useFavoritesStore';
 import { formatPrice, generateId } from '@/lib/utils';
 import type { CustomComposition, CompositionEssence, EssenceClient, Accessory, Product } from '@/types';
 import { productService } from '@/services/productService';
@@ -86,6 +89,11 @@ const dict = {
     addCartSuccess: 'Composition ajoutée au panier',
     addCartError: 'Erreur lors de l\'ajout au panier',
     nameRequired: 'Veuillez saisir un nom pour votre création',
+    saveComposition: 'Sauvegarder',
+    saveCompositionDesc: 'Enregistrez cette création dans vos parfums personnalisés.',
+    saveSuccess: 'Composition sauvegardée',
+    saveError: 'Erreur lors de la sauvegarde',
+    liquidColor: 'Couleur du liquide',
   },
   en: {
     loadingTexts: [
@@ -137,6 +145,11 @@ const dict = {
     addCartSuccess: 'Composition added to cart',
     addCartError: 'Error adding to cart',
     nameRequired: 'Please enter a name for your creation',
+    saveComposition: 'Save',
+    saveCompositionDesc: 'Save this creation to your personal perfumes.',
+    saveSuccess: 'Composition saved',
+    saveError: 'Error saving composition',
+    liquidColor: 'Liquid color',
   },
 };
 
@@ -221,16 +234,19 @@ function blendHexColors(colors: { hex: string; weight: number }[]): string {
 function NameCreationModal({
   defaultName,
   onConfirm,
+  onSave,
   onClose,
   isLoading,
 }: {
   defaultName: string;
-  onConfirm: (name: string) => void;
+  onConfirm: (name: string, color: string) => void;
+  onSave: (name: string, color: string) => void;
   onClose: () => void;
   isLoading: boolean;
 }) {
   const t = dict[getLang()];
   const [name, setName] = useState(defaultName);
+  const [color, setColor] = useState('');
   const [error, setError] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -240,7 +256,7 @@ function NameCreationModal({
 
   const handleConfirm = () => {
     if (!name.trim()) { setError(t.nameRequired); return; }
-    onConfirm(name.trim());
+    onConfirm(name.trim(), color);
   };
 
   return (
@@ -271,6 +287,8 @@ function NameCreationModal({
           {error && <p className="text-[11px] text-red-400">{error}</p>}
         </div>
 
+        <ColorPicker value={color} onChange={setColor} label={t.liquidColor} />
+
         <div className="flex gap-2">
           <button
             onClick={onClose}
@@ -278,6 +296,17 @@ function NameCreationModal({
             className="flex-1 rounded-xl border border-white/10 py-2.5 text-xs font-medium text-foreground/60 hover:bg-white/5 transition-colors disabled:opacity-40"
           >
             {t.nameModalCancel}
+          </button>
+          <button
+            onClick={() => {
+              if (!name.trim()) { setError(t.nameRequired); return; }
+              onSave(name.trim(), color);
+            }}
+            disabled={isLoading}
+            className="flex-1 rounded-xl border border-gold/50 py-2.5 text-xs font-bold text-gold hover:bg-gold/10 transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
+          >
+            <Save size={13} />
+            {t.saveComposition}
           </button>
           <button
             onClick={handleConfirm}
@@ -729,6 +758,7 @@ function AiBubble({
 }) {
   const [isTypingComplete, setIsTypingComplete] = useState(!messageObj.animateText);
   const { addProduct, addDirectComposition } = useCartStore();
+  const { addFavorite } = useFavoritesStore();
   const { addToast } = useToastStore();
   const t = dict[getLang()];
   const { text, aiData, composition, suggestions, isError503, retryPayload, animateText } = messageObj;
@@ -772,21 +802,23 @@ function AiBubble({
     setIsTypingComplete(true);
   }, []);
 
-  const handleConfirmCompositionName = useCallback(async (name: string) => {
+  const buildCompositionLines = useCallback(() => composition?.essences
+    .map(({ essence, quantityMl }) => {
+      const lotId = essence.lotEssenceId;
+      const backendId = essence.backendId;
+      if (!lotId && !backendId) return null;
+      if (essence.itemType === 'ingredient') {
+        return { ingredient: backendId ?? Number(essence.id), quantite_ml: quantityMl };
+      }
+      return { lot_essence_id: lotId || backendId || Number(essence.id), quantite_ml: quantityMl };
+    })
+    .filter((line): line is NonNullable<typeof line> => line !== null) ?? [], [composition]);
+
+  const handleConfirmCompositionName = useCallback(async (name: string, color: string) => {
     if (!composition || !aiData?.flacon) return;
     setIsAddingComposition(true);
     try {
-      const lignes = composition.essences
-        .map(({ essence, quantityMl }) => {
-          const lotId = essence.lotEssenceId;
-          const backendId = essence.backendId;
-          if (!lotId && !backendId) return null;
-          if (essence.itemType === 'ingredient') {
-            return { ingredient: backendId ?? Number(essence.id), quantite_ml: quantityMl };
-          }
-          return { lot_essence_id: lotId || backendId || Number(essence.id), quantite_ml: quantityMl };
-        })
-        .filter((l): l is NonNullable<typeof l> => l !== null);
+      const lignes = buildCompositionLines();
 
       if (lignes.length === 0) {
         addToast(t.addCartError, 'error');
@@ -797,6 +829,7 @@ function AiBubble({
         flacon_id: aiData.flacon.id,
         lignes,
         nom: name,
+        couleur: color || undefined,
         quantite: 1,
       }, { silent: true });
 
@@ -807,7 +840,52 @@ function AiBubble({
     } finally {
       setIsAddingComposition(false);
     }
-  }, [composition, aiData, addDirectComposition, addToast, t]);
+  }, [composition, aiData, buildCompositionLines, addDirectComposition, addToast, t]);
+
+  const handleSaveComposition = useCallback(async (name: string, color: string) => {
+    if (!composition || !aiData?.flacon) return;
+    setIsAddingComposition(true);
+    try {
+      const lignes = buildCompositionLines().map(line =>
+        'ingredient' in line
+          ? line
+          : { essence: line.lot_essence_id, quantite_ml: line.quantite_ml }
+      );
+      if (lignes.length === 0) {
+        addToast(t.saveError, 'error');
+        return;
+      }
+
+      const response = await apiLabService.createCustomPerfume({
+        nom: name,
+        flacon: aiData.flacon.id,
+        lignes,
+        couleur: color || undefined,
+      });
+      await addFavorite({
+        id: `composition-${response.id}`,
+        name,
+        description: t.saveCompositionDesc,
+        price: composition.totalPrice,
+        originalPrice: composition.totalPrice,
+        category: 'numba-creation',
+        images: ['/parfume1.png'],
+        brand: 'Numba Atelier',
+        inStock: true,
+        slug: `composition-${response.id}`,
+        createdAt: new Date().toISOString(),
+        isCustomComposition: true,
+        volume: `${composition.totalMl}ml`,
+        image_principale: '/parfume1.png',
+      });
+      setShowNameModal(false);
+      addToast(t.saveSuccess, 'success');
+    } catch {
+      addToast(t.saveError, 'error');
+    } finally {
+      setIsAddingComposition(false);
+    }
+  }, [composition, aiData, buildCompositionLines, addFavorite, addToast, t]);
 
   return (
     <>
@@ -934,7 +1012,15 @@ function AiBubble({
             )}
             {(hasProducts || hasAccessories) && (
               <button
-                onClick={() => onAddAllToCart(aiData!, composition)}
+                onClick={() => {
+                  if (hasComposition) {
+                    aiData!.parfums_existants?.forEach(handleAddProduct);
+                    aiData!.accessoires?.forEach(handleAddAccessory);
+                    setShowNameModal(true);
+                  } else {
+                    onAddAllToCart(aiData!, composition);
+                  }
+                }}
                 className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 hover:border-gold/30 hover:text-gold text-foreground/60 font-bold text-xs uppercase tracking-wider transition-all active:scale-95"
               >
                 <ShoppingBag size={13} />
@@ -951,6 +1037,7 @@ function AiBubble({
         <NameCreationModal
           defaultName={composition?.name ?? (getLang() === 'en' ? 'My AI Creation' : 'Ma Création IA')}
           onConfirm={handleConfirmCompositionName}
+          onSave={handleSaveComposition}
           onClose={() => setShowNameModal(false)}
           isLoading={isAddingComposition}
         />
