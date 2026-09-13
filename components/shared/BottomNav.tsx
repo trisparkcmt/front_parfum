@@ -14,6 +14,8 @@ type BottomNavLink = {
   label: string;
 };
 
+const NOTCH_TRANSITION = { type: 'spring' as const, stiffness: 420, damping: 34, mass: 0.7 };
+
 const BottomNav = () => {
   const pathname = usePathname();
   const { t } = useTranslation();
@@ -41,20 +43,20 @@ const BottomNav = () => {
         className="fixed bottom-5 left-4 right-4 z-[100] flex items-center gap-2 md:hidden"
         style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
       >
-        <div className="h-[72px] flex-1 rounded-[28px] border border-white/10 bg-deep-black/70 backdrop-blur-2xl" />
-        <div className="h-[72px] w-[72px] shrink-0 rounded-[28px] border border-white/10 bg-deep-black/70 backdrop-blur-2xl" />
+        <div className="h-16 flex-1 rounded-[28px] border border-white/10 bg-deep-black/70 backdrop-blur-2xl" />
+        <div className="h-16 w-16 shrink-0 rounded-[28px] border border-white/10 bg-deep-black/70 backdrop-blur-2xl" />
       </nav>
     );
   }
 
   return (
     <nav
-      className="fixed bottom-5 left-4 right-4 z-[100] flex items-center gap-2 md:hidden"
+      className="fixed bottom-5 left-4 right-4 z-[100] flex items-end gap-2 md:hidden"
       style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
     >
       {/* Main glass pill */}
       <div
-        className="relative flex h-[72px] flex-1 items-stretch justify-between gap-0.5 px-1.5
+        className="relative flex h-16 flex-1 items-center justify-between gap-0.5 px-2
                    rounded-[28px] border border-white/10
                    bg-deep-black/70 backdrop-blur-2xl
                    shadow-[0_8px_32px_rgba(0,0,0,0.55)]
@@ -72,38 +74,38 @@ const BottomNav = () => {
                 href={href}
                 aria-label={label}
                 aria-current={isActive ? 'page' : undefined}
-                className="relative z-10 flex flex-1 items-center justify-center"
+                className="relative z-10 flex h-full flex-1 items-center justify-center"
               >
-                <motion.div
-                  layout
-                  transition={{ type: 'spring', stiffness: 420, damping: 34, mass: 0.7 }}
-                  className="relative flex w-full flex-col items-center justify-center gap-1 rounded-2xl py-2"
-                >
-                  {isActive && (
-                    <motion.div
-                      layoutId="bottomNavActivePill"
-                      className="absolute inset-0 rounded-2xl bg-gold/95
-                                 shadow-[0_2px_14px_rgba(212,175,55,0.35)]"
-                      transition={{ type: 'spring', stiffness: 420, damping: 34, mass: 0.7 }}
-                    />
-                  )}
-
-                  <span
-                    className={`relative shrink-0 transition-colors duration-200 ${
-                      isActive ? 'text-black' : 'text-foreground/60'
-                    }`}
+                {/* Icon: sits inline when inactive, pops above the pill when active */}
+                {isActive ? (
+                  <motion.div
+                    layoutId="bottomNavNotch"
+                    transition={NOTCH_TRANSITION}
+                    className="absolute -top-7 left-1/2 -translate-x-1/2 flex h-[52px] w-[52px]
+                               items-center justify-center rounded-full
+                               border border-white/10 bg-deep-black/90 backdrop-blur-2xl
+                               shadow-[0_10px_24px_rgba(0,0,0,0.55)]"
                   >
-                    <Icon size={19} strokeWidth={isActive ? 2.1 : 1.8} />
+                    <span className="flex h-11 w-11 items-center justify-center rounded-full bg-gold
+                                      shadow-[0_2px_14px_rgba(212,175,55,0.45)]">
+                      <Icon size={20} strokeWidth={2.1} className="text-black" />
+                    </span>
+                  </motion.div>
+                ) : (
+                  <span className="text-foreground/55 transition-colors duration-200">
+                    <Icon size={20} strokeWidth={1.8} />
                   </span>
+                )}
 
-                  <span
-                    className={`relative whitespace-nowrap text-[9px] font-semibold leading-none tracking-tight transition-colors duration-200 ${
-                      isActive ? 'text-black' : 'text-foreground/50'
-                    }`}
+                {/* Label: only the active item shows text, in place of its icon */}
+                {isActive && (
+                  <motion.span
+                    layout
+                    className="relative whitespace-nowrap text-[11px] font-semibold text-gold"
                   >
                     {label}
-                  </span>
-                </motion.div>
+                  </motion.span>
+                )}
               </Link>
             );
           })}
@@ -115,7 +117,7 @@ const BottomNav = () => {
         href={reelsHref}
         aria-label={t('nav_reels', 'Reels')}
         aria-current={reelsActive ? 'page' : undefined}
-        className="relative z-10 flex h-[72px] w-[72px] shrink-0 items-center justify-center
+        className="relative z-10 flex h-16 w-16 shrink-0 items-center justify-center
                    rounded-[28px] border border-white/10
                    bg-deep-black/70 backdrop-blur-2xl
                    shadow-[0_8px_32px_rgba(0,0,0,0.55)]
@@ -123,36 +125,30 @@ const BottomNav = () => {
                    before:bg-gradient-to-b before:from-white/[0.06] before:to-transparent
                    before:pointer-events-none"
       >
-        <motion.div
-          layout
-          transition={{ type: 'spring', stiffness: 420, damping: 34, mass: 0.7 }}
-          className="relative flex flex-col items-center justify-center gap-1 rounded-2xl px-3 py-2"
-        >
-          {reelsActive && (
-            <motion.div
-              layoutId="bottomNavReelsPill"
-              className="absolute inset-0 rounded-2xl bg-gold/95
-                         shadow-[0_2px_14px_rgba(212,175,55,0.35)]"
-              transition={{ type: 'spring', stiffness: 420, damping: 34, mass: 0.7 }}
-            />
-          )}
-
-          <span
-            className={`relative shrink-0 transition-colors duration-200 ${
-              reelsActive ? 'text-black' : 'text-foreground/60'
-            }`}
+        {reelsActive ? (
+          <motion.div
+            layout
+            className="absolute -top-7 left-1/2 -translate-x-1/2 flex h-[52px] w-[52px]
+                       items-center justify-center rounded-full
+                       border border-white/10 bg-deep-black/90 backdrop-blur-2xl
+                       shadow-[0_10px_24px_rgba(0,0,0,0.55)]"
           >
-            <Video size={19} strokeWidth={reelsActive ? 2.1 : 1.8} />
+            <span className="flex h-11 w-11 items-center justify-center rounded-full bg-gold
+                              shadow-[0_2px_14px_rgba(212,175,55,0.45)]">
+              <Video size={20} strokeWidth={2.1} className="text-black" />
+            </span>
+          </motion.div>
+        ) : (
+          <span className="relative z-10 text-foreground/55 transition-colors duration-200">
+            <Video size={20} strokeWidth={1.8} />
           </span>
+        )}
 
-          <span
-            className={`relative whitespace-nowrap text-[9px] font-semibold leading-none tracking-tight transition-colors duration-200 ${
-              reelsActive ? 'text-black' : 'text-foreground/50'
-            }`}
-          >
+        {reelsActive && (
+          <span className="absolute bottom-2.5 whitespace-nowrap text-[10px] font-semibold text-gold">
             {t('nav_reels', 'Reels')}
           </span>
-        </motion.div>
+        )}
       </Link>
     </nav>
   );
