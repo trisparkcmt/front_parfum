@@ -1,4 +1,4 @@
-import type { Metadata, Viewport } from "next";
+ import type { Metadata, Viewport } from "next";
 import { GoogleAnalytics } from "@next/third-parties/google";
 import "./globals.css";
 import { lora } from "@/lib/fonts";

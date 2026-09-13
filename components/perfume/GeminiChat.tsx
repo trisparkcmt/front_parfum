@@ -590,15 +590,23 @@ function TypingBubble({ text, onComplete }: { text: string; onComplete?: () => v
 
   useEffect(() => {
     setDisplayedText('');
+
+    if (!text) {
+      onComplete?.();
+      return;
+    }
+
     let index = 0;
     const interval = setInterval(() => {
-      setDisplayedText(prev => prev + text.charAt(index));
-      index++;
+      index += 1;
+      setDisplayedText(text.slice(0, index));
+
       if (index >= text.length) {
         clearInterval(interval);
         onComplete?.();
       }
     }, 15);
+
     return () => clearInterval(interval);
   }, [text, onComplete]);
 
