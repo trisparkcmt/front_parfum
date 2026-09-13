@@ -22,7 +22,11 @@ const BottomNav = () => {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
+    const frame = requestAnimationFrame(() => {
+      setMounted(true);
+    });
+
+    return () => cancelAnimationFrame(frame);
   }, []);
 
   const links: BottomNavLink[] = [
@@ -125,13 +129,15 @@ const BottomNav = () => {
                    before:bg-gradient-to-b before:from-white/[0.06] before:to-transparent
                    before:pointer-events-none"
       >
-        <span
-          className={`relative z-10 transition-colors duration-200 ${
-            reelsActive ? 'text-gold' : 'text-foreground/55'
-          }`}
-        >
-          <Video size={20} strokeWidth={reelsActive ? 2.1 : 1.8} />
-        </span>
+        {reelsActive ? (
+          <span className="relative z-10 flex h-10 w-10 items-center justify-center rounded-full bg-gold shadow-[0_2px_14px_rgba(212,175,55,0.45)]">
+            <Video size={18} strokeWidth={2.1} className="text-black" />
+          </span>
+        ) : (
+          <span className="relative z-10 text-foreground/55 transition-colors duration-200">
+            <Video size={20} strokeWidth={1.8} />
+          </span>
+        )}
       </Link>
     </nav>
   );

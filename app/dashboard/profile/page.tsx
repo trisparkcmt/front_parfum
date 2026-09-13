@@ -350,14 +350,7 @@ export default function ProfilePage() {
                         <span>{t('become_partner', { defaultValue: isEn ? 'Become a Partner' : 'Devenir Prestataire' })}</span>
                       </button>
 
-                      <button
-                        type="button"
-                        onClick={() => setShowPartnerMenu(false)}
-                        className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-foreground/70 transition hover:bg-foreground/5"
-                      >
-                        <ShieldCheck size={14} className="text-gold" />
-                        <span>{isEn ? 'Partner benefits' : 'Avantages prestataire'}</span>
-                      </button>
+                      
                     </div>
                   )}
                 </div>

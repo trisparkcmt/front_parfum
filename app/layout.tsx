@@ -88,7 +88,7 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
-  themeColor: '#C5A059',
+  themeColor: '#0b0b0b',
 };
 
 export default function RootLayout({
@@ -106,18 +106,43 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{
             __html: `
               (function() {
+                function syncThemeColor() {
+                  try {
+                    var theme = document.documentElement.getAttribute('data-theme') || localStorage.getItem('ae-theme') || 'dark';
+                    var metaColor = theme === 'light' ? '#f3f3f3' : '#0b0b0b';
+                    var metaTag = document.querySelector('meta[name="theme-color"]');
+                    if (!metaTag) {
+                      metaTag = document.createElement('meta');
+                      metaTag.setAttribute('name', 'theme-color');
+                      document.head.appendChild(metaTag);
+                    }
+                    metaTag.setAttribute('content', metaColor);
+                    document.documentElement.style.backgroundColor = metaColor;
+                  } catch (e) {}
+                }
+
                 try {
                   var theme = localStorage.getItem('ae-theme') || 'dark';
                   document.documentElement.setAttribute('data-theme', theme);
-                  var metaColor = theme === 'dark' ? '#0b0b0b' : '#ffffff'; 
-                  var metaTag = document.querySelector('meta[name="theme-color"]');
-                  if (!metaTag) {
-                    metaTag = document.createElement('meta');
-                    metaTag.setAttribute('name', 'theme-color');
-                    document.head.appendChild(metaTag);
+                } catch (e) {}
+
+                syncThemeColor();
+
+                if (window.MutationObserver) {
+                  var observer = new MutationObserver(function() {
+                    syncThemeColor();
+                  });
+                  observer.observe(document.documentElement, {
+                    attributes: true,
+                    attributeFilter: ['data-theme']
+                  });
+                }
+
+                window.addEventListener('storage', function(event) {
+                  if (event.key === 'ae-theme') {
+                    syncThemeColor();
                   }
-                  metaTag.setAttribute('content', metaColor);
-                } catch(e) {}
+                });
               })();
             `
           }}
