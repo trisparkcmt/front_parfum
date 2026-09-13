@@ -93,6 +93,15 @@ export default function PerfumesShopClient() {
     if (!mounted) return;
 
     async function fetchData() {
+      // The Huile tab must use the public essence endpoint and own pagination metadata.
+      if (activeTab === 'huile') {
+        setProducts([]);
+        setTotalPages(1);
+        setTotalCount(0);
+        setLoading(false);
+        return;
+      }
+
       setLoading(true);
 
       // Load dynamic categories from backend (once)
@@ -206,8 +215,16 @@ export default function PerfumesShopClient() {
           famille_olfactive: olfactiveFamily !== 'all' ? olfactiveFamily : undefined,
           intensite: intensity !== 'all' ? intensity : undefined,
           prix_max: maxPrice < 150000 ? maxPrice : undefined,
+          page: activeTab === 'huile' ? currentPage : undefined,
         });
-        setFinishedEssenceProducts(response);
+
+        const essenceItems = Array.isArray(response) ? response : response.results;
+        setFinishedEssenceProducts(essenceItems);
+
+        if (activeTab === 'huile') {
+          setTotalPages(Array.isArray(response) ? 1 : response.pages ?? 1);
+          setTotalCount(Array.isArray(response) ? essenceItems.length : response.count ?? essenceItems.length);
+        }
       } catch (error) {
         console.error('Failed to load essence products:', error);
       } finally {
@@ -216,7 +233,7 @@ export default function PerfumesShopClient() {
     }
 
     loadEssenceProducts();
-  }, [mounted, activeTab, debouncedSearch, genre, olfactiveFamily, intensity, maxPrice]);
+  }, [mounted, activeTab, debouncedSearch, genre, olfactiveFamily, intensity, maxPrice, currentPage]);
 
   // Scroll active tab to center
   useEffect(() => {

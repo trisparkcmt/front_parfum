@@ -662,8 +662,20 @@ export const productService = {
     famille_olfactive?: string;
     intensite?: string;
     prix_max?: number;
-  }): Promise<Product[]> {
-    const response = await apiShopService.getPublicEssences();
+    page?: number;
+  }): Promise<Product[] | { results: Product[]; pages: number; count: number }> {
+    const params: any = {};
+    if (filters) {
+      if (filters.search) params.search = filters.search;
+      if (filters.ordering) params.ordering = filters.ordering;
+      if (filters.genre && filters.genre !== 'all') params.genre = filters.genre;
+      if (filters.famille_olfactive && filters.famille_olfactive !== 'all') params.famille_olfactive = filters.famille_olfactive;
+      if (filters.intensite && filters.intensite !== 'all') params.intensite = filters.intensite;
+      if (filters.prix_max) params.prix_max = filters.prix_max;
+      if (filters.page && filters.page > 1) params.page = filters.page;
+    }
+
+    const response = await apiShopService.getPublicEssences(params);
 
     let results: any[] = [];
     if (response) {
@@ -676,9 +688,21 @@ export const productService = {
       }
     }
 
-    return results
+    const mappedResults = results
       .map(mapBackendEssenceToProduct)
       .filter((product) => product.inStock);
+
+    if (response && typeof response === 'object' && !Array.isArray(response) && (response.count !== undefined || response.pages !== undefined || response.total_pages !== undefined)) {
+      const count = response.count ?? response.total_count ?? response.total ?? mappedResults.length;
+      const pages = response.pages ?? response.total_pages ?? Math.ceil((count ?? mappedResults.length) / (mappedResults.length || 1));
+      return {
+        results: mappedResults,
+        pages: Number(pages) || 1,
+        count: Number(count) || mappedResults.length,
+      };
+    }
+
+    return mappedResults;
   },
 
   /**
