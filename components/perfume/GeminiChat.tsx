@@ -640,9 +640,10 @@ function AiBubble({
   }, [animateText]);
 
   const hasProducts = (aiData?.parfums_existants?.length ?? 0) > 0;
+  const hasEssences = (aiData?.essences_pre_faites?.length ?? 0) > 0;
   const hasAccessories = (aiData?.accessoires?.length ?? 0) > 0;
   const hasComposition = composition && composition.essences.length > 0;
-  const hasAnyItems = hasProducts || hasComposition || hasAccessories;
+  const hasAnyItems = hasProducts || hasEssences || hasComposition || hasAccessories;
   const shouldShowContent = !isError503 && (isTypingComplete || !animateText);
 
   const handleAddProduct = (p: AiProduct) => {
