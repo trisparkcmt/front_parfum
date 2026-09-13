@@ -67,8 +67,6 @@ const DELIVERY_TEXT = {
     refresh: 'Actualiser',
     missions_in_progress_one: '1 livraison en cours',
     missions_in_progress_many: '{{count}} livraisons en cours',
-    missions_in_progress_en_one: '1 delivery in progress',
-    missions_in_progress_en_many: '{{count}} deliveries in progress',
   },
   en: {
     status_assigned: 'Assigned',
