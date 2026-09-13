@@ -11,22 +11,23 @@ import { OfflineBanner } from "@/components/shared/OfflineBanner";
 export const metadata: Metadata = {
   metadataBase: new URL('https://accessoiresexclusifs.com'),
   title: {
-    default: 'Accessories Exclusif | Parfumerie Sur Mesure & Accessoires de Luxe',
-    template: '%s | Accessories Exclusif',
+    default: 'Accessoires Exclusifs | Luxe & Création de Parfums',
+    template: '%s | Accessoires Exclusifs',
   },
-  description:
-    "Plateforme e-commerce de luxe pour l'achat de parfums et d'accessoires. Composez votre propre parfum sur mesure à partir de nos essences disponibles ou laissez notre IA vous recommander le produit parfait et créer une fragrance unique selon vos envies.",
+  description: 'Plateforme e-commerce de luxe intégrant une boutique d\'accessoires, de parfumerie de marque, et un atelier de création olfactive assisté par IA.',
+  
   verification: {
     google: '5nPGSz3ynU22pUw1Ycf-uzj-WYM1a6yx3GNfRBlFEGM',
   },
+
   keywords: [
-    'parfum sur mesure',
-    'parfumerie de luxe',
-    'création parfum IA',
-    'accessoires de luxe',
-    'numba atelier',
-    'sommelier IA',
-    'parfum d intérieur',
+    'accessoires exclusifs',
+    'parfums de marque',
+    'dupes de parfums',
+    'atelier parfum',
+    'création parfum',
+    'e-commerce luxe',
+    'accessoires luxe',
   ],
   authors: [{ name: 'Accessoires Exclusifs' }],
   robots: {
@@ -40,12 +41,12 @@ export const metadata: Metadata = {
       'max-snippet': -1,
     },
   },
+
   openGraph: {
-    title: 'Accessories Exclusif | Parfumerie Sur Mesure & Luxe',
-    description:
-      'Achetez vos accessoires et créez votre parfum personnalisé sur mesure grâce à notre atelier olfactif et notre Sommelier IA.',
-    url: 'https://accessoiresexclusif.com',
-    siteName: 'Accessories Exclusif',
+    title: 'Accessoires Exclusifs | Luxe & Création de Parfums',
+    description: 'Découvrez notre plateforme e-commerce de luxe, notre boutique d\'accessoires, et notre atelier de création olfactive assisté par IA.',
+    url: 'https://accessoiresexclusifs.com',
+    siteName: 'Accessoires Exclusifs',
     locale: 'fr_FR',
     type: 'website',
     images: [
@@ -57,12 +58,14 @@ export const metadata: Metadata = {
       },
     ],
   },
+
   twitter: {
     card: 'summary_large_image',
     title: 'Accessoires Exclusifs | Luxe & Création de Parfums',
     description: 'Plateforme e-commerce de luxe et atelier de création olfactive assisté par IA.',
     images: ['/og-image.svg'],
   },
+
   manifest: '/manifest.webmanifest',
   icons: {
     icon: '/favicon-16x16.png',

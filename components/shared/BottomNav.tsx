@@ -55,12 +55,11 @@ const BottomNav = () => {
 
   return (
     <nav
-      className="fixed bottom-5 left-4 right-4 z-[100] flex items-end gap-2 md:hidden"
+      className="fixed bottom-5 left-4 right-4 z-[100] flex items-end md:hidden"
       style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
     >
-      {/* Main glass pill */}
       <div
-        className="relative flex h-16 flex-1 items-center justify-between gap-0.5 px-2
+        className="relative flex h-16 w-full items-center justify-between gap-0.5 px-2
                    rounded-[28px] border border-white/10
                    bg-deep-black/70 backdrop-blur-2xl
                    shadow-[0_8px_32px_rgba(0,0,0,0.55)]
@@ -80,7 +79,6 @@ const BottomNav = () => {
                 aria-current={isActive ? 'page' : undefined}
                 className="relative z-10 flex h-full flex-1 items-center justify-center"
               >
-                {/* Icon: sits inline when inactive, pops above the pill when active */}
                 {isActive ? (
                   <motion.div
                     layoutId="bottomNavNotch"
@@ -101,7 +99,6 @@ const BottomNav = () => {
                   </span>
                 )}
 
-                {/* Label: only the active item shows text, in place of its icon */}
                 {isActive && (
                   <motion.span
                     layout
@@ -113,32 +110,44 @@ const BottomNav = () => {
               </Link>
             );
           })}
+
+          <Link
+            href={reelsHref}
+            aria-label={t('nav_reels', 'Reels')}
+            aria-current={reelsActive ? 'page' : undefined}
+            className="relative z-10 flex h-full flex-1 items-center justify-center"
+          >
+            {reelsActive ? (
+              <motion.div
+                layoutId="bottomNavNotch"
+                transition={NOTCH_TRANSITION}
+                className="absolute -top-7 left-1/2 -translate-x-1/2 flex h-[52px] w-[52px]
+                           items-center justify-center rounded-full
+                           border border-white/10 bg-deep-black/90 backdrop-blur-2xl
+                           shadow-[0_10px_24px_rgba(0,0,0,0.55)]"
+              >
+                <span className="flex h-11 w-11 items-center justify-center rounded-full bg-gold
+                                  shadow-[0_2px_14px_rgba(212,175,55,0.45)]">
+                  <Video size={18} strokeWidth={2.1} className="text-black" />
+                </span>
+              </motion.div>
+            ) : (
+              <span className="text-foreground/55 transition-colors duration-200">
+                <Video size={20} strokeWidth={1.8} />
+              </span>
+            )}
+
+            {reelsActive && (
+              <motion.span
+                layout
+                className="relative whitespace-nowrap text-[11px] font-semibold text-gold"
+              >
+                {t('nav_reels', 'Reels')}
+              </motion.span>
+            )}
+          </Link>
         </LayoutGroup>
       </div>
-
-      {/* Detached Reels pill */}
-      <Link
-        href={reelsHref}
-        aria-label={t('nav_reels', 'Reels')}
-        aria-current={reelsActive ? 'page' : undefined}
-        className="relative z-10 flex h-16 w-16 shrink-0 items-center justify-center
-                   rounded-[28px] border border-white/10
-                   bg-deep-black/70 backdrop-blur-2xl
-                   shadow-[0_8px_32px_rgba(0,0,0,0.55)]
-                   before:absolute before:inset-0 before:rounded-[28px]
-                   before:bg-gradient-to-b before:from-white/[0.06] before:to-transparent
-                   before:pointer-events-none"
-      >
-        {reelsActive ? (
-          <span className="relative z-10 flex h-10 w-10 items-center justify-center rounded-full bg-gold shadow-[0_2px_14px_rgba(212,175,55,0.45)]">
-            <Video size={18} strokeWidth={2.1} className="text-black" />
-          </span>
-        ) : (
-          <span className="relative z-10 text-foreground/55 transition-colors duration-200">
-            <Video size={20} strokeWidth={1.8} />
-          </span>
-        )}
-      </Link>
     </nav>
   );
 };

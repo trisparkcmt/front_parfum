@@ -148,7 +148,7 @@ export function Navbar() {
               />
             </Link>
 
-            <div className={cn(glass, 'flex items-center gap-1.5 p-1.5 mx-auto')}>
+            <div className={cn(glass, 'flex items-center gap-1 p-1.5 mx-auto')}>
               {PUBLIC_NAV_LINKS.map((link) => {
                 const localizedLabel = NAV_LABEL_MAP[link.href]
                   ? (isEn ? NAV_LABEL_MAP[link.href].en : NAV_LABEL_MAP[link.href].fr)
@@ -160,83 +160,81 @@ export function Navbar() {
                     key={link.href}
                     href={link.href}
                     className={cn(
-                      'group relative flex items-center justify-center rounded-full px-4 py-2 text-sm font-semibold transition-all duration-200 ease-out',
-                      isActive
-                        ? 'translate-y-[-2px] text-gold'
-                        : 'text-zinc-900 dark:text-zinc-100 hover:-translate-y-0.5 hover:text-gold'
+                      'relative px-4 py-2 rounded-full text-sm font-semibold transition-colors duration-200',
+                      isActive ? 'text-gold' : 'text-zinc-900 dark:text-zinc-100 hover:text-gold'
                     )}
                   >
                     {isActive && (
                       <motion.span
                         layoutId="navbar-active-pill"
-                        className="absolute inset-0 rounded-full bg-gold/15 border border-gold/20 shadow-[0_8px_18px_rgba(212,175,55,0.18)]"
+                        className="absolute inset-0 rounded-full bg-gold/15 border border-gold/20"
                         transition={{ type: 'spring', stiffness: 400, damping: 30 }}
                       />
                     )}
-                    <span className="relative z-10">{localizedLabel}</span>
+                    <span className="relative">{localizedLabel}</span>
                   </Link>
                 );
               })}
+            </div>
 
-              <div className="ml-1 flex items-center gap-1.5 border-l border-foreground/10 pl-1.5">
-                <div className={cn(glass, 'p-1.5 flex items-center')}>
-                  <ThemeToggle />
-                </div>
-
-                <div className={cn(glass, 'p-1.5 flex items-center gap-0.5')}>
-                  <button
-                    onClick={() => openCartDrawer()}
-                    className="relative p-1.5 flex items-center rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
-                    aria-label={isEn ? UI_DICT.cart.en : UI_DICT.cart.fr}
-                  >
-                    <CartIcon size={19} className="text-zinc-900 dark:text-zinc-100 group-hover:text-gold transition-colors" />
-                    {itemCount > 0 && (
-                      <motion.span
-                        initial={{ scale: 0 }}
-                        animate={{ scale: 1 }}
-                        className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-gold text-deep-black text-[10px] font-bold flex items-center justify-center"
-                      >
-                        {itemCount}
-                      </motion.span>
-                    )}
-                  </button>
-
-                  <Link
-                    href="/dashboard/client/favorites"
-                    aria-label={isEn ? UI_DICT.favorites.en : UI_DICT.favorites.fr}
-                    className="p-1.5 flex items-center rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
-                  >
-                    <Heart size={19} className="text-zinc-900 dark:text-zinc-100 hover:text-gold transition-colors" />
-                  </Link>
-                </div>
-
-                <div className={cn(glass, 'p-1.5 flex items-center')}>
-                  <LanguageSelector />
-                </div>
-
-                {isAuthenticated && user ? (
-                  <Link
-                    href="/dashboard/profile"
-                    className={cn(glass, 'relative flex items-center justify-center p-1.5 hover:bg-black/5 dark:hover:bg-white/10 transition-colors group')}
-                    aria-label={isEn ? UI_DICT.profile.en : UI_DICT.profile.fr}
-                  >
-                    <div className="h-8 w-8 rounded-full bg-foreground/5 border border-foreground/10 dark:bg-white/10 dark:border-white/10 flex items-center justify-center text-foreground/80 group-hover:scale-105 transition-transform">
-                      <ProfileIcon size={18} className="text-zinc-900 dark:text-zinc-100 group-hover:text-gold transition-colors" />
-                    </div>
-                    {unreadNotificationCount > 0 && (
-                      <span className="absolute -top-1 -right-1 min-w-4 h-4 px-1 rounded-full bg-red-500 text-[9px] font-bold text-white flex items-center justify-center leading-none">
-                        {unreadNotificationCount > 99 ? '99+' : unreadNotificationCount}
-                      </span>
-                    )}
-                  </Link>
-                ) : (
-                  <Link href="/login" onClick={() => { preloadGoogleIdentityScript(); }}>
-                    <Button variant="secondary" size="sm" className={cn(glass, 'border-gold/30 text-gold hover:bg-gold/10')}>
-                      {isEn ? UI_DICT.login.en : UI_DICT.login.fr}
-                    </Button>
-                  </Link>
-                )}
+            <div className="flex items-center gap-2 z-10">
+              <div className={cn(glass, 'p-1.5 flex items-center')}>
+                <ThemeToggle />
               </div>
+
+              <div className={cn(glass, 'p-1.5 flex items-center gap-0.5')}>
+                <button
+                  onClick={() => openCartDrawer()}
+                  className="relative p-1.5 flex items-center rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
+                  aria-label={isEn ? UI_DICT.cart.en : UI_DICT.cart.fr}
+                >
+                  <CartIcon size={19} className="text-zinc-900 dark:text-zinc-100 group-hover:text-gold transition-colors" />
+                  {itemCount > 0 && (
+                    <motion.span
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-gold text-deep-black text-[10px] font-bold flex items-center justify-center"
+                    >
+                      {itemCount}
+                    </motion.span>
+                  )}
+                </button>
+
+                <Link
+                  href="/dashboard/client/favorites"
+                  aria-label={isEn ? UI_DICT.favorites.en : UI_DICT.favorites.fr}
+                  className="p-1.5 flex items-center rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
+                >
+                  <Heart size={19} className="text-zinc-900 dark:text-zinc-100 hover:text-gold transition-colors" />
+                </Link>
+              </div>
+
+              <div className={cn(glass, 'p-1.5 flex items-center')}>
+                <LanguageSelector />
+              </div>
+
+              {isAuthenticated && user ? (
+                <Link
+                  href="/dashboard/profile"
+                  className={cn(glass, 'relative flex items-center justify-center p-1.5 hover:bg-black/5 dark:hover:bg-white/10 transition-colors group')}
+                  aria-label={isEn ? UI_DICT.profile.en : UI_DICT.profile.fr}
+                >
+                  <div className="h-8 w-8 rounded-full bg-foreground/5 border border-foreground/10 dark:bg-white/10 dark:border-white/10 flex items-center justify-center text-foreground/80 group-hover:scale-105 transition-transform">
+                    <ProfileIcon size={18} className="text-zinc-900 dark:text-zinc-100 group-hover:text-gold transition-colors" />
+                  </div>
+                  {unreadNotificationCount > 0 && (
+                    <span className="absolute -top-1 -right-1 min-w-4 h-4 px-1 rounded-full bg-red-500 text-[9px] font-bold text-white flex items-center justify-center leading-none">
+                      {unreadNotificationCount > 99 ? '99+' : unreadNotificationCount}
+                    </span>
+                  )}
+                </Link>
+              ) : (
+                <Link href="/login" onClick={() => { preloadGoogleIdentityScript(); }}>
+                  <Button variant="secondary" size="sm" className={cn(glass, 'border-gold/30 text-gold hover:bg-gold/10')}>
+                    {isEn ? UI_DICT.login.en : UI_DICT.login.fr}
+                  </Button>
+                </Link>
+              )}
             </div>
           </div>
         </div>
