@@ -1,7 +1,7 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Loader2, Edit2, Trash2, Plus, Search, Image as ImageIcon, SlidersHorizontal, AlertCircle, X, Package } from 'lucide-react';
+import { Loader2, Edit2, Trash2, Plus, Search, Image as ImageIcon, SlidersHorizontal, AlertCircle, X, Package, ChevronDown, Tag, Layers, DollarSign, Boxes, Sparkles } from 'lucide-react';
 import { shopService } from '@/services/apiService';
 import { adminService } from '@/services/apiService';
 import { InlineCell } from '@/components/admin/InlineCell';
@@ -28,9 +28,10 @@ const T = {
     kpi_rupture: 'En Rupture', kpi_total: 'Total', kpi_low: 'Stock Bas',
     search_placeholder: 'Rechercher un parfum...',
     delete_selected: 'Supprimer la sélection',
-    section_id: 'Identification', section_pricing: 'Tarification',
-    section_stock: 'Stock & disponibilité', section_promo: 'Promotion',
+    section_id: 'Identification', section_pricing: 'Tarification & promotion',
+    section_stock: 'Contenance & stock', section_promo: 'Promotion',
     section_olfactive: 'Profil olfactif', section_notes: 'Notes parfum',
+    section_desc: 'Descriptions', section_flags: 'Mise en avant',
     section_images: 'Images du parfum',
     field_brand: 'Marque', field_name: 'Nom du parfum', field_slug: 'Slug URL',
     field_sku: 'SKU', field_category: 'Catégorie', field_genre: 'Genre cible',
@@ -38,10 +39,11 @@ const T = {
     field_purchase: "Prix d'achat (FCFA)", field_promo_price: 'Prix promotionnel (FCFA)',
     field_reduction: 'Réduction (%)', field_stock: 'Stock', field_alert: "Seuil d'alerte",
     field_notes_tete: 'Notes de tête', field_notes_coeur: 'Notes de cœur', field_notes_fond: 'Notes de fond',
-    field_desc_short: 'Description courte', field_desc_long: 'Description longue',
+    field_desc_short: 'Description courte', field_desc_long: 'Description longue', field_desc_ai: 'Description IA',
     field_bestseller: 'Bestseller', field_new: 'Nouveau', field_active: 'Actif',
     field_date_debut: 'Date début promo', field_date_fin: 'Date fin promo',
-    field_promo_msg: 'Message promotion',
+    field_promo_msg: 'Message promotion', field_reset_dates: 'Réinitialiser les dates',
+    field_choose_category: 'Choisir une catégorie',
     margin_label: 'Bénéfice estimé :',
     confirm_delete: 'Êtes-vous sûr de vouloir supprimer ce parfum ?',
     confirm_bulk: 'Supprimer',
@@ -53,6 +55,7 @@ const T = {
     toast_required: 'Veuillez corriger les champs obligatoires.',
     toast_category_ok: 'Catégorie créée avec succès', toast_category_error: 'Erreur chargement catégories',
     catalogue: 'Catalogue',
+    admin_badge: 'Admin',
   },
   en: {
     title: 'Perfumes', subtitle: 'Shop perfume catalogue',
@@ -70,9 +73,10 @@ const T = {
     kpi_rupture: 'Out of Stock', kpi_total: 'Total', kpi_low: 'Low Stock',
     search_placeholder: 'Search perfume...',
     delete_selected: 'Delete selection',
-    section_id: 'Identification', section_pricing: 'Pricing',
-    section_stock: 'Stock & availability', section_promo: 'Promotion',
+    section_id: 'Identification', section_pricing: 'Pricing & promotion',
+    section_stock: 'Volume & stock', section_promo: 'Promotion',
     section_olfactive: 'Olfactive profile', section_notes: 'Perfume notes',
+    section_desc: 'Descriptions', section_flags: 'Highlighting',
     section_images: 'Perfume images',
     field_brand: 'Brand', field_name: 'Perfume name', field_slug: 'URL slug',
     field_sku: 'SKU', field_category: 'Category', field_genre: 'Target gender',
@@ -80,10 +84,11 @@ const T = {
     field_purchase: 'Purchase price (FCFA)', field_promo_price: 'Promotional price (FCFA)',
     field_reduction: 'Discount (%)', field_stock: 'Stock', field_alert: 'Alert threshold',
     field_notes_tete: 'Top notes', field_notes_coeur: 'Heart notes', field_notes_fond: 'Base notes',
-    field_desc_short: 'Short description', field_desc_long: 'Long description',
+    field_desc_short: 'Short description', field_desc_long: 'Long description', field_desc_ai: 'AI description',
     field_bestseller: 'Bestseller', field_new: 'New', field_active: 'Active',
     field_date_debut: 'Promo start date', field_date_fin: 'Promo end date',
-    field_promo_msg: 'Promo message',
+    field_promo_msg: 'Promo message', field_reset_dates: 'Reset dates',
+    field_choose_category: 'Choose a category',
     margin_label: 'Estimated margin:',
     confirm_delete: 'Are you sure you want to delete this perfume?',
     confirm_bulk: 'Delete',
@@ -95,6 +100,7 @@ const T = {
     toast_required: 'Please fix the required fields.',
     toast_category_ok: 'Category created successfully', toast_category_error: 'Error loading categories',
     catalogue: 'Catalogue',
+    admin_badge: 'Admin',
   },
 } as const;
 type TKey = keyof typeof T.fr;
@@ -263,6 +269,34 @@ function IconButton({ variant = 'neutral', children, className, ...props }: Icon
   );
 }
 
+// ── Form primitives — same visual language as the Accessories admin form ──
+function FormSection({ title, icon, children }: { title: string; icon: React.ReactNode; children: React.ReactNode }) {
+  return (
+    <section className="space-y-4 border-t border-white/8 pt-6 first:border-t-0 first:pt-0">
+      <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-widest text-gold/75">
+        {icon}{title}
+      </p>
+      {children}
+    </section>
+  );
+}
+
+function Field({
+  label, required, error, children,
+}: { label: React.ReactNode; required?: boolean; error?: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <label className="mb-1.5 block text-xs font-medium text-foreground/55">
+        {label}{required && <span className="ml-0.5 text-gold">*</span>}
+      </label>
+      {children}
+      {error && <p className="mt-1 text-[11px] text-red-400">{error}</p>}
+    </div>
+  );
+}
+
+const inputCls = 'w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-gold/50';
+
 /* -------------------------------------------------------------------------- */
 /*                                MAIN COMPONENT                              */
 /* -------------------------------------------------------------------------- */
@@ -289,6 +323,7 @@ export default function PerfumeAdminPage() {
   const [tagValues, setTagValues] = useState<Record<number, string>>({});
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
   const [selectedSlugs, setSelectedSlugs] = useState<string[]>([]);
+  const [expandedRow, setExpandedRow] = useState<string | null>(null);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -384,6 +419,7 @@ export default function PerfumeAdminPage() {
         setTagTypes(list);
       })
       .catch(() => undefined);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [addToast]);
 
   const updateForm = (field: keyof typeof form, value: string | number | boolean | null | undefined) => {
@@ -510,6 +546,7 @@ export default function PerfumeAdminPage() {
   };
 
   const handleOpenEdit = (perf: PerfumeRecord) => {
+    if (!permissions.canUpdate) return;
     setEditingPerfume(perf);
     setForm({
       marque: perf.marque || 'Accessoire Exclusif',
@@ -648,7 +685,9 @@ export default function PerfumeAdminPage() {
   const filtered = perfumes; // server already filters; date filter applied client-side on current page only
   const activeFiltersCount = (genreFilter ? 1 : 0) + (estBestsellerFilter ? 1 : 0) + (createdFrom ? 1 : 0) + (createdTo ? 1 : 0);
 
-
+  const profitPreview = form.prix_unitaire && form.prix_achat
+    ? (parseFloat(form.prix_unitaire) - parseFloat(form.prix_achat))
+    : null;
 
   if (!permissions.canRead) {
     return (
@@ -790,12 +829,18 @@ export default function PerfumeAdminPage() {
         )}
       </div>
 
-      {/* Table Container */}
+      {/* List ------------------------------------------------------------------
+          Two renderings of the same data:
+          - Desktop (sm and up): full table, row click opens edit modal
+          - Mobile (below sm): single-line compact rows that expand on tap
+            for volume/margin/bestseller/actions; tapping the row itself
+            opens the edit modal
+      -------------------------------------------------------------------- */}
       <div className="shadow-black/30 shadow-sm rounded-xl border border-white/10 bg-white/[0.02] overflow-hidden min-h-[300px]">
         {/* Selection Bar */}
         <div className="flex items-center justify-between border-b border-white/10 px-4 py-2.5 bg-white/[0.01]">
           <p className="text-[10px] font-semibold uppercase tracking-wider text-foreground/35">
-            {selectedSlugs.length > 0 ? `${selectedSlugs.length} sélectionné(s)` : 'Catalogue'}
+            {selectedSlugs.length > 0 ? `${selectedSlugs.length} sélectionné(s)` : t('catalogue')}
           </p>
           {selectedSlugs.length > 0 && permissions.canDelete && (
             <button
@@ -816,117 +861,86 @@ export default function PerfumeAdminPage() {
             description="Create your first perfume to get started"
           />
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="border-b border-white/10 bg-white/[0.02]">
-                  <th className="px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-foreground/35 w-10">
-                    <input
-                      type="checkbox"
-                      checked={filtered.length > 0 && selectedSlugs.length === filtered.length}
-                      onChange={() => {
-                        if (selectedSlugs.length === filtered.length) {
-                          setSelectedSlugs([]);
-                        } else {
-                          setSelectedSlugs(filtered.map((p: PerfumeRecord) => p.slug || String(p.id)));
-                        }
-                      }}
-                      className="rounded border-white/10 bg-white/5 text-gold focus:ring-0 focus:ring-offset-0"
-                    />
-                  </th>
-                  <th className="px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-foreground/35 w-14">{t('col_image')}</th>
-                  <th className="px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-foreground/35">{t('col_name')}</th>
-                  <th className="px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-foreground/35">{t('col_status')}</th>
-                  <th className="px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-foreground/35">{t('col_stock')}</th>
-                  <th className="px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-foreground/35">{t('col_volume')}</th>
-                  <th className="px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-foreground/35">{t('col_price')}</th>
-                  {isAdmin && (
-                    <th className="px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-foreground/35">{t('col_margin')}</th>
-                  )}
-                  <th className="px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-foreground/35 text-right">{t('col_actions')}</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/5">
-                {filtered.map(p => {
-                  const productImg = (typeof p.image_principale === 'string' ? p.image_principale : null) || (typeof p.image === 'string' ? p.image : null);
-                  const slugKey = p.slug || String(p.id);
-                  const isSelected = selectedSlugs.includes(slugKey);
-                  const prixVenteNum = parseFloat(String(p.prix_unitaire || 0));
-                  const prixAchatNum = parseFloat(String(p.prix_achat || 0));
-                  const beneficeCalc = p.benefice_unitaire !== undefined 
-                    ? parseFloat(String(p.benefice_unitaire))
-                    : (p.prix_unitaire && p.prix_achat ? prixVenteNum - prixAchatNum : null);
-                  const stockQty = Number(p.stock_quantite ?? p.stock ?? 0);
+          <>
+            {/* ── Mobile: compact expandable rows ─────────────────────── */}
+            <div className="divide-y divide-white/5 sm:hidden">
+              {filtered.map(p => {
+                const productImg = (typeof p.image_principale === 'string' ? p.image_principale : null) || (typeof p.image === 'string' ? p.image : null);
+                const slugKey = p.slug || String(p.id);
+                const isSelected = selectedSlugs.includes(slugKey);
+                const prixVenteNum = parseFloat(String(p.prix_unitaire || 0));
+                const prixAchatNum = parseFloat(String(p.prix_achat || 0));
+                const beneficeCalc = p.benefice_unitaire !== undefined
+                  ? parseFloat(String(p.benefice_unitaire))
+                  : (p.prix_unitaire && p.prix_achat ? prixVenteNum - prixAchatNum : null);
+                const stockQty = Number(p.stock_quantite ?? p.stock ?? 0);
+                const isExpanded = expandedRow === slugKey;
 
-                  return (
-                    <tr key={p.id} className="hover:bg-white/[0.02] transition-colors group">
-                      <td className="px-4 py-3 whitespace-nowrap">
-                        <input
-                          type="checkbox"
-                          checked={isSelected}
-                          onChange={() => toggleSelectedSlug(slugKey)}
-                          className="rounded border-white/10 bg-white/5 text-gold focus:ring-0 focus:ring-offset-0"
-                        />
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap">
-                        <div className="relative w-9 h-9 rounded-lg bg-white/5 border border-white/10 overflow-hidden flex items-center justify-center">
-                          {productImg ? (
-                            <AppImage
-                              src={productImg}
-                              alt={p.nom || 'Parfum'}
-                              fill
-                              className="object-cover group-hover:scale-105 transition-transform duration-300"
-                            />
-                          ) : (
-                            <ImageIcon size={14} className="text-foreground/20" />
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 text-xs font-medium text-foreground whitespace-nowrap">
-                        <div className="flex flex-col">
-                          <InlineCell value={p.nom || p.name || ''} onSave={v => patchPerfume(p.slug || String(p.id), 'nom', v)} disabled={!permissions.canUpdate} className="font-medium text-foreground" />
-                          {p.marque && <span className="text-[10px] text-foreground/40">{p.marque}</span>}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap">
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          {stockQty === 0 ? (
-                            <StatusChip label={t('out_of_stock')} type="red" />
-                          ) : stockQty <= Number(p.seuil_alerte_stock || 5) ? (
-                            <StatusChip label={t('low_stock')} type="amber" />
-                          ) : (
-                            <StatusChip label={t('in_stock')} type="emerald" />
-                          )}
-                          {Boolean(p.est_bestseller) && <StatusChip label="Bestseller" type="gold" />}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 text-xs tabular-nums text-foreground/60 whitespace-nowrap">
-                        <InlineCell value={String(stockQty)} onSave={v => patchPerfume(p.slug || String(p.id), 'stock_quantite', v)} disabled={!permissions.canUpdate} inputType="number" className="text-foreground/60 tabular-nums" />
-                      </td>
-                      <td className="px-4 py-3 text-xs tabular-nums text-foreground/60 whitespace-nowrap">
-                        <InlineCell value={String(p.contenance_ml ?? '')} onSave={v => patchPerfume(p.slug || String(p.id), 'contenance_ml', v)} disabled={!permissions.canUpdate} inputType="number" display={p.contenance_ml ? <>{p.contenance_ml} ml</> : <>—</>} className="text-foreground/60 tabular-nums" />
-                      </td>
-                      <td className="px-4 py-3 text-xs font-semibold tabular-nums text-foreground whitespace-nowrap">
-                        <InlineCell value={String(p.prix_unitaire ?? '')} onSave={v => patchPerfume(p.slug || String(p.id), 'prix_unitaire', v)} disabled={!permissions.canUpdate} inputType="number" display={p.taux_reduction ? (
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-foreground/40 line-through text-[11px] font-normal">{String(p.prix_unitaire ?? '')} FCFA</span>
-                            <span className="text-gold">{String(p.prix_actuel ?? '')} FCFA</span>
-                          </div>
-                        ) : <span>{p.prix_unitaire ? `${p.prix_unitaire} FCFA` : '—'}</span>} className="font-semibold text-foreground tabular-nums" />
-                      </td>
-                      {isAdmin && (
-                        <td className="px-4 py-3 text-xs font-medium tabular-nums whitespace-nowrap">
-                          {beneficeCalc !== null ? (
-                            <span className={beneficeCalc >= 0 ? 'text-emerald-400' : 'text-red-400'}>
-                              +{beneficeCalc.toLocaleString()} FCFA
-                            </span>
-                          ) : (
-                            <span className="text-foreground/30 text-[11px] italic">—</span>
-                          )}
-                        </td>
+                return (
+                  <div key={slugKey}>
+                    <div
+                      onClick={() => handleOpenEdit(p)}
+                      className={cx(
+                        'flex items-center gap-2.5 px-3 py-2.5',
+                        permissions.canUpdate && 'cursor-pointer active:bg-white/[0.03]'
                       )}
-                      <td className="px-4 py-3 text-right whitespace-nowrap">
-                        <div className="flex items-center justify-end gap-1">
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => toggleSelectedSlug(slugKey)}
+                        onClick={e => e.stopPropagation()}
+                        className="rounded border-white/10 bg-white/5 text-gold focus:ring-0 focus:ring-offset-0"
+                      />
+                      <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-lg border border-white/10 bg-white/5 flex items-center justify-center">
+                        {productImg ? (
+                          <AppImage src={productImg} alt={p.nom || 'Parfum'} fill className="object-cover" />
+                        ) : (
+                          <ImageIcon size={14} className="text-foreground/20" />
+                        )}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-xs font-medium text-foreground">{p.nom || p.name || ''}</p>
+                        {p.marque && <p className="truncate text-[10px] text-foreground/40">{p.marque}</p>}
+                      </div>
+                      <p className="shrink-0 whitespace-nowrap text-xs font-semibold tabular-nums text-foreground">
+                        {Number(p.prix_actuel ?? p.prix_unitaire ?? 0).toLocaleString()} F
+                      </p>
+                      {stockQty === 0 ? (
+                        <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-red-400" title={t('out_of_stock')} />
+                      ) : stockQty <= Number(p.seuil_alerte_stock || 5) ? (
+                        <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-amber-400" title={t('low_stock')} />
+                      ) : (
+                        <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-400" title={t('in_stock')} />
+                      )}
+                      <button
+                        onClick={e => { e.stopPropagation(); setExpandedRow(isExpanded ? null : slugKey); }}
+                        aria-label={isEn ? 'Toggle details' : 'Afficher les détails'}
+                        className="shrink-0 rounded-md p-1 text-foreground/40 transition-colors hover:bg-white/6 hover:text-foreground/70"
+                      >
+                        <ChevronDown size={15} className={cx('transition-transform', isExpanded && 'rotate-180')} />
+                      </button>
+                    </div>
+
+                    {isExpanded && (
+                      <div className="flex flex-wrap items-center gap-2 bg-white/[0.02] px-3 pb-3 pt-1">
+                        <StatusChip
+                          label={stockQty === 0 ? t('out_of_stock') : stockQty <= Number(p.seuil_alerte_stock || 5) ? t('low_stock') : t('in_stock')}
+                          type={stockQty === 0 ? 'red' : stockQty <= Number(p.seuil_alerte_stock || 5) ? 'amber' : 'emerald'}
+                        />
+                        {Boolean(p.est_bestseller) && <StatusChip label={t('bestseller')} type="gold" />}
+                        <span className="rounded-full bg-white/6 px-2.5 py-1 text-[11px] font-medium text-foreground/60">
+                          {p.contenance_ml ? `${p.contenance_ml} ml` : '—'}
+                        </span>
+                        {isAdmin && beneficeCalc !== null && (
+                          <span className={cx(
+                            'rounded-full px-2 py-0.5 text-[11px] font-semibold',
+                            beneficeCalc >= 0 ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'
+                          )}>
+                            +{beneficeCalc.toLocaleString()} FCFA
+                          </span>
+                        )}
+                        <div className="ml-auto flex items-center gap-1">
                           {permissions.canUpdate && (
                             <IconButton variant="gold" onClick={() => handleOpenEdit(p)} title="Modifier">
                               <Edit2 size={14} />
@@ -938,20 +952,151 @@ export default function PerfumeAdminPage() {
                             </IconButton>
                           )}
                         </div>
-                      </td>
-                    </tr>
-                  );
-                })}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
 
-                {filtered.length === 0 && (
-                  <tr>
-                    <td colSpan={isAdmin ? 9 : 8} className="text-center py-16 text-xs italic text-foreground/30">
-                      {t('no_results')}
-                    </td>
+            {/* ── Desktop: full table ─────────────────────────────────── */}
+            <div className="hidden sm:block sm:overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="border-b border-white/10 bg-white/[0.02]">
+                    <th className="px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-foreground/35 w-10">
+                      <input
+                        type="checkbox"
+                        checked={filtered.length > 0 && selectedSlugs.length === filtered.length}
+                        onChange={() => {
+                          if (selectedSlugs.length === filtered.length) {
+                            setSelectedSlugs([]);
+                          } else {
+                            setSelectedSlugs(filtered.map((p: PerfumeRecord) => p.slug || String(p.id)));
+                          }
+                        }}
+                        className="rounded border-white/10 bg-white/5 text-gold focus:ring-0 focus:ring-offset-0"
+                      />
+                    </th>
+                    <th className="px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-foreground/35 w-14">{t('col_image')}</th>
+                    <th className="px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-foreground/35">{t('col_name')}</th>
+                    <th className="px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-foreground/35">{t('col_status')}</th>
+                    <th className="px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-foreground/35">{t('col_stock')}</th>
+                    <th className="px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-foreground/35">{t('col_volume')}</th>
+                    <th className="px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-foreground/35">{t('col_price')}</th>
+                    {isAdmin && (
+                      <th className="px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-foreground/35">{t('col_margin')}</th>
+                    )}
+                    <th className="px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-foreground/35 text-right">{t('col_actions')}</th>
                   </tr>
-                )}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-white/5">
+                  {filtered.map(p => {
+                    const productImg = (typeof p.image_principale === 'string' ? p.image_principale : null) || (typeof p.image === 'string' ? p.image : null);
+                    const slugKey = p.slug || String(p.id);
+                    const isSelected = selectedSlugs.includes(slugKey);
+                    const prixVenteNum = parseFloat(String(p.prix_unitaire || 0));
+                    const prixAchatNum = parseFloat(String(p.prix_achat || 0));
+                    const beneficeCalc = p.benefice_unitaire !== undefined
+                      ? parseFloat(String(p.benefice_unitaire))
+                      : (p.prix_unitaire && p.prix_achat ? prixVenteNum - prixAchatNum : null);
+                    const stockQty = Number(p.stock_quantite ?? p.stock ?? 0);
+
+                    return (
+                      <tr
+                        key={p.id}
+                        onClick={() => handleOpenEdit(p)}
+                        className={cx(
+                          'hover:bg-white/[0.02] transition-colors group',
+                          permissions.canUpdate && 'cursor-pointer'
+                        )}
+                      >
+                        <td className="px-4 py-3 whitespace-nowrap" onClick={e => e.stopPropagation()}>
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => toggleSelectedSlug(slugKey)}
+                            className="rounded border-white/10 bg-white/5 text-gold focus:ring-0 focus:ring-offset-0"
+                          />
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          <div className="relative w-9 h-9 rounded-lg bg-white/5 border border-white/10 overflow-hidden flex items-center justify-center">
+                            {productImg ? (
+                              <AppImage
+                                src={productImg}
+                                alt={p.nom || 'Parfum'}
+                                fill
+                                className="object-cover group-hover:scale-105 transition-transform duration-300"
+                              />
+                            ) : (
+                              <ImageIcon size={14} className="text-foreground/20" />
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 text-xs font-medium text-foreground whitespace-nowrap">
+                          <div className="flex flex-col" onClick={e => e.stopPropagation()}>
+                            <InlineCell value={p.nom || p.name || ''} onSave={v => patchPerfume(p.slug || String(p.id), 'nom', v)} disabled={!permissions.canUpdate} className="font-medium text-foreground" />
+                            {p.marque && <span className="text-[10px] text-foreground/40">{p.marque}</span>}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            {stockQty === 0 ? (
+                              <StatusChip label={t('out_of_stock')} type="red" />
+                            ) : stockQty <= Number(p.seuil_alerte_stock || 5) ? (
+                              <StatusChip label={t('low_stock')} type="amber" />
+                            ) : (
+                              <StatusChip label={t('in_stock')} type="emerald" />
+                            )}
+                            {Boolean(p.est_bestseller) && <StatusChip label={t('bestseller')} type="gold" />}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 text-xs tabular-nums text-foreground/60 whitespace-nowrap" onClick={e => e.stopPropagation()}>
+                          <InlineCell value={String(stockQty)} onSave={v => patchPerfume(p.slug || String(p.id), 'stock_quantite', v)} disabled={!permissions.canUpdate} inputType="number" className="text-foreground/60 tabular-nums" />
+                        </td>
+                        <td className="px-4 py-3 text-xs tabular-nums text-foreground/60 whitespace-nowrap" onClick={e => e.stopPropagation()}>
+                          <InlineCell value={String(p.contenance_ml ?? '')} onSave={v => patchPerfume(p.slug || String(p.id), 'contenance_ml', v)} disabled={!permissions.canUpdate} inputType="number" display={p.contenance_ml ? <>{p.contenance_ml} ml</> : <>—</>} className="text-foreground/60 tabular-nums" />
+                        </td>
+                        <td className="px-4 py-3 text-xs font-semibold tabular-nums text-foreground whitespace-nowrap" onClick={e => e.stopPropagation()}>
+                          <InlineCell value={String(p.prix_unitaire ?? '')} onSave={v => patchPerfume(p.slug || String(p.id), 'prix_unitaire', v)} disabled={!permissions.canUpdate} inputType="number" display={p.taux_reduction ? (
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-foreground/40 line-through text-[11px] font-normal">{String(p.prix_unitaire ?? '')} FCFA</span>
+                              <span className="text-gold">{String(p.prix_actuel ?? '')} FCFA</span>
+                            </div>
+                          ) : <span>{p.prix_unitaire ? `${p.prix_unitaire} FCFA` : '—'}</span>} className="font-semibold text-foreground tabular-nums" />
+                        </td>
+                        {isAdmin && (
+                          <td className="px-4 py-3 text-xs font-medium tabular-nums whitespace-nowrap">
+                            {beneficeCalc !== null ? (
+                              <span className={beneficeCalc >= 0 ? 'text-emerald-400' : 'text-red-400'}>
+                                +{beneficeCalc.toLocaleString()} FCFA
+                              </span>
+                            ) : (
+                              <span className="text-foreground/30 text-[11px] italic">—</span>
+                            )}
+                          </td>
+                        )}
+                        <td className="px-4 py-3 text-right whitespace-nowrap" onClick={e => e.stopPropagation()}>
+                          <div className="flex items-center justify-end gap-1">
+                            {permissions.canUpdate && (
+                              <IconButton variant="gold" onClick={() => handleOpenEdit(p)} title="Modifier">
+                                <Edit2 size={14} />
+                              </IconButton>
+                            )}
+                            {permissions.canDelete && (
+                              <IconButton variant="red" onClick={() => handleDelete(p.slug || String(p.id))} title="Supprimer">
+                                <Trash2 size={14} />
+                              </IconButton>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
             <TablePagination
               currentPage={currentPage}
               totalPages={totalPages}
@@ -960,12 +1105,11 @@ export default function PerfumeAdminPage() {
               onPageChange={(page) => { setCurrentPage(page); fetchPerfumes(page); }}
               itemLabel={isEn ? 'perfumes' : 'parfums'}
             />
-
-          </div>
+          </>
         )}
       </div>
 
-      {/* Form Modal (Verbatim copy of form structure & handlers to prevent broken logic) */}
+      {/* Form Modal ────────────────────────────────────────────────────────── */}
       <FormModal
         key={editingPerfume ? `edit-${editingPerfume.id}` : 'new'}
         isOpen={showModal && (permissions.canCreate || permissions.canUpdate)}
@@ -992,206 +1136,238 @@ export default function PerfumeAdminPage() {
             </div>
           )}
 
-          <div className="space-y-6">
-            <div className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">{t('field_brand')} *</label>
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1.65fr_1fr] lg:items-start">
+            {/* ── Left: one cohesive form card ─────────────────────────── */}
+            <div className="space-y-6 rounded-2xl border border-white/10 bg-white/[0.02] p-5 sm:p-6">
+
+              <FormSection title={t('section_id')} icon={<Tag size={11} />}>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <Field label={t('field_brand')} required error={formErrors.marque}>
                     <input
                       data-field="marque"
                       value={form.marque}
                       onChange={(e) => updateForm('marque', e.target.value)}
-                      className={`w-full bg-white/5 border rounded-lg px-3 py-2.5 text-base text-foreground outline-none focus:border-gold ${formErrors.marque ? 'border-red-500/50' : 'border-white/10'}`}
+                      className={inputCls}
                     />
-                    {formErrors.marque && <p className="mt-1 text-xs text-red-500">{formErrors.marque}</p>}
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">{t('field_name')} *</label>
+                  </Field>
+                  <Field label={t('field_name')} required error={formErrors.nom}>
                     <input
                       data-field="nom"
                       value={form.nom}
                       onChange={(e) => updateForm('nom', e.target.value)}
-                      className={`w-full bg-white/5 border rounded-lg px-3 py-2.5 text-base text-foreground outline-none focus:border-gold ${formErrors.nom ? 'border-red-500/50' : 'border-white/10'}`}
+                      className={inputCls}
                     />
-                    {formErrors.nom && <p className="mt-1 text-xs text-red-500">{formErrors.nom}</p>}
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">{t('field_sku')}</label>
-                    <input
-                      data-field="reference_sku"
-                      value={form.reference_sku}
-                      onChange={(e) => updateForm('reference_sku', e.target.value)}
-                      className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-base text-foreground outline-none focus:border-gold"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">{t('field_category')} *</label>
-                    <div className="flex gap-2">
-                      <div className="flex-1">
+                  </Field>
+                  <Field label={t('field_category')} required error={formErrors.categorie}>
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1 relative z-[9999]">
                         <CustomSelect
                           data-field="categorie"
                           value={form.categorie}
                           onChange={(value) => updateForm('categorie', value)}
-                          options={categories.map((c) => ({
-                            value: String(c.id),
-                            label: c.nom || '',
-                          }))}
-                          placeholder="Catégorie"
+                          options={categories.map((c) => ({ value: String(c.id), label: c.nom || '' }))}
+                          placeholder={t('field_choose_category')}
                           error={!!formErrors.categorie}
+                          className="relative z-[9999]"
                         />
                       </div>
                       <button
                         type="button"
                         onClick={() => setIsCategoryModalOpen(true)}
-                        className="px-3 py-2.5 bg-gold text-neutral-900 rounded-lg hover:bg-gold/80 font-medium"
+                        className="flex h-11 w-11 items-center justify-center rounded-lg border border-gold/40 bg-gold/10 text-lg font-semibold text-gold transition-colors hover:bg-gold/20"
+                        aria-label="Créer une nouvelle catégorie"
                         title="Créer une nouvelle catégorie"
                       >
                         +
                       </button>
                     </div>
-                    {formErrors.categorie && <p className="mt-1 text-xs text-red-500">{formErrors.categorie}</p>}
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">{t('field_genre')}</label>
-                      <CustomSelect
-                        data-field="genre_cible"
-                        value={form.genre_cible}
-                        onChange={(value) => updateForm('genre_cible', value)}
-                        options={[
-                          { value: 'homme', label: t('filter_genre_homme') },
-                          { value: 'femme', label: t('filter_genre_femme') },
-                          { value: 'mixte', label: 'Unisex' },
-                        ]}
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">{t('field_intensite')}</label>
-                      <CustomSelect
-                        data-field="intensite"
-                        value={form.intensite}
-                        onChange={(value) => updateForm('intensite', value)}
-                        options={[
-                          { value: 'légère', label: isEn ? 'Light' : 'Légère' },
-                          { value: 'moyenne', label: isEn ? 'Medium' : 'Moyenne' },
-                          { value: 'forte', label: isEn ? 'Strong' : 'Forte' },
-                          { value: 'très forte', label: isEn ? 'Very strong' : 'Très forte' },
-                        ]}
-                      />
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-3 gap-2">
-                    <div>
-                      <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">{t('field_notes_tete')}</label>
-                      <input
-                        data-field="notes_tete"
-                        value={form.notes_tete}
-                        onChange={(e) => updateForm('notes_tete', e.target.value)}
-                        className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-base text-foreground outline-none focus:border-gold"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">{t('field_notes_coeur')}</label>
-                      <input
-                        data-field="notes_coeur"
-                        value={form.notes_coeur}
-                        onChange={(e) => updateForm('notes_coeur', e.target.value)}
-                        className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-base text-foreground outline-none focus:border-gold"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">{t('field_notes_fond')}</label>
-                      <input
-                        data-field="notes_fond"
-                        value={form.notes_fond}
-                        onChange={(e) => updateForm('notes_fond', e.target.value)}
-                        className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-base text-foreground outline-none focus:border-gold"
-                      />
-                    </div>
-                  </div>
+                  </Field>
+                  <Field label={t('field_sku')}>
+                    <input
+                      data-field="reference_sku"
+                      value={form.reference_sku}
+                      onChange={(e) => updateForm('reference_sku', e.target.value)}
+                      className={inputCls}
+                    />
+                  </Field>
+                  <Field label={t('field_genre')}>
+                    <CustomSelect
+                      data-field="genre_cible"
+                      value={form.genre_cible}
+                      onChange={(value) => updateForm('genre_cible', value)}
+                      options={[
+                        { value: 'homme', label: t('filter_genre_homme') },
+                        { value: 'femme', label: t('filter_genre_femme') },
+                        { value: 'mixte', label: 'Unisex' },
+                      ]}
+                    />
+                  </Field>
+                  <Field label={t('field_intensite')}>
+                    <CustomSelect
+                      data-field="intensite"
+                      value={form.intensite}
+                      onChange={(value) => updateForm('intensite', value)}
+                      options={[
+                        { value: 'légère', label: isEn ? 'Light' : 'Légère' },
+                        { value: 'moyenne', label: isEn ? 'Medium' : 'Moyenne' },
+                        { value: 'forte', label: isEn ? 'Strong' : 'Forte' },
+                        { value: 'très forte', label: isEn ? 'Very strong' : 'Très forte' },
+                      ]}
+                    />
+                  </Field>
                 </div>
+              </FormSection>
 
+              <FormSection title={t('section_olfactive')} icon={<Sparkles size={11} />}>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                  <Field label={t('field_notes_tete')}>
+                    <input
+                      data-field="notes_tete"
+                      value={form.notes_tete}
+                      onChange={(e) => updateForm('notes_tete', e.target.value)}
+                      className={inputCls}
+                    />
+                  </Field>
+                  <Field label={t('field_notes_coeur')}>
+                    <input
+                      data-field="notes_coeur"
+                      value={form.notes_coeur}
+                      onChange={(e) => updateForm('notes_coeur', e.target.value)}
+                      className={inputCls}
+                    />
+                  </Field>
+                  <Field label={t('field_notes_fond')}>
+                    <input
+                      data-field="notes_fond"
+                      value={form.notes_fond}
+                      onChange={(e) => updateForm('notes_fond', e.target.value)}
+                      className={inputCls}
+                    />
+                  </Field>
+                </div>
+              </FormSection>
+
+              <FormSection title={t('section_desc')} icon={<Layers size={11} />}>
                 <div className="space-y-4">
-                  <div className="space-y-1">
-                    <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">{t('field_volume')} *</label>
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <Field label={t('field_desc_short')}>
+                      <textarea
+                        data-field="description_courte"
+                        value={form.description_courte}
+                        onChange={(e) => updateForm('description_courte', e.target.value)}
+                        rows={3}
+                        className={cx(inputCls, 'resize-none')}
+                      />
+                    </Field>
+                    <Field label={t('field_desc_ai')}>
+                      <textarea
+                        data-field="description_ia"
+                        value={form.description_ia}
+                        onChange={(e) => updateForm('description_ia', e.target.value)}
+                        rows={3}
+                        className={cx(inputCls, 'resize-none')}
+                      />
+                    </Field>
+                  </div>
+                  <Field label={t('field_desc_long')}>
+                    <textarea
+                      data-field="description_longue"
+                      value={form.description_longue}
+                      onChange={(e) => updateForm('description_longue', e.target.value)}
+                      rows={4}
+                      className={cx(inputCls, 'resize-none')}
+                    />
+                  </Field>
+                </div>
+              </FormSection>
+
+              <FormSection title={t('section_stock')} icon={<Boxes size={11} />}>
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                  <Field label={t('field_volume')} required error={formErrors.contenance_ml}>
                     <input
                       data-field="contenance_ml"
                       type="number"
                       placeholder="ex: 100"
                       value={form.contenance_ml}
                       onChange={(e) => updateForm('contenance_ml', e.target.value)}
-                      className={`w-full bg-white/5 border rounded-lg px-3 py-2.5 text-base text-foreground outline-none focus:border-gold ${formErrors.contenance_ml ? 'border-red-500/50' : 'border-white/10'}`}
+                      className={inputCls}
                     />
-                    {formErrors.contenance_ml && <p className="mt-1 text-xs text-red-500">{formErrors.contenance_ml}</p>}
-                  </div>
-                  <div className="space-y-1">
-                    <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">{t('field_price')} *</label>
-                    <input
-                      data-field="prix_unitaire"
-                      type="number"
-                      placeholder="ex: 25000"
-                      value={form.prix_unitaire}
-                      onChange={(e) => updateForm('prix_unitaire', e.target.value)}
-                      className={`w-full bg-white/5 border rounded-lg px-3 py-2.5 text-base text-foreground outline-none focus:border-gold ${formErrors.prix_unitaire ? 'border-red-500/50' : 'border-white/10'}`}
-                    />
-                    {formErrors.prix_unitaire && <p className="mt-1 text-xs text-red-500">{formErrors.prix_unitaire}</p>}
-                  </div>
-                  {isAdmin && (
-                    <div className="space-y-1">
-                      <label className="block text-xs font-bold text-amber-400/80 uppercase tracking-wider mb-1.5 flex items-center gap-1">
-                        Prix d'achat (FCFA) <span className="text-[10px] bg-amber-500/10 text-amber-400 px-1 rounded">(Admin)</span>
-                      </label>
-                      <input
-                        data-field="prix_achat"
-                        type="number"
-                        placeholder="ex: 15000"
-                        value={form.prix_achat}
-                        onChange={(e) => updateForm('prix_achat', e.target.value)}
-                        className="w-full bg-white/5 border border-amber-500/20 rounded-lg px-3 py-2.5 text-base text-foreground outline-none focus:border-gold"
-                      />
-                      {form.prix_unitaire && form.prix_achat && (
-                        <p className="text-xs text-emerald-400 mt-1">
-                          Bénéfice estimé : +{(parseFloat(form.prix_unitaire) - parseFloat(form.prix_achat)).toLocaleString()} FCFA
-                        </p>
-                      )}
-                    </div>
-                  )}
-                  <div className="space-y-1">
-                    <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">{t('field_stock')} *</label>
+                  </Field>
+                  <Field label={t('field_stock')} required error={formErrors.stock_quantite}>
                     <input
                       data-field="stock_quantite"
                       type="number"
                       value={form.stock_quantite}
                       onChange={(e) => updateForm('stock_quantite', e.target.value)}
-                      className={`w-full bg-white/5 border rounded-lg px-3 py-2.5 text-base text-foreground outline-none focus:border-gold ${formErrors.stock_quantite ? 'border-red-500/50' : 'border-white/10'}`}
+                      className={inputCls}
                     />
-                    {formErrors.stock_quantite && <p className="mt-1 text-xs text-red-500">{formErrors.stock_quantite}</p>}
-                  </div>
-                  <div className="space-y-1">
-                    <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">{t('field_alert')}</label>
+                  </Field>
+                  <Field label={t('field_alert')}>
                     <input
                       data-field="seuil_alerte_stock"
                       type="number"
                       value={form.seuil_alerte_stock}
                       onChange={(e) => updateForm('seuil_alerte_stock', e.target.value)}
-                      className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-base text-foreground outline-none focus:border-gold"
+                      className={inputCls}
                     />
-                  </div>
+                  </Field>
+                </div>
+              </FormSection>
+
+              <FormSection title={t('section_pricing')} icon={<DollarSign size={11} />}>
+                <div className="space-y-4">
                   <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1">
-                      <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">{t('field_promo_price')}</label>
+                    <Field label={t('field_price')} required error={formErrors.prix_unitaire}>
+                      <input
+                        data-field="prix_unitaire"
+                        type="number"
+                        placeholder="ex: 25000"
+                        value={form.prix_unitaire}
+                        onChange={(e) => updateForm('prix_unitaire', e.target.value)}
+                        className={inputCls}
+                      />
+                    </Field>
+                    <Field label={t('field_promo_price')}>
                       <input
                         data-field="prix_promotionnel"
                         type="number"
                         placeholder="ex: 18000"
                         value={form.prix_promotionnel}
                         onChange={(e) => updateForm('prix_promotionnel', e.target.value)}
-                        className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-base text-foreground outline-none focus:border-gold"
+                        className={inputCls}
                       />
+                    </Field>
+                  </div>
+
+                  {isAdmin && (
+                    <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 p-3">
+                      <Field
+                        label={
+                          <span className="flex items-center gap-1.5 text-amber-400/90">
+                            {t('field_purchase')}
+                            <span className="rounded bg-amber-500/15 px-1.5 py-0.5 text-[9px] font-semibold text-amber-400">{t('admin_badge')}</span>
+                          </span>
+                        }
+                      >
+                        <input
+                          data-field="prix_achat"
+                          type="number"
+                          placeholder="ex: 15000"
+                          value={form.prix_achat}
+                          onChange={(e) => updateForm('prix_achat', e.target.value)}
+                          className={cx(inputCls, 'border-amber-500/20')}
+                        />
+                      </Field>
+                      {profitPreview !== null && (
+                        <p className={cx('mt-2 text-xs font-medium', profitPreview >= 0 ? 'text-emerald-400' : 'text-red-400')}>
+                          {t('margin_label')} {profitPreview >= 0 ? '+' : ''}{profitPreview.toLocaleString()} FCFA
+                        </p>
+                      )}
                     </div>
-                    <div className="space-y-1">
-                      <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">{t('field_reduction')}</label>
+                  )}
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <Field label={t('field_reduction')}>
                       <input
                         data-field="taux_reduction"
                         type="number"
@@ -1200,140 +1376,97 @@ export default function PerfumeAdminPage() {
                         placeholder="ex: 20"
                         value={form.taux_reduction}
                         onChange={(e) => updateForm('taux_reduction', e.target.value)}
-                        className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-base text-foreground outline-none focus:border-gold"
+                        className={inputCls}
                       />
-                    </div>
+                    </Field>
+                    <Field label={t('field_promo_msg')}>
+                      <input
+                        data-field="message_promotion"
+                        value={form.message_promotion}
+                        onChange={(e) => updateForm('message_promotion', e.target.value)}
+                        className={inputCls}
+                      />
+                    </Field>
                   </div>
-                  <div className="space-y-3">
+
+                  <div className="rounded-lg border border-white/10 bg-white/[0.02] p-3">
                     <div className="grid grid-cols-2 gap-3">
-                      <div className="space-y-1">
-                        <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">{t('field_date_debut')}</label>
+                      <Field label={t('field_date_debut')}>
                         <input
                           data-field="date_debut"
                           type="datetime-local"
                           value={form.date_debut}
                           onChange={(e) => updateForm('date_debut', e.target.value)}
-                          className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-base text-foreground outline-none focus:border-gold"
+                          className={inputCls}
                         />
-                      </div>
-                      <div className="space-y-1">
-                        <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">{t('field_date_fin')}</label>
+                      </Field>
+                      <Field label={t('field_date_fin')}>
                         <input
                           data-field="date_fin"
                           type="datetime-local"
                           value={form.date_fin}
                           onChange={(e) => updateForm('date_fin', e.target.value)}
-                          className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-base text-foreground outline-none focus:border-gold"
+                          className={inputCls}
                         />
-                      </div>
+                      </Field>
                     </div>
                     <button
                       type="button"
-                      onClick={() => {
-                        updateForm('date_debut', '');
-                        updateForm('date_fin', '');
-                      }}
-                      className="text-xs font-medium text-foreground/60 hover:text-gold transition-colors px-2 py-1"
+                      onClick={() => { updateForm('date_debut', ''); updateForm('date_fin', ''); }}
+                      className="mt-2 text-[11px] font-medium text-foreground/50 transition-colors hover:text-gold"
                     >
-                      Réinitialiser les dates
+                      {t('field_reset_dates')}
                     </button>
                   </div>
                 </div>
-              </div>
+              </FormSection>
+
+              <FormSection title={t('section_flags')} icon={<Sparkles size={11} />}>
+                <div className="flex flex-wrap gap-4">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" checked={form.est_nouveau} onChange={(e) => updateForm('est_nouveau', e.target.checked)} className="rounded border-white/10 bg-white/5 text-gold focus:ring-gold" />
+                    <span className="text-xs text-foreground/70">{t('field_new')}</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" checked={form.est_bestseller} onChange={(e) => updateForm('est_bestseller', e.target.checked)} className="rounded border-white/10 bg-white/5 text-gold focus:ring-gold" />
+                    <span className="text-xs text-foreground/70">{t('field_bestseller')}</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" checked={form.actif} onChange={(e) => updateForm('actif', e.target.checked)} className="rounded border-white/10 bg-white/5 text-gold focus:ring-gold" />
+                    <span className="text-xs text-foreground/70">{t('field_active')}</span>
+                  </label>
+                </div>
+              </FormSection>
 
               {tagTypes.length > 0 && (
-                <div className="space-y-3 pt-2">
-                  <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-foreground/40">Tags</span>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <FormSection title="Tags" icon={<Tag size={11} />}>
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     {tagTypes.map((tagType) => (
-                      <div key={tagType.id} className="space-y-1">
-                        <label className="block text-[10px] font-bold uppercase tracking-wider text-foreground/40">{tagType.nom}</label>
+                      <Field key={tagType.id} label={tagType.nom}>
                         <input
                           value={tagValues[tagType.id] ?? ''}
                           onChange={(e) => updateTagValue(tagType.id, e.target.value)}
                           placeholder={tagType.nom}
-                          className="w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-foreground outline-none placeholder:text-foreground/30 focus:border-gold"
+                          className={inputCls}
                         />
-                      </div>
+                      </Field>
                     ))}
                   </div>
-                </div>
+                </FormSection>
               )}
+            </div>
 
-              <div className="flex flex-wrap gap-4 pt-1">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input type="checkbox" checked={form.est_nouveau} onChange={(e) => updateForm('est_nouveau', e.target.checked)} className="rounded border-white/10 bg-white/5 text-gold focus:ring-gold" />
-                  <span className="text-xs text-foreground/60">{t('field_new')}</span>
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input type="checkbox" checked={form.est_bestseller} onChange={(e) => updateForm('est_bestseller', e.target.checked)} className="rounded border-white/10 bg-white/5 text-gold focus:ring-gold" />
-                  <span className="text-xs text-foreground/60">{t('field_bestseller')}</span>
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input type="checkbox" checked={form.actif} onChange={(e) => updateForm('actif', e.target.checked)} className="rounded border-white/10 bg-white/5 text-gold focus:ring-gold" />
-                  <span className="text-xs text-foreground/60">{t('field_active')}</span>
-                </label>
-              </div>
-
-              {/* Descriptions & Images Side by Side */}
-              <div className="grid grid-cols-1 xl:grid-cols-[1.5fr_1fr] gap-6">
-                <div className="space-y-4">
-                  <div className="space-y-1">
-                    <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">{t('field_desc_short')}</label>
-                    <textarea
-                      data-field="description_courte"
-                      value={form.description_courte}
-                      onChange={(e) => updateForm('description_courte', e.target.value)}
-                      rows={2}
-                      className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-base text-foreground outline-none focus:border-gold resize-none"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">{t('field_desc_long')}</label>
-                    <textarea
-                      data-field="description_longue"
-                      value={form.description_longue}
-                      onChange={(e) => updateForm('description_longue', e.target.value)}
-                      rows={4}
-                      className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-base text-foreground outline-none focus:border-gold resize-none"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">{t('field_desc_short')} IA</label>
-                    <textarea
-                      data-field="description_ia"
-                      value={form.description_ia}
-                      onChange={(e) => updateForm('description_ia', e.target.value)}
-                      rows={2}
-                      className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-base text-foreground outline-none focus:border-gold resize-none"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">{t('field_promo_msg')}</label>
-                    <textarea
-                      data-field="message_promotion"
-                      value={form.message_promotion}
-                      onChange={(e) => updateForm('message_promotion', e.target.value)}
-                      rows={2}
-                      className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-base text-foreground outline-none focus:border-gold resize-none"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-4 xl:sticky xl:top-6">
-                    <h3 className="text-sm font-semibold text-foreground mb-4">Images</h3>
-                    <MultiImageUpload
-                      key={imageResetKey}
-                      initialImages={existingImages}
-                      onExistingImagesChange={(changes) => setExistingImages(prev => ({ ...prev, ...changes }))}
-                      onImagesChange={(images) => setImageFiles(images)}
-                    />
-                  </div>
-                </div>
-              </div>
+            {/* ── Right: sticky images panel ───────────────────────────── */}
+            <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-5 sm:p-6 lg:sticky lg:top-6">
+              <p className="mb-4 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-widest text-gold/75">
+                {t('section_images')}
+              </p>
+              <MultiImageUpload
+                key={imageResetKey}
+                initialImages={existingImages}
+                onExistingImagesChange={(changes) => setExistingImages(prev => ({ ...prev, ...changes }))}
+                onImagesChange={(images) => setImageFiles(images)}
+              />
             </div>
           </div>
 
