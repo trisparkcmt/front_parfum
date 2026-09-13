@@ -18,6 +18,23 @@ function DiffuseursShopContent() {
   const { i18n } = useTranslation();
   const isEn = i18n.language?.startsWith('en');
 
+  const scrollCatalogToTop = () => {
+    if (typeof window === 'undefined') return;
+
+    const forceTop = () => {
+      window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+      if (document.documentElement) document.documentElement.scrollTop = 0;
+      if (document.body) document.body.scrollTop = 0;
+      if (document.scrollingElement) document.scrollingElement.scrollTop = 0;
+      document.body?.scrollIntoView({ behavior: 'auto', block: 'start' });
+    };
+
+    forceTop();
+    requestAnimationFrame(forceTop);
+    requestAnimationFrame(forceTop);
+    setTimeout(forceTop, 0);
+  };
+
   const [mounted, setMounted] = useState(false);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -47,6 +64,11 @@ function DiffuseursShopContent() {
     }, 450);
     return () => clearTimeout(handler);
   }, [search]);
+
+  useEffect(() => {
+    if (!mounted) return;
+    window.scrollTo({ top: 0, left: 0 });
+  }, [mounted, debouncedSearch, techFilter, ordering, viewMode]);
 
   useEffect(() => {
     if (!mounted) return;
@@ -97,6 +119,7 @@ function DiffuseursShopContent() {
   });
 
   const resetFilters = () => {
+    scrollCatalogToTop();
     setSearch('');
     setTechFilter('all');
     setOrdering('-date_creation');
@@ -228,7 +251,11 @@ function DiffuseursShopContent() {
 
           <div className="flex items-center p-1 bg-foreground/5 border border-foreground/10 rounded-xl shrink-0">
             <button
-              onClick={() => setViewMode('grid')}
+              onClick={() => {
+                scrollCatalogToTop();
+                setTimeout(() => scrollCatalogToTop(), 0);
+                setViewMode('grid');
+              }}
               title={isEn ? 'Grid View' : 'Vue grille'}
               className={`p-1.5 sm:p-2.5 rounded-lg transition-all ${
                 viewMode === 'grid'
@@ -239,7 +266,11 @@ function DiffuseursShopContent() {
               <LayoutGrid size={15} />
             </button>
             <button
-              onClick={() => setViewMode('horizontal')}
+              onClick={() => {
+                scrollCatalogToTop();
+                setTimeout(() => scrollCatalogToTop(), 0);
+                setViewMode('horizontal');
+              }}
               title={isEn ? 'Expanded List View' : 'Vue liste d├®taill├®e'}
               className={`p-1.5 sm:p-2.5 rounded-lg transition-all ${
                 viewMode === 'horizontal'

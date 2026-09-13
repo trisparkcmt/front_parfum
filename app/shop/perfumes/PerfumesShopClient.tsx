@@ -53,6 +53,23 @@ export default function PerfumesShopClient() {
   const tabBarRef = useRef<HTMLDivElement>(null);
   const tabRefs = useRef<Record<string | number, HTMLButtonElement | null>>({});
 
+  const scrollCatalogToTop = () => {
+    if (typeof window === 'undefined') return;
+
+    const forceTop = () => {
+      window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+      if (document.documentElement) document.documentElement.scrollTop = 0;
+      if (document.body) document.body.scrollTop = 0;
+      if (document.scrollingElement) document.scrollingElement.scrollTop = 0;
+      document.body?.scrollIntoView({ behavior: 'auto', block: 'start' });
+    };
+
+    forceTop();
+    requestAnimationFrame(forceTop);
+    requestAnimationFrame(forceTop);
+    setTimeout(forceTop, 0);
+  };
+
   // Debounce search input
   useEffect(() => {
     const handler = setTimeout(() => {
@@ -68,7 +85,7 @@ export default function PerfumesShopClient() {
 
   useEffect(() => {
     if (!mounted) return;
-    window.scrollTo({ top: 0, left: 0 });
+    scrollCatalogToTop();
   }, [mounted, currentPage, activeTab, debouncedSearch, genre, olfactiveFamily, intensity, maxPrice]);
 
   // Load products when filters, tab, or page changes
@@ -331,6 +348,7 @@ export default function PerfumesShopClient() {
       : loading;
 
   const resetFilters = () => {
+    scrollCatalogToTop();
     setSearch('');
     setGenre('all');
     setOlfactiveFamily('all');
@@ -568,7 +586,10 @@ export default function PerfumesShopClient() {
                 ref={(el) => {
                   tabRefs.current[tab.id] = el;
                 }}
-                onClick={() => setActiveTab(tab.id as any)}
+                onClick={() => {
+                  scrollCatalogToTop();
+                  setActiveTab(tab.id as any);
+                }}
                 className={`flex-shrink-0 rounded-xl px-5 py-2.5 text-xs font-bold uppercase tracking-wider transition-all duration-300 whitespace-nowrap ${
                   activeTab === tab.id
                     ? 'bg-gold text-black shadow-lg'
@@ -640,7 +661,11 @@ export default function PerfumesShopClient() {
       {!loading && totalPages > 1 && (
         <div className="flex items-center justify-center gap-3 mt-12">
           <button
-            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+            onClick={() => {
+              scrollCatalogToTop();
+              setTimeout(() => scrollCatalogToTop(), 0);
+              setCurrentPage((p) => Math.max(1, p - 1));
+            }}
             disabled={currentPage === 1}
             className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-foreground/10 text-xs font-bold uppercase tracking-wider text-foreground/60 hover:text-foreground hover:bg-foreground/5 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
           >
@@ -669,7 +694,11 @@ export default function PerfumesShopClient() {
               return (
                 <button
                   key={page}
-                  onClick={() => setCurrentPage(page)}
+                  onClick={() => {
+                    scrollCatalogToTop();
+                    setTimeout(() => scrollCatalogToTop(), 0);
+                    setCurrentPage(page);
+                  }}
                   className={`w-9 h-9 rounded-xl text-xs font-bold transition-all duration-200 ${
                     page === currentPage
                       ? 'bg-gold text-black shadow-md'
@@ -683,7 +712,11 @@ export default function PerfumesShopClient() {
           </div>
 
           <button
-            onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+            onClick={() => {
+              scrollCatalogToTop();
+              setTimeout(() => scrollCatalogToTop(), 0);
+              setCurrentPage((p) => Math.min(totalPages, p + 1));
+            }}
             disabled={currentPage === totalPages}
             className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-foreground/10 text-xs font-bold uppercase tracking-wider text-foreground/60 hover:text-foreground hover:bg-foreground/5 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
           >

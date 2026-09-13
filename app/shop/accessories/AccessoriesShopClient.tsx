@@ -26,6 +26,23 @@ interface AccessoryType {
 export default function AccessoriesShop() {
   const { t, i18n } = useTranslation();
   const [mounted, setMounted] = useState(false);
+
+  const scrollCatalogToTop = () => {
+    if (typeof window === 'undefined') return;
+
+    const forceTop = () => {
+      window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+      if (document.documentElement) document.documentElement.scrollTop = 0;
+      if (document.body) document.body.scrollTop = 0;
+      if (document.scrollingElement) document.scrollingElement.scrollTop = 0;
+      document.body?.scrollIntoView({ behavior: 'auto', block: 'start' });
+    };
+
+    forceTop();
+    requestAnimationFrame(forceTop);
+    requestAnimationFrame(forceTop);
+    setTimeout(forceTop, 0);
+  };
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [accessoryTypes, setAccessoryTypes] = useState<AccessoryType[]>([]);
@@ -72,6 +89,16 @@ export default function AccessoriesShop() {
     }, 450);
     return () => clearTimeout(handler);
   }, [search]);
+
+  useEffect(() => {
+    if (!mounted) return;
+    window.scrollTo({ top: 0, left: 0 });
+  }, [mounted, activeTypeId, maxPrice, color, material, inStockOnly, debouncedSearch, ordering]);
+
+  useEffect(() => {
+    if (!mounted) return;
+    scrollCatalogToTop();
+  }, [mounted, activeTypeId, maxPrice, color, material, inStockOnly, debouncedSearch, ordering]);
 
   useEffect(() => {
     if (!mounted) return;
@@ -157,6 +184,7 @@ export default function AccessoriesShop() {
   };
 
   const resetFilters = () => {
+    scrollCatalogToTop();
     setSearch('');
     setActiveTypeId('all');
     setMaxPrice(200000);
@@ -207,7 +235,11 @@ export default function AccessoriesShop() {
       <div className="w-full border-b border-white/5 mb-8">
         <div className="flex items-center gap-8 overflow-x-auto pb-4 scrollbar-hide px-4 sm:px-0">
           <button
-            onClick={() => setActiveTypeId('all')}
+            onClick={() => {
+              scrollCatalogToTop();
+              setTimeout(() => scrollCatalogToTop(), 0);
+              setActiveTypeId('all');
+            }}
             className={`relative whitespace-nowrap text-[0.6rem] font-bold uppercase tracking-[0.2em] transition-all pb-2 ${
               activeTypeId === 'all'
                 ? 'text-gold font-extrabold'
@@ -227,7 +259,11 @@ export default function AccessoriesShop() {
           {accessoryTypes.map((type) => (
             <button
               key={type.id}
-              onClick={() => setActiveTypeId(type.id)}
+              onClick={() => {
+                scrollCatalogToTop();
+                setTimeout(() => scrollCatalogToTop(), 0);
+                setActiveTypeId(type.id);
+              }}
               className={`relative whitespace-nowrap text-[0.6rem] font-bold uppercase tracking-[0.2em] transition-all pb-2 ${
                 activeTypeId === type.id
                   ? 'text-gold font-extrabold'
