@@ -38,7 +38,9 @@ export function useAuthGuard(allowedRoles?: UserRole[]) {
     if (!mounted || !_hasHydrated || isLoading) return;
 
     if (!isAuthenticated) {
-      router.replace(`/login?redirect=${encodeURIComponent(pathname)}`);
+      // Do not force a redirect while the app is hydrating or while the user is simply
+      // browsing with an expired/stale token. Redirect only happens after a real 401
+      // from an authenticated action, handled by the API layer.
       setIsAuthorized(false);
       return;
     }

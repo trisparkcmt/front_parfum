@@ -355,28 +355,21 @@ api.interceptors.response.use(
             processQueue(refreshError, null);
             isRefreshing = false;
 
-            // Refresh failed → full logout (refresh token in HttpOnly cookie will be cleared by backend)
+            // Refresh failed → clear stale local auth state, but do not force a login redirect
+            // here unless the user is actively doing a protected action that explicitly
+            // received a 401. The app should remain usable and allow the user to choose.
             localStorage.removeItem('auth_token');
             delete api.defaults.headers.common['Authorization'];
 
-            if (!window.location.pathname.includes('/login')) {
-              window.location.href = '/login?expired=true';
-            }
             return Promise.reject(refreshError);
           }
         }
 
         // ── No way to refresh (stale access token, no refresh token) ────────
+        // Keep the user on the current page and let them choose whether to log in again.
+        // Redirecting here would cause the loop described by the bug.
         localStorage.removeItem('auth_token');
         delete api.defaults.headers.common['Authorization'];
-
-        const protectedRoutes = ['/dashboard', '/profile', '/checkout'];
-        const isProtected = protectedRoutes.some((r) =>
-          window.location.pathname.startsWith(r)
-        );
-        if (isProtected) {
-          window.location.href = '/login';
-        }
       }
     }
 
