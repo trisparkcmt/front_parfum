@@ -180,10 +180,10 @@ interface AiEssence {
 export interface AiResponse {
   message: string;
   quantite_demandee_ml?: number;
-  flacon?: { id: number; nom: string; prix_unitaire: string; contenance_ml?: number; [key: string]: unknown };
+  flacon?: { id?: number; nom?: string; prix_unitaire?: string; contenance_ml?: number; [key: string]: unknown } | number;
   parfums_existants?: AiProduct[];
   essences_pre_faites?: AiEssence[];
-  ingredients_sur_mesure?: { essenceName: string; quantityMl: number }[];
+  ingredients_sur_mesure?: { id?: number; nom?: string; essenceName?: string; quantityMl?: number; quantite_ml?: number }[];
   accessoires?: Accessory[];
 }
 
@@ -228,8 +228,9 @@ function blendHexColors(colors: { hex: string; weight: number }[]): string {
 }
 
 function getAiBottleId(flacon: AiResponse['flacon']): number | null {
-  if (!flacon) return null;
-  const rawId = flacon.id ?? flacon.flacon_id ?? (flacon as { bottle_id?: unknown }).bottle_id;
+  const rawId = typeof flacon === 'number'
+    ? flacon
+    : flacon?.id ?? flacon?.flacon_id ?? flacon?.bottle_id;
   const bottleId = Number(rawId);
   return Number.isInteger(bottleId) && bottleId > 0 ? bottleId : null;
 }
@@ -536,7 +537,16 @@ function extractAiResponseFromMetadata(metadata?: Record<string, unknown>): Part
     }
 
     for (const value of Object.values(obj)) {
-      if (value && typeof value === 'object') explored.push(value);
+      if (value && typeof value === 'object') {
+        explored.push(value);
+      } else if (typeof value === 'string') {
+        try {
+          const parsed = JSON.parse(value);
+          if (parsed && typeof parsed === 'object') explored.push(parsed);
+        } catch {
+          // Ignore ordinary metadata text.
+        }
+      }
     }
   }
 
@@ -583,20 +593,37 @@ function buildCompositionFromAiResponse(
     });
   } else if (aiData.ingredients_sur_mesure && aiData.ingredients_sur_mesure.length > 0) {
     aiData.ingredients_sur_mesure.forEach(item => {
-      const essence = essences.find(e => e.name === item.essenceName);
+      const essence = essences.find(e =>
+        (item.essenceName && e.name === item.essenceName) ||
+        (item.nom && e.name === item.nom) ||
+        (item.id !== undefined && (e.id === String(item.id) || e.backendId === item.id))
+      ) || (item.id !== undefined && item.nom ? {
+        id: String(item.id),
+        name: item.nom,
+        pricePerMl: 0,
+        backendId: item.id,
+        itemType: 'ingredient' as const,
+        color: '#C5A059',
+        inStock: true,
+      } : undefined);
       if (essence) {
-        compositionEssences.push({ essence: essence as any, quantityMl: item.quantityMl });
-        totalPrice += Number(essence.pricePerMl || 0) * item.quantityMl;
-        totalMl += item.quantityMl;
+        const quantityMl = Number(item.quantityMl ?? item.quantite_ml ?? 0);
+        if (quantityMl <= 0) return;
+        compositionEssences.push({ essence: essence as any, quantityMl });
+        totalPrice += Number(essence.pricePerMl || 0) * quantityMl;
+        totalMl += quantityMl;
       }
     });
   }
 
-  if (aiData.flacon) totalPrice += Number(aiData.flacon.prix_unitaire || 0);
+  const bottle = typeof aiData.flacon === 'object' && aiData.flacon !== null ? aiData.flacon : undefined;
+  if (bottle) totalPrice += Number(bottle.prix_unitaire || 0);
 
   const composition = compositionEssences.length > 0 ? {
     id: generateId(),
-    name: aiData.flacon ? `${defaultName} (${aiData.flacon.nom})` : defaultName,
+    name: bottle?.nom
+      ? `${defaultName} (${bottle.nom})`
+      : defaultName,
     essences: compositionEssences,
     totalMl,
     totalPrice,
@@ -605,8 +632,8 @@ function buildCompositionFromAiResponse(
     isAiGenerated: true,
   } as CustomComposition : undefined;
 
-  if (aiData.flacon && aiData.flacon.contenance_ml) {
-    (composition as (CustomComposition & { bottleSizeMl?: number }) | undefined)!.bottleSizeMl = aiData.flacon.contenance_ml;
+  if (bottle?.contenance_ml) {
+    (composition as (CustomComposition & { bottleSizeMl?: number }) | undefined)!.bottleSizeMl = bottle.contenance_ml;
   }
 
   return composition;
