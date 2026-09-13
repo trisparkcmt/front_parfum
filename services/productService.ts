@@ -1,6 +1,19 @@
 import { Product, ProductCategory, AccessorySubCategory } from '@/types';
 import { shopService as apiShopService, labService } from './apiService';
 
+export type ProductLookupKind = 'perfume' | 'accessory' | 'diffuseur' | 'essence' | 'finished-essence';
+
+function getLookupOrder(preferredType?: ProductLookupKind): ProductLookupKind[] {
+  const base: ProductLookupKind[] = ['perfume', 'essence', 'finished-essence', 'accessory', 'diffuseur'];
+
+  if (!preferredType) return base;
+
+  const preferredIndex = base.indexOf(preferredType);
+  if (preferredIndex === -1) return base;
+
+  return [preferredType, ...base.filter((kind) => kind !== preferredType)];
+}
+
 // Internal map to store perfume category ID to frontend category type mapping
 let _perfumeCategoriesMap: Map<number, ProductCategory> | null = null;
 let _perfumeCategoryNames: Map<number, string> = new Map();
@@ -671,78 +684,84 @@ export const productService = {
   /**
    * Fetch a single product by ID from API - API ONLY
    */
-  async getProductById(id: string): Promise<Product | null> {
+  async getProductById(id: string, preferredType?: ProductLookupKind): Promise<Product | null> {
     try {
       const candidates = [id, decodeURIComponent(id)];
       const uniqueCandidates = Array.from(new Set(candidates.filter(Boolean)));
+      const lookupOrder = getLookupOrder(preferredType);
 
       for (const candidate of uniqueCandidates) {
-        const perfume = await apiShopService.getPerfumeBySlug(candidate).catch(() => null);
-        if (perfume) {
-          return mapBackendPerfumeToProduct(perfume);
-        }
+        for (const kind of lookupOrder) {
+          if (kind === 'perfume') {
+            const perfume = await apiShopService.getPerfumeBySlug(candidate).catch(() => null);
+            if (perfume) return mapBackendPerfumeToProduct(perfume);
+            continue;
+          }
 
-        const diffuseur = await apiShopService.getDiffuseurBySlug(candidate).catch(() => null);
-        if (diffuseur) {
-          const images = collectProductImages(diffuseur);
-          return {
-            id: String(diffuseur.id),
-            name: diffuseur.nom || 'Diffuseur de Parfum',
-            nom: diffuseur.nom,
-            description: diffuseur.description_longue || diffuseur.description_courte || '',
-            description_courte: diffuseur.description_courte,
-            price: parseFloat(diffuseur.prix_unitaire || '0'),
-            prix_unitaire: diffuseur.prix_unitaire,
-            originalPrice: parseFloat(diffuseur.prix_unitaire || '0'),
-            category: 'accessory',
-            subCategory: 'other',
-            images,
-            brand: 'Exclusif Diffuseurs',
-            inStock: diffuseur.stock_quantite > 0 && diffuseur.actif !== false,
-            rating: 4.8,
-            reviews: 12,
-            slug: diffuseur.slug || String(diffuseur.id),
-            createdAt: diffuseur.date_creation || new Date().toISOString(),
-            image_principale: diffuseur.image_principale || images[0],
-            type_technologie: diffuseur.type_technologie,
-            is_new: diffuseur.est_nouveau,
-            is_bestseller: diffuseur.est_bestseller,
-            capacite_reservoir_ml: diffuseur.capacite_reservoir_ml,
-            est_connecte: diffuseur.est_connecte,
-            a_jeux_de_lumiere: diffuseur.a_jeux_de_lumiere,
-          };
-        }
+          if (kind === 'essence') {
+            const essence = await labService.getEssenceBySlug(candidate).catch(() => null);
+            if (essence) return mapBackendEssenceToProduct(essence);
+            continue;
+          }
 
-        const essence = await labService.getEssenceBySlug(candidate).catch(() => null);
-        if (essence) {
-          return mapBackendEssenceToProduct(essence);
-        }
-
-        if (/^\d+$/.test(candidate)) {
-          const finishedEssence = await apiShopService.getFinishedEssenceById(Number(candidate)).catch(() => null);
-          if (finishedEssence) {
-            if (finishedEssence.essence) {
-              const parentEssence = await labService.getEssenceBySlug(String(finishedEssence.essence)).catch(() => null);
-              if (parentEssence) return mapBackendEssenceToProduct(parentEssence);
+          if (kind === 'finished-essence' && /^\d+$/.test(candidate)) {
+            const finishedEssence = await apiShopService.getFinishedEssenceById(Number(candidate)).catch(() => null);
+            if (finishedEssence) {
+              if (finishedEssence.essence) {
+                const parentEssence = await labService.getEssenceBySlug(String(finishedEssence.essence)).catch(() => null);
+                if (parentEssence) return mapBackendEssenceToProduct(parentEssence);
+              }
+              return mapBackendFinishedEssenceToProduct(finishedEssence);
             }
-            return mapBackendFinishedEssenceToProduct(finishedEssence);
+            continue;
+          }
+
+          if (kind === 'accessory') {
+            const accessory = await apiShopService.getAccessoryBySlug(candidate).catch(() => null);
+            if (accessory) return mapBackendAccessoryToProduct(accessory);
+            continue;
+          }
+
+          if (kind === 'diffuseur') {
+            const diffuseur = await apiShopService.getDiffuseurBySlug(candidate).catch(() => null);
+            if (diffuseur) {
+              const images = collectProductImages(diffuseur);
+              return {
+                id: String(diffuseur.id),
+                name: diffuseur.nom || 'Diffuseur de Parfum',
+                nom: diffuseur.nom,
+                description: diffuseur.description_longue || diffuseur.description_courte || '',
+                description_courte: diffuseur.description_courte,
+                price: parseFloat(diffuseur.prix_unitaire || '0'),
+                prix_unitaire: diffuseur.prix_unitaire,
+                originalPrice: parseFloat(diffuseur.prix_unitaire || '0'),
+                category: 'accessory',
+                subCategory: 'other',
+                images,
+                brand: 'Exclusif Diffuseurs',
+                inStock: diffuseur.stock_quantite > 0 && diffuseur.actif !== false,
+                rating: 4.8,
+                reviews: 12,
+                slug: diffuseur.slug || String(diffuseur.id),
+                createdAt: diffuseur.date_creation || new Date().toISOString(),
+                image_principale: diffuseur.image_principale || images[0],
+                type_technologie: diffuseur.type_technologie,
+                is_new: diffuseur.est_nouveau,
+                is_bestseller: diffuseur.est_bestseller,
+                capacite_reservoir_ml: diffuseur.capacite_reservoir_ml,
+                est_connecte: diffuseur.est_connecte,
+                a_jeux_de_lumiere: diffuseur.a_jeux_de_lumiere,
+              };
+            }
           }
         }
-
-        const accessory = await apiShopService.getAccessoryBySlug(candidate).catch(() => null);
-        if (accessory) {
-          return mapBackendAccessoryToProduct(accessory);
-        }
       }
-
-
 
       return null;
     } catch (error) {
       console.error('Failed to fetch product:', error);
       return null;
     }
-
   },
 
   /**

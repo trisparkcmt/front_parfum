@@ -53,7 +53,16 @@ export function ProductCard({
   const { addToast } = useToastStore();
   const [isHovered, setIsHovered] = useState(false);
 
-  const isDiffuseur = !!(product.type_technologie || product.capacite_reservoir_ml);
+  const isDiffuseur =
+    product.category === 'accessory' &&
+    !!(
+      product.type_technologie ||
+      product.capacite_reservoir_ml !== undefined ||
+      product.est_connecte !== undefined ||
+      product.a_jeux_de_lumiere !== undefined ||
+      (product.name || '').toLowerCase().includes('diffuseur') ||
+      (product.description || '').toLowerCase().includes('diffuseur')
+    );
 
   const isEssenceProduct =
     product.category === 'huile' ||
@@ -73,7 +82,7 @@ export function ProductCard({
     ? `/shop/diffuseurs/${product.id || product.slug}`
     : isEssenceProduct
     ? `/shop/huile/${product.slug || product.id}`
-    : `/shop/product/${product.slug || product.id}`;
+    : `/shop/product/${product.slug || product.id}${product.category === 'accessory' ? '?type=accessory' : '?type=perfume'}`;
 
   // Derive category label
   const categoryLabel = isDiffuseur

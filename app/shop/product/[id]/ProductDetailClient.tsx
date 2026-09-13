@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
+import { useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Share2,
@@ -46,6 +47,9 @@ function getProductCollectionPath(category?: Product['category']) {
 export default function ProductDetailClient({ id }: { id: string }) {
   const { i18n } = useTranslation();
   const isEn = i18n.language?.startsWith('en');
+  const searchParams = useSearchParams();
+  const typeHints = searchParams.get('type');
+  const preferredType = typeHints === 'accessory' ? 'accessory' : typeHints === 'diffuseur' ? 'diffuseur' : 'perfume';
 
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
@@ -78,7 +82,7 @@ export default function ProductDetailClient({ id }: { id: string }) {
     async function loadProduct() {
       setLoading(true);
       try {
-        const p = await productService.getProductById(String(id));
+        const p = await productService.getProductById(String(id), preferredType);
         if (!isMounted) return;
         setProduct(p);
         setActiveImage(0);
@@ -123,7 +127,7 @@ export default function ProductDetailClient({ id }: { id: string }) {
     return () => {
       isMounted = false;
     };
-  }, [id]);
+  }, [id, preferredType]);
 
   if (loading) {
     return (
