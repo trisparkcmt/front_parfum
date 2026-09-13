@@ -11,12 +11,21 @@
 
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Bell, X, Trash2, Loader2 } from 'lucide-react';
 import { deviceService } from '@/services/deviceService';
 import { useToastStore } from '@/store/useToastStore';
 import { useAuthStore } from '@/store/useAuthStore';
 import type { Notification as NotificationType } from '@/types';
+
+interface DeviceNotificationRow {
+  id: string | number;
+  title?: string;
+  message?: string;
+  body?: string;
+  is_read?: boolean;
+  created_at?: string;
+}
 
 export interface NotificationCenterProps {
   /**
@@ -47,52 +56,80 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string | number>>(new Set());
   const [isSelectionMode, setIsSelectionMode] = useState(false);
+  const panelRef = useRef<HTMLDivElement | null>(null);
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
   const addToast = useToastStore((state) => state.addToast);
 
   // Fetch notifications from backend
-  const fetchNotifications = async () => {
-    if (isLoading) return;
-
+  const fetchNotifications = useCallback(async () => {
     setIsLoading(true);
     try {
-      const data = await deviceService.fetchNotifications();
+      const data = (await deviceService.fetchNotifications()) as DeviceNotificationRow[];
       const user = useAuthStore.getState().user;
       const roles = (user?.roles || []).map((r: string) => String(r).toLowerCase());
       const isAdminOrServeuse = roles.some((r) => r === 'admin' || r === 'serveuse' || r === 'superadmin');
 
       let filteredData = data;
       if (!isAdminOrServeuse && user) {
-        filteredData = data.filter((n: any) => {
+        filteredData = data.filter((n) => {
           const text = `${n.title || ''} ${n.message || n.body || ''}`.toLowerCase();
           return text.includes('code promo') || text.includes('livr') || text.includes('delivered');
         });
       }
 
-      setNotifications(filteredData);
+      setNotifications(filteredData as NotificationType[]);
       console.log('[NotificationCenter] Fetched', filteredData.length, 'notifications');
-    } catch (error: any) {
+    } catch (error) {
       console.error('[NotificationCenter] Failed to fetch notifications:', error);
       addToast('Erreur lors du chargement des notifications', 'error');
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [addToast]);
 
   // Fetch on mount
   useEffect(() => {
-    fetchNotifications();
-  }, []);
+    let cancelled = false;
+
+    const run = async () => {
+      if (cancelled) return;
+      await fetchNotifications();
+    };
+
+    void run();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [fetchNotifications]);
 
   // Setup polling
   useEffect(() => {
     if (pollIntervalMs <= 0) return;
 
     const interval = setInterval(() => {
-      fetchNotifications();
+      void fetchNotifications();
     }, pollIntervalMs);
 
     return () => clearInterval(interval);
-  }, [pollIntervalMs]);
+  }, [fetchNotifications, pollIntervalMs]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handlePointerDown = (event: MouseEvent) => {
+      const target = event.target as Node;
+      const clickedInsidePanel = panelRef.current?.contains(target);
+      const clickedTrigger = triggerRef.current?.contains(target);
+
+      if (!clickedInsidePanel && !clickedTrigger) {
+        setIsOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handlePointerDown);
+    return () => document.removeEventListener('mousedown', handlePointerDown);
+  }, [isOpen]);
 
   // Mark notification as read
   const handleMarkAsRead = async (id: string | number) => {
@@ -158,9 +195,10 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
   const unreadCount = notifications.filter((n) => !n.is_read).length;
 
   return (
-    <div className="relative">
+    <div className="relative" ref={panelRef}>
       {/* Bell Icon Button */}
       <button
+        ref={triggerRef}
         onClick={() => setIsOpen(!isOpen)}
         className="relative p-2 hover:bg-foreground/5 rounded-lg transition-colors"
         aria-label="Notifications"
