@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Search, Plus, Edit2, Trash2, Loader2, SlidersHorizontal, X, Tag, Layers, Palette, DollarSign, Boxes, AlertCircle } from 'lucide-react';
+import { Search, Plus, Edit2, Trash2, Loader2, SlidersHorizontal, X, Tag, Layers, Palette, DollarSign, Boxes, AlertCircle, ChevronDown } from 'lucide-react';
 import { shopService, adminService } from '@/services/apiService';
 import { useToastStore } from '@/store/useToastStore';
 import { useCatalogPermissions } from '@/hooks/useCatalogPermissions';
@@ -48,6 +48,7 @@ const T = {
     section_id: 'Identification',
     section_pricing: 'Tarification & réduction',
     section_stock: 'Stock & logistique',
+    section_specs: 'Caractéristiques & stock',
     section_media: 'Visuels',
     section_desc: 'Descriptions',
     field_brand: 'Marque *',
@@ -67,6 +68,8 @@ const T = {
     field_desc_long: 'Description longue',
     field_desc_ai: 'Description IA',
     margin_label: 'Bénéfice estimé :',
+    active_label: 'Actif / visible dans la boutique',
+    choose_type: 'Choisir un type',
     confirm_delete: 'Voulez-vous vraiment supprimer cet accessoire ?',
     confirm_bulk: 'Supprimer',
     accessory: 'accessoire(s)',
@@ -119,6 +122,7 @@ const T = {
     section_id: 'Identification',
     section_pricing: 'Pricing & discount',
     section_stock: 'Stock & logistics',
+    section_specs: 'Specs & stock',
     section_media: 'Visuals',
     section_desc: 'Descriptions',
     field_brand: 'Brand *',
@@ -138,6 +142,8 @@ const T = {
     field_desc_long: 'Long description',
     field_desc_ai: 'AI description',
     margin_label: 'Estimated margin:',
+    active_label: 'Active / visible in the shop',
+    choose_type: 'Choose a type',
     confirm_delete: 'Are you sure you want to delete this accessory?',
     confirm_bulk: 'Delete',
     accessory: 'accessory(ies)',
@@ -220,6 +226,7 @@ export default function AccessoriesPage() {
   const [showModal, setShowModal] = useState(false);
   const [editingAccessory, setEditingAccessory] = useState<any | null>(null);
   const [selectedAccessories, setSelectedAccessories] = useState<Set<string>>(new Set());
+  const [expandedRow, setExpandedRow] = useState<string | null>(null);
   const [imageFiles, setImageFiles] = useState<{ [key: string]: File | null }>({
     image_principale: null,
     image_supp_1: null,
@@ -310,7 +317,7 @@ export default function AccessoriesPage() {
         const list = data.results || data.resultats || (Array.isArray(data) ? data : []);
         setAccessoryTypes(list);
       })
-      .catch(() => addToast('Erreur lors du chargement des types d\'accessoires', 'error'));
+      .catch(() => addToast(t('toast_types_error'), 'error'));
 
     shopService.getTags()
       .then(data => {
@@ -318,6 +325,7 @@ export default function AccessoriesPage() {
         setTagTypes(list);
       })
       .catch(() => undefined);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [addToast]);
 
   const updateTagValue = (tagId: number, value: string) => {
@@ -623,18 +631,18 @@ export default function AccessoriesPage() {
                 filter === 'all' ? 'border-gold/40 bg-gold/15 text-gold' : 'border-white/10 text-foreground/50 hover:border-white/20 hover:text-foreground/80'
               )}
             >
-              Tous
+              {t('all')}
             </button>
-            {accessoryTypes.map(t => (
+            {accessoryTypes.map(type => (
               <button
-                key={t.id}
-                onClick={() => setFilter(String(t.id))}
+                key={type.id}
+                onClick={() => setFilter(String(type.id))}
                 className={cx(
                   'rounded-lg border px-3 py-2 text-xs font-medium transition-colors',
-                  filter === String(t.id) ? 'border-gold/40 bg-gold/15 text-gold' : 'border-white/10 text-foreground/50 hover:border-white/20 hover:text-foreground/80'
+                  filter === String(type.id) ? 'border-gold/40 bg-gold/15 text-gold' : 'border-white/10 text-foreground/50 hover:border-white/20 hover:text-foreground/80'
                 )}
               >
-                {t.nom}
+                {type.nom}
               </button>
             ))}
           </div>
@@ -710,130 +718,90 @@ export default function AccessoriesPage() {
         )}
       </div>
 
-      {/* Table -------------------------------------------------------------- */}
+      {/* List ----------------------------------------------------------------
+          Two renderings of the same data:
+          - Desktop (sm and up): full table, row click opens edit modal
+          - Mobile (below sm): single-line compact rows that expand on tap
+            for type/margin/actions; tapping the row itself opens edit modal
+      -------------------------------------------------------------------- */}
       <div className="shadow-black/30 shadow-sm min-h-[300px] overflow-hidden rounded-xl border border-white/10">
         {loading ? (
           <div className="flex flex-col items-center justify-center gap-2.5 py-20 text-foreground/40">
             <Loader2 className="animate-spin text-gold" size={28} />
-            <p className="text-xs">Chargement des accessoires…</p>
+            <p className="text-xs">{t('loading')}</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead>
-                <tr className="border-b border-white/10 bg-white/[0.02]">
-                  <th className="w-12 px-4 py-2.5">
-                    <input
-                      type="checkbox"
-                      checked={accessories.length > 0 && selectedAccessories.size === accessories.length}
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          setSelectedAccessories(new Set(accessories.map(a => a.slug || a.id)));
-                        } else {
-                          setSelectedAccessories(new Set());
-                        }
-                      }}
-                      className="rounded border-white/10 bg-white/5 text-gold focus:ring-gold"
-                    />
-                  </th>
-                  <th className="px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-foreground/35">{t('col_accessory')}</th>
-                  <th className="px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-foreground/35">{t('col_type')}</th>
-                  <th className="px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-foreground/35">{t('col_price')}</th>
-                  {isAdmin && (
-                    <th className="px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-foreground/35">{t('col_margin')}</th>
-                  )}
-                  <th className="px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-foreground/35">{t('col_stock')}</th>
-                  <th className="px-4 py-2.5 text-right text-[10px] font-semibold uppercase tracking-wider text-foreground/35">{t('col_actions')}</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/5">
-                {accessories.map(a => {
-                  const aName = a.nom || 'Accessoire';
-                  const aPrice = a.prix_unitaire || 0;
-                  const aStock = a.stock_quantite || 0;
-                  const typeName = typeof a.type_accessoire === 'object'
-                    ? a.type_accessoire?.nom
-                    : (accessoryTypes.find(t => t.id === a.type_accessoire)?.nom || '—');
+          <>
+            {/* ── Mobile: compact expandable rows ─────────────────────── */}
+            <div className="divide-y divide-white/5 sm:hidden">
+              {accessories.map(a => {
+                const rowId = a.slug || a.id;
+                const aName = a.nom || 'Accessoire';
+                const aPrice = a.prix_unitaire || 0;
+                const aStock = a.stock_quantite || 0;
+                const typeName = typeof a.type_accessoire === 'object'
+                  ? a.type_accessoire?.nom
+                  : (accessoryTypes.find(ty => ty.id === a.type_accessoire)?.nom || '—');
+                const prixVenteNum = parseFloat(String(aPrice));
+                const prixAchatNum = parseFloat(String(a.prix_achat || 0));
+                const beneficeCalc = a.benefice_unitaire !== undefined
+                  ? parseFloat(String(a.benefice_unitaire))
+                  : (a.prix_unitaire && a.prix_achat ? prixVenteNum - prixAchatNum : null);
+                const isExpanded = expandedRow === rowId;
 
-                  const prixVenteNum = parseFloat(String(aPrice));
-                  const prixAchatNum = parseFloat(String(a.prix_achat || 0));
-                  const beneficeCalc = a.benefice_unitaire !== undefined
-                    ? parseFloat(String(a.benefice_unitaire))
-                    : (a.prix_unitaire && a.prix_achat ? prixVenteNum - prixAchatNum : null);
+                return (
+                  <div key={rowId}>
+                    <div
+                      onClick={() => permissions.canUpdate && handleOpenEdit(a)}
+                      className={cx(
+                        'flex items-center gap-2.5 px-3 py-2.5',
+                        permissions.canUpdate && 'cursor-pointer active:bg-white/[0.03]'
+                      )}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedAccessories.has(rowId)}
+                        onChange={() => toggleSelectAccessory(rowId)}
+                        onClick={e => e.stopPropagation()}
+                        className="rounded border-white/10 bg-white/5 text-gold focus:ring-gold"
+                      />
+                      <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-lg border border-white/8 bg-white/[0.03]">
+                        {a.image_principale ? (
+                          <AppImage src={a.image_principale} alt={aName} fill className="object-cover" />
+                        ) : (
+                          <span className="flex h-full w-full items-center justify-center text-sm">👜</span>
+                        )}
+                      </div>
+                      <p className="min-w-0 flex-1 truncate text-xs font-medium text-foreground">{aName}</p>
+                      <p className="shrink-0 whitespace-nowrap text-xs font-semibold tabular-nums text-foreground">
+                        {Number(aPrice).toLocaleString()} F
+                      </p>
+                      <span className="shrink-0 whitespace-nowrap text-[10px] tabular-nums text-foreground/45">
+                        {aStock} {t('units')}
+                      </span>
+                      <button
+                        onClick={e => { e.stopPropagation(); setExpandedRow(isExpanded ? null : rowId); }}
+                        aria-label={isEn ? 'Toggle details' : 'Afficher les détails'}
+                        className="shrink-0 rounded-md p-1 text-foreground/40 transition-colors hover:bg-white/6 hover:text-foreground/70"
+                      >
+                        <ChevronDown size={15} className={cx('transition-transform', isExpanded && 'rotate-180')} />
+                      </button>
+                    </div>
 
-                  return (
-                    <tr key={a.slug || a.id} className="group transition-colors hover:bg-white/[0.02]">
-                      <td className="w-12 px-4 py-3">
-                        <input
-                          type="checkbox"
-                          checked={selectedAccessories.has(a.slug || a.id)}
-                          onChange={() => toggleSelectAccessory(a.slug || a.id)}
-                          className="rounded border-white/10 bg-white/5 text-gold focus:ring-gold"
-                        />
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-3">
-                          <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-lg border border-white/8 bg-white/[0.03]">
-                            {a.image_principale ? (
-                              <AppImage src={a.image_principale} alt={aName} fill className="object-cover" />
-                            ) : (
-                              <span className="flex h-full w-full items-center justify-center text-base">👜</span>
-                            )}
-                          </div>
-                          <div className="min-w-0">
-                            <p className="truncate text-xs font-medium text-foreground">
-                              <InlineCell
-                                value={aName}
-                                onSave={v => patchAccessory(a.slug || a.id, 'nom', v)}
-                                disabled={!permissions.canUpdate}
-                                className="font-medium text-foreground"
-                              />
-                            </p>
-                            <p className="mt-0.5 font-mono text-[10px] uppercase text-foreground/30">{a.reference_sku || a.slug}</p>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3">
+                    {isExpanded && (
+                      <div className="flex flex-wrap items-center gap-2 bg-white/[0.02] px-3 pb-3 pt-1">
                         <span className="rounded-full bg-white/6 px-2.5 py-1 text-[11px] font-medium text-foreground/60">
                           {typeName}
                         </span>
-                      </td>
-                      <td className="whitespace-nowrap px-4 py-3 font-semibold text-foreground">
-                        <InlineCell
-                          value={String(aPrice)}
-                          onSave={v => patchAccessory(a.slug || a.id, 'prix_unitaire', v)}
-                          disabled={!permissions.canUpdate}
-                          inputType="number"
-                          display={<>{Number(aPrice).toLocaleString()} FCFA</>}
-                          className="font-semibold text-foreground tabular-nums"
-                        />
-                      </td>
-                      {isAdmin && (
-                        <td className="whitespace-nowrap px-4 py-3">
-                          {beneficeCalc !== null ? (
-                            <span className={cx(
-                              'rounded-full px-2 py-0.5 text-[11px] font-semibold',
-                              beneficeCalc >= 0 ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'
-                            )}>
-                              +{beneficeCalc.toLocaleString()} FCFA
-                            </span>
-                          ) : (
-                      <span className="text-xs italic text-foreground/30">{t('not_defined')}</span>
-                          )}
-                        </td>
-                      )}
-                      <td className="whitespace-nowrap px-4 py-3 text-xs text-foreground/55">
-                        <InlineCell
-                          value={String(aStock)}
-                          onSave={v => patchAccessory(a.slug || a.id, 'stock_quantite', v)}
-                          disabled={!permissions.canUpdate}
-                          inputType="number"
-                          display={<>{aStock} {t('units')}</>}
-                          className="text-foreground/55 tabular-nums"
-                        />
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center justify-end gap-1">
+                        {isAdmin && beneficeCalc !== null && (
+                          <span className={cx(
+                            'rounded-full px-2 py-0.5 text-[11px] font-semibold',
+                            beneficeCalc >= 0 ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'
+                          )}>
+                            +{beneficeCalc.toLocaleString()} FCFA
+                          </span>
+                        )}
+                        <div className="ml-auto flex items-center gap-1">
                           {permissions.canUpdate && (
                             <button onClick={() => handleOpenEdit(a)} title="Modifier" className="rounded-md p-1.5 text-foreground/45 transition-colors hover:bg-gold/10 hover:text-gold">
                               <Edit2 size={14} />
@@ -845,17 +813,165 @@ export default function AccessoriesPage() {
                             </button>
                           )}
                         </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-                {accessories.length === 0 && (
-                  <tr>
-                      <td colSpan={7} className="py-16 text-center text-sm italic text-foreground/30">{t('no_results')}</td>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+              {accessories.length === 0 && (
+                <p className="py-16 text-center text-sm italic text-foreground/30">{t('no_results')}</p>
+              )}
+            </div>
+
+            {/* ── Desktop: full table ─────────────────────────────────── */}
+            <div className="hidden sm:block sm:overflow-x-auto">
+              <table className="w-full text-left text-sm">
+                <thead>
+                  <tr className="border-b border-white/10 bg-white/[0.02]">
+                    <th className="w-12 px-4 py-2.5">
+                      <input
+                        type="checkbox"
+                        checked={accessories.length > 0 && selectedAccessories.size === accessories.length}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedAccessories(new Set(accessories.map(a => a.slug || a.id)));
+                          } else {
+                            setSelectedAccessories(new Set());
+                          }
+                        }}
+                        className="rounded border-white/10 bg-white/5 text-gold focus:ring-gold"
+                      />
+                    </th>
+                    <th className="px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-foreground/35">{t('col_accessory')}</th>
+                    <th className="px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-foreground/35">{t('col_type')}</th>
+                    <th className="px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-foreground/35">{t('col_price')}</th>
+                    {isAdmin && (
+                      <th className="px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-foreground/35">{t('col_margin')}</th>
+                    )}
+                    <th className="px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-foreground/35">{t('col_stock')}</th>
+                    <th className="px-4 py-2.5 text-right text-[10px] font-semibold uppercase tracking-wider text-foreground/35">{t('col_actions')}</th>
                   </tr>
-                )}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-white/5">
+                  {accessories.map(a => {
+                    const rowId = a.slug || a.id;
+                    const aName = a.nom || 'Accessoire';
+                    const aPrice = a.prix_unitaire || 0;
+                    const aStock = a.stock_quantite || 0;
+                    const typeName = typeof a.type_accessoire === 'object'
+                      ? a.type_accessoire?.nom
+                      : (accessoryTypes.find(ty => ty.id === a.type_accessoire)?.nom || '—');
+
+                    const prixVenteNum = parseFloat(String(aPrice));
+                    const prixAchatNum = parseFloat(String(a.prix_achat || 0));
+                    const beneficeCalc = a.benefice_unitaire !== undefined
+                      ? parseFloat(String(a.benefice_unitaire))
+                      : (a.prix_unitaire && a.prix_achat ? prixVenteNum - prixAchatNum : null);
+
+                    return (
+                      <tr
+                        key={rowId}
+                        onClick={() => permissions.canUpdate && handleOpenEdit(a)}
+                        className={cx(
+                          'group transition-colors hover:bg-white/[0.02]',
+                          permissions.canUpdate && 'cursor-pointer'
+                        )}
+                      >
+                        <td className="w-12 px-4 py-3" onClick={e => e.stopPropagation()}>
+                          <input
+                            type="checkbox"
+                            checked={selectedAccessories.has(rowId)}
+                            onChange={() => toggleSelectAccessory(rowId)}
+                            className="rounded border-white/10 bg-white/5 text-gold focus:ring-gold"
+                          />
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-3">
+                            <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-lg border border-white/8 bg-white/[0.03]">
+                              {a.image_principale ? (
+                                <AppImage src={a.image_principale} alt={aName} fill className="object-cover" />
+                              ) : (
+                                <span className="flex h-full w-full items-center justify-center text-base">👜</span>
+                              )}
+                            </div>
+                            <div className="min-w-0" onClick={e => e.stopPropagation()}>
+                              <p className="truncate text-xs font-medium text-foreground">
+                                <InlineCell
+                                  value={aName}
+                                  onSave={v => patchAccessory(rowId, 'nom', v)}
+                                  disabled={!permissions.canUpdate}
+                                  className="font-medium text-foreground"
+                                />
+                              </p>
+                              <p className="mt-0.5 font-mono text-[10px] uppercase text-foreground/30">{a.reference_sku || a.slug}</p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className="rounded-full bg-white/6 px-2.5 py-1 text-[11px] font-medium text-foreground/60">
+                            {typeName}
+                          </span>
+                        </td>
+                        <td className="whitespace-nowrap px-4 py-3 font-semibold text-foreground" onClick={e => e.stopPropagation()}>
+                          <InlineCell
+                            value={String(aPrice)}
+                            onSave={v => patchAccessory(rowId, 'prix_unitaire', v)}
+                            disabled={!permissions.canUpdate}
+                            inputType="number"
+                            display={<>{Number(aPrice).toLocaleString()} FCFA</>}
+                            className="font-semibold text-foreground tabular-nums"
+                          />
+                        </td>
+                        {isAdmin && (
+                          <td className="whitespace-nowrap px-4 py-3">
+                            {beneficeCalc !== null ? (
+                              <span className={cx(
+                                'rounded-full px-2 py-0.5 text-[11px] font-semibold',
+                                beneficeCalc >= 0 ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'
+                              )}>
+                                +{beneficeCalc.toLocaleString()} FCFA
+                              </span>
+                            ) : (
+                              <span className="text-xs italic text-foreground/30">{t('not_defined')}</span>
+                            )}
+                          </td>
+                        )}
+                        <td className="whitespace-nowrap px-4 py-3 text-xs text-foreground/55" onClick={e => e.stopPropagation()}>
+                          <InlineCell
+                            value={String(aStock)}
+                            onSave={v => patchAccessory(rowId, 'stock_quantite', v)}
+                            disabled={!permissions.canUpdate}
+                            inputType="number"
+                            display={<>{aStock} {t('units')}</>}
+                            className="text-foreground/55 tabular-nums"
+                          />
+                        </td>
+                        <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
+                          <div className="flex items-center justify-end gap-1">
+                            {permissions.canUpdate && (
+                              <button onClick={() => handleOpenEdit(a)} title="Modifier" className="rounded-md p-1.5 text-foreground/45 transition-colors hover:bg-gold/10 hover:text-gold">
+                                <Edit2 size={14} />
+                              </button>
+                            )}
+                            {permissions.canDelete && (
+                              <button onClick={() => handleDelete(a.slug)} title="Supprimer" className="rounded-md p-1.5 text-foreground/45 transition-colors hover:bg-red-500/10 hover:text-red-400">
+                                <Trash2 size={14} />
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                  {accessories.length === 0 && (
+                    <tr>
+                      <td colSpan={7} className="py-16 text-center text-sm italic text-foreground/30">{t('no_results')}</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+
             <TablePagination
               currentPage={currentPage}
               totalPages={totalPages}
@@ -864,18 +980,18 @@ export default function AccessoriesPage() {
               onPageChange={(page) => { setCurrentPage(page); fetchAccessories(page); }}
               itemLabel={isEn ? 'accessories' : 'accessoires'}
             />
-          </div>
+          </>
         )}
       </div>
 
-      {/* ── Form modal — now restyled inside too ──────────────────────────── */}
+      {/* ── Form modal ───────────────────────────────────────────────────── */}
 
       <SlideOver
         isOpen={showModal}
         onClose={() => setShowModal(false)}
         title={editingAccessory ? t('modal_title_edit') : t('modal_title_new')}
         description={editingAccessory ? editingAccessory.nom : isEn ? 'New catalogue accessory' : 'Nouvel accessoire du catalogue'}
-        size="xl"
+        size="3xl"
         footer={
           <div className="flex gap-3">
             <button onClick={handleSave} disabled={saving} className="flex-1 rounded-lg bg-gold py-2.5 text-sm font-semibold text-black transition-colors hover:bg-gold/85 disabled:opacity-60 flex items-center justify-center gap-2">
@@ -905,7 +1021,7 @@ export default function AccessoriesPage() {
           </div>
         )}
 
-        <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.6fr_0.9fr]">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1.6fr_0.9fr]">
           <div className="space-y-4">
 
             <FormSection title={t('section_id')} icon={<Tag size={11} />}>
@@ -918,7 +1034,7 @@ export default function AccessoriesPage() {
                     className={inputCls}
                   />
                 </Field>
-                <Field label="Nom de l'accessoire" required error={formErrors.nom}>
+                <Field label={t('field_name')} required error={formErrors.nom}>
                   <input
                     data-field="nom"
                     value={form.nom}
@@ -926,16 +1042,16 @@ export default function AccessoriesPage() {
                     className={inputCls}
                   />
                 </Field>
-                  <Field label="Type d'accessoire" required error={formErrors.type_accessoire}>
+                <Field label={t('field_type')} required error={formErrors.type_accessoire}>
                   <div className="flex items-center gap-2">
                     <div className="flex-1 relative z-[9999]">
                       <CustomSelect
                         data-field="type_accessoire"
                         value={form.type_accessoire}
                         onChange={v => updateForm('type_accessoire', v)}
-                        placeholder="Choisir un type"
+                        placeholder={t('choose_type')}
                         error={!!formErrors.type_accessoire}
-                        options={accessoryTypes.map(t => ({ value: String(t.id), label: t.nom }))}
+                        options={accessoryTypes.map(ty => ({ value: String(ty.id), label: ty.nom }))}
                         className="relative z-[9999]"
                       />
                     </div>
@@ -950,7 +1066,7 @@ export default function AccessoriesPage() {
                     </button>
                   </div>
                 </Field>
-                <Field label="Référence SKU" error={formErrors.reference_sku}>
+                <Field label={t('field_sku')} error={formErrors.reference_sku}>
                   <input
                     data-field="reference_sku"
                     value={form.reference_sku}
@@ -962,18 +1078,29 @@ export default function AccessoriesPage() {
               </div>
             </FormSection>
 
-            <FormSection title="Descriptions" icon={<Layers size={11} />}>
+            <FormSection title={t('section_desc')} icon={<Layers size={11} />}>
               <div className="space-y-4">
-                <Field label="Description courte" error={formErrors.description_courte}>
-                  <textarea
-                    data-field="description_courte"
-                    value={form.description_courte}
-                    onChange={e => updateForm('description_courte', e.target.value)}
-                    rows={2}
-                    className={cx(inputCls, 'resize-none')}
-                  />
-                </Field>
-                <Field label="Description longue" error={formErrors.description_longue}>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <Field label={t('field_desc_short')} error={formErrors.description_courte}>
+                    <textarea
+                      data-field="description_courte"
+                      value={form.description_courte}
+                      onChange={e => updateForm('description_courte', e.target.value)}
+                      rows={3}
+                      className={cx(inputCls, 'resize-none')}
+                    />
+                  </Field>
+                  <Field label={t('field_desc_ai')} error={formErrors.description_ia}>
+                    <textarea
+                      data-field="description_ia"
+                      value={form.description_ia}
+                      onChange={e => updateForm('description_ia', e.target.value)}
+                      rows={3}
+                      className={cx(inputCls, 'resize-none')}
+                    />
+                  </Field>
+                </div>
+                <Field label={t('field_desc_long')} error={formErrors.description_longue}>
                   <textarea
                     data-field="description_longue"
                     value={form.description_longue}
@@ -982,36 +1109,63 @@ export default function AccessoriesPage() {
                     className={cx(inputCls, 'resize-none')}
                   />
                 </Field>
-                <Field label="Description IA" error={formErrors.description_ia}>
-                  <textarea
-                    data-field="description_ia"
-                    value={form.description_ia}
-                    onChange={e => updateForm('description_ia', e.target.value)}
-                    rows={2}
-                    className={cx(inputCls, 'resize-none')}
+              </div>
+            </FormSection>
+
+            <FormSection title={t('section_specs')} icon={<Palette size={11} />}>
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                <Field label={t('field_material')} error={formErrors.matiere}>
+                  <input data-field="matiere" value={form.matiere} onChange={e => updateForm('matiere', e.target.value)} className={inputCls} />
+                </Field>
+                <Field label={t('field_color')} error={formErrors.couleur}>
+                  <input data-field="couleur" value={form.couleur} onChange={e => updateForm('couleur', e.target.value)} className={inputCls} />
+                </Field>
+                <Field label={t('field_size')} error={formErrors.taille}>
+                  <input data-field="taille" value={form.taille} onChange={e => updateForm('taille', e.target.value)} className={inputCls} />
+                </Field>
+                <Field label={t('field_stock')} required error={formErrors.stock_quantite}>
+                  <input
+                    data-field="stock_quantite"
+                    type="number"
+                    value={form.stock_quantite}
+                    onChange={e => updateForm('stock_quantite', e.target.value)}
+                    className={inputCls}
+                  />
+                </Field>
+                <Field label={t('field_alert')} error={formErrors.seuil_alerte_stock}>
+                  <input
+                    data-field="seuil_alerte_stock"
+                    type="number"
+                    value={form.seuil_alerte_stock}
+                    onChange={e => updateForm('seuil_alerte_stock', e.target.value)}
+                    className={inputCls}
+                  />
+                </Field>
+                <Field label={t('field_weight')} error={formErrors.poids_grammes}>
+                  <input
+                    data-field="poids_grammes"
+                    type="number"
+                    value={form.poids_grammes}
+                    onChange={e => updateForm('poids_grammes', e.target.value)}
+                    className={inputCls}
                   />
                 </Field>
               </div>
+              <label className="mt-4 flex items-center gap-2 text-xs text-foreground/70">
+                <input
+                  type="checkbox"
+                  checked={form.actif}
+                  onChange={e => setForm(prev => ({ ...prev, actif: Boolean(e.target.checked) }))}
+                  className="rounded border-white/10 bg-white/5 text-gold focus:ring-gold"
+                />
+                <span>{t('active_label')}</span>
+              </label>
             </FormSection>
 
-            <FormSection title="Caractéristiques" icon={<Palette size={11} />}>
-              <div className="grid grid-cols-3 gap-3">
-                <Field label="Matière" error={formErrors.matiere}>
-                  <input data-field="matiere" value={form.matiere} onChange={e => updateForm('matiere', e.target.value)} className={inputCls} />
-                </Field>
-                <Field label="Couleur" error={formErrors.couleur}>
-                  <input data-field="couleur" value={form.couleur} onChange={e => updateForm('couleur', e.target.value)} className={inputCls} />
-                </Field>
-                <Field label="Taille" error={formErrors.taille}>
-                  <input data-field="taille" value={form.taille} onChange={e => updateForm('taille', e.target.value)} className={inputCls} />
-                </Field>
-              </div>
-            </FormSection>
-
-            <FormSection title="Tarification" icon={<DollarSign size={11} />}>
+            <FormSection title={t('section_pricing')} icon={<DollarSign size={11} />}>
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-3">
-                  <Field label="Prix unitaire (FCFA)" required error={formErrors.prix_unitaire}>
+                  <Field label={t('field_price')} required error={formErrors.prix_unitaire}>
                     <input
                       data-field="prix_unitaire"
                       type="number"
@@ -1020,7 +1174,7 @@ export default function AccessoriesPage() {
                       className={inputCls}
                     />
                   </Field>
-                  <Field label="Prix promo (FCFA)" error={formErrors.prix_promotionnel}>
+                  <Field label={t('field_promo')} error={formErrors.prix_promotionnel}>
                     <input
                       data-field="prix_promotionnel"
                       type="number"
@@ -1036,8 +1190,8 @@ export default function AccessoriesPage() {
                     <Field
                       label={
                         <span className="flex items-center gap-1.5 text-amber-400/90">
-                          Prix d'achat (FCFA)
-                          <span className="rounded bg-amber-500/15 px-1.5 py-0.5 text-[9px] font-semibold text-amber-400">Admin</span>
+                          {t('field_purchase')}
+                          <span className="rounded bg-amber-500/15 px-1.5 py-0.5 text-[9px] font-semibold text-amber-400">{t('admin_badge')}</span>
                         </span>
                       }
                       error={formErrors.prix_achat}
@@ -1053,7 +1207,7 @@ export default function AccessoriesPage() {
                     </Field>
                     {profitPreview !== null && (
                       <p className={cx('mt-2 text-xs font-medium', profitPreview >= 0 ? 'text-emerald-400' : 'text-red-400')}>
-                        Bénéfice estimé : {profitPreview >= 0 ? '+' : ''}{profitPreview.toLocaleString()} FCFA
+                        {t('margin_label')} {profitPreview >= 0 ? '+' : ''}{profitPreview.toLocaleString()} FCFA
                       </p>
                     )}
                   </div>
@@ -1061,50 +1215,9 @@ export default function AccessoriesPage() {
               </div>
             </FormSection>
 
-            <FormSection title="Stock & logistique" icon={<Boxes size={11} />}>
-              <div className="grid grid-cols-3 gap-3">
-                <Field label="Quantité en stock" required error={formErrors.stock_quantite}>
-                  <input
-                    data-field="stock_quantite"
-                    type="number"
-                    value={form.stock_quantite}
-                    onChange={e => updateForm('stock_quantite', e.target.value)}
-                    className={inputCls}
-                  />
-                </Field>
-                <Field label={'Seuil d\'alerte'} error={formErrors.seuil_alerte_stock}>
-                  <input
-                    data-field="seuil_alerte_stock"
-                    type="number"
-                    value={form.seuil_alerte_stock}
-                    onChange={e => updateForm('seuil_alerte_stock', e.target.value)}
-                    className={inputCls}
-                  />
-                </Field>
-                <Field label="Poids (g)" error={formErrors.poids_grammes}>
-                  <input
-                    data-field="poids_grammes"
-                    type="number"
-                    value={form.poids_grammes}
-                    onChange={e => updateForm('poids_grammes', e.target.value)}
-                    className={inputCls}
-                  />
-                </Field>
-              </div>
-              <label className="mt-3 flex items-center gap-2 text-xs text-foreground/70">
-                <input
-                  type="checkbox"
-                  checked={form.actif}
-                  onChange={e => setForm(prev => ({ ...prev, actif: Boolean(e.target.checked) }))}
-                  className="rounded border-white/10 bg-white/5 text-gold focus:ring-gold"
-                />
-                <span>Actif / visible dans la boutique</span>
-              </label>
-            </FormSection>
-
             {tagTypes.length > 0 && (
               <FormSection title="Tags" icon={<Tag size={11} />}>
-                <div className="space-y-3">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   {tagTypes.map((tagType) => (
                     <Field key={tagType.id} label={tagType.nom}>
                       <input
@@ -1122,7 +1235,7 @@ export default function AccessoriesPage() {
 
           <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4 xl:sticky xl:top-0">
             <p className="mb-4 text-[10px] font-semibold uppercase tracking-widest text-foreground/40">
-              Images
+              {t('section_media')}
             </p>
             <MultiImageUpload
               key={editingAccessory?.slug || editingAccessory?.id || 'new'}
