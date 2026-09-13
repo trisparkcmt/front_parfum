@@ -125,30 +125,13 @@ const BottomNav = () => {
                    before:bg-gradient-to-b before:from-white/[0.06] before:to-transparent
                    before:pointer-events-none"
       >
-        {reelsActive ? (
-          <motion.div
-            layout
-            className="absolute -top-7 left-1/2 -translate-x-1/2 flex h-[52px] w-[52px]
-                       items-center justify-center rounded-full
-                       border border-white/10 bg-deep-black/90 backdrop-blur-2xl
-                       shadow-[0_10px_24px_rgba(0,0,0,0.55)]"
-          >
-            <span className="flex h-11 w-11 items-center justify-center rounded-full bg-gold
-                              shadow-[0_2px_14px_rgba(212,175,55,0.45)]">
-              <Video size={20} strokeWidth={2.1} className="text-black" />
-            </span>
-          </motion.div>
-        ) : (
-          <span className="relative z-10 text-foreground/55 transition-colors duration-200">
-            <Video size={20} strokeWidth={1.8} />
-          </span>
-        )}
-
-        {reelsActive && (
-          <span className="absolute bottom-2.5 whitespace-nowrap text-[10px] font-semibold text-gold">
-            {t('nav_reels', 'Reels')}
-          </span>
-        )}
+        <span
+          className={`relative z-10 transition-colors duration-200 ${
+            reelsActive ? 'text-gold' : 'text-foreground/55'
+          }`}
+        >
+          <Video size={20} strokeWidth={reelsActive ? 2.1 : 1.8} />
+        </span>
       </Link>
     </nav>
   );
