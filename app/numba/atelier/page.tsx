@@ -1029,7 +1029,9 @@ function AtelierContent() {
             </div>
             <button
               type="button"
-              onClick={() => setShowGuestSignupPrompt(false)}
+              onClick={() => {
+                setShowGuestSignupPrompt(false);
+              }}
               className="rounded-full border border-white/10 p-1.5 text-foreground/50 hover:text-white transition-colors"
               aria-label="Close"
             >
@@ -1055,7 +1057,9 @@ function AtelierContent() {
             />
             <button
               type="button"
-              onClick={() => setShowGuestSignupPrompt(false)}
+              onClick={() => {
+                window.setTimeout(() => setShowGuestSignupPrompt(false), 250);
+              }}
               className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm font-medium text-foreground/70 transition-colors hover:border-white/20 hover:text-white"
             >
               {i18n.language === 'en' ? 'Decline' : 'Refuser'}
