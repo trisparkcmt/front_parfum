@@ -472,14 +472,14 @@ export default function FacturesPage() {
                             tint="blue"
                           />
                         )}
-                        {inv.commande?.detail_url && (
+                        {/* {inv.commande?.detail_url && (
                           <IconButton
                             icon={LinkIcon}
                             href={inv.commande.detail_url}
                             title="Voir la commande"
                             tint="neutral"
                           />
-                        )}
+                        )} */}
                       </div>
                     </td>
                   </tr>

@@ -50,16 +50,13 @@ function extractProductSlugs(aiData?: AiResponse): string[] {
 }
 
 /**
- * Extracts essence IDs from AI response
+ * Pre-made essences are part of the generated formula itself, not a separate
+ * recommendation block. Keeping this list empty avoids rendering the same
+ * ingredients twice in the AI recommendation panel.
  */
 function extractEssenceIds(aiData?: AiResponse): string[] {
-  const ids: string[] = [];
-  
-  if (aiData?.essences_pre_faites) {
-    aiData.essences_pre_faites.forEach((e: { id: string | number }) => ids.push(String(e.id)));
-  }
-  
-  return ids;
+  void aiData;
+  return [];
 }
 
 /**
@@ -113,10 +110,9 @@ export function filterDuplicateRecommendations(
     (p: { id: string | number }) => !recommendedProductIds.has(String(p.id))
   ) ?? [];
 
-  // Filter essences (exclude if already recommended)
-  const filteredEssences = aiData.essences_pre_faites?.filter(
-    (e: { id: string | number }) => !recommendedEssenceIds.has(String(e.id))
-  ) ?? [];
+  // Pre-made essences are kept within the generated formula and should not
+  // be rendered as a separate recommendation list.
+  const filteredEssences = aiData.essences_pre_faites ?? [];
 
   // Filter accessories (exclude if already recommended)
   const filteredAccessories = aiData.accessoires?.filter(

@@ -518,8 +518,8 @@ function ProductCard({
   const handleAdd = () => { onAdd(); setAdded(true); setTimeout(() => setAdded(false), 2000); };
 
   return (
-    <div className="flex-shrink-0 w-44 bg-white/5 border border-white/10 rounded-2xl overflow-hidden hover:border-gold/30 transition-all group">
-      <div className="relative w-full h-36 bg-black/20 overflow-hidden">
+    <div className="flex-shrink-0 w-44 h-full min-h-[280px] bg-white/5 border border-white/10 rounded-2xl overflow-hidden hover:border-gold/30 transition-all group flex flex-col self-stretch">
+      <div className="relative w-full h-36 bg-black/20 overflow-hidden flex-shrink-0">
         {image ? (
           <AppImage
             src={image.startsWith('http') ? image : `${API_ROOT}${image}`}
@@ -533,13 +533,13 @@ function ProductCard({
           </div>
         )}
       </div>
-      <div className="p-3">
-        <p className="text-xs font-bold text-foreground/80 line-clamp-2 leading-tight mb-1">{name}</p>
-        <p className="text-xs text-gold font-semibold">{typeof price === 'number' ? formatPrice(price) : formatPrice(Number(price))}</p>
+      <div className="p-3 flex-1 flex flex-col">
+        <p className="text-xs font-bold text-foreground/80 line-clamp-2 leading-tight mb-2">{name}</p>
+        <p className="text-xs text-gold font-semibold mt-auto">{typeof price === 'number' ? formatPrice(price) : formatPrice(Number(price))}</p>
       </div>
       <button
         onClick={handleAdd}
-        className={`w-full py-2.5 text-[10px] font-bold uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all border-t border-white/5 ${
+        className={`mt-auto w-full py-2.5 text-[10px] font-bold uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all border-t border-white/5 ${
           added ? 'bg-emerald-500/20 text-emerald-400' : 'bg-white/5 hover:bg-gold hover:text-black text-foreground/60'
         }`}
       >
@@ -640,10 +640,9 @@ function AiBubble({
   }, [animateText]);
 
   const hasProducts = (aiData?.parfums_existants?.length ?? 0) > 0;
-  const hasEssences = (aiData?.essences_pre_faites?.length ?? 0) > 0;
   const hasAccessories = (aiData?.accessoires?.length ?? 0) > 0;
   const hasComposition = composition && composition.essences.length > 0;
-  const hasAnyItems = hasProducts || hasEssences || hasComposition || hasAccessories;
+  const hasAnyItems = hasProducts || hasComposition || hasAccessories;
   const shouldShowContent = !isError503 && (isTypingComplete || !animateText);
 
   const handleAddProduct = (p: AiProduct) => {
@@ -798,24 +797,6 @@ function AiBubble({
                   price={product.price}
                   onAdd={() => { addProduct(product); }}
                 />
-              ))}
-            </div>
-          </div>
-        )}
-
-        {!isError503 && shouldShowContent && hasEssences && (
-          <div>
-            <p className="text-[10px] text-foreground/40 uppercase tracking-widest font-bold mb-2 ml-1">{t.recommendedEssences}</p>
-            <div className="flex gap-3 overflow-x-auto pb-2" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-              {aiData!.essences_pre_faites!.map(e => (
-                <div key={e.id} className="flex-shrink-0 w-44 bg-white/5 border border-white/10 rounded-2xl p-4 hover:border-gold/30 transition-all">
-                  <div className="w-10 h-10 rounded-xl bg-gold/10 border border-gold/10 flex items-center justify-center mb-3">
-                    <Beaker size={18} className="text-gold/70" />
-                  </div>
-                  <p className="text-xs font-bold text-foreground/80 line-clamp-2 leading-tight mb-1">{e.nom}</p>
-                  <p className="text-[10px] text-foreground/40 font-mono mb-2">{e.quantite_ml}ml</p>
-                  <p className="text-xs text-gold font-semibold">{formatPrice(Number(e.prix_total_quantite))}</p>
-                </div>
               ))}
             </div>
           </div>

@@ -356,65 +356,66 @@ function AtelierContent() {
       try {
         const comp = await apiLabService.getCustomPerfume(Number(compositionIdParam));
         if (comp) {
-          setCompositionName(comp.nom || '');
-          setSaveModalName(comp.nom || '');
+          const normalizedName = comp.nom || comp.composition?.nom || '';
+          const normalizedFlaconId = comp.flacon ?? comp.composition?.flacon ?? null;
+          const normalizedFlaconDetail = comp.flacon_detail || comp.composition?.flacon_detail || null;
+          const normalizedLines = Array.isArray(comp.composition?.lignes)
+            ? comp.composition.lignes
+            : Array.isArray(comp.lignes)
+              ? comp.lignes
+              : [];
+
+          setCompositionName(normalizedName);
+          setSaveModalName(normalizedName);
           setSavedParfumId(Number(comp.id));
-          if (comp.couleur) {
-            setCouleur(comp.couleur);
+          if (comp.couleur || comp.composition?.couleur) {
+            setCouleur(comp.couleur || comp.composition?.couleur || '');
           }
 
-          // Handle flacon — can be nested object or flat ID
-          const flaconData = comp.composition?.flacon || comp.flacon;
-          const flaconDetail = comp.flacon_detail || comp.composition?.flacon_detail;
-          if (flaconData) {
-            const flaconId = typeof flaconData === 'object' ? flaconData.id : flaconData;
-            if (flaconId) {
-              setSelectedFlaconId(Number(flaconId));
-              let matchingFlacon = flacons.find(f => Number(f.id) === Number(flaconId));
-              if (!matchingFlacon && flaconDetail) {
-                matchingFlacon = {
-                  id: flaconDetail.id,
-                  nom: flaconDetail.nom || `Flacon ${flaconDetail.id}`,
-                  contenance_ml: flaconDetail.contenance_ml || 100,
-                  prix_unitaire: flaconDetail.prix_unitaire || '0',
-                  image_principale: flaconDetail.image_principale,
-                };
-                setFlacons(prev => [...prev, matchingFlacon]);
-              }
-              const cap = Number(
-                flaconDetail?.contenance_ml ||
-                flaconDetail?.capacite_ml ||
-                matchingFlacon?.contenance_ml ||
-                matchingFlacon?.capacite_ml ||
-                matchingFlacon?.capacity_ml ||
-                matchingFlacon?.size_ml ||
-                100
-              );
-              setBottleSize(cap);
+          const flaconId = normalizedFlaconDetail?.id ?? normalizedFlaconId ?? null;
+          if (flaconId) {
+            setSelectedFlaconId(Number(flaconId));
+            let matchingFlacon = flacons.find(f => Number(f.id) === Number(flaconId));
+            if (!matchingFlacon && normalizedFlaconDetail) {
+              matchingFlacon = {
+                id: normalizedFlaconDetail.id,
+                nom: normalizedFlaconDetail.nom || `Flacon ${normalizedFlaconDetail.id}`,
+                contenance_ml: normalizedFlaconDetail.contenance_ml || 100,
+                prix_unitaire: normalizedFlaconDetail.prix_unitaire || '0',
+                image_principale: normalizedFlaconDetail.image_principale,
+              };
+              setFlacons(prev => [...prev, matchingFlacon]);
             }
+            const cap = Number(
+              normalizedFlaconDetail?.contenance_ml ||
+              normalizedFlaconDetail?.capacite_ml ||
+              matchingFlacon?.contenance_ml ||
+              matchingFlacon?.capacite_ml ||
+              matchingFlacon?.capacity_ml ||
+              matchingFlacon?.size_ml ||
+              100
+            );
+            setBottleSize(cap);
           }
 
-          // Handle lignes — backend may return flat IDs (essence_id/ingredient_id)
-          // OR nested objects (essence: {id:...} / ingredient: {id:...})
-          const lines = comp.composition?.lignes || comp.lignes || [];
           const newQuantities: Record<string, number> = {};
           const extraEssences: EssenceClient[] = [];
           const extraIngredients: EssenceClient[] = [];
 
-          for (const line of lines) {
-            // Extract essence ID — try nested object first, then flat field
-            const essNested = line.essence;
-            const essId = essNested != null
-              ? (typeof essNested === 'object' ? essNested.id : essNested)
-              : (line.essence_id ?? null);
+          for (const line of normalizedLines) {
+            const essId = (() => {
+              const essenceValue = line?.essence ?? line?.essence_id ?? line?.essence_detail?.id ?? null;
+              if (essenceValue == null) return null;
+              return typeof essenceValue === 'object' ? essenceValue.id : essenceValue;
+            })();
 
-            // Extract ingredient ID — try nested object first, then flat field
-            const ingNested = line.ingredient;
-            const ingId = ingNested != null
-              ? (typeof ingNested === 'object' ? ingNested.id : ingNested)
-              : (line.ingredient_id ?? null);
+            const ingId = (() => {
+              const ingredientValue = line?.ingredient ?? line?.ingredient_id ?? line?.ingredient_detail?.id ?? null;
+              if (ingredientValue == null) return null;
+              return typeof ingredientValue === 'object' ? ingredientValue.id : ingredientValue;
+            })();
 
-            const qtyMl = Number(line.quantite_ml || 0);
+            const qtyMl = Number(line?.quantite_ml ?? line?.quantite ?? 0);
             if (qtyMl <= 0) continue;
 
             if (essId != null) {
@@ -995,14 +996,9 @@ function AtelierContent() {
       setShowSuccessModal(false);
       setQuantities({});
 
-      const popupWindow = window.open('', '_blank');
-      if (popupWindow) {
-        try {
-          popupWindow.opener = null;
-        } catch (_) {}
-        popupWindow.location.href = waLink;
-      } else {
-        window.location.assign(waLink);
+      const popupWindow = window.open(waLink, '_blank', 'noopener,noreferrer');
+      if (!popupWindow) {
+        window.open(waLink, '_blank');
       }
 
       addToast(i18n.language === 'en' ? 'Order placed successfully. Redirecting to WhatsApp...' : 'Commande passée avec succès. Redirection vers WhatsApp...', 'success');
@@ -1019,51 +1015,53 @@ function AtelierContent() {
   return (
     <div className="atelier-layout !pt-0">
       {showGuestSignupPrompt && !isAuthenticated && compositionIdParam && (
-        <div className="fixed top-5 right-5 z-[80] w-[min(92vw,360px)] rounded-2xl border border-gold/30 bg-[#0d0d0d]/95 p-4 shadow-2xl shadow-black/50 backdrop-blur-md">
-          <div className="flex items-start justify-between gap-3 mb-3">
-            <div>
-              <p className="text-[10px] uppercase tracking-[0.22em] text-gold/70">Atelier</p>
-              <h3 className="text-base font-semibold text-white mt-1">
-                {i18n.language === 'en' ? 'Sign up to save this perfume' : 'Créez un compte pour enregistrer ce parfum'}
-              </h3>
-            </div>
-            <button
-              type="button"
-              onClick={() => {
-                setShowGuestSignupPrompt(false);
-              }}
-              className="rounded-full border border-white/10 p-1.5 text-foreground/50 hover:text-white transition-colors"
-              aria-label="Close"
-            >
-              <X size={14} />
-            </button>
-          </div>
-
-          <p className="text-sm text-foreground/70 leading-6 mb-4">
-            {i18n.language === 'en'
-              ? 'Sign in with Google to keep this composition, save it to your profile, and continue your custom order without losing your work.'
-              : 'Connectez-vous avec Google pour garder cette composition, la sauvegarder dans votre profil et poursuivre votre commande sans perdre votre travail.'}
-          </p>
-
-          <div className="space-y-2">
-            <GoogleAuthButton
-              label={i18n.language === 'en' ? 'Sign up with Google' : 'S’inscrire avec Google'}
-              onTokenReceived={async (accessToken) => {
-                const success = await loginWithGoogle(accessToken);
-                if (success) {
+        <div className="fixed right-3 top-3 z-[80] w-[min(92vw,320px)] animate-[toastIn_0.28s_ease-out] sm:right-5 sm:top-5">
+          <div className="rounded-2xl border border-gold/30 bg-[#111111]/95 p-3.5 shadow-xl shadow-black/35 backdrop-blur-md transition-all duration-300 ease-out sm:p-4">
+            <div className="flex items-start justify-between gap-3 mb-2.5">
+              <div>
+                <p className="text-[9px] uppercase tracking-[0.22em] text-gold/70">Atelier</p>
+                <h3 className="text-sm font-semibold text-white mt-1 sm:text-base">
+                  {i18n.language === 'en' ? 'Sign up to save this perfume' : 'Créez un compte pour enregistrer ce parfum'}
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
                   setShowGuestSignupPrompt(false);
-                }
-              }}
-            />
-            <button
-              type="button"
-              onClick={() => {
-                window.setTimeout(() => setShowGuestSignupPrompt(false), 250);
-              }}
-              className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm font-medium text-foreground/70 transition-colors hover:border-white/20 hover:text-white"
-            >
-              {i18n.language === 'en' ? 'Decline' : 'Refuser'}
-            </button>
+                }}
+                className="rounded-full border border-white/10 p-1 text-foreground/50 hover:text-white transition-colors"
+                aria-label="Close"
+              >
+                <X size={12} />
+              </button>
+            </div>
+
+            <p className="text-xs leading-5 text-foreground/70 mb-3 sm:text-sm sm:leading-6">
+              {i18n.language === 'en'
+                ? 'Sign in with Google to keep this composition, save it to your profile, and continue your custom order without losing your work.'
+                : 'Connectez-vous avec Google pour garder cette composition, la sauvegarder dans votre profil et poursuivre votre commande sans perdre votre travail.'}
+            </p>
+
+            <div className="space-y-2">
+              <GoogleAuthButton
+                label={i18n.language === 'en' ? 'Sign up with Google' : 'S’inscrire avec Google'}
+                onTokenReceived={async (accessToken) => {
+                  const success = await loginWithGoogle(accessToken);
+                  if (success) {
+                    setShowGuestSignupPrompt(false);
+                  }
+                }}
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  window.setTimeout(() => setShowGuestSignupPrompt(false), 220);
+                }}
+                className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-xs font-medium text-foreground/70 transition-colors hover:border-white/20 hover:text-white sm:text-sm"
+              >
+                {i18n.language === 'en' ? 'Decline' : 'Refuser'}
+              </button>
+            </div>
           </div>
         </div>
       )}
