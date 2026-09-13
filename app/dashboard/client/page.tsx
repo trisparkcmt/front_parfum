@@ -141,11 +141,11 @@ export default function ClientDashboard() {
         <div className="bg-white/5 rounded-2xl border border-white/10 shadow-sm overflow-hidden">
           <div className="px-6 py-4 border-b border-white/10 flex flex-wrap items-center justify-between gap-3">
             <div>
-              <h2 className="font-semibold text-foreground">{t('ongoing_orders', { defaultValue: 'En cours' })}</h2>
-              <p className="text-xs text-foreground/40">{ongoingOrders.length} {t('orders', { defaultValue: 'commandes' })}</p>
+              <h2 className="font-semibold text-foreground">{t('ongoing_orders')}</h2>
+              <p className="text-xs text-foreground/40">{ongoingOrders.length} {t('orders')}</p>
             </div>
             <div className="flex items-center gap-2">
-              <label className="text-xs text-foreground/40">{t('rows_per_page', { defaultValue: 'Lignes / page' })}</label>
+              <label className="text-xs text-foreground/40">{t('rows_per_page')}</label>
               <select
                 value={rowsPerPage}
                 onChange={(event) => {
@@ -195,8 +195,8 @@ export default function ClientDashboard() {
             </table>
           </div>
           <div className="px-6 py-4 border-t border-white/10 flex flex-wrap items-center justify-between gap-3 text-xs text-foreground/40">
-            <span>{t('showing', { defaultValue: 'Affiché' })} {(ongoingPage - 1) * rowsPerPage + 1} - {Math.min(ongoingOrders.length, ongoingPage * rowsPerPage)} / {ongoingOrders.length}</span>
-            <span>{t('page', { defaultValue: 'Page' })} {ongoingPage} / {ongoingPages}</span>
+            <span>{t('showing')} {(ongoingPage - 1) * rowsPerPage + 1} - {Math.min(ongoingOrders.length, ongoingPage * rowsPerPage)} / {ongoingOrders.length}</span>
+            <span>{t('page')} {ongoingPage} / {ongoingPages}</span>
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setOngoingPage((page) => Math.max(1, page - 1))}
@@ -219,8 +219,8 @@ export default function ClientDashboard() {
         <div className="bg-white/5 rounded-2xl border border-white/10 shadow-sm overflow-hidden">
           <div className="px-6 py-4 border-b border-white/10 flex flex-wrap items-center justify-between gap-3">
             <div>
-              <h2 className="font-semibold text-foreground">{t('delivered_orders', { defaultValue: 'Livrées' })}</h2>
-              <p className="text-xs text-foreground/40">{deliveredOrders.length} {t('orders', { defaultValue: 'commandes' })}</p>
+              <h2 className="font-semibold text-foreground">{t('delivered_orders')}</h2>
+              <p className="text-xs text-foreground/40">{deliveredOrders.length} {t('orders')}</p>
             </div>
           </div>
           <div className="overflow-x-auto">
@@ -257,7 +257,7 @@ export default function ClientDashboard() {
             </table>
           </div>
           <div className="px-6 py-4 border-t border-white/10 flex flex-wrap items-center justify-between gap-3 text-xs text-foreground/40">
-            <span>{t('showing', { defaultValue: 'Affiché' })} {(deliveredPage - 1) * rowsPerPage + 1} - {Math.min(deliveredOrders.length, deliveredPage * rowsPerPage)} / {deliveredOrders.length}</span>
+            <span>{t('showing')} {(deliveredPage - 1) * rowsPerPage + 1} - {Math.min(deliveredOrders.length, deliveredPage * rowsPerPage)} / {deliveredOrders.length}</span>
             <span>{t('page', { defaultValue: 'Page' })} {deliveredPage} / {deliveredPages}</span>
             <div className="flex items-center gap-2">
               <button
@@ -355,7 +355,7 @@ export default function ClientDashboard() {
                 onClick={() => setSelectedOrder(null)}
                 className="w-full border border-white/10 rounded-xl py-3 text-sm text-foreground/80 hover:bg-white/5 transition-colors"
               >
-                {t('close', { defaultValue: 'Fermer' })}
+                {t('close')}
               </button>
             </div>
           </div>

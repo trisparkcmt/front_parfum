@@ -7,14 +7,12 @@ import { useToastStore } from '@/store/useToastStore';
 import { useRouter } from 'next/navigation';
 import {
   MapPin, Phone, CheckCircle, Clock, Truck,
-  Navigation, Package, Palette, ChevronRight,
+  Navigation, Package, ChevronRight,
   X, Loader2, RefreshCw, AlertTriangle,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { BackButton } from '@/components/ui/BackButton';
 import { deliveryService } from '@/services/apiService';
-
-// ─── Interfaces ───────────────────────────────────────────────────────────────
 
 interface DeliveryTask {
   id: number;
@@ -26,26 +24,109 @@ interface DeliveryTask {
   status: 'assigned' | 'in_transit' | 'delivering' | 'delivered' | 'failed';
   assignedAt: string;
   deliveryAddress?: string;
-  _raw?: any; // original backend object
+  _raw?: any;
 }
 
-// ─── Status config ─────────────────────────────────────────────────────────────
-
-const STATUS_CFG: Record<string, { label: string; color: string; bg: string }> = {
-  assigned:   { label: 'Assigné',       color: 'text-amber-400',   bg: 'bg-amber-400/10'   },
-  in_transit: { label: 'En route',      color: 'text-blue-400',    bg: 'bg-blue-400/10'    },
-  delivering: { label: 'En livraison',  color: 'text-blue-400',    bg: 'bg-blue-400/10'    },
-  delivered:  { label: 'Livré',         color: 'text-emerald-400', bg: 'bg-emerald-400/10' },
-  failed:     { label: 'Échoué',        color: 'text-red-400',     bg: 'bg-red-400/10'     },
+const DELIVERY_TEXT = {
+  fr: {
+    status_assigned: 'Assigné',
+    status_in_transit: 'En route',
+    status_delivering: 'En livraison',
+    status_delivered: 'Livré',
+    status_failed: 'Échoué',
+    to_deliver: 'À livrer',
+    delivered: 'Livrées',
+    total_missions: 'Total missions',
+    on_the_way: 'En route',
+    daily_missions: 'Missions du jour',
+    loading: 'Chargement des livraisons...',
+    all_done: 'Toutes les missions sont terminées',
+    check_later: 'Revenez plus tard pour les prochaines missions',
+    my_deliveries: 'Mes Livraisons',
+    view_my_deliveries: 'Voir toutes mes livraisons',
+    completed_deliveries: 'Livraisons terminées',
+    view_completed_deliveries: 'Voir l’historique',
+    order_label: 'Commande',
+    amount_label: 'Montant',
+    details: 'Détails →',
+    unspecified_address: 'Adresse non précisée',
+    signal_failure: 'Signaler échec',
+    mark_delivered: 'Marquer livré',
+    failure_reason_placeholder: 'Raison de l’échec (ex: client absent, adresse introuvable...)',
+    cancel: 'Annuler',
+    confirm: 'Confirmer',
+    customer_note: 'Note du client',
+    close: 'Fermer',
+    call_customer: 'Appeler le client',
+    address: 'Adresse',
+    phone: 'Téléphone',
+    amount: 'Montant',
+    modal_failure_title: 'Signaler un échec',
+    status: 'Statut',
+    order: 'Commande',
+    refresh: 'Actualiser',
+    missions_in_progress_one: '1 livraison en cours',
+    missions_in_progress_many: '{{count}} livraisons en cours',
+    missions_in_progress_en_one: '1 delivery in progress',
+    missions_in_progress_en_many: '{{count}} deliveries in progress',
+  },
+  en: {
+    status_assigned: 'Assigned',
+    status_in_transit: 'In transit',
+    status_delivering: 'Delivering',
+    status_delivered: 'Delivered',
+    status_failed: 'Failed',
+    to_deliver: 'To deliver',
+    delivered: 'Delivered',
+    total_missions: 'Total missions',
+    on_the_way: 'On the way',
+    daily_missions: 'Daily missions',
+    loading: 'Loading deliveries...',
+    all_done: 'All missions are complete',
+    check_later: 'Check back later for the next missions',
+    my_deliveries: 'My Deliveries',
+    view_my_deliveries: 'View all my deliveries',
+    completed_deliveries: 'Completed deliveries',
+    view_completed_deliveries: 'View history',
+    order_label: 'Order',
+    amount_label: 'Amount',
+    details: 'Details →',
+    unspecified_address: 'Address not specified',
+    signal_failure: 'Report failure',
+    mark_delivered: 'Mark delivered',
+    failure_reason_placeholder: 'Reason for failure (e.g. customer absent, address not found...)',
+    cancel: 'Cancel',
+    confirm: 'Confirm',
+    customer_note: 'Customer note',
+    close: 'Close',
+    call_customer: 'Call customer',
+    address: 'Address',
+    phone: 'Phone',
+    amount: 'Amount',
+    modal_failure_title: 'Report a failure',
+    status: 'Status',
+    order: 'Order',
+    refresh: 'Refresh',
+    missions_in_progress_one: '1 delivery in progress',
+    missions_in_progress_many: '{{count}} deliveries in progress',
+  },
 };
 
-// ─── Main Component ────────────────────────────────────────────────────────────
-
 export default function DeliveryDashboard() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isEn = i18n.language?.startsWith('en');
+  const tr = (key: keyof typeof DELIVERY_TEXT.fr) => (isEn ? DELIVERY_TEXT.en[key] : DELIVERY_TEXT.fr[key]) ?? DELIVERY_TEXT.fr[key] ?? key;
   const router = useRouter();
   const { user } = useAuthStore();
   const { addToast } = useToastStore();
+
+  const STATUS_CFG: Record<string, { label: string; color: string; bg: string }> = {
+    assigned:   { label: tr('status_assigned'),       color: 'text-amber-400',   bg: 'bg-amber-400/10'   },
+    in_transit: { label: tr('status_in_transit'),      color: 'text-blue-400',    bg: 'bg-blue-400/10'    },
+    delivering: { label: tr('status_delivering'),      color: 'text-blue-400',    bg: 'bg-blue-400/10'    },
+    delivered:  { label: tr('status_delivered'),       color: 'text-emerald-400', bg: 'bg-emerald-400/10' },
+    failed:     { label: tr('status_failed'),          color: 'text-red-400',     bg: 'bg-red-400/10'     },
+  };
 
   const [tasks, setTasks]     = useState<DeliveryTask[]>([]);
   const [stats, setStats]     = useState({ totalAssigned: 0, totalDelivered: 0, totalFailed: 0 });
@@ -69,9 +150,8 @@ export default function DeliveryDashboard() {
 
       const mapped: DeliveryTask[] = rawList.map((d: any) => ({
         id:              d.id,
-        // Flat API key priority mapping
         orderId:         d.numero_commande ?? d.commande?.numero_commande ?? String(d.id),
-        clientName:      d.client_nom ?? d.livraison_nom_complet ?? d.commande?.client_email ?? 'Client',
+        clientName:      d.client_nom ?? d.livraison_nom_complet ?? d.commande?.client_email ?? (isEn ? 'Customer' : 'Client'),
         clientPhone:     d.livraison_telephone ?? d.commande?.livraison_telephone ?? d.telephone ?? '',
         items:           [],
         total:           Number(d.total_ttc ?? d.commande?.total_ttc ?? d.montant ?? 0),
@@ -90,11 +170,11 @@ export default function DeliveryDashboard() {
         totalFailed:    mapped.filter(t => t.status === 'failed').length,
       });
     } catch (err: any) {
-      addToast('Erreur lors du chargement des livraisons', 'error');
+      addToast(isEn ? 'Error loading deliveries' : 'Erreur lors du chargement des livraisons', 'error');
     } finally {
       setLoading(false);
     }
-  }, [addToast]);
+  }, [addToast, isEn]);
 
   useEffect(() => {
     fetchData();
@@ -116,10 +196,10 @@ export default function DeliveryDashboard() {
     setUpdating(task.id);
     try {
       await deliveryService.updateDeliveryStatus(task.id, { action: 'livrer' });
-      addToast(`Livraison ${task.orderId} marquée comme livrée !`, 'success');
+      addToast(isEn ? `Order ${task.orderId} marked as delivered.` : `Livraison ${task.orderId} marquée comme livrée !`, 'success');
       await fetchData();
     } catch (err: any) {
-      addToast(err.response?.data?.detail ?? 'Erreur lors de la mise à jour', 'error');
+      addToast(err.response?.data?.detail ?? (isEn ? 'Error updating delivery' : 'Erreur lors de la mise à jour'), 'error');
     } finally {
       setUpdating(null);
     }
@@ -132,14 +212,14 @@ export default function DeliveryDashboard() {
     try {
       await deliveryService.updateDeliveryStatus(failModal.id, {
         action: 'echouer',
-        motif: failReason || 'Non précisé',
+        motif: failReason || (isEn ? 'Not specified' : 'Non précisé'),
       });
-      addToast('Livraison marquée comme échouée', 'info');
+      addToast(isEn ? 'Delivery marked as failed' : 'Livraison marquée comme échouée', 'info');
       setFailModal(null);
       setFailReason('');
       await fetchData();
     } catch (err: any) {
-      addToast(err.response?.data?.detail ?? 'Erreur', 'error');
+      addToast(err.response?.data?.detail ?? (isEn ? 'Error' : 'Erreur'), 'error');
     } finally {
       setUpdating(null);
     }
@@ -147,13 +227,16 @@ export default function DeliveryDashboard() {
 
   const pendingTasks   = tasks.filter(t => t.status !== 'delivered' && t.status !== 'failed');
   const completedTasks: DeliveryTask[] = [];
+  const missionSummary = pendingTasks.length > 0
+    ? (isEn
+        ? (pendingTasks.length === 1 ? DELIVERY_TEXT.en.missions_in_progress_one : DELIVERY_TEXT.en.missions_in_progress_many.replace('{{count}}', String(pendingTasks.length)))
+        : (pendingTasks.length === 1 ? DELIVERY_TEXT.fr.missions_in_progress_one : DELIVERY_TEXT.fr.missions_in_progress_many.replace('{{count}}', String(pendingTasks.length))))
+    : t('no_missions_desc');
 
-  // ─────────────────────────────────────────────────────────────────────────
   return (
     <div className="space-y-6 px-4 sm:px-6">
       <BackButton />
 
-      {/* Welcome banner */}
       <div className="bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-2xl p-6 text-foreground relative overflow-hidden shadow-sm shadow-emerald-500/20">
         <div className="absolute top-0 right-0 opacity-10">
           <Truck size={120} />
@@ -162,14 +245,11 @@ export default function DeliveryDashboard() {
           <div>
             <p className="text-sm text-foreground/70 mb-1 font-medium">{t('hello_comma')}</p>
             <h1 className="text-2xl font-bold mb-1">{user?.firstName} {user?.lastName}</h1>
-            <p className="text-sm text-foreground/70">
-              {pendingTasks.length > 0
-                ? `${pendingTasks.length} livraison${pendingTasks.length > 1 ? 's' : ''} en cours`
-                : t('no_missions_desc')}
-            </p>
+            <p className="text-sm text-foreground/70">{missionSummary}</p>
           </div>
           <button
             onClick={fetchData}
+            aria-label={tr('refresh')}
             className="bg-white/10 hover:bg-white/20 p-2 rounded-xl transition-colors"
           >
             <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
@@ -177,13 +257,12 @@ export default function DeliveryDashboard() {
         </div>
       </div>
 
-      {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { label: 'À livrer',      value: pendingTasks.length,        icon: <Clock size={18} />,       color: 'text-amber-400 bg-amber-400/10'   },
-          { label: 'Livrées',       value: stats.totalDelivered,       icon: <CheckCircle size={18} />, color: 'text-emerald-400 bg-emerald-400/10'},
-          { label: 'Total missions',value: stats.totalAssigned,        icon: <Package size={18} />,     color: 'text-gold bg-gold/10'              },
-          { label: 'En route',      value: tasks.filter(t => t.status === 'in_transit' || t.status === 'delivering').length, icon: <Navigation size={18} />, color: 'text-blue-400 bg-blue-400/10' },
+          { label: tr('to_deliver'), value: pendingTasks.length, icon: <Clock size={18} />, color: 'text-amber-400 bg-amber-400/10' },
+          { label: tr('delivered'), value: stats.totalDelivered, icon: <CheckCircle size={18} />, color: 'text-emerald-400 bg-emerald-400/10' },
+          { label: tr('total_missions'), value: stats.totalAssigned, icon: <Package size={18} />, color: 'text-gold bg-gold/10' },
+          { label: tr('on_the_way'), value: tasks.filter(t => t.status === 'in_transit' || t.status === 'delivering').length, icon: <Navigation size={18} />, color: 'text-blue-400 bg-blue-400/10' },
         ].map(s => (
           <div key={s.label} className="bg-white/5 rounded-2xl border border-white/10 p-5 shadow-sm">
             <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-3 ${s.color}`}>{s.icon}</div>
@@ -195,11 +274,11 @@ export default function DeliveryDashboard() {
 
       {/* Mission cards */}
       <div>
-        <h2 className="font-semibold text-foreground text-lg mb-4">{t('daily_missions')}</h2>
+        <h2 className="font-semibold text-foreground text-lg mb-4">{tr('daily_missions')}</h2>
         {loading ? (
           <div className="flex flex-col items-center justify-center py-16 text-gold gap-3">
             <Loader2 className="animate-spin" size={28} />
-            <p className="text-sm">Chargement des livraisons...</p>
+            <p className="text-sm">{tr('loading')}</p>
           </div>
         ) : (
           <div className="space-y-4">
@@ -232,7 +311,7 @@ export default function DeliveryDashboard() {
                         onClick={() => setSelected(task)}
                         className="text-xs text-gold/60 hover:text-gold mt-1 transition-colors"
                       >
-                        Détails →
+                        {tr('details')}
                       </button>
                     </div>
                   </div>
@@ -240,7 +319,7 @@ export default function DeliveryDashboard() {
                   <div className="space-y-2.5 mb-5">
                     <div className="flex items-start gap-3 text-sm text-foreground/60">
                       <MapPin size={16} className="text-gold shrink-0 mt-0.5" />
-                      <span>{task.deliveryAddress || t('unspecified_address')}</span>
+                      <span>{task.deliveryAddress || tr('unspecified_address')}</span>
                     </div>
                     {task.clientPhone && (
                       <div className="flex items-center gap-3 text-sm">
@@ -260,7 +339,7 @@ export default function DeliveryDashboard() {
                       className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-red-500/20 text-red-400 hover:bg-red-500/10 text-sm font-medium transition-colors disabled:opacity-50"
                     >
                       <AlertTriangle size={14} />
-                      Signaler échec
+                      {tr('signal_failure')}
                     </button>
 
                     {/* Mark delivered */}
@@ -273,7 +352,7 @@ export default function DeliveryDashboard() {
                         ? <Loader2 size={14} className="animate-spin" />
                         : <CheckCircle size={14} />
                       }
-                      {t('status_delivered')}
+                      {tr('status_delivered')}
                     </button>
                   </div>
                 </div>
@@ -283,8 +362,8 @@ export default function DeliveryDashboard() {
             {pendingTasks.length === 0 && (
               <div className="text-center py-12 bg-white/5 rounded-2xl border border-white/10 shadow-sm">
                 <CheckCircle size={48} className="text-emerald-500/20 mx-auto mb-4" />
-                <p className="text-foreground font-medium">{t('all_missions_done')}</p>
-                <p className="text-xs text-foreground/40 mt-1">{t('check_later_desc')}</p>
+                <p className="text-foreground font-medium">{tr('all_done')}</p>
+                <p className="text-xs text-foreground/40 mt-1">{tr('check_later')}</p>
               </div>
             )}
           </div>
@@ -300,10 +379,9 @@ export default function DeliveryDashboard() {
           <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center text-foreground mb-3 group-hover:scale-110 transition-transform">
             <Truck size={20} />
           </div>
-          <p className="font-semibold text-sm text-foreground">Mes Livraisons</p>
-          <p className="text-xs text-foreground/40 mt-0.5 flex items-center gap-1">Voir toutes mes livraisons <ChevronRight size={12} /></p>
+          <p className="font-semibold text-sm text-foreground">{tr('my_deliveries')}</p>
+          <p className="text-xs text-foreground/40 mt-0.5 flex items-center gap-1">{tr('view_my_deliveries')} <ChevronRight size={12} /></p>
         </button>
-
 
         <button
           onClick={() => router.push('/dashboard/delivery/completed')}
@@ -312,8 +390,8 @@ export default function DeliveryDashboard() {
           <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center text-foreground mb-3 group-hover:scale-110 transition-transform">
             <Truck size={20} />
           </div>
-          <p className="font-semibold text-sm text-foreground">{t('completed_deliveries', { defaultValue: 'Livraisons terminées' })}</p>
-          <p className="text-xs text-foreground/40 mt-0.5 flex items-center gap-1">{t('view_completed_deliveries', { defaultValue: 'Voir l’historique' })} <ChevronRight size={12} /></p>
+          <p className="font-semibold text-sm text-foreground">{tr('completed_deliveries')}</p>
+          <p className="text-xs text-foreground/40 mt-0.5 flex items-center gap-1">{tr('view_completed_deliveries')} <ChevronRight size={12} /></p>
         </button>
       </div>
 
@@ -323,7 +401,7 @@ export default function DeliveryDashboard() {
           <div className="bg-background rounded-2xl w-full max-w-md shadow-sm border border-white/10 max-h-[90vh] overflow-y-auto">
             <div className="sticky top-0 bg-background border-b border-white/10 px-6 py-4 flex items-center justify-between z-10">
               <div>
-                <h3 className="font-bold text-foreground">Commande {selected.orderId}</h3>
+                <h3 className="font-bold text-foreground">{tr('order_label')} {selected.orderId}</h3>
                 <p className="text-xs text-foreground/40">{selected.clientName}</p>
               </div>
               <button onClick={() => setSelected(null)} className="p-2 rounded-xl hover:bg-white/5 text-foreground/40 transition-colors">
@@ -342,8 +420,8 @@ export default function DeliveryDashboard() {
               {/* Info */}
               <div className="grid grid-cols-2 gap-3">
                 {[
-                  { label: 'Montant',    value: formatPrice(selected.total) },
-                  { label: 'Téléphone',  value: selected.clientPhone || '—' },
+                  { label: tr('amount'), value: formatPrice(selected.total) },
+                  { label: tr('phone'), value: selected.clientPhone || '—' },
                 ].map(row => (
                   <div key={row.label} className="bg-white/5 rounded-xl px-3 py-2.5">
                     <p className="text-[10px] text-foreground/40 mb-0.5">{row.label}</p>
@@ -355,14 +433,14 @@ export default function DeliveryDashboard() {
               {/* Address */}
               {selected.deliveryAddress && (
                 <div className="bg-white/5 rounded-xl px-4 py-3">
-                  <p className="text-xs text-foreground/40 mb-1.5 flex items-center gap-1"><MapPin size={12} /> Adresse</p>
+                  <p className="text-xs text-foreground/40 mb-1.5 flex items-center gap-1"><MapPin size={12} /> {tr('address')}</p>
                   <p className="text-sm font-medium text-foreground">{selected.deliveryAddress}</p>
                   {selected.clientPhone && (
                     <a
                       href={`tel:${selected.clientPhone}`}
                       className="mt-2 flex items-center gap-2 text-xs text-gold hover:text-gold/80 transition-colors"
                     >
-                      <Phone size={11} /> Appeler le client
+                      <Phone size={11} /> {tr('call_customer')}
                     </a>
                   )}
                 </div>
@@ -371,7 +449,7 @@ export default function DeliveryDashboard() {
               {/* Raw backend note */}
               {selected._raw?.note_client && (
                 <div className="bg-white/5 rounded-xl px-4 py-3">
-                  <p className="text-xs text-foreground/40 mb-1">Note du client</p>
+                  <p className="text-xs text-foreground/40 mb-1">{tr('customer_note')}</p>
                   <p className="text-sm text-foreground">{selected._raw.note_client}</p>
                 </div>
               )}
@@ -384,7 +462,7 @@ export default function DeliveryDashboard() {
                     onClick={() => { setSelected(null); setFailModal(selected); setFailReason(''); }}
                     className="flex-1 border border-red-500/20 text-red-400 rounded-xl py-2.5 text-sm font-medium hover:bg-red-500/10 transition-colors"
                   >
-                    Signaler échec
+                    {tr('signal_failure')}
                   </button>
                   <button
                     disabled={updating === selected.id}
@@ -392,7 +470,7 @@ export default function DeliveryDashboard() {
                     className="flex-1 bg-gold text-black rounded-xl py-2.5 text-sm font-bold hover:bg-gold/80 transition-colors flex items-center justify-center gap-2"
                   >
                     {updating === selected.id ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle size={14} />}
-                    Marquer livré
+                    {tr('mark_delivered')}
                   </button>
                 </div>
               )}
@@ -401,7 +479,7 @@ export default function DeliveryDashboard() {
                 onClick={() => setSelected(null)}
                 className="w-full border border-white/10 rounded-xl py-2.5 text-sm text-foreground/60 hover:bg-white/5 transition-colors"
               >
-                Fermer
+                {tr('close')}
               </button>
             </div>
           </div>
@@ -413,20 +491,20 @@ export default function DeliveryDashboard() {
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-background rounded-2xl w-full max-w-sm shadow-sm border border-white/10 p-6">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-bold text-foreground">Signaler un échec</h3>
+              <h3 className="font-bold text-foreground">{tr('modal_failure_title')}</h3>
               <button onClick={() => setFailModal(null)} className="p-2 rounded-xl hover:bg-white/5 text-foreground/40">
                 <X size={16} />
               </button>
             </div>
 
             <p className="text-sm text-foreground/60 mb-4">
-              Commande <span className="text-foreground font-mono">{failModal.orderId}</span>
+              {tr('order')} <span className="text-foreground font-mono">{failModal.orderId}</span>
             </p>
 
             <textarea
               value={failReason}
               onChange={e => setFailReason(e.target.value)}
-              placeholder="Raison de l'échec (ex: client absent, adresse introuvable...)"
+              placeholder={tr('failure_reason_placeholder')}
               rows={3}
               className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-foreground placeholder:text-foreground/30 outline-none focus:border-red-500/40 transition-colors resize-none mb-4"
             />
@@ -436,7 +514,7 @@ export default function DeliveryDashboard() {
                 onClick={() => setFailModal(null)}
                 className="flex-1 border border-white/10 rounded-xl py-2.5 text-sm text-foreground/60 hover:bg-white/5 transition-colors"
               >
-                Annuler
+                {tr('cancel')}
               </button>
               <button
                 onClick={handleMarkFailed}
@@ -444,7 +522,7 @@ export default function DeliveryDashboard() {
                 className="flex-1 bg-red-500/10 border border-red-500/20 text-red-400 rounded-xl py-2.5 text-sm font-semibold hover:bg-red-500/20 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
               >
                 {updating === failModal.id && <Loader2 size={14} className="animate-spin" />}
-                Confirmer
+                {tr('confirm')}
               </button>
             </div>
           </div>

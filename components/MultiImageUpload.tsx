@@ -123,7 +123,7 @@ export const MultiImageUpload: React.FC<MultiImageUploadProps> = ({
       let nextSlot = 1;
 
       imagePreviews.forEach(({ file, preview }) => {
-        while (nextSlot <= 4 && updated[nextSlot]?.file) {
+        while (nextSlot <= 4 && (updated[nextSlot]?.file || updated[nextSlot]?.preview)) {
           nextSlot += 1;
         }
 
@@ -247,7 +247,7 @@ export const MultiImageUpload: React.FC<MultiImageUploadProps> = ({
           ) : (
             <div className="flex flex-col items-center justify-center text-center">
               <Upload className="text-gold mb-2" size={24} />
-              <p className="text-sm font-medium text-foreground mb-1">Cliquer pour ajouter l'image principale</p>
+              <p className="text-sm font-medium text-foreground mb-1">Cliquer pour ajouter l&apos;image principale</p>
               <p className="text-xs text-foreground/40">ou glisser-déposer une image</p>
             </div>
           )}
@@ -278,7 +278,7 @@ export const MultiImageUpload: React.FC<MultiImageUploadProps> = ({
           <div className="flex flex-col items-center justify-center text-center">
             <Upload className="text-gold mb-2" size={32} />
             <p className="text-sm font-medium text-foreground mb-1">Cliquer pour ajouter plusieurs images</p>
-            <p className="text-xs text-foreground/40">ou glisser-déposer jusqu'à 4 images à la fois</p>
+            <p className="text-xs text-foreground/40">ou glisser-déposer jusqu&apos;à 4 images à la fois</p>
           </div>
 
           <input
