@@ -180,8 +180,8 @@ function cx(...parts: Array<string | false | null | undefined>) {
 
 function FormSection({ title, icon, children }: { title: string; icon: React.ReactNode; children: React.ReactNode }) {
   return (
-    <section className="space-y-4 rounded-xl border border-white/10 bg-white/[0.02] p-4">
-      <p className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-widest text-foreground/40">
+    <section className="space-y-4 border-t border-white/8 pt-6 first:border-t-0 first:pt-0">
+      <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-widest text-gold/75">
         {icon}{title}
       </p>
       {children}
@@ -1021,8 +1021,8 @@ export default function AccessoriesPage() {
           </div>
         )}
 
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1.6fr_0.9fr]">
-          <div className="space-y-4">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1.65fr_1fr] lg:items-start">
+          <div className="space-y-6 rounded-2xl border border-white/10 bg-white/[0.02] p-5 sm:p-6">
 
             <FormSection title={t('section_id')} icon={<Tag size={11} />}>
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -1233,8 +1233,8 @@ export default function AccessoriesPage() {
             )}
           </div>
 
-          <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4 xl:sticky xl:top-0">
-            <p className="mb-4 text-[10px] font-semibold uppercase tracking-widest text-foreground/40">
+          <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-5 sm:p-6 lg:sticky lg:top-6">
+            <p className="mb-4 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-widest text-gold/75">
               {t('section_media')}
             </p>
             <MultiImageUpload
