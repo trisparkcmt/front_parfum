@@ -66,6 +66,11 @@ export default function PerfumesShopClient() {
     setCurrentPage(1);
   }, [genre, olfactiveFamily, intensity, maxPrice, debouncedSearch, activeTab]);
 
+  useEffect(() => {
+    if (!mounted) return;
+    window.scrollTo({ top: 0, left: 0 });
+  }, [mounted, currentPage, activeTab, debouncedSearch, genre, olfactiveFamily, intensity, maxPrice]);
+
   // Load products when filters, tab, or page changes
   useEffect(() => {
     if (!mounted) return;
