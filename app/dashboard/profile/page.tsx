@@ -95,8 +95,10 @@ interface DashboardOption {
   id: string;
   titleKey: string;
   defaultTitle: string;
+  defaultTitleFr: string;
   descKey: string;
   defaultDesc: string;
+  defaultDescFr: string;
   href: string;
   icon: string;
   roles: UserRole[];
@@ -106,9 +108,11 @@ const DASHBOARD_OPTIONS: DashboardOption[] = [
   {
     id: 'client',
     titleKey: 'dashboard_client_title',
-    defaultTitle: 'Espace Client',
+    defaultTitle: 'Client Space',
+    defaultTitleFr: 'Espace Client',
     descKey: 'dashboard_client_desc',
-    defaultDesc: 'Suivi de vos commandes, créations et favoris.',
+    defaultDesc: 'Track your orders, creations and favorites.',
+    defaultDescFr: 'Suivi de vos commandes, créations et favoris.',
     href: '/dashboard/client',
     icon: '📦',
     roles: ['client'],
@@ -116,9 +120,11 @@ const DASHBOARD_OPTIONS: DashboardOption[] = [
   {
     id: 'delivery',
     titleKey: 'dashboard_delivery_title',
-    defaultTitle: 'Espace Livreur',
+    defaultTitle: 'Courier Space',
+    defaultTitleFr: 'Espace Livreur',
     descKey: 'dashboard_delivery_desc',
-    defaultDesc: 'Suivi et exécution de vos livraisons assignées.',
+    defaultDesc: 'Track and complete your assigned deliveries.',
+    defaultDescFr: 'Suivi et exécution de vos livraisons assignées.',
     href: '/dashboard/delivery',
     icon: '🚗',
     roles: ['delivery'],
@@ -126,9 +132,11 @@ const DASHBOARD_OPTIONS: DashboardOption[] = [
   {
     id: 'partner',
     titleKey: 'dashboard_partner_title',
-    defaultTitle: 'Espace Prestataire',
+    defaultTitle: 'Partner Space',
+    defaultTitleFr: 'Espace Prestataire',
     descKey: 'dashboard_partner_desc',
-    defaultDesc: 'Suivi de vos commissions et ventes affiliées.',
+    defaultDesc: 'Track your commissions and affiliated sales.',
+    defaultDescFr: 'Suivi de vos commissions et ventes affiliées.',
     href: '/dashboard/partner',
     icon: '🤝',
     roles: ['partner'],
@@ -136,9 +144,11 @@ const DASHBOARD_OPTIONS: DashboardOption[] = [
   {
     id: 'serveuse',
     titleKey: 'dashboard_serveuse_title',
-    defaultTitle: 'Espace Boutique / Serveuse',
+    defaultTitle: 'Boutique / Staff Space',
+    defaultTitleFr: 'Espace Boutique / Serveuse',
     descKey: 'dashboard_serveuse_desc',
-    defaultDesc: 'Gestion des commandes, catalogue et laboratoire.',
+    defaultDesc: 'Manage orders, catalog and lab work.',
+    defaultDescFr: 'Gestion des commandes, catalogue et laboratoire.',
     href: '/dashboard/serveuse/dashboard',
     icon: '🛒',
     roles: ['serveuse'],
@@ -147,8 +157,10 @@ const DASHBOARD_OPTIONS: DashboardOption[] = [
     id: 'admin',
     titleKey: 'dashboard_admin_title',
     defaultTitle: 'Administration',
+    defaultTitleFr: 'Administration',
     descKey: 'dashboard_admin_desc',
-    defaultDesc: 'Gestion globale de la plateforme, utilisateurs et livreurs.',
+    defaultDesc: 'Overall platform management for users and drivers.',
+    defaultDescFr: 'Gestion globale de la plateforme, utilisateurs et livreurs.',
     href: '/dashboard/admin/dashboard',
     icon: '👑',
     roles: ['superadmin'],
@@ -461,24 +473,33 @@ export default function ProfilePage() {
                 {t('your_spaces', { defaultValue: isEn ? 'Your Workspaces & Dashboards' : 'Vos espaces & tableaux de bord' })}
               </SectionLabel>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {accessibleDashboards.map((opt) => (
-                  <button
-                    key={opt.id}
-                    onClick={() => router.push(opt.href)}
-                    className="shadow-black/30  shadow-sm group flex items-start gap-3.5 p-4 rounded-xl border border-foreground/10 bg-foreground/[0.03] hover:bg-foreground/[0.05] transition-colors text-left"
-                  >
-                    <span className="text-2xl shrink-0 mt-0.5">{opt.icon}</span>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-sm text-foreground group-hover:text-gold transition-colors truncate">
-                        {t(opt.titleKey, { defaultValue: opt.defaultTitle })}
-                      </p>
-                      <p className="text-[11px] text-foreground/40 mt-1 line-clamp-2">
-                        {t(opt.descKey, { defaultValue: opt.defaultDesc })}
-                      </p>
-                    </div>
-                    <ChevronRight size={16} className="text-foreground/35 group-hover:text-gold group-hover:translate-x-0.5 transition-all shrink-0 mt-0.5" />
-                  </button>
-                ))}
+                {accessibleDashboards.map((opt) => {
+                  const title = t(opt.titleKey, {
+                    defaultValue: isEn ? opt.defaultTitle : opt.defaultTitleFr,
+                  });
+                  const desc = t(opt.descKey, {
+                    defaultValue: isEn ? opt.defaultDesc : opt.defaultDescFr,
+                  });
+
+                  return (
+                    <button
+                      key={opt.id}
+                      onClick={() => router.push(opt.href)}
+                      className="shadow-black/30  shadow-sm group flex items-start gap-3.5 p-4 rounded-xl border border-foreground/10 bg-foreground/[0.03] hover:bg-foreground/[0.05] transition-colors text-left"
+                    >
+                      <span className="text-2xl shrink-0 mt-0.5">{opt.icon}</span>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-sm text-foreground group-hover:text-gold transition-colors truncate">
+                          {title}
+                        </p>
+                        <p className="text-[11px] text-foreground/40 mt-1 line-clamp-2">
+                          {desc}
+                        </p>
+                      </div>
+                      <ChevronRight size={16} className="text-foreground/35 group-hover:text-gold group-hover:translate-x-0.5 transition-all shrink-0 mt-0.5" />
+                    </button>
+                  );
+                })}
 
                 {/* FAVORITES CARD */}
                 <Link
