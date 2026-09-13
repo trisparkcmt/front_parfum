@@ -244,12 +244,14 @@ function NameCreationModal({
   onSave,
   onClose,
   isLoading,
+  savedPerfumeId,
 }: {
   defaultName: string;
   onConfirm: (name: string, color: string) => void;
   onSave: (name: string, color: string) => void;
   onClose: () => void;
   isLoading: boolean;
+  savedPerfumeId: number | null;
 }) {
   const t = dict[getLang()];
   const [name, setName] = useState(defaultName);
@@ -305,22 +307,24 @@ function NameCreationModal({
           >
             {t.nameModalCancel}
           </button>
-          <button
-            type="button"
-            onClick={() => {
-              if (!name.trim()) { setError(t.nameRequired); return; }
-              onSave(name.trim(), color);
-            }}
-            disabled={isLoading}
-            className="flex-1 rounded-xl border border-gold/50 py-2.5 text-xs font-bold text-gold hover:bg-gold/10 transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
-          >
-            <Save size={13} />
-            {t.saveComposition}
-          </button>
+          {!savedPerfumeId && (
+            <button
+              type="button"
+              onClick={() => {
+                if (!name.trim()) { setError(t.nameRequired); return; }
+                onSave(name.trim(), color);
+              }}
+              disabled={isLoading}
+              className="flex-1 rounded-xl border border-gold/50 py-2.5 text-xs font-bold text-gold hover:bg-gold/10 transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
+            >
+              <Save size={13} />
+              {t.saveComposition}
+            </button>
+          )}
           <button
             type="button"
             onClick={handleConfirm}
-            disabled={isLoading}
+            disabled={isLoading || !savedPerfumeId}
             className="flex-1 rounded-xl bg-gold py-2.5 text-xs font-bold text-black hover:bg-gold/85 transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
           >
             {isLoading ? <Loader2 size={13} className="animate-spin" /> : <ShoppingCart size={13} />}
@@ -767,7 +771,7 @@ function AiBubble({
   onRetry: (payload: SendPayload) => void;
 }) {
   const [isTypingComplete, setIsTypingComplete] = useState(!messageObj.animateText);
-  const { addProduct, addDirectComposition } = useCartStore();
+  const { addProduct, addCustomPerfume } = useCartStore();
   const { addFavorite } = useFavoritesStore();
   const { addToast } = useToastStore();
   const t = dict[getLang()];
@@ -775,6 +779,7 @@ function AiBubble({
 
   const [showNameModal, setShowNameModal] = useState(false);
   const [isAddingComposition, setIsAddingComposition] = useState(false);
+  const [savedPerfumeId, setSavedPerfumeId] = useState<number | null>(null);
 
   useEffect(() => {
     if (!animateText) {
@@ -824,28 +829,14 @@ function AiBubble({
     })
     .filter((line): line is NonNullable<typeof line> => line !== null) ?? [], [composition]);
 
-  const handleConfirmCompositionName = useCallback(async (name: string, color: string) => {
-    const bottleId = getAiBottleId(aiData?.flacon);
-    if (!composition || !bottleId) {
+  const handleConfirmCompositionName = useCallback(async () => {
+    if (!savedPerfumeId) {
       addToast(t.addCartError, 'error');
       return;
     }
     setIsAddingComposition(true);
     try {
-      const lignes = buildCompositionLines();
-
-      if (lignes.length === 0) {
-        addToast(t.addCartError, 'error');
-        return;
-      }
-
-      await addDirectComposition({
-        flacon_id: bottleId,
-        lignes,
-        nom: name,
-        couleur: color || undefined,
-        quantite: 1,
-      }, { silent: true });
+      await addCustomPerfume(savedPerfumeId, 1, undefined, { silent: true });
 
       setShowNameModal(false);
       addToast(t.addCartSuccess, 'success');
@@ -854,7 +845,7 @@ function AiBubble({
     } finally {
       setIsAddingComposition(false);
     }
-  }, [composition, aiData, buildCompositionLines, addDirectComposition, addToast, t]);
+  }, [savedPerfumeId, addCustomPerfume, addToast, t]);
 
   const handleSaveComposition = useCallback(async (name: string, color: string) => {
     const bottleId = getAiBottleId(aiData?.flacon);
@@ -880,6 +871,7 @@ function AiBubble({
         lignes,
         couleur: color || undefined,
       });
+      setSavedPerfumeId(Number(response.id));
       await addFavorite({
         id: `composition-${response.id}`,
         name,
@@ -896,7 +888,6 @@ function AiBubble({
         volume: `${composition.totalMl}ml`,
         image_principale: '/parfume1.png',
       });
-      setShowNameModal(false);
       addToast(t.saveSuccess, 'success');
     } catch {
       addToast(t.saveError, 'error');
@@ -1058,6 +1049,7 @@ function AiBubble({
           onSave={handleSaveComposition}
           onClose={() => setShowNameModal(false)}
           isLoading={isAddingComposition}
+          savedPerfumeId={savedPerfumeId}
         />
       )}
     </AnimatePresence>
