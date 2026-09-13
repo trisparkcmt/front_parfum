@@ -4,14 +4,14 @@
  * @file app/profile/page.tsx
  * @description User profile management, security options, PWA install actions, and role-based dashboard access.
  */
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
   User, Mail, Phone, MapPin, Calendar, Edit2, Lock,
   Globe, Sun, Moon, Palette, ChevronRight, LogOut, Loader2,
   LayoutGrid, ShoppingCart, Sparkles, BadgeCheck, Download,
-  Heart, Info,
+  Heart, Info, MoreHorizontal, ShieldCheck,
 } from 'lucide-react';
 
 import { useAuthStore } from '@/store/useAuthStore';
@@ -172,11 +172,27 @@ export default function ProfilePage() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [showPWAHelp, setShowPWAHelp] = useState(false);
+  const [showPartnerMenu, setShowPartnerMenu] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [isApplyingPartner, setIsApplyingPartner] = useState(false);
   const [isInstallingPWA, setIsInstallingPWA] = useState(false);
+  const partnerMenuRef = useRef<HTMLDivElement | null>(null);
 
   const isPWAInstalled = checkPWAInstalled();
+
+  useEffect(() => {
+    if (!showPartnerMenu) return;
+
+    const handlePointerDown = (event: MouseEvent) => {
+      const target = event.target as Node;
+      if (partnerMenuRef.current && !partnerMenuRef.current.contains(target)) {
+        setShowPartnerMenu(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handlePointerDown);
+    return () => document.removeEventListener('mousedown', handlePointerDown);
+  }, [showPartnerMenu]);
 
   const handleInstallPWA = async () => {
     setIsInstallingPWA(true);
@@ -243,9 +259,13 @@ export default function ProfilePage() {
           }),
         'success'
       );
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const errorDetails = err as {
+        response?: { data?: { detail?: string } };
+      };
+
       addToast(
-        err.response?.data?.detail ||
+        errorDetails.response?.data?.detail ||
           t('become_partner_error', {
             defaultValue: isEn
               ? 'An application is already pending or you are already a partner.'
@@ -298,8 +318,53 @@ export default function ProfilePage() {
         {/* ============================================================ */}
         <div className="lg:col-span-4 space-y-6 lg:sticky lg:top-6">
           {/* USER PROFILE CARD */}
-          <Panel className="p-6">
-            <div className="flex flex-col items-center text-center">
+          <Panel className="p-6 relative">
+            {!isPartner && !isStaff && (
+              <div className="absolute right-3 top-3 z-10">
+                <div ref={partnerMenuRef} className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setShowPartnerMenu((prev) => !prev)}
+                    className="flex h-8 w-8 items-center justify-center rounded-full border border-foreground/10 bg-background text-foreground/60 transition hover:border-gold/30 hover:text-gold"
+                    aria-label={isEn ? 'More profile actions' : 'Plus d’actions du profil'}
+                  >
+                    <MoreHorizontal size={16} />
+                  </button>
+
+                  {showPartnerMenu && (
+                    <div className="absolute right-0 top-10 w-56 rounded-xl border border-foreground/10 bg-background/95 p-2 shadow-2xl shadow-black/20 backdrop-blur-sm">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowPartnerMenu(false);
+                          handleBecomePartner();
+                        }}
+                        disabled={isApplyingPartner}
+                        className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-foreground transition hover:bg-foreground/5"
+                      >
+                        {isApplyingPartner ? (
+                          <Loader2 size={14} className="animate-spin text-gold" />
+                        ) : (
+                          <Sparkles size={14} className="text-gold" />
+                        )}
+                        <span>{t('become_partner', { defaultValue: isEn ? 'Become a Partner' : 'Devenir Prestataire' })}</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setShowPartnerMenu(false)}
+                        className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-foreground/70 transition hover:bg-foreground/5"
+                      >
+                        <ShieldCheck size={14} className="text-gold" />
+                        <span>{isEn ? 'Partner benefits' : 'Avantages prestataire'}</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            <div className="flex flex-col items-center text-center pt-2">
               {/* Avatar */}
               <div className="relative mb-4">
                 <div className="w-24 h-24 rounded-xl bg-gold/10 border border-gold/20 flex items-center justify-center text-gold text-3xl font-bold">
@@ -334,22 +399,6 @@ export default function ProfilePage() {
                 <p className="text-[11px] font-medium text-foreground/35 flex items-center gap-1.5 mt-4">
                   <Calendar size={12} /> {isEn ? `Member since ${memberSince}` : `Membre depuis ${memberSince}`}
                 </p>
-              )}
-
-              {/* Become Partner CTA (if applicable) */}
-              {!isPartner && !isStaff && (
-                <button
-                  onClick={handleBecomePartner}
-                  disabled={isApplyingPartner}
-                  className="w-full mt-5 inline-flex items-center justify-center gap-2 rounded-lg bg-gold px-4 py-2 text-sm font-semibold text-black hover:bg-gold/90 transition-colors disabled:opacity-60"
-                >
-                  {isApplyingPartner ? (
-                    <Loader2 size={16} className="animate-spin" />
-                  ) : (
-                    <Sparkles size={16} />
-                  )}
-                  {t('become_partner', { defaultValue: isEn ? 'Become a Partner' : 'Devenir Prestataire' })}
-                </button>
               )}
             </div>
           </Panel>
