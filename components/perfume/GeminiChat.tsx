@@ -94,6 +94,7 @@ const dict = {
     saveSuccess: 'Composition sauvegardée',
     saveError: 'Erreur lors de la sauvegarde',
     liquidColor: 'Couleur du liquide',
+    expertise: 'Savoir-faire',
   },
   en: {
     loadingTexts: [
@@ -150,6 +151,7 @@ const dict = {
     saveSuccess: 'Composition saved',
     saveError: 'Error saving composition',
     liquidColor: 'Liquid color',
+    expertise: 'Expertise',
   },
 };
 
@@ -641,8 +643,9 @@ function buildCompositionFromAiResponse(
     isAiGenerated: true,
   } as CustomComposition : undefined;
 
-  if (bottle?.contenance_ml) {
-    (composition as (CustomComposition & { bottleSizeMl?: number }) | undefined)!.bottleSizeMl = bottle.contenance_ml;
+  const bottleCapacity = bottle?.contenance_ml ?? aiData.quantite_demandee_ml;
+  if (bottleCapacity) {
+    (composition as (CustomComposition & { bottleSizeMl?: number }) | undefined)!.bottleSizeMl = bottleCapacity;
   }
 
   return composition;
@@ -732,8 +735,8 @@ function ProductCard({
 }
 
 function MiniBottleVisual({ composition }: { composition: CustomComposition }) {
-  const totalMl = composition.totalMl || 100;
-  const percentage = Math.min(100, Math.round((totalMl / 100) * 100));
+  const bottleSizeMl = Number((composition as CustomComposition & { bottleSizeMl?: number }).bottleSizeMl) || composition.totalMl || 100;
+  const percentage = 100;
   const colors = composition.essences.map(e => ({ hex: e.essence.color || '#C5A059', weight: e.quantityMl || 10 }));
   const blendedColor = blendHexColors(colors);
 
@@ -757,7 +760,7 @@ function MiniBottleVisual({ composition }: { composition: CustomComposition }) {
           )}
         </motion.div>
         <div className="absolute inset-0 flex flex-col items-center justify-center text-foreground mix-blend-difference pointer-events-none">
-          <span className="font-display text-lg font-bold">{totalMl}ml</span>
+          <span className="font-display text-lg font-bold">{bottleSizeMl}ml</span>
         </div>
       </div>
       <p className="text-[10px] text-foreground/50 mt-3 uppercase tracking-wider truncate max-w-full font-bold">
@@ -975,10 +978,15 @@ function AiBubble({
             <MiniBottleVisual composition={composition!} />
             <div className="flex-1 bg-white/5 border border-gold/15 rounded-2xl p-4 flex flex-col justify-between">
               <div>
+                {(() => {
+                  const bottleSizeMl = Number((composition as CustomComposition & { bottleSizeMl?: number }).bottleSizeMl) || composition!.totalMl || 100;
+                  const expertiseMl = Math.max(0, bottleSizeMl - composition!.totalMl);
+                  return (
+                    <>
                 <div className="flex items-center gap-2 mb-3">
                   <Beaker size={14} className="text-gold" />
                   <p className="text-[10px] font-bold uppercase tracking-widest text-gold">
-                    {t.aiFormula} ({composition!.totalMl}ml)
+                    {t.aiFormula} ({bottleSizeMl}ml)
                   </p>
                 </div>
                 <div className="space-y-2">
@@ -991,7 +999,19 @@ function AiBubble({
                       <span className="font-bold font-mono text-foreground/50">{item.quantityMl}ml</span>
                     </div>
                   ))}
+                  {expertiseMl > 0 && (
+                    <div className="flex items-center justify-between text-xs border-t border-white/5 pt-2">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2.5 h-2.5 rounded-full flex-shrink-0 bg-gold/50" />
+                        <span className="text-foreground/70">{t.expertise}</span>
+                      </div>
+                      <span className="font-bold font-mono text-foreground/50">{expertiseMl}ml</span>
+                    </div>
+                  )}
                 </div>
+                    </>
+                  );
+                })()}
               </div>
               <div className="mt-3 pt-3 border-t border-white/10 flex justify-between items-center">
                 <span className="text-[10px] text-foreground/40 uppercase font-semibold">{t.formulaPrice}</span>
