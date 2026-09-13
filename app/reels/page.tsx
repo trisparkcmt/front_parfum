@@ -19,21 +19,19 @@ export default function ReelsPage() {
         </p>
       </div>
 
-      {/* Elfsight Widget Container */}
       <div className="flex-grow w-full rounded-2xl overflow-hidden bg-background">
-        <div className="elfsight-app-a0e592ca-ab39-497f-b9de-40b8b75fd819" data-elfsight-app-lazy></div>
+        <div
+          className="taggbox"
+          style={{ width: '100%', height: '100%', overflow: 'auto' }}
+          data-widget-id="334989"
+          data-website="1"
+        />
       </div>
 
-      {/* Load the Elfsight platform script securely using Next.js Script
-      <Script 
-        src="https://elfsightcdn.com/platform.js" 
-        strategy="lazyOnload" 
-      /> */}
-
-      {/* <div class="taggbox" style="width:100%;height:100%;overflow:auto;" data-widget-id="334989" data-website="1"></div> */}
-      <div class="taggbox" style="width:100%;height:100%;overflow:auto;" data-widget-id="334989" data-website="1"></div><script src="https://widget.taggbox.com/embed.min.js" type="text/javascript" async></script>
-
-      
+      <Script
+        src="https://widget.taggbox.com/embed.min.js"
+        strategy="afterInteractive"
+      />
     </div>
   );
 }
