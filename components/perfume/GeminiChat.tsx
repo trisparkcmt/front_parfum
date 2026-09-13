@@ -466,6 +466,109 @@ function collectSuggestionIds(value: unknown): string[] {
   return [];
 }
 
+function extractAiResponseFromMetadata(metadata?: Record<string, unknown>): Partial<AiResponse> | null {
+  if (!metadata) return null;
+
+  const preferredKeys = ['response', 'ai_response', 'aiData', 'ai_data', 'result', 'payload', 'data'];
+  const explored: unknown[] = [...preferredKeys.map(key => metadata[key]), metadata];
+  const seen = new Set<unknown>();
+
+  while (explored.length > 0) {
+    const current = explored.pop();
+    if (!current || typeof current !== 'object' || seen.has(current)) continue;
+    seen.add(current);
+
+    const obj = current as Record<string, unknown>;
+    const candidateKeys = ['message', 'quantite_demandee_ml', 'flacon', 'parfums_existants', 'essences_pre_faites', 'ingredients_sur_mesure', 'accessoires', 'diffuseurs'];
+    const presentKeys = candidateKeys.filter((key) => obj[key] !== undefined && obj[key] !== null);
+
+    if (presentKeys.length > 0) {
+      const extracted: Partial<AiResponse> = {} as Partial<AiResponse>;
+      for (const key of candidateKeys) {
+        if (obj[key] !== undefined && obj[key] !== null) {
+          (extracted as Record<string, unknown>)[key] = obj[key];
+        }
+      }
+      return extracted;
+    }
+
+    for (const value of Object.values(obj)) {
+      if (value && typeof value === 'object') explored.push(value);
+    }
+  }
+
+  return null;
+}
+
+function buildCompositionFromAiResponse(
+  aiData: AiResponse,
+  essences: Array<{ id: string; name: string; pricePerMl: number; backendId?: number; lotEssenceId?: number; itemType?: 'essence' | 'ingredient'; color?: string; inStock?: boolean }>,
+  createdBy: string | number | undefined,
+  defaultName: string
+): CustomComposition | undefined {
+  let totalPrice = 0;
+  let totalMl = 0;
+  const compositionEssences: CompositionEssence[] = [];
+
+  if (aiData.essences_pre_faites && aiData.essences_pre_faites.length > 0) {
+    aiData.essences_pre_faites.forEach(item => {
+      let essence = essences.find(
+        e => e.id === String(item.id) ||
+          (e.lotEssenceId && item.lot_essence_id && String(e.lotEssenceId) === String(item.lot_essence_id)) ||
+          e.name === item.nom ||
+          String((e as unknown as { nom?: string }).nom || '') === item.nom
+      );
+
+      if (!essence) {
+        essence = {
+          id: String(item.id),
+          name: item.nom,
+          pricePerMl: Number(item.prix_par_ml || 0),
+          inStock: true,
+          backendId: item.id,
+          lotEssenceId: item.lot_essence_id,
+          itemType: 'essence',
+          color: '#C5A059',
+        } as any;
+      }
+
+      if (!essence) return;
+
+      compositionEssences.push({ essence: essence as any, quantityMl: item.quantite_ml });
+      totalPrice += Number(item.prix_total_quantite || 0);
+      totalMl += item.quantite_ml;
+    });
+  } else if (aiData.ingredients_sur_mesure && aiData.ingredients_sur_mesure.length > 0) {
+    aiData.ingredients_sur_mesure.forEach(item => {
+      const essence = essences.find(e => e.name === item.essenceName);
+      if (essence) {
+        compositionEssences.push({ essence: essence as any, quantityMl: item.quantityMl });
+        totalPrice += Number(essence.pricePerMl || 0) * item.quantityMl;
+        totalMl += item.quantityMl;
+      }
+    });
+  }
+
+  if (aiData.flacon) totalPrice += Number(aiData.flacon.prix_unitaire || 0);
+
+  const composition = compositionEssences.length > 0 ? {
+    id: generateId(),
+    name: aiData.flacon ? `${defaultName} (${aiData.flacon.nom})` : defaultName,
+    essences: compositionEssences,
+    totalMl,
+    totalPrice,
+    createdBy: String(createdBy || 'guest'),
+    createdAt: new Date().toISOString(),
+    isAiGenerated: true,
+  } as CustomComposition : undefined;
+
+  if (aiData.flacon && aiData.flacon.contenance_ml) {
+    (composition as (CustomComposition & { bottleSizeMl?: number }) | undefined)!.bottleSizeMl = aiData.flacon.contenance_ml;
+  }
+
+  return composition;
+}
+
 function resolveSuggestionIds(metadata: Record<string, unknown> | undefined) {
   if (!metadata) return [] as string[];
 
@@ -941,6 +1044,7 @@ export function GeminiChat({ onChatStarted }: GeminiChatProps) {
       try {
         const conv = await apiLabService.getIAConversations();
         if (conv && conv.messages && conv.messages.length > 0) {
+          const allEssences = await labService.getEssences();
           const historyMsgs: ChatMessage[] = await Promise.all(
             conv.messages.map(async (m) => {
               const displayText = typeof m.content === 'string' ? m.content : '';
@@ -954,8 +1058,14 @@ export function GeminiChat({ onChatStarted }: GeminiChatProps) {
 
               if (m.role === 'assistant') {
                 const suggestions = await resolveSuggestionsFromMetadata(m.metadata);
+                const aiDataFromMetadata = extractAiResponseFromMetadata(m.metadata);
+                const aiData = aiDataFromMetadata as AiResponse | null;
+                const composition = aiData ? buildCompositionFromAiResponse(aiData, allEssences, user?.id, t.creationIa) : undefined;
+
                 return {
                   ...baseMessage,
+                  aiData: aiData ?? undefined,
+                  composition: composition ?? undefined,
                   suggestions: suggestions.length > 0 ? suggestions : undefined,
                 };
               }
@@ -1035,67 +1145,7 @@ export function GeminiChat({ onChatStarted }: GeminiChatProps) {
 
       const response: AiResponse = apiResponse.data;
 
-      let totalPrice = 0;
-      let totalMl = 0;
-      const compositionEssences: CompositionEssence[] = [];
-
-      if (response.essences_pre_faites && response.essences_pre_faites.length > 0) {
-        response.essences_pre_faites.forEach(item => {
-          let essence = essences.find(
-            e => e.id === String(item.id) || 
-                 (e.lotEssenceId && item.lot_essence_id && String(e.lotEssenceId) === String(item.lot_essence_id)) || 
-                 e.name === item.nom || 
-                 String((e as unknown as { nom?: string }).nom || '') === item.nom
-          );
-
-          if (!essence) {
-            essence = {
-              id: String(item.id),
-              name: item.nom,
-              pricePerMl: Number(item.prix_par_ml || 0),
-              inStock: true,
-              backendId: item.id,
-              lotEssenceId: item.lot_essence_id,
-              itemType: 'essence',
-            } as any;
-          }
-
-          if (!essence) return;
-
-          compositionEssences.push({ essence, quantityMl: item.quantite_ml });
-          totalPrice += Number(item.prix_total_quantite);
-          totalMl += item.quantite_ml;
-        });
-      } else if (response.ingredients_sur_mesure && response.ingredients_sur_mesure.length > 0) {
-        response.ingredients_sur_mesure.forEach(item => {
-          const essence = essences.find(e => e.name === item.essenceName);
-          if (essence) {
-            compositionEssences.push({ essence, quantityMl: item.quantityMl });
-            totalPrice += essence.pricePerMl * item.quantityMl;
-            totalMl += item.quantityMl;
-          }
-        });
-      }
-
-      if (response.flacon) totalPrice += Number(response.flacon.prix_unitaire);
-
-      const composition: CustomComposition | undefined = compositionEssences.length > 0
-        ? {
-            id: generateId(),
-            name: response.flacon ? `${t.creationIa} (${response.flacon.nom})` : t.creationIa,
-            essences: compositionEssences,
-            totalMl,
-            totalPrice,
-            createdBy: user?.id || 'guest',
-            createdAt: new Date().toISOString(),
-            isAiGenerated: true,
-          }
-        : undefined;
-
-      if (response.flacon && response.flacon.contenance_ml) {
-        (composition as CustomComposition & { bottleSizeMl?: number }).bottleSizeMl = response.flacon.contenance_ml;
-      }
-
+      const composition = buildCompositionFromAiResponse(response, essences, user?.id, t.creationIa);
       setMessages(prev => [...prev, { id: generateId(), role: 'ai', text: response.message, aiData: response, composition, animateText: true }]);
     } catch (error: unknown) {
       const axiosError = error as { name?: string; response?: { status?: number } };
