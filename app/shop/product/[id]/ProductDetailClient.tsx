@@ -569,24 +569,7 @@ export default function ProductDetailClient({ id }: { id: string }) {
                 </button>
               </div>
 
-              <div className="grid grid-cols-2 gap-x-4 gap-y-4 border border-foreground/10 rounded-2xl bg-foreground/[0.02] px-5 py-5">
-                <div className="flex items-center gap-3 text-sm text-foreground/60">
-                  <Truck size={17} className="text-gold shrink-0" />
-                  {isEn ? 'Express Worldwide Shipping' : 'Livraison Express'}
-                </div>
-                <div className="flex items-center gap-3 text-sm text-foreground/60">
-                  <ShieldCheck size={17} className="text-gold shrink-0" />
-                  {isEn ? 'Guaranteed Authenticity' : 'Authenticité Garantie'}
-                </div>
-                <div className="flex items-center gap-3 text-sm text-foreground/60">
-                  <RotateCcw size={17} className="text-gold shrink-0" />
-                  {isEn ? '30-Day Effortless Returns' : 'Retours sous 30 jours'}
-                </div>
-                <div className="flex items-center gap-3 text-sm text-foreground/60">
-                  <Check size={17} className="text-gold shrink-0" />
-                  {isEn ? 'Encrypted Checkout' : 'Paiement Sécurisé'}
-                </div>
-              </div>
+              
             </motion.div>
           </div>
         </div>

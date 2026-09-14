@@ -12,6 +12,7 @@ import { productService } from '@/services/productService';
 import { useCartStore } from '@/store/useCartStore';
 import { useFavoritesStore } from '@/store/useFavoritesStore';
 import { useToastStore } from '@/store/useToastStore';
+import { shuffleArray } from '@/lib/utils';
 import type { Product } from '@/types';
 
 function DiffuseursShopContent() {
@@ -80,7 +81,7 @@ function DiffuseursShopContent() {
           search: debouncedSearch || undefined,
           ordering: ordering || undefined,
         });
-        setProducts(mappedProducts);
+        setProducts(shuffleArray(mappedProducts));
         
         // Track view_item_list event for GA4
         if (mappedProducts.length > 0) {

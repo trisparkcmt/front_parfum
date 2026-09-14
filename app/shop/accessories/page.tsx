@@ -15,6 +15,7 @@ import { useFavoritesStore } from '@/store/useFavoritesStore';
 import { useToastStore } from '@/store/useToastStore';
 import { useTranslation } from 'react-i18next';
 import { productService } from '@/services/productService';
+import { shuffleArray } from '@/lib/utils';
 import type { Product, AccessorySubCategory } from '@/types';
 
 interface AccessoryType {
@@ -141,7 +142,7 @@ function AccessoriesShop() {
 
         const mappedProducts = await productService.getAccessories(filters);
 
-        setProducts(mappedProducts);
+        setProducts(shuffleArray(mappedProducts));
       } catch (error) {
         console.error('AccessoriesShop: Failed to fetch products', error);
         addToast(t('error_loading_products', { defaultValue: 'Erreur lors du chargement des accessoires' }), 'error');

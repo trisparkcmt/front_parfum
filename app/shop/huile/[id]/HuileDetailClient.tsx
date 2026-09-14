@@ -570,25 +570,7 @@ export default function HuileDetailClient({ id }: { id: string }) {
           )}
         </div>
 
-        {/* ─── Trust Badges ─────────────────────────────────────────────────── */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 rounded-2xl border border-foreground/10 bg-foreground/[0.02] p-5 mb-16">
-          <div className="flex items-center gap-3 text-xs sm:text-sm text-foreground/60">
-            <Truck size={17} className="shrink-0 text-gold" />
-            {isEn ? 'Express Shipping' : 'Livraison Express'}
-          </div>
-          <div className="flex items-center gap-3 text-xs sm:text-sm text-foreground/60">
-            <ShieldCheck size={17} className="shrink-0 text-gold" />
-            {isEn ? 'Guaranteed Authenticity' : 'Authenticité Garantie'}
-          </div>
-          <div className="flex items-center gap-3 text-xs sm:text-sm text-foreground/60">
-            <RotateCcw size={17} className="shrink-0 text-gold" />
-            {isEn ? '30-Day Returns' : 'Retours sous 30 jours'}
-          </div>
-          <div className="flex items-center gap-3 text-xs sm:text-sm text-foreground/60">
-            <Check size={17} className="shrink-0 text-gold" />
-            {isEn ? 'Secure Checkout' : 'Paiement Sécurisé'}
-          </div>
-        </div>
+        
 
         {/* ─── Tabs ─────────────────────────────────────────────────────────── */}
         <div className="mb-20">

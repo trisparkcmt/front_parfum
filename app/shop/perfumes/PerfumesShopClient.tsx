@@ -15,6 +15,7 @@ import { useFavoritesStore } from '@/store/useFavoritesStore';
 import { useToastStore } from '@/store/useToastStore';
 import { useTranslation } from 'react-i18next';
 import { productService } from '@/services/productService';
+import { shuffleArray } from '@/lib/utils';
 import type { Product, ProduitFiniEssence } from '@/types';
 import { EssenceSizePickerModal } from '@/components/ui/EssenceSizePickerModal';
 
@@ -143,18 +144,19 @@ export default function PerfumesShopClient() {
       const response = await productService.getPerfumes(filters);
 
       if (Array.isArray(response)) {
-        setProducts(response);
+        const shuffledProducts = shuffleArray(response);
+        setProducts(shuffledProducts);
         setTotalPages(1);
         setTotalCount(response.length);
         
         // Track view_item_list event for GA4
-        if (response.length > 0) {
+          if (shuffledProducts.length > 0) {
           try {
             const { trackViewItemList } = await import('@/lib/gtag');
             trackViewItemList({
               item_list_id: activeTab === 'all' ? 'all_perfumes' : `category_${activeTab}`,
               item_list_name: activeTab === 'all' ? 'All Perfumes' : `Category ${activeTab}`,
-              items: response.slice(0, 10).map(p => ({
+              items: shuffledProducts.slice(0, 10).map(p => ({
                 item_id: String(p.id),
                 item_name: p.name,
                 item_category: p.category,
@@ -167,12 +169,13 @@ export default function PerfumesShopClient() {
           }
         }
       } else {
-        setProducts(response.results);
+        const shuffledProducts = shuffleArray(response.results);
+        setProducts(shuffledProducts);
         setTotalPages(response.pages ?? 1);
         setTotalCount(response.count ?? 0);
         
         // Track view_item_list event for GA4
-        const productList = response.results;
+        const productList = shuffledProducts;
         if (productList.length > 0) {
           try {
             const { trackViewItemList } = await import('@/lib/gtag');
@@ -218,7 +221,7 @@ export default function PerfumesShopClient() {
           page: activeTab === 'huile' ? currentPage : undefined,
         });
 
-        const essenceItems = Array.isArray(response) ? response : response.results;
+        const essenceItems = shuffleArray(Array.isArray(response) ? response : response.results);
         setFinishedEssenceProducts(essenceItems);
 
         if (activeTab === 'huile') {
@@ -342,21 +345,7 @@ export default function PerfumesShopClient() {
     if (activeTab === 'huile') return finishedEssenceProducts;
     if (activeTab !== 'all') return products;
 
-    // Interleave perfumes and huiles so huiles are distributed throughout
-    const result: Product[] = [];
-    const seen = new Set<string>();
-    const maxLen = Math.max(products.length, finishedEssenceProducts.length);
-    for (let i = 0; i < maxLen; i++) {
-      if (i < products.length && !seen.has(products[i].id)) {
-        seen.add(products[i].id);
-        result.push(products[i]);
-      }
-      if (i < finishedEssenceProducts.length && !seen.has(finishedEssenceProducts[i].id)) {
-        seen.add(finishedEssenceProducts[i].id);
-        result.push(finishedEssenceProducts[i]);
-      }
-    }
-    return result;
+    return shuffleArray([...products, ...finishedEssenceProducts]);
   }, [activeTab, products, finishedEssenceProducts]);
 
   const isActiveLoading =
