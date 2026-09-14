@@ -20,6 +20,7 @@ interface FavoriteProduct {
   slug?: string;
   category?: string;
   image?: string;
+  color?: string;
   type?: 'perfume' | 'accessory' | 'custom';
   isCustomComposition?: boolean;
   description?: string;
@@ -57,6 +58,7 @@ export default function FavoritesPage() {
       slug: fav.slug || fav.slug_produit,
       category: fav.category,
       image: fav.image || fav.images?.[0] || fav.image_produit,
+      color: fav.couleur || fav.composition?.couleur,
       type: fav.category === 'accessory' ? 'accessory' : (fav.isCustomComposition || fav.category === 'numba-creation') ? 'custom' : 'perfume',
       isCustomComposition: !!fav.isCustomComposition,
       raw: fav,
@@ -68,6 +70,7 @@ export default function FavoritesPage() {
       price: Number(item.prix_total || item.prix || item.composition?.prix_total || 0),
       category: 'custom',
       image: undefined,
+      color: item.couleur || item.composition?.couleur,
       type: 'custom',
       isCustomComposition: true,
       description: item.description || item.composition?.description || '',
@@ -250,7 +253,13 @@ export default function FavoritesPage() {
                     className="relative aspect-[4/5] cursor-pointer overflow-hidden bg-white/[0.03]"
                     onClick={() => handleViewProduct(product)}
                   >
-                    {product.image ? (
+                    {product.isCustomComposition ? (
+                      <div
+                        className="h-full w-full transition-transform duration-500 ease-out group-hover:scale-[1.04]"
+                        style={{ backgroundColor: product.color || '#C5A059' }}
+                        aria-label={product.color ? `Couleur ${product.color}` : undefined}
+                      />
+                    ) : product.image ? (
                       <Image
                         src={product.image}
                         alt={product.name}
