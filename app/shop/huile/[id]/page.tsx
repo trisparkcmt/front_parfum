@@ -1,7 +1,7 @@
 import { Metadata } from 'next';
 import { productService } from '@/services/productService';
 import { resolveImageUrl } from '@/lib/utils';
-import HuileDetailClient from './HuileDetailClient';
+import ClientRedirect from '../../ClientRedirect';
 
 export async function generateMetadata({
   params,
@@ -28,30 +28,17 @@ export async function generateMetadata({
       description: product.description || `Huile essentielle ${product.name}`,
       openGraph: {
         title: product.name,
-        description: product.description || "Découvrez notre collection d'huiles exclusives",
+        description: product.description || `Decouvrez l'huile ${product.name}`,
         url: productUrl,
-        siteName: 'Accessoires Exclusifs',
-        locale: 'fr_FR',
+        images: [{ url: mainImage, width: 800, height: 600, alt: product.name }],
         type: 'website',
-        images: [{ url: mainImage, width: 1200, height: 630, alt: product.name }],
-      },
-      twitter: {
-        card: 'summary_large_image',
-        title: product.name,
-        description: product.description || "Découvrez notre collection d'huiles exclusives",
-        images: [mainImage],
       },
     };
-  } catch {
+  } catch (error) {
     return { title: 'Huile' };
   }
 }
 
-export default async function HuilePage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  const { id } = await params;
-  return <HuileDetailClient id={id} />;
+export default function HuileDetailPage() {
+  return <ClientRedirect fallback="/shop/perfumes?tab=huile" />;
 }

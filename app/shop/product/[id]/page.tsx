@@ -1,7 +1,7 @@
 import { Metadata } from 'next';
 import { productService } from '@/services/productService';
 import { resolveImageUrl } from '@/lib/utils';
-import ProductDetailClient from './ProductDetailClient';
+import ClientRedirect from '../../ClientRedirect';
 
 export async function generateMetadata({
   params,
@@ -13,11 +13,7 @@ export async function generateMetadata({
     const product = await productService.getProductById(id);
 
     if (!product) {
-      return {
-        title: 'Produit introuvable',
-        description: 'Erreur lors de la recuperation du produit',
-        openGraph: { title: 'Produit introuvable', description: 'Erreur', images: [] },
-      };
+      return { title: 'Produit introuvable' };
     }
 
     const rawImage = product.image_principale || (product.images && product.images[0]) || '';
@@ -29,39 +25,27 @@ export async function generateMetadata({
 
     return {
       title: { default: product.name, template: '%s | Accessoires Exclusifs' },
-      description: product.description_courte || 'Produit de luxe',
+      description: product.description || `Achetez ${product.name} sur Accessoires Exclusifs`,
       openGraph: {
         title: product.name,
-        description: product.description_courte || 'Decouvrez notre collection exclusive',
+        description: product.description || `Decouvrez ${product.name}`,
         url: productUrl,
-        siteName: 'Accessoires Exclusifs',
-        locale: 'fr_FR',
+        images: [{ url: mainImage, width: 800, height: 600, alt: product.name }],
         type: 'website',
-        images: [{ url: mainImage, width: 1200, height: 630, alt: product.name }],
-      },
-      twitter: {
-        card: 'summary_large_image',
-        title: product.name,
-        description: product.description_courte || 'Decouvrez notre collection exclusive',
-        images: [mainImage],
       },
     };
   } catch (error) {
-    console.error('Failed to generate metadata:', error);
-    return {
-      title: 'Erreur de chargement',
-      description: 'Impossible de charger les details du produit',
-      openGraph: { title: 'Erreur de chargement', description: 'Erreur', images: [] },
-    };
+    return { title: 'Produit' };
   }
 }
 
-// In Next.js 15+, params is a Promise - must be awaited in async server components
 export default async function ProductDetailPage({
-  params,
+  searchParams,
 }: {
-  params: Promise<{ id: string }>;
+  searchParams: Promise<{ type?: string }>;
 }) {
-  const { id } = await params;
-  return <ProductDetailClient id={id} />;
+  const { type } = await searchParams;
+  const fallback = type === 'accessory' ? '/shop/accessories' : '/shop/perfumes';
+  
+  return <ClientRedirect fallback={fallback} />;
 }

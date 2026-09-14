@@ -19,6 +19,7 @@ import { shuffleArray } from '@/lib/utils';
 import type { Product, ProduitFiniEssence } from '@/types';
 import { EssenceSizePickerModal } from '@/components/ui/EssenceSizePickerModal';
 import { ProductDetailModal } from '@/components/ui/ProductDetailModal';
+import { HuileDetailModal } from '@/components/ui/HuileDetailModal';
 
 export default function PerfumesShopClient() {
   const { t } = useTranslation();
@@ -458,6 +459,19 @@ export default function PerfumesShopClient() {
   const [modalProductId, setModalProductId] = useState<string | null>(null);
   const [modalProductType, setModalProductType] = useState<'perfume' | 'accessory' | 'diffuseur'>('perfume');
 
+  // ── Huile detail modal (separate, specialised layout) ────────────────────
+  const [huileModalProductId, setHuileModalProductId] = useState<string | null>(null);
+
+  const openHuileModal = useCallback((product: Product) => {
+    const productId = String(product.slug || product.id);
+    setHuileModalProductId(productId);
+    window.history.pushState({ modalProductId: productId, isHuile: true }, '', `/shop/huile/${productId}`);
+  }, []);
+
+  const closeHuileModal = useCallback(() => {
+    setHuileModalProductId(null);
+  }, []);
+
   /**
    * Derive the product type hint from the card's productUrl the same way
    * ProductCard does, so we forward the right type to the modal loader.
@@ -479,6 +493,12 @@ export default function PerfumesShopClient() {
   }, []);
 
   const openProductModal = useCallback((product: Product) => {
+    // Huile products have a completely different detail layout — open the dedicated huile modal
+    if (product.category === 'huile' || product.produits_finis !== undefined) {
+      openHuileModal(product);
+      return;
+    }
+
     const typeHint = getTypeHint(product);
     const productId = String(product.slug || product.id);
     const productUrl = `/shop/product/${productId}${product.category === 'accessory' ? '?type=accessory' : '?type=perfume'}`;
@@ -489,18 +509,19 @@ export default function PerfumesShopClient() {
     // Update the address bar without full navigation, so deep-link works and
     // back button pops back to the catalog URL.
     window.history.pushState({ modalProductId: productId }, '', productUrl);
-  }, [getTypeHint]);
+  }, [getTypeHint, openHuileModal]);
 
   const closeProductModal = useCallback(() => {
     setModalProductId(null);
   }, []);
 
-  // Listen for browser back / forward — close modal when user presses back.
+  // Listen for browser back / forward — close modals when user presses back.
   useEffect(() => {
     const handlePopState = (e: PopStateEvent) => {
-      // If there's no modalProductId in the new state, close the modal.
+      // If there's no modalProductId in the new state, close both modals.
       if (!e.state?.modalProductId) {
         setModalProductId(null);
+        setHuileModalProductId(null);
       }
     };
     window.addEventListener('popstate', handlePopState);
@@ -1086,6 +1107,17 @@ export default function PerfumesShopClient() {
             productType={modalProductType}
             onClose={closeProductModal}
             onRelatedCardClick={openProductModal}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* ── Huile (essential oil) detail modal — specialised layout ────── */}
+      <AnimatePresence>
+        {huileModalProductId && (
+          <HuileDetailModal
+            productId={huileModalProductId}
+            onClose={closeHuileModal}
+            onRelatedHuileClick={openHuileModal}
           />
         )}
       </AnimatePresence>

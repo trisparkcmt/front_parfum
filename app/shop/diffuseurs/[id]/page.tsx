@@ -1,10 +1,5 @@
-﻿import ProductDetailClient from '../../product/[id]/ProductDetailClient';
+import ClientRedirect from '../../ClientRedirect';
 
-export default async function DiffuseurDetailPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  const { id } = await params;
-  return <ProductDetailClient id={id} />;
+export default function DiffuseurDetailPage() {
+  return <ClientRedirect fallback="/shop/diffuseurs" />;
 }
