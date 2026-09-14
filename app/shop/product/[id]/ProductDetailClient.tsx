@@ -310,7 +310,19 @@ export default function ProductDetailClient({ id }: { id: string }) {
     );
   };
 
-  const noteEntries = product.notes ? Object.entries(product.notes) : [];
+  const noteEntries = product.notes
+    ? Object.entries(product.notes).map(([key, value]) => ({
+        key,
+        label: key === 'top'
+          ? (isEn ? 'Top Notes' : 'Notes de tête')
+          : key === 'middle'
+          ? (isEn ? 'Middle Notes' : 'Notes de cœur')
+          : key === 'base'
+          ? (isEn ? 'Base Notes' : 'Notes de fond')
+          : key,
+        value,
+      }))
+    : [];
   const collectionPath = getProductCollectionPath(product.category);
 
   return (
@@ -333,7 +345,7 @@ export default function ProductDetailClient({ id }: { id: string }) {
           <span className="text-foreground/60 truncate max-w-[200px]">{product.name}</span>
         </nav>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20 mb-24">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20 mb-10 lg:mb-24">
           {/* Gallery */}
           <div className="space-y-4 lg:sticky lg:top-28 lg:self-start">
             <motion.div
@@ -526,7 +538,7 @@ export default function ProductDetailClient({ id }: { id: string }) {
                 </div>
               )}
 
-              <div className="flex flex-row gap-3 mb-10">
+              <div className="flex flex-row gap-3 mb-4 sm:mb-10">
                 <div className="flex items-center justify-between border border-foreground/10 rounded-xl bg-foreground/5 px-2 h-14 w-28 sm:w-36 shrink-0">
                   <button
                     onClick={() => setQuantity(Math.max(1, quantity - 1))}
@@ -620,17 +632,17 @@ export default function ProductDetailClient({ id }: { id: string }) {
                         {isEn ? 'Olfactory Architecture' : 'Pyramide Olfactive'}
                       </h3>
                       <div className="space-y-6">
-                        {noteEntries.map(([key, val], idx) => (
+                        {noteEntries.map(({ key, label, value }, idx) => (
                           <div key={key} className="relative pl-7">
                             {idx < noteEntries.length - 1 && (
                               <span className="absolute left-[6px] top-4 bottom-[-24px] w-px bg-gradient-to-b from-gold/50 to-gold/0" />
                             )}
                             <span className="absolute left-0 top-1 w-3.5 h-3.5 rounded-full border-2 border-gold bg-background" />
                             <p className="text-xs font-bold uppercase tracking-widest text-gold mb-1.5">
-                              {key}
+                              {label}
                             </p>
                             <p className="text-foreground/70 leading-relaxed text-sm">
-                              {(val as string[]).join(' · ')}
+                              {(value as string[]).join(' · ')}
                             </p>
                           </div>
                         ))}
