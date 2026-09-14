@@ -291,8 +291,10 @@ api.interceptors.response.use(
       if (typeof window !== 'undefined') {
         const refreshToken = localStorage.getItem('refresh_token');
         const hasStoredAccess = !!localStorage.getItem('auth_token');
-        // Mobile: refresh via JSON body. Web: refresh via HttpOnly cookies (no localStorage tokens).
-        const canRefresh = !!refreshToken || !hasStoredAccess;
+        const authMethod = localStorage.getItem('auth_method');
+        // Mobile: refresh via JSON body (refreshToken). Web: refresh via HttpOnly cookies (hasStoredAccess or auth_method === 'web').
+        // An unauthenticated guest has none of these, so canRefresh will be false.
+        const canRefresh = !!refreshToken || hasStoredAccess || authMethod === 'web';
 
         if (canRefresh) {
           // ── Another refresh is already in flight: queue this request ──────

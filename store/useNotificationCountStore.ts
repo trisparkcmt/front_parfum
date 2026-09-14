@@ -52,10 +52,15 @@ export const useNotificationCountStore = create<NotificationCountState>((set, ge
   },
 
   fetchCounts: async () => {
+    const { isAuthenticated, user } = useAuthStore.getState();
+    if (!isAuthenticated || !user) {
+      set({ unreadNotificationCount: 0, unreadOrderCount: 0, unifiedNotifications: [], isLoading: false });
+      return;
+    }
+
     set({ isLoading: true });
     try {
-      const user = useAuthStore.getState().user;
-      const roles = (user?.roles || []).map((r: string) => String(r).toLowerCase());
+      const roles = (user.roles || []).map((r: string) => String(r).toLowerCase());
 
       const isAdminOrServeuse = roles.some((r) => r === 'admin' || r === 'serveuse' || r === 'superadmin');
       const isLivreur = roles.some((r) => r === 'livreur' || r === 'delivery');

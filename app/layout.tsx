@@ -1,4 +1,5 @@
  import type { Metadata, Viewport } from "next";
+import Script from "next/script";
 import { GoogleAnalytics } from "@next/third-parties/google";
 import "./globals.css";
 import { lora } from "@/lib/fonts";
@@ -100,16 +101,12 @@ export default function RootLayout({
   
   return (
     <html lang="fr" className={`h-full antialiased ${lora.variable}`} suppressHydrationWarning>
-      <head>
-        <script async src="https://www.googletagmanager.com/gtag/js?id=G-QTY77C8NBH" />
-        <script
+      <body className="min-h-full flex flex-col bg-background text-foreground selection:bg-gold selection:text-deep-black font-serif" suppressHydrationWarning>
+        <Script
+          id="theme-sync"
+          strategy="beforeInteractive"
           dangerouslySetInnerHTML={{
             __html: `
-              window.dataLayer = window.dataLayer || [];
-              function gtag(){dataLayer.push(arguments);}
-              gtag('js', new Date());
-              gtag('config', 'G-QTY77C8NBH');
-
               (function() {
                 function syncThemeColor() {
                   try {
@@ -152,8 +149,6 @@ export default function RootLayout({
             `
           }}
         />
-      </head>
-      <body className="min-h-full flex flex-col bg-background text-foreground selection:bg-gold selection:text-deep-black font-serif" suppressHydrationWarning>
         
         <LayoutWrapper>
           {children}

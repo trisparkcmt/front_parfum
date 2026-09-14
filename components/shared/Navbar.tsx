@@ -37,8 +37,9 @@ const UI_DICT: Record<string, { fr: string; en: string }> = {
 };
 
 export function Navbar() {
+  const [mounted, setMounted] = useState(false);
   const { i18n } = useTranslation();
-  const isEn = i18n.language?.startsWith('en');
+  const isEn = mounted && i18n.language?.startsWith('en');
 
   const pathname = usePathname();
   const [scrolled, setScrolled] = useState(false);
@@ -54,6 +55,7 @@ export function Navbar() {
   const iconColor = theme === 'dark' ? 'text-white' : 'text-black';
 
   useEffect(() => {
+    setMounted(true);
     const handleScroll = () => setScrolled(window.scrollY > 20);
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
@@ -103,7 +105,7 @@ export function Navbar() {
             </Link>
           ) : (
             <Link href="/login" onClick={() => { preloadGoogleIdentityScript(); }} className="flex-shrink-0">
-              <Button className="text-[0.65rem] rounded-full " variant="secondary" size="sm">
+              <Button className="text-[0.65rem] rounded-full " variant="secondary" size="sm" suppressHydrationWarning>
                 {isEn ? UI_DICT.login.en : UI_DICT.login.fr}
               </Button>
             </Link>
@@ -231,7 +233,7 @@ export function Navbar() {
                 </Link>
               ) : (
                 <Link href="/login" onClick={() => { preloadGoogleIdentityScript(); }}>
-                  <Button variant="secondary" size="sm" className={cn(glass, 'border-gold/30 text-gold hover:bg-gold/10')}>
+                  <Button variant="secondary" size="sm" suppressHydrationWarning className={cn(glass, 'border-gold/30 text-gold hover:bg-gold/10')}>
                     {isEn ? UI_DICT.login.en : UI_DICT.login.fr}
                   </Button>
                 </Link>

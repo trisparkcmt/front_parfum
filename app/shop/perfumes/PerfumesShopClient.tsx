@@ -24,11 +24,61 @@ export default function PerfumesShopClient() {
 
   const searchParams = useSearchParams();
   const [mounted, setMounted] = useState(false);
-  const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
+
+  // Restore frozen products from session cache if returning from product detail
+  const [products, setProducts] = useState<Product[]>(() => {
+    if (typeof window !== 'undefined' && sessionStorage.getItem('from_product_detail') === 'true') {
+      try {
+        const cached = sessionStorage.getItem('perfumes_catalog_cached_products');
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        }
+      } catch {}
+    }
+    return [];
+  });
+
+  const [finishedEssenceProducts, setFinishedEssenceProducts] = useState<Product[]>(() => {
+    if (typeof window !== 'undefined' && sessionStorage.getItem('from_product_detail') === 'true') {
+      try {
+        const cached = sessionStorage.getItem('perfumes_catalog_cached_essence');
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        }
+      } catch {}
+    }
+    return [];
+  });
+
+  const [loading, setLoading] = useState<boolean>(() => {
+    if (typeof window !== 'undefined' && sessionStorage.getItem('from_product_detail') === 'true') {
+      try {
+        const cached = sessionStorage.getItem('perfumes_catalog_cached_products');
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (Array.isArray(parsed) && parsed.length > 0) return false;
+        }
+      } catch {}
+    }
+    return true;
+  });
+
   const [finishedEssenceLoading, setFinishedEssenceLoading] = useState(false);
-  const [finishedEssenceProducts, setFinishedEssenceProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<{ id: string | number; label: string; desc?: string }[]>([]);
+
+  // Track if products were already restored from frozen state so we don't re-fetch or re-shuffle on mount
+  const hasRestoredFrozenProducts = useRef<boolean>(
+    typeof window !== 'undefined' &&
+    sessionStorage.getItem('from_product_detail') === 'true' &&
+    !!sessionStorage.getItem('perfumes_catalog_cached_products')
+  );
+  const hasRestoredFrozenEssence = useRef<boolean>(
+    typeof window !== 'undefined' &&
+    sessionStorage.getItem('from_product_detail') === 'true' &&
+    !!sessionStorage.getItem('perfumes_catalog_cached_essence')
+  );
 
   // Pagination state — driven by backend response
   const [currentPage, setCurrentPage] = useState<number>(() => {
@@ -45,8 +95,20 @@ export default function PerfumesShopClient() {
     const initialPage = Number(searchParams?.get('page'));
     return Number.isInteger(initialPage) && initialPage > 0 ? initialPage : 1;
   });
-  const [totalPages, setTotalPages] = useState(1);
-  const [totalCount, setTotalCount] = useState(0);
+  const [totalPages, setTotalPages] = useState<number>(() => {
+    if (typeof window !== 'undefined' && sessionStorage.getItem('from_product_detail') === 'true') {
+      const cached = Number(sessionStorage.getItem('perfumes_catalog_cached_total_pages'));
+      if (cached > 0) return cached;
+    }
+    return 1;
+  });
+  const [totalCount, setTotalCount] = useState<number>(() => {
+    if (typeof window !== 'undefined' && sessionStorage.getItem('from_product_detail') === 'true') {
+      const cached = Number(sessionStorage.getItem('perfumes_catalog_cached_total_count'));
+      if (cached > 0) return cached;
+    }
+    return 0;
+  });
 
   // Filter states
   const [search, setSearch] = useState('');
@@ -141,6 +203,12 @@ export default function PerfumesShopClient() {
         debouncedSearch,
         activeTab,
       };
+      hasRestoredFrozenProducts.current = false;
+      hasRestoredFrozenEssence.current = false;
+      try {
+        sessionStorage.removeItem('perfumes_catalog_cached_products');
+        sessionStorage.removeItem('perfumes_catalog_cached_essence');
+      } catch {}
       setCurrentPage(1);
       scrollCatalogToTop();
     }
@@ -234,6 +302,13 @@ export default function PerfumesShopClient() {
         }
       }
 
+      // If we restored frozen products on return from detail page, skip re-fetching & re-shuffling
+      if (hasRestoredFrozenProducts.current) {
+        hasRestoredFrozenProducts.current = false;
+        setLoading(false);
+        return;
+      }
+
       const filters: any = {};
       if (debouncedSearch) filters.search = debouncedSearch;
       if (genre !== 'all') filters.genre = genre;
@@ -250,6 +325,11 @@ export default function PerfumesShopClient() {
         setProducts(shuffledProducts);
         setTotalPages(1);
         setTotalCount(response.length);
+        try {
+          sessionStorage.setItem('perfumes_catalog_cached_products', JSON.stringify(shuffledProducts));
+          sessionStorage.setItem('perfumes_catalog_cached_total_pages', '1');
+          sessionStorage.setItem('perfumes_catalog_cached_total_count', String(response.length));
+        } catch {}
         
         // Track view_item_list event for GA4
           if (shuffledProducts.length > 0) {
@@ -275,6 +355,11 @@ export default function PerfumesShopClient() {
         setProducts(shuffledProducts);
         setTotalPages(response.pages ?? 1);
         setTotalCount(response.count ?? 0);
+        try {
+          sessionStorage.setItem('perfumes_catalog_cached_products', JSON.stringify(shuffledProducts));
+          sessionStorage.setItem('perfumes_catalog_cached_total_pages', String(response.pages ?? 1));
+          sessionStorage.setItem('perfumes_catalog_cached_total_count', String(response.count ?? 0));
+        } catch {}
         
         // Track view_item_list event for GA4
         const productList = shuffledProducts;
@@ -312,6 +397,12 @@ export default function PerfumesShopClient() {
     if (!mounted || (activeTab !== 'huile' && activeTab !== 'all')) return;
 
     async function loadEssenceProducts() {
+      if (hasRestoredFrozenEssence.current) {
+        hasRestoredFrozenEssence.current = false;
+        setFinishedEssenceLoading(false);
+        return;
+      }
+
       setFinishedEssenceLoading(true);
       try {
         const response = await productService.getEssencesAsProducts({
@@ -325,6 +416,9 @@ export default function PerfumesShopClient() {
 
         const essenceItems = shuffleArray(Array.isArray(response) ? response : response.results);
         setFinishedEssenceProducts(essenceItems);
+        try {
+          sessionStorage.setItem('perfumes_catalog_cached_essence', JSON.stringify(essenceItems));
+        } catch {}
 
         if (activeTab === 'huile') {
           setTotalPages(Array.isArray(response) ? 1 : response.pages ?? 1);
@@ -503,6 +597,12 @@ export default function PerfumesShopClient() {
   }, [mounted, isActiveLoading]);
 
   const resetFilters = () => {
+    try {
+      sessionStorage.removeItem('perfumes_catalog_cached_products');
+      sessionStorage.removeItem('perfumes_catalog_cached_essence');
+    } catch {}
+    hasRestoredFrozenProducts.current = false;
+    hasRestoredFrozenEssence.current = false;
     scrollCatalogToTop();
     setSearch('');
     setGenre('all');
@@ -775,6 +875,10 @@ export default function PerfumesShopClient() {
                 sessionStorage.setItem('perfumes_catalog_scroll', String(window.scrollY));
                 sessionStorage.setItem('perfumes_catalog_page', String(currentPage));
                 sessionStorage.setItem('perfumes_catalog_tab', String(activeTab));
+                sessionStorage.setItem('perfumes_catalog_cached_products', JSON.stringify(products));
+                sessionStorage.setItem('perfumes_catalog_cached_essence', JSON.stringify(finishedEssenceProducts));
+                sessionStorage.setItem('perfumes_catalog_cached_total_pages', String(totalPages));
+                sessionStorage.setItem('perfumes_catalog_cached_total_count', String(totalCount));
                 sessionStorage.setItem('last_shop_catalog_url', window.location.pathname + window.location.search);
               } catch {}
             }
@@ -834,7 +938,11 @@ export default function PerfumesShopClient() {
             onClick={() => {
               try {
                 sessionStorage.setItem('perfumes_catalog_scroll', '0');
+                sessionStorage.removeItem('perfumes_catalog_cached_products');
+                sessionStorage.removeItem('perfumes_catalog_cached_essence');
               } catch {}
+              hasRestoredFrozenProducts.current = false;
+              hasRestoredFrozenEssence.current = false;
               scrollCatalogToTop();
               setCurrentPage((p) => Math.max(1, p - 1));
             }}
@@ -869,7 +977,11 @@ export default function PerfumesShopClient() {
                   onClick={() => {
                     try {
                       sessionStorage.setItem('perfumes_catalog_scroll', '0');
+                      sessionStorage.removeItem('perfumes_catalog_cached_products');
+                      sessionStorage.removeItem('perfumes_catalog_cached_essence');
                     } catch {}
+                    hasRestoredFrozenProducts.current = false;
+                    hasRestoredFrozenEssence.current = false;
                     scrollCatalogToTop();
                     setCurrentPage(page);
                   }}
@@ -889,7 +1001,11 @@ export default function PerfumesShopClient() {
             onClick={() => {
               try {
                 sessionStorage.setItem('perfumes_catalog_scroll', '0');
+                sessionStorage.removeItem('perfumes_catalog_cached_products');
+                sessionStorage.removeItem('perfumes_catalog_cached_essence');
               } catch {}
+              hasRestoredFrozenProducts.current = false;
+              hasRestoredFrozenEssence.current = false;
               scrollCatalogToTop();
               setCurrentPage((p) => Math.min(totalPages, p + 1));
             }}

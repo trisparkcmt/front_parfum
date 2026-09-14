@@ -76,6 +76,10 @@ export const deviceService = {
       console.log('[Device Service] Device registered successfully:', response.data);
       return response.data;
     } catch (error: any) {
+      if (error?.response?.status === 401) {
+        console.warn('[Device Service] FCM device registration skipped: user is not authenticated (401)');
+        return { success: false, message: 'Unauthenticated' } as any;
+      }
       console.error('[Device Service] Failed to register device:', error);
       throw error;
     }
@@ -122,6 +126,10 @@ export const deviceService = {
       console.log('[Device Service] Fetched notifications:', response.data);
       return response.data || [];
     } catch (error: any) {
+      if (error?.response?.status === 401) {
+        console.warn('[Device Service] Notification fetch skipped: user is not authenticated (401)');
+        return [];
+      }
       console.error('[Device Service] Failed to fetch notifications:', error);
       throw error;
     }

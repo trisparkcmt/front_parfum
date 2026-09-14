@@ -60,6 +60,19 @@ export default function ProductDetailClient({ id }: { id: string }) {
   const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
   const [selectedVariant, setSelectedVariant] = useState<ProduitFiniEssence | null>(null);
   const [selectedEssence, setSelectedEssence] = useState<Product | null>(null);
+  const [returnCollectionHref, setReturnCollectionHref] = useState('/shop/perfumes');
+
+  useEffect(() => {
+    const defaultPath = getProductCollectionPath(product?.category);
+    if (typeof window !== 'undefined') {
+      const saved = sessionStorage.getItem('last_shop_catalog_url');
+      if (saved && (saved.startsWith('/shop/perfumes') || saved.startsWith('/shop/accessories') || saved.startsWith('/shop/diffuseurs'))) {
+        setReturnCollectionHref(saved);
+        return;
+      }
+    }
+    setReturnCollectionHref(defaultPath);
+  }, [product?.category]);
 
   // Auto-select first available variant for finished essences
   useEffect(() => {
@@ -324,17 +337,7 @@ export default function ProductDetailClient({ id }: { id: string }) {
         value,
       }))
     : [];
-  const collectionPath = getProductCollectionPath(product.category);
-  const [returnCollectionHref, setReturnCollectionHref] = useState(collectionPath);
 
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const saved = sessionStorage.getItem('last_shop_catalog_url');
-      if (saved && (saved.startsWith('/shop/perfumes') || saved.startsWith('/shop/accessories') || saved.startsWith('/shop/diffuseurs'))) {
-        setReturnCollectionHref(saved);
-      }
-    }
-  }, [collectionPath]);
 
   return (
     <div className="min-h-screen bg-background text-foreground pt-28 pb-24 px-4 md:px-8 relative overflow-hidden">
@@ -776,12 +779,19 @@ export default function ProductDetailClient({ id }: { id: string }) {
                 </h2>
                 <div className="w-20 h-1 bg-gold" />
               </div>
-              <a
-                href={collectionPath}
+              <Link
+                href={returnCollectionHref}
+                onClick={() => {
+                  if (typeof window !== 'undefined') {
+                    try {
+                      sessionStorage.setItem('from_product_detail', 'true');
+                    } catch {}
+                  }
+                }}
                 className="text-gold hover:underline flex items-center gap-2 text-sm shrink-0"
               >
                 {isEn ? 'Explore Collection' : 'Voir tout'} <ChevronRight size={16} />
-              </a>
+              </Link>
             </div>
 
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
