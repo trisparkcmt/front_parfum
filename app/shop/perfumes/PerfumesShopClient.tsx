@@ -4,7 +4,7 @@
  * @file app/shop/perfumes/PerfumesShopClient.tsx
  * @description Client-side marketplace catalog for brand perfumes, dupes and finished essences.
  */
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, SlidersHorizontal, X, RotateCcw, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
@@ -18,6 +18,7 @@ import { productService } from '@/services/productService';
 import { shuffleArray } from '@/lib/utils';
 import type { Product, ProduitFiniEssence } from '@/types';
 import { EssenceSizePickerModal } from '@/components/ui/EssenceSizePickerModal';
+import { ProductDetailModal } from '@/components/ui/ProductDetailModal';
 
 export default function PerfumesShopClient() {
   const { t } = useTranslation();
@@ -453,6 +454,60 @@ export default function PerfumesShopClient() {
 
   const [selectedEssence, setSelectedEssence] = useState<Product | null>(null);
 
+  // ── Product detail modal ─────────────────────────────────────────────────
+  const [modalProductId, setModalProductId] = useState<string | null>(null);
+  const [modalProductType, setModalProductType] = useState<'perfume' | 'accessory' | 'diffuseur'>('perfume');
+
+  /**
+   * Derive the product type hint from the card's productUrl the same way
+   * ProductCard does, so we forward the right type to the modal loader.
+   */
+  const getTypeHint = useCallback((product: Product): 'perfume' | 'accessory' | 'diffuseur' => {
+    const isDiffuseur =
+      product.category === 'accessory' &&
+      !!(
+        product.type_technologie ||
+        product.capacite_reservoir_ml !== undefined ||
+        product.est_connecte !== undefined ||
+        product.a_jeux_de_lumiere !== undefined ||
+        (product.name || '').toLowerCase().includes('diffuseur') ||
+        (product.description || '').toLowerCase().includes('diffuseur')
+      );
+    if (isDiffuseur) return 'diffuseur';
+    if (product.category === 'accessory') return 'accessory';
+    return 'perfume';
+  }, []);
+
+  const openProductModal = useCallback((product: Product) => {
+    const typeHint = getTypeHint(product);
+    const productId = String(product.slug || product.id);
+    const productUrl = `/shop/product/${productId}${product.category === 'accessory' ? '?type=accessory' : '?type=perfume'}`;
+
+    setModalProductId(productId);
+    setModalProductType(typeHint);
+
+    // Update the address bar without full navigation, so deep-link works and
+    // back button pops back to the catalog URL.
+    window.history.pushState({ modalProductId: productId }, '', productUrl);
+  }, [getTypeHint]);
+
+  const closeProductModal = useCallback(() => {
+    setModalProductId(null);
+  }, []);
+
+  // Listen for browser back / forward — close modal when user presses back.
+  useEffect(() => {
+    const handlePopState = (e: PopStateEvent) => {
+      // If there's no modalProductId in the new state, close the modal.
+      if (!e.state?.modalProductId) {
+        setModalProductId(null);
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+
   const handleAddToCart = (product: Product) => {
     if (
       activeTab === 'huile' ||
@@ -866,24 +921,7 @@ export default function PerfumesShopClient() {
       {isActiveLoading ? (
         <ProductGridSkeleton count={8} />
       ) : (
-        <div
-          onClickCapture={(e) => {
-            const target = e.target as HTMLElement;
-            if (target.closest('a')) {
-              try {
-                sessionStorage.setItem('from_product_detail', 'true');
-                sessionStorage.setItem('perfumes_catalog_scroll', String(window.scrollY));
-                sessionStorage.setItem('perfumes_catalog_page', String(currentPage));
-                sessionStorage.setItem('perfumes_catalog_tab', String(activeTab));
-                sessionStorage.setItem('perfumes_catalog_cached_products', JSON.stringify(products));
-                sessionStorage.setItem('perfumes_catalog_cached_essence', JSON.stringify(finishedEssenceProducts));
-                sessionStorage.setItem('perfumes_catalog_cached_total_pages', String(totalPages));
-                sessionStorage.setItem('perfumes_catalog_cached_total_count', String(totalCount));
-                sessionStorage.setItem('last_shop_catalog_url', window.location.pathname + window.location.search);
-              } catch {}
-            }
-          }}
-        >
+        <div>
           <AnimatePresence mode="wait">
             <motion.div
               key={`${activeTab}_${currentPage}_${activeProducts.length}`}
@@ -906,9 +944,11 @@ export default function PerfumesShopClient() {
                     onAddToCart={handleAddToCart}
                     onToggleFavorite={handleToggleFavorite}
                     isFavorite={isFavorite(product.id)}
+                    onCardClick={openProductModal}
                   />
                 </motion.div>
               ))}
+
 
               {activeProducts.length === 0 && (
                 <div className="col-span-full w-full py-20 text-center border border-white/5 rounded-2xl bg-white/[0.02]">
@@ -1037,6 +1077,18 @@ export default function PerfumesShopClient() {
           onClose={() => setSelectedEssence(null)}
         />
       )}
+
+      {/* ── Product detail modal overlay ────────────────────────────────── */}
+      <AnimatePresence>
+        {modalProductId && (
+          <ProductDetailModal
+            productId={modalProductId}
+            productType={modalProductType}
+            onClose={closeProductModal}
+            onRelatedCardClick={openProductModal}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
-}
+}

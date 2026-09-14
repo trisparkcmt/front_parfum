@@ -39,6 +39,12 @@ interface ProductCardProps {
   className?: string;
   /** If true, renders a "Notify me" button instead of "Add to Cart" */
   soldOut?: boolean;
+  /**
+   * When provided, clicking the card image or product name calls this callback
+   * instead of navigating to the product URL. Used by the shop catalog to open
+   * the full-screen product detail modal without unmounting the catalog.
+   */
+  onCardClick?: (product: Product) => void;
 }
 
 export function ProductCard({
@@ -48,6 +54,7 @@ export function ProductCard({
   isFavorite,
   className,
   soldOut = false,
+  onCardClick,
 }: ProductCardProps) {
   const { t } = useTranslation();
   const { addToast } = useToastStore();
@@ -132,7 +139,12 @@ export function ProductCard({
     onToggleFavorite?.(product);
   };
 
-  const handleProductLinkClick = () => {
+  const handleProductLinkClick = (e?: MouseEvent<HTMLAnchorElement>) => {
+    if (onCardClick) {
+      e?.preventDefault();
+      onCardClick(product);
+      return;
+    }
     if (typeof window !== 'undefined') {
       try {
         sessionStorage.setItem('from_product_detail', 'true');
@@ -155,7 +167,7 @@ export function ProductCard({
       >
         <Link 
           href={productUrl} 
-          onClick={handleProductLinkClick}
+          onClick={(e) => handleProductLinkClick(e)}
           className="absolute inset-0 z-0 block cursor-pointer" 
           tabIndex={-1} 
           aria-hidden="true"
@@ -277,7 +289,7 @@ export function ProductCard({
         {/* Product name — clamped to 2 lines, fixed min-height reserves space */}
         <Link
           href={productUrl}
-          onClick={handleProductLinkClick}
+          onClick={(e) => handleProductLinkClick(e)}
           className="mt-0.5  min-h-[2.2rem] sm:min-h-[2.6rem] font-serif font-bold text-[13px] sm:text-[14px] leading-[1.3] text-foreground transition-colors hover:text-gold"
         >
           {product.name}
