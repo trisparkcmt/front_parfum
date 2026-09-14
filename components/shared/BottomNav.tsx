@@ -47,8 +47,7 @@ const BottomNav = () => {
         className="fixed bottom-5 left-4 right-4 z-[100] flex items-center gap-2 md:hidden"
         style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
       >
-        <div className="h-16 flex-1 rounded-[28px] border border-white/10 bg-deep-black/70 backdrop-blur-2xl" />
-        <div className="h-16 w-16 shrink-0 rounded-[28px] border border-white/10 bg-deep-black/70 backdrop-blur-2xl" />
+        <div className="h-16 w-full rounded-[28px] border border-white/10 bg-deep-black/70 backdrop-blur-2xl" />
       </nav>
     );
   }

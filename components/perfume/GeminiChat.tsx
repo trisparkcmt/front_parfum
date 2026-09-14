@@ -363,7 +363,7 @@ function LoadingBubble() {
         <img
           src="/logo/Numba gold.svg"
           alt="Numba"
-          className="w-full h-full object-contain dark:invert"
+          className="w-full h-full object-contain"
         />
       </div>
       <div className="max-w-xs md:max-w-md bg-white/5 border border-white/10 rounded-3xl rounded-bl-md px-5 py-4 shadow-sm backdrop-blur-md">
@@ -942,7 +942,7 @@ function AiBubble({
         <img
           src="/logo/Numba gold.svg"
           alt="Numba"
-          className="w-full h-full object-contain dark:invert"
+          className="w-full h-full object-contain"
         />
       </div>
       <div className="flex-1 min-w-0 space-y-4">
@@ -1384,7 +1384,7 @@ export function GeminiChat({ onChatStarted }: GeminiChatProps) {
                 <img
                   src="/logo/Numba gold.svg"
                   alt="Numba"
-                  className="w-full h-full object-contain dark:invert"
+                  className="w-full h-full object-contain "
                 />
               </div>
               <div>
