@@ -82,10 +82,6 @@ export function useFCM(options: UseFCMOptions = {}) {
         if (isMounted && token) {
           console.log('[useFCM] FCM initialized successfully');
 
-          if (enableToasts) {
-            addToast('Notifications activées', 'success');
-          }
-
           // Setup foreground message listener after FCM is initialized
           setupForegroundMessageListener(async (payload) => {
             console.log('[useFCM] Foreground message received:', payload);
@@ -119,9 +115,6 @@ export function useFCM(options: UseFCMOptions = {}) {
         }
       } catch (error) {
         console.error('[useFCM] Error during FCM setup:', error);
-        if (isMounted && enableToasts) {
-          addToast('Erreur lors de l\'initialisation des notifications', 'error');
-        }
       }
     })();
 
@@ -166,9 +159,6 @@ export function useFCMWithStatus(options: UseFCMOptions = {}) {
         if (isMounted) {
           if (token) {
             setFcmStatus('ready');
-            if (enableToasts) {
-              addToast('Notifications activées', 'success');
-            }
 
             setupForegroundMessageListener((payload) => {
               if (onMessage) {
@@ -189,9 +179,6 @@ export function useFCMWithStatus(options: UseFCMOptions = {}) {
         console.error('[useFCMWithStatus] Error:', error);
         if (isMounted) {
           setFcmStatus('error');
-          if (enableToasts) {
-            addToast('Erreur lors de l\'initialisation des notifications', 'error');
-          }
         }
       }
     })();

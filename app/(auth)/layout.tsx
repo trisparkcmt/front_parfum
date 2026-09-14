@@ -41,7 +41,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
     >
       {/* photo */}
       <div
-        className="absolute bg-cover bg-center  "
+        className="absolute inset-0 bg-cover bg-center"
         style={{ backgroundImage: "url('/flyerlogin.jpg')" }}
       />
       {/* animated gold sheen */}
@@ -51,9 +51,8 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         animate={{ rotate: [0, 360] }}
         transition={{ duration: 40, repeat: Infinity, ease: 'linear' }}
       />
+      <div className="absolute inset-0 bg-deep-black/35" aria-hidden />
       <div className="absolute inset-0 bg-gradient-to-t from-deep-black via-deep-black/20 to-transparent" />
-      <div className="absolute "
-          style={{ backgroundImage: "url('/flyerlogin.jpg')" }} />
 
       <div className="relative z-10 w-full p-12 flex flex-col justify-between h-full">
         <Link href="/" className="flex items-center gap-2 group w-fit">
@@ -63,7 +62,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
             className="h-30 w-31 object-contain invert group-hover:scale-105 transition-transform duration-300"
           />
           <span className="font-display text-2xl font-bold tracking-tight text-foreground">
-            <span className="text-gold">Accessories</span> Exclusifs
+            <span className="text-gold">Accessoires</span> Exclusifs
           </span>
         </Link>
 

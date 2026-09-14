@@ -50,11 +50,11 @@ export function LayoutWrapper({ children }: { children: React.ReactNode }) {
       {!shouldHideNav && (
         <Navbar />
       )}
-      <main className={`flex-1 ${!shouldHideNav ? 'pb-32 lg:pb-0' : ''}`}>
+      <main className={`flex-1 ${!shouldHideNav ? 'pb-32 md:pb-0' : ''}`}>
         {children}
       </main>
       {!shouldHideNav && (
-        <div className="lg:hidden">
+        <div className="md:hidden">
           <BottomNav />
         </div>
       )}

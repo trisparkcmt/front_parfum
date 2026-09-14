@@ -25,6 +25,7 @@ const NAV_LABEL_MAP: Record<string, { fr: string; en: string }> = {
   '/shop/accessories': { fr: 'Accessoires', en: 'Accessories' },
   '/shop/perfumes': { fr: 'Parfumerie', en: 'Perfumes' },
   '/shop/diffuseurs': { fr: 'Diffuseurs', en: 'Diffusers' },
+  '/reels': { fr: 'Reels', en: 'Reels' },
   '/numba': { fr: 'Atelier Numba', en: 'Numba Workshop' },
 };
 
@@ -76,13 +77,13 @@ export function Navbar() {
   return (
     <header className="fixed top-0 left-0 right-0 z-50">
       {/* Mobile offline banner — sits between phone status bar and nav content */}
-      <div className="lg:hidden">
+      <div className="md:hidden">
         <MobileOfflineBanner />
       </div>
       <div className="absolute inset-x-0 top-0 h-0.5 bg-gold opacity-0" />
 
       {/* MOBILE */}
-      <div className="flex items-center lg:hidden bg-background border-b border-foreground/10 px-4 py-2.5 relative">
+      <div className="flex items-center md:hidden bg-background border-b border-foreground/10 px-4 py-2.5 relative">
         <div className="flex items-center gap-3  flex-shrink-0">
           <LanguageSelector />
           {isAuthenticated && user ? (
@@ -137,7 +138,7 @@ export function Navbar() {
       </div>
 
       {/* DESKTOP */}
-      <nav className={cn('hidden lg:block transition-all duration-300', scrolled ? 'py-2.5' : 'py-4')}>
+      <nav className={cn('hidden md:block transition-all duration-300', scrolled ? 'py-2.5' : 'py-4')}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between relative">
             <Link href="/" className={cn( 'flex items-center gap-2 group flex-shrink-0 z-10 px-2')}>

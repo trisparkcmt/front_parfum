@@ -25,7 +25,6 @@ import {
 } from 'firebase/messaging';
 import { firebaseApp } from '@/lib/firebase';
 import { deviceService } from './deviceService';
-import { useToastStore } from '@/store/useToastStore';
 import type { User } from '@/types';
 
 /**
@@ -225,7 +224,6 @@ async function initializeFCMInternal(user: User | null): Promise<string | null> 
     const permission = await requestNotificationPermission();
     if (permission !== 'granted') {
       console.warn('[FCM Service] Notification permission not granted');
-      useToastStore.getState().addToast("Autorisation de notification refusée. Veuillez activer les notifications dans les paramètres de votre navigateur.", 'info');
       return null;
     }
 
@@ -233,7 +231,6 @@ async function initializeFCMInternal(user: User | null): Promise<string | null> 
     const swRegistration = await registerServiceWorker();
     if (!swRegistration) {
       console.warn('[FCM Service] Failed to register Service Worker');
-      useToastStore.getState().addToast("Échec de l'activation des notifications push (erreur Service Worker).", 'error');
       return null;
     }
 
@@ -241,7 +238,6 @@ async function initializeFCMInternal(user: User | null): Promise<string | null> 
     const messaging = getFirebaseMessaging();
     if (!messaging) {
       console.error('[FCM Service] Failed to get Firebase messaging instance');
-      useToastStore.getState().addToast("Échec de l'activation des notifications (Firebase non disponible).", 'error');
       return null;
     }
 
@@ -253,7 +249,6 @@ async function initializeFCMInternal(user: User | null): Promise<string | null> 
 
     if (!token) {
       console.warn('[FCM Service] Failed to retrieve FCM token');
-      useToastStore.getState().addToast("Aucun identifiant de notification reçu de Firebase.", 'error');
       return null;
     }
 
@@ -264,16 +259,13 @@ async function initializeFCMInternal(user: User | null): Promise<string | null> 
     // 5. Register device with backend
     try {
       await deviceService.registerDevice(token);
-      useToastStore.getState().addToast("Notifications push configurées avec succès sur cet appareil !", 'success');
     } catch (error) {
       console.warn('[FCM Service] Failed to register device with backend:', error);
-      useToastStore.getState().addToast("Notifications obtenues localement mais échec de la synchronisation avec le serveur.", 'info');
     }
 
     return token;
   } catch (error: any) {
     console.error('[FCM Service] Error during FCM initialization:', error);
-    useToastStore.getState().addToast(`Erreur d'initialisation des notifications: ${error.message || error}`, 'error');
     return null;
   }
 }
