@@ -267,10 +267,6 @@ export default function PerfumesShopClient() {
       setSelectedEssence(product);
     } else {
       addProduct(product, 1);
-      addToast(
-        `${product.name} ${t('added_to_cart')}`,
-        'success'
-      );
       import('@/lib/gtag').then(({ trackAddToCart }) => {
         trackAddToCart({
           id: product.id,

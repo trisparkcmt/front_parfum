@@ -130,7 +130,6 @@ function DiffuseursShopContent() {
   const handleAddToCart = async (product: Product) => {
     try {
       await addDiffuseur(Number(product.id), 1);
-      addToast(isEn ? 'Added to bag' : 'Ajouté au panier', 'success');
       const { trackAddToCart } = await import('@/lib/gtag');
       trackAddToCart({
         id: product.id,
