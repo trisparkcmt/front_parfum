@@ -67,7 +67,7 @@ export function HuileDetailModal({ productId, onClose, onRelatedHuileClick }: Hu
 
     (async () => {
       try {
-        const p = await productService.getProductById(productId, 'huile');
+        const p = await productService.getProductById(productId, 'essence');
         if (!mounted) return;
         setProduct(p);
 
