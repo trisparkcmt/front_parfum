@@ -614,7 +614,7 @@ export default function PerfumesShopClient() {
     if (activeTab === 'huile') return finishedEssenceProducts;
     if (activeTab !== 'all') return products;
 
-    return [...products, ...finishedEssenceProducts];
+    return shuffleArray([...products, ...finishedEssenceProducts]);
   }, [activeTab, products, finishedEssenceProducts]);
 
   const isActiveLoading =
