@@ -23,9 +23,9 @@ export default function NumbaLandingClient() {
       <main className="p-4 sm:p-6 lg:p-0 grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-0 w-full max-w-[1800px] mx-auto flex-grow items-stretch lg:border-b lg:border-[var(--t-border)]">
         <div className="p-8 mt-18 lg:mt-0 sm:p-12 lg:p-16 lg:pt-25 flex flex-col justify-between rounded-2xl lg:rounded-none border border-[var(--t-border)] lg:border-t-0 lg:border-b-0 lg:border-l-0 lg:border-r bg-foreground/[0.03]">
           <div>
-            <span className="text-[11px] font-mono tracking-[0.25em] uppercase text-gold block mb-2">
+            {/* <span className="text-[11px] font-mono tracking-[0.25em] uppercase text-gold block mb-2">
               {t('concept_introduction', { defaultValue: 'Concept Introduction' })}
-            </span>
+            </span> */}
             <h1 className="font-display text-center text-4xl sm:text-5xl xl:text-6xl font-bold tracking-tight text-foreground leading-[1.1] -mb-2">
               {t('welcome_at')}<br />
               <img
@@ -36,7 +36,7 @@ export default function NumbaLandingClient() {
             </h1>
             <div className="mt-12 text-center">
               <span className="inline-block px-5 py-2.5 rounded-full border border-gold/40 bg-gold/10 text-gold text-xs sm:text-sm font-extrabold uppercase tracking-[0.25em] shadow-[0_0_20px_rgba(212,184,122,0.2)]">
-                The BEST OLFACTORY EXPERIENCE
+                "The BEST OLFACTORY EXPERIENCE"
               </span>
             </div>
           </div>

@@ -17,7 +17,7 @@
  */
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
-import { WHATSAPP_BASE_URL, WHATSAPP_NUMBER, CURRENCY, API_BASE_URL } from './constants';
+import { WHATSAPP_BASE_URL, CURRENCY, API_BASE_URL } from './constants';
 import { API_ROOT } from '@/services/api';
 import type { CartItem } from '@/types';
 
@@ -45,6 +45,29 @@ export function shuffleArray<T>(items: T[]): T[] {
  */
 export function formatPrice(amount: number): string {
   return `${new Intl.NumberFormat('fr-FR').format(amount)} ${CURRENCY}`;
+}
+
+export function normalizeCameroonPhone(value?: string | null): string {
+  const digits = (value || '').replace(/\D/g, '');
+  return digits.startsWith('237') && digits.length === 12 ? digits.slice(3) : digits;
+}
+
+export function normalizeSocialUsername(value?: string | null): string {
+  return (value || '')
+    .trim()
+    .replace(/^https?:\/\/(www\.)?[^/]+\//i, '')
+    .replace(/^@/, '')
+    .replace(/\/$/, '');
+}
+
+export function buildWhatsAppUrl(phone?: string | null, message?: string): string {
+  const number = normalizeCameroonPhone(phone);
+  const query = message ? `?text=${encodeURIComponent(message)}` : '';
+  return `${WHATSAPP_BASE_URL}/237${number}${query}`;
+}
+
+export function buildSocialUrl(platform: 'facebook' | 'instagram', username?: string | null): string {
+  return `https://www.${platform}.com/${normalizeSocialUsername(username)}`;
 }
 
 export function buildAbsoluteUrl(path: string): string {
@@ -185,7 +208,8 @@ export function generateWhatsAppLink(
   mobileNetwork?: string,
   deliveryType?: string,
   deliveryLocation?: string,
-  orderNumber?: string
+  orderNumber?: string,
+  whatsappNumber?: string | null
 ): string {
   let message = '🛍️ *Nouvelle Commande — Accessories Exclusif*\n\n';
 
@@ -217,8 +241,7 @@ export function generateWhatsAppLink(
 
   message += `Merci de confirmer cette commande 🙏`;
 
-  const encodedMessage = encodeURIComponent(message);
-  return `${WHATSAPP_BASE_URL}/${WHATSAPP_NUMBER}?text=${encodedMessage}`;
+  return buildWhatsAppUrl(whatsappNumber, message);
 }
 
 /**

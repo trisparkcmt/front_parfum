@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { useTranslation } from 'react-i18next';
 import { shopService } from '@/services/apiService';
 import type { CompanyInfo } from '@/types';
+import { buildWhatsAppUrl } from '@/lib/utils';
 
 const LAT = 3.86484;
 const LNG = 11.52030;
@@ -15,8 +16,6 @@ const STORE_INFO = {
   name: 'Accessoires Exclusifs',
   addressFr: 'Yaoundé, Centre, Cameroun',
   addressEn: 'Yaoundé, Centre, Cameroon',
-  phone: '+237 680 254 243',
-  whatsapp: '+237 680 254 243',
   hours: [
     { day: 'Lundi – Vendredi', time: '09h00 – 19h00' },
     { day: 'Samedi',           time: '10h00 – 18h00' },
@@ -140,8 +139,8 @@ export default function StorePage() {
   const storeDetails = {
     name: companyInfo?.nom || STORE_INFO.name,
     address: companyInfo?.localisation || (isEn ? STORE_INFO.addressEn : STORE_INFO.addressFr),
-    phone: companyInfo?.telephone_principal || STORE_INFO.phone,
-    whatsapp: companyInfo?.whatsapp || STORE_INFO.whatsapp,
+    phone: companyInfo?.telephone_principal || '',
+    whatsapp: companyInfo?.whatsapp || '',
   };
 
   const handleGetDirections = () => {
@@ -250,7 +249,7 @@ export default function StorePage() {
             </button>
 
             <a
-              href={`https://wa.me/${storeDetails.whatsapp.replace(/\s+/g, '').replace('+', '')}`}
+              href={buildWhatsAppUrl(storeDetails.whatsapp)}
               target="_blank"
               rel="noopener noreferrer"
               className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl border border-white/10 text-sm text-foreground/70 hover:text-foreground hover:border-white/20 transition-all"

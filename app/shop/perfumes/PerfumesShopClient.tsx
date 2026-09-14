@@ -31,7 +31,20 @@ export default function PerfumesShopClient() {
   const [categories, setCategories] = useState<{ id: string | number; label: string; desc?: string }[]>([]);
 
   // Pagination state — driven by backend response
-  const [currentPage, setCurrentPage] = useState(1);
+  const [currentPage, setCurrentPage] = useState<number>(() => {
+    if (typeof window !== 'undefined') {
+      const sp = new URLSearchParams(window.location.search);
+      const urlPage = Number(sp.get('page'));
+      if (Number.isInteger(urlPage) && urlPage > 0) return urlPage;
+
+      if (sessionStorage.getItem('from_product_detail') === 'true') {
+        const savedPage = Number(sessionStorage.getItem('perfumes_catalog_page'));
+        if (Number.isInteger(savedPage) && savedPage > 0) return savedPage;
+      }
+    }
+    const initialPage = Number(searchParams?.get('page'));
+    return Number.isInteger(initialPage) && initialPage > 0 ? initialPage : 1;
+  });
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
 
@@ -44,10 +57,39 @@ export default function PerfumesShopClient() {
   const [maxPrice, setMaxPrice] = useState<number>(150000);
   const [showFilters, setShowFilters] = useState(false);
 
-  // Initialise activeTab from URL ?categorie=<id> if present
+  // Initialise activeTab from URL or session storage when returning from product
   const [activeTab, setActiveTab] = useState<string | number>(() => {
+    if (typeof window !== 'undefined') {
+      const sp = new URLSearchParams(window.location.search);
+      const catParam = sp.get('categorie');
+      if (catParam) return Number(catParam);
+
+      if (sessionStorage.getItem('from_product_detail') === 'true') {
+        const savedTab = sessionStorage.getItem('perfumes_catalog_tab');
+        if (savedTab) return isNaN(Number(savedTab)) ? savedTab : Number(savedTab);
+      }
+    }
     const catParam = searchParams?.get('categorie');
     return catParam ? Number(catParam) : 'all';
+  });
+
+  // Track scroll restoration lifecycle
+  const isRestoringScrollRef = useRef(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && sessionStorage.getItem('from_product_detail') === 'true') {
+      isRestoringScrollRef.current = true;
+    }
+  }, []);
+
+  // Ref to track actual user filter changes (avoids resetting page on re-mount or debounce init)
+  const prevFiltersRef = useRef({
+    genre,
+    olfactiveFamily,
+    intensity,
+    maxPrice,
+    debouncedSearch,
+    activeTab,
   });
 
   // Ref for the scrollable tab bar and individual tab buttons
@@ -79,15 +121,74 @@ export default function PerfumesShopClient() {
     return () => clearTimeout(handler);
   }, [search]);
 
-  // Reset to page 1 whenever any filter/search/tab changes
+  // Only reset to page 1 if the user actively changes any filter or tab after mount
   useEffect(() => {
-    setCurrentPage(1);
+    const prev = prevFiltersRef.current;
+    const hasChanged =
+      prev.genre !== genre ||
+      prev.olfactiveFamily !== olfactiveFamily ||
+      prev.intensity !== intensity ||
+      prev.maxPrice !== maxPrice ||
+      prev.debouncedSearch !== debouncedSearch ||
+      prev.activeTab !== activeTab;
+
+    if (hasChanged) {
+      prevFiltersRef.current = {
+        genre,
+        olfactiveFamily,
+        intensity,
+        maxPrice,
+        debouncedSearch,
+        activeTab,
+      };
+      setCurrentPage(1);
+      scrollCatalogToTop();
+    }
   }, [genre, olfactiveFamily, intensity, maxPrice, debouncedSearch, activeTab]);
 
+  // Sync currentPage and activeTab with URL & session storage
   useEffect(() => {
     if (!mounted) return;
-    scrollCatalogToTop();
-  }, [mounted, currentPage, activeTab, debouncedSearch, genre, olfactiveFamily, intensity, maxPrice]);
+
+    const nextUrl = new URL(window.location.href);
+    if (currentPage > 1) {
+      nextUrl.searchParams.set('page', String(currentPage));
+    } else {
+      nextUrl.searchParams.delete('page');
+    }
+    window.history.replaceState(window.history.state, '', nextUrl);
+
+    try {
+      sessionStorage.setItem('perfumes_catalog_page', String(currentPage));
+      sessionStorage.setItem('perfumes_catalog_tab', String(activeTab));
+      sessionStorage.setItem('last_shop_catalog_url', nextUrl.pathname + nextUrl.search);
+    } catch {}
+  }, [mounted, currentPage, activeTab]);
+
+  // Record user scroll position safely without overwriting during transitions/restoration
+  useEffect(() => {
+    if (!mounted) return;
+
+    let ticking = false;
+    const saveScrollPosition = () => {
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          if (window.scrollY > 0 && !isRestoringScrollRef.current) {
+            try {
+              sessionStorage.setItem('perfumes_catalog_scroll', String(window.scrollY));
+            } catch {
+              // Session storage can be unavailable in privacy-restricted browsers.
+            }
+          }
+          ticking = false;
+        });
+        ticking = true;
+      }
+    };
+
+    window.addEventListener('scroll', saveScrollPosition, { passive: true });
+    return () => window.removeEventListener('scroll', saveScrollPosition);
+  }, [mounted]);
 
   // Load products when filters, tab, or page changes
   useEffect(() => {
@@ -127,8 +228,9 @@ export default function PerfumesShopClient() {
         ];
         setCategories(mappedTabs);
 
-        if (!searchParams?.get('categorie')) {
-          setActiveTab('all');
+        const catParam = searchParams?.get('categorie');
+        if (catParam) {
+          setActiveTab(Number(catParam));
         }
       }
 
@@ -341,13 +443,64 @@ export default function PerfumesShopClient() {
     if (activeTab === 'huile') return finishedEssenceProducts;
     if (activeTab !== 'all') return products;
 
-    return shuffleArray([...products, ...finishedEssenceProducts]);
+    return [...products, ...finishedEssenceProducts];
   }, [activeTab, products, finishedEssenceProducts]);
 
   const isActiveLoading =
     activeTab === 'huile' || activeTab === 'all'
       ? loading || finishedEssenceLoading
       : loading;
+
+  // Restore scroll position when returning from product detail
+  useEffect(() => {
+    if (!mounted || isActiveLoading) return;
+    if (!isRestoringScrollRef.current) return;
+
+    const isFromProduct = typeof window !== 'undefined' && sessionStorage.getItem('from_product_detail') === 'true';
+    if (!isFromProduct) {
+      isRestoringScrollRef.current = false;
+      return;
+    }
+
+    let savedScroll = 0;
+    try {
+      savedScroll = Number(sessionStorage.getItem('perfumes_catalog_scroll')) || 0;
+    } catch {}
+
+    if (savedScroll <= 0) {
+      try {
+        sessionStorage.removeItem('from_product_detail');
+      } catch {}
+      isRestoringScrollRef.current = false;
+      return;
+    }
+
+    let attempts = 0;
+    const maxAttempts = 30;
+
+    const performScroll = () => {
+      attempts++;
+      window.scrollTo({ top: savedScroll, behavior: 'instant' });
+
+      const currentScroll = window.scrollY;
+      const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
+
+      // If document is not tall enough yet to reach savedScroll, retry on next frame
+      if (Math.abs(currentScroll - savedScroll) > 20 && attempts < maxAttempts && maxScroll < savedScroll) {
+        requestAnimationFrame(performScroll);
+      } else {
+        window.scrollTo({ top: savedScroll, behavior: 'instant' });
+        setTimeout(() => {
+          try {
+            sessionStorage.removeItem('from_product_detail');
+          } catch {}
+          isRestoringScrollRef.current = false;
+        }, 150);
+      }
+    };
+
+    requestAnimationFrame(performScroll);
+  }, [mounted, isActiveLoading]);
 
   const resetFilters = () => {
     scrollCatalogToTop();
@@ -613,50 +766,65 @@ export default function PerfumesShopClient() {
       {isActiveLoading ? (
         <ProductGridSkeleton count={8} />
       ) : (
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={`${activeTab}_${currentPage}_${activeProducts.length}`}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.3 }}
-            className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4 md:gap-6"
-          >
-            {activeProducts.map((product, index) => (
-              <motion.div
-                key={product.id}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: index * 0.03 }}
-                className="min-w-0"
-              >
-                <ProductCard
-                  product={product}
-                  onAddToCart={handleAddToCart}
-                  onToggleFavorite={handleToggleFavorite}
-                  isFavorite={isFavorite(product.id)}
-                />
-              </motion.div>
-            ))}
+        <div
+          onClickCapture={(e) => {
+            const target = e.target as HTMLElement;
+            if (target.closest('a')) {
+              try {
+                sessionStorage.setItem('from_product_detail', 'true');
+                sessionStorage.setItem('perfumes_catalog_scroll', String(window.scrollY));
+                sessionStorage.setItem('perfumes_catalog_page', String(currentPage));
+                sessionStorage.setItem('perfumes_catalog_tab', String(activeTab));
+                sessionStorage.setItem('last_shop_catalog_url', window.location.pathname + window.location.search);
+              } catch {}
+            }
+          }}
+        >
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={`${activeTab}_${currentPage}_${activeProducts.length}`}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.3 }}
+              className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4 md:gap-6"
+            >
+              {activeProducts.map((product, index) => (
+                <motion.div
+                  key={product.id}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: index * 0.03 }}
+                  className="min-w-0"
+                >
+                  <ProductCard
+                    product={product}
+                    onAddToCart={handleAddToCart}
+                    onToggleFavorite={handleToggleFavorite}
+                    isFavorite={isFavorite(product.id)}
+                  />
+                </motion.div>
+              ))}
 
-            {activeProducts.length === 0 && (
-              <div className="col-span-full w-full py-20 text-center border border-white/5 rounded-2xl bg-white/[0.02]">
-                <div className="text-foreground/30 text-3xl mb-4 font-light">∅</div>
-                <div className="text-foreground/50 text-sm font-medium tracking-wide">
-                  {t('no_perfumes_matched')}
+              {activeProducts.length === 0 && (
+                <div className="col-span-full w-full py-20 text-center border border-white/5 rounded-2xl bg-white/[0.02]">
+                  <div className="text-foreground/30 text-3xl mb-4 font-light">∅</div>
+                  <div className="text-foreground/50 text-sm font-medium tracking-wide">
+                    {t('no_perfumes_matched')}
+                  </div>
+                  {(activeFiltersCount > 0 || search !== '') && (
+                    <button
+                      onClick={resetFilters}
+                      className="mt-4 text-xs text-gold underline hover:text-gold/80 font-bold uppercase tracking-wider"
+                    >
+                      {t('clear_active_filters')}
+                    </button>
+                  )}
                 </div>
-                {(activeFiltersCount > 0 || search !== '') && (
-                  <button
-                    onClick={resetFilters}
-                    className="mt-4 text-xs text-gold underline hover:text-gold/80 font-bold uppercase tracking-wider"
-                  >
-                    {t('clear_active_filters')}
-                  </button>
-                )}
-              </div>
-            )}
-          </motion.div>
-        </AnimatePresence>
+              )}
+            </motion.div>
+          </AnimatePresence>
+        </div>
       )}
 
       {/* Pagination Controls */}
@@ -664,8 +832,10 @@ export default function PerfumesShopClient() {
         <div className="flex items-center justify-center gap-3 mt-12">
           <button
             onClick={() => {
+              try {
+                sessionStorage.setItem('perfumes_catalog_scroll', '0');
+              } catch {}
               scrollCatalogToTop();
-              setTimeout(() => scrollCatalogToTop(), 0);
               setCurrentPage((p) => Math.max(1, p - 1));
             }}
             disabled={currentPage === 1}
@@ -697,8 +867,10 @@ export default function PerfumesShopClient() {
                 <button
                   key={page}
                   onClick={() => {
+                    try {
+                      sessionStorage.setItem('perfumes_catalog_scroll', '0');
+                    } catch {}
                     scrollCatalogToTop();
-                    setTimeout(() => scrollCatalogToTop(), 0);
                     setCurrentPage(page);
                   }}
                   className={`w-9 h-9 rounded-xl text-xs font-bold transition-all duration-200 ${
@@ -715,8 +887,10 @@ export default function PerfumesShopClient() {
 
           <button
             onClick={() => {
+              try {
+                sessionStorage.setItem('perfumes_catalog_scroll', '0');
+              } catch {}
               scrollCatalogToTop();
-              setTimeout(() => scrollCatalogToTop(), 0);
               setCurrentPage((p) => Math.min(totalPages, p + 1));
             }}
             disabled={currentPage === totalPages}

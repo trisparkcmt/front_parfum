@@ -132,6 +132,16 @@ export function ProductCard({
     onToggleFavorite?.(product);
   };
 
+  const handleProductLinkClick = () => {
+    if (typeof window !== 'undefined') {
+      try {
+        sessionStorage.setItem('from_product_detail', 'true');
+        sessionStorage.setItem('perfumes_catalog_scroll', String(window.scrollY));
+        sessionStorage.setItem('last_shop_catalog_url', window.location.pathname + window.location.search);
+      } catch {}
+    }
+  };
+
   const hasReduction = !!(product.originalPrice && product.taux_reduction && parseFloat(product.taux_reduction) > 0);
 
   return (
@@ -143,7 +153,13 @@ export function ProductCard({
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
       >
-        <Link href={productUrl} className="absolute inset-0 z-0 block cursor-pointer" tabIndex={-1} aria-hidden="true">
+        <Link 
+          href={productUrl} 
+          onClick={handleProductLinkClick}
+          className="absolute inset-0 z-0 block cursor-pointer" 
+          tabIndex={-1} 
+          aria-hidden="true"
+        >
           {/* Discount badge */}
           {hasReduction && (
             <div className="absolute top-1.5 left-1.5 sm:top-2 sm:left-2 z-20 bg-red-600 text-white text-[9px] sm:text-[10px] font-bold px-1.5 sm:px-2 py-0.5 uppercase tracking-wider">
@@ -261,6 +277,7 @@ export function ProductCard({
         {/* Product name — clamped to 2 lines, fixed min-height reserves space */}
         <Link
           href={productUrl}
+          onClick={handleProductLinkClick}
           className="mt-0.5  min-h-[2.2rem] sm:min-h-[2.6rem] font-serif font-bold text-[13px] sm:text-[14px] leading-[1.3] text-foreground transition-colors hover:text-gold"
         >
           {product.name}

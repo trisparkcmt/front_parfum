@@ -7,8 +7,7 @@ import { useCartStore } from '@/store/useCartStore';
 import { useFavoritesStore } from '@/store/useFavoritesStore';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useToastStore } from '@/store/useToastStore';
-import { generateId, sharePage } from '@/lib/utils';
-import { WHATSAPP_BASE_URL, WHATSAPP_NUMBER } from '@/lib/constants';
+import { buildWhatsAppUrl, generateId, sharePage } from '@/lib/utils';
 import GoogleAuthButton from '@/components/auth/GoogleAuthButton';
 import { useTranslation } from 'react-i18next';
 import { ArrowLeft, Minus, Plus, ChevronLeft, ChevronRight, RefreshCcw, Loader2, Save, ShoppingCart, X, Send, Share2, Eye, Search } from 'lucide-react';
@@ -226,6 +225,7 @@ function buildDirectCompositionWhatsAppLink({
   orderNumber,
   contactName,
   phone,
+  whatsappNumber,
 }: {
   compositionName: string;
   bottleSize: number;
@@ -234,6 +234,7 @@ function buildDirectCompositionWhatsAppLink({
   orderNumber?: string | null;
   contactName?: string;
   phone?: string;
+  whatsappNumber?: string | null;
 }) {
   const messageLines = [
     '🧴 *Nouvelle commande Atelier Numba*',
@@ -258,7 +259,7 @@ function buildDirectCompositionWhatsAppLink({
   messageLines.push('', 'Merci de confirmer cette commande 🙏');
 
   const encodedMessage = encodeURIComponent(messageLines.join('\n'));
-  return `${WHATSAPP_BASE_URL}/${WHATSAPP_NUMBER}?text=${encodedMessage}`;
+  return buildWhatsAppUrl(whatsappNumber, messageLines.join('\n'));
 }
 
 function AtelierContent() {
@@ -306,6 +307,7 @@ function AtelierContent() {
   const [isOrderingDirect, setIsOrderingDirect] = useState(false);
   const [createdOrderNumber, setCreatedOrderNumber] = useState<string | null>(null);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [companyWhatsapp, setCompanyWhatsapp] = useState('');
 
   const orderProfileDetails = useMemo(() => ({
     fullName: `${user?.firstName || ''} ${user?.lastName || ''}`.trim(),
@@ -345,6 +347,14 @@ function AtelierContent() {
       setLoadingData(false);
     }
     loadData();
+  }, []);
+
+  useEffect(() => {
+    shopService.getCompanyInfos().then((data) => {
+      if (Array.isArray(data) && data.length > 0) {
+        setCompanyWhatsapp(data[0].whatsapp || '');
+      }
+    }).catch(() => {});
   }, []);
 
   const ALL_ITEMS = useMemo(() => [...ingredients, ...essences], [ingredients, essences]);
@@ -989,6 +999,7 @@ function AtelierContent() {
         orderNumber,
         contactName: orderProfileDetails.fullName || undefined,
         phone: orderProfileDetails.phone || undefined,
+        whatsappNumber: companyWhatsapp,
       });
 
       setCreatedOrderNumber(String(orderNumber));
@@ -1154,7 +1165,15 @@ function AtelierContent() {
             {bottleSize >= 61 && <Bottle100 totalMl={totalMl} maxFillMl={maxFillMl} quantities={quantities} allItems={ALL_ITEMS} />}
             {bottleSize >= 31 && bottleSize <= 60 && <Bottle50 totalMl={totalMl} maxFillMl={maxFillMl} quantities={quantities} allItems={ALL_ITEMS} />}
             {bottleSize <= 30 && <Bottle30 totalMl={totalMl} maxFillMl={maxFillMl} quantities={quantities} allItems={ALL_ITEMS} />}
-            
+
+            {/* Live total price — always visible next to the bottle */}
+            <div className="absolute -left-14 top-1/2 -translate-y-1/2 flex flex-col items-center gap-1 opacity-70 pointer-events-none">
+              <div className="w-[1px] h-20 bg-gold/50" />
+              <span className="text-[9px] tracking-widest vertical-text uppercase text-gold/70">Total</span>
+              <span className="text-[11px] tracking-widest vertical-text text-foreground/80 whitespace-nowrap">{calcPrice.toLocaleString()} FCFA</span>
+              <div className="w-[1px] h-20 bg-gold/50" />
+            </div>
+
             <div className="absolute -right-12 top-1/2 -translate-y-1/2 flex flex-col items-center gap-1 opacity-40">
               <div className="w-[1px] h-20 bg-gold/50" />
               <span className="text-[10px] tracking-widest vertical-text uppercase">{totalMl}ml</span>

@@ -6,6 +6,7 @@ import { shopService } from '@/services/apiService';
 import { useToastStore } from '@/store/useToastStore';
 import { useTranslation } from 'react-i18next';
 import type { CompanyInfo } from '@/types';
+import { normalizeCameroonPhone, normalizeSocialUsername } from '@/lib/utils';
 
 const translations = {
   fr: {
@@ -20,8 +21,8 @@ const translations = {
     mainPhone: 'Téléphone principal',
     secondaryPhone: 'Téléphone secondaire',
     whatsapp: 'WhatsApp',
-    facebook: 'Facebook',
-    instagram: 'Instagram',
+    facebook: 'Facebook username',
+    instagram: 'Instagram username',
     hours: 'Horaires d’ouverture',
     noData: 'Aucune information disponible. Créez un enregistrement pour commencer.',
     fetchError: 'Impossible de charger les informations de l’entreprise.',
@@ -39,9 +40,9 @@ const translations = {
     location: 'Location',
     mainPhone: 'Primary phone',
     secondaryPhone: 'Secondary phone',
-    whatsapp: 'WhatsApp',
-    facebook: 'Facebook',
-    instagram: 'Instagram',
+    whatsapp: 'WhatsApp Cameroon number',
+    facebook: 'Facebook username',
+    instagram: 'Instagram username',
     hours: 'Opening hours',
     noData: 'No company info available. Create a record to get started.',
     fetchError: 'Unable to load company information.',
@@ -188,9 +189,9 @@ export default function AdminCompanyInfoPage() {
       localisation: companyInfo.localisation || '',
       telephone_principal: companyInfo.telephone_principal,
       telephone_secondaire: companyInfo.telephone_secondaire || '',
-      whatsapp: companyInfo.whatsapp || '',
-      facebook_url: companyInfo.facebook_url || '',
-      instagram_url: companyInfo.instagram_url || '',
+      whatsapp: normalizeCameroonPhone(companyInfo.whatsapp),
+      facebook_url: normalizeSocialUsername(companyInfo.facebook_url),
+      instagram_url: normalizeSocialUsername(companyInfo.instagram_url),
       jours_ouverture: companyInfo.jours_ouverture || createDefaultOpeningDays(),
     });
     setFormError(null);
@@ -223,15 +224,23 @@ export default function AdminCompanyInfoPage() {
         };
       });
 
+      const whatsapp = normalizeCameroonPhone(formState.whatsapp);
+      const facebookUsername = normalizeSocialUsername(formState.facebook_url);
+      const instagramUsername = normalizeSocialUsername(formState.instagram_url);
+      if (whatsapp && whatsapp.length !== 9) {
+        setFormError(isEn ? 'WhatsApp must contain 9 Cameroon phone digits.' : 'WhatsApp doit contenir 9 chiffres camerounais.');
+        return;
+      }
+
       setSaving(true);
       const payload = {
         nom: formState.nom,
         localisation: formState.localisation,
         telephone_principal: formState.telephone_principal,
         telephone_secondaire: formState.telephone_secondaire,
-        whatsapp: formState.whatsapp,
-        facebook_url: formState.facebook_url,
-        instagram_url: formState.instagram_url,
+        whatsapp,
+        facebook_url: facebookUsername,
+        instagram_url: instagramUsername,
         jours_ouverture: jours,
       };
 
@@ -412,8 +421,12 @@ export default function AdminCompanyInfoPage() {
           <label className="space-y-2 text-sm text-neutral-300">
             <span>{text.whatsapp}</span>
             <input
+              type="tel"
+              inputMode="numeric"
+              maxLength={9}
               value={formState.whatsapp ?? ''}
-              onChange={(event) => handleFieldChange('whatsapp', event.target.value)}
+              placeholder="6XXXXXXXX"
+              onChange={(event) => handleFieldChange('whatsapp', normalizeCameroonPhone(event.target.value).slice(0, 9))}
               className="w-full rounded-2xl border border-white/10 bg-black/10 px-4 py-3 text-sm text-foreground outline-none transition focus:border-gold"
             />
           </label>
@@ -421,7 +434,8 @@ export default function AdminCompanyInfoPage() {
             <span>{text.facebook}</span>
             <input
               value={formState.facebook_url ?? ''}
-              onChange={(event) => handleFieldChange('facebook_url', event.target.value)}
+              placeholder="votre_nom"
+              onChange={(event) => handleFieldChange('facebook_url', normalizeSocialUsername(event.target.value))}
               className="w-full rounded-2xl border border-white/10 bg-black/10 px-4 py-3 text-sm text-foreground outline-none transition focus:border-gold"
             />
           </label>
@@ -429,7 +443,8 @@ export default function AdminCompanyInfoPage() {
             <span>{text.instagram}</span>
             <input
               value={formState.instagram_url ?? ''}
-              onChange={(event) => handleFieldChange('instagram_url', event.target.value)}
+              placeholder="votre_nom"
+              onChange={(event) => handleFieldChange('instagram_url', normalizeSocialUsername(event.target.value))}
               className="w-full rounded-2xl border border-white/10 bg-black/10 px-4 py-3 text-sm text-foreground outline-none transition focus:border-gold"
             />
           </label>

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -324,6 +325,16 @@ export default function ProductDetailClient({ id }: { id: string }) {
       }))
     : [];
   const collectionPath = getProductCollectionPath(product.category);
+  const [returnCollectionHref, setReturnCollectionHref] = useState(collectionPath);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const saved = sessionStorage.getItem('last_shop_catalog_url');
+      if (saved && (saved.startsWith('/shop/perfumes') || saved.startsWith('/shop/accessories') || saved.startsWith('/shop/diffuseurs'))) {
+        setReturnCollectionHref(saved);
+      }
+    }
+  }, [collectionPath]);
 
   return (
     <div className="min-h-screen bg-background text-foreground pt-28 pb-24 px-4 md:px-8 relative overflow-hidden">
@@ -338,9 +349,19 @@ export default function ProductDetailClient({ id }: { id: string }) {
             {isEn ? 'Home' : 'Accueil'}
           </a>
           <ChevronRight size={11} className="shrink-0" />
-          <a href={collectionPath} className="hover:text-gold transition-colors capitalize">
+          <Link
+            href={returnCollectionHref}
+            onClick={() => {
+              if (typeof window !== 'undefined') {
+                try {
+                  sessionStorage.setItem('from_product_detail', 'true');
+                } catch {}
+              }
+            }}
+            className="hover:text-gold transition-colors capitalize"
+          >
             {product.category?.replace('-', ' ')}
-          </a>
+          </Link>
           <ChevronRight size={11} className="shrink-0" />
           <span className="text-foreground/60 truncate max-w-[200px]">{product.name}</span>
         </nav>

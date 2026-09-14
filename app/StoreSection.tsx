@@ -6,6 +6,7 @@ import { MapPin, Clock, Phone, Navigation, MessageCircle, Loader2 } from "lucide
 import { useTranslation } from "react-i18next";
 import { shopService } from '@/services/apiService';
 import type { CompanyInfo } from '@/types';
+import { buildWhatsAppUrl } from '@/lib/utils';
 
 const LAT = 3.86484;
 const LNG = 11.52030;
@@ -14,8 +15,6 @@ const STORE_INFO = {
   name: "Accessoires Exclusifs",
   addressFr: "Yaoundé, Centre, Cameroun",
   addressEn: "Yaoundé, Centre, Cameroon",
-  phone: "+237 680 254 243",
-  whatsapp: "+237 680 254 243",
 };
 
 function getDirectionsUrl() {
@@ -150,8 +149,8 @@ export default function StoreSection() {
   const storeDetails = {
     name: companyInfo?.nom || STORE_INFO.name,
     address: companyInfo?.localisation || (isEn ? STORE_INFO.addressEn : STORE_INFO.addressFr),
-    phone: companyInfo?.telephone_principal || STORE_INFO.phone,
-    whatsapp: companyInfo?.whatsapp || STORE_INFO.whatsapp,
+    phone: companyInfo?.telephone_principal || '',
+    whatsapp: companyInfo?.whatsapp || '',
   };
 
   useEffect(() => {
@@ -307,7 +306,7 @@ export default function StoreSection() {
               </button>
 
               <a
-                href={`https://wa.me/${(storeDetails.whatsapp || STORE_INFO.whatsapp).replace(/\s+/g, "").replace("+", "")}`}
+                href={buildWhatsAppUrl(storeDetails.whatsapp)}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex w-full items-center justify-center gap-2 rounded-xl border border-black/[0.08] py-3.5 text-sm text-neutral-500 transition-all hover:border-black/20 hover:text-[var(--foreground)] dark:border-[var(--t-card-border)] dark:text-[var(--t-text-muted)] dark:hover:border-[var(--t-card-hover-border)]"

@@ -37,7 +37,7 @@ import { useTranslation } from 'react-i18next';
 import { BackButton } from '@/components/ui/BackButton';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useRouter } from 'next/navigation';
-import { orderService } from '@/services/apiService';
+import { orderService, shopService } from '@/services/apiService';
 
 function cx(...classes: (string | boolean | undefined)[]) {
   return classes.filter(Boolean).join(' ');
@@ -274,6 +274,8 @@ export default function CartPage() {
         orderResponse?.numero_commande ||
         orderResponse?.order?.numero_commande ||
         orderResponse?.commande?.numero_commande;
+      const companyInfos = await shopService.getCompanyInfos();
+      const companyInfo = Array.isArray(companyInfos) ? companyInfos[0] : undefined;
       const waLink = generateWhatsAppLink(
         formattedItems,
         subtotal,
@@ -288,7 +290,8 @@ export default function CartPage() {
           : isEn
           ? 'In-store pickup'
           : 'Retrait magasin',
-        orderNumber
+        orderNumber,
+        companyInfo?.whatsapp
       );
 
       addToast(

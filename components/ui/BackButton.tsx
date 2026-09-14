@@ -40,9 +40,21 @@ export function BackButton({
       return;
     }
 
-    if (typeof window !== 'undefined' && window.history.length > 1) {
-      router.back();
-      return;
+    if (typeof window !== 'undefined') {
+      try {
+        sessionStorage.setItem('from_product_detail', 'true');
+      } catch {}
+
+      if (window.history.length > 1) {
+        router.back();
+        return;
+      }
+
+      const savedCatalog = sessionStorage.getItem('last_shop_catalog_url');
+      if (savedCatalog) {
+        router.push(savedCatalog);
+        return;
+      }
     }
 
     router.push('/');

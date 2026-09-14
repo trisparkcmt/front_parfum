@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useMemo } from 'react';
+import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Share2, Heart, ShoppingBag, Truck, ShieldCheck, RotateCcw,
@@ -254,11 +255,35 @@ export default function HuileDetailClient({ id }: { id: string }) {
 
         {/* Breadcrumb */}
         <nav className="mt-6 mb-8 flex items-center gap-2 text-[11px] text-foreground/40 uppercase tracking-widest overflow-x-auto whitespace-nowrap scrollbar-hide">
-          <a href="/" className="hover:text-gold transition-colors">{isEn ? 'Home' : 'Accueil'}</a>
+          <Link href="/" className="hover:text-gold transition-colors">{isEn ? 'Home' : 'Accueil'}</Link>
           <ChevronRight size={11} className="shrink-0" />
-          <a href="/shop/perfumes" className="hover:text-gold transition-colors">{isEn ? 'Shop' : 'Boutique'}</a>
+          <Link
+            href="/shop/perfumes"
+            onClick={() => {
+              if (typeof window !== 'undefined') {
+                try {
+                  sessionStorage.setItem('from_product_detail', 'true');
+                } catch {}
+              }
+            }}
+            className="hover:text-gold transition-colors"
+          >
+            {isEn ? 'Shop' : 'Boutique'}
+          </Link>
           <ChevronRight size={11} className="shrink-0" />
-          <a href="/shop/perfumes?tab=huile" className="hover:text-gold transition-colors">{isEn ? 'Pure Oils' : 'Huiles Pures'}</a>
+          <Link
+            href="/shop/perfumes?tab=huile"
+            onClick={() => {
+              if (typeof window !== 'undefined') {
+                try {
+                  sessionStorage.setItem('from_product_detail', 'true');
+                } catch {}
+              }
+            }}
+            className="hover:text-gold transition-colors"
+          >
+            {isEn ? 'Pure Oils' : 'Huiles Pures'}
+          </Link>
           <ChevronRight size={11} className="shrink-0" />
           <span className="text-foreground/60 truncate max-w-[240px]">{product.name}</span>
         </nav>

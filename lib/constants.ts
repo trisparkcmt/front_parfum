@@ -165,7 +165,6 @@ export const DASHBOARD_NAV_LINKS: Record<string, NavLink[]> = {
 // WhatsApp Config
 // ============================================================
 
-export const WHATSAPP_NUMBER = '+237680254243';
 export const WHATSAPP_BASE_URL = 'https://wa.me';
 
 // ============================================================
