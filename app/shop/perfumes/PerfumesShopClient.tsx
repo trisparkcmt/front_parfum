@@ -163,18 +163,19 @@ export default function PerfumesShopClient() {
   const scrollCatalogToTop = () => {
     if (typeof window === 'undefined') return;
 
-    const forceTop = () => {
+    const performScroll = () => {
       window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+      // Fallbacks for older browsers
       if (document.documentElement) document.documentElement.scrollTop = 0;
       if (document.body) document.body.scrollTop = 0;
-      if (document.scrollingElement) document.scrollingElement.scrollTop = 0;
-      document.body?.scrollIntoView({ behavior: 'auto', block: 'start' });
     };
 
-    forceTop();
-    requestAnimationFrame(forceTop);
-    requestAnimationFrame(forceTop);
-    setTimeout(forceTop, 0);
+    performScroll();
+    
+    // Slight delays for mobile browsers (like iOS Safari) that might need
+    // a moment after DOM changes or while the URL bar is hiding/showing
+    setTimeout(performScroll, 10);
+    setTimeout(performScroll, 50);
   };
 
   // Debounce search input
