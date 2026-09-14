@@ -113,7 +113,16 @@ export function Navbar() {
         </div>
 
         <div className="absolute left-1/2 -translate-x-1/2">
-          <Link href="/" className="flex items-center group">
+          <Link
+            href="/"
+            onClick={(e) => {
+              if (pathname === '/') {
+                e.preventDefault();
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }
+            }}
+            className="flex-shrink-0 flex items-center group relative z-10"
+          >
             <img
               src="/logo/Logo Accessoirs Exclusifs gold transparent.svg"
               alt="Accessoires Exclusifs"
@@ -143,7 +152,16 @@ export function Navbar() {
       <nav className={cn('hidden md:block transition-all duration-300', scrolled ? 'py-2.5' : 'py-4')}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between relative">
-            <Link href="/" className={cn( 'flex items-center gap-2 group flex-shrink-0 z-10 px-2')}>
+            <Link
+              href="/"
+              onClick={(e) => {
+                if (pathname === '/') {
+                  e.preventDefault();
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }
+              }}
+              className={cn( 'flex items-center gap-2 group flex-shrink-0 z-10 px-2')}
+            >
               <img
                 src="/logo/Longo only2.svg"
                 alt="Accessoires Exclusifs"
@@ -162,6 +180,12 @@ export function Navbar() {
                   <Link
                     key={link.href}
                     href={link.href}
+                    onClick={(e) => {
+                      if (isActive) {
+                        e.preventDefault();
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                      }
+                    }}
                     className={cn(
                       'relative px-4 py-2 rounded-full text-sm font-semibold transition-colors duration-200',
                       isActive ? 'text-gold' : 'text-zinc-900 dark:text-zinc-100 hover:text-gold'

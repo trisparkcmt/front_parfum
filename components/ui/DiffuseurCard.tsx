@@ -23,6 +23,7 @@ interface DiffuseurCardProps {
   isFavorite?: boolean;
   viewMode?: 'grid' | 'horizontal';
   index?: number;
+  onCardClick?: (product: Product) => void;
 }
 
 // Small technology → icon map. Falls back gracefully for unknown values.
@@ -43,6 +44,7 @@ export function DiffuseurCard({
   isFavorite,
   viewMode = 'grid',
   index = 0,
+  onCardClick,
 }: DiffuseurCardProps) {
   const { t } = useTranslation();
   const { addToast } = useToastStore();
@@ -56,10 +58,18 @@ export function DiffuseurCard({
         onAddToCart={onAddToCart}
         onToggleFavorite={onToggleFavorite}
         isFavorite={isFavorite}
+        onCardClick={onCardClick}
         className="w-full"
       />
     );
   }
+
+  const handleProductLinkClick = (e?: MouseEvent<HTMLAnchorElement>) => {
+    if (onCardClick) {
+      e?.preventDefault();
+      onCardClick(product);
+    }
+  };
 
   // Horizontal full-width layout (1 item per row)
   const getImageUrl = (url: string) => {
@@ -136,6 +146,7 @@ export function DiffuseurCard({
       {/* Left side: Full Height Image sticking to container edge */}
       <Link
         href={productUrl}
+        onClick={handleProductLinkClick}
         className="relative block w-24 shrink-0 self-stretch overflow-hidden bg-[var(--t-surface-overlay)] sm:w-36 md:w-44"
       >
         <AppImage
@@ -201,6 +212,7 @@ export function DiffuseurCard({
 
           <Link
             href={productUrl}
+            onClick={handleProductLinkClick}
             className="mb-1 block truncate font-serif text-sm font-medium leading-snug text-[var(--foreground)] transition-colors hover:text-[var(--color-gold)] sm:text-base md:text-lg"
           >
             {product.name}

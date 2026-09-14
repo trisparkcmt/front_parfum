@@ -1,14 +1,15 @@
-﻿'use client';
+'use client';
 
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, Suspense, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Search, SlidersHorizontal, RotateCcw, LayoutGrid, List } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 import { DiffuseurCard } from '@/components/ui/DiffuseurCard';
 import { ProductGridSkeleton } from '@/components/ui/Skeletons';
 import { productService } from '@/services/productService';
+import { ProductDetailModal } from '@/components/ui/ProductDetailModal';
 import { useCartStore } from '@/store/useCartStore';
 import { useFavoritesStore } from '@/store/useFavoritesStore';
 import { useToastStore } from '@/store/useToastStore';
@@ -50,6 +51,27 @@ function DiffuseursShopContent() {
   const [techFilter, setTechFilter] = useState<string>('all');
   const [ordering, setOrdering] = useState<string>('-date_creation');
   const [showFilters, setShowFilters] = useState(false);
+
+  // ── Product detail modal ─────────────────────────────────────────────────
+  const [modalProductId, setModalProductId] = useState<string | null>(null);
+
+  const openProductModal = useCallback((product: Product) => {
+    const productId = String(product.slug || product.id);
+    setModalProductId(productId);
+    window.history.pushState({ modalProductId: productId }, '', `/shop/diffuseurs/${productId}`);
+  }, []);
+
+  const closeProductModal = useCallback(() => {
+    setModalProductId(null);
+  }, []);
+
+  useEffect(() => {
+    const handlePopState = (e: PopStateEvent) => {
+      if (!e.state?.modalProductId) setModalProductId(null);
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
 
   const searchParams = useSearchParams();
 
@@ -351,6 +373,7 @@ function DiffuseursShopContent() {
                   isFavorite={isFavorite(product.id)}
                   viewMode="grid"
                   index={i}
+                  onCardClick={openProductModal}
                 />
               ))}
             </div>
@@ -365,6 +388,7 @@ function DiffuseursShopContent() {
                   isFavorite={isFavorite(product.id)}
                   viewMode="horizontal"
                   index={i}
+                  onCardClick={openProductModal}
                 />
               ))}
             </div>
@@ -393,6 +417,18 @@ function DiffuseursShopContent() {
           </motion.div>
         )}
       </div>
+
+      {/* ── Product detail modal overlay ────────────────────────────────── */}
+      <AnimatePresence>
+        {modalProductId && (
+          <ProductDetailModal
+            productId={modalProductId}
+            productType="diffuseur"
+            onClose={closeProductModal}
+            onRelatedCardClick={openProductModal}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }

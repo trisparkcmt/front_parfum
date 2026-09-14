@@ -4,7 +4,7 @@
  * @file app/shop/accessories/AccessoriesShopClient.tsx
  * @description Main Marketplace Catalog for Luxury Accessories with Advanced Filtering.
  */
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, SlidersHorizontal, X, RotateCcw, ChevronDown } from 'lucide-react';
@@ -16,6 +16,7 @@ import { useToastStore } from '@/store/useToastStore';
 import { useTranslation } from 'react-i18next';
 import { productService } from '@/services/productService';
 import type { Product, AccessorySubCategory } from '@/types';
+import { ProductDetailModal } from '@/components/ui/ProductDetailModal';
 
 interface AccessoryType {
   id: number;
@@ -182,6 +183,35 @@ export default function AccessoriesShop() {
       addToast(`${product.name} ${t('added_to_favorites')}`, 'info');
     }
   };
+
+  // ── Product detail modal ─────────────────────────────────────────────────
+  const [modalProductId, setModalProductId] = useState<string | null>(null);
+  const [modalProductType, setModalProductType] = useState<'perfume' | 'accessory' | 'diffuseur'>('accessory');
+
+  const openProductModal = useCallback((product: Product) => {
+    const productId = String(product.slug || product.id);
+    const isDiffuseur = !!(
+      product.type_technologie ||
+      (product.name || '').toLowerCase().includes('diffuseur') ||
+      (product.description || '').toLowerCase().includes('diffuseur')
+    );
+    const typeHint: 'accessory' | 'diffuseur' = isDiffuseur ? 'diffuseur' : 'accessory';
+    setModalProductId(productId);
+    setModalProductType(typeHint);
+    window.history.pushState({ modalProductId: productId }, '', `/shop/product/${productId}?type=accessory`);
+  }, []);
+
+  const closeProductModal = useCallback(() => {
+    setModalProductId(null);
+  }, []);
+
+  useEffect(() => {
+    const handlePopState = (e: PopStateEvent) => {
+      if (!e.state?.modalProductId) setModalProductId(null);
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
 
   const resetFilters = () => {
     scrollCatalogToTop();
@@ -474,6 +504,7 @@ export default function AccessoriesShop() {
                   onAddToCart={handleAddToCart}
                   onToggleFavorite={handleToggleFavorite}
                   isFavorite={isFavorite(product.id)}
+                  onCardClick={openProductModal}
                 />
               </motion.div>
             ))}
@@ -497,6 +528,18 @@ export default function AccessoriesShop() {
           </motion.div>
         </AnimatePresence>
       )}
+
+      {/* ── Product detail modal overlay ────────────────────────────────── */}
+      <AnimatePresence>
+        {modalProductId && (
+          <ProductDetailModal
+            productId={modalProductId}
+            productType={modalProductType}
+            onClose={closeProductModal}
+            onRelatedCardClick={openProductModal}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }

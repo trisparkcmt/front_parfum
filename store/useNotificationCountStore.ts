@@ -54,7 +54,7 @@ export const useNotificationCountStore = create<NotificationCountState>((set, ge
   fetchCounts: async () => {
     const { isAuthenticated, user } = useAuthStore.getState();
     if (!isAuthenticated || !user) {
-      set({ unreadNotificationCount: 0, unreadOrderCount: 0, unifiedNotifications: [], isLoading: false });
+      set({ unreadNotificationCount: 0, pendingActionCount: 0, recentItems: [], isLoading: false });
       return;
     }
 

@@ -74,6 +74,12 @@ const BottomNav = () => {
               <Link
                 key={href}
                 href={href}
+                onClick={(e) => {
+                  if (isActive) {
+                    e.preventDefault();
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }
+                }}
                 aria-label={label}
                 aria-current={isActive ? 'page' : undefined}
                 className="relative z-10 flex h-full flex-1 items-center justify-center"
@@ -112,6 +118,12 @@ const BottomNav = () => {
 
           <Link
             href={reelsHref}
+            onClick={(e) => {
+              if (reelsActive) {
+                e.preventDefault();
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }
+            }}
             aria-label={t('nav_reels', 'Reels')}
             aria-current={reelsActive ? 'page' : undefined}
             className="relative z-10 flex h-full flex-1 items-center justify-center"
