@@ -114,6 +114,21 @@ export async function GET() {
           { name: 'newUsers' },
         ],
       },
+      // 6. Country totals for the interactive world map
+      {
+        dateRanges: [{ startDate: '30daysAgo', endDate: 'today' }],
+        dimensions: [{ name: 'country' }, { name: 'countryId' }],
+        metrics: [
+          { name: 'activeUsers' },
+          { name: 'newUsers' },
+        ],
+        orderBys: [
+          {
+            metric: { metricName: 'activeUsers' },
+            desc: true,
+          },
+        ],
+      },
     ];
 
     const chunkSize = 5;
@@ -140,6 +155,7 @@ export async function GET() {
     console.log('Report 3 (Pages) rows count:', reports[3]?.rows?.length || 0);
     console.log('Report 4 (Tech) rows count:', reports[4]?.rows?.length || 0);
     console.log('Report 5 (Geo) rows count:', reports[5]?.rows?.length || 0);
+    console.log('Report 6 (Country totals) rows count:', reports[6]?.rows?.length || 0);
 
     // Parse Report 0: Funnel Event Counts
     const funnelEventRows = reports[0]?.rows || [];
@@ -242,12 +258,31 @@ export async function GET() {
       // you could uncomment the following filter:
       // .filter((item) => item.country !== 'Inconnu');
 
+    // Parse Report 6: Country totals used by the map
+    const countryRows = reports[6]?.rows || [];
+    const countryGeo = countryRows
+      .map((row: any) => {
+        let country = row.dimensionValues?.[0]?.value || 'Inconnu';
+        const countryId = row.dimensionValues?.[1]?.value || '';
+
+        if (country === '(not set)') country = 'Inconnu';
+
+        return {
+          country,
+          countryId: countryId.toLowerCase(),
+          users: parseInt(row.metricValues?.[0]?.value || '0', 10),
+          newUsers: parseInt(row.metricValues?.[1]?.value || '0', 10),
+        };
+      })
+      .filter((item: { countryId: string }) => item.countryId);
+
     const responseData = {
       funnel: completeFunnel,
       acquisition,
       pages,
       tech,
       geo,
+      countryGeo,
       // GA4 does not support eventCount with the itemName dimension.
       shares: [],
     };
@@ -258,6 +293,7 @@ export async function GET() {
     console.log('- Pages:', pages.length);
     console.log('- Tech entries:', tech.length);
     console.log('- Geo locations:', geo.length);
+    console.log('- Country totals:', countryGeo.length);
     console.log('- Total purchase revenue:', purchaseRevenue);
     console.log('=== End GA4 Debug ===');
 

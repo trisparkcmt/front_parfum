@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
+import worldMap from '@svg-maps/world';
 import { 
   TrendingUp, 
   Users, 
@@ -72,6 +73,11 @@ const TG = {
     col_views: 'Vues',
     view_all_pages: 'Voir les {n} pages',
     geo_title: 'Villes & Régions actives',
+    map_title: 'Visiteurs par pays',
+    map_subtitle: 'Survolez un pays pour voir son trafic',
+    map_users: 'visiteurs actifs',
+    map_new: 'nouveaux visiteurs',
+    map_no_data: 'Aucune donnée pays disponible',
     col_country: 'Pays',
     col_city: 'Ville',
     col_new: 'Nouveaux',
@@ -133,6 +139,11 @@ const TG = {
     col_views: 'Views',
     view_all_pages: 'View all {n} pages',
     geo_title: 'Active Cities & Regions',
+    map_title: 'Visitors by country',
+    map_subtitle: 'Hover over a country to see its traffic',
+    map_users: 'active visitors',
+    map_new: 'new visitors',
+    map_no_data: 'No country data available',
     col_country: 'Country',
     col_city: 'City',
     col_new: 'New',
@@ -191,6 +202,17 @@ interface GeoMetric {
   users: number;
   newUsers: number;
 }
+interface CountryMetric {
+  country: string;
+  countryId: string;
+  users: number;
+  newUsers: number;
+}
+interface WorldMapLocation {
+  id: string;
+  name: string;
+  path: string;
+}
 interface ShareMetric {
   name: string;
   shares: number;
@@ -201,6 +223,7 @@ interface GA4BatchResponse {
   pages: PageMetric[];
   tech: TechMetric[];
   geo: GeoMetric[];
+  countryGeo: CountryMetric[];
   shares: ShareMetric[];
 }
 
@@ -259,6 +282,102 @@ function Modal({
           {children}
         </div>
       </div>
+    </div>
+  );
+}
+
+function CountryMap({
+  countries,
+  isEn,
+}: {
+  countries: CountryMetric[];
+  isEn: boolean;
+}) {
+  const [hoveredCountry, setHoveredCountry] = useState<CountryMetric | null>(null);
+  const countryById = Object.fromEntries(countries.map(country => [country.countryId, country]));
+  const maxUsers = Math.max(...countries.map(country => country.users), 0);
+  const numberFormat = new Intl.NumberFormat(isEn ? 'en-US' : 'fr-FR');
+
+  const colorForUsers = (users: number) => {
+    if (!users || !maxUsers) return 'rgba(255,255,255,0.08)';
+    const intensity = 0.35 + (users / maxUsers) * 0.65;
+    return `rgba(59, 130, 246, ${intensity})`;
+  };
+
+  return (
+    <div className="bg-white/5 rounded-2xl border border-white/10 p-6 shadow-sm">
+      <div className="flex items-start justify-between gap-4 mb-4">
+        <div>
+          <h3 className="font-semibold text-foreground text-sm flex items-center gap-2">
+            <Globe className="text-gold h-4 w-4" />
+            {isEn ? 'Visitors by country' : 'Visiteurs par pays'}
+          </h3>
+          <p className="text-[11px] text-foreground/40 mt-1">
+            {isEn ? 'Hover over a country to see its traffic' : 'Survolez un pays pour voir son trafic'}
+          </p>
+        </div>
+        {hoveredCountry && (
+          <div className="text-right text-xs shrink-0" aria-live="polite">
+            <p className="font-semibold text-foreground">{hoveredCountry.country}</p>
+            <p className="text-blue-300 tabular-nums">
+              {numberFormat.format(hoveredCountry.users)} {isEn ? 'active visitors' : 'visiteurs actifs'}
+            </p>
+            <p className="text-emerald-400/80 tabular-nums">
+              {numberFormat.format(hoveredCountry.newUsers)} {isEn ? 'new visitors' : 'nouveaux visiteurs'}
+            </p>
+          </div>
+        )}
+      </div>
+
+      {countries.length === 0 ? (
+        <div className="h-[260px] flex items-center justify-center text-xs text-foreground/30">
+          {isEn ? 'No country data available' : 'Aucune donnée pays disponible'}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_220px] gap-5 items-center">
+          <div className="relative min-w-0">
+            <svg
+              viewBox={worldMap.viewBox}
+              className="w-full h-auto max-h-[330px]"
+              role="img"
+              aria-label={isEn ? 'World map of active visitors' : 'Carte mondiale des visiteurs actifs'}
+            >
+              {(worldMap.locations as WorldMapLocation[]).map(location => {
+                const country = countryById[location.id];
+                return (
+                  <path
+                    key={location.id}
+                    d={location.path}
+                    fill={colorForUsers(country?.users ?? 0)}
+                    stroke="rgba(255,255,255,0.22)"
+                    strokeWidth="0.55"
+                    tabIndex={country ? 0 : -1}
+                    aria-label={country ? `${country.country}: ${country.users} ${isEn ? 'active visitors' : 'visiteurs actifs'}` : location.name}
+                    className={country ? 'cursor-pointer outline-none transition-colors hover:brightness-125 focus:brightness-125' : undefined}
+                    onMouseEnter={() => country && setHoveredCountry(country)}
+                    onMouseLeave={() => setHoveredCountry(null)}
+                    onFocus={() => country && setHoveredCountry(country)}
+                    onBlur={() => setHoveredCountry(null)}
+                  />
+                );
+              })}
+            </svg>
+          </div>
+          <div className="space-y-2">
+            {countries.slice(0, 6).map(country => (
+              <div
+                key={country.countryId}
+                className="flex items-center justify-between gap-3 text-xs"
+                onMouseEnter={() => setHoveredCountry(country)}
+                onMouseLeave={() => setHoveredCountry(null)}
+              >
+                <span className="truncate text-foreground/70">{country.country}</span>
+                <span className="font-semibold text-foreground tabular-nums">{numberFormat.format(country.users)}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -517,6 +636,8 @@ export default function GA4AnalyticsDashboard() {
           </tbody>
         </table>
       </div>
+
+      <CountryMap countries={data.countryGeo ?? []} isEn={isEn} />
 
 
       {/* ── Bottom 3 tables — fixed height, modal on "view more" ── */}

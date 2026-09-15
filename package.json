@@ -13,6 +13,7 @@
     "@google/generative-ai": "^0.24.1",
     "@hookform/resolvers": "^5.2.2",
     "@next/third-parties": "^16.3.4",
+    "@svg-maps/world": "^2.0.0",
     "@types/leaflet": "^1.9.21",
     "axios": "^1.15.2",
     "clsx": "^2.1.1",
