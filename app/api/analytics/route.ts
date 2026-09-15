@@ -14,11 +14,17 @@ export async function GET() {
       );
     }
 
-    const formattedPrivateKey = privateKey.replace(/\\n/g, '\n');
+    // Vercel sometimes injects literal surrounding quotes into the env var string
+    let formattedPrivateKey = privateKey;
+    if (formattedPrivateKey.startsWith('"') && formattedPrivateKey.endsWith('"')) {
+      formattedPrivateKey = formattedPrivateKey.slice(1, -1);
+    }
+    // Handle both literal '\n' string and actual newlines
+    formattedPrivateKey = formattedPrivateKey.split('\\n').join('\n');
 
     const client = new BetaAnalyticsDataClient({
       credentials: {
-        client_email: clientEmail,
+        client_email: clientEmail.trim(),
         private_key: formattedPrivateKey,
       },
     });
