@@ -35,7 +35,7 @@ export default function PrivacyPage() {
 
         <section className="space-y-3">
           <h2 className="text-lg font-semibold text-foreground font-serif">2. {isEn ? 'How we use your information' : 'Utilisation de vos informations'}</h2>
-          <p>{isEn ? 'We use this information to manage your account, process and deliver orders, communicate with you about our services, protect the platform, and improve your shopping experience.' : 'Nous utilisons ces informations pour gérer votre compte, traiter et livrer vos commandes, communiquer avec vous au sujet de nos services, protéger la plateforme et améliorer votre expérience d’achat.'}</p>
+          <p>{isEn ? 'We use this information to manage your account, process and deliver orders, communicate with you about our services, protect the platform, and improve your shopping experience.' : 'Nous utilisons ces informations pour gérer votre compte, traiter et livrer vos commandes, communiquer avec vous au sujet de nos services, protéger la plateforme et améliorer votre expérience d’achat. '}</p>
         </section>
 
         <section className="space-y-3">
