@@ -17,31 +17,6 @@ interface AppImageProps {
   loading?: 'lazy' | 'eager';
 }
 
-/**
- * Hosts that should be loaded directly by the browser without going through
- * Next.js's image optimization proxy (/_next/image).
- *
- * When Next.js optimizes an external image, it fetches it server-side from
- * Vercel. If the CDN has a strict Referrer-Policy or CORS rules, or if the
- * Vercel optimizer simply times out, the image fails — even though opening
- * the URL directly in a browser tab works perfectly.
- *
- * Setting `unoptimized={true}` makes Next.js render a plain <img> tag, so
- * the browser fetches the image directly, bypassing the proxy entirely.
- */
-const UNOPTIMIZED_HOSTS = ['cloudfront.net'];
-
-function shouldBypassOptimizer(url: string): boolean {
-  try {
-    const { hostname } = new URL(url);
-    return UNOPTIMIZED_HOSTS.some(
-      (h) => hostname === h || hostname.endsWith(`.${h}`)
-    );
-  } catch {
-    return false;
-  }
-}
-
 export const AppImage: React.FC<AppImageProps> = ({
   src,
   alt = '',
@@ -54,7 +29,24 @@ export const AppImage: React.FC<AppImageProps> = ({
   sizes = '(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw',
   loading = 'lazy',
 }) => {
-  const [errored, setErrored] = useState(false);
+  /**
+   * Loading strategy (two-pass):
+   *
+   *   Pass 1 – `optimized`:
+   *     Next.js proxies the image through /_next/image (resizes + WebP).
+   *     Fast and bandwidth-efficient when it works.
+   *     If the optimizer fails (e.g. Vercel can't reach CloudFront due to
+   *     Referrer-Policy or CORS) onError fires → move to pass 2.
+   *
+   *   Pass 2 – `direct`:
+   *     unoptimized={true} → plain <img> tag → browser fetches the URL
+   *     directly, exactly like opening it in a new tab. Always works.
+   *     Slower / heavier than pass 1, but correct.
+   *
+   *   Pass 3 – `fallback`:
+   *     Both passes failed (genuinely broken URL). Show placeholder.
+   */
+  const [loadState, setLoadState] = useState<'optimized' | 'direct' | 'fallback'>('optimized');
 
   const resolved = useMemo(() => {
     if (!src) return null;
@@ -67,8 +59,7 @@ export const AppImage: React.FC<AppImageProps> = ({
       try {
         const parsedUrl = new URL(src);
         const apiHost = apiRoot ? new URL(apiRoot).host : '';
-        // If image URL host is local but the API root is remote, rewrite host
-        // to the production API root so uploaded assets load correctly.
+        // Rewrite localhost/127.0.0.1 image URLs to the production API host
         if (
           (parsedUrl.hostname === '127.0.0.1' ||
             parsedUrl.hostname === 'localhost') &&
@@ -94,12 +85,18 @@ export const AppImage: React.FC<AppImageProps> = ({
   }, [src]);
 
   const placeholder = '/parfume1.png';
-  const finalSrc = errored || !resolved ? placeholder : resolved;
+  const finalSrc = loadState === 'fallback' || !resolved ? placeholder : resolved;
+  const unoptimized = loadState === 'direct';
 
-  // Bypass the Next.js optimizer for CloudFront URLs so the browser loads the
-  // image directly — identical to opening the URL in a new tab.
-  const unoptimized =
-    typeof finalSrc === 'string' && shouldBypassOptimizer(finalSrc);
+  const handleError = () => {
+    if (loadState === 'optimized') {
+      // First failure: optimizer couldn't fetch it → retry loading directly
+      setLoadState('direct');
+    } else {
+      // Second failure: URL itself is broken → show placeholder
+      setLoadState('fallback');
+    }
+  };
 
   if (fill) {
     return (
@@ -114,7 +111,7 @@ export const AppImage: React.FC<AppImageProps> = ({
         priority={priority}
         quality={80}
         loading={priority ? undefined : loading}
-        onError={() => setErrored(true)}
+        onError={handleError}
       />
     );
   }
@@ -132,7 +129,7 @@ export const AppImage: React.FC<AppImageProps> = ({
       sizes={sizes}
       quality={80}
       loading={priority ? 'eager' : loading}
-      onError={() => setErrored(true)}
+      onError={handleError}
     />
   );
 };
