@@ -179,38 +179,68 @@ export async function GET() {
 
     // Parse Report 2: Acquisition Channels
     const acqRows = reports[2]?.rows || [];
-    const acquisition = acqRows.map((row: any) => ({
-      sourceMedium: row.dimensionValues?.[0]?.value || '(direct) / (none)',
-      users: parseInt(row.metricValues?.[0]?.value || '0', 10),
-      revenue: parseFloat(row.metricValues?.[1]?.value || '0'),
-      sessions: parseInt(row.metricValues?.[2]?.value || '0', 10),
-    }));
+    const acquisition = acqRows.map((row: any) => {
+      let sourceMedium = row.dimensionValues?.[0]?.value || '(direct) / (none)';
+      if (sourceMedium === '(not set)') sourceMedium = 'Inconnu';
+      
+      return {
+        sourceMedium,
+        users: parseInt(row.metricValues?.[0]?.value || '0', 10),
+        revenue: parseFloat(row.metricValues?.[1]?.value || '0'),
+        sessions: parseInt(row.metricValues?.[2]?.value || '0', 10),
+      };
+    });
 
     // Parse Report 3: Top Pages
     const pageRows = reports[3]?.rows || [];
-    const pages = pageRows.map((row: any) => ({
-      path: row.dimensionValues?.[0]?.value || '/',
-      views: parseInt(row.metricValues?.[0]?.value || '0', 10),
-      users: parseInt(row.metricValues?.[1]?.value || '0', 10),
-    }));
+    const pages = pageRows.map((row: any) => {
+      let path = row.dimensionValues?.[0]?.value || '/';
+      if (path === '(not set)') path = 'Inconnu';
+      
+      return {
+        path,
+        views: parseInt(row.metricValues?.[0]?.value || '0', 10),
+        users: parseInt(row.metricValues?.[1]?.value || '0', 10),
+      };
+    });
 
     // Parse Report 4: Tech & Devices
     const techRows = reports[4]?.rows || [];
-    const tech = techRows.map((row: any) => ({
-      device: row.dimensionValues?.[0]?.value || 'desktop',
-      browser: row.dimensionValues?.[1]?.value || 'Chrome',
-      users: parseInt(row.metricValues?.[0]?.value || '0', 10),
-      sessions: parseInt(row.metricValues?.[1]?.value || '0', 10),
-    }));
+    const tech = techRows.map((row: any) => {
+      let device = row.dimensionValues?.[0]?.value || 'desktop';
+      let browser = row.dimensionValues?.[1]?.value || 'Chrome';
+      
+      if (device === '(not set)') device = 'Inconnu';
+      if (browser === '(not set)') browser = 'Inconnu';
+      
+      return {
+        device,
+        browser,
+        users: parseInt(row.metricValues?.[0]?.value || '0', 10),
+        sessions: parseInt(row.metricValues?.[1]?.value || '0', 10),
+      };
+    });
 
     // Parse Report 5: Geo
     const geoRows = reports[5]?.rows || [];
-    const geo = geoRows.map((row: any) => ({
-      country: row.dimensionValues?.[0]?.value || 'Unknown',
-      city: row.dimensionValues?.[1]?.value || 'Unknown',
-      users: parseInt(row.metricValues?.[0]?.value || '0', 10),
-      newUsers: parseInt(row.metricValues?.[1]?.value || '0', 10),
-    }));
+    const geo = geoRows
+      .map((row: any) => {
+        let country = row.dimensionValues?.[0]?.value || 'Inconnu';
+        let city = row.dimensionValues?.[1]?.value || 'Inconnu';
+        
+        if (country === '(not set)') country = 'Inconnu';
+        if (city === '(not set)') city = 'Inconnu';
+
+        return {
+          country,
+          city,
+          users: parseInt(row.metricValues?.[0]?.value || '0', 10),
+          newUsers: parseInt(row.metricValues?.[1]?.value || '0', 10),
+        };
+      })
+      // Optional: If you prefer to completely hide unknown locations, 
+      // you could uncomment the following filter:
+      // .filter((item) => item.country !== 'Inconnu');
 
     const responseData = {
       funnel: completeFunnel,
