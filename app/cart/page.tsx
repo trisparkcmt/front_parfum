@@ -8,7 +8,7 @@
  * a comprehensive overview of selected items and facilitating the checkout process.
  */
 import { useState } from 'react';
-import Image from 'next/image';
+import AppImage from '@/components/ui/AppImage';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -436,7 +436,7 @@ export default function CartPage() {
                   {/* Thumbnail */}
                   <div className="w-20 h-20 sm:w-24 sm:h-24 shrink-0 rounded-xl bg-foreground/5 border border-foreground/10 overflow-hidden relative">
                     {item.image ? (
-                      <Image src={item.image} alt={item.nom} fill className="object-cover" />
+                      <AppImage src={item.image} alt={item.nom} fill className="object-cover" />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center px-1">
                         <span className="text-[9px] text-gold font-semibold text-center uppercase tracking-wide leading-tight">

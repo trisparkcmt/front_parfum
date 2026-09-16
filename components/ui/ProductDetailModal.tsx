@@ -16,7 +16,7 @@
  */
 
 import { useEffect, useState, useCallback } from 'react';
-import Image from 'next/image';
+import AppImage from '@/components/ui/AppImage';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -419,7 +419,7 @@ export function ProductDetailModal({
                           transition={{ duration: 0.3 }}
                           className="absolute inset-0"
                         >
-                          <Image
+                          <AppImage
                             src={product.images[activeImage]}
                             alt={product.name}
                             fill
@@ -454,7 +454,7 @@ export function ProductDetailModal({
                                   : 'border-foreground/10 hover:border-foreground/30'
                               )}
                             >
-                              <Image src={img} alt={`${product.name} vue ${idx + 1}`} fill className="object-cover" />
+                              <AppImage src={img} alt={`${product.name} vue ${idx + 1}`} fill className="object-cover" />
                             </motion.button>
                           ))}
                       </div>

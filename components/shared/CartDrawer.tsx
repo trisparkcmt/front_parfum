@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ShoppingBag, X, Plus, Minus, Trash2, ArrowRight, Package } from 'lucide-react';
 import Link from 'next/link';
-import Image from 'next/image';
+import AppImage from '@/components/ui/AppImage';
 import { useCartStore } from '@/store/useCartStore';
 import { useThemeStore } from '@/store/useThemeStore';
 import type { CartLine } from '@/store/useCartStore';
@@ -34,7 +34,7 @@ function CartLineItem({ line }: { line: CartLine }) {
       {/* Thumbnail */}
       <div className={`w-16 h-16 rounded-xl overflow-hidden ${isDark ? 'bg-white/5' : 'bg-black/5'} flex-shrink-0 flex items-center justify-center`}>
         {line.image ? (
-          <Image
+          <AppImage
             src={line.image}
             alt={line.nom}
             width={64}

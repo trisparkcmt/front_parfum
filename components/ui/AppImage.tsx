@@ -48,6 +48,11 @@ export const AppImage: React.FC<AppImageProps> = ({
    */
   const [loadState, setLoadState] = useState<'optimized' | 'direct' | 'fallback'>('optimized');
 
+  // Reset loading state if the source URL changes
+  React.useEffect(() => {
+    setLoadState('optimized');
+  }, [src]);
+
   const resolved = useMemo(() => {
     if (!src) return null;
     if (src.startsWith('data:')) return src;

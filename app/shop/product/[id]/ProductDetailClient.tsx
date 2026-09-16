@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Image from 'next/image';
+import AppImage from '@/components/ui/AppImage';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -402,7 +402,7 @@ export default function ProductDetailClient({ id }: { id: string }) {
                   transition={{ duration: 0.3 }}
                   className="absolute inset-0"
                 >
-                  <Image
+                  <AppImage
                     src={product.images[activeImage]}
                     alt={product.name}
                     fill
@@ -436,7 +436,7 @@ export default function ProductDetailClient({ id }: { id: string }) {
                           : 'border-foreground/10 hover:border-foreground/30'
                       )}
                     >
-                      <Image src={img} alt={`${product.name} view ${idx + 1}`} fill className="object-cover" />
+                      <AppImage src={img} alt={`${product.name} view ${idx + 1}`} fill className="object-cover" />
                     </motion.button>
                   ))}
               </div>
