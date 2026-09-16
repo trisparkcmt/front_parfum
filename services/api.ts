@@ -229,12 +229,17 @@ const performProactiveRefresh = async () => {
   if (isRefreshing) return;
 
   try {
-    // When using HttpOnly cookies, just call the refresh endpoint
-    // The backend will use the httponly refresh token automatically
+    const refreshToken = localStorage.getItem('refresh_token');
+    
+    // Mobile uses json payload, web uses HttpOnly cookies
     const response = await axios.post(
       `${getBaseURL()}auth/token/refresh/`,
-      {},
-      { withCredentials: true } // Include cookies
+      refreshToken ? { refresh: refreshToken } : {},
+      { 
+        withCredentials: !refreshToken, // Include cookies only if no refresh token
+        xsrfCookieName: 'csrftoken',
+        xsrfHeaderName: 'X-CSRFToken'
+      }
     );
 
     if (response.data.access) {
@@ -323,7 +328,11 @@ api.interceptors.response.use(
             const response = await axios.post(
               `${getBaseURL()}auth/token/refresh/`,
               refreshToken ? { refresh: refreshToken } : {},
-              { withCredentials: !refreshToken }
+              { 
+                withCredentials: !refreshToken,
+                xsrfCookieName: 'csrftoken',
+                xsrfHeaderName: 'X-CSRFToken'
+              }
             );
 
             const newAccessToken = response.data.access;
