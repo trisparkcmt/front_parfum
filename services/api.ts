@@ -1,4 +1,4 @@
-import axios from 'axios';
+﻿import axios from 'axios';
 import { API_BASE_URL } from '@/lib/constants';
 
 export const API_ROOT = (process.env.NEXT_PUBLIC_API_URL || API_BASE_URL || '').replace(/\/api\/v1\/?$/, '').replace(/\/+$/, '');
@@ -46,7 +46,7 @@ export const api = axios.create({
   xsrfHeaderName: 'X-CSRFToken',
 });
 
-// Intercepteur pour ajouter le token d'authentification aux en-têtes (Mobile/Token auth)
+// Intercepteur pour ajouter le token d'authentification aux en-tÃªtes (Mobile/Token auth)
 api.interceptors.request.use((config: any) => {
   // If payload contains File/Blob/FileList, convert to FormData.
   const hasFile = (obj: any): boolean => {
@@ -143,7 +143,7 @@ api.interceptors.request.use((config: any) => {
     const token = localStorage.getItem('auth_token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
-      // Don't send HttpOnly cookies alongside Bearer — stale cookies can override the header
+      // Don't send HttpOnly cookies alongside Bearer â€” stale cookies can override the header
       config.withCredentials = false;
           // Debug logging for FCM endpoints
           if (config.url && config.url.includes('devices/register')) {
@@ -259,7 +259,26 @@ const performProactiveRefresh = async () => {
   }
 };
 
-// Intercepteur pour gérer globalement les erreurs et rafraîchir le token automatiquement
+/**
+ * Redirect the user to /login, preserving the current path as ?redirect=...
+ * so they are sent back after a successful login.
+ * No-op when already on an auth page (prevents redirect loops).
+ */
+const redirectToLogin = () => {
+  if (typeof window === 'undefined') return;
+
+  const currentPath = window.location.pathname + window.location.search;
+
+  // Avoid redirect loops: don't redirect if already on an auth page
+  if (/^\/(login|register|forgot-password|reset-password|verify-email|resend-verification)/.test(window.location.pathname)) {
+    return;
+  }
+
+  const loginUrl = `/login?redirect=${encodeURIComponent(currentPath)}`;
+  window.location.href = loginUrl;
+};
+
+// Intercepteur pour gÃ©rer globalement les erreurs et rafraÃ®chir le token automatiquement
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
@@ -277,11 +296,11 @@ api.interceptors.response.use(
       return Promise.reject(error);
     }
 
-    // ── Network error (server unreachable / sleeping) ──────────────────────
+    // â”€â”€ Network error (server unreachable / sleeping) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     // error.response is undefined when there is no HTTP response at all.
     // We must NOT treat this as an auth error; just propagate it so callers
     // can display an appropriate "connexion impossible" message.
-    // ── 401 Unauthorized ───────────────────────────────────────────────────
+    // â”€â”€ 401 Unauthorized â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     const requestUrl = originalRequest?.url ?? '';
 
     // Never refresh on public auth routes (login, registration, refresh itself).
@@ -302,7 +321,7 @@ api.interceptors.response.use(
         const canRefresh = !!refreshToken || hasStoredAccess || authMethod === 'web';
 
         if (canRefresh) {
-          // ── Another refresh is already in flight: queue this request ──────
+          // â”€â”€ Another refresh is already in flight: queue this request â”€â”€â”€â”€â”€â”€
           if (isRefreshing) {
             return new Promise((resolve, reject) => {
               failedQueue.push({ resolve, reject });
@@ -320,7 +339,7 @@ api.interceptors.response.use(
               .catch((err) => Promise.reject(err));
           }
 
-          // ── Start refreshing ───────────────────────────────────────────────
+          // â”€â”€ Start refreshing â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
           isRefreshing = true;
 
           try {
@@ -366,21 +385,26 @@ api.interceptors.response.use(
             processQueue(refreshError, null);
             isRefreshing = false;
 
-            // Refresh failed → clear stale local auth state, but do not force a login redirect
-            // here unless the user is actively doing a protected action that explicitly
-            // received a 401. The app should remain usable and allow the user to choose.
+            // Refresh failed -> clear stale local auth state and redirect to login
             localStorage.removeItem('auth_token');
+            localStorage.removeItem('refresh_token');
+            localStorage.removeItem('auth_method');
             delete api.defaults.headers.common['Authorization'];
+
+            redirectToLogin();
 
             return Promise.reject(refreshError);
           }
         }
 
-        // ── No way to refresh (stale access token, no refresh token) ────────
-        // Keep the user on the current page and let them choose whether to log in again.
-        // Redirecting here would cause the loop described by the bug.
+        // -- No way to refresh (stale access token, no refresh token) --------
+        // Clear stale tokens and redirect the user to the login page.
         localStorage.removeItem('auth_token');
+        localStorage.removeItem('refresh_token');
+        localStorage.removeItem('auth_method');
         delete api.defaults.headers.common['Authorization'];
+
+        redirectToLogin();
       }
     }
 

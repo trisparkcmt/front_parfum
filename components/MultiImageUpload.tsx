@@ -39,6 +39,7 @@ export const MultiImageUpload: React.FC<MultiImageUploadProps> = ({
   );
 
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [draggingItemIndex, setDraggingItemIndex] = useState<number | null>(null);
   const principalInputRef = useRef<HTMLInputElement | null>(null);
   const supplementaryInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -183,6 +184,32 @@ export const MultiImageUpload: React.FC<MultiImageUploadProps> = ({
     handleBulkSupplementaryFiles(e.dataTransfer.files);
   };
 
+  const handleSwap = (fromIndex: number, toIndex: number) => {
+    if (fromIndex === toIndex) return;
+
+    setImages((prevImages) => {
+      const newImages = [...prevImages];
+      
+      const tempFile = newImages[fromIndex].file;
+      const tempPreview = newImages[fromIndex].preview;
+
+      newImages[fromIndex] = {
+        ...newImages[fromIndex],
+        file: newImages[toIndex].file,
+        preview: newImages[toIndex].preview,
+      };
+
+      newImages[toIndex] = {
+        ...newImages[toIndex],
+        file: tempFile,
+        preview: tempPreview,
+      };
+
+      notifyParent(newImages);
+      return newImages;
+    });
+  };
+
   const handleRemoveImage = (index: number) => {
     if (images[index].preview && !images[index].file) {
       onExistingImagesChange?.({ [images[index].key]: null });
@@ -296,7 +323,41 @@ export const MultiImageUpload: React.FC<MultiImageUploadProps> = ({
             {supplementaryImages.map((image, index) => (
               <div key={image.key} className="flex flex-col gap-2 items-center">
                 <label className="block text-[11px] font-medium text-foreground/60">{image.label}</label>
-                <div className="relative w-full max-w-[110px] aspect-square group">
+                <div 
+                  className={`relative w-full max-w-[110px] aspect-square group rounded-lg ${image.preview ? 'cursor-grab active:cursor-grabbing' : ''} ${draggedIndex === index + 1 ? 'ring-2 ring-gold' : ''}`}
+                  draggable={!!image.preview}
+                  onDragStart={(e) => {
+                    if (!image.preview) {
+                      e.preventDefault();
+                      return;
+                    }
+                    setDraggingItemIndex(index + 1);
+                    e.dataTransfer.effectAllowed = 'move';
+                  }}
+                  onDragOver={(e) => {
+                    if (draggingItemIndex !== null && draggingItemIndex !== index + 1) {
+                      e.preventDefault(); // Necessary to allow dropping
+                      setDraggedIndex(index + 1);
+                    }
+                  }}
+                  onDragLeave={() => {
+                    if (draggedIndex === index + 1) {
+                      setDraggedIndex(null);
+                    }
+                  }}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    setDraggedIndex(null);
+                    if (draggingItemIndex !== null && draggingItemIndex !== index + 1) {
+                      handleSwap(draggingItemIndex, index + 1);
+                    }
+                    setDraggingItemIndex(null);
+                  }}
+                  onDragEnd={() => {
+                    setDraggingItemIndex(null);
+                    setDraggedIndex(null);
+                  }}
+                >
                   {image.preview ? (
                     <>
                       <AppImage
@@ -304,6 +365,7 @@ export const MultiImageUpload: React.FC<MultiImageUploadProps> = ({
                         alt={image.label}
                         fill
                         className="object-cover rounded-lg border border-white/10"
+                        draggable={false} // Prevent default image drag to allow div drag
                       />
                       <button
                         type="button"

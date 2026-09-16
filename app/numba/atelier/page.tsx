@@ -1636,13 +1636,31 @@ function AtelierContent() {
               </button>
             </div>
 
+            {/* Composition Name Input */}
+            <div className="mb-6">
+              <label className="block text-xs font-bold uppercase tracking-widest text-foreground/70 mb-2">
+                {i18n.language === 'en' ? 'Name your composition' : 'Nommez votre composition'}
+              </label>
+              <input
+                type="text"
+                placeholder={i18n.language === 'en' ? 'e.g. Rose & Oud Evening' : 'ex. Rose & Oud Soirée'}
+                value={saveModalName}
+                onChange={(e) => setSaveModalName(e.target.value)}
+                className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-foreground placeholder-foreground/30 focus:outline-none focus:border-gold/50 text-sm"
+              />
+              <p className="text-[10px] text-gold/80 mt-1.5 italic font-medium">
+                {i18n.language === 'en'
+                  ? '✦ This is the exact name that will be inscribed on your physical bottle.'
+                  : '✦ Ce nom sera exactement celui inscrit sur votre flacon physique.'}
+              </p>
+            </div>
+
             {/* Composition Summary */}
             <div className="bg-white/5 border border-white/10 rounded-xl p-4 mb-6">
               <div className="flex justify-between items-center">
                 <div>
-                  <p className="text-xs font-bold uppercase tracking-widest text-foreground/40">{i18n.language === 'en' ? 'Composition' : 'Composition'}</p>
-                  <p className="text-sm text-foreground mt-0.5">{saveModalName || compositionName || `Création Numba ${bottleSize}ml`}</p>
-                  <p className="text-[10px] text-foreground/30 mt-0.5">{bottleSize}ml · {totalMl.toFixed(1)}ml d'essences</p>
+                  <p className="text-xs font-bold uppercase tracking-widest text-foreground/40">{i18n.language === 'en' ? 'Order Summary' : 'Résumé de commande'}</p>
+                  <p className="text-[11px] text-foreground/60 mt-1">{bottleSize}ml · {totalMl.toFixed(1)}ml {i18n.language === 'en' ? 'of essences' : "d'essences"}</p>
                 </div>
                 <p className="text-xl font-light text-gold">{calcPrice.toLocaleString()} <span className="text-[10px]">FCFA</span></p>
               </div>
