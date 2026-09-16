@@ -365,7 +365,6 @@ export const MultiImageUpload: React.FC<MultiImageUploadProps> = ({
                         alt={image.label}
                         fill
                         className="object-cover rounded-lg border border-white/10"
-                        draggable={false} // Prevent default image drag to allow div drag
                       />
                       <button
                         type="button"
