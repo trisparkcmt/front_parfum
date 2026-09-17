@@ -11,7 +11,7 @@ import type { User, UserRole } from '@/types';
 import { authService } from '@/services/apiService';
 import { deviceService } from '@/services/deviceService';
 import { getCachedToken, cleanupFCM } from '@/services/fcmService';
-import { api, rawApi } from '@/services/api';
+import { api, initializeTokenRefresh, rawApi } from '@/services/api';
 import { useToastStore } from './useToastStore';
 import { useCartStore } from './useCartStore';
 import { useNotificationCountStore } from './useNotificationCountStore';
@@ -95,7 +95,13 @@ interface AuthState {
   logout: () => Promise<void>;
   setUser: (user: User) => void;
   hasRole: (role: UserRole) => boolean;
-  updateProfile: (data: { firstName?: string; lastName?: string; email?: string; phone?: string }) => Promise<boolean>;
+  updateProfile: (data: {
+    firstName?: string;
+    lastName?: string;
+    email?: string;
+    phone?: string;
+    currentPassword?: string;
+  }) => Promise<boolean>;
   fetchUser: () => Promise<User | null>;
   refreshUser: () => Promise<User | null>;
 }
@@ -141,7 +147,6 @@ export const useAuthStore = create<AuthState>()(
           if (typeof window !== 'undefined') {
             if (access) {
               localStorage.setItem('auth_token', access);
-              localStorage.setItem('auth_method', 'web');
               api.defaults.headers.common['Authorization'] = `Bearer ${access}`;
               rawApi.defaults.headers.common['Authorization'] = `Bearer ${access}`;
             } else {
@@ -149,6 +154,7 @@ export const useAuthStore = create<AuthState>()(
               delete rawApi.defaults.headers.common['Authorization'];
               localStorage.removeItem('auth_token');
             }
+            localStorage.setItem('auth_method', 'web');
           }
 
           const mapUser = (userObj: any, meData?: any): User => {
@@ -201,6 +207,7 @@ export const useAuthStore = create<AuthState>()(
             isAuthenticated: true,
             isLoading: false,
           });
+          initializeTokenRefresh();
           addToast(`Bienvenue, ${meUser.firstName} !`, 'success');
 
           // Clear stale cart and sync fresh cart from backend after login
@@ -250,6 +257,7 @@ export const useAuthStore = create<AuthState>()(
           if (typeof window !== 'undefined') {
             // Store only access token; refresh token comes via HttpOnly cookie
             localStorage.setItem('auth_token', access);
+            localStorage.setItem('auth_method', 'web');
             api.defaults.headers.common['Authorization'] = `Bearer ${access}`;
             rawApi.defaults.headers.common['Authorization'] = `Bearer ${access}`;
           }
@@ -298,6 +306,7 @@ export const useAuthStore = create<AuthState>()(
             isAuthenticated: true,
             isLoading: false,
           });
+          initializeTokenRefresh();
           addToast(`Bienvenue, ${meUser.firstName} !`, 'success');
           // NOTE: FCM device registration is handled by FCMProvider which watches
           // isAuthenticated — no need to call initializeFCM here (would cause race condition).
@@ -427,12 +436,26 @@ export const useAuthStore = create<AuthState>()(
         const addToast = useToastStore.getState().addToast;
         
         try {
+          const currentUser = get().user;
+          const emailChanged = Boolean(
+            data.email && currentUser?.email && data.email !== currentUser.email
+          );
+
           // Use authService.updateProfile which handles the API call correctly
           const response = await authService.updateProfile({
             telephone: data.phone,
             first_name: data.firstName,
             last_name: data.lastName,
+            current_password: data.currentPassword,
           });
+
+          let emailChangeResponse: any = null;
+          if (emailChanged) {
+            emailChangeResponse = await authService.changeEmail(
+              data.email!,
+              data.currentPassword || ''
+            );
+          }
 
           // Parse the response to create updated user object
           const meData = response.user || response;
@@ -440,11 +463,12 @@ export const useAuthStore = create<AuthState>()(
           const roles = extractUserRoles(meData, token);
 
           const updatedUser: User = {
-            id: String(meData.id),
-            firstName: meData.first_name,
-            lastName: meData.last_name,
-            email: meData.email,
-            phone: meData.telephone || meData.phone,
+            ...get().user,
+            id: String(meData.id || get().user?.id),
+            firstName: meData.first_name ?? get().user?.firstName ?? '',
+            lastName: meData.last_name ?? get().user?.lastName ?? '',
+            email: emailChangeResponse?.email ?? meData.email ?? get().user?.email ?? '',
+            phone: meData.telephone ?? meData.phone ?? get().user?.phone ?? '',
             role: resolvePrimaryRole(roles),
             roles,
             createdAt: get().user?.createdAt || new Date().toISOString(),
@@ -477,17 +501,17 @@ export const useAuthStore = create<AuthState>()(
       },
 
       refreshUser: async () => {
-        // Use rawApi (no interceptors) so a 401 here never triggers the global
-        // isRefreshing lock or poisons the failedQueue.
         const tokenAtStart =
           typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
-        if (!tokenAtStart) {
+        const authMethod =
+          typeof window !== 'undefined' ? localStorage.getItem('auth_method') : null;
+        if (!tokenAtStart && authMethod !== 'web') {
           set({ user: null, isAuthenticated: false });
           return null;
         }
           try {
-            const meResponse = await rawApi.get('auth/me/', {
-              headers: { Authorization: `Bearer ${tokenAtStart}` },
+            const meResponse = await api.get('auth/me/', {
+              headers: tokenAtStart ? { Authorization: `Bearer ${tokenAtStart}` } : undefined,
               withCredentials: true,
             });
           const meData = meResponse.data;
@@ -572,9 +596,11 @@ export const useAuthStore = create<AuthState>()(
 
             const hasToken =
               typeof window !== 'undefined' && !!localStorage.getItem('auth_token');
+            const hasWebSession =
+              typeof window !== 'undefined' && localStorage.getItem('auth_method') === 'web';
 
-            if (hasToken) {
-              // refreshUser uses rawApi (no interceptors) — safe to call in background
+            if (hasToken || hasWebSession) {
+              initializeTokenRefresh();
               state.refreshUser().catch(() => {});
             } else {
               // No token in storage → clear persisted auth state immediately

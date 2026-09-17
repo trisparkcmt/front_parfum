@@ -1,14 +1,15 @@
 'use client';
 
 import { useState } from 'react';
-import { User, X } from 'lucide-react';
+import type { AxiosError } from 'axios';
+import { Lock, User, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useToastStore } from '@/store/useToastStore';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useForm } from 'react-hook-form';
+import { useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { Input } from '@/components/ui/Input';
 
 interface ProfileEditModalProps {
   isOpen: boolean;
@@ -30,15 +31,16 @@ export default function ProfileEditModal({
     lastName: z.string().min(1, t('required_field')),
     email: z.string().email(t('invalid_email')),
     phone: z.string().min(1, t('required_field')),
+    currentPassword: z.string(),
   });
 
   type FormData = z.infer<typeof formSchema>;
 
   const {
+    control,
     register,
     handleSubmit,
     formState: { errors },
-    reset,
     setError,
     setFocus,
   } = useForm<FormData>({
@@ -48,12 +50,23 @@ export default function ProfileEditModal({
       lastName: user?.lastName || '',
       email: user?.email || '',
       phone: user?.phone || '',
+      currentPassword: '',
     },
   });
 
   const [loading, setLoading] = useState(false);
+  const phoneValue = useWatch({ control, name: 'phone' });
+  const emailValue = useWatch({ control, name: 'email' });
+  const phoneChanged = phoneValue !== (user?.phone || '');
+  const emailChanged = emailValue !== (user?.email || '');
 
   const onSubmit = async (data: FormData) => {
+    if ((phoneChanged || emailChanged) && !data.currentPassword) {
+      setError('currentPassword', { type: 'manual', message: t('required_field') });
+      setFocus('currentPassword');
+      return;
+    }
+
     setLoading(true);
     try {
       const success = await updateProfile({
@@ -61,6 +74,7 @@ export default function ProfileEditModal({
         lastName: data.lastName,
         email: data.email,
         phone: data.phone,
+        currentPassword: data.currentPassword || undefined,
       });
 
       if (success) {
@@ -69,16 +83,18 @@ export default function ProfileEditModal({
         // Delay close to allow toast to show
         setTimeout(() => onClose(), 1000);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Profile update failed:', error);
+      const apiError = error as AxiosError<Record<string, string[] | string>>;
+      const errorData = apiError.response?.data;
       const errorMsg =
-        error.response?.data?.detail ||
-        error.response?.data?.message ||
+        (typeof errorData?.detail === 'string' ? errorData.detail : errorData?.detail?.[0]) ||
+        (typeof errorData?.message === 'string' ? errorData.message : errorData?.message?.[0]) ||
         t('profile_update_failed', 'Failed to update profile');
       addToast(errorMsg, 'error');
 
       // Handle field-specific errors from the API
-      const errData = error.response?.data;
+      const errData = errorData;
       if (errData) {
         // Map API error to field
         if (errData.first_name?.[0]) {
@@ -87,9 +103,6 @@ export default function ProfileEditModal({
         } else if (errData.last_name?.[0]) {
           setError('lastName', { type: 'manual', message: errData.last_name[0] });
           setFocus('lastName');
-        } else if (errData.email?.[0]) {
-          setError('email', { type: 'manual', message: errData.email[0] });
-          setFocus('email');
         } else if (errData.telephone?.[0]) {
           // Note: the API uses 'telephone' for phone
           setError('phone', { type: 'manual', message: errData.telephone[0] });
@@ -178,11 +191,7 @@ export default function ProfileEditModal({
               {...register('email')}
               disabled={loading}
               className="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-lg text-base text-foreground placeholder-text-foreground/30 focus:outline-none focus:border-gold/50 transition-colors"
-              placeholder={t('enter_email')}
             />
-            {errors.email && (
-              <p className="mt-1 text-xs text-red-500">{errors.email.message}</p>
-            )}
           </div>
 
           {/* Phone */}
@@ -202,6 +211,28 @@ export default function ProfileEditModal({
               <p className="mt-1 text-xs text-red-500">{errors.phone.message}</p>
             )}
           </div>
+
+          {(phoneChanged || emailChanged) && (
+            <div>
+              <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">
+                {t('current_password', 'Mot de passe actuel')}
+              </label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-foreground/40" />
+                <input
+                  id="field-currentPassword"
+                  type="password"
+                  {...register('currentPassword')}
+                  disabled={loading}
+                  className="w-full pl-9 pr-3 py-2.5 bg-white/5 border border-white/10 rounded-lg text-base text-foreground placeholder-text-foreground/30 focus:outline-none focus:border-gold/50 transition-colors"
+                  placeholder={t('enter_current_password')}
+                />
+              </div>
+              {errors.currentPassword && (
+                <p className="mt-1 text-xs text-red-500">{errors.currentPassword.message}</p>
+              )}
+            </div>
+          )}
 
           {/* Buttons */}
           <div className="flex gap-3 pt-4">

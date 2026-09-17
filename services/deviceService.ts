@@ -162,6 +162,7 @@ export const deviceService = {
       console.log('[Device Service] All notifications cleared');
     } catch (error: any) {
       console.warn('[Device Service] Failed to clear notifications:', error);
+      throw error;
     }
   },
 
