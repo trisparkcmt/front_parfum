@@ -8,6 +8,7 @@
    ============================================================ */
 
 @theme {
+  --breakpoint-nav: 65.625rem;
   --color-gold: #C5A059;
   --color-gold-light: #D4B87A;
   --color-gold-dark: #A8864A;

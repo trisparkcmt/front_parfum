@@ -452,12 +452,19 @@ export const useAuthStore = create<AuthState>()(
       updateProfile: async (data) => {
         set({ isLoading: true });
         const addToast = useToastStore.getState().addToast;
-        
+
         try {
           const currentUser = get().user;
+          const phoneChanged = Boolean(
+            data.phone && currentUser?.phone && data.phone !== currentUser.phone
+          );
           const emailChanged = Boolean(
             data.email && currentUser?.email && data.email !== currentUser.email
           );
+
+          if ((phoneChanged || emailChanged) && !data.currentPassword?.trim()) {
+            throw new Error('CURRENT_PASSWORD_REQUIRED');
+          }
 
           // Use authService.updateProfile which handles the API call correctly
           const response = await authService.updateProfile({
@@ -497,9 +504,11 @@ export const useAuthStore = create<AuthState>()(
           return true;
         } catch (error: any) {
           console.error('Backend profile update failed:', error);
-          
-          // Handle specific error messages from API
-          const errorMsg = 
+
+          const isPasswordRequiredError = error?.message === 'CURRENT_PASSWORD_REQUIRED';
+
+          const errorMsg =
+            (isPasswordRequiredError && 'Le mot de passe actuel est requis pour modifier votre téléphone ou votre e-mail.') ||
             error.response?.data?.detail ||
             error.response?.data?.email?.[0] ||
             error.response?.data?.telephone?.[0] ||
@@ -507,7 +516,7 @@ export const useAuthStore = create<AuthState>()(
             error.response?.data?.last_name?.[0] ||
             error.response?.data?.message ||
             'Échec de la mise à jour du profil.';
-          
+
           set({ isLoading: false });
           addToast(errorMsg, 'error');
           return false;

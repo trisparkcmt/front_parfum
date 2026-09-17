@@ -139,17 +139,17 @@ export default function ServeuseSidebar({ open, setOpen }: SidebarProps) {
     <>
       {open && (
         <div
-          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-20 xl:hidden"
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-20 nav:hidden"
           onClick={() => setOpen(false)}
         />
       )}
 
       <aside
         className={`
-          fixed xl:static inset-y-0 left-0 z-30
+          fixed nav:static inset-y-0 left-0 z-30
           flex flex-col w-[260px] bg-background border-r border-white/10
           transition-transform duration-300 ease-in-out
-          ${open ? 'translate-x-0' : '-translate-x-full xl:translate-x-0'}
+          ${open ? 'translate-x-0' : '-translate-x-full nav:translate-x-0'}
         `}
       >
         <div className="flex items-center justify-between px-5 py-5 border-b border-white/10">

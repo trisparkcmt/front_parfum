@@ -8,7 +8,7 @@ import { Loader2 } from 'lucide-react';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const { isAuthorized, isLoading } = useAuthGuard(['superadmin']);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   if (isLoading || !isAuthorized) {
     return (

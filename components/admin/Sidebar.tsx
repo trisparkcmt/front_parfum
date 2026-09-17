@@ -266,14 +266,14 @@ export default function Sidebar({ open, setOpen }: SidebarProps) {
       {/* Mobile overlay */}
       {open && (
         <div
-          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-20 xl:hidden"
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-20 nav:hidden"
           onClick={() => setOpen(false)}
         />
       )}
 
       <aside
-        className={`fixed xl:static inset-y-0 left-0 z-30 flex flex-col w-[260px] bg-background border-r border-white/10 transition-transform duration-300 ease-in-out ${
-          open ? 'translate-x-0' : '-translate-x-full xl:translate-x-0'
+        className={`fixed nav:static inset-y-0 left-0 z-30 flex flex-col w-[260px] bg-background border-r border-white/10 transition-transform duration-300 ease-in-out ${
+          open ? 'translate-x-0' : '-translate-x-full nav:translate-x-0'
         }`}
       >
         {/* Logo */}
@@ -291,7 +291,7 @@ export default function Sidebar({ open, setOpen }: SidebarProps) {
             </span>
           </Link>
           <button
-            className="xl:hidden text-foreground/40 hover:text-foreground transition-colors"
+            className="nav:hidden text-foreground/40 hover:text-foreground transition-colors"
             onClick={() => setOpen(false)}
           >
             <X size={18} />

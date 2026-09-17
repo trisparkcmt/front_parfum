@@ -9,6 +9,8 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { SearchDropdown } from "@/components/shared/SearchDropdown";
+import { ProductDetailModal } from "@/components/ui/ProductDetailModal";
+import type { Product } from "@/types";
 
 export function HomeHeader() {
   const { t, i18n } = useTranslation();
@@ -22,6 +24,8 @@ export function HomeHeader() {
   const [debouncedQuery, setDebouncedQuery] = useState('');
   const [isNavigating, setIsNavigating] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
+  const [modalProductId, setModalProductId] = useState<string | null>(null);
+  const [modalProductType, setModalProductType] = useState<'perfume' | 'accessory' | 'diffuseur'>('perfume');
 
   // Navigate on form submit
   const handleSearch = (e: React.FormEvent) => {
@@ -38,6 +42,50 @@ export function HomeHeader() {
     setIsNavigating(false);
   }, [pathname]);
 
+  useEffect(() => {
+    const handlePopState = (event: PopStateEvent) => {
+      if (!event.state?.homeProductModal) {
+        setModalProductId(null);
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  const openProductModal = (product: Product) => {
+    const isDiffuseur = Boolean(
+      product.type_technologie ||
+      product.capacite_reservoir_ml !== undefined ||
+      product.est_connecte !== undefined ||
+      product.a_jeux_de_lumiere !== undefined ||
+      (product.name || '').toLowerCase().includes('diffuseur') ||
+      (product.description || '').toLowerCase().includes('diffuseur')
+    );
+    const productType = isDiffuseur
+      ? 'diffuseur'
+      : product.category === 'accessory'
+        ? 'accessory'
+        : 'perfume';
+    const productId = String(product.slug || product.id);
+
+    setModalProductId(productId);
+    setModalProductType(productType);
+    setShowDropdown(false);
+    window.history.pushState(
+      { homeProductModal: true },
+      '',
+      `/shop/product/${productId}?type=${productType}`
+    );
+  };
+
+  const closeProductModal = () => {
+    if (window.history.state?.homeProductModal) {
+      window.history.back();
+    } else {
+      setModalProductId(null);
+    }
+  };
+
   // Debounce query by 350ms before querying the backend
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -52,7 +100,7 @@ export function HomeHeader() {
   }, [debouncedQuery]);
 
   return (
-    <header className="relative lg:hidden w-full max-w-7xl mx-auto px-4 sm:px-6 pt-3 pb-3">
+    <header className="relative nav:hidden w-full max-w-7xl mx-auto px-4 sm:px-6 pt-3 pb-3">
       <div
         className={`absolute inset-x-0 top-0 h-0.5 bg-gold transition-opacity duration-200 ${
           isNavigating ? 'opacity-100' : 'opacity-0'
@@ -103,9 +151,15 @@ export function HomeHeader() {
           <SearchDropdown
             query={debouncedQuery}
             onClose={() => setShowDropdown(false)}
+            onProductClick={openProductModal}
           />
         )}
       </div>
+      <ProductDetailModal
+        productId={modalProductId}
+        productType={modalProductType}
+        onClose={closeProductModal}
+      />
     </header>
   );
 }

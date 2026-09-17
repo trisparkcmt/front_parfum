@@ -372,12 +372,12 @@ export default function ProfilePage() {
       </div>
 
       {/* ============ DESKTOP MAIN GRID LAYOUT (12 Columns) ============ */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+      <div className="grid grid-cols-1 nav:grid-cols-12 gap-6 items-start">
         
         {/* ============================================================ */}
         {/* LEFT / SIDEBAR COLUMN (4 cols on Desktop) - Identity & Profile */}
         {/* ============================================================ */}
-        <div className="lg:col-span-4 space-y-6 lg:sticky lg:top-6">
+        <div className="nav:col-span-4 space-y-6 nav:sticky nav:top-6">
           {/* USER PROFILE CARD */}
           <Panel className="p-6 relative">
             {!isPartner && !isStaff && (
@@ -522,7 +522,7 @@ export default function ProfilePage() {
           <button
             onClick={() => setShowLogoutConfirm(true)}
             disabled={isLoggingOut}
-            className="hidden lg:flex w-full items-center justify-center gap-2 rounded-lg bg-red-500/95 px-4 py-2.5 text-sm font-semibold text-white hover:bg-red-500 transition-colors disabled:opacity-50 mt-4"
+            className="hidden nav:flex w-full items-center justify-center gap-2 rounded-lg bg-red-500/95 px-4 py-2.5 text-sm font-semibold text-white hover:bg-red-500 transition-colors disabled:opacity-50 mt-4"
           >
             {isLoggingOut ? <Loader2 size={16} className="animate-spin" /> : <LogOut size={16} />}
             {isLoggingOut
@@ -534,7 +534,7 @@ export default function ProfilePage() {
         {/* ============================================================ */}
         {/* RIGHT / MAIN CONTENT COLUMN (8 cols on Desktop) - Dashboards & Settings */}
         {/* ============================================================ */}
-        <div className="lg:col-span-8 space-y-6">
+        <div className="nav:col-span-8 space-y-6">
 
           {/* ---------- ACCESSIBLE DASHBOARDS GRID ---------- */}
           {accessibleDashboards.length > 0 && (
@@ -677,7 +677,7 @@ export default function ProfilePage() {
           <button
             onClick={() => setShowLogoutConfirm(true)}
             disabled={isLoggingOut}
-            className="lg:hidden w-full flex items-center justify-center gap-2 rounded-lg bg-red-500/95 px-4 py-2.5 text-sm font-semibold text-white hover:bg-red-500 transition-colors disabled:opacity-50 mt-2"
+            className="nav:hidden w-full flex items-center justify-center gap-2 rounded-lg bg-red-500/95 px-4 py-2.5 text-sm font-semibold text-white hover:bg-red-500 transition-colors disabled:opacity-50 mt-2"
           >
             {isLoggingOut ? <Loader2 size={16} className="animate-spin" /> : <LogOut size={16} />}
             {isLoggingOut

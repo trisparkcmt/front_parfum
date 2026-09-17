@@ -9,7 +9,7 @@ import { Loader2 } from 'lucide-react';
 
 export default function ServeuseLayout({ children }: { children: React.ReactNode }) {
   const { isAuthorized, isLoading } = useAuthGuard(['superadmin', 'serveuse']);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const pathname = usePathname();
 
   if (isLoading || !isAuthorized) {

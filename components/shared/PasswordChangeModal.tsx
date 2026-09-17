@@ -145,7 +145,7 @@ export default function PasswordChangeModal({
             <div className="w-10 h-10 rounded-lg bg-gold/20 flex items-center justify-center text-gold">
               <Lock size={20} />
             </div>
-            <h2 className="text-lg font-bold text-foreground">{t('change_password', 'Change Password')}</h2>
+            <h2 className="text-lg font-bold text-foreground">{t('change_password')}</h2>
           </div>
           <button
             onClick={onClose}
@@ -161,7 +161,7 @@ export default function PasswordChangeModal({
           {/* Old Password */}
           <div>
             <label className="block text-sm font-semibold text-foreground mb-2">
-              {t('current_password', 'Current Password')}
+              {t('current_password')}
             </label>
             <div className="relative">
               <input
@@ -193,7 +193,7 @@ export default function PasswordChangeModal({
           {/* New Password */}
           <div>
             <label className="block text-sm font-semibold text-foreground mb-2">
-              {t('new_password', 'New Password')}
+              {t('new_password')}
             </label>
             <div className="relative">
               <input
@@ -225,7 +225,7 @@ export default function PasswordChangeModal({
           {/* Confirm Password */}
           <div>
             <label className="block text-sm font-semibold text-foreground mb-2">
-              {t('confirm_password', 'Confirm Password')}
+              {t('confirm_password')}
             </label>
             <div className="relative">
               <input
@@ -272,7 +272,7 @@ export default function PasswordChangeModal({
               disabled={loading}
               className="flex-1 px-4 py-2.5 rounded-lg bg-gold text-black text-sm font-bold hover:bg-gold/80 transition-colors disabled:opacity-50"
             >
-              {loading ? t('loading') : t('change_password', 'Change Password')}
+              {loading ? t('loading') : t('change_password')}
             </button>
           </div>
         </form>

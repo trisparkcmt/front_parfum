@@ -26,13 +26,25 @@ export default function ProfileEditModal({
   const { addToast } = useToastStore();
   const { user, updateProfile } = useAuthStore();
 
-  const formSchema = z.object({
-    firstName: z.string().min(1, t('required_field')),
-    lastName: z.string().min(1, t('required_field')),
-    email: z.string().email(t('invalid_email')),
-    phone: z.string().min(1, t('required_field')),
-    currentPassword: z.string(),
-  });
+  const formSchema = z
+    .object({
+      firstName: z.string().min(1, t('required_field')),
+      lastName: z.string().min(1, t('required_field')),
+      email: z.string().email(t('invalid_email')),
+      phone: z.string().min(1, t('required_field')),
+      currentPassword: z.string(),
+    })
+    .superRefine((data, ctx) => {
+      const phoneChanged = data.phone !== (user?.phone || '');
+      const emailChanged = data.email !== (user?.email || '');
+      if ((phoneChanged || emailChanged) && !data.currentPassword.trim()) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['currentPassword'],
+          message: t('required_field'),
+        });
+      }
+    });
 
   type FormData = z.infer<typeof formSchema>;
 
@@ -61,7 +73,7 @@ export default function ProfileEditModal({
   const emailChanged = emailValue !== (user?.email || '');
 
   const onSubmit = async (data: FormData) => {
-    if ((phoneChanged || emailChanged) && !data.currentPassword) {
+    if ((phoneChanged || emailChanged) && !data.currentPassword.trim()) {
       setError('currentPassword', { type: 'manual', message: t('required_field') });
       setFocus('currentPassword');
       return;
@@ -131,7 +143,7 @@ export default function ProfileEditModal({
             <div className="w-10 h-10 rounded-lg bg-gold/20 flex items-center justify-center text-gold">
               <User size={20} />
             </div>
-            <h2 className="text-lg font-bold text-foreground">{t('edit_profile', 'Edit Profile')}</h2>
+            <h2 className="text-lg font-bold text-foreground">{t('edit_profile')}</h2>
           </div>
           <button
             onClick={onClose}
@@ -147,7 +159,7 @@ export default function ProfileEditModal({
           {/* First Name */}
           <div>
             <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">
-              {t('first_name', 'Prénom')}
+              {t('first_name')}
             </label>
             <input
               id="field-firstName"
@@ -165,7 +177,7 @@ export default function ProfileEditModal({
           {/* Last Name */}
           <div>
             <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">
-              {t('last_name', 'Nom')}
+              {t('last_name')}
             </label>
             <input
               id="field-lastName"
@@ -183,7 +195,7 @@ export default function ProfileEditModal({
           {/* Email */}
           <div>
             <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">
-              {t('email', 'Email')}
+              {t('email')}
             </label>
             <input
               id="field-email"
@@ -197,7 +209,7 @@ export default function ProfileEditModal({
           {/* Phone */}
           <div>
             <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">
-              {t('phone', 'Téléphone')}
+              {t('phone')}
             </label>
             <input
               id="field-phone"
@@ -215,7 +227,7 @@ export default function ProfileEditModal({
           {(phoneChanged || emailChanged) && (
             <div>
               <label className="block text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1.5">
-                {t('current_password', 'Mot de passe actuel')}
+                {t('current_password')}
               </label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-foreground/40" />

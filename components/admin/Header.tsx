@@ -200,7 +200,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
 
       <button
         onClick={onMenuClick}
-        className="text-foreground/60 hover:text-foreground transition-colors p-1.5 rounded-lg hover:bg-white/5"
+        className="nav:hidden text-foreground/60 hover:text-foreground transition-colors p-1.5 rounded-lg hover:bg-white/5"
       >
         <Menu size={20} />
       </button>

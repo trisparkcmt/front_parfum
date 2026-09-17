@@ -20,10 +20,11 @@ interface Category {
 interface SearchDropdownProps {
   query: string;
   onClose: () => void;
+  onProductClick?: (product: Product) => void;
   className?: string;
 }
 
-export function SearchDropdown({ query, onClose, className }: SearchDropdownProps) {
+export function SearchDropdown({ query, onClose, onProductClick, className }: SearchDropdownProps) {
   const { t } = useTranslation();
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -185,11 +186,17 @@ export function SearchDropdown({ query, onClose, className }: SearchDropdownProp
                     {t('products', 'Produits')}
                   </p>
                   {products.map(product => (
-                    <Link
+                    <button
                       key={product.id}
-                      href={`/shop/${product.category?.includes('accessory') ? 'accessories' : 'perfumes'}/${product.slug || product.id}`}
-                      onClick={onClose}
-                      className="flex items-center gap-3 px-3 py-2 hover:bg-foreground/5 transition-colors group"
+                      type="button"
+                      onClick={() => {
+                        if (onProductClick) {
+                          onProductClick(product);
+                        } else {
+                          onClose();
+                        }
+                      }}
+                      className="flex w-full items-center gap-3 px-3 py-2 text-left hover:bg-foreground/5 transition-colors group"
                     >
                       {/* Thumbnail */}
                       <div className="h-10 w-10 rounded-lg overflow-hidden flex-shrink-0 bg-foreground/5 border border-foreground/8">
@@ -223,7 +230,7 @@ export function SearchDropdown({ query, onClose, className }: SearchDropdownProp
                       </div>
 
                       <ArrowRight size={14} className="text-foreground/20 group-hover:text-gold group-hover:translate-x-0.5 transition-all flex-shrink-0" />
-                    </Link>
+                    </button>
                   ))}
                 </div>
               )}
