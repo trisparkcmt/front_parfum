@@ -61,6 +61,8 @@ export function ProductDetailModal({
   onClose,
   onRelatedCardClick,
 }: ProductDetailModalProps) {
+  if (!productId) return null;
+
   const { i18n } = useTranslation();
   const isEn = i18n.language?.startsWith('en');
 

@@ -155,11 +155,13 @@ export function HomeHeader() {
           />
         )}
       </div>
-      <ProductDetailModal
-        productId={modalProductId}
-        productType={modalProductType}
-        onClose={closeProductModal}
-      />
+      {modalProductId && (
+        <ProductDetailModal
+          productId={modalProductId}
+          productType={modalProductType}
+          onClose={closeProductModal}
+        />
+      )}
     </header>
   );
 }
