@@ -25,7 +25,8 @@ import {
   Percent,
   CheckCircle,
   RefreshCw,
-  X
+  X,
+  Trash2,
 } from 'lucide-react';
 import { adminService } from '@/services/apiService';
 import { useToastStore } from '@/store/useToastStore';
@@ -195,6 +196,7 @@ export default function ProviderDashboardPage() {
   const [validateComm, setValidateComm] = useState('10');
   const [validateDisc, setValidateDisc] = useState('5');
   const [isValidating, setIsValidating] = useState(false);
+  const [deletingProviderId, setDeletingProviderId] = useState<number | null>(null);
 
   // Payout states
   const [payoutAmount, setPayoutAmount] = useState('');
@@ -328,6 +330,24 @@ export default function ProviderDashboardPage() {
       addToast(errorMsg, 'error');
     } finally {
       setIsValidating(false);
+    }
+  };
+
+  const handleDeleteProvider = async (provider: Provider) => {
+    const name = `${provider.user_details?.first_name || ''} ${provider.user_details?.last_name || ''}`.trim() || 'ce prestataire';
+    if (!window.confirm(`Supprimer définitivement ${name} ?`)) return;
+
+    try {
+      setDeletingProviderId(Number(provider.id));
+      await adminService.deleteProvider(Number(provider.id));
+      setProviders((current) => current.filter((item) => item.id !== provider.id));
+      if (selectedProvider?.id === provider.id) setSelectedProvider(null);
+      addToast('Prestataire supprimé avec succès', 'success');
+    } catch (error) {
+      const errorMsg = (error as any)?.response?.data?.detail || 'Erreur lors de la suppression du prestataire';
+      addToast(errorMsg, 'error');
+    } finally {
+      setDeletingProviderId(null);
     }
   };
 
@@ -1067,6 +1087,13 @@ export default function ProviderDashboardPage() {
                             icon={Eye}
                             variant="gold"
                             title="Consulter le dashboard"
+                          />
+                          <IconButton
+                            onClick={() => handleDeleteProvider(provider)}
+                            icon={Trash2}
+                            variant="red"
+                            title="Supprimer le prestataire"
+                            disabled={deletingProviderId === Number(provider.id)}
                           />
                         </div>
                       </td>

@@ -113,12 +113,13 @@ export default function PasswordChangeModal({
         if (errData.old_password?.[0]) {
           setErrors(prev => ({ ...prev, oldPassword: errData.old_password[0] }));
           oldPasswordRef.current?.focus();
-        } else if (errData.password?.[0]) {
-          // Assuming this is for new password
-          setErrors(prev => ({ ...prev, newPassword: errData.password[0] }));
+        } else if (errData.new_password1?.[0] || errData.password?.[0]) {
+          const message = errData.new_password1?.[0] || errData.password?.[0];
+          setErrors(prev => ({ ...prev, newPassword: message }));
           newPasswordRef.current?.focus();
-        } else if (errData.password_confirm?.[0]) {
-          setErrors(prev => ({ ...prev, newPasswordConfirm: errData.password_confirm[0] }));
+        } else if (errData.new_password2?.[0] || errData.password_confirm?.[0]) {
+          const message = errData.new_password2?.[0] || errData.password_confirm?.[0];
+          setErrors(prev => ({ ...prev, newPasswordConfirm: message }));
           confirmPasswordRef.current?.focus();
         } else {
           // If we can't map, focus the first field

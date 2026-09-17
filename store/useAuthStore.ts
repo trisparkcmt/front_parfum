@@ -6,12 +6,21 @@
  */
 import axios from 'axios';
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { createJSONStorage, persist } from 'zustand/middleware';
 import type { User, UserRole } from '@/types';
 import { authService } from '@/services/apiService';
 import { deviceService } from '@/services/deviceService';
 import { getCachedToken, cleanupFCM } from '@/services/fcmService';
-import { api, initializeTokenRefresh, rawApi } from '@/services/api';
+import {
+  api,
+  getAuthStorage,
+  getAuthItem,
+  initializeTokenRefresh,
+  rawApi,
+  removeAuthItem,
+  setAuthItem,
+  setAuthPersistence,
+} from '@/services/api';
 import { useToastStore } from './useToastStore';
 import { useCartStore } from './useCartStore';
 import { useNotificationCountStore } from './useNotificationCountStore';
@@ -83,13 +92,21 @@ function extractUserRoles(userObj: any, token?: string | null): UserRole[] {
   return normalizeRoles(rolesToCheck);
 }
 
+const authStateStorage = createJSONStorage(() => {
+  const storage = getAuthStorage();
+  if (!storage) {
+    throw new Error('Auth storage is unavailable outside the browser');
+  }
+  return storage;
+});
+
 interface AuthState {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
   _hasHydrated: boolean;
   setHasHydrated: (state: boolean) => void;
-  login: (loginInput: string, password: string) => Promise<boolean>;
+  login: (loginInput: string, password: string, rememberMe?: boolean) => Promise<boolean>;
   loginWithGoogle: (accessToken: string, code?: string) => Promise<boolean>;
   register: (data: { firstName: string; lastName: string; email: string; phone: string; password: string }) => Promise<boolean>;
   logout: () => Promise<void>;
@@ -118,7 +135,7 @@ export const useAuthStore = create<AuthState>()(
         set({ _hasHydrated: state });
       },
 
-      login: async (loginInput, password) => {
+      login: async (loginInput, password, rememberMe = true) => {
         set({ isLoading: true });
         const addToast = useToastStore.getState().addToast;
 
@@ -129,8 +146,9 @@ export const useAuthStore = create<AuthState>()(
         try {
           // Clear stale tokens/cookies before login so they don't override fresh credentials
           if (typeof window !== 'undefined') {
-            localStorage.removeItem('auth_token');
-            localStorage.removeItem('refresh_token');
+            setAuthPersistence(rememberMe);
+            removeAuthItem('auth_token');
+            removeAuthItem('refresh_token');
             delete api.defaults.headers.common['Authorization'];
             try {
               await axios.post(`${rawApi.defaults.baseURL}auth/logout/`, {}, { withCredentials: true });
@@ -146,15 +164,15 @@ export const useAuthStore = create<AuthState>()(
 
           if (typeof window !== 'undefined') {
             if (access) {
-              localStorage.setItem('auth_token', access);
+              setAuthItem('auth_token', access);
               api.defaults.headers.common['Authorization'] = `Bearer ${access}`;
               rawApi.defaults.headers.common['Authorization'] = `Bearer ${access}`;
             } else {
               delete api.defaults.headers.common['Authorization'];
               delete rawApi.defaults.headers.common['Authorization'];
-              localStorage.removeItem('auth_token');
+              removeAuthItem('auth_token');
             }
-            localStorage.setItem('auth_method', 'web');
+            setAuthItem('auth_method', 'web');
           }
 
           const mapUser = (userObj: any, meData?: any): User => {
@@ -236,8 +254,8 @@ export const useAuthStore = create<AuthState>()(
 
         try {
           if (typeof window !== 'undefined') {
-            localStorage.removeItem('auth_token');
-            localStorage.removeItem('refresh_token');
+            removeAuthItem('auth_token');
+            removeAuthItem('refresh_token');
             delete api.defaults.headers.common['Authorization'];
           }
 
@@ -256,8 +274,8 @@ export const useAuthStore = create<AuthState>()(
 
           if (typeof window !== 'undefined') {
             // Store only access token; refresh token comes via HttpOnly cookie
-            localStorage.setItem('auth_token', access);
-            localStorage.setItem('auth_method', 'web');
+            setAuthItem('auth_token', access);
+            setAuthItem('auth_method', 'web');
             api.defaults.headers.common['Authorization'] = `Bearer ${access}`;
             rawApi.defaults.headers.common['Authorization'] = `Bearer ${access}`;
           }
@@ -412,9 +430,9 @@ export const useAuthStore = create<AuthState>()(
           console.warn('Backend logout failed, clearing local session anyway.', e);
         }
         if (typeof window !== 'undefined') {
-          localStorage.removeItem('auth_token');
-          localStorage.removeItem('refresh_token');
-          localStorage.removeItem('auth_method');
+          removeAuthItem('auth_token');
+          removeAuthItem('refresh_token');
+          removeAuthItem('auth_method');
           delete api.defaults.headers.common['Authorization'];
         }
         useToastStore.getState().addToast('Déconnexion réussie.', 'success');
@@ -459,7 +477,7 @@ export const useAuthStore = create<AuthState>()(
 
           // Parse the response to create updated user object
           const meData = response.user || response;
-          const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
+          const token = getAuthItem('auth_token');
           const roles = extractUserRoles(meData, token);
 
           const updatedUser: User = {
@@ -502,9 +520,9 @@ export const useAuthStore = create<AuthState>()(
 
       refreshUser: async () => {
         const tokenAtStart =
-          typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
+          getAuthItem('auth_token');
         const authMethod =
-          typeof window !== 'undefined' ? localStorage.getItem('auth_method') : null;
+          getAuthItem('auth_method');
         if (!tokenAtStart && authMethod !== 'web') {
           set({ user: null, isAuthenticated: false });
           return null;
@@ -545,7 +563,7 @@ export const useAuthStore = create<AuthState>()(
             // Prevent a race condition: if a login happened while this refresh was in-flight,
             // then the token in localStorage will have changed and we must not wipe it.
             const currentToken =
-              typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
+              getAuthItem('auth_token');
             if (currentToken !== tokenAtStart) {
               return null;
             }
@@ -553,7 +571,7 @@ export const useAuthStore = create<AuthState>()(
             // Token is expired — clear persisted state so next page load is clean
             set({ user: null, isAuthenticated: false });
             if (typeof window !== 'undefined') {
-              localStorage.removeItem('auth_token');
+              removeAuthItem('auth_token');
             }
           }
           return null;
@@ -562,6 +580,7 @@ export const useAuthStore = create<AuthState>()(
     }),
     {
       name: 'ae-auth',
+      storage: authStateStorage,
       onRehydrateStorage: () => (state) => {
         if (state) {
           state.setHasHydrated(true);
@@ -595,9 +614,9 @@ export const useAuthStore = create<AuthState>()(
             }
 
             const hasToken =
-              typeof window !== 'undefined' && !!localStorage.getItem('auth_token');
+              typeof window !== 'undefined' && !!getAuthItem('auth_token');
             const hasWebSession =
-              typeof window !== 'undefined' && localStorage.getItem('auth_method') === 'web';
+              typeof window !== 'undefined' && getAuthItem('auth_method') === 'web';
 
             if (hasToken || hasWebSession) {
               initializeTokenRefresh();

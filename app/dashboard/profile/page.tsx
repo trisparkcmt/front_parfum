@@ -12,6 +12,7 @@ import {
   Globe, Sun, Moon, Palette, ChevronRight, LogOut, Loader2,
   LayoutGrid, ShoppingCart, Sparkles, BadgeCheck, Download,
   Heart, Info, MoreHorizontal, ShieldCheck,
+  X,
 } from 'lucide-react';
 
 import { useAuthStore } from '@/store/useAuthStore';
@@ -20,6 +21,7 @@ import { useToastStore } from '@/store/useToastStore';
 import { useTranslation } from 'react-i18next';
 import i18n from '@/lib/i18n';
 import { api } from '@/services/api';
+import { authService, partnerService } from '@/services/apiService';
 import { attemptPWAInstall, isPWAInstalled as checkPWAInstalled, isIOS, isAndroid } from '@/lib/pwa';
 
 import { BackButton } from '@/components/ui/BackButton';
@@ -172,7 +174,7 @@ const DASHBOARD_OPTIONS: DashboardOption[] = [
 /* ------------------------------------------------------------------ */
 
 export default function ProfilePage() {
-  const { user, logout } = useAuthStore();
+  const { user, logout, setUser } = useAuthStore();
   const { theme, toggleTheme } = useThemeStore();
   const { t, i18n } = useTranslation();
   const { addToast } = useToastStore();
@@ -187,6 +189,7 @@ export default function ProfilePage() {
   const [showPartnerMenu, setShowPartnerMenu] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [isApplyingPartner, setIsApplyingPartner] = useState(false);
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const [isInstallingPWA, setIsInstallingPWA] = useState(false);
   const partnerMenuRef = useRef<HTMLDivElement | null>(null);
 
@@ -290,6 +293,52 @@ export default function ProfilePage() {
     }
   };
 
+  const handleProfilePhotoChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const photo = event.target.files?.[0];
+    event.target.value = '';
+    if (!photo || !user) return;
+
+    if (!photo.type.startsWith('image/')) {
+      addToast(isEn ? 'Please select an image file.' : 'Veuillez sélectionner une image.', 'error');
+      return;
+    }
+
+    setIsUploadingPhoto(true);
+    try {
+      const response = await authService.uploadProfilePhoto(photo);
+      const profile = response.user || response;
+      const avatarUrl = profile.photo || profile.photo_url || profile.avatar_url || response.photo || response.photo_url;
+      setUser({ ...user, avatarUrl: avatarUrl || user.avatarUrl });
+      addToast(isEn ? 'Profile photo updated.' : 'Photo de profil mise à jour.', 'success');
+    } catch (error: unknown) {
+      const errorDetails = error as { response?: { data?: { detail?: string } } };
+      addToast(
+        errorDetails.response?.data?.detail ||
+          (isEn ? 'Unable to update profile photo.' : 'Impossible de mettre à jour la photo.'),
+        'error'
+      );
+    } finally {
+      setIsUploadingPhoto(false);
+    }
+  };
+
+  const handleCancelPartnerApplication = async () => {
+    if (!window.confirm(isEn ? 'Cancel your pending partner application?' : 'Annuler votre demande de partenariat ?')) return;
+
+    try {
+      await partnerService.cancelPartnerApplication();
+      setShowPartnerMenu(false);
+      addToast(isEn ? 'Partner application cancelled.' : 'Demande de partenariat annulée.', 'success');
+    } catch (error: unknown) {
+      const errorDetails = error as { response?: { data?: { detail?: string } } };
+      addToast(
+        errorDetails.response?.data?.detail ||
+          (isEn ? 'Unable to cancel the application.' : 'Impossible d’annuler la demande.'),
+        'error'
+      );
+    }
+  };
+
   const handleLogout = async () => {
     setIsLoggingOut(true);
     try {
@@ -362,6 +411,15 @@ export default function ProfilePage() {
                         <span>{t('become_partner', { defaultValue: isEn ? 'Become a Partner' : 'Devenir Prestataire' })}</span>
                       </button>
 
+                      <button
+                        type="button"
+                        onClick={handleCancelPartnerApplication}
+                        className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-red-400 transition hover:bg-red-500/5"
+                      >
+                        <X size={14} />
+                        <span>{isEn ? 'Cancel partner application' : 'Annuler la demande'}</span>
+                      </button>
+
                       
                     </div>
                   )}
@@ -372,15 +430,27 @@ export default function ProfilePage() {
             <div className="flex flex-col items-center text-center pt-2">
               {/* Avatar */}
               <div className="relative mb-4">
+                <input
+                  id="profile-photo-input"
+                  type="file"
+                  accept="image/*"
+                  className="sr-only"
+                  onChange={handleProfilePhotoChange}
+                  disabled={isUploadingPhoto}
+                />
                 <div className="w-24 h-24 rounded-xl bg-gold/10 border border-gold/20 flex items-center justify-center text-gold text-3xl font-bold">
-                  {initials}
+                  {user?.avatarUrl ? (
+                    <img src={user.avatarUrl} alt="" className="h-full w-full rounded-xl object-cover" />
+                  ) : initials}
                 </div>
                 <button
-                  onClick={() => setShowEditModal(true)}
+                  type="button"
+                  onClick={() => document.getElementById('profile-photo-input')?.click()}
+                  disabled={isUploadingPhoto}
                   className="absolute -bottom-1 -right-1 rounded-lg p-1.5 border border-foreground/10 bg-background text-foreground/45 hover:text-gold hover:border-gold/30 transition-colors"
                   aria-label={isEn ? 'Edit avatar' : 'Modifier la photo'}
                 >
-                  <Edit2 size={13} />
+                  {isUploadingPhoto ? <Loader2 size={13} className="animate-spin" /> : <Edit2 size={13} />}
                 </button>
               </div>
 

@@ -115,9 +115,17 @@ export const authService = {
   ) => {
     const response = await api.post('auth/password/change/', {
       old_password: oldPassword,
-      new_password: newPassword,
-      new_password_confirm: newPasswordConfirm,
+      new_password1: newPassword,
+      new_password2: newPasswordConfirm,
     });
+    return response.data;
+  },
+
+  /** Upload the authenticated user's profile photo. */
+  uploadProfilePhoto: async (photo: File) => {
+    const formData = new FormData();
+    formData.append('photo', photo);
+    const response = await api.post('auth/me/photo/', formData);
     return response.data;
   },
 
@@ -1278,6 +1286,12 @@ export const partnerService = {
     return response.data;
   },
 
+  /** Cancel the authenticated client's pending provider application. */
+  cancelPartnerApplication: async () => {
+    const response = await api.delete('auth/prestataire/cancel/');
+    return response.data;
+  },
+
   /**
    * Get partner dashboard stats and earnings
    */
@@ -1417,6 +1431,12 @@ export const adminService = {
       `auth/admin/prestataires/${providerId}/update/`,
       data
     );
+    return response.data;
+  },
+
+  /** Permanently delete a provider profile or application. */
+  deleteProvider: async (providerId: number) => {
+    const response = await api.delete(`auth/admin/prestataires/${providerId}/delete/`);
     return response.data;
   },
 

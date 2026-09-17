@@ -1,6 +1,37 @@
 ﻿import axios from 'axios';
 import { API_BASE_URL } from '@/lib/constants';
 
+const AUTH_PERSISTENCE_KEY = 'auth_persistent';
+
+export const getAuthStorage = (): Storage | null => {
+  if (typeof window === 'undefined') return null;
+  return localStorage.getItem(AUTH_PERSISTENCE_KEY) === 'false'
+    ? sessionStorage
+    : localStorage;
+};
+
+export const getAuthItem = (key: string): string | null => {
+  const storage = getAuthStorage();
+  if (!storage) return null;
+  return storage.getItem(key) ?? (storage === sessionStorage ? localStorage.getItem(key) : null);
+};
+
+export const setAuthItem = (key: string, value: string): void => {
+  getAuthStorage()?.setItem(key, value);
+};
+
+export const removeAuthItem = (key: string): void => {
+  if (typeof window === 'undefined') return;
+  localStorage.removeItem(key);
+  sessionStorage.removeItem(key);
+};
+
+export const setAuthPersistence = (rememberMe: boolean): void => {
+  if (typeof window === 'undefined') return;
+  localStorage.setItem(AUTH_PERSISTENCE_KEY, String(rememberMe));
+  if (!rememberMe) localStorage.removeItem('ae-auth');
+};
+
 export const API_ROOT = (process.env.NEXT_PUBLIC_API_URL || API_BASE_URL || '').replace(/\/api\/v1\/?$/, '').replace(/\/+$/, '');
 
 export const getBaseURL = () => {
@@ -140,7 +171,7 @@ api.interceptors.request.use((config: any) => {
       config.headers['X-Admin-Context'] = 'true';
     }
 
-    const token = localStorage.getItem('auth_token');
+    const token = getAuthItem('auth_token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
       // Don't send HttpOnly cookies alongside Bearer â€” stale cookies can override the header
@@ -189,7 +220,7 @@ const scheduleTokenRefresh = () => {
     refreshTimer = null;
   }
 
-  const token = localStorage.getItem('auth_token');
+  const token = getAuthItem('auth_token');
   if (!token) return;
 
   try {
@@ -229,7 +260,7 @@ const performProactiveRefresh = async () => {
   if (isRefreshing) return;
 
   try {
-    const refreshToken = localStorage.getItem('refresh_token');
+    const refreshToken = getAuthItem('refresh_token');
     
     // Mobile uses json payload, web uses HttpOnly cookies
     const response = await axios.post(
@@ -243,14 +274,14 @@ const performProactiveRefresh = async () => {
     );
 
     if (response.data.access) {
-      localStorage.setItem('auth_token', response.data.access);
+      setAuthItem('auth_token', response.data.access);
       api.defaults.headers.common['Authorization'] = `Bearer ${response.data.access}`;
       // Schedule next refresh
       scheduleTokenRefresh();
     } else {
       // Cookie mode: we refreshed but no token is in the JSON body.
       // Clean up local auth token to ensure future requests rely on cookies.
-      localStorage.removeItem('auth_token');
+      removeAuthItem('auth_token');
       delete api.defaults.headers.common['Authorization'];
     }
   } catch (error) {
@@ -313,9 +344,9 @@ api.interceptors.response.use(
       originalRequest._retry = true;
 
       if (typeof window !== 'undefined') {
-        const refreshToken = localStorage.getItem('refresh_token');
-        const hasStoredAccess = !!localStorage.getItem('auth_token');
-        const authMethod = localStorage.getItem('auth_method');
+        const refreshToken = getAuthItem('refresh_token');
+        const hasStoredAccess = !!getAuthItem('auth_token');
+        const authMethod = getAuthItem('auth_method');
         // Mobile: refresh via JSON body (refreshToken). Web: refresh via HttpOnly cookies (hasStoredAccess or auth_method === 'web').
         // An unauthenticated guest has none of these, so canRefresh will be false.
         const canRefresh = !!refreshToken || hasStoredAccess || authMethod === 'web';
@@ -357,10 +388,10 @@ api.interceptors.response.use(
             const newAccessToken = response.data.access;
 
             if (newAccessToken) {
-              localStorage.setItem('auth_token', newAccessToken);
+              setAuthItem('auth_token', newAccessToken);
               // Update refresh token if provided
               if (response.data.refresh) {
-                localStorage.setItem('refresh_token', response.data.refresh);
+                setAuthItem('refresh_token', response.data.refresh);
               }
               api.defaults.headers.common['Authorization'] = `Bearer ${newAccessToken}`;
               originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
@@ -368,7 +399,7 @@ api.interceptors.response.use(
             } else {
               // Web mode (cookie refresh):
               // Remove Bearer token from localStorage and defaults since cookies are used instead
-              localStorage.removeItem('auth_token');
+              removeAuthItem('auth_token');
               delete api.defaults.headers.common['Authorization'];
               delete originalRequest.headers.Authorization;
               originalRequest.withCredentials = true;
@@ -386,9 +417,9 @@ api.interceptors.response.use(
             isRefreshing = false;
 
             // Refresh failed -> clear stale local auth state and redirect to login
-            localStorage.removeItem('auth_token');
-            localStorage.removeItem('refresh_token');
-            localStorage.removeItem('auth_method');
+            removeAuthItem('auth_token');
+            removeAuthItem('refresh_token');
+            removeAuthItem('auth_method');
             delete api.defaults.headers.common['Authorization'];
 
             redirectToLogin();
@@ -399,9 +430,9 @@ api.interceptors.response.use(
 
         // -- No way to refresh (stale access token, no refresh token) --------
         // Clear stale tokens and redirect the user to the login page.
-        localStorage.removeItem('auth_token');
-        localStorage.removeItem('refresh_token');
-        localStorage.removeItem('auth_method');
+        removeAuthItem('auth_token');
+        removeAuthItem('refresh_token');
+        removeAuthItem('auth_method');
         delete api.defaults.headers.common['Authorization'];
 
         redirectToLogin();

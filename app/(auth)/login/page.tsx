@@ -77,7 +77,7 @@ function LoginFormContent() {
   const onSubmit = async (data: LoginForm) => {
     setFormError(null);
     try {
-      const success = await login(data.loginInput, data.password);
+      const success = await login(data.loginInput, data.password, data.rememberMe === true);
       if (success) {
         if (data.rememberMe) {
           localStorage.setItem('remembered_login', data.loginInput);
