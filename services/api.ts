@@ -56,9 +56,11 @@ export const isDashboardContext = () => {
  * Used for login and background checks so they never lock isRefreshing.
  */
 
+// Large uploads can take much longer than 15s, especially on mobile or slow networks.
+// Use no client-side timeout here so the request waits for the backend response.
 export const rawApi = axios.create({
   baseURL: getBaseURL(),
-  timeout: 15000,
+  timeout: 0,
 
   headers: {
     'Content-Type': 'application/json',
@@ -68,7 +70,7 @@ export const rawApi = axios.create({
 
 export const api = axios.create({
   baseURL: getBaseURL(),
-  timeout: 15000,
+  timeout: 0,
   headers: {
     'Content-Type': 'application/json',
   },
