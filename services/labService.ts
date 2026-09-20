@@ -31,13 +31,61 @@ export function mapBackendLabItemToEssence(item: Record<string, any>, type: 'ing
 }
 
 export const labServiceWrapper = {
-  async getIngredients(): Promise<EssenceClient[]> {
-    const items = await apiLabService.getIngredients();
+  async getIngredients(params?: Record<string, any>): Promise<EssenceClient[]> {
+    const rawData = await apiLabService.getIngredientsRaw(params);
+    let items: any[] = [];
+
+    if (Array.isArray(rawData)) {
+      items = rawData;
+    } else if (rawData && Array.isArray(rawData.resultats || rawData.results)) {
+      const page1Items = rawData.resultats || rawData.results;
+      items = [...page1Items];
+      const totalPages = Number(rawData.pages || 1);
+
+      if (totalPages > 1 && !params?.page) {
+        const pagePromises = [];
+        for (let p = 2; p <= totalPages; p++) {
+          pagePromises.push(apiLabService.getIngredientsRaw({ ...params, page: p }));
+        }
+        const remainingPagesData = await Promise.all(pagePromises);
+        for (const pageData of remainingPagesData) {
+          const pageItems = Array.isArray(pageData)
+            ? pageData
+            : (pageData?.resultats || pageData?.results || []);
+          items.push(...pageItems);
+        }
+      }
+    }
+
     return items.map((item) => mapBackendLabItemToEssence(item as Record<string, any>, 'ingredient'));
   },
 
-  async getEssences(): Promise<EssenceClient[]> {
-    const items = await apiLabService.getEssences();
+  async getEssences(params?: Record<string, any>): Promise<EssenceClient[]> {
+    const rawData = await apiLabService.getEssencesRaw(params);
+    let items: any[] = [];
+
+    if (Array.isArray(rawData)) {
+      items = rawData;
+    } else if (rawData && Array.isArray(rawData.resultats || rawData.results)) {
+      const page1Items = rawData.resultats || rawData.results;
+      items = [...page1Items];
+      const totalPages = Number(rawData.pages || 1);
+
+      if (totalPages > 1 && !params?.page) {
+        const pagePromises = [];
+        for (let p = 2; p <= totalPages; p++) {
+          pagePromises.push(apiLabService.getEssencesRaw({ ...params, page: p }));
+        }
+        const remainingPagesData = await Promise.all(pagePromises);
+        for (const pageData of remainingPagesData) {
+          const pageItems = Array.isArray(pageData)
+            ? pageData
+            : (pageData?.resultats || pageData?.results || []);
+          items.push(...pageItems);
+        }
+      }
+    }
+
     return items.map((item) => mapBackendLabItemToEssence(item as Record<string, any>, 'essence'));
   },
 

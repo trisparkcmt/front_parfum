@@ -884,6 +884,16 @@ export const labService = {
     return response.data.resultats || response.data.results || response.data;
   },
 
+  getEssencesRaw: async (params?: Record<string, any>): Promise<any> => {
+    const response = await api.get('lab/essences/', {
+      params,
+      headers: {
+        'X-Context': typeof window !== 'undefined' && isDashboardContext() ? 'dashboard' : 'labo',
+      },
+    });
+    return response.data;
+  },
+
   /**
    * Get list of base ingredients
    */
@@ -897,6 +907,11 @@ export const labService = {
   }): Promise<Essence[]> => {
     const response = await api.get('lab/ingredients/', { params });
     return response.data.resultats || response.data.results || response.data;
+  },
+
+  getIngredientsRaw: async (params?: Record<string, any>): Promise<any> => {
+    const response = await api.get('lab/ingredients/', { params });
+    return response.data;
   },
 
   /**

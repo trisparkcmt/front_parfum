@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useMemo, useEffect, Suspense } from 'react';
+import { useState, useCallback, useMemo, useEffect, useRef, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useCartStore } from '@/store/useCartStore';
@@ -575,9 +575,20 @@ function AtelierContent() {
     });
   }, [essences, essenceSubtab, searchQuery]);
 
+  const listContainerRef = useRef<HTMLDivElement>(null);
   const ITEMS_PER_PAGE = 25;
   const [essencePage, setEssencePage] = useState(1);
   const [ingredientPage, setIngredientPage] = useState(1);
+
+  const handleEssencePageChange = (newPage: number) => {
+    setEssencePage(newPage);
+    listContainerRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleIngredientPageChange = (newPage: number) => {
+    setIngredientPage(newPage);
+    listContainerRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   useEffect(() => {
     setEssencePage(1);
@@ -1292,7 +1303,7 @@ function AtelierContent() {
         </div>
 
         {/* Scrollable Content Section */}
-        <div className="flex-1 overflow-y-auto py-4 pr-1 scrollbar-thin">
+        <div ref={listContainerRef} className="flex-1 overflow-y-auto py-4 pr-1 scrollbar-thin">
 
         {/* LOADING INDICATOR */}
         {loadingData ? (
@@ -1394,7 +1405,7 @@ function AtelierContent() {
 
                     <div className="flex items-center gap-2">
                       <button
-                        onClick={() => setIngredientPage(p => Math.max(1, p - 1))}
+                        onClick={() => handleIngredientPageChange(Math.max(1, ingredientPage - 1))}
                         disabled={ingredientPage === 1}
                         className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-white/10 bg-white/5 text-[11px] font-semibold text-foreground/70 hover:text-gold hover:border-gold/30 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
                       >
@@ -1407,7 +1418,7 @@ function AtelierContent() {
                       </span>
 
                       <button
-                        onClick={() => setIngredientPage(p => Math.min(totalIngredientPages, p + 1))}
+                        onClick={() => handleIngredientPageChange(Math.min(totalIngredientPages, ingredientPage + 1))}
                         disabled={ingredientPage === totalIngredientPages}
                         className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-white/10 bg-white/5 text-[11px] font-semibold text-foreground/70 hover:text-gold hover:border-gold/30 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
                       >
@@ -1512,7 +1523,7 @@ function AtelierContent() {
 
                     <div className="flex items-center gap-2">
                       <button
-                        onClick={() => setEssencePage(p => Math.max(1, p - 1))}
+                        onClick={() => handleEssencePageChange(Math.max(1, essencePage - 1))}
                         disabled={essencePage === 1}
                         className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-white/10 bg-white/5 text-[11px] font-semibold text-foreground/70 hover:text-gold hover:border-gold/30 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
                       >
@@ -1525,7 +1536,7 @@ function AtelierContent() {
                       </span>
 
                       <button
-                        onClick={() => setEssencePage(p => Math.min(totalEssencePages, p + 1))}
+                        onClick={() => handleEssencePageChange(Math.min(totalEssencePages, essencePage + 1))}
                         disabled={essencePage === totalEssencePages}
                         className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-white/10 bg-white/5 text-[11px] font-semibold text-foreground/70 hover:text-gold hover:border-gold/30 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
                       >
