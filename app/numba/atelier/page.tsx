@@ -575,6 +575,27 @@ function AtelierContent() {
     });
   }, [essences, essenceSubtab, searchQuery]);
 
+  const ITEMS_PER_PAGE = 25;
+  const [essencePage, setEssencePage] = useState(1);
+  const [ingredientPage, setIngredientPage] = useState(1);
+
+  useEffect(() => {
+    setEssencePage(1);
+    setIngredientPage(1);
+  }, [searchQuery, essenceSubtab, ingredientSubtab, activeTab]);
+
+  const totalEssencePages = Math.max(1, Math.ceil(currentEssencesFiltered.length / ITEMS_PER_PAGE));
+  const paginatedEssences = useMemo(() => {
+    const start = (essencePage - 1) * ITEMS_PER_PAGE;
+    return currentEssencesFiltered.slice(start, start + ITEMS_PER_PAGE);
+  }, [currentEssencesFiltered, essencePage]);
+
+  const totalIngredientPages = Math.max(1, Math.ceil(currentIngredientsFiltered.length / ITEMS_PER_PAGE));
+  const paginatedIngredients = useMemo(() => {
+    const start = (ingredientPage - 1) * ITEMS_PER_PAGE;
+    return currentIngredientsFiltered.slice(start, start + ITEMS_PER_PAGE);
+  }, [currentIngredientsFiltered, ingredientPage]);
+
   const updateQtySlider = useCallback((id: string, value: number) => {
     setSavedParfumId(null);
     setCartAdded(false);
@@ -1290,7 +1311,7 @@ function AtelierContent() {
 
                 {/* List of Ingredients */}
                 <div className="grid grid-cols-1 gap-px bg-[var(--t-border)] border border-[var(--t-border)] rounded-sm overflow-hidden">
-                  {currentIngredientsFiltered.map(item => {
+                  {paginatedIngredients.map(item => {
                     const qty = quantities[item.id] || 0;
                     const sel = qty > 0;
                     return (
@@ -1361,6 +1382,41 @@ function AtelierContent() {
                     );
                   })}
                 </div>
+
+                {/* Ingredients Pagination Controls */}
+                {totalIngredientPages > 1 && (
+                  <div className="flex items-center justify-between border-t border-white/10 pt-4 mt-2 px-1">
+                    <span className="text-[10px] text-foreground/40 font-mono">
+                      {i18n.language === 'en'
+                        ? `Showing ${(ingredientPage - 1) * ITEMS_PER_PAGE + 1}–${Math.min(ingredientPage * ITEMS_PER_PAGE, currentIngredientsFiltered.length)} of ${currentIngredientsFiltered.length}`
+                        : `Affichage de ${(ingredientPage - 1) * ITEMS_PER_PAGE + 1} à ${Math.min(ingredientPage * ITEMS_PER_PAGE, currentIngredientsFiltered.length)} sur ${currentIngredientsFiltered.length}`}
+                    </span>
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => setIngredientPage(p => Math.max(1, p - 1))}
+                        disabled={ingredientPage === 1}
+                        className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-white/10 bg-white/5 text-[11px] font-semibold text-foreground/70 hover:text-gold hover:border-gold/30 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                      >
+                        <ChevronLeft size={13} />
+                        {i18n.language === 'en' ? 'Prev' : 'Préc.'}
+                      </button>
+
+                      <span className="text-[11px] font-mono text-gold font-bold px-1">
+                        {ingredientPage} / {totalIngredientPages}
+                      </span>
+
+                      <button
+                        onClick={() => setIngredientPage(p => Math.min(totalIngredientPages, p + 1))}
+                        disabled={ingredientPage === totalIngredientPages}
+                        className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-white/10 bg-white/5 text-[11px] font-semibold text-foreground/70 hover:text-gold hover:border-gold/30 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                      >
+                        {i18n.language === 'en' ? 'Next' : 'Suiv.'}
+                        <ChevronRight size={13} />
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
@@ -1372,7 +1428,7 @@ function AtelierContent() {
 
                 {/* List of Premium Essences */}
                 <div className="grid grid-cols-1 gap-px bg-[var(--t-border)] border border-[var(--t-border)] rounded-sm overflow-hidden">
-                  {currentEssencesFiltered.map(item => {
+                  {paginatedEssences.map(item => {
                     const qty = quantities[item.id] || 0;
                     const sel = qty > 0;
                     return (
@@ -1444,6 +1500,41 @@ function AtelierContent() {
                     );
                   })}
                 </div>
+
+                {/* Essence Pagination Controls */}
+                {totalEssencePages > 1 && (
+                  <div className="flex items-center justify-between border-t border-white/10 pt-4 mt-2 px-1">
+                    <span className="text-[10px] text-foreground/40 font-mono">
+                      {i18n.language === 'en'
+                        ? `Showing ${(essencePage - 1) * ITEMS_PER_PAGE + 1}–${Math.min(essencePage * ITEMS_PER_PAGE, currentEssencesFiltered.length)} of ${currentEssencesFiltered.length}`
+                        : `Affichage de ${(essencePage - 1) * ITEMS_PER_PAGE + 1} à ${Math.min(essencePage * ITEMS_PER_PAGE, currentEssencesFiltered.length)} sur ${currentEssencesFiltered.length}`}
+                    </span>
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => setEssencePage(p => Math.max(1, p - 1))}
+                        disabled={essencePage === 1}
+                        className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-white/10 bg-white/5 text-[11px] font-semibold text-foreground/70 hover:text-gold hover:border-gold/30 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                      >
+                        <ChevronLeft size={13} />
+                        {i18n.language === 'en' ? 'Prev' : 'Préc.'}
+                      </button>
+
+                      <span className="text-[11px] font-mono text-gold font-bold px-1">
+                        {essencePage} / {totalEssencePages}
+                      </span>
+
+                      <button
+                        onClick={() => setEssencePage(p => Math.min(totalEssencePages, p + 1))}
+                        disabled={essencePage === totalEssencePages}
+                        className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-white/10 bg-white/5 text-[11px] font-semibold text-foreground/70 hover:text-gold hover:border-gold/30 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                      >
+                        {i18n.language === 'en' ? 'Next' : 'Suiv.'}
+                        <ChevronRight size={13} />
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
