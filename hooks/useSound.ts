@@ -2,12 +2,13 @@
 
 import { useCallback, useRef } from 'react';
 
-export type SoundType = 'tap' | 'success' | 'error';
+export type SoundType = 'tap' | 'success' | 'error' | 'pouring';
 
 const SOUND_PATHS: Record<SoundType, string> = {
   tap: '/sounds/tap.mp3',
   success: '/sounds/success.mp3',
   error: '/sounds/error.mp3',
+  pouring: '/sounds/liquid-pouring.mp3',
 };
 
 export function useSound() {

@@ -15,7 +15,7 @@ import { useFavoritesStore } from '@/store/useFavoritesStore';
 import { useToastStore } from '@/store/useToastStore';
 import { useTranslation } from 'react-i18next';
 import { productService } from '@/services/productService';
-import { shuffleArray } from '@/lib/utils';
+import { shuffleArray, interleaveArraysWithRatio } from '@/lib/utils';
 import type { Product, ProduitFiniEssence } from '@/types';
 import { EssenceSizePickerModal } from '@/components/ui/EssenceSizePickerModal';
 import { ProductDetailModal } from '@/components/ui/ProductDetailModal';
@@ -614,7 +614,7 @@ export default function PerfumesShopClient() {
     if (activeTab === 'huile') return finishedEssenceProducts;
     if (activeTab !== 'all') return products;
 
-    return shuffleArray([...products, ...finishedEssenceProducts]);
+    return interleaveArraysWithRatio(products, finishedEssenceProducts, 3, 1);
   }, [activeTab, products, finishedEssenceProducts]);
 
   const isActiveLoading =

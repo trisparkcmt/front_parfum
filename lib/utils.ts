@@ -41,6 +41,35 @@ export function shuffleArray<T>(items: T[]): T[] {
 }
 
 /**
+ * Interleave two arrays with a specified ratio (default 3:1).
+ * Takes `ratioA` items from `listA`, then `ratioB` items from `listB`, repeating until both are exhausted.
+ */
+export function interleaveArraysWithRatio<T>(
+  listA: T[],
+  listB: T[],
+  ratioA: number = 3,
+  ratioB: number = 1
+): T[] {
+  const result: T[] = [];
+  let indexA = 0;
+  let indexB = 0;
+
+  while (indexA < listA.length || indexB < listB.length) {
+    for (let i = 0; i < ratioA && indexA < listA.length; i += 1) {
+      result.push(listA[indexA]);
+      indexA += 1;
+    }
+
+    for (let j = 0; j < ratioB && indexB < listB.length; j += 1) {
+      result.push(listB[indexB]);
+      indexB += 1;
+    }
+  }
+
+  return result;
+}
+
+/**
  * Format a number as FCFA currency
  */
 export function formatPrice(amount: number): string {

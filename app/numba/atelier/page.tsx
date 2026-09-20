@@ -13,6 +13,7 @@ import { useTranslation } from 'react-i18next';
 import { ArrowLeft, Minus, Plus, ChevronLeft, ChevronRight, RefreshCcw, Loader2, Save, ShoppingCart, X, Send, Share2, Eye, Search } from 'lucide-react';
 import AppImage from '@/components/ui/AppImage';
 import { useSound } from '@/hooks/useSound';
+import { useLiquidPouringSound } from '@/hooks/useLiquidPouringSound';
 import type { CustomComposition, CompositionEssence, EssenceClient, Product } from '@/types';
 import { labService } from '@/services/labService';
 import { labService as apiLabService, shopService, orderService } from '@/services/apiService';
@@ -268,6 +269,7 @@ function AtelierContent() {
   const { user, isAuthenticated, loginWithGoogle } = useAuthStore();
   const { addToast } = useToastStore();
   const { playSound } = useSound();
+  const { playPouringForMl, startDragPouring, stopDragPouring } = useLiquidPouringSound();
   const { i18n } = useTranslation();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -1311,7 +1313,12 @@ function AtelierContent() {
                         {/* Slider controls */}
                         <div className="flex items-center gap-3">
                           <button
-                            onClick={() => updateQtySlider(item.id, Math.max(0, qty - 1))}
+                            onClick={() => {
+                              const targetVal = Math.max(0, qty - 1);
+                              const delta = Math.abs(targetVal - qty);
+                              if (delta > 0) playPouringForMl(delta);
+                              updateQtySlider(item.id, targetVal);
+                            }}
                             className="w-7 h-7 rounded-full bg-foreground/5 hover:bg-foreground/10 flex items-center justify-center text-foreground/60 transition-colors disabled:opacity-20"
                             disabled={qty <= 0}
                           >
@@ -1329,13 +1336,21 @@ function AtelierContent() {
                               max={qty + remaining}
                               step="1"
                               value={qty}
+                              onPointerDown={() => startDragPouring()}
+                              onPointerUp={() => stopDragPouring()}
+                              onPointerCancel={() => stopDragPouring()}
                               onChange={(evt) => updateQtySlider(item.id, Number(evt.target.value))}
                               className="w-full h-1 bg-foreground/10 rounded appearance-none cursor-pointer accent-gold outline-none"
                             />
                           </div>
 
                           <button
-                            onClick={() => updateQtySlider(item.id, Math.min(qty + remaining, qty + 1))}
+                            onClick={() => {
+                              const targetVal = Math.min(qty + remaining, qty + 1);
+                              const delta = Math.abs(targetVal - qty);
+                              if (delta > 0) playPouringForMl(delta);
+                              updateQtySlider(item.id, targetVal);
+                            }}
                             className="w-7 h-7 rounded-full bg-foreground/5 hover:bg-foreground/10 flex items-center justify-center text-foreground/60 transition-colors disabled:opacity-20"
                             disabled={remaining <= 0}
                           >
@@ -1381,7 +1396,12 @@ function AtelierContent() {
                         {/* Slider controls */}
                         <div className="flex items-center gap-3">
                           <button
-                            onClick={() => updateQtySlider(item.id, Math.max(0, qty - 1))}
+                            onClick={() => {
+                              const targetVal = Math.max(0, qty - 1);
+                              const delta = Math.abs(targetVal - qty);
+                              if (delta > 0) playPouringForMl(delta);
+                              updateQtySlider(item.id, targetVal);
+                            }}
                             className="w-7 h-7 rounded-full bg-foreground/5 hover:bg-foreground/10 flex items-center justify-center text-foreground/60 transition-colors disabled:opacity-20"
                             disabled={qty <= 0}
                           >
@@ -1399,13 +1419,21 @@ function AtelierContent() {
                               max={qty + remaining}
                               step="1"
                               value={qty}
+                              onPointerDown={() => startDragPouring()}
+                              onPointerUp={() => stopDragPouring()}
+                              onPointerCancel={() => stopDragPouring()}
                               onChange={(evt) => updateQtySlider(item.id, Number(evt.target.value))}
                               className="w-full h-1 bg-foreground/10 rounded appearance-none cursor-pointer accent-gold outline-none"
                             />
                           </div>
 
                           <button
-                            onClick={() => updateQtySlider(item.id, Math.min(qty + remaining, qty + 1))}
+                            onClick={() => {
+                              const targetVal = Math.min(qty + remaining, qty + 1);
+                              const delta = Math.abs(targetVal - qty);
+                              if (delta > 0) playPouringForMl(delta);
+                              updateQtySlider(item.id, targetVal);
+                            }}
                             className="w-7 h-7 rounded-full bg-foreground/5 hover:bg-foreground/10 flex items-center justify-center text-foreground/60 transition-colors disabled:opacity-20"
                             disabled={remaining <= 0}
                           >
