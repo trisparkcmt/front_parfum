@@ -582,13 +582,20 @@ function AtelierContent() {
 
   const handleEssencePageChange = (newPage: number) => {
     setEssencePage(newPage);
-    listContainerRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleIngredientPageChange = (newPage: number) => {
     setIngredientPage(newPage);
-    listContainerRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
   };
+
+  useEffect(() => {
+    if (listContainerRef.current) {
+      listContainerRef.current.scrollTop = 0;
+    }
+    if (typeof window !== 'undefined') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, [essencePage, ingredientPage]);
 
   useEffect(() => {
     setEssencePage(1);
