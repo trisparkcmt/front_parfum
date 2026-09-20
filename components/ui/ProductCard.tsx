@@ -56,9 +56,16 @@ export function ProductCard({
   soldOut = false,
   onCardClick,
 }: ProductCardProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { addToast } = useToastStore();
   const [isHovered, setIsHovered] = useState(false);
+
+  const isEn = i18n.language?.startsWith('en');
+
+  const perfumeText = t('perfume_label', { defaultValue: isEn ? 'Perfume' : 'Parfum' });
+  const oilText = t('pure_oils', { defaultValue: isEn ? 'Oil' : 'Huile' });
+  const accessoryText = t('accessory_label', { defaultValue: isEn ? 'Accessory' : 'Accessoire' });
+  const diffuserText = t('diffuser_label', { defaultValue: isEn ? 'Diffuser' : 'Diffuseur' });
 
   const isDiffuseur =
     product.category === 'accessory' &&
@@ -93,18 +100,16 @@ export function ProductCard({
 
   // Derive category label
   const categoryLabel = isDiffuseur
-    ? (product.type_technologie === 'ultrasons' ? 'Ultrasons'
-      : product.type_technologie === 'nebulisation' ? 'Nébulisation'
-      : product.type_technologie === 'chaleur' ? 'Chaleur douce'
-      : product.type_technologie === 'connecte' ? 'Connecté'
-      : 'Diffuseur')
+    ? (product.type_technologie === 'ultrasons' ? (isEn ? 'Ultrasonic' : 'Ultrasons')
+      : product.type_technologie === 'nebulisation' ? (isEn ? 'Nebulization' : 'Nébulisation')
+      : product.type_technologie === 'chaleur' ? (isEn ? 'Gentle Heat' : 'Chaleur douce')
+      : product.type_technologie === 'connecte' ? (isEn ? 'Connected' : 'Connecté')
+      : diffuserText)
     : isEssenceProduct
-    ? `Huile${product.volume ? ` • ${product.volume}` : ''}`
-    : product.category && product.category.includes('perfume')
-    ? `Parfum${product.volume ? ` • ${product.volume}` : ''}`
+    ? `${oilText}${product.volume ? ` • ${product.volume}` : ''}`
     : product.category === 'accessory'
-    ? 'Accessoire'
-    : product.category || '';
+    ? accessoryText
+    : `${perfumeText}${product.volume ? ` • ${product.volume}` : ''}`;
 
   const handleShare = async (e: MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();

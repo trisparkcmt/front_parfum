@@ -30,7 +30,6 @@ async function _loadPerfumeCategories() {
       const nomLower = cat.nom?.toLowerCase() || '';
       const frontendCategory: ProductCategory = 
         nomLower.includes('dupe') || nomLower.includes('inspiration') ? 'perfume-dupe' :
-        nomLower.includes('numba') ? 'numba-creation' :
         'perfume-brand';
       _perfumeCategoriesMap?.set(cat.id, frontendCategory);
       _perfumeCategoryNames.set(cat.id, cat.nom);
@@ -58,16 +57,16 @@ export function mapBackendPerfumeToProduct(p: any): Product {
       category = 'perfume-dupe';
     } else if (p.categorie === 'numba-creation') {
       category = 'numba-creation';
+    } else if (p.categorie === 'perfume-brand' || p.categorie === 'perfume') {
+      category = 'perfume-brand';
     }
   } else if (typeof p.categorie === 'object' && p.categorie !== null) {
-    category = p.categorie.nom || 'perfume-brand';
+    category = 'perfume-brand';
   }
 
   // Apply keyword-based overrides/refinements if they are more specific
   if (p.nom?.toLowerCase().includes('dupe') || p.reference_sku?.startsWith('DUPE') || p.tags?.some((t: any) => t.nom === 'Dupe') || p.reference_sku?.includes('DP')) {
     category = 'perfume-dupe';
-  } else if (p.nom?.toLowerCase().includes('numba') || p.brand === 'Numba') {
-    category = 'numba-creation';
   }
 
   const images = collectProductImages(p);
@@ -90,7 +89,7 @@ export function mapBackendPerfumeToProduct(p: any): Product {
     ),
     category: category,
     images,
-    brand: p.marque || (category === 'numba-creation' ? 'Numba' : 'Exclusif Parfums'),
+    brand: p.marque || 'Exclusif Parfums',
     inStock: p.stock_quantite > 0 && !p.rupture_de_stock,
     rating: p.rating || 4.5,
     reviews: p.reviews || 12,
