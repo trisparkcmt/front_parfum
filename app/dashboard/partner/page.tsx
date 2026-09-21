@@ -4,7 +4,7 @@ import { useAuthStore } from '@/store/useAuthStore';
 import { formatPrice } from '@/lib/utils';
 import { DEFAULT_COMMISSION_PERCENT } from '@/lib/constants';
 import {
-  Percent, TrendingUp, ShoppingBag,
+  Percent, TrendingUp, ShoppingBag, Users,
   Copy, CheckCircle, Palette, ChevronRight, Mail, Phone,
   Wallet, Lock, ArrowDownToLine, ChevronLeft,
 } from 'lucide-react';
