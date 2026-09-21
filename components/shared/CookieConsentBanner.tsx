@@ -13,7 +13,7 @@ import Link from 'next/link';
 import { X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
-function CookieIcon({ className }: { className?: string }) {
+export function CookieIcon({ className }: { className?: string }) {
   return (
     <svg
       viewBox="0 0 24 24"

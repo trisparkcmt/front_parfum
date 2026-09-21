@@ -13,6 +13,12 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { CustomSelect } from '@/components/ui/CustomSelect';
 import { fetchAllCatalogPages } from '@/lib/catalogUtils';
 import { mapErrorToUserMessage } from '@/lib/errorMapper';
+import { labService, shopService } from '@/services/apiService';
+import { useToastStore } from '@/store/useToastStore';
+import { useCatalogPermissions } from '@/hooks/useCatalogPermissions';
+import CatalogAccessNotice from '@/components/catalog/CatalogAccessNotice';
+import { FloatInput } from '@/components/ui/Input';
+import { SlideOver } from '@/components/ui/SlideOver';
 
 /* ── Inline translations ─────────────────────────────────────────────────── */
 const T = {
@@ -119,13 +125,6 @@ type EssenceRecord = {
   }>;
 };
 
-import { labService } from '@/services/apiService';
-import { useToastStore } from '@/store/useToastStore';
-import { useCatalogPermissions } from '@/hooks/useCatalogPermissions';
-import CatalogAccessNotice from '@/components/catalog/CatalogAccessNotice';
-import { FloatInput } from '@/components/ui/Input';
-import { SlideOver } from '@/components/ui/SlideOver';
-
 const STATIC_CATEGORIES = ['super_premium', 'premium', 'high'];
 
 // Utility function for conditional class names
@@ -222,6 +221,7 @@ export default function EssencesPage() {
     lotStockMl: '',
     lotSeuilAlerteMl: '',
     lotReferenceFournisseur: '',
+    createNewLot: false,
     includeProduitsFinis: false,
     produitFinis: [{
       taille_ml: '',
@@ -313,6 +313,7 @@ export default function EssencesPage() {
       lotStockMl: '',
       lotSeuilAlerteMl: '',
       lotReferenceFournisseur: '',
+      createNewLot: false,
       includeProduitsFinis: false,
       produitFinis: [{
         taille_ml: '',
@@ -364,15 +365,12 @@ export default function EssencesPage() {
       genreCible: item.genre_cible || 'mixte',
       actif: item.actif !== undefined ? Boolean(item.actif) : true,
       prixParMl: String(item.prix_par_ml || '0.00'),
-      lotStockMl: String(item.initial_lot?.stock_ml ?? ''),
-      lotSeuilAlerteMl: String(item.initial_lot?.seuil_alerte_ml ?? ''),
-      lotReferenceFournisseur: item.initial_lot?.reference_fournisseur || '',
-      includeProduitsFinis: !!item.produits_finis?.length,
-      produitFinis: item.produits_finis?.length ? item.produits_finis.map(format => ({
-        taille_ml: String(format.taille_ml || ''),
-        prix: String(format.prix || ''),
-        prix_promotionnel: String(format.prix_promotionnel ?? ''),
-      })) : [{
+      lotStockMl: '',
+      lotSeuilAlerteMl: '',
+      lotReferenceFournisseur: '',
+      createNewLot: false,
+      includeProduitsFinis: false,
+      produitFinis: [{
         taille_ml: '',
         prix: '',
         prix_promotionnel: '',
@@ -405,14 +403,15 @@ export default function EssencesPage() {
     if (form.description && form.description.trim().length < 10) 
       errors.description = 'La description doit contenir au moins 10 caractères';
     
-    if (!editingEssence) {
-      if (form.lotStockMl && (isNaN(Number(form.lotStockMl)) || Number(form.lotStockMl) <= 0))
+    if (form.createNewLot) {
+      if (!form.lotStockMl) errors.lotStockMl = 'Le stock du nouveau lot est requis';
+      else if (isNaN(Number(form.lotStockMl)) || Number(form.lotStockMl) <= 0)
         errors.lotStockMl = 'Le stock ML doit être supérieur à 0';
       if (form.lotSeuilAlerteMl && (isNaN(Number(form.lotSeuilAlerteMl)) || Number(form.lotSeuilAlerteMl) < 0))
         errors.lotSeuilAlerteMl = 'Le seuil d\'alerte ML doit être supérieur ou égal à 0';
     }
     
-    if (!editingEssence && form.includeProduitsFinis) {
+    if ((editingEssence || !editingEssence) && form.includeProduitsFinis) {
       form.produitFinis.forEach((format, index) => {
         if (!format.taille_ml) errors[`produitFinis.${index}.taille_ml`] = 'La taille du format boutique est requise';
         else if (isNaN(Number(format.taille_ml)) || Number(format.taille_ml) <= 0)
@@ -454,6 +453,32 @@ export default function EssencesPage() {
           actif: form.actif,
         };
         await labService.updateEssence(editingEssence.slug || editingEssence.id, payload);
+
+        if (form.createNewLot && form.lotStockMl) {
+          await labService.createLotEssence({
+            essence: Number(editingEssence.id),
+            stock_ml: form.lotStockMl,
+            quantite_initiale_ml: form.lotStockMl,
+            prix_achat_par_ml: form.lotSeuilAlerteMl || undefined,
+            reference_fournisseur: form.lotReferenceFournisseur || undefined,
+            actif: true,
+          });
+        }
+
+        if (form.includeProduitsFinis) {
+          await Promise.all(form.produitFinis
+            .filter((format) => format.taille_ml && format.prix)
+            .map((format) =>
+              shopService.createFinishedEssence({
+                essence: Number(editingEssence.id),
+                taille_ml: Number(format.taille_ml),
+                prix: format.prix,
+                prix_promotionnel: format.prix_promotionnel || null,
+                actif: true,
+              })
+            ));
+        }
+
         setEssences(prev => prev.map(e => (e.slug || String(e.id)) === (editingEssence.slug || String(editingEssence.id)) ? { ...e, ...payload } : e));
         addToast(t('toast_update_ok'), 'success');
         setShowModal(false);
@@ -1042,37 +1067,54 @@ export default function EssencesPage() {
           )}
 
           {/* Form Content */}
-          {!editingEssence && (
+          {( !editingEssence || form.createNewLot || form.includeProduitsFinis ) && (
             <div className="space-y-4 pt-2 border-t border-white/10">
               <p className="text-xs font-bold text-gold uppercase tracking-wider">{t('section_lot')}</p>
               
-              <div className="bg-white/5 border border-white/10 rounded-2xl p-4 space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <FloatInput
-                    data-field="lotStockMl"
-                    label="Stock ML *"
-                    type="number"
-                    value={form.lotStockMl}
-                    onChange={e => updateForm('lotStockMl', e.target.value)}
-                    error={formErrors.lotStockMl}
+              {editingEssence && (
+                <label className="flex items-start gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={form.createNewLot}
+                    onChange={e => updateForm('createNewLot', e.target.checked)}
+                    className="mt-1 rounded border-white/20 bg-white/5 text-gold focus:ring-gold cursor-pointer"
                   />
+                  <div>
+                    <p className="font-semibold text-sm text-foreground">{isEn ? 'Create a new lot' : 'Créer un nouveau lot'}</p>
+                    <p className="text-xs text-foreground/50 mt-0.5">{isEn ? 'Add stock as a new essence lot.' : 'Ajouter un stock sous forme de nouveau lot d’essence.'}</p>
+                  </div>
+                </label>
+              )}
+
+              {(form.createNewLot || !editingEssence) && (
+                <div className="bg-white/5 border border-white/10 rounded-2xl p-4 space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <FloatInput
+                      data-field="lotStockMl"
+                      label={editingEssence ? 'Nouveau stock ML *' : 'Stock ML *'}
+                      type="number"
+                      value={form.lotStockMl}
+                      onChange={e => updateForm('lotStockMl', e.target.value)}
+                      error={formErrors.lotStockMl}
+                    />
+                    <FloatInput
+                      data-field="lotSeuilAlerteMl"
+                      label="Seuil d'alerte ML"
+                      type="number"
+                      value={form.lotSeuilAlerteMl}
+                      onChange={e => updateForm('lotSeuilAlerteMl', e.target.value)}
+                      error={formErrors.lotSeuilAlerteMl}
+                    />
+                  </div>
                   <FloatInput
-                    data-field="lotSeuilAlerteMl"
-                    label="Seuil d'alerte ML *"
-                    type="number"
-                    value={form.lotSeuilAlerteMl}
-                    onChange={e => updateForm('lotSeuilAlerteMl', e.target.value)}
-                    error={formErrors.lotSeuilAlerteMl}
+                    data-field="lotReferenceFournisseur"
+                    label="Réf. Fournisseur (Optionnel)"
+                    value={form.lotReferenceFournisseur}
+                    onChange={e => updateForm('lotReferenceFournisseur', e.target.value)}
+                    error={formErrors.lotReferenceFournisseur}
                   />
                 </div>
-                <FloatInput
-                  data-field="lotReferenceFournisseur"
-                  label="Réf. Fournisseur (Optionnel)"
-                  value={form.lotReferenceFournisseur}
-                  onChange={e => updateForm('lotReferenceFournisseur', e.target.value)}
-                  error={formErrors.lotReferenceFournisseur}
-                />
-              </div>
+              )}
 
               {/* Section 4: Format Boutique */}
               <div className="bg-white/5 border border-white/10 rounded-2xl p-4 space-y-4">

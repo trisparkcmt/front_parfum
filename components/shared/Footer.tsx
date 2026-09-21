@@ -22,6 +22,7 @@ import { useTranslation } from 'react-i18next';
 import { shopService } from '@/services/apiService';
 import type { CompanyInfo } from '@/types';
 import { buildSocialUrl, buildWhatsAppUrl } from '@/lib/utils';
+import { CookieIcon } from '@/components/shared/CookieConsentBanner';
 
 export function Footer() {
   const { t, i18n } = useTranslation();
@@ -155,9 +156,10 @@ export function Footer() {
               <li>
                 <button
                   onClick={() => window.dispatchEvent(new Event('open_cookie_banner'))}
-                  className="text-sm text-zinc-600 dark:text-zinc-400 hover:text-gold transition-colors"
+                  className="inline-flex items-center gap-2 text-sm text-zinc-600 dark:text-zinc-400 hover:text-gold transition-colors"
                 >
-                  🍪 {t('manage_cookies', { defaultValue: isEn ? 'Manage cookies' : 'Gérer les cookies' })}
+                  <CookieIcon className="h-4 w-4 text-gold" />
+                  <span>{t('manage_cookies', { defaultValue: isEn ? 'Manage cookies' : 'Gérer les cookies' })}</span>
                 </button>
               </li>
             </ul>
@@ -226,9 +228,10 @@ export function Footer() {
           <span className="text-zinc-600 text-xs">·</span>
           <button
             onClick={() => window.dispatchEvent(new Event('open_cookie_banner'))}
-            className="text-xs font-medium text-gold underline decoration-gold/80 underline-offset-4 hover:text-gold/80 transition-colors"
+            className="inline-flex items-center gap-1.5 text-xs font-medium text-gold underline decoration-gold/80 underline-offset-4 hover:text-gold/80 transition-colors"
           >
-            {t('manage_cookies', { defaultValue: isEn ? 'Manage cookies' : 'Gérer les cookies' })}
+            <CookieIcon className="h-3.5 w-3.5 text-gold" />
+            <span>{t('manage_cookies', { defaultValue: isEn ? 'Manage cookies' : 'Gérer les cookies' })}</span>
           </button>
         </div>
         <p className="text-xs text-zinc-500 mt-0.5">

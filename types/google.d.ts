@@ -9,9 +9,9 @@ declare global {
             client_id: string;
             scope: string;
             callback: (response: { access_token?: string; error?: string }) => void;
-            error_callback?: () => void;
+            error_callback?: (error?: unknown) => void;
           }) => {
-            requestAccessToken: (options?: { prompt?: string }) => void;
+            requestAccessToken: (options?: { prompt?: string; login_hint?: string }) => void;
           };
         };
         id: {
@@ -21,6 +21,7 @@ declare global {
             auto_select?: boolean;
             cancel_on_tap_outside?: boolean;
             context?: 'signin' | 'signup' | 'use';
+            itp_support?: boolean;
           }) => void;
           prompt: (momentListener?: (notification: {
             isNotDisplayed: () => boolean;
