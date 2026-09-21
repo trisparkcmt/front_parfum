@@ -11,6 +11,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { X } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 function CookieIcon({ className }: { className?: string }) {
   return (
@@ -35,6 +36,7 @@ const CONSENT_KEY = 'ae_cookie_consent';
 
 export function CookieConsentBanner() {
   const [visible, setVisible] = useState(false);
+  const { t } = useTranslation();
 
   useEffect(() => {
     const checkConsent = () => {
@@ -72,7 +74,7 @@ export function CookieConsentBanner() {
     <div
       role="dialog"
       aria-live="polite"
-      aria-label="Consentement aux cookies"
+      aria-label={t('cookie_consent_aria', 'Cookie consent')}
       className={[
         // Position: sits above the mobile BottomNav (bottom-5 + h-16 + margin ≈ 90px)
         // On desktop (nav: breakpoint), sits near the bottom edge
@@ -92,13 +94,13 @@ export function CookieConsentBanner() {
         <div className="flex items-center gap-2">
           <CookieIcon className="h-[18px] w-[18px] text-gold shrink-0 mt-0.5" />
           <p className="text-sm font-semibold leading-snug">
-            Cookies &amp; confidentialité
+            {t('cookie_banner_title', 'Cookies & privacy')}
           </p>
         </div>
-        {/* Dismiss without choosing — treated as "Refuser" */}
+        {/* Dismiss without choosing — treated as "Refuse" */}
         <button
           onClick={() => handleChoice('refused')}
-          aria-label="Fermer"
+          aria-label={t('cookie_banner_close', 'Close')}
           className="text-foreground/40 hover:text-foreground/80 transition-colors shrink-0 -mt-0.5"
         >
           <X size={16} />
@@ -107,14 +109,15 @@ export function CookieConsentBanner() {
 
       {/* Body */}
       <p className="text-xs leading-relaxed text-foreground/70">
-        Nous utilisons des cookies pour améliorer votre expérience, analyser le
-        trafic et personnaliser le contenu. En cliquant sur &laquo;&nbsp;Accepter&nbsp;&raquo;,
-        vous consentez à leur utilisation.{' '}
+        {t(
+          'cookie_banner_message',
+          'We use cookies to improve your experience, analyze traffic, and personalize content. By clicking “Accept”, you consent to their use.'
+        )}{' '}
         <Link
           href="/privacy#cookies"
           className="text-gold underline-offset-2 hover:underline"
         >
-          En savoir plus
+          {t('cookie_banner_learn_more', 'Learn more')}
         </Link>
         .
       </p>
@@ -127,7 +130,7 @@ export function CookieConsentBanner() {
                      border border-white/10 bg-white/5 hover:bg-white/10
                      transition-colors"
         >
-          Refuser
+          {t('cookie_banner_reject', 'Decline')}
         </button>
         <button
           onClick={() => handleChoice('accepted')}
@@ -135,7 +138,7 @@ export function CookieConsentBanner() {
                      bg-gold text-black hover:brightness-110
                      transition-all"
         >
-          Accepter
+          {t('cookie_banner_accept', 'Accept')}
         </button>
       </div>
     </div>
