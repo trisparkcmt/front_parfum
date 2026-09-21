@@ -1067,10 +1067,10 @@ export default function EssencesPage() {
           )}
 
           {/* Form Content */}
-          {( !editingEssence || form.createNewLot || form.includeProduitsFinis ) && (
+          {(editingEssence || !editingEssence) && (
             <div className="space-y-4 pt-2 border-t border-white/10">
               <p className="text-xs font-bold text-gold uppercase tracking-wider">{t('section_lot')}</p>
-              
+
               {editingEssence && (
                 <label className="flex items-start gap-3 cursor-pointer">
                   <input
@@ -1172,7 +1172,7 @@ export default function EssencesPage() {
                     >
                       + {isEn ? 'Add another shop format' : 'Ajouter un autre format boutique'}
                     </button>
-                    
+
                     <div className="col-span-2">
                       <label className="block text-xs font-bold text-foreground/50 uppercase tracking-wider mb-2">
                         Image Principale
