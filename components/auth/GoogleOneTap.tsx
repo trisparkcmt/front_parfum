@@ -25,6 +25,7 @@ export function GoogleOneTap() {
   const pathname = usePathname();
   const clientId = useMemo(() => process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || '', []);
   const hasInitializedRef = useRef(false);
+  const tokenClientRef = useRef<{ requestAccessToken: (options?: { login_hint?: string; prompt?: string }) => void } | null>(null);
 
   useEffect(() => {
     if (isAuthenticated || !clientId || isAuthPage(pathname) || hasInitializedRef.current) {
@@ -32,7 +33,7 @@ export function GoogleOneTap() {
     }
 
     const initializeOneTap = () => {
-      if (!window.google?.accounts?.id) {
+      if (!window.google?.accounts?.id || !window.google?.accounts?.oauth2) {
         console.warn('[GoogleOneTap] Google SDK not ready yet');
         return;
       }
@@ -41,21 +42,39 @@ export function GoogleOneTap() {
         return;
       }
 
-      window.google.accounts.id.initialize({
+      tokenClientRef.current = window.google.accounts.oauth2.initTokenClient({
         client_id: clientId,
-        callback: async (oneTapResponse) => {
-          if (!oneTapResponse?.credential) {
-            console.warn('[GoogleOneTap] Missing credential from Google One Tap response');
+        scope: 'openid email profile',
+        callback: async (tokenResponse) => {
+          if (!tokenResponse?.access_token) {
+            console.warn('[GoogleOneTap] Missing access token from Google callback');
             return;
           }
 
           try {
-            const success = await loginWithGoogle('', undefined, oneTapResponse.credential);
-            if (!success) {
-              console.warn('[GoogleOneTap] One Tap login callback returned false');
-            }
+            await loginWithGoogle(tokenResponse.access_token);
           } catch (err) {
-            console.error('[GoogleOneTap] One Tap login failed:', err);
+            console.error('[GoogleOneTap] OAuth2 token login failed:', err);
+          }
+        },
+        error_callback: (error) => {
+          console.error('[GoogleOneTap] OAuth2 token request failed', error);
+        },
+      });
+
+      window.google.accounts.id.initialize({
+        client_id: clientId,
+        callback: (oneTapResponse) => {
+          if (!oneTapResponse?.credential) return;
+
+          const payload = decodeJwtPayload(oneTapResponse.credential);
+          const loginHint = payload?.email || payload?.sub || '';
+
+          if (tokenClientRef.current) {
+            tokenClientRef.current.requestAccessToken({
+              prompt: 'consent',
+              ...(loginHint ? { login_hint: loginHint } : {}),
+            });
           }
         },
         auto_select: false,
