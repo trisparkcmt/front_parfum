@@ -36,8 +36,8 @@ function RegisterFormContent() {
       phone: z.string().min(8, t('phone_short')),
       password: z.string().min(8, t('password_short', { defaultValue: 'Le mot de passe doit contenir au moins 8 caractères.' })),
       passwordConfirm: z.string().min(1, t('password_confirm_required', { defaultValue: 'Veuillez confirmer le mot de passe.' })),
-      consent: z.literal(true, {
-        errorMap: () => ({ message: t('consent_required', { defaultValue: 'Vous devez accepter la politique de confidentialité pour continuer.' }) }),
+      consent: z.boolean().refine((val) => val === true, {
+        message: t('consent_required', { defaultValue: 'Vous devez accepter la politique de confidentialité pour continuer.' })
       }),
     })
     .refine((data) => data.password === data.passwordConfirm, {

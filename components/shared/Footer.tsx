@@ -24,7 +24,8 @@ import type { CompanyInfo } from '@/types';
 import { buildSocialUrl, buildWhatsAppUrl } from '@/lib/utils';
 
 export function Footer() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isEn = i18n.language?.startsWith('en');
   const [mounted, setMounted] = useState(false);
   const [companyInfo, setCompanyInfo] = useState<CompanyInfo | null>(null);
 
@@ -178,7 +179,7 @@ export function Footer() {
               </li>
               <li className="flex items-start gap-2 text-sm">
                 <MapPin size={16} className="text-gold mt-0.5 shrink-0" />
-                <span>Yaounde, Cameroun</span>
+                <span>{t('city_country', { defaultValue: isEn ? 'Yaounde, Cameroon' : 'Yaoundé, Cameroun' })}</span>
               </li>
             </ul>
           </div>
@@ -187,7 +188,7 @@ export function Footer() {
         {/* Bottom bar */}
         <div className="mt-12 pt-8 border-t border-zinc-200 dark:border-white/10 flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="text-xs text-zinc-500">
-            © {new Date().getFullYear()} Accessoires Exclusif. {t('all_rights_reserved', 'Tous droits réservés.')}
+            © {new Date().getFullYear()} Accessoires Exclusif. {t('all_rights_reserved', { defaultValue: isEn ? 'All rights reserved.' : 'Tous droits réservés.' })}
           </p>
           <div className="flex items-center gap-4">
             <Link href="/privacy" className="text-xs text-zinc-500 hover:text-gold transition-colors">
@@ -203,7 +204,7 @@ export function Footer() {
             </Link>
           </div>
           <p className="text-xs text-zinc-500">
-            {t('made_by', 'Fait par')} TriSpark Digital {t('in_cameroon', 'au Cameroun')}
+            {t('made_by', { defaultValue: isEn ? 'Made by' : 'Fait par' })} TriSpark Digital {t('in_cameroon', { defaultValue: isEn ? 'in Cameroon' : 'au Cameroun' })}
           </p>
         </div>
       </div>
@@ -212,7 +213,7 @@ export function Footer() {
       {/* Mobile-only copyright bar — always visible at page bottom */}
       <div className="block md:hidden border-t border-foreground/10 bg-[var(--t-footer-bg)] py-3 px-4 pb-24 text-center space-y-1.5">
         <p className="text-xs text-zinc-500">
-          © {new Date().getFullYear()} Accessoires Exclusifs. {t('all_rights_reserved', 'Tous droits réservés.')}
+          © {new Date().getFullYear()} Accessoires Exclusifs. {t('all_rights_reserved', { defaultValue: isEn ? 'All rights reserved.' : 'Tous droits réservés.' })}
         </p>
         <div className="flex items-center justify-center gap-3 flex-wrap">
           <Link href="/privacy" className="text-xs text-zinc-500 hover:text-gold transition-colors">
@@ -231,7 +232,7 @@ export function Footer() {
           </button>
         </div>
         <p className="text-xs text-zinc-500 mt-0.5">
-          {t('made_by', 'Fait par')} TriSpark Digital {t('in_cameroon', 'au Cameroun')}
+          {t('made_by', { defaultValue: isEn ? 'Made by' : 'Fait par' })} TriSpark Digital {t('in_cameroon', { defaultValue: isEn ? 'in Cameroon' : 'au Cameroun' })}
         </p>
       </div>
     </>

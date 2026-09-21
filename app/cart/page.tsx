@@ -555,7 +555,7 @@ export default function CartPage() {
                     >
                       <Input
                         label={t('city', { defaultValue: isEn ? 'City' : 'Ville' })}
-                        placeholder={t('city_placeholder', { defaultValue: isEn ? 'City (e.g., Yaoundé, Douala)' : 'Ville (ex: Yaoundé)' })}
+                        placeholder={t('city_placeholder', { defaultValue: isEn ? 'City (e.g., Yaounde, Douala)' : 'Ville (ex: Yaoundé)' })}
                         value={form.deliveryCity}
                         onChange={(e) => updateFormField('deliveryCity', e.target.value)}
                         disabled={isLoading || isProcessing}

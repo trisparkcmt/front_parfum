@@ -14,7 +14,7 @@ const LNG = 11.52030;
 const STORE_INFO = {
   name: "Accessoires Exclusifs",
   addressFr: "Yaoundé, Centre, Cameroun",
-  addressEn: "Yaoundé, Centre, Cameroon",
+  addressEn: "Yaounde, Centre, Cameroon",
 };
 
 function getDirectionsUrl() {
@@ -83,7 +83,7 @@ function LeafletMap() {
         .bindPopup(`
           <div style="font-family: sans-serif; padding: 4px 2px; text-align:center;">
             <strong style="color:#C5A059">${STORE_INFO.name}</strong><br/>
-            <small style="color:#666">Yaoundé, Cameroun</small>
+            <small style="color:#666">${isEn ? STORE_INFO.addressEn : STORE_INFO.addressFr}</small>
           </div>
         `)
         .openPopup();
@@ -248,7 +248,7 @@ export default function StoreSection() {
           </span>
           <h2 className="mb-3 text-3xl font-bold tracking-tight text-[var(--foreground)] sm:text-4xl lg:text-5xl">
             {isEn ? "Find us in" : "Retrouvez-nous à"}{" "}
-            <span className="text-gradient-gold">Yaoundé</span>
+            <span className="text-gradient-gold">{isEn ? "Yaounde" : "Yaoundé"}</span>
           </h2>
           <p className="max-w-xl text-sm text-[var(--t-text-muted)]">
             {isEn

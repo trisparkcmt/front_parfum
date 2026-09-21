@@ -42,22 +42,22 @@ export default function PrivacyPage() {
 
         <section id="data-usage" className="space-y-3">
           <h2 className="text-lg font-semibold text-foreground font-serif">2. {isEn ? 'How we use your information' : 'Utilisation de vos informations'}</h2>
-          <p>{isEn ? 'We use this information to manage your account, process and deliver orders, communicate with you about our services, protect the platform, and improve your shopping experience.' : 'Nous utilisons ces informations pour gérer votre compte, traiter et livrer vos commandes, communiquer avec vous au sujet de nos services, protéger la plateforme et améliorer votre expérience d'achat. '}</p>
+          <p>{isEn ? 'We use this information to manage your account, process and deliver orders, communicate with you about our services, protect the platform, and improve your shopping experience.' : "Nous utilisons ces informations pour gérer votre compte, traiter et livrer vos commandes, communiquer avec vous au sujet de nos services, protéger la plateforme et améliorer votre expérience d'achat."}</p>
         </section>
 
         <section id="sharing" className="space-y-3">
           <h2 className="text-lg font-semibold text-foreground font-serif">3. {isEn ? 'Sharing and retention' : 'Partage et conservation'}</h2>
-          <p>{isEn ? 'We share information only with service providers who help operate the platform, such as delivery, hosting, authentication, and analytics providers, and only as needed for those services. We retain information for as long as necessary to provide our services and meet legal obligations.' : 'Nous partageons vos informations uniquement avec les prestataires qui contribuent au fonctionnement de la plateforme, notamment pour la livraison, l'hébergement, l'authentification et les statistiques, dans la limite nécessaire à ces services. Nous conservons les informations aussi longtemps que nécessaire à la fourniture de nos services et au respect de nos obligations légales.'}</p>
+          <p>{isEn ? 'We share information only with service providers who help operate the platform, such as delivery, hosting, authentication, and analytics providers, and only as needed for those services. We retain information for as long as necessary to provide our services and meet legal obligations.' : "Nous partageons vos informations uniquement avec les prestataires qui contribuent au fonctionnement de la plateforme, notamment pour la livraison, l'hébergement, l'authentification et les statistiques, dans la limite nécessaire à ces services. Nous conservons les informations aussi longtemps que nécessaire à la fourniture de nos services et au respect de nos obligations légales."}</p>
         </section>
 
         <section id="your-rights" className="space-y-3">
           <h2 className="text-lg font-semibold text-foreground font-serif">4. {isEn ? 'Your rights' : 'Vos droits'}</h2>
-          <p>{isEn ? 'You may request access to, correction of, or deletion of your personal information, subject to applicable law. Contact our support team to exercise these rights or ask questions about your data.' : 'Vous pouvez demander l'accès, la rectification ou la suppression de vos informations personnelles, sous réserve du droit applicable. Contactez notre équipe d'assistance pour exercer ces droits ou poser toute question concernant vos données.'}</p>
+          <p>{isEn ? 'You may request access to, correction of, or deletion of your personal information, subject to applicable law. Contact our support team to exercise these rights or ask questions about your data.' : "Vous pouvez demander l'accès, la rectification ou la suppression de vos informations personnelles, sous réserve du droit applicable. Contactez notre équipe d'assistance pour exercer ces droits ou poser toute question concernant vos données."}</p>
         </section>
 
         <section id="contact" className="space-y-3">
           <h2 className="text-lg font-semibold text-foreground font-serif">5. {isEn ? 'Contact' : 'Contact'}</h2>
-          <p>{isEn ? 'For privacy questions, please contact Accessoires Exclusifs through the support channels available on this website.' : 'Pour toute question relative à la confidentialité, veuillez contacter Accessoires Exclusifs via les canaux d'assistance disponibles sur ce site.'}</p>
+          <p>{isEn ? 'For privacy questions, please contact Accessoires Exclusifs through the support channels available on this website.' : "Pour toute question relative à la confidentialité, veuillez contacter Accessoires Exclusifs via les canaux d'assistance disponibles sur ce site."}</p>
         </section>
 
         {/* ──────────────── Cookies section – anchor: /privacy#cookies ──────────────── */}
@@ -81,7 +81,7 @@ export default function PrivacyPage() {
                 <strong>{isEn ? 'Essential cookies' : 'Cookies essentiels'}</strong> —{' '}
                 {isEn
                   ? 'Required for the site to function (authentication session, shopping cart). Cannot be disabled.'
-                  : 'Nécessaires au fonctionnement du site (session d'authentification, panier). Ne peuvent pas être désactivés.'}
+                  : "Nécessaires au fonctionnement du site (session d'authentification, panier). Ne peuvent pas être désactivés."}
               </li>
               <li>
                 <strong>{isEn ? 'Analytics cookies' : 'Cookies analytiques'}</strong> —{' '}
@@ -93,7 +93,7 @@ export default function PrivacyPage() {
                 <strong>{isEn ? 'Preference cookies' : 'Cookies de préférences'}</strong> —{' '}
                 {isEn
                   ? 'Store your preferences such as language and display theme.'
-                  : 'Mémorisent vos préférences telles que la langue et le thème d'affichage.'}
+                  : "Mémorisent vos préférences telles que la langue et le thème d'affichage."}
               </li>
               <li>
                 <strong>{isEn ? 'Marketing cookies' : 'Cookies marketing'}</strong> —{' '}
@@ -122,7 +122,7 @@ export default function PrivacyPage() {
             <p>
               {isEn
                 ? 'We use Google Analytics and Firebase (Google) for analytics. These services may set their own cookies. For more information, see the Google Privacy Policy at policies.google.com/privacy.'
-                : 'Nous utilisons Google Analytics et Firebase (Google) pour les statistiques. Ces services peuvent déposer leurs propres cookies. Pour plus d'informations, consultez la Politique de confidentialité de Google sur policies.google.com/privacy.'}
+                : 'Nous utilisons Google Analytics et Firebase (Google) pour les statistiques. Ces services peuvent déposer leurs propres cookies. Pour plus d\'informations, consultez la Politique de confidentialité de Google sur policies.google.com/privacy.'}
             </p>
           </div>
         </section>

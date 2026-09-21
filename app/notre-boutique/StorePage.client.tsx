@@ -15,7 +15,7 @@ const LNG = 11.52030;
 const STORE_INFO = {
   name: 'Accessoires Exclusifs',
   addressFr: 'Yaoundé, Centre, Cameroun',
-  addressEn: 'Yaoundé, Centre, Cameroon',
+  addressEn: 'Yaounde, Centre, Cameroon',
   hours: [
     { day: 'Lundi – Vendredi', time: '09h00 – 19h00' },
     { day: 'Samedi',           time: '10h00 – 18h00' },
@@ -32,6 +32,8 @@ function getDirectionsUrl() {
 }
 
 function LeafletMap() {
+  const { i18n } = useTranslation();
+  const isEn = i18n.language?.startsWith('en');
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
 
@@ -89,7 +91,7 @@ function LeafletMap() {
         .bindPopup(`
           <div style="font-family: sans-serif; padding: 4px 2px; text-align:center;">
             <strong style="color:#C5A059">Accessoires Exclusifs</strong><br/>
-            <small style="color:#666">Yaoundé, Cameroun</small>
+            <small style="color:#666">${isEn ? 'Yaounde, Cameroon' : 'Yaoundé, Cameroun'}</small>
           </div>
         `)
         .openPopup();
@@ -172,13 +174,15 @@ export default function StorePage() {
             Notre Boutique
           </span>
           <h1 className="text-4xl sm:text-5xl font-bold tracking-tight text-foreground mb-2">
-            Retrouvez-nous à
+            {isEn ? "Find us in" : "Retrouvez-nous à"}
           </h1>
           <h2 className="text-4xl sm:text-5xl font-bold tracking-tight text-gradient-gold">
-            Yaoundé
+            {isEn ? "Yaounde" : "Yaoundé"}
           </h2>
           <p className="mt-4 text-sm text-foreground/50 max-w-lg">
-            Venez vivre l'expérience Accessoires Exclusifs en personne — découvrez notre atelier olfactif, essayez nos créations et recevez un conseil personnalisé.
+            {isEn
+              ? "Experience Accessoires Exclusifs in person — explore our olfactory workshop, try our creations, and receive personalized advice."
+              : "Venez vivre l'expérience Accessoires Exclusifs en personne — découvrez notre atelier olfactif, essayez nos créations et recevez un conseil personnalisé."}
           </p>
         </motion.div>
 
