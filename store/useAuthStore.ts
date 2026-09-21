@@ -107,7 +107,7 @@ interface AuthState {
   _hasHydrated: boolean;
   setHasHydrated: (state: boolean) => void;
   login: (loginInput: string, password: string, rememberMe?: boolean) => Promise<boolean>;
-  loginWithGoogle: (accessToken: string, code?: string) => Promise<boolean>;
+  loginWithGoogle: (accessToken: string, code?: string, idToken?: string) => Promise<boolean>;
   register: (data: { firstName: string; lastName: string; email: string; phone: string; password: string }) => Promise<boolean>;
   logout: () => Promise<void>;
   setUser: (user: User) => void;
@@ -248,7 +248,7 @@ export const useAuthStore = create<AuthState>()(
         }
       },
 
-      loginWithGoogle: async (accessToken, code) => {
+      loginWithGoogle: async (accessToken, code, idToken) => {
         set({ isLoading: true });
         const addToast = useToastStore.getState().addToast;
 
@@ -262,6 +262,7 @@ export const useAuthStore = create<AuthState>()(
           const googleResponse = await rawApi.post('auth/google/', {
             access_token: accessToken,
             code: code || undefined,
+            id_token: idToken || undefined,
           }, { withCredentials: true });
           const loginData = googleResponse.data || {};
           const access = loginData.access || loginData.access_token;

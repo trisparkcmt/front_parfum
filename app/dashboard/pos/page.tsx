@@ -6,10 +6,12 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Product } from '@/types';
 // EssenceClient import removed — was only used by the commented-out Atelier section below.
 import { productService } from '@/services/productService';
 import { orderService } from '@/services/orderService';
+import { cartService } from '@/services/apiService';
 // labService import removed — was only used by the commented-out Atelier section below.
 import { useToastStore } from '@/store/useToastStore';
 import { CartIcon } from '@/components/icons/CustomIcons';
@@ -134,6 +136,9 @@ function getProductName(product: Product): string {
 // ── Main POS Page ───────────────────────────────────────────────────────────
 
 export default function POSPage() {
+  const { t, i18n } = useTranslation();
+  const isEn = i18n.language?.startsWith('en');
+
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
   const [products, setProducts] = useState<Product[]>([]);
@@ -297,12 +302,21 @@ export default function POSPage() {
   // Helper to add the composed creation directly to standard POS basket
   const handleAddCompositionToCart = async () => {
     if (totalMl === 0) {
-      addToast('Veuillez composer avec au moins 1ml.', 'error');
+      addToast(
+        t('pos_compose_min_ml', {
+          defaultValue: isEn ? 'Please compose at least 1 ml.' : 'Veuillez composer avec au moins 1ml.',
+        }),
+        'error'
+      );
       return;
     }
     if (oilLimitExceeded) {
       addToast(
-        `Le contenu dépasse la limite de ${maxOilMl} ml pour ce flacon.`,
+        t('pos_oil_limit_exceeded', {
+          defaultValue: isEn
+            ? `The content exceeds the ${maxOilMl} ml limit for this bottle.`
+            : `Le contenu dépasse la limite de ${maxOilMl} ml pour ce flacon.`,
+        }),
         'error'
       );
       return;
@@ -345,7 +359,12 @@ export default function POSPage() {
     } as any;
 
     setCartItems((prev) => [...prev, { product: simulatedProduct, quantity: 1 }]);
-    addToast('Composition ajoutée au ticket de caisse !', 'success');
+    addToast(
+      t('pos_composition_added', {
+        defaultValue: isEn ? 'Composition added to the checkout ticket!' : 'Composition ajoutée au ticket de caisse !',
+      }),
+      'success'
+    );
     setQuantities({});
     setCompositionName('');
     setCouleur(''); // Reset color
@@ -406,7 +425,12 @@ export default function POSPage() {
         setProducts(Array.from(uniqueProducts.values()));
       } catch (error) {
         console.error('Search error:', error);
-        addToast('Erreur lors de la recherche', 'error');
+        addToast(
+          t('pos_search_error', {
+            defaultValue: isEn ? 'Search error' : 'Erreur lors de la recherche',
+          }),
+          'error'
+        );
         setProducts([]);
       } finally {
         setIsLoading(false);
@@ -437,7 +461,14 @@ export default function POSPage() {
         return [...prev, { product, quantity }];
       });
 
-      addToast(`${getProductName(product)} ajouté à la commande`, 'success');
+      addToast(
+        t('pos_item_added', {
+          defaultValue: isEn
+            ? `${getProductName(product)} added to the order`
+            : `${getProductName(product)} ajouté à la commande`,
+        }),
+        'success'
+      );
       setExpandedId(null);
       setDraftQty(1);
     },
@@ -474,9 +505,46 @@ export default function POSPage() {
     return { itemCount, subtotal, total };
   }, [cartItems]);
 
+  const handleVerifyPromoCode = async () => {
+    const trimmedCode = codePromo.trim();
+    if (!trimmedCode) {
+      addToast(
+        t('pos_enter_promo', {
+          defaultValue: isEn ? 'Please enter a promo code' : 'Veuillez saisir un code promo',
+        }),
+        'error'
+      );
+      return;
+    }
+
+    try {
+      await cartService.applyPromoCode({ code_promo: trimmedCode.toUpperCase() });
+      addToast(
+        t('pos_promo_valid', {
+          defaultValue: isEn ? 'Promo code valid' : 'Code promo valide',
+        }),
+        'success'
+      );
+      setCodePromo(trimmedCode.toUpperCase());
+    } catch (error: any) {
+      const msg =
+        error?.response?.data?.detail ||
+        error?.response?.data?.non_field_errors?.[0] ||
+        t('pos_promo_invalid', {
+          defaultValue: isEn ? 'Invalid promo code' : 'Code promo invalide',
+        });
+      addToast(msg, 'error');
+    }
+  };
+
   const handleValidateOrder = async () => {
     if (cartItems.length === 0) {
-      addToast('La commande est vide', 'error');
+      addToast(
+        t('pos_order_empty', {
+          defaultValue: isEn ? 'The order is empty' : 'La commande est vide',
+        }),
+        'error'
+      );
       return;
     }
 
@@ -506,7 +574,11 @@ export default function POSPage() {
       setCodePromo('');
 
       addToast(
-        `Commande ${order.numero_commande || '#' + order.id} créée avec succès !`,
+        t('pos_order_created', {
+          defaultValue: isEn
+            ? `Order ${order.numero_commande || '#' + order.id} created successfully!`
+            : `Commande ${order.numero_commande || '#' + order.id} créée avec succès !`,
+        }),
         'success'
       );
       setTimeout(() => setIsSuccess(false), 4000);
@@ -539,15 +611,17 @@ export default function POSPage() {
           </div>
           <div className="space-y-1">
             <span className="text-[10px] font-semibold uppercase tracking-wider text-foreground/35 block">
-              Confirmation
+              {t('pos_confirmation', { defaultValue: isEn ? 'Confirmation' : 'Confirmation' })}
             </span>
             <h1 className="text-xl font-semibold text-foreground">
-              Commande validée
+              {t('pos_order_validated', { defaultValue: isEn ? 'Order validated' : 'Commande validée' })}
             </h1>
             <p className="text-xs font-mono text-gold pt-1">{lastOrderNumber}</p>
           </div>
           <p className="text-xs text-foreground/50 leading-relaxed">
-            L'inventaire a été mis à jour automatiquement.
+            {t('pos_inventory_updated', {
+              defaultValue: isEn ? 'Inventory was updated automatically.' : 'L\'inventaire a été mis à jour automatiquement.',
+            })}
           </p>
         </div>
       </div>
@@ -563,10 +637,10 @@ export default function POSPage() {
             <BackButton href="/dashboard/profile" />
             <div>
               <span className="text-[10px] font-semibold uppercase tracking-wider text-foreground/35 block mb-0.5">
-                Terminal d'encaissement
+                {t('pos_cash_terminal', { defaultValue: isEn ? 'Checkout terminal' : 'Terminal d\'encaissement' })}
               </span>
               <h1 className="text-xl font-semibold text-foreground">
-                Point de vente
+                {t('pos_point_of_sale', { defaultValue: isEn ? 'Point of sale' : 'Point de vente' })}
               </h1>
             </div>
           </div>
@@ -574,7 +648,11 @@ export default function POSPage() {
           {cartItems.length > 0 && (
             <StatusChip
               status="gold"
-              label={`${totals.itemCount} article${totals.itemCount > 1 ? 's' : ''}`}
+              label={t('pos_item_count', {
+                defaultValue: isEn
+                  ? `${totals.itemCount} item${totals.itemCount > 1 ? 's' : ''}`
+                  : `${totals.itemCount} article${totals.itemCount > 1 ? 's' : ''}`,
+              })}
             />
           )}
         </div>
@@ -591,7 +669,7 @@ export default function POSPage() {
             )}
           >
             <ShoppingBag size={14} />
-            Produits & Accessoires
+            {t('pos_products_accessories', { defaultValue: isEn ? 'Products & Accessories' : 'Produits & Accessoires' })}
           </button>
           {/* Création Atelier tab — temporarily disabled
           <button
@@ -623,7 +701,7 @@ export default function POSPage() {
                     ref={searchInputRef}
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    placeholder="Rechercher un produit, une référence, une marque…"
+                    placeholder={t('pos_search_placeholder', { defaultValue: isEn ? 'Search a product, reference or brand…' : 'Rechercher un produit, une référence, une marque…' })}
                     className="w-full bg-white/[0.03] border border-white/10 rounded-lg py-2 pl-9 pr-8 text-xs text-foreground placeholder:text-foreground/35 focus:outline-none focus:border-gold/50 transition-colors"
                     autoFocus
                   />
@@ -647,19 +725,23 @@ export default function POSPage() {
                     icon={
                       <PackageSearch className="size-6 text-foreground/20" />
                     }
-                    title="Saisissez un terme de recherche"
-                    subtitle="Les produits correspondants s'afficheront instantanément."
+                    title={t('pos_search_prompt', { defaultValue: isEn ? 'Enter a search term' : 'Saisissez un terme de recherche' })}
+                    subtitle={t('pos_search_prompt_subtitle', {
+                      defaultValue: isEn ? 'Matching products will appear instantly.' : 'Les produits correspondants s\'afficheront instantanément.',
+                    })}
                   />
                 ) : isLoading ? (
                   <div className="flex flex-col items-center justify-center py-16 gap-2">
                     <Loader2 size={16} className="animate-spin text-gold" />
                     <span className="text-xs text-foreground/40">
-                      Recherche en cours…
+                      {t('pos_searching', { defaultValue: isEn ? 'Searching…' : 'Recherche en cours…' })}
                     </span>
                   </div>
                 ) : products.length === 0 ? (
                   <p className="text-sm italic text-foreground/30 text-center py-16">
-                    Aucun produit ne correspond à « {searchTerm} ».
+                    {t('pos_no_match', {
+                      defaultValue: isEn ? `No product matches “${searchTerm}”.` : `Aucun produit ne correspond à « ${searchTerm} ».`,
+                    })}
                   </p>
                 ) : (
                   <ul className="divide-y divide-white/5">
@@ -936,7 +1018,7 @@ export default function POSPage() {
               <div className="flex items-center gap-2">
                 <Receipt className="size-4 text-gold" />
                 <span className="text-[10px] font-semibold uppercase tracking-wider text-foreground/70">
-                  Ticket de caisse
+                  {t('pos_ticket', { defaultValue: isEn ? 'Checkout ticket' : 'Ticket de caisse' })}
                 </span>
               </div>
               {cartItems.length > 0 && (
@@ -945,7 +1027,7 @@ export default function POSPage() {
                   className="text-xs text-foreground/40 hover:text-red-400 transition-colors flex items-center gap-1"
                 >
                   <Trash2 size={13} />
-                  Vider
+                  {t('pos_clear', { defaultValue: isEn ? 'Clear' : 'Vider' })}
                 </button>
               )}
             </div>
@@ -955,8 +1037,12 @@ export default function POSPage() {
               <div className="flex-1 min-h-0 flex items-center justify-center p-6">
                 <EmptyState
                   icon={<CartIcon className="size-7 text-foreground/20" />}
-                  title="Ticket de caisse vide"
-                  subtitle="Sélectionnez des articles dans le catalogue ou créez une composition."
+                  title={t('pos_ticket_empty', { defaultValue: isEn ? 'Empty checkout ticket' : 'Ticket de caisse vide' })}
+                  subtitle={t('pos_ticket_empty_subtitle', {
+                    defaultValue: isEn
+                      ? 'Select items from the catalog or create a custom composition.'
+                      : 'Sélectionnez des articles dans le catalogue ou créez une composition.',
+                  })}
                 />
               </div>
             ) : (
@@ -1035,7 +1121,7 @@ export default function POSPage() {
                   <input
                     value={nomClient}
                     onChange={(e) => setNomClient(e.target.value)}
-                    placeholder="Nom client"
+                    placeholder={t('pos_customer_name', { defaultValue: isEn ? 'Customer name' : 'Nom client' })}
                     className="w-full bg-white/[0.03] border border-white/10 rounded-lg py-1.5 pl-7 pr-2 text-xs text-foreground placeholder:text-foreground/35 focus:outline-none focus:border-gold/50"
                   />
                 </div>
@@ -1044,7 +1130,7 @@ export default function POSPage() {
                   <input
                     value={telephoneClient}
                     onChange={(e) => setTelephoneClient(e.target.value)}
-                    placeholder="Téléphone"
+                    placeholder={t('pos_phone', { defaultValue: isEn ? 'Phone' : 'Téléphone' })}
                     className="w-full bg-white/[0.03] border border-white/10 rounded-lg py-1.5 pl-7 pr-2 text-xs text-foreground placeholder:text-foreground/35 focus:outline-none focus:border-gold/50"
                   />
                 </div>
@@ -1053,16 +1139,23 @@ export default function POSPage() {
                   <input
                     value={codePromo}
                     onChange={(e) => setCodePromo(e.target.value)}
-                    placeholder="Code promo"
+                    placeholder={t('pos_promo_code', { defaultValue: isEn ? 'Promo code' : 'Code promo' })}
                     className="w-full bg-white/[0.03] border border-white/10 rounded-lg py-1.5 pl-7 pr-2 text-xs text-foreground placeholder:text-foreground/35 focus:outline-none focus:border-gold/50"
                   />
                 </div>
-                <div className="relative">
+                <button
+                  type="button"
+                  onClick={handleVerifyPromoCode}
+                  className="rounded-lg border border-gold/40 bg-gold/10 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-gold transition-colors hover:bg-gold/15"
+                >
+                  {t('pos_verify', { defaultValue: isEn ? 'Verify' : 'Vérifier' })}
+                </button>
+                <div className="relative col-span-2">
                   <FileText className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3 text-foreground/35" />
                   <input
                     value={note}
                     onChange={(e) => setNote(e.target.value)}
-                    placeholder="Note interne"
+                    placeholder={t('pos_internal_note', { defaultValue: isEn ? 'Internal note' : 'Note interne' })}
                     className="w-full bg-white/[0.03] border border-white/10 rounded-lg py-1.5 pl-7 pr-2 text-xs text-foreground placeholder:text-foreground/35 focus:outline-none focus:border-gold/50"
                   />
                 </div>
@@ -1072,7 +1165,7 @@ export default function POSPage() {
               <div className="w-full rounded-xl border border-white/10 bg-white/[0.02] flex divide-x divide-white/8">
                 <div className="flex-1 p-3">
                   <span className="text-[10px] font-semibold uppercase tracking-wider text-foreground/35 block mb-0.5">
-                    Sous-total
+                    {t('pos_subtotal', { defaultValue: isEn ? 'Subtotal' : 'Sous-total' })}
                   </span>
                   <span className="text-sm font-semibold tabular-nums text-foreground">
                     {formatXAF(totals.subtotal)} CFA
@@ -1080,7 +1173,7 @@ export default function POSPage() {
                 </div>
                 <div className="flex-1 p-3">
                   <span className="text-[10px] font-semibold uppercase tracking-wider text-foreground/35 block mb-0.5">
-                    Total
+                    {t('pos_total', { defaultValue: isEn ? 'Total' : 'Total' })}
                   </span>
                   <span className="text-sm font-semibold tabular-nums text-gold">
                     {formatXAF(totals.total)} CFA
@@ -1097,10 +1190,10 @@ export default function POSPage() {
                 {isValidating ? (
                   <>
                     <Loader2 size={14} className="animate-spin text-black" />
-                    <span>Encaissement en cours…</span>
+                    <span>{t('pos_processing_payment', { defaultValue: isEn ? 'Processing payment…' : 'Encaissement en cours…' })}</span>
                   </>
                 ) : (
-                  <span>Valider et Encaisser</span>
+                  <span>{t('pos_validate_and_collect', { defaultValue: isEn ? 'Validate and collect' : 'Valider et Encaisser' })}</span>
                 )}
               </button>
             </div>

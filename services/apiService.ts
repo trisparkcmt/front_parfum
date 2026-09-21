@@ -185,10 +185,11 @@ export const authService = {
   /**
    * Google OAuth2 Login
    */
-  googleLogin: async (accessToken: string, code: string) => {
+  googleLogin: async (accessToken: string, code?: string, idToken?: string) => {
     const response = await api.post('auth/google/', {
       access_token: accessToken,
       code,
+      id_token: idToken,
     });
     return response.data;
   },

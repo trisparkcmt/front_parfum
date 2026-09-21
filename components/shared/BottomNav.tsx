@@ -6,11 +6,38 @@ import { useState, useEffect } from 'react';
 import { motion, LayoutGroup } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { HomeIcon, DiffuseurIcon, PerfumeIcon, LaptopIcon } from '@/components/icons/CustomIcons';
-import { Watch, Video } from 'lucide-react';
+import { Watch } from 'lucide-react';
+
+function ReelsTabIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      className={className}
+      width="24"
+      height="24"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true"
+    >
+      <path
+        fillRule="evenodd"
+        clipRule="evenodd"
+        d="M22.1514 7.46967C21.3714 6.62967 18.9714 8.13967 17.6114 9.09967C17.8414 10.0897 17.9514 11.2397 17.9514 12.5397C17.9514 13.8297 17.8414 14.9597 17.6214 15.9497C18.7114 16.7197 20.4914 17.8497 21.5314 17.8497C21.7914 17.8497 22.0114 17.7797 22.1514 17.6197C23.0814 16.6297 23.0814 8.46967 22.1514 7.46967Z"
+        fill="currentColor"
+      />
+      <path
+        fillRule="evenodd"
+        clipRule="evenodd"
+        d="M9.06137 5.10968C3.59137 5.10968 1.65137 7.05968 1.65137 12.5397C1.65137 18.0197 3.59137 19.9597 9.06137 19.9597C14.5214 19.9597 16.4514 18.0197 16.4514 12.5397C16.4514 7.05968 14.5214 5.10968 9.06137 5.10968Z"
+        fill="currentColor"
+      />
+    </svg>
+  );
+}
 
 type BottomNavLink = {
   href: string;
-  icon: typeof HomeIcon | typeof Watch | typeof PerfumeIcon | typeof DiffuseurIcon | typeof LaptopIcon | typeof Video;
+  icon: typeof HomeIcon | typeof Watch | typeof PerfumeIcon | typeof DiffuseurIcon | typeof LaptopIcon | typeof ReelsTabIcon;
   label: string;
 };
 
@@ -139,12 +166,12 @@ const BottomNav = () => {
               >
                 <span className="flex h-11 w-11 items-center justify-center rounded-full bg-gold
                                   shadow-[0_2px_14px_rgba(212,175,55,0.45)]">
-                  <Video size={18} strokeWidth={2.1} className="text-black" />
+                  <ReelsTabIcon className="h-[18px] w-[18px] text-black" />
                 </span>
               </motion.div>
             ) : (
               <span className="text-foreground/55 transition-colors duration-200">
-                <Video size={20} strokeWidth={1.8} />
+                <ReelsTabIcon className="h-5 w-5" />
               </span>
             )}
 

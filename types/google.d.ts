@@ -14,6 +14,23 @@ declare global {
             requestAccessToken: (options?: { prompt?: string }) => void;
           };
         };
+        id: {
+          initialize: (config: {
+            client_id: string;
+            callback: (response: { credential: string }) => void;
+            auto_select?: boolean;
+            cancel_on_tap_outside?: boolean;
+            context?: 'signin' | 'signup' | 'use';
+          }) => void;
+          prompt: (momentListener?: (notification: {
+            isNotDisplayed: () => boolean;
+            getNotDisplayedReason: () => string;
+            isSkippedMoment: () => boolean;
+            isDismissedMoment: () => boolean;
+          }) => void) => void;
+          renderButton: (element: HTMLElement, options: object) => void;
+          disableAutoSelect: () => void;
+        };
       };
     };
   }

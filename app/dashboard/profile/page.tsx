@@ -676,18 +676,18 @@ export default function ProfilePage() {
           {/* ---------- CONFIDENTIALITY & DATA ---------- */}
           <div className="pt-2">
             <SectionLabel>{t('privacy_data', { defaultValue: isEn ? 'Privacy & Data' : 'Confidentialité et Données' })}</SectionLabel>
-            <Panel className="border-red-500/20 bg-red-500/5">
+            <Panel className="border-red-500/10 bg-transparent">
               <div className="divide-y divide-foreground/10">
                 <button
                   onClick={() => addToast(isEn ? 'This feature is coming soon.' : 'Cette fonctionnalité sera bientôt disponible.', 'info')}
-                  className="w-full flex items-center gap-3 px-4 py-3 hover:bg-red-500/10 transition-colors text-left group"
+                  className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-red-500/5 transition-colors text-left group rounded-md"
                 >
-                  <div className="flex items-center justify-center w-8 h-8 rounded-lg border border-red-500/20 bg-red-500/10 text-red-500 group-hover:bg-red-500/20 transition-colors shrink-0">
-                    <X size={16} />
+                  <div className="flex items-center justify-center w-7 h-7 rounded-md border border-red-500/15 bg-red-500/5 text-red-500/75 group-hover:bg-red-500/10 transition-colors shrink-0">
+                    <X size={14} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-red-500">{isEn ? 'Delete my account' : 'Supprimer mon compte'}</p>
-                    <p className="text-xs text-red-500/70 mt-0.5">{isEn ? 'Permanently remove your account and data' : 'Supprimer définitivement votre compte et vos données'}</p>
+                    <p className="text-xs font-medium text-red-500/80">{isEn ? 'Delete my account' : 'Supprimer mon compte'}</p>
+                    <p className="text-[11px] text-red-500/55 mt-0.5">{isEn ? 'Permanently remove your account and data' : 'Supprimer définitivement votre compte et vos données'}</p>
                   </div>
                 </button>
               </div>

@@ -8,6 +8,7 @@ import { ToastProvider } from "@/components/shared/ToastProvider";
 import { FCMProvider } from "@/components/pwa/FCMProvider";
 import { InstallPrompt } from "@/components/pwa/InstallPrompt";
 import { OfflineBanner } from "@/components/shared/OfflineBanner";
+import { GoogleOneTap } from "@/components/auth/GoogleOneTap";
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://accessoiresexclusifs.com'),
@@ -159,6 +160,7 @@ export default function RootLayout({
         <OfflineBanner />
         
         <AnalyticsWrapper gaId={gaId} />
+        <GoogleOneTap />
       </body>
     </html>
   );
