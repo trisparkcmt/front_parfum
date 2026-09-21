@@ -23,9 +23,9 @@ export function HomeHeader() {
   const [query, setQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
   const [isNavigating, setIsNavigating] = useState(false);
-  const [showDropdown, setShowDropdown] = useState(false);
   const [modalProductId, setModalProductId] = useState<string | null>(null);
   const [modalProductType, setModalProductType] = useState<'perfume' | 'accessory' | 'diffuseur'>('perfume');
+  const showDropdown = debouncedQuery.trim().length > 0;
 
   // Navigate on form submit
   const handleSearch = (e: React.FormEvent) => {
@@ -33,14 +33,9 @@ export function HomeHeader() {
     const q = query.trim();
     if (!q) return;
     setIsNavigating(true);
-    setShowDropdown(false);
+    setQuery('');
     router.push(`/shop/perfumes?search=${encodeURIComponent(q)}`);
   };
-
-  // Reset navigating state on route change
-  useEffect(() => {
-    setIsNavigating(false);
-  }, [pathname]);
 
   useEffect(() => {
     const handlePopState = (event: PopStateEvent) => {
@@ -70,7 +65,7 @@ export function HomeHeader() {
 
     setModalProductId(productId);
     setModalProductType(productType);
-    setShowDropdown(false);
+    setQuery('');
     window.history.pushState(
       { homeProductModal: true },
       '',
@@ -94,10 +89,11 @@ export function HomeHeader() {
     return () => clearTimeout(timer);
   }, [query]);
 
-  // Show dropdown when there's text
   useEffect(() => {
-    setShowDropdown(debouncedQuery.trim().length > 0);
-  }, [debouncedQuery]);
+    if (!pathname) return;
+    const timeout = window.setTimeout(() => setIsNavigating(false), 150);
+    return () => window.clearTimeout(timeout);
+  }, [pathname]);
 
   return (
     <header className="relative nav:hidden w-full max-w-7xl mx-auto px-4 sm:px-6 pt-3 pb-3">
@@ -125,9 +121,9 @@ export function HomeHeader() {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onFocus={() => {
-              if (debouncedQuery.trim()) setShowDropdown(true);
+              // Dropdown visibility is derived from the debounced query.
             }}
-            placeholder={t("search_placeholder", {
+            placeholder={t("search_placeholder_home", {
               defaultValue: isEn
                 ? "Search for a fragrance, accessory..."
                 : "Rechercher un parfum, un accessoire…",
@@ -137,7 +133,7 @@ export function HomeHeader() {
           />
           <button
             type="submit"
-            aria-label={t("search", {
+            aria-label={t("search_label_home", {
               defaultValue: isEn ? "Search" : "Rechercher",
             })}
             className="h-8 w-8 mr-2 rounded-full flex items-center justify-center text-foreground/50 flex-shrink-0 hover:text-gold transition-colors"
@@ -150,7 +146,7 @@ export function HomeHeader() {
         {showDropdown && (
           <SearchDropdown
             query={debouncedQuery}
-            onClose={() => setShowDropdown(false)}
+            onClose={() => setQuery('')}
             onProductClick={openProductModal}
           />
         )}

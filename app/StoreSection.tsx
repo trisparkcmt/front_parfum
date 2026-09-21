@@ -26,11 +26,11 @@ function cx(...parts: Array<string | false | null | undefined>) {
 }
 
 function LeafletMap() {
-  const { i18n } = useTranslation();
+  const { i18n, t } = useTranslation();
   const isEn = i18n.language?.startsWith("en");
 
   const mapRef = useRef<HTMLDivElement>(null);
-  const mapInstanceRef = useRef<any>(null);
+  const mapInstanceRef = useRef<{ remove: () => void } | null>(null);
   const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
@@ -97,7 +97,7 @@ function LeafletMap() {
         mapInstanceRef.current = null;
       }
     };
-  }, []);
+  }, [isEn]);
 
   return (
     <div className="relative h-[320px] w-full overflow-hidden rounded-2xl border border-black/[0.06] dark:border-[var(--t-card-border)] sm:h-[420px]">
@@ -105,7 +105,7 @@ function LeafletMap() {
         <div className="absolute inset-0 z-10 flex items-center justify-center gap-2 bg-white text-neutral-400 dark:bg-[var(--t-surface-raised)] dark:text-[var(--t-text-muted)]">
           <Loader2 size={18} className="animate-spin text-[var(--color-gold)]" />
           <span className="text-xs">
-            {isEn ? "Loading map..." : "Chargement de la carte…"}
+            {t('store_map_loading')}
           </span>
         </div>
       )}
@@ -131,10 +131,9 @@ function InfoCard({
 }
 
 export default function StoreSection() {
-  const { i18n } = useTranslation();
+  const { i18n, t } = useTranslation();
   const isEn = i18n.language?.startsWith("en");
   const [companyInfo, setCompanyInfo] = useState<CompanyInfo | null>(null);
-  const [companyLoading, setCompanyLoading] = useState(false);
 
   const companyDayLabels: Record<string, { fr: string; en: string }> = {
     Lundi: { fr: 'Lundi', en: 'Monday' },
@@ -155,7 +154,6 @@ export default function StoreSection() {
 
   useEffect(() => {
     let active = true;
-    setCompanyLoading(true);
 
     shopService.getCompanyInfos()
       .then((data) => {
@@ -164,10 +162,7 @@ export default function StoreSection() {
           setCompanyInfo(data[0]);
         }
       })
-      .catch(() => {})
-      .finally(() => {
-        if (active) setCompanyLoading(false);
-      });
+      .catch(() => {});
 
     return () => {
       active = false;
@@ -244,16 +239,14 @@ export default function StoreSection() {
           className="mb-8 lg:mb-10"
         >
           <span className="mb-3 block font-mono text-[11px] uppercase tracking-[0.3em] text-[var(--color-gold)]">
-            {isEn ? "Our Shop" : "Notre Boutique"}
+            {t('store_our_shop')}
           </span>
           <h2 className="mb-3 text-3xl font-bold tracking-tight text-[var(--foreground)] sm:text-4xl lg:text-5xl">
-            {isEn ? "Find us in" : "Retrouvez-nous à"}{" "}
-            <span className="text-gradient-gold">{isEn ? "Yaounde" : "Yaoundé"}</span>
+            {t('store_find_us_in')} {" "}
+            <span className="text-gradient-gold">{t('store_yaounde')}</span>
           </h2>
           <p className="max-w-xl text-sm text-[var(--t-text-muted)]">
-            {isEn
-              ? "Experience Accessoires Exclusifs in person — explore our olfactory workshop, try our creations, and receive personalized advice."
-              : "Venez vivre l'expérience Accessoires Exclusifs en personne — découvrez notre atelier olfactif, essayez nos créations et recevez un conseil personnalisé."}
+            {t('store_description')}
           </p>
         </motion.div>
 
@@ -269,14 +262,14 @@ export default function StoreSection() {
           </div>
 
           <div className="flex flex-col gap-4 lg:col-span-2">
-            <InfoCard icon={<MapPin size={16} />} label={isEn ? "Address" : "Adresse"}>
+            <InfoCard icon={<MapPin size={16} />} label={t('store_address')}>
               <p className="text-sm font-semibold text-[var(--foreground)]">{storeDetails.name}</p>
               <p className="mt-0.5 text-xs text-[var(--t-text-muted)]">
                 {storeDetails.address}
               </p>
             </InfoCard>
 
-            <InfoCard icon={<Clock size={16} />} label={isEn ? "Hours" : "Horaires"}>
+            <InfoCard icon={<Clock size={16} />} label={t('store_hours')}>
               <div className="space-y-1.5">
                 {storeHours.map(({ day, time }) => (
                   <div key={day} className="flex justify-between gap-3 text-xs">
@@ -292,7 +285,7 @@ export default function StoreSection() {
               </div>
             </InfoCard>
 
-            <InfoCard icon={<Phone size={16} />} label={isEn ? "Contact" : "Contact"}>
+            <InfoCard icon={<Phone size={16} />} label={t('store_contact')}>
               <p className="text-sm font-semibold text-[var(--foreground)]">{storeDetails.phone}</p>
             </InfoCard>
 
@@ -302,7 +295,7 @@ export default function StoreSection() {
                 className="flex w-full items-center justify-center gap-2 rounded-xl bg-[var(--color-gold)] py-3.5 text-sm font-bold text-black transition-all hover:bg-[var(--color-gold)]/90 active:scale-[0.98]"
               >
                 <Navigation size={16} />
-                {isEn ? "Get Directions" : "Obtenir l'itinéraire"}
+                {t('store_get_directions')}
               </button>
 
               <a
@@ -312,7 +305,7 @@ export default function StoreSection() {
                 className="flex w-full items-center justify-center gap-2 rounded-xl border border-black/[0.08] py-3.5 text-sm text-neutral-500 transition-all hover:border-black/20 hover:text-[var(--foreground)] dark:border-[var(--t-card-border)] dark:text-[var(--t-text-muted)] dark:hover:border-[var(--t-card-hover-border)]"
               >
                 <MessageCircle size={16} className="text-emerald-500" />
-                {isEn ? "Contact via WhatsApp" : "Contacter via WhatsApp"}
+                {t('store_whatsapp')}
               </a>
             </div>
           </div>

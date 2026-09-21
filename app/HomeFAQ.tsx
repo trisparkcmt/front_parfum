@@ -67,7 +67,7 @@ const faqData: { fr: FAQItem[]; en: FAQItem[] } = {
 };
 
 export default function HomeFAQ() {
-  const { i18n } = useTranslation();
+  const { i18n, t } = useTranslation();
   const isEn = i18n.language?.startsWith("en");
   const items = isEn ? faqData.en : faqData.fr;
 
@@ -81,15 +81,13 @@ export default function HomeFAQ() {
         {/* Header */}
         <div className="text-center mb-10 lg:mb-14">
           <p className="text-[10px] tracking-[0.3em] uppercase text-gold mb-3">
-            {isEn ? "Got questions?" : "Des questions ?"}
+            {t('faq_heading_prefix')}
           </p>
           <h2 className="font-display text-2xl lg:text-4xl font-bold text-foreground leading-tight">
-            {isEn ? "Frequently asked questions" : "Questions fréquentes"}
+            {t('faq_heading')}
           </h2>
           <p className="mt-3 text-sm text-foreground/50 max-w-md mx-auto">
-            {isEn
-              ? "Can't find your answer? Our AI assistant is always here to help."
-              : "Vous ne trouvez pas votre réponse ? Notre assistant IA est là pour vous."}
+            {t('faq_subtitle')}
           </p>
         </div>
 
@@ -138,14 +136,14 @@ export default function HomeFAQ() {
         {/* CTA to AI */}
         <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3 text-center">
           <span className="text-sm text-foreground/50">
-            {isEn ? "Still have questions?" : "Encore des questions ?"}
+            {t('faq_still_questions')}
           </span>
           <Link
             href="/numba/ai-consultant"
             className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gold/10 border border-gold/30 text-gold text-xs font-semibold uppercase tracking-widest hover:bg-gold/20 hover:border-gold/50 transition-all duration-200"
           >
             <Sparkles size={13} strokeWidth={1.8} />
-            {isEn ? "Ask our AI" : "Demander à notre IA"}
+            {t('faq_ask_ai')}
           </Link>
         </div>
       </div>

@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ShoppingBag, X, Plus, Minus, Trash2, ArrowRight, Package } from 'lucide-react';
 import Link from 'next/link';
+import { useTranslation } from 'react-i18next';
 import AppImage from '@/components/ui/AppImage';
 import { useCartStore } from '@/store/useCartStore';
 import { useThemeStore } from '@/store/useThemeStore';
@@ -92,6 +93,7 @@ function CartLineItem({ line }: { line: CartLine }) {
 }
 
 export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
+  const { t } = useTranslation();
   const { getAllLines, getItemCount, getTotalPrice, getSubtotal, getDiscount, getShipping } = useCartStore();
   const theme = useThemeStore((s) => s.theme);
   const isDark = theme === 'dark';
@@ -146,7 +148,7 @@ export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
             <div className={`flex items-center justify-between px-5 py-4 border-b ${isDark ? 'border-white/[0.06]' : 'border-black/[0.08]'}`}>
               <div className="flex items-center gap-3">
                 <ShoppingBag size={18} className="text-gold" />
-                <span className="text-sm font-bold tracking-wide text-foreground">Mon Panier</span>
+                <span className="text-sm font-bold tracking-wide text-foreground">{t('cart_title', { defaultValue: 'My Cart' })}</span>
                 {itemCount > 0 && (
                   <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-gold text-black">
                     {itemCount}
@@ -174,12 +176,12 @@ export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                     <div className={`w-16 h-16 rounded-full ${isDark ? 'bg-white/5 border-white/10' : 'bg-black/5 border-black/10'} border flex items-center justify-center`}>
                       <ShoppingBag size={24} className="text-foreground/30" />
                     </div>
-                    <p className="text-sm text-foreground/40">Votre panier est vide</p>
+                    <p className="text-sm text-foreground/40">{t('cart_empty', { defaultValue: 'Your cart is empty' })}</p>
                     <button
                       onClick={onClose}
                       className="text-xs text-gold hover:underline"
                     >
-                      Continuer mes achats →
+                      {t('continue_shopping_short', { defaultValue: 'Continue shopping →' })}
                     </button>
                   </motion.div>
                 ) : (
@@ -196,21 +198,21 @@ export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                 {/* Summary rows */}
                 <div className="space-y-1.5 text-xs">
                   <div className="flex justify-between text-foreground/50">
-                    <span>Sous-total</span>
+                    <span>{t('subtotal', { defaultValue: 'Subtotal' })}</span>
                     <span>{formatPrice(subtotal)}</span>
                   </div>
                   {discount > 0 && (
                     <div className="flex justify-between text-emerald-400">
-                      <span>Réduction</span>
+                      <span>{t('discount', { defaultValue: 'Discount' })}</span>
                       <span>-{formatPrice(discount)}</span>
                     </div>
                   )}
                   <div className="flex justify-between text-foreground/50">
-                    <span>Livraison</span>
-                    <span>{shipping > 0 ? formatPrice(shipping) : 'Calculée à la commande'}</span>
+                    <span>{t('shipping', { defaultValue: 'Shipping' })}</span>
+                    <span>{shipping > 0 ? formatPrice(shipping) : t('shipping_calculated', { defaultValue: 'Calculated at checkout' })}</span>
                   </div>
                   <div className={`flex justify-between font-bold text-foreground border-t pt-2 mt-2 text-sm ${isDark ? 'border-white/5' : 'border-black/10'}`}>
-                    <span>Total</span>
+                    <span>{t('total', { defaultValue: 'Total' })}</span>
                     <span className="text-gold">{formatPrice(total)}</span>
                   </div>
                 </div>
@@ -221,14 +223,14 @@ export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                   onClick={onClose}
                   className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-gold text-black font-bold text-sm hover:bg-gold/90 active:scale-[0.98] transition-all"
                 >
-                  Passer la commande
+                  {t('checkout', { defaultValue: 'Checkout' })}
                   <ArrowRight size={15} />
                 </Link>
                 <button
                   onClick={onClose}
                   className={`w-full py-2.5 rounded-xl border text-xs text-foreground/50 hover:text-foreground transition-all ${isDark ? 'border-white/10 hover:border-white/20' : 'border-black/10 hover:border-black/20'}`}
                 >
-                  Continuer mes achats
+                  {t('continue_shopping', { defaultValue: 'Continue shopping' })}
                 </button>
               </div>
             )}

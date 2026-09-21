@@ -11,25 +11,27 @@ import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence, LayoutGroup } from 'framer-motion';
 import { ArrowLeft, Sparkles } from 'lucide-react';
 import { useMemo } from 'react';
-
-const TAGLINES = [
-  { title: "L'art de l'élégance.", body: "Rejoignez notre espace membre exclusif pour accéder à vos créations sur mesure." },
-  { title: 'Façonné pour vous.', body: 'Suivez vos commandes, sauvegardez vos envies et recevez nos pièces en avant-première.' },
-  { title: 'Une signature rare.', body: 'Chaque accessoire est numéroté, signé, et pensé pour durer toute une vie.' },
-];
+import { useTranslation } from 'react-i18next';
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const { t } = useTranslation();
 
   // On /register the form sits on the LEFT and the brand panel on the RIGHT.
   // On every other auth route the form sits on the RIGHT (default).
   const formOnLeft = pathname?.startsWith('/register');
 
   const tagline = useMemo(() => {
-    if (pathname?.startsWith('/register')) return TAGLINES[1];
-    if (pathname?.startsWith('/forgot-password') || pathname?.startsWith('/reset-password')) return TAGLINES[2];
-    return TAGLINES[0];
-  }, [pathname]);
+    const taglines = [
+      { title: t('auth_tagline_luxury_title'), body: t('auth_tagline_luxury_body') },
+      { title: t('auth_tagline_tailored_title'), body: t('auth_tagline_tailored_body') },
+      { title: t('auth_tagline_signature_title'), body: t('auth_tagline_signature_body') },
+    ];
+
+    if (pathname?.startsWith('/register')) return taglines[1];
+    if (pathname?.startsWith('/forgot-password') || pathname?.startsWith('/reset-password')) return taglines[2];
+    return taglines[0];
+  }, [pathname, t]);
 
   const Brand = (
     <motion.aside
@@ -75,7 +77,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
             transition={{ duration: 0.45 }}
           >
             <div className="inline-flex items-center gap-2 text-gold/80 text-xs uppercase tracking-[0.25em] mb-4">
-              <Sparkles size={14} /> Maison privée
+              <Sparkles size={14} /> {t('auth_private_house')}
             </div>
             <h2 className="font-display text-4xl lg:text-5xl text-foreground font-bold mb-4 leading-tight">
               {tagline.title}
@@ -105,7 +107,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
           href="/"
           className="inline-flex items-center gap-2 text-sm text-foreground/50 hover:text-gold mb-6 transition-colors"
         >
-          <ArrowLeft size={16} /> Retour à l'accueil
+          <ArrowLeft size={16} /> {t('return_to_home')}
         </Link>
 
         <div className="relative rounded-2xl border border-gold/15 bg-charcoal/40 backdrop-blur-md shadow-[0_30px_80px_-30px_rgba(0,0,0,0.7)] p-7 sm:p-9">

@@ -27,17 +27,13 @@ import { CookieIcon } from '@/components/shared/CookieConsentBanner';
 export function Footer() {
   const { t, i18n } = useTranslation();
   const isEn = i18n.language?.startsWith('en');
-  const [mounted, setMounted] = useState(false);
   const [companyInfo, setCompanyInfo] = useState<CompanyInfo | null>(null);
 
   useEffect(() => {
-    setMounted(true);
     shopService.getCompanyInfos().then((data) => {
       if (Array.isArray(data) && data.length > 0) setCompanyInfo(data[0]);
     }).catch(() => {});
   }, []);
-
-  if (!mounted) return <footer className="hidden md:block bg-[var(--t-footer-bg)] h-[400px]" />;
 
   return (
     <>
@@ -125,7 +121,7 @@ export function Footer() {
 
           {/* Services */}
           <div>
-            <h4 className="font-display text-sm font-semibold text-zinc-900 dark:text-zinc-100 mb-4 uppercase tracking-wider">Services</h4>
+            <h4 className="font-display text-sm font-semibold text-zinc-900 dark:text-zinc-100 mb-4 uppercase tracking-wider">{t('services', { defaultValue: 'Services' })}</h4>
             <ul className="space-y-3 text-zinc-600 dark:text-zinc-400">
               {[
                 t('custom_perfume', 'Parfum sur Mesure'),
@@ -167,7 +163,7 @@ export function Footer() {
 
           {/* Contact */}
           <div>
-            <h4 className="font-display text-sm font-semibold text-zinc-900 dark:text-zinc-100 mb-4 uppercase tracking-wider">Contact</h4>
+            <h4 className="font-display text-sm font-semibold text-zinc-900 dark:text-zinc-100 mb-4 uppercase tracking-wider">{t('contact', { defaultValue: 'Contact' })}</h4>
             <ul className="space-y-3 text-zinc-600 dark:text-zinc-400">
               <li className="flex items-center gap-2 text-sm">
                 <Phone size={16} className="text-gold shrink-0" />

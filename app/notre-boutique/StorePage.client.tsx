@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { MapPin, Clock, Phone, Navigation, MessageCircle, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
@@ -35,7 +35,7 @@ function LeafletMap() {
   const { i18n } = useTranslation();
   const isEn = i18n.language?.startsWith('en');
   const mapRef = useRef<HTMLDivElement>(null);
-  const mapInstanceRef = useRef<any>(null);
+  const mapInstanceRef = useRef<{ remove: () => void } | null>(null);
 
   useEffect(() => {
     if (mapInstanceRef.current || !mapRef.current) return;
@@ -103,7 +103,7 @@ function LeafletMap() {
         mapInstanceRef.current = null;
       }
     };
-  }, []);
+  }, [isEn]);
 
   return (
     <div
@@ -115,7 +115,7 @@ function LeafletMap() {
 }
 
 export default function StorePage() {
-  const { i18n } = useTranslation();
+  const { i18n, t } = useTranslation();
   const isEn = i18n.language?.startsWith('en');
   const [companyInfo, setCompanyInfo] = useState<CompanyInfo | null>(null);
 
@@ -158,7 +158,7 @@ export default function StorePage() {
           className="inline-flex items-center gap-2 text-[11px] uppercase tracking-widest text-foreground/40 hover:text-gold transition-colors"
         >
           <ArrowLeft size={13} />
-          Retour à l'accueil
+          {t('store_back_to_home')}
         </Link>
       </div>
 
@@ -171,18 +171,16 @@ export default function StorePage() {
           className="mb-10"
         >
           <span className="text-[11px] font-mono uppercase tracking-[0.3em] text-gold block mb-3">
-            Notre Boutique
+            {t('store_boutique')}
           </span>
           <h1 className="text-4xl sm:text-5xl font-bold tracking-tight text-foreground mb-2">
-            {isEn ? "Find us in" : "Retrouvez-nous à"}
+            {t('store_find_us_in')}
           </h1>
           <h2 className="text-4xl sm:text-5xl font-bold tracking-tight text-gradient-gold">
-            {isEn ? "Yaounde" : "Yaoundé"}
+            {t('store_yaounde')}
           </h2>
           <p className="mt-4 text-sm text-foreground/50 max-w-lg">
-            {isEn
-              ? "Experience Accessoires Exclusifs in person — explore our olfactory workshop, try our creations, and receive personalized advice."
-              : "Venez vivre l'expérience Accessoires Exclusifs en personne — découvrez notre atelier olfactif, essayez nos créations et recevez un conseil personnalisé."}
+            {t('store_description')}
           </p>
         </motion.div>
 
@@ -206,7 +204,7 @@ export default function StorePage() {
                 <MapPin size={16} className="text-gold" />
               </div>
               <div>
-                <p className="text-[10px] uppercase tracking-widest text-foreground/40 font-mono mb-1">Adresse</p>
+                <p className="text-[10px] uppercase tracking-widest text-foreground/40 font-mono mb-1">{t('store_address_label')}</p>
                 <p className="text-sm font-semibold text-foreground">{storeDetails.name}</p>
                 <p className="text-xs text-foreground/50 mt-0.5">{storeDetails.address}</p>
               </div>
@@ -218,7 +216,7 @@ export default function StorePage() {
                 <Clock size={16} className="text-gold" />
               </div>
               <div className="flex-1">
-                <p className="text-[10px] uppercase tracking-widest text-foreground/40 font-mono mb-2">Horaires</p>
+                <p className="text-[10px] uppercase tracking-widest text-foreground/40 font-mono mb-2">{t('store_hours_label')}</p>
                 <div className="space-y-1.5">
                   {STORE_INFO.hours.map(({ day, time }) => (
                     <div key={day} className="flex justify-between text-xs">
@@ -238,7 +236,7 @@ export default function StorePage() {
                 <Phone size={16} className="text-gold" />
               </div>
               <div>
-                <p className="text-[10px] uppercase tracking-widest text-foreground/40 font-mono mb-1">Contact</p>
+                <p className="text-[10px] uppercase tracking-widest text-foreground/40 font-mono mb-1">{t('store_contact_label')}</p>
                 <p className="text-sm font-semibold text-foreground">{storeDetails.phone}</p>
               </div>
             </div>
@@ -249,7 +247,7 @@ export default function StorePage() {
               className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl bg-gold text-black font-bold text-sm hover:bg-gold/90 active:scale-[0.98] transition-all"
             >
               <Navigation size={16} />
-              Obtenir l'itinéraire
+              {t('store_get_directions')}
             </button>
 
             <a
@@ -259,7 +257,7 @@ export default function StorePage() {
               className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl border border-white/10 text-sm text-foreground/70 hover:text-foreground hover:border-white/20 transition-all"
             >
               <MessageCircle size={16} className="text-emerald-400" />
-              Contacter via WhatsApp
+              {t('store_whatsapp')}
             </a>
           </div>
         </motion.div>

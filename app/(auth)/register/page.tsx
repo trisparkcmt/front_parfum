@@ -193,14 +193,14 @@ function RegisterFormContent() {
       const success = await loginWithGoogle(googleAccessToken);
       if (success) router.push(redirectUrl);
     } catch (err: any) {
-      setFormError(err.message || 'Échec de la connexion Google');
+      setFormError(err.message || t('google_login_failed', { defaultValue: 'Google login failed' }));
     }
   };
 
   return (
     <div>
       <div className="mb-7">
-        <span className="inline-block text-[10px] uppercase tracking-[0.3em] text-gold/80 mb-2">Inscription</span>
+        <span className="inline-block text-[10px] uppercase tracking-[0.3em] text-gold/80 mb-2">{t('register_title')}</span>
         <h1 className="font-display text-3xl font-bold mb-2">{t('create_account_title')}</h1>
         <p className="text-foreground/60 text-sm">{t('register_desc')}</p>
       </div>

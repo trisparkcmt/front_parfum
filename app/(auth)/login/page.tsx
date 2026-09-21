@@ -5,7 +5,7 @@
  * Refactored: outer motion + card chrome now live in the shared (auth)/layout.tsx.
  * Adds a "Didn't receive the verification email?" link → /resend-verification.
  */
-import { Suspense, useState, useEffect } from 'react';
+import { Suspense, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Mail, Lock, LogIn, MailQuestion } from 'lucide-react';
@@ -88,7 +88,7 @@ function LoginFormContent() {
       } else {
         setFormError(t('login_error', { defaultValue: 'Identifiant ou mot de passe incorrect.' }));
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       const errorMessage = extractApiError(err, t('login_error', { defaultValue: 'Identifiant ou mot de passe incorrect.' }));
       setFormError(errorMessage);
       if (errors.loginInput) {
@@ -110,7 +110,7 @@ function LoginFormContent() {
     try {
       const success = await loginWithGoogle(googleAccessToken);
       if (success) router.push(redirectUrl);
-    } catch (err: any) {
+    } catch (err: unknown) {
       setFormError(extractApiError(err, t('login_error', { defaultValue: 'Échec de la connexion Google' })));
     }
   };
@@ -118,7 +118,7 @@ function LoginFormContent() {
   return (
     <div>
       <div className="mb-7">
-        <span className="inline-block text-[10px] uppercase tracking-[0.3em] text-gold/80 mb-2">Connexion</span>
+        <span className="inline-block text-[10px] uppercase tracking-[0.3em] text-gold/80 mb-2">{t('login_title')}</span>
         <h1 className="font-display text-3xl font-bold mb-2">{t('welcome_back')}</h1>
         <p className="text-foreground/60 text-sm">{t('login_desc')}</p>
       </div>
@@ -166,7 +166,7 @@ function LoginFormContent() {
               className="rounded border-white/10 bg-white/5 text-gold focus:ring-gold size-4 cursor-pointer"
             />
             <span className="text-xs text-foreground/75">
-              {i18n.language === 'en' ? 'Remember Me' : 'Se souvenir de moi'}
+              {t('remember_me')}
             </span>
           </label>
         </div>
@@ -178,14 +178,14 @@ function LoginFormContent() {
 
       <div className="my-5 flex items-center gap-3">
         <div className="h-px flex-1 bg-foreground/10" />
-        <span className="text-xs text-foreground/40 uppercase tracking-wider">ou</span>
+        <span className="text-xs text-foreground/40 uppercase tracking-wider">{t('or')}</span>
         <div className="h-px flex-1 bg-foreground/10" />
       </div>
 
       <GoogleAuthButton
         onTokenReceived={handleGoogleLogin}
         disabled={isLoading}
-        label="Continuer avec Google"
+        label={t('continue_with_google')}
       />
 
       {/* Flow fix: resend verification reachable from login */}
@@ -195,8 +195,8 @@ function LoginFormContent() {
           className="group flex items-center justify-center gap-2 w-full rounded-xl border border-gold/15 bg-charcoal/30 px-4 py-2.5 text-xs text-foreground/70 hover:text-gold hover:border-gold/40 transition-colors"
         >
           <MailQuestion size={14} className="text-gold/80" />
-          Vous n'avez pas reçu l'e-mail de validation&nbsp;?
-          <span className="text-gold font-medium group-hover:underline">Renvoyer</span>
+          {t('did_not_receive_verification')}
+          <span className="text-gold font-medium group-hover:underline">{t('resend')}</span>
         </Link>
       </div>
 
@@ -215,9 +215,7 @@ function LoginFormContent() {
 
 export default function LoginPage() {
   const { t } = useTranslation();
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
-  if (!mounted) return null;
+
   return (
     <Suspense fallback={<div className="text-gold">{t('loading')}</div>}>
       <LoginFormContent />
