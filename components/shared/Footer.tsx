@@ -216,17 +216,17 @@ export function Footer() {
           © {new Date().getFullYear()} Accessoires Exclusifs. {t('all_rights_reserved', { defaultValue: isEn ? 'All rights reserved.' : 'Tous droits réservés.' })}
         </p>
         <div className="flex items-center justify-center gap-3 flex-wrap">
-          <Link href="/privacy" className="text-xs text-zinc-500 hover:text-gold transition-colors">
+          <Link href="/privacy" className="text-xs font-medium text-gold underline decoration-gold/80 underline-offset-4 hover:text-gold/80 transition-colors">
             {t('privacy_policy', 'Confidentialité')}
           </Link>
           <span className="text-zinc-600 text-xs">·</span>
-          <Link href="/terms" className="text-xs text-zinc-500 hover:text-gold transition-colors">
+          <Link href="/terms" className="text-xs font-medium text-gold underline decoration-gold/80 underline-offset-4 hover:text-gold/80 transition-colors">
             {t('terms_short', 'CGU')}
           </Link>
           <span className="text-zinc-600 text-xs">·</span>
           <button
             onClick={() => window.dispatchEvent(new Event('open_cookie_banner'))}
-            className="text-xs text-zinc-500 hover:text-gold transition-colors"
+            className="text-xs font-medium text-gold underline decoration-gold/80 underline-offset-4 hover:text-gold/80 transition-colors"
           >
             Gérer les cookies
           </button>

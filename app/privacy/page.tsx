@@ -19,7 +19,7 @@ export default function PrivacyPage() {
   const isEn = i18n.language?.startsWith('en');
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8 space-y-6">
+    <div className="max-w-4xl mx-auto px-4 pt-24 md:pt-8 pb-8 space-y-6">
       <BackButton label={t('back', { defaultValue: isEn ? 'Back' : 'Retour' })} />
 
       <div className="border-b border-white/10 pb-6">

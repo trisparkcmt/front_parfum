@@ -414,7 +414,9 @@ export default function PerfumesShopClient() {
           famille_olfactive: olfactiveFamily !== 'all' ? olfactiveFamily : undefined,
           intensite: intensity !== 'all' ? intensity : undefined,
           prix_max: maxPrice < 150000 ? maxPrice : undefined,
-          page: activeTab === 'huile' ? currentPage : undefined,
+          // Always pass the current page so we get the matching slice of essences,
+          // not the full list repeated on every perfume page.
+          page: currentPage > 1 ? currentPage : undefined,
         });
 
         const essenceItems = shuffleArray(Array.isArray(response) ? response : response.results);

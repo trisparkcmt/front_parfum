@@ -15,7 +15,7 @@
  *     triggers the same `popstate` → `onClose` flow.
  */
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import AppImage from '@/components/ui/AppImage';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -74,6 +74,11 @@ export function ProductDetailModal({
   const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
   const [selectedVariant, setSelectedVariant] = useState<ProduitFiniEssence | null>(null);
   const [selectedEssence, setSelectedEssence] = useState<Product | null>(null);
+  const [showImageDisclaimer, setShowImageDisclaimer] = useState(false);
+
+  // Swipe tracking refs
+  const touchStartXRef = useRef<number | null>(null);
+  const SWIPE_THRESHOLD = 50;
 
   const { addProduct, addDiffuseur } = useCartStore();
   const { addFavorite, removeFavorite, isFavorite } = useFavoritesStore();
@@ -391,11 +396,42 @@ export function ProductDetailModal({
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20 mb-10 lg:mb-24">
                   {/* Gallery */}
                   <div className="space-y-4 lg:sticky lg:top-28 lg:self-start">
+                    {/* Hidden preload: eagerly load all images in background */}
+                    {product.images && product.images.filter(Boolean).map((img, idx) =>
+                      idx === 0 ? null : (
+                        <AppImage
+                          key={`preload-${idx}`}
+                          src={img}
+                          alt=""
+                          width={1}
+                          height={1}
+                          priority
+                          loading="eager"
+                          className="!absolute !w-0 !h-0 !opacity-0 !pointer-events-none"
+                        />
+                      )
+                    )}
+
                     <motion.div
                       initial={{ opacity: 0, scale: 0.97 }}
                       animate={{ opacity: 1, scale: 1 }}
                       transition={{ duration: 0.5, ease: [0.23, 1, 0.32, 1] }}
-                      className="relative aspect-square rounded-3xl overflow-hidden bg-foreground/5 border border-foreground/10 group"
+                      className="relative aspect-square rounded-3xl overflow-hidden bg-foreground/5 border border-foreground/10 group cursor-grab active:cursor-grabbing select-none"
+                      onTouchStart={(e) => {
+                        touchStartXRef.current = e.touches[0].clientX;
+                      }}
+                      onTouchEnd={(e) => {
+                        if (touchStartXRef.current === null) return;
+                        const delta = e.changedTouches[0].clientX - touchStartXRef.current;
+                        touchStartXRef.current = null;
+                        const images = product.images?.filter(Boolean) ?? [];
+                        if (images.length <= 1) return;
+                        if (delta < -SWIPE_THRESHOLD) {
+                          setActiveImage((prev) => (prev + 1) % images.length);
+                        } else if (delta > SWIPE_THRESHOLD) {
+                          setActiveImage((prev) => (prev - 1 + images.length) % images.length);
+                        }
+                      }}
                     >
                       {(product.is_new || product.is_bestseller) && (
                         <div className="absolute top-4 left-4 z-10 flex gap-2">
@@ -456,11 +492,46 @@ export function ProductDetailModal({
                                   : 'border-foreground/10 hover:border-foreground/30'
                               )}
                             >
-                              <AppImage src={img} alt={`${product.name} vue ${idx + 1}`} fill className="object-cover" />
+                              <AppImage src={img} alt={`${product.name} vue ${idx + 1}`} fill loading="eager" className="object-cover" />
                             </motion.button>
                           ))}
                       </div>
                     )}
+
+                    {/* Image disclaimer */}
+                    <div className="flex items-center gap-1.5 mt-1">
+                      <p className="text-[10px] text-foreground/35 italic">
+                        {isEn
+                          ? 'Actual product may slightly vary from images.'
+                          : "Le produit réel peut légèrement différer des images."}
+                      </p>
+                      <div className="relative">
+                        <button
+                          type="button"
+                          onClick={() => setShowImageDisclaimer((v) => !v)}
+                          aria-label={isEn ? 'Why may images vary?' : 'Pourquoi les images peuvent varier ?'}
+                          className="w-4 h-4 rounded-full border border-foreground/25 text-foreground/40 hover:text-foreground/70 hover:border-foreground/50 transition-colors flex items-center justify-center flex-shrink-0"
+                        >
+                          <span className="text-[9px] font-bold leading-none select-none">?</span>
+                        </button>
+                        <AnimatePresence>
+                          {showImageDisclaimer && (
+                            <motion.div
+                              initial={{ opacity: 0, y: 4, scale: 0.95 }}
+                              animate={{ opacity: 1, y: 0, scale: 1 }}
+                              exit={{ opacity: 0, y: 4, scale: 0.95 }}
+                              transition={{ duration: 0.15 }}
+                              className="absolute bottom-6 left-1/2 -translate-x-1/2 w-64 bg-background border border-foreground/15 rounded-xl shadow-xl p-3 z-20 text-[10px] text-foreground/60 leading-relaxed"
+                            >
+                              {isEn
+                                ? 'The actual product may differ from images because the manufacturer may have updated the packaging since the photo was taken, or some images have been enhanced using AI for presentation purposes.'
+                                : "Le produit peut différer des images car le fabricant a pu modifier l'emballage depuis la prise de vue, ou certaines images ont été améliorées à l'aide de l'IA à des fins de présentation."}
+                              <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-3 h-3 bg-background border-r border-b border-foreground/15 rotate-45" />
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </div>
+                    </div>
                   </div>
 
                   {/* Details */}

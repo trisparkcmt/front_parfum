@@ -54,7 +54,9 @@ export function interleaveArraysWithRatio<T>(
   let indexA = 0;
   let indexB = 0;
 
-  while (indexA < listA.length || indexB < listB.length) {
+  // We stop interleaving as soon as the primary list (listA) is exhausted.
+  // This prevents appending all of listB at the end when listA is shorter.
+  while (indexA < listA.length) {
     for (let i = 0; i < ratioA && indexA < listA.length; i += 1) {
       result.push(listA[indexA]);
       indexA += 1;

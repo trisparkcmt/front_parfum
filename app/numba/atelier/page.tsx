@@ -138,8 +138,8 @@ function Bottle100({ totalMl, maxFillMl, quantities, allItems }: any) {
       <line x1="48" y1="124" x2="48" y2="422" stroke="rgba(255,255,255,0.88)" strokeWidth="2.5" strokeLinecap="round" />
       <line x1="212" y1="124" x2="212" y2="422" stroke="rgba(255,255,255,0.40)" strokeWidth="1.5" strokeLinecap="round" />
       <line x1="130" y1="120" x2="130" y2="428" stroke="rgba(255,255,255,0.08)" strokeWidth="0.6" />
-      <text x="130" y="310" textAnchor="middle" fontFamily="serif" fontSize="11" fill="rgba(197,160,89,0.60)" letterSpacing="5">NUMBA</text>
-      <text x="130" y="326" textAnchor="middle" fontFamily="sans-serif" fontSize="7" fill="rgba(197,160,89,0.38)" letterSpacing="7">ATELIER</text>
+      <text x="130" y="310" textAnchor="middle" fontFamily="serif" fontSize="16" fill="rgba(197,160,89,0.60)" letterSpacing="5">NUMBA</text>
+      <text x="130" y="329" textAnchor="middle" fontFamily="sans-serif" fontSize="9" fill="rgba(197,160,89,0.38)" letterSpacing="7">ATELIER</text>
       <rect x="100" y="58" width="60" height="64" rx="2" fill="url(#g-glass-v-100)" stroke="rgba(180,170,155,0.40)" strokeWidth="0.8" />
       <rect x="95" y="48" width="70" height="16" rx="3" fill="url(#g-chrome-100)" stroke="rgba(160,160,160,0.4)" strokeWidth="0.5" />
       <rect x="98" y="38" width="64" height="14" rx="3" fill="url(#g-chrome-100)" stroke="rgba(160,160,160,0.35)" strokeWidth="0.5" />
@@ -178,7 +178,7 @@ function Bottle50({ totalMl, maxFillMl, quantities, allItems }: any) {
       <rect x="118" y="80" width="24" height="45" fill="url(#g-glass-v-50)" stroke="rgba(180,170,155,0.4)" />
       <circle cx="130" cy="45" r="35" fill="url(#g-glass-v-50)" stroke="rgba(197,160,89,0.5)" strokeWidth="1" />
       <circle cx="130" cy="45" r="35" fill="url(#g-glass-50)" opacity="0.7" />
-      <text x="130" y="52" textAnchor="middle" fontFamily="serif" fontSize="14" fill="rgba(197,160,89,0.8)" >N</text>
+      <text x="130" y="52" textAnchor="middle" fontFamily="serif" fontSize="18" fill="rgba(197,160,89,0.8)" >N</text>
       <g className="drip-group">
         <line x1="130" y1="0" x2="130" y2="40" stroke="url(#g-drip-50)" strokeWidth="3" strokeLinecap="round" />
       </g>
@@ -207,7 +207,7 @@ function Bottle30({ totalMl, maxFillMl, quantities, allItems }: any) {
       <rect x="98" y="140" width="4" height="200" rx="2" fill="rgba(255,255,255,0.6)" opacity="0.3" />
       <rect x="110" y="70" width="40" height="35" rx="2" fill="url(#g-chrome-30)" />
       <rect x="95" y="15" width="70" height="55" rx="5" fill="#111" stroke="#C5A059" strokeWidth="1.5" />
-      <text x="130" y="48" textAnchor="middle" fontFamily="serif" fontSize="12" fill="#C5A059">N</text>
+      <text x="130" y="49" textAnchor="middle" fontFamily="serif" fontSize="16" fill="#C5A059">N</text>
       <g className="drip-group">
         <line x1="130" y1="0" x2="130" y2="25" stroke="url(#g-drip-30)" strokeWidth="3" strokeLinecap="round" />
       </g>
@@ -1223,7 +1223,7 @@ function AtelierContent() {
           </div>
         </div>
 
-        <div className="mt-auto pb-12 w-full max-w-xs">
+        <div className="mt-auto pb-12 w-full max-w-xs hidden md:block">
           <div className="flex justify-between items-end mb-2">
             <span className="text-[10px] uppercase tracking-widest text-gold/60">Composition</span>
             <span className="text-[14px] font-light text-foreground/70">{totalMl} / {maxFillMl} ml</span>
