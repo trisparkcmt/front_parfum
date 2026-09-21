@@ -138,13 +138,13 @@ export function Footer() {
           {/* Légal */}
           <div>
             <h4 className="font-display text-sm font-semibold text-zinc-900 dark:text-zinc-100 mb-4 uppercase tracking-wider">
-              {t('legal', 'Légal')}
+              {t('legal', { defaultValue: isEn ? 'Legal' : 'Légal' })}
             </h4>
             <ul className="space-y-3">
               {[
-                { label: t('privacy_policy', 'Politique de confidentialité'), href: '/privacy' },
-                { label: t('terms_short', 'Conditions générales'), href: '/terms' },
-                { label: t('cookies_policy', 'Politique des cookies'), href: '/privacy#cookies' },
+                { label: t('privacy_policy', { defaultValue: isEn ? 'Privacy Policy' : 'Politique de confidentialité' }), href: '/privacy' },
+                { label: t('terms_short', { defaultValue: isEn ? 'Terms & Conditions' : 'Conditions générales' }), href: '/terms' },
+                { label: t('cookies_policy', { defaultValue: isEn ? 'Cookie Policy' : 'Politique des cookies' }), href: '/privacy#cookies' },
               ].map((link) => (
                 <li key={link.href}>
                   <Link href={link.href} className="text-sm text-zinc-600 dark:text-zinc-400 hover:text-gold transition-colors">
@@ -157,7 +157,7 @@ export function Footer() {
                   onClick={() => window.dispatchEvent(new Event('open_cookie_banner'))}
                   className="text-sm text-zinc-600 dark:text-zinc-400 hover:text-gold transition-colors"
                 >
-                  🍪 Gérer les cookies
+                  🍪 {t('manage_cookies', { defaultValue: isEn ? 'Manage cookies' : 'Gérer les cookies' })}
                 </button>
               </li>
             </ul>
@@ -217,18 +217,18 @@ export function Footer() {
         </p>
         <div className="flex items-center justify-center gap-3 flex-wrap">
           <Link href="/privacy" className="text-xs font-medium text-gold underline decoration-gold/80 underline-offset-4 hover:text-gold/80 transition-colors">
-            {t('privacy_policy', 'Confidentialité')}
+            {t('privacy_policy', { defaultValue: isEn ? 'Privacy Policy' : 'Politique de confidentialité' })}
           </Link>
           <span className="text-zinc-600 text-xs">·</span>
           <Link href="/terms" className="text-xs font-medium text-gold underline decoration-gold/80 underline-offset-4 hover:text-gold/80 transition-colors">
-            {t('terms_short', 'CGU')}
+            {t('terms_short', { defaultValue: isEn ? 'Terms & Conditions' : 'Conditions générales' })}
           </Link>
           <span className="text-zinc-600 text-xs">·</span>
           <button
             onClick={() => window.dispatchEvent(new Event('open_cookie_banner'))}
             className="text-xs font-medium text-gold underline decoration-gold/80 underline-offset-4 hover:text-gold/80 transition-colors"
           >
-            Gérer les cookies
+            {t('manage_cookies', { defaultValue: isEn ? 'Manage cookies' : 'Gérer les cookies' })}
           </button>
         </div>
         <p className="text-xs text-zinc-500 mt-0.5">

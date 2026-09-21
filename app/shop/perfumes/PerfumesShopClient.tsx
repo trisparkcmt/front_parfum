@@ -616,7 +616,17 @@ export default function PerfumesShopClient() {
     if (activeTab === 'huile') return finishedEssenceProducts;
     if (activeTab !== 'all') return products;
 
-    return interleaveArraysWithRatio(products, finishedEssenceProducts, 3, 1);
+    const interleaved = interleaveArraysWithRatio(products, finishedEssenceProducts, 3, 1);
+    
+    // Ensure the total number of items is even for a perfect 2-column mobile grid
+    if (interleaved.length % 2 !== 0) {
+      const unusedEssence = finishedEssenceProducts.find(e => !interleaved.includes(e));
+      if (unusedEssence) {
+        interleaved.push(unusedEssence);
+      }
+    }
+    
+    return interleaved;
   }, [activeTab, products, finishedEssenceProducts]);
 
   const isActiveLoading =
@@ -997,7 +1007,7 @@ export default function PerfumesShopClient() {
 
       {/* Pagination Controls */}
       {!loading && totalPages > 1 && (
-        <div className="flex items-center justify-center gap-3 mt-12">
+        <div className="flex items-center justify-center gap-2 sm:gap-3 mt-12 flex-wrap">
           <button
             onClick={() => {
               try {
@@ -1011,13 +1021,14 @@ export default function PerfumesShopClient() {
               setCurrentPage((p) => Math.max(1, p - 1));
             }}
             disabled={currentPage === 1}
-            className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-foreground/10 text-xs font-bold uppercase tracking-wider text-foreground/60 hover:text-foreground hover:bg-foreground/5 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+            className="flex items-center gap-1.5 px-3 sm:px-4 py-2.5 rounded-xl border border-foreground/10 text-xs font-bold uppercase tracking-wider text-foreground/60 hover:text-foreground hover:bg-foreground/5 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+            aria-label={t('prev')}
           >
             <ChevronLeft className="w-3.5 h-3.5" />
-            {t('prev')}
+            <span className="hidden sm:inline">{t('prev')}</span>
           </button>
 
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1 sm:gap-1.5">
             {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
               const isVisible =
                 page === 1 || page === totalPages || Math.abs(page - currentPage) <= 1;
@@ -1027,7 +1038,7 @@ export default function PerfumesShopClient() {
 
               if (isEllipsisBefore || isEllipsisAfter) {
                 return (
-                  <span key={page} className="text-foreground/30 text-xs px-1 select-none">
+                  <span key={page} className="text-foreground/30 text-xs px-0.5 sm:px-1 select-none">
                     …
                   </span>
                 );
@@ -1049,7 +1060,7 @@ export default function PerfumesShopClient() {
                     scrollCatalogToTop();
                     setCurrentPage(page);
                   }}
-                  className={`w-9 h-9 rounded-xl text-xs font-bold transition-all duration-200 ${
+                  className={`w-8 h-8 sm:w-9 sm:h-9 rounded-xl text-xs font-bold transition-all duration-200 ${
                     page === currentPage
                       ? 'bg-gold text-black shadow-md'
                       : 'border border-foreground/10 text-foreground/60 hover:text-foreground hover:bg-foreground/5'
@@ -1074,9 +1085,10 @@ export default function PerfumesShopClient() {
               setCurrentPage((p) => Math.min(totalPages, p + 1));
             }}
             disabled={currentPage === totalPages}
-            className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-foreground/10 text-xs font-bold uppercase tracking-wider text-foreground/60 hover:text-foreground hover:bg-foreground/5 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+            className="flex items-center gap-1.5 px-3 sm:px-4 py-2.5 rounded-xl border border-foreground/10 text-xs font-bold uppercase tracking-wider text-foreground/60 hover:text-foreground hover:bg-foreground/5 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+            aria-label={t('next')}
           >
-            {t('next')}
+            <span className="hidden sm:inline">{t('next')}</span>
             <ChevronRight className="w-3.5 h-3.5" />
           </button>
         </div>
