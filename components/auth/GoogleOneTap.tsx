@@ -25,7 +25,6 @@ export function GoogleOneTap() {
   const pathname = usePathname();
   const clientId = useMemo(() => process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || '', []);
   const hasInitializedRef = useRef(false);
-  const tokenClientRef = useRef<{ requestAccessToken: (options?: { login_hint?: string; prompt?: string }) => void } | null>(null);
 
   useEffect(() => {
     if (isAuthenticated || !clientId || isAuthPage(pathname) || hasInitializedRef.current) {
@@ -33,7 +32,7 @@ export function GoogleOneTap() {
     }
 
     const initializeOneTap = () => {
-      if (!window.google?.accounts?.id || !window.google?.accounts?.oauth2) {
+      if (!window.google?.accounts?.id) {
         console.warn('[GoogleOneTap] Google SDK not ready yet');
         return;
       }
@@ -42,39 +41,21 @@ export function GoogleOneTap() {
         return;
       }
 
-      tokenClientRef.current = window.google.accounts.oauth2.initTokenClient({
+      window.google.accounts.id.initialize({
         client_id: clientId,
-        scope: 'openid email profile',
-        callback: async (tokenResponse) => {
-          if (!tokenResponse?.access_token) {
-            console.warn('[GoogleOneTap] Missing access token from Google callback');
+        callback: async (oneTapResponse) => {
+          if (!oneTapResponse?.credential) {
+            console.warn('[GoogleOneTap] Missing credential from Google One Tap response');
             return;
           }
 
           try {
-            await loginWithGoogle(tokenResponse.access_token);
+            const success = await loginWithGoogle('', undefined, oneTapResponse.credential);
+            if (!success) {
+              console.warn('[GoogleOneTap] One Tap login callback returned false');
+            }
           } catch (err) {
-            console.error('[GoogleOneTap] OAuth2 token login failed:', err);
-          }
-        },
-        error_callback: () => {
-          console.error('[GoogleOneTap] OAuth2 token request failed');
-        },
-      });
-
-      window.google.accounts.id.initialize({
-        client_id: clientId,
-        callback: (oneTapResponse) => {
-          if (!oneTapResponse?.credential) return;
-
-          const payload = decodeJwtPayload(oneTapResponse.credential);
-          const loginHint = payload?.email || payload?.sub || '';
-
-          if (tokenClientRef.current) {
-            tokenClientRef.current.requestAccessToken({
-              prompt: '',
-              ...(loginHint ? { login_hint: loginHint } : {}),
-            });
+            console.error('[GoogleOneTap] One Tap login failed:', err);
           }
         },
         auto_select: false,

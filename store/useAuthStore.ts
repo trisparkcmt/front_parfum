@@ -259,8 +259,14 @@ export const useAuthStore = create<AuthState>()(
             delete api.defaults.headers.common['Authorization'];
           }
 
+          if (!accessToken && !idToken) {
+            set({ isLoading: false });
+            addToast('Connexion Google échouée (aucun jeton reçu).', 'error');
+            return false;
+          }
+
           const googleResponse = await rawApi.post('auth/google/', {
-            access_token: accessToken,
+            access_token: accessToken || undefined,
             code: code || undefined,
             id_token: idToken || undefined,
           }, { withCredentials: true });
