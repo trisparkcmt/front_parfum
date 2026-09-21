@@ -138,8 +138,8 @@ function Bottle100({ totalMl, maxFillMl, quantities, allItems }: any) {
       <line x1="48" y1="124" x2="48" y2="422" stroke="rgba(255,255,255,0.88)" strokeWidth="2.5" strokeLinecap="round" />
       <line x1="212" y1="124" x2="212" y2="422" stroke="rgba(255,255,255,0.40)" strokeWidth="1.5" strokeLinecap="round" />
       <line x1="130" y1="120" x2="130" y2="428" stroke="rgba(255,255,255,0.08)" strokeWidth="0.6" />
-      <text x="130" y="310" textAnchor="middle" fontFamily="serif" fontSize="16" fill="rgba(197,160,89,0.60)" letterSpacing="5">NUMBA</text>
-      <text x="130" y="329" textAnchor="middle" fontFamily="sans-serif" fontSize="9" fill="rgba(197,160,89,0.38)" letterSpacing="7">ATELIER</text>
+      <text x="130" y="306" textAnchor="middle" fontFamily="serif" fontSize="24" fill="rgba(197,160,89,0.70)" letterSpacing="6">NUMBA</text>
+      <text x="130" y="330" textAnchor="middle" fontFamily="sans-serif" fontSize="13" fill="rgba(197,160,89,0.50)" letterSpacing="8">ATELIER</text>
       <rect x="100" y="58" width="60" height="64" rx="2" fill="url(#g-glass-v-100)" stroke="rgba(180,170,155,0.40)" strokeWidth="0.8" />
       <rect x="95" y="48" width="70" height="16" rx="3" fill="url(#g-chrome-100)" stroke="rgba(160,160,160,0.4)" strokeWidth="0.5" />
       <rect x="98" y="38" width="64" height="14" rx="3" fill="url(#g-chrome-100)" stroke="rgba(160,160,160,0.35)" strokeWidth="0.5" />

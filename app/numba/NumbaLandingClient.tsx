@@ -20,19 +20,16 @@ export default function NumbaLandingClient() {
     <div className="min-h-screen bg-background text-foreground font-sans selection:bg-gold selection:text-deep-black flex flex-col justify-between">
       
 
-      <main className="p-4 sm:p-6 lg:p-0 grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-0 w-full max-w-[1800px] mx-auto flex-grow items-stretch lg:border-b lg:border-[var(--t-border)]">
-        <div className="p-8 mt-18 lg:mt-0 sm:p-12 lg:p-16 lg:pt-25 flex flex-col justify-between rounded-2xl lg:rounded-none border border-[var(--t-border)] lg:border-t-0 lg:border-b-0 lg:border-l-0 lg:border-r bg-foreground/[0.03]">
+      <main className="p-4 sm:p-6 lg:p-0 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 lg:gap-0 w-full max-w-[1800px] mx-auto flex-grow items-stretch lg:border-b lg:border-[var(--t-border)]">
+        <div className="p-8 mt-18 md:mt-0 lg:mt-0 sm:p-12 lg:p-16 lg:pt-25 flex flex-col justify-between rounded-2xl lg:rounded-none border border-[var(--t-border)] lg:border-t-0 lg:border-b-0 lg:border-l-0 lg:border-r bg-foreground/[0.03] md:col-span-1 xl:col-span-1">
           <div>
-            {/* <span className="text-[11px] font-mono tracking-[0.25em] uppercase text-gold block mb-2">
-              {t('concept_introduction', { defaultValue: 'Concept Introduction' })}
-            </span> */}
             <h1 className="font-display text-center text-4xl sm:text-5xl xl:text-6xl font-bold tracking-tight text-foreground leading-[1.1] -mb-2">
               {t('welcome_at')}<br />
               <img
-              src="/logo/Numba gold.svg"
-              alt="Accessoires Exclusifs"
-              className="-my-20 w-auto object-contain mx-auto group-hover:scale-105 transition-transform duration-300"
-            />
+                src="/logo/Numba gold.svg"
+                alt="Accessoires Exclusifs"
+                className="-my-20 w-auto object-contain mx-auto group-hover:scale-105 transition-transform duration-300"
+              />
             </h1>
             <div className="mt-12 text-center">
               <span className="inline-block px-5 py-2.5 rounded-full border border-gold/40 bg-gold/10 text-gold text-xs sm:text-sm font-extrabold uppercase tracking-[0.25em] shadow-[0_0_20px_rgba(212,184,122,0.2)]">
@@ -42,76 +39,77 @@ export default function NumbaLandingClient() {
           </div>
 
           <div className="mt-12 lg:mt-0">
-            <p className="text-sm sm:text-base text-foreground/70 font-light leading-relaxed max-w-md">
+            <p className="text-sm sm:text-base text-foreground/70 font-light leading-relaxed max-w-md mx-auto md:mx-0">
               {t('numba_desc')}
             </p>
           </div>
         </div>
 
-        <Link
-          href="/numba/ai-consultant"
-          className="group block relative p-8 lg:mt-15 sm:p-12 lg:p-16 flex flex-col justify-between rounded-2xl lg:rounded-none border-2 border-gold/40 lg:border lg:border-t-0 lg:border-b-0 lg:border-l-0 lg:border-r bg-foreground/[0.01] hover:bg-gold/5 transition-all duration-500 shadow-sm shadow-gold/[0.02] lg:shadow-none"
-        >
-          <div className="lg:hidden absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-gold text-deep-black text-[9px] font-mono tracking-widest uppercase px-3 py-0.5 rounded-full font-bold">
-            {t('option_a', { defaultValue: 'Option A' })}
-          </div>
-
-          <div>
-            <div className="flex justify-between items-baseline mb-16">
-              <span className="text-[11px] font-mono tracking-[0.25em] uppercase text-foreground/40 group-hover:text-gold transition-colors">
-                {t('methodology_a', { defaultValue: 'Methodology A' })}
-              </span>
-              <span className="text-xs font-mono text-gold font-bold bg-gold/10 px-2 py-0.5 rounded lg:bg-transparent lg:p-0">
-                [{t('guided', { defaultValue: 'Guided' })}]
-              </span>
+        <div className="md:col-span-1 md:grid md:grid-rows-2 md:gap-6 xl:contents">
+          <Link
+            href="/numba/ai-consultant"
+            className="group block relative p-8 lg:mt-15 sm:p-12 lg:p-16 flex flex-col justify-between rounded-2xl lg:rounded-none border-2 border-gold/40 lg:border lg:border-t-0 lg:border-b-0 lg:border-l-0 lg:border-r bg-foreground/[0.01] hover:bg-gold/5 transition-all duration-500 shadow-sm shadow-gold/[0.02] lg:shadow-none md:h-full"
+          >
+            <div className="lg:hidden absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-gold text-deep-black text-[9px] font-mono tracking-widest uppercase px-3 py-0.5 rounded-full font-bold">
+              {t('option_a', { defaultValue: 'Option A' })}
             </div>
 
-            <h2 className="font-display text-2xl sm:text-3xl font-bold text-foreground tracking-tight mb-6">
-              {t('ai_sommelier')}
-            </h2>
-            <p className="text-foreground/60 text-sm font-light leading-relaxed max-w-sm">
-              {t('ai_sommelier_desc')}
-            </p>
-          </div>
+            <div>
+              <div className="flex justify-between items-baseline mb-16">
+                <span className="text-[11px] font-mono tracking-[0.25em] uppercase text-foreground/40 group-hover:text-gold transition-colors">
+                  {t('methodology_a', { defaultValue: 'Methodology A' })}
+                </span>
+                <span className="text-xs font-mono text-gold font-bold bg-gold/10 px-2 py-0.5 rounded lg:bg-transparent lg:p-0">
+                  [{t('guided', { defaultValue: 'Guided' })}]
+                </span>
+              </div>
 
-          <div className="mt-16 pt-6 border-t border-[var(--t-border)] flex items-center justify-between text-xs font-mono tracking-[0.2em] uppercase text-gold">
-            <span className="font-bold">{t('consult_ai')}</span>
-            <span className="transform group-hover:translate-x-2 transition-transform duration-300">→</span>
-          </div>
-        </Link>
-
-        <Link
-          href="/numba/atelier"
-          className="group block relative p-8 lg:mt-15 sm:p-12 lg:p-16 flex flex-col justify-between rounded-2xl lg:rounded-none border-2 border-blue/300 lg:border-none bg-foreground/[0.03] lg:bg-transparent hover:bg-foreground/5 transition-all duration-500"
-        >
-          <div className="lg:hidden absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-neutral-800 text-neutral-400 text-[9px] font-mono tracking-widest uppercase px-3 py-0.5 rounded-full border border-[var(--t-border)]">
-            {t('option_b', { defaultValue: 'Option B' })}
-          </div>
-
-          <div>
-            <div className="flex justify-between items-baseline mb-16">
-              <span className="text-[11px] font-mono tracking-[0.25em] uppercase text-foreground/40 group-hover:text-foreground transition-colors">
-                {t('methodology_b', { defaultValue: 'Methodology B' })}
-              </span>
-              <span className="text-xs font-mono text-foreground/50 bg-foreground/10 px-2 py-0.5 rounded lg:bg-transparent lg:p-0">
-                [{t('autonomous', { defaultValue: 'Autonomous' })}]
-              </span>
+              <h2 className="font-display text-2xl sm:text-3xl font-bold text-foreground tracking-tight mb-6">
+                {t('ai_sommelier')}
+              </h2>
+              <p className="text-foreground/60 text-sm font-light leading-relaxed max-w-sm">
+                {t('ai_sommelier_desc')}
+              </p>
             </div>
 
-            <h2 className="font-display text-2xl sm:text-3xl font-bold text-foreground tracking-tight mb-6">
-              {t('free_creation')}
-            </h2>
-            <p className="text-foreground/60 text-sm font-light leading-relaxed max-w-sm">
-              {t('free_creation_desc')}
-            </p>
-          </div>
+            <div className="mt-16 pt-6 border-t border-[var(--t-border)] flex items-center justify-between text-xs font-mono tracking-[0.2em] uppercase text-gold">
+              <span className="font-bold">{t('consult_ai')}</span>
+              <span className="transform group-hover:translate-x-2 transition-transform duration-300">→</span>
+            </div>
+          </Link>
 
-          <div className="mt-16 pt-6 border-t border-[var(--t-border)] flex items-center justify-between text-xs font-mono tracking-[0.2em] uppercase text-foreground">
-            <span className="font-bold">{t('open_atelier')}</span>
-            <span className="transform group-hover:translate-x-2 transition-transform duration-300">→</span>
-          </div>
-        </Link>
+          <Link
+            href="/numba/atelier"
+            className="group block relative p-8 lg:mt-15 sm:p-12 lg:p-16 flex flex-col justify-between rounded-2xl lg:rounded-none border-2 border-blue/300 lg:border-none bg-foreground/[0.03] lg:bg-transparent hover:bg-foreground/5 transition-all duration-500 md:h-full"
+          >
+            <div className="lg:hidden absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-neutral-800 text-neutral-400 text-[9px] font-mono tracking-widest uppercase px-3 py-0.5 rounded-full border border-[var(--t-border)]">
+              {t('option_b', { defaultValue: 'Option B' })}
+            </div>
 
+            <div>
+              <div className="flex justify-between items-baseline mb-16">
+                <span className="text-[11px] font-mono tracking-[0.25em] uppercase text-foreground/40 group-hover:text-foreground transition-colors">
+                  {t('methodology_b', { defaultValue: 'Methodology B' })}
+                </span>
+                <span className="text-xs font-mono text-foreground/50 bg-foreground/10 px-2 py-0.5 rounded lg:bg-transparent lg:p-0">
+                  [{t('autonomous', { defaultValue: 'Autonomous' })}]
+                </span>
+              </div>
+
+              <h2 className="font-display text-2xl sm:text-3xl font-bold text-foreground tracking-tight mb-6">
+                {t('free_creation')}
+              </h2>
+              <p className="text-foreground/60 text-sm font-light leading-relaxed max-w-sm">
+                {t('free_creation_desc')}
+              </p>
+            </div>
+
+            <div className="mt-16 pt-6 border-t border-[var(--t-border)] flex items-center justify-between text-xs font-mono tracking-[0.2em] uppercase text-foreground">
+              <span className="font-bold">{t('open_atelier')}</span>
+              <span className="transform group-hover:translate-x-2 transition-transform duration-300">→</span>
+            </div>
+          </Link>
+        </div>
       </main>
     </div>
   );

@@ -26,7 +26,7 @@ const NAV_LABEL_MAP: Record<string, { fr: string; en: string }> = {
   '/shop/perfumes': { fr: 'Parfumerie', en: 'Perfumes' },
   '/shop/diffuseurs': { fr: 'Diffuseurs', en: 'Diffusers' },
   '/reels': { fr: 'Reels', en: 'Reels' },
-  '/numba': { fr: 'Atelier Numba', en: 'Numba Workshop' },
+  '/numba': { fr: 'Numba', en: 'Numba' },
 };
 
 const UI_DICT: Record<string, { fr: string; en: string }> = {

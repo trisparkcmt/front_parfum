@@ -34,7 +34,7 @@ const BottomNav = () => {
     { href: '/shop/accessories',  icon: Watch,         label: t('nav_accessories', 'Accessoires') },
     { href: '/shop/perfumes',     icon: PerfumeIcon,   label: t('nav_perfumes', 'Parfum') },
     { href: '/shop/diffuseurs',   icon: DiffuseurIcon, label: t('nav_diffuseurs', 'Diffuseurs') },
-    { href: '/numba',             icon: LaptopIcon,    label: t('nav_atelier', 'Atelier') },
+    { href: '/numba',             icon: LaptopIcon,    label: t('nav_numba', 'Numba') },
   ];
 
   const reelsHref = '/reels';

@@ -137,7 +137,7 @@ export const PUBLIC_NAV_LINKS: NavLink[] = [
   { label: 'Parfumerie', href: '/shop/perfumes' },
   { label: 'Diffuseurs', href: '/shop/diffuseurs' },
   { label: 'Reels', href: '/reels' },
-  { label: 'Atelier Numba', href: '/numba' },
+  { label: 'Numba', href: '/numba' },
 ];
 
 export const DASHBOARD_NAV_LINKS: Record<string, NavLink[]> = {
