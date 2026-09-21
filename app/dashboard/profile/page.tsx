@@ -673,6 +673,27 @@ export default function ProfilePage() {
             </Panel>
           </div>
 
+          {/* ---------- CONFIDENTIALITY & DATA ---------- */}
+          <div className="pt-2">
+            <SectionLabel>{t('privacy_data', { defaultValue: isEn ? 'Privacy & Data' : 'Confidentialité et Données' })}</SectionLabel>
+            <Panel className="border-red-500/20 bg-red-500/5">
+              <div className="divide-y divide-foreground/10">
+                <button
+                  onClick={() => addToast(isEn ? 'This feature is coming soon.' : 'Cette fonctionnalité sera bientôt disponible.', 'info')}
+                  className="w-full flex items-center gap-3 px-4 py-3 hover:bg-red-500/10 transition-colors text-left group"
+                >
+                  <div className="flex items-center justify-center w-8 h-8 rounded-lg border border-red-500/20 bg-red-500/10 text-red-500 group-hover:bg-red-500/20 transition-colors shrink-0">
+                    <X size={16} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-red-500">{isEn ? 'Delete my account' : 'Supprimer mon compte'}</p>
+                    <p className="text-xs text-red-500/70 mt-0.5">{isEn ? 'Permanently remove your account and data' : 'Supprimer définitivement votre compte et vos données'}</p>
+                  </div>
+                </button>
+              </div>
+            </Panel>
+          </div>
+
           {/* LOGOUT BUTTON (Mobile only) */}
           <button
             onClick={() => setShowLogoutConfirm(true)}

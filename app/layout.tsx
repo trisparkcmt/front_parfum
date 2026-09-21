@@ -1,6 +1,6 @@
- import type { Metadata, Viewport } from "next";
+import type { Metadata, Viewport } from "next";
 import Script from "next/script";
-import { GoogleAnalytics } from "@next/third-parties/google";
+import { AnalyticsWrapper } from "@/components/shared/AnalyticsWrapper";
 import "./globals.css";
 import { lora } from "@/lib/fonts";
 import { LayoutWrapper } from "@/components/shared/LayoutWrapper";
@@ -158,7 +158,7 @@ export default function RootLayout({
         <InstallPrompt />
         <OfflineBanner />
         
-        <GoogleAnalytics gaId={gaId} />
+        <AnalyticsWrapper gaId={gaId} />
       </body>
     </html>
   );

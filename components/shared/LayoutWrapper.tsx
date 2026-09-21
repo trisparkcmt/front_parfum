@@ -5,6 +5,7 @@ import { Navbar } from "@/components/shared/Navbar";
 import { Footer } from "@/components/shared/Footer";
 import BottomNav from "@/components/shared/BottomNav";
 import { CartDrawer } from "@/components/shared/CartDrawer";
+import { CookieConsentBanner } from "@/components/shared/CookieConsentBanner";
 import { useThemeStore } from '@/store/useThemeStore';
 import { useCartStore } from '@/store/useCartStore';
 import { useAuthStore } from '@/store/useAuthStore';
@@ -59,6 +60,8 @@ export function LayoutWrapper({ children }: { children: React.ReactNode }) {
         </div>
       )}
       {!shouldHideFooter && hydrated && <Footer />}
+      {/* Cookie Consent Banner — only on public pages */}
+      {!shouldHideNav && <CookieConsentBanner />}
       {/* Global Cart Drawer — available on all pages */}
       <CartDrawer isOpen={cartDrawerOpen} onClose={closeCartDrawer} />
     </div>

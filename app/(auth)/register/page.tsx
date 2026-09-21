@@ -36,6 +36,9 @@ function RegisterFormContent() {
       phone: z.string().min(8, t('phone_short')),
       password: z.string().min(8, t('password_short', { defaultValue: 'Le mot de passe doit contenir au moins 8 caractères.' })),
       passwordConfirm: z.string().min(1, t('password_confirm_required', { defaultValue: 'Veuillez confirmer le mot de passe.' })),
+      consent: z.literal(true, {
+        errorMap: () => ({ message: t('consent_required', { defaultValue: 'Vous devez accepter la politique de confidentialité pour continuer.' }) }),
+      }),
     })
     .refine((data) => data.password === data.passwordConfirm, {
       message: t('passwords_must_match', { defaultValue: 'Les mots de passe ne correspondent pas.' }),
@@ -266,18 +269,31 @@ function RegisterFormContent() {
           {...registerField('passwordConfirm')}
         />
 
-        <p className="text-xs leading-relaxed text-foreground/50">
-          {t('register_terms_intro', {
-            defaultValue: "En créant un compte, vous acceptez nos ",
-          })}
-          <Link href="/terms" className="text-gold hover:underline">
-            {t('terms_short', { defaultValue: 'Conditions générales' })}
-          </Link>{' '}
-          {t('and', { defaultValue: 'et notre' })}{' '}
-          <Link href="/privacy" className="text-gold hover:underline">
-            {t('privacy_policy', { defaultValue: 'Politique de confidentialité' })}
-          </Link>.
-        </p>
+        {/* Consent checkbox — required */}
+        <div className="space-y-1.5">
+          <label className="flex items-start gap-3 cursor-pointer group">
+            <input
+              type="checkbox"
+              {...registerField('consent')}
+              className="mt-0.5 h-4 w-4 shrink-0 rounded border border-foreground/30
+                         accent-gold cursor-pointer"
+            />
+            <span className="text-xs leading-relaxed text-foreground/60 group-hover:text-foreground/80 transition-colors">
+              {t('register_terms_intro', { defaultValue: 'En créant un compte, vous acceptez nos ' })}
+              <Link href="/terms" className="text-gold hover:underline">
+                {t('terms_short', { defaultValue: 'Conditions générales' })}
+              </Link>{' '}
+              {t('and', { defaultValue: 'et notre' })}{' '}
+              <Link href="/privacy" className="text-gold hover:underline">
+                {t('privacy_policy', { defaultValue: 'Politique de confidentialité' })}
+              </Link>
+              {'.'}
+            </span>
+          </label>
+          {errors.consent && (
+            <p className="text-xs text-red-500 ml-7">{errors.consent.message as string}</p>
+          )}
+        </div>
 
         <Button type="submit" className="w-full mt-6" isLoading={isLoading} loadingText={t('register_loading', { defaultValue: 'Inscription...' })} rightIcon={<UserPlus size={18} />}>
           {t('register_btn')}
