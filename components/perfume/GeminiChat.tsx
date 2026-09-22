@@ -94,7 +94,7 @@ const dict = {
     saveSuccess: 'Composition sauvegardée',
     saveError: 'Erreur lors de la sauvegarde',
     liquidColor: 'Couleur du liquide',
-    expertise: 'Savoir-faire',
+    expertise: 'Base NUMBA',
   },
   en: {
     loadingTexts: [
@@ -151,7 +151,7 @@ const dict = {
     saveSuccess: 'Composition saved',
     saveError: 'Error saving composition',
     liquidColor: 'Liquid color',
-    expertise: 'Expertise',
+    expertise: 'Base NUMBA',
   },
 };
 
