@@ -69,7 +69,7 @@ export const useNotificationCountStore = create<NotificationCountState>((set, ge
         isAdminOrServeuse ? notificationService.getUnreadNotifications() : Promise.resolve(null),
         deviceService.fetchNotifications(),
         isAdminOrServeuse
-          ? orderService.getOrders({ statut: 'EN_ATTENTE_DE_PAIEMENT' })
+          ? orderService.getOrders({ statut: 'en_attente' })
           : isLivreur
           ? orderService.getOrders({ statut_livraison: 'assignée' })
           : Promise.resolve(null),
