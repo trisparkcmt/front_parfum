@@ -99,9 +99,16 @@ export function formatDisplayPhone(phone?: string | null): string {
 }
 
 export function normalizeSocialUsername(value?: string | null): string {
-  return (value || '')
-    .trim()
-    .replace(/^https?:\/\/(www\.)?[^/]+\//i, '')
+  const cleaned = (value || '').trim();
+  if (!cleaned) return '';
+
+  const urlMatch = cleaned.match(/^https?:\/\/(?:www\.)?(facebook|instagram)\.com\/(?<path>[^\s/?#]+)/i);
+  if (urlMatch?.groups?.path) {
+    return urlMatch.groups.path.replace(/^@/, '').replace(/\/$/, '');
+  }
+
+  return cleaned
+    .replace(/^https?:\/\/[^/]+\//i, '')
     .replace(/^@/, '')
     .replace(/\/$/, '');
 }
@@ -109,6 +116,12 @@ export function normalizeSocialUsername(value?: string | null): string {
 export function normalizeSocialProfileUrl(platform: 'facebook' | 'instagram', value?: string | null): string {
   const username = normalizeSocialUsername(value);
   if (!username) return '';
+
+  const startsWithPlatformUrl = /^(https?:\/\/)?(www\.)?(facebook|instagram)\.com\//i.test(value || '');
+  if (startsWithPlatformUrl) {
+    return `https://www.${platform}.com/${normalizeSocialUsername(value)}`;
+  }
+
   return `https://www.${platform}.com/${username}`;
 }
 

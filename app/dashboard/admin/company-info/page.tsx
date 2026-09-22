@@ -21,8 +21,8 @@ const translations = {
     mainPhone: 'Téléphone principal',
     secondaryPhone: 'Téléphone secondaire',
     whatsapp: 'WhatsApp',
-    facebook: 'Facebook username',
-    instagram: 'Instagram username',
+    facebook: 'Facebook URL',
+    instagram: 'Instagram URL',
     hours: 'Horaires d’ouverture',
     noData: 'Aucune information disponible. Créez un enregistrement pour commencer.',
     fetchError: 'Impossible de charger les informations de l’entreprise.',
@@ -41,8 +41,8 @@ const translations = {
     mainPhone: 'Primary phone',
     secondaryPhone: 'Secondary phone',
     whatsapp: 'WhatsApp Cameroon number',
-    facebook: 'Facebook username',
-    instagram: 'Instagram username',
+    facebook: 'Facebook URL',
+    instagram: 'Instagram URL',
     hours: 'Opening hours',
     noData: 'No company info available. Create a record to get started.',
     fetchError: 'Unable to load company information.',
@@ -190,8 +190,8 @@ export default function AdminCompanyInfoPage() {
       telephone_principal: companyInfo.telephone_principal,
       telephone_secondaire: companyInfo.telephone_secondaire || '',
       whatsapp: normalizeCameroonPhone(companyInfo.whatsapp),
-      facebook_url: normalizeSocialUsername(companyInfo.facebook_url),
-      instagram_url: normalizeSocialUsername(companyInfo.instagram_url),
+      facebook_url: companyInfo.facebook_url || '',
+      instagram_url: companyInfo.instagram_url || '',
       jours_ouverture: companyInfo.jours_ouverture || createDefaultOpeningDays(),
     });
     setFormError(null);
@@ -324,13 +324,13 @@ export default function AdminCompanyInfoPage() {
               </div>
 
               <div className="grid gap-3 sm:grid-cols-2">
-                <div className="rounded-2xl bg-white/5 p-4">
+                <div className="min-w-0 rounded-2xl bg-white/5 p-4">
                   <p className="text-[11px] uppercase tracking-[0.2em] text-neutral-400">{text.facebook}</p>
-                  <p className="mt-2 text-sm text-foreground">{companyInfo.facebook_url || '-'}</p>
+                  <p className="mt-2 max-w-full truncate text-sm text-foreground">{companyInfo.facebook_url || '-'}</p>
                 </div>
-                <div className="rounded-2xl bg-white/5 p-4">
+                <div className="min-w-0 rounded-2xl bg-white/5 p-4">
                   <p className="text-[11px] uppercase tracking-[0.2em] text-neutral-400">{text.instagram}</p>
-                  <p className="mt-2 text-sm text-foreground">{companyInfo.instagram_url || '-'}</p>
+                  <p className="mt-2 max-w-full truncate text-sm text-foreground">{companyInfo.instagram_url || '-'}</p>
                 </div>
               </div>
             </div>
@@ -434,8 +434,8 @@ export default function AdminCompanyInfoPage() {
             <span>{text.facebook}</span>
             <input
               value={formState.facebook_url ?? ''}
-              placeholder="votre_nom"
-              onChange={(event) => handleFieldChange('facebook_url', normalizeSocialUsername(event.target.value))}
+              placeholder="https://www.facebook.com/votre_nom"
+              onChange={(event) => handleFieldChange('facebook_url', event.target.value.trim())}
               className="w-full rounded-2xl border border-white/10 bg-black/10 px-4 py-3 text-sm text-foreground outline-none transition focus:border-gold"
             />
           </label>
@@ -443,8 +443,8 @@ export default function AdminCompanyInfoPage() {
             <span>{text.instagram}</span>
             <input
               value={formState.instagram_url ?? ''}
-              placeholder="votre_nom"
-              onChange={(event) => handleFieldChange('instagram_url', normalizeSocialUsername(event.target.value))}
+              placeholder="https://www.instagram.com/votre_nom"
+              onChange={(event) => handleFieldChange('instagram_url', event.target.value.trim())}
               className="w-full rounded-2xl border border-white/10 bg-black/10 px-4 py-3 text-sm text-foreground outline-none transition focus:border-gold"
             />
           </label>

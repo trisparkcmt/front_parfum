@@ -5,116 +5,95 @@ import { useAuthStore } from '@/store/useAuthStore';
 import { usePathname } from 'next/navigation';
 import { preloadGoogleIdentityScript } from '@/components/auth/GoogleAuthButton';
 
-function decodeJwtPayload(token: string): Record<string, string> | null {
+const AUTH_PATHS = /\/(login|register|connexion|inscription|auth)/i;
+
+/** Decode a JWT payload without verifying — only used to extract the email hint. */
+function jwtEmail(token: string): string | null {
   try {
-    const [, payload] = token.split('.');
-    const json = atob(payload.replace(/-/g, '+').replace(/_/g, '/'));
-    return JSON.parse(json);
+    const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+    return payload?.email ?? null;
   } catch {
     return null;
   }
 }
 
-const isAuthPage = (pathname?: string | null) => {
-  if (!pathname) return false;
-  return /\/login|\/register|\/connexion|\/inscription|\/auth\//i.test(pathname);
-};
-
 export function GoogleOneTap() {
   const { isAuthenticated, loginWithGoogle } = useAuthStore();
   const pathname = usePathname();
   const clientId = useMemo(() => process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || '', []);
-  const hasInitializedRef = useRef(false);
-  const tokenClientRef = useRef<{ requestAccessToken: (options?: { login_hint?: string; prompt?: string }) => void } | null>(null);
+  const initialized = useRef(false);
 
   useEffect(() => {
-    if (isAuthenticated || !clientId || isAuthPage(pathname) || hasInitializedRef.current) {
-      return;
-    }
+    // Skip on auth pages, when already logged in, or if no client ID
+    if (isAuthenticated || !clientId || AUTH_PATHS.test(pathname ?? '')) return;
+    // Only run once per mount
+    if (initialized.current) return;
 
-    const initializeOneTap = () => {
-      if (!window.google?.accounts?.id || !window.google?.accounts?.oauth2) {
-        console.warn('[GoogleOneTap] Google SDK not ready yet');
-        return;
-      }
+    function boot() {
+      if (!window.google?.accounts?.id) return;
 
-      if (hasInitializedRef.current) {
-        return;
-      }
-
-      tokenClientRef.current = window.google.accounts.oauth2.initTokenClient({
-        client_id: clientId,
-        scope: 'openid email profile',
-        callback: async (tokenResponse) => {
-          if (!tokenResponse?.access_token) {
-            console.warn('[GoogleOneTap] Missing access token from Google callback');
-            return;
-          }
-
-          try {
-            await loginWithGoogle(tokenResponse.access_token);
-          } catch (err) {
-            console.error('[GoogleOneTap] OAuth2 token login failed:', err);
-          }
-        },
-        error_callback: (error) => {
-          console.error('[GoogleOneTap] OAuth2 token request failed', error);
-        },
-      });
-
+      // ── 1. Initialize One Tap FIRST (so the prompt can show) ───────────────
       window.google.accounts.id.initialize({
         client_id: clientId,
-        callback: (oneTapResponse) => {
-          if (!oneTapResponse?.credential) return;
-
-          const payload = decodeJwtPayload(oneTapResponse.credential);
-          const loginHint = payload?.email || payload?.sub || '';
-
-          if (tokenClientRef.current) {
-            tokenClientRef.current.requestAccessToken({
-              prompt: 'consent',
-              ...(loginHint ? { login_hint: loginHint } : {}),
-            });
-          }
-        },
+        // itp_support enables the upgraded One Tap UX on ITP browsers (Safari)
+        itp_support: true,
         auto_select: false,
         cancel_on_tap_outside: true,
         context: 'signin',
+        callback: (oneTapResponse) => {
+          // One Tap gives us an ID-token (JWT). Our backend only accepts an
+          // OAuth2 access_token, so we bridge by creating the token client
+          // on demand here — AFTER One Tap has already shown — to avoid
+          // the two flows interfering with each other.
+          const email = jwtEmail(oneTapResponse.credential);
+          if (!window.google?.accounts?.oauth2) return;
+
+          const tokenClient = window.google.accounts.oauth2.initTokenClient({
+            client_id: clientId,
+            scope: 'openid email profile',
+            callback: async (tokenResponse) => {
+              if (tokenResponse?.access_token) {
+                await loginWithGoogle(tokenResponse.access_token).catch(console.error);
+              }
+            },
+            error_callback: (err) => {
+              console.error('[GoogleOneTap] token error', err);
+            },
+          });
+
+          // Request the access token; skip the consent screen if already granted.
+          // `hint` pre-selects the account so no picker is shown.
+          tokenClient.requestAccessToken({
+            prompt: 'none',
+            ...(email ? { login_hint: email } : {}),
+          });
+        },
       });
 
-      hasInitializedRef.current = true;
+      initialized.current = true;
 
-      window.google.accounts.id.prompt((notification) => {
-        if (notification.isNotDisplayed()) {
-          console.log('[GoogleOneTap] Not displayed:', notification.getNotDisplayedReason());
-        } else if (notification.isSkippedMoment()) {
-          console.log('[GoogleOneTap] One Tap skipped by user action');
-        } else if (notification.isDismissedMoment()) {
-          console.log('[GoogleOneTap] One Tap dismissed');
+      // ── 2. Show the prompt ─────────────────────────────────────────────────
+      window.google.accounts.id.prompt((n) => {
+        if (n.isNotDisplayed()) {
+          // Common reasons: 'suppressed_by_user', 'browser_not_supported',
+          // 'invalid_client', 'missing_client_id', 'unregistered_origin'
+          console.info('[GoogleOneTap] not displayed –', n.getNotDisplayedReason());
         }
       });
-    };
+    }
 
-    const bootGoogleOneTap = () => {
-      if (window.google?.accounts?.id && window.google?.accounts?.oauth2) {
-        initializeOneTap();
-        return;
-      }
-
+    if (window.google?.accounts?.id) {
+      boot();
+    } else {
+      // Load the script and boot once it's ready
       preloadGoogleIdentityScript();
       const script = document.getElementById('google-identity-services') as HTMLScriptElement | null;
-      if (!script) {
-        return;
+      if (script) {
+        script.addEventListener('load', boot, { once: true });
+        return () => script.removeEventListener('load', boot);
       }
-
-      const onLoad = () => initializeOneTap();
-      script.addEventListener('load', onLoad, { once: true });
-      return () => script.removeEventListener('load', onLoad);
-    };
-
-    const cleanup = bootGoogleOneTap();
-    return cleanup;
-  }, [clientId, isAuthenticated, loginWithGoogle, pathname]);
+    }
+  }, [isAuthenticated, clientId, pathname, loginWithGoogle]);
 
   return null;
 }

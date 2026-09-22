@@ -22,6 +22,7 @@ declare global {
             cancel_on_tap_outside?: boolean;
             context?: 'signin' | 'signup' | 'use';
             itp_support?: boolean;
+            login_uri?: string;
           }) => void;
           prompt: (momentListener?: (notification: {
             isNotDisplayed: () => boolean;
