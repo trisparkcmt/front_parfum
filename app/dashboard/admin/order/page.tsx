@@ -426,7 +426,7 @@ function ActionButton({
 // ─────────────────────────────────────────────────────────────────────────
 
 function OrderPopupModal({
-  isOpen, onClose, title, subtitle, eyebrow, children, size = '2xl', footer, bodyClassName,
+  isOpen, onClose, title, subtitle, eyebrow, children, size = '2xl', footer, bodyClassName, variant = 'popup',
 }: {
   isOpen: boolean;
   onClose: () => void;
@@ -437,6 +437,7 @@ function OrderPopupModal({
   size?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl';
   footer?: React.ReactNode;
   bodyClassName?: string;
+  variant?: 'popup' | 'drawer';
 }) {
   useEffect(() => {
     const mainEl = document.querySelector('main');
@@ -460,6 +461,44 @@ function OrderPopupModal({
   }, [onClose]);
 
   if (!isOpen) return null;
+
+  if (variant === 'drawer') {
+    const drawerSizes = {
+      sm: 'sm:max-w-sm',
+      md: 'sm:max-w-md',
+      lg: 'sm:max-w-lg',
+      xl: 'sm:max-w-2xl',
+      '2xl': 'sm:max-w-3xl',
+      '3xl': 'sm:max-w-4xl lg:max-w-5xl xl:max-w-6xl',
+    } as const;
+
+    return (
+      <div className="fixed inset-0 z-[60] flex justify-end bg-black/75 p-0" onClick={onClose}>
+        <div
+          className={cx(
+            'flex h-full w-full flex-col overflow-hidden border-l border-white/10 bg-background shadow-2xl animate-in slide-in-from-right duration-300',
+            drawerSizes[size]
+          )}
+          onClick={e => e.stopPropagation()}
+        >
+          {(title || eyebrow) && (
+            <div className="flex shrink-0 items-start justify-between gap-4 border-b border-white/10 px-4 sm:px-6 py-4">
+              <div className="min-w-0">
+                {eyebrow && <p className="text-[10px] font-semibold uppercase tracking-widest text-foreground/35">{eyebrow}</p>}
+                {title && <div className="mt-0.5 flex flex-wrap items-center gap-2 text-[15px] font-semibold text-foreground">{title}</div>}
+                {subtitle && <p className="mt-0.5 text-xs text-foreground/40">{subtitle}</p>}
+              </div>
+              <button onClick={onClose} className="shrink-0 rounded-md p-2 sm:p-1.5 text-foreground/40 transition-colors hover:bg-white/8 hover:text-foreground">
+                <X size={16} />
+              </button>
+            </div>
+          )}
+          <div className={cx('flex-1 overflow-y-auto px-4 sm:px-6 py-4 sm:py-5', bodyClassName)}>{children}</div>
+          {footer && <div className="shrink-0 border-t border-white/10 bg-background px-4 sm:px-6 py-3.5 sm:py-4">{footer}</div>}
+        </div>
+      </div>
+    );
+  }
 
   const sizes = {
     sm: 'sm:max-w-sm', md: 'sm:max-w-md', lg: 'sm:max-w-lg', xl: 'sm:max-w-2xl', '2xl': 'sm:max-w-3xl', '3xl': 'sm:max-w-5xl',
@@ -1253,7 +1292,14 @@ function CardView({
       {orders.map(order => {
         const isPending = pendingIds.has(String(order.id));
         return (
-          <div key={order.id} className={cx('rounded-xl border border-white/10 bg-white/[0.02] p-4 space-y-3', isPending && 'opacity-50')}>
+          <div
+            key={order.id}
+            onClick={() => onView(order)}
+            className={cx(
+              'cursor-pointer rounded-xl border border-white/10 bg-white/[0.02] p-4 space-y-3 transition-colors hover:bg-white/[0.05]',
+              isPending && 'opacity-50'
+            )}
+          >
             <div className="flex items-center justify-between">
               <span className="inline-flex items-center gap-1.5 font-mono text-xs font-medium text-gold">
                 {order.numero_commande}
@@ -1275,7 +1321,7 @@ function CardView({
               <span>{fmtDate(order.date_creation)}</span>
             </div>
 
-            <div className="flex items-center justify-between pt-2">
+            <div className="flex items-center justify-between pt-2" onClick={e => e.stopPropagation()}>
               <div className="flex items-center gap-1">
                 <IconButton icon={<Eye size={16} />} title={viewTitle} onClick={() => onView(order)} tone="gold" />
                 {onEdit && <IconButton icon={<ClipboardList size={16} />} title={manageTitle} onClick={() => onEdit(order)} tone="blue" />}
@@ -1363,7 +1409,14 @@ function OrdersTable({
                   {orders.map(order => {
                     const isPending = pendingIds.has(String(order.id));
                     return (
-                      <tr key={order.id} className={cx('transition-colors hover:bg-white/[0.02]', isPending && 'opacity-50')}>
+                      <tr
+                        key={order.id}
+                        onClick={() => onView(order)}
+                        className={cx(
+                          'cursor-pointer transition-colors hover:bg-white/[0.04]',
+                          isPending && 'opacity-50'
+                        )}
+                      >
                         <td className="px-4 py-3">
                           <span className="inline-flex items-center gap-1.5 font-mono text-xs font-medium text-gold">
                             {order.numero_commande}
@@ -1384,7 +1437,7 @@ function OrdersTable({
                         <td className="px-4 py-3"><StatusChip cfg={STATUT_CFG[order.statut]} /></td>
                         <td className="whitespace-nowrap px-4 py-3 text-xs text-foreground/55">{getDeliveryMethod(order)}</td>
                         <td className="whitespace-nowrap px-4 py-3 text-[11px] text-foreground/35">{fmtDate(order.date_creation)}</td>
-                        <td className="px-4 py-3">
+                        <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
                           <div className="flex items-center justify-end gap-1">
                             <IconButton icon={<Eye size={14} />} title={viewTitle} onClick={() => onView(order)} tone="gold" />
                             {onEdit && <IconButton icon={<ClipboardList size={14} />} title={manageTitle} onClick={() => onEdit(order)} tone="blue" />}
@@ -1481,6 +1534,7 @@ function OrderDetailModal({
     <OrderPopupModal
       isOpen
       onClose={onClose}
+      variant="drawer"
       eyebrow={fmtDate(order.date_creation, true)}
       title={
         <>
@@ -1532,9 +1586,9 @@ function OrderDetailModal({
           )}
         </div>
 
-        <div className="grid grid-cols-1 gap-6 lg:min-h-0 lg:flex-1 lg:grid-cols-5">
-          {/* Left: delivery + notes */}
-          <div className="space-y-5 lg:col-span-2">
+        <div className="grid grid-cols-1 gap-6 lg:min-h-0 lg:flex-1 lg:grid-cols-5 overflow-hidden">
+          {/* Left: delivery + notes + receipt summary + invoice */}
+          <div className="space-y-5 overflow-y-auto pr-1 lg:col-span-2">
             <section className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
               <SectionLabel icon={<MapPin size={11} />}>{t('section_delivery')}</SectionLabel>
               <dl className="space-y-1.5 text-xs">
