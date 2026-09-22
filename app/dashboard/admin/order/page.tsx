@@ -1079,58 +1079,61 @@ export default function OrdersPage() {
               <Field label={t('field_order_status')}>
                 <SegmentedPicker value={editStatut} onChange={setEditStatut} options={STATUT_OPTIONS.filter(v => v) as any} cfg={STATUT_CFG} />
               </Field>
-              <Field label={t('field_delivery_status')} icon={<Truck size={11} />}>
-                <SegmentedPicker
-                  value={editLivraison}
-                  onChange={setEditLivraison}
-                  options={LIVRAISON_OPTIONS.filter(v => v) as any}
-                  cfg={STATUT_LIVRAISON_CFG}
-                  disabled={editStatut !== 'validé'}
-                />
-              </Field>
+              {editStatut === 'validé' && (
+                <Field label={t('field_delivery_status')} icon={<Truck size={11} />}>
+                  <SegmentedPicker
+                    value={editLivraison}
+                    onChange={setEditLivraison}
+                    options={LIVRAISON_OPTIONS.filter(v => v) as any}
+                    cfg={STATUT_LIVRAISON_CFG}
+                  />
+                </Field>
+              )}
               <Field label={t('field_payment_status')} icon={<CreditCard size={11} />}>
                 <SegmentedPicker value={editPaiement} onChange={setEditPaiement} options={PAIEMENT_OPTIONS.filter(v => v) as any} cfg={STATUT_PAIEMENT_CFG} />
               </Field>
             </div>
           </FormSection>
 
-          <FormSection title={t('section_logistics')} icon={<Bike size={11} />}>
-            <div className="space-y-4">
-              <Field label={t('field_assign_driver')}>
-                <CustomSelect
-                  value={editLivreur}
-                  onChange={setEditLivreur}
-                  options={[
-                    { value: '', label: t('none_driver') },
-                    ...drivers.map(d => ({
-                      value: d.id ?? d.user_id,
-                      label: driverDisplayName(d)
-                    })),
-                  ]}
-                />
-              </Field>
+          {editStatut === 'validé' && (
+            <FormSection title={t('section_logistics')} icon={<Bike size={11} />}>
+              <div className="space-y-4">
+                <Field label={t('field_assign_driver')}>
+                  <CustomSelect
+                    value={editLivreur}
+                    onChange={setEditLivreur}
+                    options={[
+                      { value: '', label: t('none_driver') },
+                      ...drivers.map(d => ({
+                        value: d.id ?? d.user_id,
+                        label: driverDisplayName(d)
+                      })),
+                    ]}
+                  />
+                </Field>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <Field label={t('field_est_date')} icon={<Calendar size={11} />}>
-                  <input
-                    type="date"
-                    value={editDateEst}
-                    onChange={e => setEditDateEst(e.target.value)}
-                    className="w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2.5 text-sm text-foreground outline-none transition-colors focus:border-gold/50"
-                  />
-                </Field>
-                <Field label={t('field_fees')} icon={<Tag size={11} />}>
-                  <input
-                    type="number"
-                    value={editFrais}
-                    onChange={e => setEditFrais(e.target.value)}
-                    placeholder={editModal.frais_livraison}
-                    className="w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2.5 text-sm text-foreground outline-none transition-colors focus:border-gold/50"
-                  />
-                </Field>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <Field label={t('field_est_date')} icon={<Calendar size={11} />}>
+                    <input
+                      type="date"
+                      value={editDateEst}
+                      onChange={e => setEditDateEst(e.target.value)}
+                      className="w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2.5 text-sm text-foreground outline-none transition-colors focus:border-gold/50"
+                    />
+                  </Field>
+                  <Field label={t('field_fees')} icon={<Tag size={11} />}>
+                    <input
+                      type="number"
+                      value={editFrais}
+                      onChange={e => setEditFrais(e.target.value)}
+                      placeholder={editModal.frais_livraison}
+                      className="w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2.5 text-sm text-foreground outline-none transition-colors focus:border-gold/50"
+                    />
+                  </Field>
+                </div>
               </div>
-            </div>
-          </FormSection>
+            </FormSection>
+          )}
 
           <FormSection title={t('section_notes')} icon={<ClipboardList size={11} />}>
             <Field label={t('field_note')}>
