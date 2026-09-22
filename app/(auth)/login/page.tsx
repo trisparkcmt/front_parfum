@@ -166,7 +166,7 @@ function LoginFormContent() {
               className="rounded border-white/10 bg-white/5 text-gold focus:ring-gold size-4 cursor-pointer"
             />
             <span className="text-xs text-foreground/75">
-              {t('remember_me')}
+              {t('keep_me_logged_in', { defaultValue: i18n.language?.startsWith('en') ? 'Keep me logged in' : 'Rester connecté' })}
             </span>
           </label>
         </div>

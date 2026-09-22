@@ -379,7 +379,7 @@ const resources = {
       "loading": "Chargement...",
       "login_title": "Connexion",
       "register_title": "Inscription",
-      "remember_me": "Se souvenir de moi",
+      "keep_me_logged_in": "Rester connecté",
       "or": "ou",
       "continue_with_google": "Continuer avec Google",
       "did_not_receive_verification": "Vous n'avez pas reçu l'e-mail de validation ?",
