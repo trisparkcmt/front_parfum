@@ -644,8 +644,8 @@ function buildCompositionFromAiResponse(
   } as CustomComposition : undefined;
 
   const bottleCapacity = bottle?.contenance_ml ?? aiData.quantite_demandee_ml;
-  if (bottleCapacity) {
-    (composition as (CustomComposition & { bottleSizeMl?: number }) | undefined)!.bottleSizeMl = bottleCapacity;
+  if (bottleCapacity && composition) {
+    (composition as (CustomComposition & { bottleSizeMl?: number })).bottleSizeMl = bottleCapacity;
   }
 
   return composition;
