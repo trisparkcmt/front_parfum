@@ -61,10 +61,11 @@ export function GoogleOneTap() {
             },
           });
 
-          // Request the access token; skip the consent screen if already granted.
-          // `hint` pre-selects the account so no picker is shown.
+          // Request the access token.
+          // - No prompt = Google decides: instant if consent already granted,
+          //   brief consent popup if this is a new user.
+          // - login_hint pre-selects the account so no extra picker appears.
           tokenClient.requestAccessToken({
-            prompt: 'none',
             ...(email ? { login_hint: email } : {}),
           });
         },
