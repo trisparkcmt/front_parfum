@@ -102,9 +102,9 @@ export function normalizeSocialUsername(value?: string | null): string {
   const cleaned = (value || '').trim();
   if (!cleaned) return '';
 
-  const urlMatch = cleaned.match(/^https?:\/\/(?:www\.)?(facebook|instagram)\.com\/(?<path>[^\s/?#]+)/i);
-  if (urlMatch?.groups?.path) {
-    return urlMatch.groups.path.replace(/^@/, '').replace(/\/$/, '');
+  const urlMatch = cleaned.match(/^https?:\/\/(?:www\.)?(facebook|instagram)\.com\/([^\s/?#]+)/i);
+  if (urlMatch?.[2]) {
+    return urlMatch[2].replace(/^@/, '').replace(/\/$/, '');
   }
 
   return cleaned
