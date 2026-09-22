@@ -83,12 +83,33 @@ export function normalizeCameroonPhone(value?: string | null): string {
   return digits.startsWith('237') && digits.length === 12 ? digits.slice(3) : digits;
 }
 
+export function getCompanyWhatsAppNumber(companyInfo?: { whatsapp?: string | null; telephone_principal?: string | null } | null): string {
+  const primary = normalizeCameroonPhone(companyInfo?.whatsapp);
+  if (primary) return primary;
+  return normalizeCameroonPhone(companyInfo?.telephone_principal);
+}
+
+export function formatDisplayPhone(phone?: string | null): string {
+  const digits = normalizeCameroonPhone(phone);
+  if (!digits) return '';
+  if (digits.length === 9) {
+    return `+237 ${digits.replace(/(\d{3})(?=\d)/g, '$1 ')}`.trim();
+  }
+  return `+${digits}`;
+}
+
 export function normalizeSocialUsername(value?: string | null): string {
   return (value || '')
     .trim()
     .replace(/^https?:\/\/(www\.)?[^/]+\//i, '')
     .replace(/^@/, '')
     .replace(/\/$/, '');
+}
+
+export function normalizeSocialProfileUrl(platform: 'facebook' | 'instagram', value?: string | null): string {
+  const username = normalizeSocialUsername(value);
+  if (!username) return '';
+  return `https://www.${platform}.com/${username}`;
 }
 
 export function buildWhatsAppUrl(phone?: string | null, message?: string): string {
@@ -98,7 +119,7 @@ export function buildWhatsAppUrl(phone?: string | null, message?: string): strin
 }
 
 export function buildSocialUrl(platform: 'facebook' | 'instagram', username?: string | null): string {
-  return `https://www.${platform}.com/${normalizeSocialUsername(username)}`;
+  return normalizeSocialProfileUrl(platform, username);
 }
 
 export function buildAbsoluteUrl(path: string): string {

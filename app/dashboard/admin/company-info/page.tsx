@@ -6,7 +6,7 @@ import { shopService } from '@/services/apiService';
 import { useToastStore } from '@/store/useToastStore';
 import { useTranslation } from 'react-i18next';
 import type { CompanyInfo } from '@/types';
-import { normalizeCameroonPhone, normalizeSocialUsername } from '@/lib/utils';
+import { normalizeCameroonPhone, normalizeSocialProfileUrl, normalizeSocialUsername } from '@/lib/utils';
 
 const translations = {
   fr: {
@@ -225,8 +225,8 @@ export default function AdminCompanyInfoPage() {
       });
 
       const whatsapp = normalizeCameroonPhone(formState.whatsapp);
-      const facebookUsername = normalizeSocialUsername(formState.facebook_url);
-      const instagramUsername = normalizeSocialUsername(formState.instagram_url);
+      const facebookUrl = normalizeSocialProfileUrl('facebook', formState.facebook_url);
+      const instagramUrl = normalizeSocialProfileUrl('instagram', formState.instagram_url);
       if (whatsapp && whatsapp.length !== 9) {
         setFormError(isEn ? 'WhatsApp must contain 9 Cameroon phone digits.' : 'WhatsApp doit contenir 9 chiffres camerounais.');
         return;
@@ -239,8 +239,8 @@ export default function AdminCompanyInfoPage() {
         telephone_principal: formState.telephone_principal,
         telephone_secondaire: formState.telephone_secondaire,
         whatsapp,
-        facebook_url: facebookUsername,
-        instagram_url: instagramUsername,
+        facebook_url: facebookUrl,
+        instagram_url: instagramUrl,
         jours_ouverture: jours,
       };
 

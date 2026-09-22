@@ -7,7 +7,7 @@ import Link from 'next/link';
 import { useTranslation } from 'react-i18next';
 import { shopService } from '@/services/apiService';
 import type { CompanyInfo } from '@/types';
-import { buildWhatsAppUrl } from '@/lib/utils';
+import { buildWhatsAppUrl, getCompanyWhatsAppNumber } from '@/lib/utils';
 
 const LAT = 3.86484;
 const LNG = 11.52030;
@@ -142,7 +142,7 @@ export default function StorePage() {
     name: companyInfo?.nom || STORE_INFO.name,
     address: companyInfo?.localisation || (isEn ? STORE_INFO.addressEn : STORE_INFO.addressFr),
     phone: companyInfo?.telephone_principal || '',
-    whatsapp: companyInfo?.whatsapp || '',
+    whatsapp: getCompanyWhatsAppNumber(companyInfo),
   };
 
   const handleGetDirections = () => {

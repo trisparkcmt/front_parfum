@@ -354,7 +354,7 @@ function AtelierContent() {
   useEffect(() => {
     shopService.getCompanyInfos().then((data) => {
       if (Array.isArray(data) && data.length > 0) {
-        setCompanyWhatsapp(data[0].whatsapp || '');
+        setCompanyWhatsapp(data[0].whatsapp || data[0].telephone_principal || '');
       }
     }).catch(() => {});
   }, []);
