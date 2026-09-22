@@ -107,7 +107,7 @@ interface AuthState {
   _hasHydrated: boolean;
   setHasHydrated: (state: boolean) => void;
   login: (loginInput: string, password: string, rememberMe?: boolean) => Promise<boolean>;
-  loginWithGoogle: (accessToken: string, code?: string, idToken?: string) => Promise<boolean>;
+  loginWithGoogle: (accessToken?: string, code?: string, idToken?: string) => Promise<boolean>;
   register: (data: { firstName: string; lastName: string; email: string; phone: string; password: string }) => Promise<boolean>;
   logout: () => Promise<void>;
   setUser: (user: User) => void;
@@ -259,12 +259,13 @@ export const useAuthStore = create<AuthState>()(
             delete api.defaults.headers.common['Authorization'];
           }
 
-          const googlePayload: { access_token?: string; code?: string } = {
+          const googlePayload: { access_token?: string; code?: string; id_token?: string } = {
             access_token: accessToken || undefined,
             code: code || undefined,
+            id_token: idToken || undefined,
           };
 
-          if (!googlePayload.access_token && !googlePayload.code) {
+          if (!googlePayload.access_token && !googlePayload.code && !googlePayload.id_token) {
             set({ isLoading: false });
             addToast('Connexion Google échouée (aucun jeton d’accès reçu).', 'error');
             return false;

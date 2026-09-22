@@ -7,15 +7,7 @@ import { preloadGoogleIdentityScript } from '@/components/auth/GoogleAuthButton'
 
 const AUTH_PATHS = /\/(login|register|connexion|inscription|auth)/i;
 
-/** Decode a JWT payload without verifying — only used to extract the email hint. */
-function jwtEmail(token: string): string | null {
-  try {
-    const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
-    return payload?.email ?? null;
-  } catch {
-    return null;
-  }
-}
+
 
 export function GoogleOneTap() {
   const { isAuthenticated, loginWithGoogle } = useAuthStore();
@@ -40,34 +32,15 @@ export function GoogleOneTap() {
         auto_select: false,
         cancel_on_tap_outside: true,
         context: 'signin',
-        callback: (oneTapResponse) => {
-          // One Tap gives us an ID-token (JWT). Our backend only accepts an
-          // OAuth2 access_token, so we bridge by creating the token client
-          // on demand here — AFTER One Tap has already shown — to avoid
-          // the two flows interfering with each other.
-          const email = jwtEmail(oneTapResponse.credential);
-          if (!window.google?.accounts?.oauth2) return;
-
-          const tokenClient = window.google.accounts.oauth2.initTokenClient({
-            client_id: clientId,
-            scope: 'openid email profile',
-            callback: async (tokenResponse) => {
-              if (tokenResponse?.access_token) {
-                await loginWithGoogle(tokenResponse.access_token).catch(console.error);
-              }
-            },
-            error_callback: (err) => {
-              console.error('[GoogleOneTap] token error', err);
-            },
-          });
-
-          // Request the access token.
-          // - No prompt = Google decides: instant if consent already granted,
-          //   brief consent popup if this is a new user.
-          // - login_hint pre-selects the account so no extra picker appears.
-          tokenClient.requestAccessToken({
-            ...(email ? { login_hint: email } : {}),
-          });
+        callback: async (oneTapResponse) => {
+          if (!oneTapResponse?.credential) return;
+          try {
+            // Pass the credential solely as the idToken parameter.
+            // Leave accessToken and code as undefined.
+            await loginWithGoogle(undefined, undefined, oneTapResponse.credential);
+          } catch (err) {
+            console.error('[GoogleOneTap] login failed:', err);
+          }
         },
       });
 
