@@ -220,6 +220,13 @@ export default function ProfilePage() {
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [showPWAHelp, setShowPWAHelp] = useState(false);
   const [showPartnerMenu, setShowPartnerMenu] = useState(false);
+  const [showDeleteAccountModal, setShowDeleteAccountModal] = useState(false);
+  const [deleteAccountQuestions, setDeleteAccountQuestions] = useState({
+    reason: '',
+    painPoint: '',
+    alternative: '',
+  });
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [isApplyingPartner, setIsApplyingPartner] = useState(false);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
@@ -386,6 +393,28 @@ export default function ProfilePage() {
       setIsLoggingOut(false);
     }
   };
+
+  const handleDeleteAccount = async () => {
+    setIsDeletingAccount(true);
+    try {
+      await authService.deleteAccount();
+      await logout();
+      setShowDeleteAccountModal(false);
+      router.push('/');
+    } catch (error) {
+      console.error('Account deletion failed', error);
+      addToast(
+        isEn
+          ? 'We could not delete your account. Please try again later.'
+          : 'Impossible de supprimer votre compte. Veuillez réessayer plus tard.',
+        'error'
+      );
+    } finally {
+      setIsDeletingAccount(false);
+    }
+  };
+
+  const deleteAccountFormReady = Object.values(deleteAccountQuestions).every((value) => value.trim().length > 0);
 
   /* ----- derived ----- */
   const initials =
@@ -712,7 +741,7 @@ export default function ProfilePage() {
             <Panel className="border-red-500/10 bg-transparent">
               <div className="divide-y divide-foreground/10">
                 <button
-                  onClick={() => addToast(isEn ? 'This feature is coming soon.' : 'Cette fonctionnalité sera bientôt disponible.', 'info')}
+                  onClick={() => setShowDeleteAccountModal(true)}
                   className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-red-500/5 transition-colors text-left group rounded-md"
                 >
                   <div className="flex items-center justify-center w-7 h-7 rounded-md border border-red-500/15 bg-red-500/5 text-red-500/75 group-hover:bg-red-500/10 transition-colors shrink-0">
@@ -757,6 +786,80 @@ export default function ProfilePage() {
         onConfirm={handleLogout}
         onCancel={() => setShowLogoutConfirm(false)}
       />
+      <Modal
+        isOpen={showDeleteAccountModal}
+        onClose={() => setShowDeleteAccountModal(false)}
+        title={isEn ? 'Delete your account' : 'Supprimer votre compte'}
+        size="lg"
+      >
+        <div className="space-y-5">
+          <div className="rounded-xl border border-red-500/20 bg-red-500/5 p-4 text-sm text-red-200">
+            <p className="font-semibold text-red-300">{isEn ? 'Warning' : 'Attention'}</p>
+            <p className="mt-1 text-red-100/80">
+              {isEn
+                ? 'This action is permanent. Your account and its data will be deleted.'
+                : 'Cette action est définitive. Votre compte et ses données seront supprimés.'}
+            </p>
+          </div>
+
+          <div className="space-y-4">
+            {[
+              {
+                key: 'reason',
+                label: isEn ? 'Why do you want to delete your account?' : 'Pourquoi souhaitez-vous supprimer votre compte ?',
+                placeholder: isEn ? 'Tell us what made you leave' : 'Dites-nous ce qui vous a poussé à partir',
+              },
+              {
+                key: 'painPoint',
+                label: isEn ? 'What was the biggest problem you encountered?' : 'Quel a été le plus gros problème rencontré ?',
+                placeholder: isEn ? 'Describe the issue' : 'Décrivez le problème',
+              },
+              {
+                key: 'alternative',
+                label: isEn ? 'What would make you stay?' : 'Qu’est-ce qui vous ferait rester ?',
+                placeholder: isEn ? 'Optional improvement or condition' : 'Amélioration ou condition éventuelle',
+              },
+            ].map((question) => (
+              <label key={question.key} className="block space-y-2 text-sm text-foreground/70">
+                <span>{question.label}</span>
+                <textarea
+                  value={deleteAccountQuestions[question.key as keyof typeof deleteAccountQuestions]}
+                  onChange={(event) =>
+                    setDeleteAccountQuestions((prev) => ({
+                      ...prev,
+                      [question.key]: event.target.value,
+                    }))
+                  }
+                  placeholder={question.placeholder}
+                  rows={3}
+                  className="w-full rounded-xl border border-white/10 bg-black/10 px-3 py-2.5 text-sm text-foreground outline-none transition focus:border-red-400"
+                />
+              </label>
+            ))}
+          </div>
+
+          <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
+            <button
+              type="button"
+              onClick={() => setShowDeleteAccountModal(false)}
+              disabled={isDeletingAccount}
+              className="rounded-xl border border-white/10 px-4 py-2.5 text-sm text-foreground/70 transition hover:bg-white/5 disabled:opacity-50"
+            >
+              {isEn ? 'Cancel' : 'Annuler'}
+            </button>
+            <button
+              type="button"
+              onClick={handleDeleteAccount}
+              disabled={!deleteAccountFormReady || isDeletingAccount}
+              className="rounded-xl bg-red-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {isDeletingAccount
+                ? (isEn ? 'Deleting...' : 'Suppression...')
+                : (isEn ? 'Delete my account' : 'Supprimer mon compte')}
+            </button>
+          </div>
+        </div>
+      </Modal>
       <Modal
         isOpen={showPWAHelp}
         onClose={() => setShowPWAHelp(false)}

@@ -129,6 +129,12 @@ export const authService = {
     return response.data;
   },
 
+  /** Permanently delete the authenticated user's account. */
+  deleteAccount: async () => {
+    const response = await api.delete('auth/me/supprimer-compte/');
+    return response.data;
+  },
+
   /**
    * Verify email verification key
    */
