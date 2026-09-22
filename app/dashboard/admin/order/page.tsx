@@ -357,30 +357,37 @@ function StatusChip({ cfg, label }: { cfg?: { label: string; color: string; dot:
 
 /** Segmented selector for status choices */
 function SegmentedPicker<T extends string>({
-  value, onChange, options, cfg,
+  value, onChange, options, cfg, disabled = false,
 }: {
   value: T;
   onChange: (v: T) => void;
   options: T[];
   cfg: Record<string, { label: string }>;
+  disabled?: boolean;
 }) {
   return (
     <div className="flex flex-wrap gap-1.5">
-      {options.map(v => (
-        <button
-          key={v}
-          type="button"
-          onClick={() => onChange(v)}
-          className={cx(
-            'rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors',
-            value === v
-              ? 'border-gold/40 bg-gold/15 text-gold'
-              : 'border-white/10 text-foreground/50 hover:border-white/20 hover:text-foreground/80'
-          )}
-        >
-          {cfg[v]?.label ?? v}
-        </button>
-      ))}
+      {options.map(v => {
+        const isSelected = value === v;
+        return (
+          <button
+            key={v}
+            type="button"
+            disabled={disabled}
+            onClick={() => onChange(v)}
+            className={cx(
+              'rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors',
+              disabled && 'cursor-not-allowed opacity-40',
+              !disabled && isSelected && 'border-gold/40 bg-gold/15 text-gold',
+              !disabled && !isSelected && 'border-white/10 text-foreground/50 hover:border-white/20 hover:text-foreground/80',
+              disabled && isSelected && 'border-gold/20 bg-gold/10 text-gold/60',
+              disabled && !isSelected && 'border-white/5 text-foreground/30'
+            )}
+          >
+            {cfg[v]?.label ?? v}
+          </button>
+        );
+      })}
     </div>
   );
 }
@@ -1073,7 +1080,13 @@ export default function OrdersPage() {
                 <SegmentedPicker value={editStatut} onChange={setEditStatut} options={STATUT_OPTIONS.filter(v => v) as any} cfg={STATUT_CFG} />
               </Field>
               <Field label={t('field_delivery_status')} icon={<Truck size={11} />}>
-                <SegmentedPicker value={editLivraison} onChange={setEditLivraison} options={LIVRAISON_OPTIONS.filter(v => v) as any} cfg={STATUT_LIVRAISON_CFG} />
+                <SegmentedPicker
+                  value={editLivraison}
+                  onChange={setEditLivraison}
+                  options={LIVRAISON_OPTIONS.filter(v => v) as any}
+                  cfg={STATUT_LIVRAISON_CFG}
+                  disabled={editStatut !== 'validé'}
+                />
               </Field>
               <Field label={t('field_payment_status')} icon={<CreditCard size={11} />}>
                 <SegmentedPicker value={editPaiement} onChange={setEditPaiement} options={PAIEMENT_OPTIONS.filter(v => v) as any} cfg={STATUT_PAIEMENT_CFG} />
