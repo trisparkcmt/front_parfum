@@ -84,8 +84,8 @@ export function normalizeCameroonPhone(value?: string | null): string {
 }
 
 export function getCompanyWhatsAppNumber(companyInfo?: { whatsapp?: string | null; telephone_principal?: string | null } | null): string {
-  const primary = normalizeCameroonPhone(companyInfo?.whatsapp);
-  if (primary) return primary;
+  const whatsapp = normalizeCameroonPhone(companyInfo?.whatsapp);
+  if (whatsapp) return whatsapp;
   return normalizeCameroonPhone(companyInfo?.telephone_principal);
 }
 

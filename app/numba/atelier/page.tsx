@@ -7,7 +7,7 @@ import { useCartStore } from '@/store/useCartStore';
 import { useFavoritesStore } from '@/store/useFavoritesStore';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useToastStore } from '@/store/useToastStore';
-import { buildWhatsAppUrl, generateId, sharePage } from '@/lib/utils';
+import { buildWhatsAppUrl, generateId, getCompanyWhatsAppNumber, sharePage } from '@/lib/utils';
 import GoogleAuthButton from '@/components/auth/GoogleAuthButton';
 import { useTranslation } from 'react-i18next';
 import { ArrowLeft, Minus, Plus, ChevronLeft, ChevronRight, RefreshCcw, Loader2, Save, ShoppingCart, X, Send, Share2, Eye, Search } from 'lucide-react';
@@ -354,7 +354,7 @@ function AtelierContent() {
   useEffect(() => {
     shopService.getCompanyInfos().then((data) => {
       if (Array.isArray(data) && data.length > 0) {
-        setCompanyWhatsapp(data[0].whatsapp || data[0].telephone_principal || '');
+        setCompanyWhatsapp(getCompanyWhatsAppNumber(data[0]));
       }
     }).catch(() => {});
   }, []);

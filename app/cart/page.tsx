@@ -291,7 +291,7 @@ export default function CartPage() {
           ? 'In-store pickup'
           : 'Retrait magasin',
         orderNumber,
-        companyInfo?.whatsapp || companyInfo?.telephone_principal
+        getCompanyWhatsAppNumber(companyInfo)
       );
 
       addToast(
