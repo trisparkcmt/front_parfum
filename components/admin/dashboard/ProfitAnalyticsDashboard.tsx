@@ -19,6 +19,7 @@ import {
 import { adminService } from '@/services/apiService';
 import { useToastStore } from '@/store/useToastStore';
 import { useTranslation } from 'react-i18next';
+import { getLocalizedToast } from '@/lib/toastMessages';
 
 const TP = {
   fr: {

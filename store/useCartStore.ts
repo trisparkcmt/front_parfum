@@ -29,6 +29,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { cartService } from '@/services/apiService';
 import { useToastStore } from './useToastStore';
+import { getLocalizedToast } from '@/lib/toastMessages';
 
 function extractApiError(error: any, fallback: string): string {
   const data = error?.response?.data;
