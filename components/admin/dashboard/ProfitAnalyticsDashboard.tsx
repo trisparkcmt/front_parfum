@@ -228,12 +228,18 @@ export default function ProfitAnalyticsDashboard() {
       } else {
         const status = (labRes.reason as any)?.response?.status;
         if (status === 500) {
-          addToast('Server error on endpoint lab/benefices/ (500). Please check backend configuration.', 'error');
+          addToast(
+            getLocalizedToast(
+              'Server error on endpoint lab/benefices/ (500). Please check backend configuration.',
+              'Erreur serveur sur l’endpoint lab/benefices/ (500). Vérifiez la configuration du backend.'
+            ),
+            'error'
+          );
         }
         setLabData(null);
       }
     } catch {
-      addToast('Unexpected error during loading', 'error');
+      addToast(getLocalizedToast('Unexpected error during loading', 'Erreur inattendue lors du chargement'), 'error');
     } finally {
       setLoading(false);
     }

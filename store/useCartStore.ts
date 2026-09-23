@@ -468,7 +468,7 @@ export const useCartStore = create<CartState>()(
             cart: normalizedCart,
             isLoading: false,
           });
-          addToast('Removed', 'success');
+          addToast(getLocalizedToast('Removed', 'Retiré'), 'success');
           
           // Track remove_from_cart event for GA4
           if (removedItem) {
@@ -509,7 +509,10 @@ export const useCartStore = create<CartState>()(
             isLoading: false,
           });
           addToast(
-            `Code promo appliqué: ${cartData.remise_pourcentage}% de réduction`,
+            getLocalizedToast(
+              `Promo code applied: ${cartData.remise_pourcentage}% off`,
+              `Code promo appliqué: ${cartData.remise_pourcentage}% de réduction`
+            ),
             'success'
           );
         } catch (error: any) {
@@ -534,7 +537,7 @@ export const useCartStore = create<CartState>()(
             cart: normalizedCart,
             isLoading: false,
           });
-          addToast('Code promo retiré', 'success');
+          addToast(getLocalizedToast('Promo code removed', 'Code promo retiré'), 'success');
         } catch (error: any) {
           const errorMsg =
             error.response?.data?.detail || 'Erreur lors du retrait du code promo';

@@ -6,6 +6,7 @@ import { labService } from '@/services/apiService';
 import { useToastStore } from '@/store/useToastStore';
 import { SlideOver } from '@/components/ui/SlideOver';
 import { LaptopIcon } from '@/components/icons/CustomIcons';
+import { getLocalizedToast } from '@/lib/toastMessages';
 
 // --- Shared Primitives & Helpers ---
 
@@ -117,7 +118,7 @@ export default function CompositionsPage() {
       const list = data.results || data.resultats || (Array.isArray(data) ? data : []);
       setCompositions((Array.isArray(list) ? list : []).map(normalizeComposition));
     } catch (error) {
-      addToast('Erreur lors du chargement des compositions', 'error');
+      addToast(getLocalizedToast('Error loading compositions', 'Erreur lors du chargement des compositions'), 'error');
     } finally {
       setLoading(false);
     }

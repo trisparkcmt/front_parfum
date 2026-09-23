@@ -25,6 +25,7 @@ import { useToastStore } from './useToastStore';
 import { useCartStore } from './useCartStore';
 import { useNotificationCountStore } from './useNotificationCountStore';
 import { normalizeRoles, resolvePrimaryRole } from '@/lib/roleUtils';
+import { getLocalizedToast } from '@/lib/toastMessages';
 
 
 function decodeJwt(token: string): any {
@@ -226,7 +227,7 @@ export const useAuthStore = create<AuthState>()(
             isLoading: false,
           });
           initializeTokenRefresh();
-          addToast(`Bienvenue, ${meUser.firstName} !`, 'success');
+          addToast(getLocalizedToast(`Welcome, ${meUser.firstName}!`, `Bienvenue, ${meUser.firstName} !`), 'success');
 
           // Clear stale cart and sync fresh cart from backend after login
           // NOTE: Cart sync disabled until backend orders/panier endpoints are implemented
@@ -243,7 +244,7 @@ export const useAuthStore = create<AuthState>()(
         } catch (error: any) {
           console.error('Login failed:', error);
           set({ isLoading: false });
-          addToast(error.response?.data?.detail || 'Échec de la connexion', 'error');
+          addToast(error.response?.data?.detail || getLocalizedToast('Login failed', 'Échec de la connexion'), 'error');
           return false;
         }
       },
@@ -267,7 +268,7 @@ export const useAuthStore = create<AuthState>()(
 
           if (!googlePayload.access_token && !googlePayload.code && !googlePayload.id_token) {
             set({ isLoading: false });
-            addToast('Connexion Google échouée (aucun jeton d’accès reçu).', 'error');
+            addToast(getLocalizedToast('Google sign-in failed (no access token received).', 'Connexion Google échouée (aucun jeton d’accès reçu).'), 'error');
             return false;
           }
 
@@ -277,7 +278,7 @@ export const useAuthStore = create<AuthState>()(
 
           if (!access) {
             set({ isLoading: false });
-            addToast('Connexion Google échouée (jeton absent).', 'error');
+            addToast(getLocalizedToast('Google sign-in failed (token missing).', 'Connexion Google échouée (jeton absent).'), 'error');
             return false;
           }
 
@@ -322,7 +323,7 @@ export const useAuthStore = create<AuthState>()(
               meUser = mapUser(loginData.user);
             } else {
               console.error('Failed to fetch user details after Google login:', meError);
-              addToast('Échec de la récupération du profil après connexion Google.', 'error');
+              addToast(getLocalizedToast('Failed to load Google profile after sign-in.', 'Échec de la récupération du profil après connexion Google.'), 'error');
               set({ isLoading: false });
               return false;
             }
@@ -334,7 +335,7 @@ export const useAuthStore = create<AuthState>()(
             isLoading: false,
           });
           initializeTokenRefresh();
-          addToast(`Bienvenue, ${meUser.firstName} !`, 'success');
+          addToast(getLocalizedToast(`Welcome, ${meUser.firstName}!`, `Bienvenue, ${meUser.firstName} !`), 'success');
           // NOTE: FCM device registration is handled by FCMProvider which watches
           // isAuthenticated — no need to call initializeFCM here (would cause race condition).
 
@@ -344,7 +345,7 @@ export const useAuthStore = create<AuthState>()(
         } catch (error: any) {
           console.error('Google login failed:', error);
           set({ isLoading: false });
-          addToast(error.response?.data?.detail || 'Échec de la connexion Google', 'error');
+          addToast(error.response?.data?.detail || getLocalizedToast('Google login failed', 'Échec de la connexion Google'), 'error');
           return false;
         }
       },
@@ -367,7 +368,7 @@ export const useAuthStore = create<AuthState>()(
           await rawApi.post('auth/registration/', payload);
 
           set({ isLoading: false });
-          addToast('Inscription réussie. Veuillez vous connecter.', 'success');
+          addToast(getLocalizedToast('Registration successful. Please log in.', 'Inscription réussie. Veuillez vous connecter.'), 'success');
           return true;
         } catch (err: any) {
           console.error('Registration failed:', err);
@@ -379,7 +380,7 @@ export const useAuthStore = create<AuthState>()(
           // Server crash – Django returns an HTML error page
           const isHtml = typeof errData === 'string' && (errData.trimStart().startsWith('<') || errData.includes('<!DOCTYPE'));
           if (isHtml || status >= 500) {
-            addToast('Erreur serveur. Veuillez réessayer dans quelques instants.', 'error');
+            addToast(getLocalizedToast('Server error. Please try again in a few moments.', 'Erreur serveur. Veuillez réessayer dans quelques instants.'), 'error');
             return false;
           }
 
@@ -509,7 +510,7 @@ export const useAuthStore = create<AuthState>()(
           };
 
           set({ user: updatedUser, isLoading: false });
-          addToast('Profil mis à jour avec succès.', 'success');
+          addToast(getLocalizedToast('Profile updated successfully.', 'Profil mis à jour avec succès.'), 'success');
           return true;
         } catch (error: any) {
           console.error('Backend profile update failed:', error);

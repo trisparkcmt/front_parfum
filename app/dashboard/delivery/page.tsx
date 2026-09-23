@@ -5,6 +5,7 @@ import { useAuthStore } from '@/store/useAuthStore';
 import { formatPrice } from '@/lib/utils';
 import { useToastStore } from '@/store/useToastStore';
 import { useRouter } from 'next/navigation';
+import { getLocalizedToast } from '@/lib/toastMessages';
 import {
   MapPin, Phone, CheckCircle, Clock,
   Navigation, Package, ChevronRight,
@@ -183,7 +184,7 @@ export default function DeliveryDashboard() {
         totalFailed:    mapped.filter(t => t.status === 'failed').length,
       });
     } catch (err: any) {
-      addToast(isEn ? 'Error loading deliveries' : 'Erreur lors du chargement des livraisons', 'error');
+      addToast(getLocalizedToast('Error loading deliveries', 'Erreur lors du chargement des livraisons'), 'error');
     } finally {
       setLoading(false);
     }
@@ -209,10 +210,10 @@ export default function DeliveryDashboard() {
     setUpdating(task.id);
     try {
       await deliveryService.updateDeliveryStatus(task.id, { action: 'livrer' });
-      addToast(isEn ? `Order ${task.orderId} marked as delivered.` : `Livraison ${task.orderId} marquée comme livrée !`, 'success');
+      addToast(getLocalizedToast(`Order ${task.orderId} marked as delivered.`, `Livraison ${task.orderId} marquée comme livrée !`), 'success');
       await fetchData();
     } catch (err: any) {
-      addToast(err.response?.data?.detail ?? (isEn ? 'Error updating delivery' : 'Erreur lors de la mise à jour'), 'error');
+      addToast(err.response?.data?.detail ?? getLocalizedToast('Error updating delivery', 'Erreur lors de la mise à jour'), 'error');
     } finally {
       setUpdating(null);
     }
@@ -227,12 +228,12 @@ export default function DeliveryDashboard() {
         action: 'echouer',
         motif: failReason || (isEn ? 'Not specified' : 'Non précisé'),
       });
-      addToast(isEn ? 'Delivery marked as failed' : 'Livraison marquée comme échouée', 'info');
+      addToast(getLocalizedToast('Delivery marked as failed', 'Livraison marquée comme échouée'), 'info');
       setFailModal(null);
       setFailReason('');
       await fetchData();
     } catch (err: any) {
-      addToast(err.response?.data?.detail ?? (isEn ? 'Error' : 'Erreur'), 'error');
+      addToast(err.response?.data?.detail ?? getLocalizedToast('Error', 'Erreur'), 'error');
     } finally {
       setUpdating(null);
     }

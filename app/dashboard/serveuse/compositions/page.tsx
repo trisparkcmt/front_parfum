@@ -5,6 +5,7 @@ import { FlaskConical, Pencil, Eye, Loader2 } from 'lucide-react';
 import { labService } from '@/services/apiService';
 import { useToastStore } from '@/store/useToastStore';
 import { LaptopIcon } from '@/components/icons/CustomIcons';
+import { getLocalizedToast } from '@/lib/toastMessages';
 
 const toNumber = (value: any) => {
   if (value === null || value === undefined || value === '') return 0;
@@ -58,7 +59,7 @@ export default function CompositionsPage() {
       const list = data.results || data.resultats || (Array.isArray(data) ? data : []);
       setCompositions((Array.isArray(list) ? list : []).map(normalizeComposition));
     } catch (error) {
-      addToast('Erreur lors du chargement des compositions', 'error');
+      addToast(getLocalizedToast('Error loading compositions', 'Erreur lors du chargement des compositions'), 'error');
     } finally {
       setLoading(false);
     }

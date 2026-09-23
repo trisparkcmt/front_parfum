@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Plus, Loader2, RefreshCw, Trash2, Power } from 'lucide-react';
 import { adminService } from '@/services/apiService';
 import { useToastStore } from '@/store/useToastStore';
+import { getLocalizedToast } from '@/lib/toastMessages';
 import { SlideOver } from '@/components/ui/SlideOver';
 
 // Helper utilities
@@ -83,7 +84,7 @@ export default function ServeusesPage() {
       const list = data.resultats || data.results || (Array.isArray(data) ? data : []);
       setServeuses(list);
     } catch (error) {
-      addToast('Erreur lors du chargement des serveuses', 'error');
+      addToast(getLocalizedToast('Error loading serveuses', 'Erreur lors du chargement des serveuses'), 'error');
     } finally {
       setLoading(false);
     }
@@ -121,14 +122,14 @@ export default function ServeusesPage() {
     try {
       setSaving(true);
       await adminService.promoteToServeuse(parseInt(userIdVal));
-      addToast('Utilisateur promu au rang de serveuse avec succès', 'success');
+      addToast(getLocalizedToast('User promoted to serveuse successfully', 'Utilisateur promu au rang de serveuse avec succès'), 'success');
       setShowModal(false);
       setUserIdVal('');
       fetchServeuses();
     } catch (error: any) {
       const errorMessage = error.response?.data?.detail || 'Erreur lors de la promotion';
       setFormError(errorMessage);
-      addToast(errorMessage, 'error');
+      addToast(errorMessage || getLocalizedToast('Error promoting user', 'Erreur lors de la promotion'), 'error');
     } finally {
       setSaving(false);
     }
@@ -139,11 +140,11 @@ export default function ServeusesPage() {
     setServeuses(prev => prev.map(s => s.id === id ? { ...s, actif: !currentActif } : s));
     try {
       await adminService.updateServeuse(id, { actif: !currentActif });
-      addToast('Statut de la serveuse mis à jour', 'success');
+      addToast(getLocalizedToast('Serveuse status updated', 'Statut de la serveuse mis à jour'), 'success');
     } catch (error: any) {
       // Rollback
       setServeuses(prev => prev.map(s => s.id === id ? { ...s, actif: currentActif } : s));
-      addToast('Erreur lors de la modification du statut', 'error');
+      addToast(getLocalizedToast('Error updating status', 'Erreur lors de la modification du statut'), 'error');
     }
   };
 
@@ -153,7 +154,7 @@ export default function ServeusesPage() {
     setServeuses(prev => prev.filter(s => s.id !== id));
     try {
       await adminService.deleteServeuse(id);
-      addToast('Serveuse supprimée avec succès', 'success');
+      addToast(getLocalizedToast('Serveuse deleted successfully', 'Serveuse supprimée avec succès'), 'success');
     } catch (error: any) {
       if (snapshot) setServeuses(prev => [snapshot, ...prev]);
       addToast(error.response?.data?.detail || 'Erreur lors de la suppression', 'error');

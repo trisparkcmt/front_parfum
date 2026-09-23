@@ -15,6 +15,7 @@ import { useTranslation } from 'react-i18next';
 import { API_ROOT } from '@/services/api';
 import { useToastStore } from '@/store/useToastStore';
 import { ProductCard } from './ProductCard';
+import { getLocalizedToast } from '@/lib/toastMessages';
 
 interface DiffuseurCardProps {
   product: Product;
@@ -121,11 +122,17 @@ export function DiffuseurCard({
     }
 
     if (result === 'shared') {
-      addToast('Lien partagé', 'success');
+      addToast(getLocalizedToast('Link shared', 'Lien partagé'), 'success');
     } else if (result === 'copied') {
-      addToast('Lien copié dans le presse-papiers', 'success');
+      addToast(getLocalizedToast('Link copied to clipboard', 'Lien copié dans le presse-papiers'), 'success');
     } else {
-      addToast('Le partage n’est pas disponible sur ce navigateur. Copiez le lien : ' + productUrl, 'error');
+      addToast(
+        getLocalizedToast(
+          "Sharing isn't available on this browser. Copy the link: " + productUrl,
+          'Le partage n’est pas disponible sur ce navigateur. Copiez le lien : ' + productUrl
+        ),
+        'error'
+      );
     }
   };
 

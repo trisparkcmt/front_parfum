@@ -97,7 +97,7 @@ export default function PromoCodesPage() {
     try {
       const data = await promoApi.list();
       setCodes(data.results ?? data.resultats ?? (Array.isArray(data) ? data : []));
-    } catch { addToast('Erreur lors du chargement des codes promo', 'error'); }
+    } catch { addToast(getLocalizedToast('Error loading promo codes', 'Erreur lors du chargement des codes promo'), 'error'); }
     finally { setLoading(false); }
   }, [addToast]);
 
@@ -122,9 +122,9 @@ export default function PromoCodesPage() {
   const openEdit = (code: PromoCode) => { setFormError(null); setEditingCode(code); setFormCode(code.code); setFormReduction(code.reduction_pourcentage); setFormActif(code.est_actif); setFormClients(code.clients_autorises ?? []); setShowModal(true); setClientSearch(''); setShowClientPicker(false); };
 
   const handleSave = async () => {
-    if (!formCode.trim()) { addToast('Le code est requis', 'error'); return; }
+    if (!formCode.trim()) { addToast(getLocalizedToast('Code is required', 'Le code est requis'), 'error'); return; }
     const pct = parseFloat(formReduction);
-    if (isNaN(pct) || pct < 0 || pct > 100) { addToast('La reduction doit etre entre 0 et 100%', 'error'); return; }
+    if (isNaN(pct) || pct < 0 || pct > 100) { addToast(getLocalizedToast('The reduction must be between 0 and 100%', 'La reduction doit etre entre 0 et 100%'), 'error'); return; }
     setFormError(null);
     setSaving(true);
     try {
@@ -133,7 +133,7 @@ export default function PromoCodesPage() {
         setCodes(prev => prev.map(c => c.id === editingCode.id ? { ...c, ...payload } : c));
         await promoApi.update(editingCode.id, payload);
         setShowModal(false);
-        addToast('Code promo mis a jour', 'success');
+        addToast(getLocalizedToast('Promo code updated', 'Code promo mis a jour'), 'success');
         fetchCodes();
       } else {
         const created = await promoApi.create(payload);
@@ -143,7 +143,7 @@ export default function PromoCodesPage() {
         } else {
           fetchCodes();
         }
-        addToast('Code promo cree - emails & notifications envoyes aux clients selectionnes', 'success');
+        addToast(getLocalizedToast('Promo code created - emails and notifications sent to selected customers', 'Code promo cree - emails & notifications envoyes aux clients selectionnes'), 'success');
       }
     } catch (err: any) {
       const errorMessage = err?.response?.data ? JSON.stringify(err.response.data) : 'Erreur lors de la sauvegarde';
@@ -157,7 +157,7 @@ export default function PromoCodesPage() {
     try {
       await promoApi.update(id, { [field]: field === 'code' ? value.toUpperCase() : value });
     } catch {
-      addToast('Erreur lors de la mise à jour', 'error');
+      addToast(getLocalizedToast('Error updating promo code', 'Erreur lors de la mise à jour'), 'error');
       fetchCodes();
     }
   };
@@ -168,10 +168,10 @@ export default function PromoCodesPage() {
     setCodes(prev => prev.filter(c => c.id !== code.id));
     try {
       await promoApi.delete(code.id);
-      addToast('Code promo supprime', 'success');
+      addToast(getLocalizedToast('Promo code deleted', 'Code promo supprime'), 'success');
     } catch {
       if (snapshot) setCodes(prev => [snapshot, ...prev]);
-      addToast('Erreur lors de la suppression', 'error');
+      addToast(getLocalizedToast('Error deleting promo code', 'Erreur lors de la suppression'), 'error');
     }
   };
 
@@ -198,7 +198,7 @@ export default function PromoCodesPage() {
       });
       const ids = list.map(c => c.id);
       setFormClients(prev => Array.from(new Set([...prev, ...ids])));
-      addToast(`${ids.length} client(s) ajouté(s)`, 'success');
+      addToast(getLocalizedToast(`${ids.length} client(s) added`, `${ids.length} client(s) ajouté(s)`), 'success');
     } catch {
       addToast('Erreur lors du chargement du groupe', 'error');
     } finally {

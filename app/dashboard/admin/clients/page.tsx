@@ -9,6 +9,7 @@ import { adminService } from '@/services/apiService';
 import { adminService as adminHelpers, type BestClient } from '@/services/adminService';
 import { useToastStore } from '@/store/useToastStore';
 import { useAuthStore } from '@/store/useAuthStore';
+import { getLocalizedToast } from '@/lib/toastMessages';
 import {
   DashboardActionButton,
   DashboardIconButton,
@@ -78,7 +79,7 @@ export default function ClientsPage() {
       setClients(list);
     } catch (error) {
       console.error(error);
-      addToast('Erreur lors du chargement des clients', 'error');
+      addToast(getLocalizedToast('Error loading clients', 'Erreur lors du chargement des clients'), 'error');
     } finally {
       setLoading(false);
     }
@@ -102,7 +103,7 @@ export default function ClientsPage() {
         setBestTotal((data as BestClient[]).length);
       }
     } catch (error) {
-      addToast('Erreur lors du chargement des meilleurs clients', 'error');
+      addToast(getLocalizedToast('Error loading top clients', 'Erreur lors du chargement des meilleurs clients'), 'error');
     } finally {
       setBestLoading(false);
     }
@@ -118,13 +119,13 @@ export default function ClientsPage() {
   const handleToggleStatus = async (userId: number) => {
     try {
       await adminService.toggleUserStatus(userId);
-      addToast('Statut mis à jour', 'success');
+      addToast(getLocalizedToast('Status updated', 'Statut mis à jour'), 'success');
       fetchClients();
       if (selected && selected.id === userId) {
         setSelected((prev: any) => ({ ...prev, is_active: !prev.is_active }));
       }
     } catch {
-      addToast('Erreur lors de la modification du statut', 'error');
+      addToast(getLocalizedToast('Error updating status', 'Erreur lors de la modification du statut'), 'error');
     }
   };
 
@@ -135,7 +136,7 @@ export default function ClientsPage() {
     try {
       setPromoting(true);
       await adminService.promoteToServeuse(selected.id);
-      addToast('Client promu serveuse avec succès', 'success');
+      addToast(getLocalizedToast('Client promoted to serveuse successfully', 'Client promu serveuse avec succès'), 'success');
       fetchClients();
       setSelected(null);
     } catch (error: any) {
@@ -152,7 +153,7 @@ export default function ClientsPage() {
     try {
       setPromoting(true);
       await adminService.promoteToDriver(selected.id);
-      addToast('Client promu livreur avec succès', 'success');
+      addToast(getLocalizedToast('Client promoted to driver successfully', 'Client promu livreur avec succès'), 'success');
       fetchClients();
       setSelected(null);
     } catch (error: any) {

@@ -8,6 +8,7 @@ import {
 import { notificationService } from '@/services/apiService';
 import { useToastStore } from '@/store/useToastStore';
 import { useNotificationCountStore } from '@/store/useNotificationCountStore';
+import { getLocalizedToast } from '@/lib/toastMessages';
 
 // Helper utilities / UI primitives
 const cx = (...classes: (string | boolean | undefined)[]) => classes.filter(Boolean).join(' ');
@@ -111,7 +112,7 @@ export default function NotificationsPage() {
       const count = data.count || results.length;
       setTotalPages(Math.max(1, Math.ceil(count / 10)));
     } catch (error) {
-      addToast('Erreur lors du chargement des notifications', 'error');
+      addToast(getLocalizedToast('Error loading notifications', 'Erreur lors du chargement des notifications'), 'error');
     } finally {
       setLoading(false);
     }
@@ -131,20 +132,20 @@ export default function NotificationsPage() {
   const handleMarkAsRead = async (id: number) => {
     try {
       await notificationService.markAsRead(id, true);
-      addToast('Notification marquée comme lue', 'success');
+      addToast(getLocalizedToast('Notification marked as read', 'Notification marquée comme lue'), 'success');
       fetchNotifications();
     } catch (error) {
-      addToast('Erreur lors de la mise à jour de la notification', 'error');
+      addToast(getLocalizedToast('Error updating notification', 'Erreur lors de la mise à jour de la notification'), 'error');
     }
   };
 
   const handleMarkAllAsRead = async () => {
     try {
       await notificationService.markAllAsRead();
-      addToast('Toutes les notifications ont été marquées comme lues', 'success');
+      addToast(getLocalizedToast('All notifications marked as read', 'Toutes les notifications ont été marquées comme lues'), 'success');
       fetchNotifications();
     } catch (error) {
-      addToast('Erreur lors du marquage des notifications', 'error');
+      addToast(getLocalizedToast('Error marking notifications as read', 'Erreur lors du marquage des notifications'), 'error');
     }
   };
 

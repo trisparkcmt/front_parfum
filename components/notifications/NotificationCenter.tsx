@@ -16,6 +16,7 @@ import { Bell, X, Trash2, Loader2 } from 'lucide-react';
 import { deviceService } from '@/services/deviceService';
 import { useToastStore } from '@/store/useToastStore';
 import { useAuthStore } from '@/store/useAuthStore';
+import { getLocalizedToast } from '@/lib/toastMessages';
 import type { Notification as NotificationType } from '@/types';
 
 interface DeviceNotificationRow {
@@ -81,7 +82,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
       console.log('[NotificationCenter] Fetched', filteredData.length, 'notifications');
     } catch (error) {
       console.error('[NotificationCenter] Failed to fetch notifications:', error);
-      addToast('Erreur lors du chargement des notifications', 'error');
+      addToast(getLocalizedToast('Error loading notifications', 'Erreur lors du chargement des notifications'), 'error');
     } finally {
       setIsLoading(false);
     }
@@ -141,7 +142,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
         prev.map((n) => (n.id === id ? { ...n, is_read: true } : n))
       );
       
-      addToast('Notification marquée comme lue', 'success');
+      addToast(getLocalizedToast('Notification marked as read', 'Notification marquée comme lue'), 'success');
     } catch (error) {
       console.warn('[NotificationCenter] Failed to mark notification as read:', error);
     }
@@ -156,10 +157,10 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
     try {
       await deviceService.clearAllNotifications();
       setNotifications([]);
-      addToast('Toutes les notifications ont été supprimées', 'success');
+      addToast(getLocalizedToast('All notifications have been deleted', 'Toutes les notifications ont été supprimées'), 'success');
     } catch (error) {
       console.warn('[NotificationCenter] Failed to clear notifications:', error);
-      addToast('Erreur lors de la suppression des notifications', 'error');
+      addToast(getLocalizedToast('Error deleting notifications', 'Erreur lors de la suppression des notifications'), 'error');
     }
   };
 
@@ -175,7 +176,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
       setNotifications((prev) => prev.filter((n) => !selectedIds.has(n.id)));
       setSelectedIds(new Set());
       setIsSelectionMode(false);
-      addToast('Notifications supprimées', 'success');
+      addToast(getLocalizedToast('Notifications deleted', 'Notifications supprimées'), 'success');
     } catch (error) {
       addToast('Erreur lors de la suppression', 'error');
     }
@@ -186,9 +187,9 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
     try {
       await deviceService.deleteNotification(id);
       setNotifications((prev) => prev.filter((n) => n.id !== id));
-      addToast('Notification supprimée', 'success');
+      addToast(getLocalizedToast('Notification deleted', 'Notification supprimée'), 'success');
     } catch (error) {
-      addToast('Erreur lors de la suppression de la notification', 'error');
+      addToast(getLocalizedToast('Error deleting the notification', 'Erreur lors de la suppression de la notification'), 'error');
     }
   };
 

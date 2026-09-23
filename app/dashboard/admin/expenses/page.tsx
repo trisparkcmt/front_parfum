@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Loader2, Search, RefreshCw, Trash2, User, Filter, X, Receipt, Calendar, CalendarClock, ChevronRight } from 'lucide-react';
 import { api } from '@/services/apiService';
 import { useToastStore } from '@/store/useToastStore';
+import { getLocalizedToast } from '@/lib/toastMessages';
 
 interface Expense {
   id: number;
@@ -206,7 +207,7 @@ export default function AdminExpensesPage() {
       const data = res.data;
       setExpenses(data.results ?? data.resultats ?? (Array.isArray(data) ? data : []));
     } catch {
-      addToast('Erreur lors du chargement de toutes les dépenses', 'error');
+      addToast(getLocalizedToast('Error loading all expenses', 'Erreur lors du chargement de toutes les dépenses'), 'error');
     } finally {
       setLoading(false);
     }
@@ -220,10 +221,10 @@ export default function AdminExpensesPage() {
     if (!confirm('Supprimer définitivement cette dépense ?')) return;
     try {
       await api.delete(`utilisateur/depenses/${id}/`);
-      addToast('Dépense supprimée de l\u2019historique', 'success');
+      addToast(getLocalizedToast('Expense removed from history', 'Dépense supprimée de l\u2019historique'), 'success');
       fetchExpenses();
     } catch {
-      addToast('Erreur lors de la suppression', 'error');
+      addToast(getLocalizedToast('Error deleting expense', 'Erreur lors de la suppression'), 'error');
     }
   };
 

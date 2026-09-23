@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Plus, Loader2, RefreshCw, Trash2, AlertCircle, X } from 'lucide-react';
 import { adminService } from '@/services/apiService';
 import { useToastStore } from '@/store/useToastStore';
+import { getLocalizedToast } from '@/lib/toastMessages';
 import AppImage from '@/components/ui/AppImage';
 import { SlideOver } from '@/components/ui/SlideOver';
 import { AdminTableSkeleton } from '@/components/ui/AdminTableSkeleton';
@@ -138,7 +139,7 @@ export default function DeliveryPage() {
         setDrivers(processedDrivers);
       } catch (drvError) {
         console.error("Error loading drivers:", drvError);
-        addToast('Erreur lors du chargement de la flotte de livreurs', 'error');
+        addToast(getLocalizedToast('Error loading delivery fleet', 'Erreur lors du chargement de la flotte de livreurs'), 'error');
       }
 
       try {
@@ -147,10 +148,10 @@ export default function DeliveryPage() {
         setDeliveries(processedDeliveries);
       } catch (delError) {
         console.error("Error loading deliveries:", delError);
-        addToast('Le serveur de livraison a rencontré une erreur', 'error');
+        addToast(getLocalizedToast('The delivery server encountered an error', 'Le serveur de livraison a rencontré une erreur'), 'error');
       }
     } catch (error) {
-      addToast('Erreur lors du chargement des données de livraison', 'error');
+      addToast(getLocalizedToast('Error loading delivery data', 'Erreur lors du chargement des données de livraison'), 'error');
     } finally {
       setLoading(false);
     }
@@ -194,7 +195,7 @@ export default function DeliveryPage() {
     try {
       setPromoting(true);
       await adminService.promoteToDriver(parseInt(userIdVal));
-      addToast('Utilisateur promu au rang de livreur avec succès', 'success');
+      addToast(getLocalizedToast('User promoted to driver successfully', 'Utilisateur promu au rang de livreur avec succès'), 'success');
       setShowModal(false);
       setUserIdVal('');
       setSearchQuery('');
@@ -213,11 +214,11 @@ export default function DeliveryPage() {
     setDrivers(prev => prev.map(d => d.id === id ? { ...d, statut: nextStatut } : d));
     try {
       await adminService.updateDeliveryDriver(id, { statut: nextStatut });
-      addToast('Statut du livreur mis à jour', 'success');
+      addToast(getLocalizedToast('Driver status updated', 'Statut du livreur mis à jour'), 'success');
     } catch (error: any) {
       // Rollback
       setDrivers(prev => prev.map(d => d.id === id ? { ...d, statut: currentStatut } : d));
-      addToast('Erreur lors du modification du statut', 'error');
+      addToast(getLocalizedToast('Error updating driver status', 'Erreur lors du modification du statut'), 'error');
     }
   };
 
@@ -227,7 +228,7 @@ export default function DeliveryPage() {
     setDrivers(prev => prev.filter(d => d.id !== id));
     try {
       await adminService.deleteDeliveryDriver(id);
-      addToast('Livreur supprimé de la flotte avec succès', 'success');
+      addToast(getLocalizedToast('Driver removed from fleet successfully', 'Livreur supprimé de la flotte avec succès'), 'success');
     } catch (error: any) {
       if (snapshot) setDrivers(prev => [snapshot, ...prev]);
       addToast(error.response?.data?.detail || 'Erreur lors de la suppression', 'error');

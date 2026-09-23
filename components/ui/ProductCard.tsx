@@ -30,6 +30,7 @@ import type { Product } from '@/types';
 import { useTranslation } from 'react-i18next';
 import { useState, type MouseEvent } from 'react';
 import { useToastStore } from '@/store/useToastStore';
+import { getLocalizedToast } from '@/lib/toastMessages';
 
 interface ProductCardProps {
   product: Product;
@@ -133,9 +134,9 @@ export function ProductCard({
         console.warn('[ProductCard] Failed to track share event:', err);
       }
     }
-    if (result === 'shared') addToast('Lien partagé', 'success');
-    else if (result === 'copied') addToast('Lien copié dans le presse-papiers', 'success');
-    else addToast("Le partage n'est pas disponible sur ce navigateur", 'error');
+    if (result === 'shared') addToast(getLocalizedToast('Link shared', 'Lien partagé'), 'success');
+    else if (result === 'copied') addToast(getLocalizedToast('Link copied to clipboard', 'Lien copié dans le presse-papiers'), 'success');
+    else addToast(getLocalizedToast("Sharing isn't available on this browser", "Le partage n'est pas disponible sur ce navigateur"), 'error');
   };
 
   const handleToggleFavorite = (e: MouseEvent<HTMLButtonElement>) => {

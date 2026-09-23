@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { invoiceService } from '@/services/invoiceService';
 import { useToastStore } from '@/store/useToastStore';
+import { getLocalizedToast } from '@/lib/toastMessages';
 
 // --- Shared Primitives ---
 
@@ -166,7 +167,7 @@ export default function FacturesPage() {
       setInvoices(results);
       setTotal(data.count || results.length);
     } catch {
-      addToast('Erreur lors du chargement des factures', 'error');
+      addToast(getLocalizedToast('Error loading invoices', 'Erreur lors du chargement des factures'), 'error');
     } finally {
       setLoading(false);
     }
@@ -180,9 +181,9 @@ export default function FacturesPage() {
     setResendingId(numeroFacture);
     try {
       await invoiceService.resendInvoiceByEmail(numeroFacture);
-      addToast('Facture renvoyée par e-mail avec succès', 'success');
+      addToast(getLocalizedToast('Invoice resent by email successfully', 'Facture renvoyée par e-mail avec succès'), 'success');
     } catch {
-      addToast('Erreur lors du renvoi de la facture', 'error');
+      addToast(getLocalizedToast('Error resending invoice', 'Erreur lors du renvoi de la facture'), 'error');
     } finally {
       setResendingId(null);
     }
@@ -201,9 +202,9 @@ export default function FacturesPage() {
     setDownloadingId(inv.numero_facture);
     try {
       await invoiceService.downloadInvoiceFile(num, `${inv.numero_facture}.pdf`);
-      addToast('Facture téléchargée', 'success');
+      addToast(getLocalizedToast('Invoice downloaded', 'Facture téléchargée'), 'success');
     } catch {
-      addToast('Impossible de télécharger cette facture', 'error');
+      addToast(getLocalizedToast('Unable to download this invoice', 'Impossible de télécharger cette facture'), 'error');
     } finally {
       setDownloadingId(null);
     }

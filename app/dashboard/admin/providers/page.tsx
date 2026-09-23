@@ -218,7 +218,7 @@ export default function ProviderDashboardPage() {
       setProviders(list);
     } catch (error) {
       console.error('Error fetching providers:', error);
-      addToast('Erreur lors de la récupération des prestataires', 'error');
+      addToast(getLocalizedToast('Error loading providers', 'Erreur lors de la récupération des prestataires'), 'error');
     } finally {
       setLoadingList(false);
     }
@@ -251,7 +251,7 @@ export default function ProviderDashboardPage() {
       setUpdateStatut(String(res.statut || 'actif'));
     } catch (error) {
       console.error('Error fetching provider dashboard:', error);
-      addToast('Erreur lors du chargement des statistiques du prestataire', 'error');
+      addToast(getLocalizedToast('Error loading provider statistics', 'Erreur lors du chargement des statistiques du prestataire'), 'error');
     } finally {
       setLoadingDashboard(false);
     }
@@ -285,7 +285,7 @@ export default function ProviderDashboardPage() {
         reduction_client_pourcentage: parseFloat(updateDisc),
         statut: updateStatut,
       });
-      addToast('Règles financières mises à jour', 'success');
+      addToast(getLocalizedToast('Financial rules updated', 'Règles financières mises à jour'), 'success');
       
       setSelectedProvider((prev: Provider | null) => prev ? { ...prev, statut: updateStatut } : null);
       await fetchDashboard(selectedProvider.id);
@@ -319,7 +319,7 @@ export default function ProviderDashboardPage() {
         taux_commission: comm,
         reduction_client_pourcentage: disc,
       });
-      addToast('Le prestataire a été approuvé et activé avec succès', 'success');
+      addToast(getLocalizedToast('Provider approved and activated successfully', 'Le prestataire a été approuvé et activé avec succès'), 'success');
       setApprovingProvider(null);
       setFormError(null);
       await fetchProviders();
@@ -342,7 +342,7 @@ export default function ProviderDashboardPage() {
       await adminService.deleteProvider(Number(provider.id));
       setProviders((current) => current.filter((item) => item.id !== provider.id));
       if (selectedProvider?.id === provider.id) setSelectedProvider(null);
-      addToast('Prestataire supprimé avec succès', 'success');
+      addToast(getLocalizedToast('Provider deleted successfully', 'Prestataire supprimé avec succès'), 'success');
     } catch (error) {
       const errorMsg = (error as any)?.response?.data?.detail || 'Erreur lors de la suppression du prestataire';
       addToast(errorMsg, 'error');
@@ -357,7 +357,7 @@ export default function ProviderDashboardPage() {
     const amount = parseFloat(payoutAmount);
     
     if (isNaN(amount) || amount <= 0) {
-      addToast('Veuillez entrer un montant valide', 'error');
+      addToast(getLocalizedToast('Please enter a valid amount', 'Veuillez entrer un montant valide'), 'error');
       return;
     }
     
