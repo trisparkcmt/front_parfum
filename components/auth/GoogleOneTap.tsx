@@ -59,9 +59,9 @@ export function GoogleOneTap() {
           if (n.isNotDisplayed()) {
             console.info('[GoogleOneTap] Not displayed – reason:', n.getNotDisplayedReason());
           } else if (n.isSkippedMoment()) {
-            console.info('[GoogleOneTap] Skipped – reason:', n.getSkippedReason());
+            console.info('[GoogleOneTap] Skipped – reason:', n.getSkippedReason?.());
           } else if (n.isDismissedMoment()) {
-            console.info('[GoogleOneTap] Dismissed – reason:', n.getDismissedReason());
+            console.info('[GoogleOneTap] Dismissed – reason:', n.getDismissedReason?.());
           }
         });
       } catch (err) {

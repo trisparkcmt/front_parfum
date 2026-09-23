@@ -146,14 +146,18 @@ export function ProductDetailModal({
     return () => { document.body.style.overflow = prev; };
   }, []);
 
+  const closeModal = useCallback(() => {
+    onClose();
+  }, [onClose]);
+
   // ── Escape key ───────────────────────────────────────────────────────────
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') window.history.back();
+      if (e.key === 'Escape') closeModal();
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, []);
+  }, [closeModal]);
 
   // ── Handlers ─────────────────────────────────────────────────────────────
   const handleAddToCart = async () => {
@@ -325,7 +329,7 @@ export function ProductDetailModal({
         exit={{ opacity: 0 }}
         transition={{ duration: 0.2 }}
         className="fixed inset-0 z-[80] bg-black/60 backdrop-blur-sm"
-        onClick={() => window.history.back()}
+        onClick={closeModal}
         aria-hidden="true"
       />
 
@@ -343,7 +347,7 @@ export function ProductDetailModal({
       >
         {/* Close / back button */}
         <button
-          onClick={() => window.history.back()}
+          onClick={closeModal}
           aria-label={isEn ? 'Close' : 'Fermer'}
           className="fixed top-4 left-4 z-[82] flex items-center gap-2 text-foreground/70 hover:text-gold transition-colors bg-background/80 backdrop-blur-sm rounded-xl px-3 py-2 border border-foreground/10 hover:border-gold/30"
         >
@@ -371,7 +375,7 @@ export function ProductDetailModal({
                   {isEn ? 'Product not found' : 'Produit introuvable'}
                 </div>
                 <button
-                  onClick={() => window.history.back()}
+                  onClick={closeModal}
                   className="text-gold underline text-sm"
                 >
                   {isEn ? 'Go back' : 'Retour'}
@@ -385,7 +389,7 @@ export function ProductDetailModal({
                 <nav className="flex items-center gap-2 text-[11px] text-foreground/40 uppercase tracking-widest mt-2 mb-8 overflow-x-auto whitespace-nowrap scrollbar-hide">
                   <span
                     className="hover:text-gold transition-colors cursor-pointer"
-                    onClick={() => window.history.back()}
+                    onClick={closeModal}
                   >
                     {isEn ? 'Shop' : 'Boutique'}
                   </span>

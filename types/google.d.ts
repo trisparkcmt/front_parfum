@@ -22,13 +22,16 @@ declare global {
             cancel_on_tap_outside?: boolean;
             context?: 'signin' | 'signup' | 'use';
             itp_support?: boolean;
+            use_fedcm_for_prompt?: boolean;
             login_uri?: string;
           }) => void;
           prompt: (momentListener?: (notification: {
             isNotDisplayed: () => boolean;
             getNotDisplayedReason: () => string;
             isSkippedMoment: () => boolean;
+            getSkippedReason?: () => string;
             isDismissedMoment: () => boolean;
+            getDismissedReason?: () => string;
           }) => void) => void;
           renderButton: (element: HTMLElement, options: object) => void;
           disableAutoSelect: () => void;
