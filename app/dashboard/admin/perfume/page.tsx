@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useState, useEffect, useCallback } from 'react';
 import { Loader2, Edit2, Trash2, Plus, Search, Image as ImageIcon, SlidersHorizontal, AlertCircle, X, Package, ChevronDown, Tag, Layers, DollarSign, Boxes, Sparkles } from 'lucide-react';
@@ -372,37 +372,44 @@ export default function PerfumeAdminPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
+  const activeRequestRef = useRef(0);
 
   const fetchPerfumes = useCallback(async (page = 1) => {
     if (!permissions.canRead) return;
+    const requestId = ++activeRequestRef.current;
     try {
       setLoading(true);
       const params: Record<string, unknown> = { page, limit: 50 };
-      if (search) params.search = search;
+      if (search.trim()) params.search = search.trim();
       if (genreFilter) params.genre = genreFilter;
       if (estBestsellerFilter === 'true') params.est_bestseller = true;
       if (estBestsellerFilter === 'false') params.est_bestseller = false;
 
       const data = await shopService.getPerfumes(params as Parameters<typeof shopService.getPerfumes>[0]);
+      if (requestId !== activeRequestRef.current) return;
+
       const { items, total, pages, currentPage: apiPage } = extractCatalogMeta<PerfumeRecord>(data);
       setPerfumes(items);
       setTotalItems(total);
       setTotalPages(pages);
       setCurrentPage(apiPage);
     } catch {
-      addToast(t('toast_load_error'), 'error');
+      if (requestId === activeRequestRef.current) {
+        addToast(t('toast_load_error'), 'error');
+      }
     } finally {
-      setLoading(false);
+      if (requestId === activeRequestRef.current) {
+        setLoading(false);
+      }
     }
   }, [search, genreFilter, estBestsellerFilter, addToast, permissions.canRead]);
 
-  // Reset to page 1 when filters change
-  useEffect(() => { setCurrentPage(1); }, [search, genreFilter, estBestsellerFilter, createdFrom, createdTo]);
-
+  // Fetch page 1 when search or filters change
   useEffect(() => {
-    const timer = setTimeout(() => fetchPerfumes(currentPage), 300);
+    setCurrentPage(1);
+    const timer = setTimeout(() => fetchPerfumes(1), 300);
     return () => clearTimeout(timer);
-  }, [fetchPerfumes, currentPage]);
+  }, [search, genreFilter, estBestsellerFilter, createdFrom, createdTo, fetchPerfumes]);
 
 
   useEffect(() => {

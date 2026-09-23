@@ -150,34 +150,42 @@ export default function FinishedEssenceAdminPage() {
   const [essenceSearch, setEssenceSearch] = useState('');
   const [showEssenceDropdown, setShowEssenceDropdown] = useState(false);
 
+  const activeRequestRef = useRef(0);
+
   const fetchItems = useCallback(async (page = 1) => {
     if (!permissions.canRead) return;
+    const requestId = ++activeRequestRef.current;
     try {
       setLoading(true);
       const params: Record<string, unknown> = { page, limit: 50 };
-      if (search) params.search = search;
+      if (search.trim()) params.search = search.trim();
       if (tailleFilter) params.taille_ml = Number(tailleFilter);
 
       const data = await shopService.getFinishedEssences(params as Parameters<typeof shopService.getFinishedEssences>[0]);
+      if (requestId !== activeRequestRef.current) return;
+
       const { items, total, pages, currentPage: apiPage } = extractCatalogMeta<any>(data);
       setItems(items);
       setTotalItems(total);
       setTotalPages(pages);
       setCurrentPage(apiPage);
     } catch {
-      addToast(t('toast_load_error'), 'error');
+      if (requestId === activeRequestRef.current) {
+        addToast(t('toast_load_error'), 'error');
+      }
     } finally {
-      setLoading(false);
+      if (requestId === activeRequestRef.current) {
+        setLoading(false);
+      }
     }
   }, [search, tailleFilter, addToast, permissions.canRead]);
 
-  // Reset to page 1 when filters change
-  useEffect(() => { setCurrentPage(1); }, [search, tailleFilter]);
-
+  // Fetch page 1 when filters or search change
   useEffect(() => {
-    const timer = setTimeout(() => fetchItems(currentPage), 300);
+    setCurrentPage(1);
+    const timer = setTimeout(() => fetchItems(1), 300);
     return () => clearTimeout(timer);
-  }, [fetchItems, currentPage]);
+  }, [search, tailleFilter, fetchItems]);
 
 
   useEffect(() => {

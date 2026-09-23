@@ -113,13 +113,30 @@ export default function PerfumesShopClient() {
   });
 
   // Filter states
-  const [search, setSearch] = useState('');
-  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const initialSearchParam = useMemo(() => {
+    if (typeof window !== 'undefined') {
+      const sp = new URLSearchParams(window.location.search);
+      const q = sp.get('search');
+      if (q) return q;
+    }
+    return searchParams?.get('search') || '';
+  }, [searchParams]);
+
+  const [search, setSearch] = useState(initialSearchParam);
+  const [debouncedSearch, setDebouncedSearch] = useState(initialSearchParam);
   const [genre, setGenre] = useState<'all' | 'homme' | 'femme' | 'mixte'>('all');
   const [olfactiveFamily, setOlfactiveFamily] = useState<string>('all');
   const [intensity, setIntensity] = useState<string>('all');
   const [maxPrice, setMaxPrice] = useState<number>(150000);
   const [showFilters, setShowFilters] = useState(false);
+
+  useEffect(() => {
+    const q = searchParams?.get('search');
+    if (q !== null && q !== undefined && q !== search) {
+      setSearch(q);
+      setDebouncedSearch(q);
+    }
+  }, [searchParams]);
 
   // Initialise activeTab from URL or session storage when returning from product
   const [activeTab, setActiveTab] = useState<string | number>(() => {

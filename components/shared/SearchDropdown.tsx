@@ -66,10 +66,10 @@ export function SearchDropdown({ query, onClose, onProductClick, className }: Se
 
         // Combine perfume + accessory results, limit to 6
         const perfumeResults = perfumes.status === 'fulfilled'
-          ? (Array.isArray(perfumes.value) ? perfumes.value : perfumes.value.results)
+          ? (Array.isArray(perfumes.value) ? perfumes.value : (perfumes.value?.results || perfumes.value?.resultats || []))
           : [];
         const accessoryResults = accessories.status === 'fulfilled'
-          ? accessories.value
+          ? (Array.isArray(accessories.value) ? accessories.value : (accessories.value?.results || accessories.value?.resultats || []))
           : [];
         const allProducts: Product[] = [
           ...perfumeResults,
@@ -238,7 +238,7 @@ export function SearchDropdown({ query, onClose, onProductClick, className }: Se
               {/* See all results footer */}
               <div className="px-3 pt-1.5 pb-2 border-t border-[var(--t-border)] mt-1">
                 <Link
-                  href={`/shop/accessories?search=${encodeURIComponent(query)}`}
+                  href={`/shop/perfumes?search=${encodeURIComponent(query)}`}
                   onClick={onClose}
                   className="flex items-center justify-between w-full px-3 py-2 rounded-xl bg-gold/8 hover:bg-gold/15 text-gold text-xs font-semibold transition-colors group"
                 >

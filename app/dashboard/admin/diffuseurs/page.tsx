@@ -290,32 +290,40 @@ export default function DiffuseursAdminPage() {
     actif: true,
   });
 
+  const activeRequestRef = useRef(0);
+
   const fetchItems = useCallback(async (page = 1) => {
     if (!permissions.canRead) return;
+    const requestId = ++activeRequestRef.current;
     try {
       setLoading(true);
       const params: Record<string, unknown> = { page, limit: 50 };
-      if (search) params.search = search;
+      if (search.trim()) params.search = search.trim();
       const data = await adminService.getDiffuseurs(params as Parameters<typeof adminService.getDiffuseurs>[0]);
+      if (requestId !== activeRequestRef.current) return;
+
       const { items, total, pages, currentPage: apiPage } = extractCatalogMeta<any>(data);
       setDiffuseurs(items);
       setTotalItems(total);
       setTotalPages(pages);
       setCurrentPage(apiPage);
     } catch {
-      addToast(t('toast_load_error'), 'error');
+      if (requestId === activeRequestRef.current) {
+        addToast(t('toast_load_error'), 'error');
+      }
     } finally {
-      setLoading(false);
+      if (requestId === activeRequestRef.current) {
+        setLoading(false);
+      }
     }
   }, [addToast, permissions.canRead, search]);
 
-  // Reset to page 1 when search changes
-  useEffect(() => { setCurrentPage(1); }, [search]);
-
+  // Fetch page 1 when search changes
   useEffect(() => {
-    const timer = setTimeout(() => fetchItems(currentPage), 300);
+    setCurrentPage(1);
+    const timer = setTimeout(() => fetchItems(1), 300);
     return () => clearTimeout(timer);
-  }, [fetchItems, currentPage]);
+  }, [search, fetchItems]);
 
 
   const openAdd = () => {

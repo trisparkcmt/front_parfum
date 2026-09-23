@@ -272,13 +272,15 @@ export default function AccessoriesPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
+  const activeRequestRef = useRef(0);
 
   const fetchAccessories = useCallback(async (page = 1) => {
     if (!permissions.canRead) return;
+    const requestId = ++activeRequestRef.current;
     try {
       setLoading(true);
       const params: Record<string, unknown> = { page, limit: 50 };
-      if (search) params.search = search;
+      if (search.trim()) params.search = search.trim();
       if (filter !== 'all') params.type_accessoire = Number(filter);
       if (marqueFilter) params.marque = marqueFilter;
       if (matiereFilter) params.matiere = matiereFilter;
@@ -287,27 +289,32 @@ export default function AccessoriesPage() {
       if (enStockFilter === 'false') params.en_stock = false;
 
       const data = await shopService.getAccessories(params as Parameters<typeof shopService.getAccessories>[0]);
+      if (requestId !== activeRequestRef.current) return;
+
       const { items, total, pages, currentPage: apiPage } = extractCatalogMeta<any>(data);
       setAccessories(items);
       setTotalItems(total);
       setTotalPages(pages);
       setCurrentPage(apiPage);
     } catch {
-      addToast(t('toast_load_error'), 'error');
+      if (requestId === activeRequestRef.current) {
+        addToast(t('toast_load_error'), 'error');
+      }
     } finally {
-      setLoading(false);
+      if (requestId === activeRequestRef.current) {
+        setLoading(false);
+      }
     }
   }, [search, filter, marqueFilter, matiereFilter, couleurFilter, enStockFilter, addToast, permissions.canRead]);
 
-  // Reset to page 1 when filters change
-  useEffect(() => { setCurrentPage(1); }, [search, filter, marqueFilter, matiereFilter, couleurFilter, enStockFilter, createdFrom, createdTo]);
-
+  // Fetch page 1 when search or filters change
   useEffect(() => {
+    setCurrentPage(1);
     const timer = setTimeout(() => {
-      fetchAccessories(currentPage);
+      fetchAccessories(1);
     }, 300);
     return () => clearTimeout(timer);
-  }, [fetchAccessories, currentPage]);
+  }, [search, filter, marqueFilter, matiereFilter, couleurFilter, enStockFilter, createdFrom, createdTo, fetchAccessories]);
 
 
   // Load accessory types for dropdowns and filtering
