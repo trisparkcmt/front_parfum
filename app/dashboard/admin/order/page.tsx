@@ -14,6 +14,7 @@ import { useTranslation } from 'react-i18next';
 import type { BackendOrder, BackendOrderLine } from '@/types';
 import { useOptimisticOrders } from '@/hooks/useOptimisticOrders';
 import { CustomSelect } from '@/components/ui/CustomSelect';
+import { ProductDetailModal } from '@/components/ui/ProductDetailModal';
 
 const T = {
   fr: {
@@ -1537,6 +1538,16 @@ function OrderDetailModal({
 }) {
   const t = (k: TKey) => isEn ? T.en[k] : T.fr[k];
   const lines = allLines(order);
+  const [modalProductId, setModalProductId] = useState<string | null>(null);
+  const [modalProductType, setModalProductType] = useState<'perfume' | 'accessory' | 'diffuseur'>('perfume');
+
+  const handleOpenOrderLineProduct = (line: BackendOrderLine) => {
+    const target = getOrderLineProductTarget(line);
+    if (!target) return;
+    setModalProductId(target.productId);
+    setModalProductType(target.productType);
+  };
+
   const groups: Array<{ title: string; icon: React.ReactNode; lines: BackendOrderLine[] }> = [
     { title: t('group_perfumes'),        icon: <Package size={12} />, lines: order.lignes_parfums },
     { title: t('group_accessories'),     icon: <Package size={12} />, lines: order.lignes_accessoires },
@@ -1547,6 +1558,7 @@ function OrderDetailModal({
   ].filter(g => g.lines.length > 0);
 
   return (
+    <>
     <OrderPopupModal
       isOpen
       onClose={onClose}
@@ -1700,7 +1712,14 @@ function OrderDetailModal({
               <SectionLabel icon={<Package size={11} />}>{t('section_items')} ({lines.length})</SectionLabel>
               <div className="space-y-4">
                 {groups.map(g => (
-                  <LinesGroup key={g.title} title={g.title} icon={g.icon} lines={g.lines} isEn={isEn} />
+                  <LinesGroup
+                    key={g.title}
+                    title={g.title}
+                    icon={g.icon}
+                    lines={g.lines}
+                    isEn={isEn}
+                    onOpenProduct={handleOpenOrderLineProduct}
+                  />
                 ))}
                 {lines.length === 0 && <p className="py-4 text-center text-xs italic text-foreground/30">{t('no_items')}</p>}
               </div>
@@ -1709,6 +1728,15 @@ function OrderDetailModal({
         </div>
       </div>
     </OrderPopupModal>
+
+    {modalProductId && (
+      <ProductDetailModal
+        productId={modalProductId}
+        productType={modalProductType}
+        onClose={() => setModalProductId(null)}
+      />
+    )}
+    </>
   );
 }
 
@@ -1757,6 +1785,35 @@ function getOrderLineName(line: BackendOrderLine) {
     line.composition?.nom ||
     'Article'
   );
+}
+
+function getOrderLineProductTarget(line: BackendOrderLine): { productId: string; productType: 'perfume' | 'accessory' | 'diffuseur' } | null {
+  if (line.parfum) {
+    return { productId: String(line.parfum), productType: 'perfume' };
+  }
+
+  if (line.accessoire) {
+    return { productId: String(line.accessoire), productType: 'accessory' };
+  }
+
+  const category = (line.categorie || line.detail_produit?.categorie || '').toLowerCase();
+  const title = (line.nom_snapshot || line.nom || line.detail_produit?.nom || '').toLowerCase();
+
+  if (line.detail_produit?.id) {
+    if (category.includes('diffuseur') || title.includes('diffuseur')) {
+      return { productId: String(line.detail_produit.id), productType: 'diffuseur' };
+    }
+
+    if (category.includes('accessoire') || title.includes('accessoire')) {
+      return { productId: String(line.detail_produit.id), productType: 'accessory' };
+    }
+
+    if (category.includes('parfum') || title.includes('parfum') || title.includes('eau') || title.includes('perfume')) {
+      return { productId: String(line.detail_produit.id), productType: 'perfume' };
+    }
+  }
+
+  return null;
 }
 
 function getOrderLineDetailMeta(line: BackendOrderLine) {
@@ -1825,7 +1882,15 @@ function ColorPopup({ color, onClose }: { color: string; onClose: () => void }) 
   );
 }
 
-function LinesGroup({ title, icon, lines, isEn = false }: { title: string; icon: React.ReactNode; lines: BackendOrderLine[]; isEn?: boolean }) {
+function LinesGroup({
+  title, icon, lines, isEn = false, onOpenProduct,
+}: {
+  title: string;
+  icon: React.ReactNode;
+  lines: BackendOrderLine[];
+  isEn?: boolean;
+  onOpenProduct?: (line: BackendOrderLine) => void;
+}) {
   const [colorPreview, setColorPreview] = useState<string | null>(null);
 
   return (
@@ -1852,9 +1917,25 @@ function LinesGroup({ title, icon, lines, isEn = false }: { title: string; icon:
             line.prix_actuel ||
             line.produit_details?.nom
           );
+          const productTarget = getOrderLineProductTarget(line);
 
           return (
-            <div key={line.id} className="rounded-lg border border-white/8 bg-white/[0.015] p-2.5 sm:px-3 sm:py-2 text-xs">
+            <div
+              key={line.id}
+              className={cx(
+                'rounded-lg border border-white/8 bg-white/[0.015] p-2.5 sm:px-3 sm:py-2 text-xs transition-colors',
+                productTarget && onOpenProduct && 'cursor-pointer hover:border-gold/30 hover:bg-gold/[0.03]'
+              )}
+              onClick={productTarget && onOpenProduct ? () => onOpenProduct(line) : undefined}
+              role={productTarget && onOpenProduct ? 'button' : undefined}
+              tabIndex={productTarget && onOpenProduct ? 0 : undefined}
+              onKeyDown={productTarget && onOpenProduct ? (event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault();
+                  onOpenProduct(line);
+                }
+              } : undefined}
+            >
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 sm:gap-3">
                 <span className="font-medium text-foreground/85">{name}</span>
                 <div className="flex shrink-0 items-center justify-between sm:justify-start gap-3 text-foreground/45">
