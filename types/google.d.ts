@@ -33,6 +33,7 @@ declare global {
             isDismissedMoment: () => boolean;
             getDismissedReason?: () => string;
           }) => void) => void;
+          cancel: () => void;
           renderButton: (element: HTMLElement, options: object) => void;
           disableAutoSelect: () => void;
         };

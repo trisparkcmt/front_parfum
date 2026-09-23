@@ -7,6 +7,7 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import { CheckCircle, XCircle, Info, X } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { useToastStore } from '@/store/useToastStore';
 
 // Dynamic theme configuration based on your original design tokens
@@ -36,6 +37,8 @@ const toastThemes = {
 
 export function ToastProvider() {
   const { toasts, removeToast } = useToastStore();
+  const { t, i18n } = useTranslation();
+  const isEn = i18n.language?.startsWith('en');
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center pointer-events-none">
@@ -43,7 +46,11 @@ export function ToastProvider() {
         <AnimatePresence>
           {toasts.map((toast) => {
             const theme = toastThemes[toast.type] || toastThemes.info;
-            const title = toast.type === 'success' ? 'Succès' : toast.type === 'error' ? 'Erreur' : 'Info';
+            const title = toast.type === 'success'
+              ? t('toast_success', { defaultValue: isEn ? 'Success' : 'Succès' })
+              : toast.type === 'error'
+                ? t('toast_error', { defaultValue: isEn ? 'Error' : 'Erreur' })
+                : t('toast_info', { defaultValue: isEn ? 'Info' : 'Info' });
 
             return (
               <motion.div
@@ -57,21 +64,22 @@ export function ToastProvider() {
                   {theme.icon}
                 </div>
                 <div className="min-w-0">
-                  <p className={`text-xs sm:text-sm font-semibold leading-tight ${theme.titleColor}`}>{toast.message}</p>
+                  <p className={`text-[11px] sm:text-xs font-semibold uppercase tracking-[0.08em] leading-tight ${theme.titleColor}`}>{title}</p>
+                  <p className="text-xs sm:text-sm leading-tight text-foreground/90">{toast.message}</p>
                   {toast.href && (
                     <Link
                       href={toast.href}
                       onClick={() => removeToast(toast.id)}
                       className="mt-0.5 inline-flex text-[10px] sm:text-xs font-semibold text-gold hover:underline"
                     >
-                      {toast.hrefLabel || 'Voir plus'}
+                      {toast.hrefLabel || t('toast_view_more', { defaultValue: isEn ? 'View more' : 'Voir plus' })}
                     </Link>
                   )}
                 </div>
                 <button
                   onClick={() => removeToast(toast.id)}
                   className="ml-2 rounded-full p-0.5 text-foreground/40 transition-colors hover:bg-white/10 hover:text-foreground flex-shrink-0"
-                  aria-label="Fermer la notification"
+                  aria-label={t('toast_close', { defaultValue: isEn ? 'Close notification' : 'Fermer la notification' })}
                 >
                   <X size={12} />
                 </button>

@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { useAuthStore } from '@/store/useAuthStore';
 import { usePathname } from 'next/navigation';
+import { getAuthItem } from '@/services/api';
 
 const AUTH_PATHS = /\/(login|register|connexion|inscription|auth)/i;
 const GOOGLE_SCRIPT_ID = 'google-identity-services';
@@ -17,6 +18,16 @@ function clearGoogleStateCookie() {
   }
 }
 
+/** Check synchronously if the user is authenticated via store or stored token */
+function isUserLoggedIn(isAuthenticated: boolean): boolean {
+  if (isAuthenticated) return true;
+  if (typeof window !== 'undefined') {
+    const token = getAuthItem('auth_token');
+    if (token) return true;
+  }
+  return false;
+}
+
 export function GoogleOneTap() {
   const { isAuthenticated, loginWithGoogle } = useAuthStore();
   const pathname = usePathname();
@@ -24,18 +35,31 @@ export function GoogleOneTap() {
   const initialized = useRef(false);
 
   useEffect(() => {
-    // Skip on auth pages, when already logged in, or if no client ID
-    if (isAuthenticated || !clientId || AUTH_PATHS.test(pathname ?? '')) return;
+    // 1. If user is logged in, cancel any active One Tap prompt immediately
+    if (isUserLoggedIn(isAuthenticated)) {
+      if (window.google?.accounts?.id) {
+        try {
+          window.google.accounts.id.cancel();
+        } catch {
+          // Ignore cancel error
+        }
+      }
+      return;
+    }
+
+    // 2. Skip on auth pages or if no client ID
+    if (!clientId || AUTH_PATHS.test(pathname ?? '')) return;
     if (initialized.current) return;
 
     let checkTimer: NodeJS.Timeout | null = null;
 
     function initOneTap() {
+      // Re-verify login status right before initializing
+      if (isUserLoggedIn(useAuthStore.getState().isAuthenticated)) return;
       if (!window.google?.accounts?.id || initialized.current) return;
       initialized.current = true;
 
       try {
-        // Clear g_state so Google doesn't suppress One Tap due to past dismissal
         clearGoogleStateCookie();
 
         window.google.accounts.id.initialize({
@@ -48,6 +72,8 @@ export function GoogleOneTap() {
           callback: async (oneTapResponse) => {
             if (!oneTapResponse?.credential) return;
             try {
+              // Cancel prompt immediately on selection
+              window.google?.accounts?.id?.cancel();
               await loginWithGoogle(undefined, undefined, oneTapResponse.credential);
             } catch (err) {
               console.error('[GoogleOneTap] Login failed:', err);
@@ -94,6 +120,13 @@ export function GoogleOneTap() {
 
     return () => {
       if (checkTimer) clearInterval(checkTimer);
+      if (window.google?.accounts?.id) {
+        try {
+          window.google.accounts.id.cancel();
+        } catch {
+          // Ignore
+        }
+      }
     };
   }, [isAuthenticated, clientId, pathname, loginWithGoogle]);
 
