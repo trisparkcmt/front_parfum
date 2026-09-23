@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import { InputBar } from './InputBar';
 import ColorPicker from '@/components/ui/ColorPicker';
+import { ProductDetailModal } from '@/components/ui/ProductDetailModal';
 import { API_ROOT } from '@/services/api';
 import { api, labService as apiLabService } from '@/services/apiService';
 import { labService } from '@/services/labService';
@@ -694,16 +695,33 @@ function UserBubble({ text, metadata }: { text: string; metadata?: Record<string
 }
 
 function ProductCard({
-  image, name, price, onAdd,
+  image, name, price, onAdd, onClick,
 }: {
-  image?: string; name: string; price: string | number; onAdd: () => void;
+  image?: string; name: string; price: string | number; onAdd: () => void; onClick?: () => void;
 }) {
   const [added, setAdded] = useState(false);
   const t = dict[getLang()];
-  const handleAdd = () => { onAdd(); setAdded(true); setTimeout(() => setAdded(false), 2000); };
+  const handleAdd = (event?: React.MouseEvent<HTMLButtonElement>) => {
+    event?.stopPropagation();
+    onAdd();
+    setAdded(true);
+    setTimeout(() => setAdded(false), 2000);
+  };
 
   return (
-    <div className="flex-shrink-0 w-44 h-full min-h-[280px] bg-white/5 border border-white/10 rounded-2xl overflow-hidden hover:border-gold/30 transition-all group flex flex-col self-stretch">
+    <div
+      className="flex-shrink-0 w-44 h-full min-h-[280px] bg-white/5 border border-white/10 rounded-2xl overflow-hidden hover:border-gold/30 transition-all group flex flex-col self-stretch cursor-pointer"
+      onClick={onClick}
+      onKeyDown={(event) => {
+        if ((event.key === 'Enter' || event.key === ' ') && onClick) {
+          event.preventDefault();
+          onClick();
+        }
+      }}
+      role="button"
+      tabIndex={0}
+      aria-label={`Open product details for ${name}`}
+    >
       <div className="relative w-full h-36 bg-black/20 overflow-hidden flex-shrink-0">
         {image ? (
           <AppImage
@@ -723,6 +741,7 @@ function ProductCard({
         <p className="text-xs text-gold font-semibold mt-auto">{typeof price === 'number' ? formatPrice(price) : formatPrice(Number(price))}</p>
       </div>
       <button
+        type="button"
         onClick={handleAdd}
         className={`mt-auto w-full py-2.5 text-[10px] font-bold uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all border-t border-white/5 ${
           added ? 'bg-emerald-500/20 text-emerald-400' : 'bg-white/5 hover:bg-gold hover:text-black text-foreground/60'
@@ -819,6 +838,8 @@ function AiBubble({
   const [showNameModal, setShowNameModal] = useState(false);
   const [isAddingComposition, setIsAddingComposition] = useState(false);
   const [savedPerfumeId, setSavedPerfumeId] = useState<number | null>(null);
+  const [modalProductId, setModalProductId] = useState<string | null>(null);
+  const [modalProductType, setModalProductType] = useState<'perfume' | 'accessory' | 'diffuseur'>('perfume');
 
   useEffect(() => {
     if (!animateText) {
@@ -833,23 +854,55 @@ function AiBubble({
   const hasAnyItems = hasProducts || hasEssences || hasComposition || hasAccessories;
   const shouldShowContent = !isError503 && (isTypingComplete || !animateText);
 
-  const handleAddProduct = (p: AiProduct) => {
-    const product: Product = {
-      id: String(p.id), name: p.nom, description: '', price: Number(p.prix_unitaire),
-      category: 'perfume-brand', images: p.image_principale ? [p.image_principale] : [],
-      inStock: true, createdAt: new Date().toISOString(), slug: p.slug,
+  const buildProductFromAiProduct = useCallback((p: AiProduct): Product => ({
+    id: String(p.id),
+    slug: p.slug,
+    name: p.nom,
+    description: '',
+    price: Number(p.prix_unitaire),
+    category: 'perfume-brand',
+    images: p.image_principale ? [p.image_principale] : [],
+    inStock: true,
+    createdAt: new Date().toISOString(),
+  }), []);
+
+  const buildProductFromAccessory = useCallback((a: Accessory): Product => {
+    const rawAcc = a as unknown as Record<string, unknown>;
+    return {
+      ...a,
+      id: String(a.id),
+      slug: String(rawAcc.slug || a.id),
+      name: a.name || String(rawAcc.nom || ''),
+      price: Number(a.price || rawAcc.prix_unitaire || 0),
+      category: 'accessory',
+      images: a.images || (rawAcc.image_principale ? [String(rawAcc.image_principale)] : []),
     };
-    addProduct(product);
+  }, []);
+
+  const openProductDetail = useCallback((product: Product) => {
+    const isDiffuseur = Boolean(
+      product.type_technologie ||
+      product.capacite_reservoir_ml !== undefined ||
+      product.est_connecte !== undefined ||
+      product.a_jeux_de_lumiere !== undefined ||
+      (product.name || '').toLowerCase().includes('diffuseur') ||
+      (product.description || '').toLowerCase().includes('diffuseur')
+    );
+
+    setModalProductType(isDiffuseur ? 'diffuseur' : product.category === 'accessory' ? 'accessory' : 'perfume');
+    setModalProductId(String(product.slug || product.id));
+  }, []);
+
+  const closeProductDetail = useCallback(() => {
+    setModalProductId(null);
+  }, []);
+
+  const handleAddProduct = (p: AiProduct) => {
+    addProduct(buildProductFromAiProduct(p));
   };
 
   const handleAddAccessory = (a: Accessory) => {
-    const rawAcc = a as unknown as Record<string, unknown>;
-    const product: Product = {
-      ...a, id: String(a.id), name: a.name || String(rawAcc.nom || ''),
-      price: Number(a.price || rawAcc.prix_unitaire || 0), category: 'accessory',
-      images: a.images || (rawAcc.image_principale ? [String(rawAcc.image_principale)] : []),
-    };
-    addProduct(product);
+    addProduct(buildProductFromAccessory(a));
   };
 
   const handleTypingComplete = useCallback(() => {
@@ -1026,7 +1079,14 @@ function AiBubble({
             <p className="text-[10px] text-foreground/40 uppercase tracking-widest font-bold mb-2 ml-1">{t.suggestedPerfumes}</p>
             <div className="flex gap-3 overflow-x-auto pb-2" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
               {aiData!.parfums_existants!.map(p => (
-                <ProductCard key={p.id} image={p.image_principale} name={p.nom} price={p.prix_unitaire} onAdd={() => handleAddProduct(p)} />
+                <ProductCard
+                  key={p.id}
+                  image={p.image_principale}
+                  name={p.nom}
+                  price={p.prix_unitaire}
+                  onAdd={() => handleAddProduct(p)}
+                  onClick={() => openProductDetail(buildProductFromAiProduct(p))}
+                />
               ))}
             </div>
           </div>
@@ -1043,6 +1103,7 @@ function AiBubble({
                   name={product.name}
                   price={product.price}
                   onAdd={() => { addProduct(product); }}
+                  onClick={() => openProductDetail(product)}
                 />
               ))}
             </div>
@@ -1058,7 +1119,14 @@ function AiBubble({
                 const image = a.images?.[0] || accessoryLike.image_principale;
                 const name = a.name || String(accessoryLike.nom || '');
                 const price = a.price || Number(accessoryLike.prix_unitaire || 0);
-                return <ProductCard key={a.id} image={image} name={name} price={price} onAdd={() => handleAddAccessory(a)} />;
+                return <ProductCard
+                  key={a.id}
+                  image={image}
+                  name={name}
+                  price={price}
+                  onAdd={() => handleAddAccessory(a)}
+                  onClick={() => openProductDetail(buildProductFromAccessory(a))}
+                />;
               })}
             </div>
           </div>
@@ -1109,6 +1177,14 @@ function AiBubble({
         />
       )}
     </AnimatePresence>
+
+    {modalProductId && (
+      <ProductDetailModal
+        productId={modalProductId}
+        productType={modalProductType}
+        onClose={closeProductDetail}
+      />
+    )}
     </>
   );
 }
