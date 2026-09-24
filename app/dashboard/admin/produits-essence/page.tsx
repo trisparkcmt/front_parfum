@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Search, Plus, Edit2, Trash2, Loader2, RefreshCw, Filter, AlertCircle, X } from 'lucide-react';
 import { InlineCell } from '@/components/admin/InlineCell';
 import { TablePagination } from '@/components/admin/TablePagination';

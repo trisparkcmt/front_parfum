@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Loader2, Edit2, Trash2, Plus, Search, Image as ImageIcon, SlidersHorizontal, AlertCircle, X, Package, ChevronDown, Tag, Layers, DollarSign, Boxes, Sparkles } from 'lucide-react';
 import { shopService } from '@/services/apiService';
 import { adminService } from '@/services/apiService';

@@ -65,11 +65,11 @@ export function SearchDropdown({ query, onClose, onProductClick, className }: Se
         if (cancelled) return;
 
         // Combine perfume + accessory results, limit to 6
-        const perfumeResults = perfumes.status === 'fulfilled'
-          ? (Array.isArray(perfumes.value) ? perfumes.value : (perfumes.value?.results || perfumes.value?.resultats || []))
+        const perfumeResults: Product[] = perfumes.status === 'fulfilled'
+          ? (Array.isArray(perfumes.value) ? perfumes.value : ((perfumes.value as any)?.results || (perfumes.value as any)?.resultats || []))
           : [];
-        const accessoryResults = accessories.status === 'fulfilled'
-          ? (Array.isArray(accessories.value) ? accessories.value : (accessories.value?.results || accessories.value?.resultats || []))
+        const accessoryResults: Product[] = accessories.status === 'fulfilled'
+          ? (Array.isArray(accessories.value) ? accessories.value : ((accessories.value as any)?.results || (accessories.value as any)?.resultats || []))
           : [];
         const allProducts: Product[] = [
           ...perfumeResults,

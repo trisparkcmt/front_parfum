@@ -1577,15 +1577,6 @@ export const adminService = {
     return response.data;
   },
 
-  /**
-   * Get Lab catalogue financial benefits (Admin/Serveuse)
-   * Endpoint: GET /api/v1/lab/benefices/
-   */
-  getLabBenefices: async (params?: { start_date?: string; end_date?: string }) => {
-    const response = await api.get('lab/benefices/', { params });
-    return response.data;
-  },
-
   // ── Diffuseurs de Parfum ───────────────────────────────────────────────────
 
   /**
