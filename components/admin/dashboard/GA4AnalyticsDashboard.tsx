@@ -4,10 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import worldMap from '@svg-maps/world';
 import { 
-  TrendingUp, 
   Users, 
-  ShoppingBag, 
-  DollarSign, 
   Percent, 
   Loader2, 
   AlertCircle,
@@ -42,16 +39,10 @@ const TG = {
     loading: 'Traitement batch des rapports Google Analytics 4…',
     error_title: 'Synchronisation GA4 échouée',
     error_env: 'Vérifiez vos variables d\'environnement',
-    kpi_revenue: 'Chiffre d\'affaires',
-    kpi_revenue_sub: 'Total des ventes',
-    kpi_sales: 'Nombre de ventes',
-    kpi_sales_sub: 'Transactions réussies',
     kpi_conv: 'Conversion globale',
-    kpi_conv_sub: 'Sessions ayant acheté',
+    kpi_conv_sub: 'Progression du funnel',
     kpi_visitors: 'Visiteurs uniques',
     kpi_visitors_sub: 'Portée globale du funnel',
-    kpi_aov: 'Panier moyen',
-    kpi_aov_sub: 'CA moy. / achat',
     funnel_title: 'Entonnoir de conversion e-commerce',
     device_title: 'Appareils & Navigateurs',
     device_legend: 'Par appareil',
@@ -61,8 +52,6 @@ const TG = {
     col_step: 'Étape',
     col_events: 'Événements',
     col_users: 'Utilisateurs',
-    col_sales: 'Ventes',
-    col_revenue: 'CA',
     col_conv: 'Conv.',
     acquisition_title: 'Canaux d\'acquisition',
     col_source: 'Source / Medium',
@@ -108,16 +97,10 @@ const TG = {
     loading: 'Batch-processing Google Analytics 4 reports...',
     error_title: 'GA4 Synchronization Failed',
     error_env: 'Check your environment variables',
-    kpi_revenue: 'Revenue',
-    kpi_revenue_sub: 'Total revenue',
-    kpi_sales: 'Number of Sales',
-    kpi_sales_sub: 'Successful transactions',
     kpi_conv: 'Overall Conversion',
-    kpi_conv_sub: 'Purchased sessions',
+    kpi_conv_sub: 'Funnel progression',
     kpi_visitors: 'Unique Visitors',
     kpi_visitors_sub: 'Global funnel reach',
-    kpi_aov: 'AOV',
-    kpi_aov_sub: 'Avg revenue / purchase',
     funnel_title: 'E-Commerce Conversion Funnel',
     device_title: 'Device & Browser',
     device_legend: 'By Device',
@@ -127,8 +110,6 @@ const TG = {
     col_step: 'Step',
     col_events: 'Events',
     col_users: 'Users',
-    col_sales: 'Sales',
-    col_revenue: 'Revenue',
     col_conv: 'Conv. Rate',
     acquisition_title: 'Acquisition Channels',
     col_source: 'Source / Medium',
@@ -174,15 +155,12 @@ type TGKey = keyof typeof TG.fr;
 interface FunnelStep {
   step: string;
   eventCount: number;
-  revenue: number;
-  sales: number;
   conversionRate: number;
   totalUsers: number;
 }
 interface AcquisitionChannel {
   sourceMedium: string;
   users: number;
-  revenue: number;
   sessions: number;
 }
 interface PageMetric {
@@ -446,11 +424,8 @@ export default function GA4AnalyticsDashboard() {
 
   /* ── Derived data ── */
   const purchaseStep = data.funnel.find(d => d.step === 'purchase');
-  const revenueTotal = purchaseStep?.revenue ?? 0;
-  const salesCount   = purchaseStep?.sales ?? 0;
   const conversionRate = purchaseStep?.conversionRate ?? 0;
   const globalTraffic  = Math.max(...data.funnel.map(d => d.totalUsers), 0);
-  const aov = salesCount > 0 ? revenueTotal / salesCount : 0;
 
   const chartData = data.funnel.map((d, i) => ({
     name:  STEP_LABELS[d.step] || d.step,
@@ -498,15 +473,12 @@ export default function GA4AnalyticsDashboard() {
       </div>
 
       {/* ── KPI Cards ── */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-4">
         {[
-          { label: tg('kpi_revenue'),   value: `${revenueTotal.toLocaleString()} FCFA`, icon: <DollarSign size={10} className="text-gold" />,        sub: tg('kpi_revenue_sub') },
-          { label: tg('kpi_sales'),     value: salesCount.toLocaleString(),              icon: <ShoppingBag size={10} className="text-purple-400" />, sub: tg('kpi_sales_sub') },
-          { label: tg('kpi_conv'),      value: `${conversionRate.toFixed(2)}%`,          icon: <Percent size={10} className="text-emerald-400" />,    sub: tg('kpi_conv_sub') },
-          { label: tg('kpi_visitors'), value: globalTraffic.toLocaleString(),            icon: <Users size={10} className="text-blue-400" />,         sub: tg('kpi_visitors_sub') },
-          { label: tg('kpi_aov'),       value: `${Math.round(aov).toLocaleString()} FCFA`, icon: <TrendingUp size={10} className="text-gold" />,    sub: tg('kpi_aov_sub'), wide: true },
+          { label: tg('kpi_conv'),      value: `${conversionRate.toFixed(2)}%`, icon: <Percent size={10} className="text-emerald-400" />, sub: tg('kpi_conv_sub') },
+          { label: tg('kpi_visitors'), value: globalTraffic.toLocaleString(),   icon: <Users size={10} className="text-blue-400" />,    sub: tg('kpi_visitors_sub') },
         ].map(k => (
-          <div key={k.label} className={`bg-white/5 rounded-2xl border border-white/10 p-5 shadow-sm${(k as any).wide ? ' col-span-2 lg:col-span-1' : ''}`}>
+          <div key={k.label} className="bg-white/5 rounded-2xl border border-white/10 p-5 shadow-sm">
             <p className="text-xs text-foreground/40 mb-2">{k.label}</p>
             <p className="text-xl font-bold text-foreground">{k.value}</p>
             <div className="text-[10px] text-foreground/30 mt-2 flex items-center gap-1">{k.icon} {k.sub}</div>
@@ -612,8 +584,6 @@ export default function GA4AnalyticsDashboard() {
               <th className="pb-2">{tg('col_step')}</th>
               <th className="pb-2 text-right">{tg('col_events')}</th>
               <th className="pb-2 text-right">{tg('col_users')}</th>
-              <th className="pb-2 text-right">{tg('col_sales')}</th>
-              <th className="pb-2 text-right">{tg('col_revenue')}</th>
               <th className="pb-2 text-right">{tg('col_conv')}</th>
             </tr>
           </thead>
@@ -628,8 +598,6 @@ export default function GA4AnalyticsDashboard() {
                 </td>
                 <td className="py-2.5 text-right">{step.eventCount.toLocaleString()}</td>
                 <td className="py-2.5 text-right">{step.totalUsers.toLocaleString()}</td>
-                <td className="py-2.5 text-right">{step.sales.toLocaleString()}</td>
-                <td className="py-2.5 text-right text-gold">{step.revenue.toLocaleString()} FCFA</td>
                 <td className="py-2.5 text-right">{step.conversionRate.toFixed(2)}%</td>
               </tr>
             ))}
@@ -656,7 +624,6 @@ export default function GA4AnalyticsDashboard() {
                   <th className="pb-2">{tg('col_source')}</th>
                   <th className="pb-2 text-right">{tg('col_users')}</th>
                   <th className="pb-2 text-right">{tg('col_sessions')}</th>
-                  <th className="pb-2 text-right">{tg('col_revenue')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5 text-xs text-foreground/80">
@@ -665,11 +632,10 @@ export default function GA4AnalyticsDashboard() {
                     <td className="py-2.5 font-medium truncate max-w-[120px]">{acq.sourceMedium}</td>
                     <td className="py-2.5 text-right">{acq.users.toLocaleString()}</td>
                     <td className="py-2.5 text-right">{acq.sessions.toLocaleString()}</td>
-                    <td className="py-2.5 text-right text-gold">{acq.revenue.toLocaleString()} FCFA</td>
                   </tr>
                 ))}
                 {data.acquisition.length === 0 && (
-                  <tr><td colSpan={4} className="py-4 text-center text-foreground/30">{tg('no_channels')}</td></tr>
+                  <tr><td colSpan={3} className="py-4 text-center text-foreground/30">{tg('no_channels')}</td></tr>
                 )}
               </tbody>
             </table>
@@ -887,7 +853,6 @@ export default function GA4AnalyticsDashboard() {
               <th className="pb-2">{tg('col_source')}</th>
               <th className="pb-2 text-right">{tg('col_users')}</th>
               <th className="pb-2 text-right">{tg('col_sessions')}</th>
-              <th className="pb-2 text-right">{tg('col_revenue')}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-white/5 text-xs text-foreground/80">
@@ -896,7 +861,6 @@ export default function GA4AnalyticsDashboard() {
                 <td className="py-2.5 font-medium">{acq.sourceMedium}</td>
                 <td className="py-2.5 text-right">{acq.users.toLocaleString()}</td>
                 <td className="py-2.5 text-right">{acq.sessions.toLocaleString()}</td>
-                <td className="py-2.5 text-right text-gold">{acq.revenue.toLocaleString()} FCFA</td>
               </tr>
             ))}
           </tbody>

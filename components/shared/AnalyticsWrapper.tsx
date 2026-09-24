@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { GoogleAnalytics } from '@next/third-parties/google';
+import { getCookiePreferences } from '@/lib/cookieConsent';
 
 interface AnalyticsWrapperProps {
   gaId: string;
@@ -13,8 +14,7 @@ export function AnalyticsWrapper({ gaId }: AnalyticsWrapperProps) {
   useEffect(() => {
     // Initial check
     const checkConsent = () => {
-      const consent = localStorage.getItem('ae_cookie_consent');
-      setConsentGranted(consent === 'accepted');
+      setConsentGranted(getCookiePreferences().analytics);
     };
 
     checkConsent();

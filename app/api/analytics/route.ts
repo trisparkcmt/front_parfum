@@ -46,30 +46,12 @@ export async function GET() {
           },
         },
       },
-      // 2. Funnel Revenue (purchaseRevenue by eventName - only for purchase)
-      {
-        dateRanges: [{ startDate: '30daysAgo', endDate: 'today' }],
-        dimensions: [{ name: 'eventName' }],
-        metrics: [
-          { name: 'purchaseRevenue' },
-        ],
-        dimensionFilter: {
-          filter: {
-            fieldName: 'eventName',
-            stringFilter: {
-              matchType: 'EXACT',
-              value: 'purchase',
-            },
-          },
-        },
-      },
-      // 3. Acquisition Channels
+      // 2. Acquisition Channels
       {
         dateRanges: [{ startDate: '30daysAgo', endDate: 'today' }],
         dimensions: [{ name: 'sessionSourceMedium' }],
         metrics: [
           { name: 'activeUsers' },
-          { name: 'purchaseRevenue' },
           { name: 'sessions' },
         ],
         orderBys: [
@@ -150,12 +132,11 @@ export async function GET() {
     console.log('Total reports received:', reports.length);
     console.log('Report 0 (Funnel Events) structure:', JSON.stringify(reports[0], null, 2));
     console.log('Report 0 rows count:', reports[0]?.rows?.length || 0);
-    console.log('Report 1 (Revenue) rows count:', reports[1]?.rows?.length || 0);
-    console.log('Report 2 (Acquisition) rows count:', reports[2]?.rows?.length || 0);
-    console.log('Report 3 (Pages) rows count:', reports[3]?.rows?.length || 0);
-    console.log('Report 4 (Tech) rows count:', reports[4]?.rows?.length || 0);
-    console.log('Report 5 (Geo) rows count:', reports[5]?.rows?.length || 0);
-    console.log('Report 6 (Country totals) rows count:', reports[6]?.rows?.length || 0);
+    console.log('Report 1 (Acquisition) rows count:', reports[1]?.rows?.length || 0);
+    console.log('Report 2 (Pages) rows count:', reports[2]?.rows?.length || 0);
+    console.log('Report 3 (Tech) rows count:', reports[3]?.rows?.length || 0);
+    console.log('Report 4 (Geo) rows count:', reports[4]?.rows?.length || 0);
+    console.log('Report 5 (Country totals) rows count:', reports[5]?.rows?.length || 0);
 
     // Parse Report 0: Funnel Event Counts
     const funnelEventRows = reports[0]?.rows || [];
@@ -167,18 +148,10 @@ export async function GET() {
       eventCountMap[step] = eventCount;
     });
 
-    // Parse Report 1: Funnel Revenue (purchase only)
-    const funnelRevenueRows = reports[1]?.rows || [];
-    let purchaseRevenue = 0;
-    if (funnelRevenueRows.length > 0) {
-      purchaseRevenue = parseFloat(funnelRevenueRows[0]?.metricValues?.[0]?.value || '0');
-    }
-
     // Build funnel data
     const expectedSteps = ['view_item_list', 'view_item', 'add_to_cart', 'remove_from_cart', 'begin_checkout', 'purchase'];
     const completeFunnel = expectedSteps.map(stepName => {
       const eventCount = eventCountMap[stepName] || 0;
-      const revenue = stepName === 'purchase' ? purchaseRevenue : 0;
       // Approximate sessions/users from eventCount for conversion rate calculation
       const sessions = eventCount;
       const conversionRate = sessions > 0 ? (eventCount / sessions) * 100 : 0;
@@ -186,15 +159,13 @@ export async function GET() {
       return {
         step: stepName,
         eventCount,
-        revenue,
-        sales: stepName === 'purchase' ? eventCount : 0,
         conversionRate,
         totalUsers: eventCount,
       };
     });
 
-    // Parse Report 2: Acquisition Channels
-    const acqRows = reports[2]?.rows || [];
+    // Parse Report 1: Acquisition Channels
+    const acqRows = reports[1]?.rows || [];
     const acquisition = acqRows.map((row: any) => {
       let sourceMedium = row.dimensionValues?.[0]?.value || '(direct) / (none)';
       if (sourceMedium === '(not set)') sourceMedium = 'Inconnu';
@@ -202,13 +173,12 @@ export async function GET() {
       return {
         sourceMedium,
         users: parseInt(row.metricValues?.[0]?.value || '0', 10),
-        revenue: parseFloat(row.metricValues?.[1]?.value || '0'),
-        sessions: parseInt(row.metricValues?.[2]?.value || '0', 10),
+        sessions: parseInt(row.metricValues?.[1]?.value || '0', 10),
       };
     });
 
-    // Parse Report 3: Top Pages
-    const pageRows = reports[3]?.rows || [];
+    // Parse Report 2: Top Pages
+    const pageRows = reports[2]?.rows || [];
     const pages = pageRows.map((row: any) => {
       let path = row.dimensionValues?.[0]?.value || '/';
       if (path === '(not set)') path = 'Inconnu';
@@ -220,8 +190,8 @@ export async function GET() {
       };
     });
 
-    // Parse Report 4: Tech & Devices
-    const techRows = reports[4]?.rows || [];
+    // Parse Report 3: Tech & Devices
+    const techRows = reports[3]?.rows || [];
     const tech = techRows.map((row: any) => {
       let device = row.dimensionValues?.[0]?.value || 'desktop';
       let browser = row.dimensionValues?.[1]?.value || 'Chrome';
@@ -237,8 +207,8 @@ export async function GET() {
       };
     });
 
-    // Parse Report 5: Geo
-    const geoRows = reports[5]?.rows || [];
+    // Parse Report 4: Geo
+    const geoRows = reports[4]?.rows || [];
     const geo = geoRows
       .map((row: any) => {
         let country = row.dimensionValues?.[0]?.value || 'Inconnu';
@@ -258,8 +228,8 @@ export async function GET() {
       // you could uncomment the following filter:
       // .filter((item) => item.country !== 'Inconnu');
 
-    // Parse Report 6: Country totals used by the map
-    const countryRows = reports[6]?.rows || [];
+    // Parse Report 5: Country totals used by the map
+    const countryRows = reports[5]?.rows || [];
     const countryGeo = countryRows
       .map((row: any) => {
         let country = row.dimensionValues?.[0]?.value || 'Inconnu';
@@ -294,7 +264,6 @@ export async function GET() {
     console.log('- Tech entries:', tech.length);
     console.log('- Geo locations:', geo.length);
     console.log('- Country totals:', countryGeo.length);
-    console.log('- Total purchase revenue:', purchaseRevenue);
     console.log('=== End GA4 Debug ===');
 
     return NextResponse.json(responseData);

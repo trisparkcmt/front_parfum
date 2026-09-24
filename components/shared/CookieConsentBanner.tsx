@@ -10,8 +10,15 @@
  */
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { X } from 'lucide-react';
+import { Check, Settings, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import {
+  COOKIE_CONSENT_KEY,
+  DEFAULT_COOKIE_PREFERENCES,
+  getCookiePreferences,
+  saveCookiePreferences,
+  type CookiePreferences,
+} from '@/lib/cookieConsent';
 
 export function CookieIcon({ className }: { className?: string }) {
   return (
@@ -32,16 +39,16 @@ export function CookieIcon({ className }: { className?: string }) {
   );
 }
 
-const CONSENT_KEY = 'ae_cookie_consent';
-
 export function CookieConsentBanner() {
   const [visible, setVisible] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [preferences, setPreferences] = useState<CookiePreferences>(DEFAULT_COOKIE_PREFERENCES);
   const { t } = useTranslation();
 
   useEffect(() => {
     const checkConsent = () => {
       try {
-        const stored = localStorage.getItem(CONSENT_KEY);
+        const stored = localStorage.getItem(COOKIE_CONSENT_KEY);
         if (!stored) setVisible(true);
       } catch {
         // localStorage unavailable — do not show banner
@@ -50,7 +57,10 @@ export function CookieConsentBanner() {
 
     checkConsent();
 
-    const handleOpen = () => setVisible(true);
+    const handleOpen = () => {
+      setPreferences(getCookiePreferences());
+      setVisible(true);
+    };
     window.addEventListener('open_cookie_banner', handleOpen);
 
     return () => {
@@ -59,13 +69,24 @@ export function CookieConsentBanner() {
   }, []);
 
   const handleChoice = (choice: 'accepted' | 'refused') => {
-    try {
-      localStorage.setItem(CONSENT_KEY, choice);
-      window.dispatchEvent(new Event('cookie_consent_changed'));
-    } catch {
-      // ignore write errors
-    }
+    saveCookiePreferences({
+      analytics: choice === 'accepted',
+      preferences: choice === 'accepted',
+      marketing: choice === 'accepted',
+    });
     setVisible(false);
+    setShowSettings(false);
+  };
+
+  const openSettings = () => {
+    setPreferences(getCookiePreferences());
+    setShowSettings(true);
+  };
+
+  const saveSettings = () => {
+    saveCookiePreferences(preferences);
+    setVisible(false);
+    setShowSettings(false);
   };
 
   if (!visible) return null;
@@ -125,22 +146,102 @@ export function CookieConsentBanner() {
       {/* Actions */}
       <div className="flex items-center gap-2 justify-end">
         <button
-          onClick={() => handleChoice('refused')}
-          className="px-4 py-1.5 text-xs font-medium rounded-xl
+          onClick={openSettings}
+          className="px-4 py-1.5 text-xs font-semibold rounded-xl
                      border border-white/10 bg-white/5 hover:bg-white/10
                      transition-colors"
         >
-          {t('cookie_banner_reject', 'Decline')}
+          <span className="inline-flex items-center gap-1.5">
+            <Settings size={13} />
+            {t('cookie_banner_configure', 'Configure cookies')}
+          </span>
         </button>
         <button
           onClick={() => handleChoice('accepted')}
-          className="px-4 py-1.5 text-xs font-semibold rounded-xl
-                     bg-gold text-black hover:brightness-110
-                     transition-all"
+          className="px-4 py-1.5 text-xs font-semibold rounded-xl bg-gold text-black hover:brightness-110 transition-all"
         >
           {t('cookie_banner_accept', 'Accept')}
         </button>
       </div>
+
+      {showSettings && (
+        <div className="fixed inset-0 z-[210] flex items-center justify-center bg-black/70 p-4" role="presentation">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="cookie-settings-title"
+            className="w-full max-w-lg rounded-2xl border border-white/10 bg-deep-black p-5 text-foreground shadow-[0_12px_48px_rgba(0,0,0,0.7)]"
+          >
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h2 id="cookie-settings-title" className="text-base font-semibold">
+                  {t('cookie_settings_title', 'Configure cookies')}
+                </h2>
+                <p className="mt-1 text-xs leading-relaxed text-foreground/60">
+                  {t('cookie_settings_message', 'Choose which optional cookies you allow. Necessary cookies are always active.')}
+                </p>
+              </div>
+              <button
+                onClick={() => setShowSettings(false)}
+                aria-label={t('cookie_banner_close', 'Close')}
+                className="text-foreground/40 transition-colors hover:text-foreground/80"
+              >
+                <X size={17} />
+              </button>
+            </div>
+
+            <div className="mt-5 space-y-2">
+              {([
+                ['necessary', 'cookie_necessary_title', 'cookie_necessary_description', true],
+                ['analytics', 'cookie_analytics_title', 'cookie_analytics_description', preferences.analytics],
+                ['preferences', 'cookie_preferences_title', 'cookie_preferences_description', preferences.preferences],
+                ['marketing', 'cookie_marketing_title', 'cookie_marketing_description', preferences.marketing],
+              ] as const).map(([category, titleKey, descriptionKey, enabled]) => {
+                const isNecessary = category === 'necessary';
+                return (
+                  <div key={category} className="flex items-center justify-between gap-4 rounded-xl border border-white/10 bg-white/[0.03] p-3">
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium">{t(titleKey, category)}</p>
+                      <p className="mt-0.5 text-[11px] leading-relaxed text-foreground/55">{t(descriptionKey, '')}</p>
+                    </div>
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={enabled}
+                      aria-label={t(titleKey, category)}
+                      disabled={isNecessary}
+                      onClick={() => {
+                        if (isNecessary) return;
+                        setPreferences(current => ({ ...current, [category]: !current[category] }));
+                      }}
+                      className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${enabled ? 'bg-gold' : 'bg-white/15'} ${isNecessary ? 'cursor-not-allowed opacity-70' : 'cursor-pointer'}`}
+                    >
+                      <span className={`absolute top-1 h-4 w-4 rounded-full bg-white transition-transform ${enabled ? 'translate-x-6' : 'translate-x-1'}`}>
+                        {enabled && <Check size={11} className="m-0.5 text-black" />}
+                      </span>
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                onClick={() => handleChoice('refused')}
+                className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-xs font-medium transition-colors hover:bg-white/10"
+              >
+                {t('cookie_banner_reject', 'Decline')}
+              </button>
+              <button
+                onClick={saveSettings}
+                className="rounded-xl bg-gold px-4 py-2 text-xs font-semibold text-black transition-all hover:brightness-110"
+              >
+                {t('cookie_settings_save', 'Save preferences')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
