@@ -11,6 +11,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Check, Settings, X } from 'lucide-react';
+import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import {
   COOKIE_CONSENT_KEY,
@@ -164,7 +165,7 @@ export function CookieConsentBanner() {
         </button>
       </div>
 
-      {showSettings && (
+      {showSettings && createPortal(
         <div className="fixed inset-0 z-[210] flex items-center justify-center bg-black/70 p-4" role="presentation">
           <div
             role="dialog"
@@ -204,22 +205,22 @@ export function CookieConsentBanner() {
                       <p className="text-sm font-medium">{t(titleKey, category)}</p>
                       <p className="mt-0.5 text-[11px] leading-relaxed text-foreground/55">{t(descriptionKey, '')}</p>
                     </div>
-                    <button
-                      type="button"
-                      role="switch"
-                      aria-checked={enabled}
-                      aria-label={t(titleKey, category)}
-                      disabled={isNecessary}
-                      onClick={() => {
-                        if (isNecessary) return;
-                        setPreferences(current => ({ ...current, [category]: !current[category] }));
-                      }}
-                      className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${enabled ? 'bg-gold' : 'bg-white/15'} ${isNecessary ? 'cursor-not-allowed opacity-70' : 'cursor-pointer'}`}
+                    <label
+                      className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-md border transition-colors ${enabled ? 'border-gold bg-gold text-black' : 'border-white/25 bg-white/5 text-transparent'} ${isNecessary ? 'cursor-not-allowed opacity-70' : 'cursor-pointer hover:border-gold/70'}`}
                     >
-                      <span className={`absolute top-1 h-4 w-4 rounded-full bg-white transition-transform ${enabled ? 'translate-x-6' : 'translate-x-1'}`}>
-                        {enabled && <Check size={11} className="m-0.5 text-black" />}
-                      </span>
-                    </button>
+                      <input
+                        type="checkbox"
+                        checked={enabled}
+                        disabled={isNecessary}
+                        aria-label={t(titleKey, category)}
+                        onChange={() => {
+                          if (isNecessary) return;
+                          setPreferences(current => ({ ...current, [category]: !current[category] }));
+                        }}
+                        className="sr-only"
+                      />
+                      <Check size={15} aria-hidden="true" />
+                    </label>
                   </div>
                 );
               })}
@@ -240,7 +241,8 @@ export function CookieConsentBanner() {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
