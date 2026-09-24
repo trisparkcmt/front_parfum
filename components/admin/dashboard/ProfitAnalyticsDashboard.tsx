@@ -6,14 +6,11 @@ import {
   TrendingUp,
   Package,
   Layers,
-  ChevronDown,
-  ChevronUp,
   Loader2,
   Calendar,
   Filter,
   RefreshCw,
   Award,
-  Sparkles,
   PieChart as PieChartIcon
 } from 'lucide-react';
 import { adminService } from '@/services/apiService';
@@ -159,27 +156,6 @@ const TP = {
 } as const;
 type TPKey = keyof typeof TP.fr;
 
-interface LotDetail {
-  lot_id?: number;
-  id?: number;
-  reference?: string;
-  reference_fournisseur?: string;
-  numero_lot?: string;
-  stock_restant?: string | number;
-  quantite_ml?: string | number;
-  benefice_lot?: string | number;
-}
-
-interface EssenceDetail {
-  essence_id: number;
-  essence_nom: string;
-  essence_categorie?: string;
-  ca_total: string | number;
-  cout_total: string | number;
-  benefice_total: string | number;
-  lots?: LotDetail[];
-}
-
 export default function ProfitAnalyticsDashboard() {
   const { i18n } = useTranslation();
   const isEn = i18n.language?.startsWith('en') ?? false;
@@ -190,7 +166,6 @@ export default function ProfitAnalyticsDashboard() {
   const [dateFin, setDateFin] = useState('');
   const [statut, setStatut] = useState('all');
   const [profitData, setProfitData] = useState<any | null>(null);
-  const [expandedEssences, setExpandedEssences] = useState<Set<number>>(new Set());
   const [error, setError] = useState<string | null>(null);
   const { addToast } = useToastStore();
 
@@ -224,18 +199,6 @@ export default function ProfitAnalyticsDashboard() {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
-
-  const toggleExpandEssence = (id: number) => {
-    setExpandedEssences(prev => {
-      const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
-      }
-      return next;
-    });
-  };
 
   // ─── Normalize API response ──────────────────────────────────────────────────
   // Support both the flat shape { benefice_total, chiffre_affaires_total, … }
@@ -290,19 +253,6 @@ export default function ProfitAnalyticsDashboard() {
   // Essence lots from flat lots[] array
   const lotsApi: { type: string; id: number; essence: string; chiffre_affaires_genere: string; benefice: string }[] =
     firstNonEmptyArray(profitData?.lots);
-
-  const detailEssences: EssenceDetail[] = firstNonEmptyArray<EssenceDetail>(
-    essencesCat.detail_par_essence,
-    profitData?.benefices_par_essence
-  ).map((essence: any) => ({
-    essence_id: essence.essence_id || essence.id,
-    essence_nom: essence.essence_nom || essence.essence || essence.nom,
-    essence_categorie: essence.essence_categorie || essence.categorie || 'Essence',
-    ca_total: essence.ca_total ?? essence.chiffre_affaires ?? 0,
-    cout_total: essence.cout_total ?? essence.cout_achat ?? 0,
-    benefice_total: essence.benefice_total ?? essence.benefice ?? 0,
-    lots: essence.lots || []
-  }));
 
   const TYPE_LABELS: Record<string, string> = {
     parfum: tp('type_parfum'),
@@ -586,106 +536,6 @@ export default function ProfitAnalyticsDashboard() {
             </div>
           )}
 
-          {/* Section 5: Detailed Essence Sales Table */}
-          {detailEssences.length > 0 && (
-            <div className="bg-white/5 rounded-2xl border border-white/10 overflow-hidden shadow-sm">
-              <div className="p-5 border-b border-white/10 flex items-center justify-between">
-                <div>
-                  <h3 className="font-bold text-foreground text-sm flex items-center gap-2">
-                    <Sparkles size={16} className="text-gold" />
-                    {tp('section_essences')}
-                  </h3>
-                  <p className="text-xs text-foreground/40 mt-0.5">{tp('essences_sub')}</p>
-                </div>
-              </div>
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className="border-b border-white/10 bg-white/5">
-                      <th className="px-5 py-3.5 text-xs font-semibold text-foreground/40 uppercase tracking-wider">{tp('col_ess_name')}</th>
-                      <th className="px-5 py-3.5 text-xs font-semibold text-foreground/40 uppercase tracking-wider">{tp('col_ess_cat')}</th>
-                      <th className="px-5 py-3.5 text-xs font-semibold text-foreground/40 uppercase tracking-wider">{tp('col_cumulative_ca')}</th>
-                      <th className="px-5 py-3.5 text-xs font-semibold text-foreground/40 uppercase tracking-wider">{tp('col_cumulative_cost')}</th>
-                      <th className="px-5 py-3.5 text-xs font-semibold text-foreground/40 uppercase tracking-wider">{tp('col_total_profit')}</th>
-                      <th className="px-5 py-3.5 text-xs font-semibold text-foreground/40 uppercase tracking-wider text-right">{tp('col_lots')}</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-white/5">
-                    {detailEssences.map((ess) => {
-                      const essId = ess.essence_id;
-                      const isExpanded = expandedEssences.has(essId);
-                      const ca = parseFloat(String(ess.ca_total || 0));
-                      const cout = parseFloat(String(ess.cout_total || 0));
-                      const ben = parseFloat(String(ess.benefice_total || (ca - cout)));
-                      const lotsList = ess.lots || [];
-                      return (
-                        <React.Fragment key={essId}>
-                          <tr onClick={() => toggleExpandEssence(essId)} className="hover:bg-white/5 transition-colors cursor-pointer group">
-                            <td className="px-5 py-4 font-bold text-foreground text-sm flex items-center gap-2">
-                              {lotsList.length > 0 ? (isExpanded ? <ChevronUp size={14} className="text-gold" /> : <ChevronDown size={14} className="text-foreground/40 group-hover:text-gold" />) : null}
-                              {ess.essence_nom}
-                            </td>
-                            <td className="px-5 py-4 text-xs text-foreground/60">{ess.essence_categorie || 'Standard'}</td>
-                            <td className="px-5 py-4 text-xs font-mono font-semibold text-foreground">{ca.toLocaleString()} FCFA</td>
-                            <td className="px-5 py-4 text-xs font-mono text-foreground/60">{cout.toLocaleString()} FCFA</td>
-                            <td className="px-5 py-4 text-xs font-mono font-bold">
-                              <span className={ben >= 0 ? 'text-emerald-400' : 'text-red-400'}>{ben >= 0 ? '+' : ''}{ben.toLocaleString()} FCFA</span>
-                            </td>
-                            <td className="px-5 py-4 text-xs text-right">
-                              <span className="px-2 py-1 rounded bg-white/5 text-foreground/60 text-[10px] font-bold">{lotsList.length} lot(s)</span>
-                            </td>
-                          </tr>
-                          {isExpanded && (
-                            <tr>
-                              <td colSpan={6} className="bg-black/30 px-6 py-4 border-t border-b border-white/5">
-                                <div className="space-y-3">
-                                  <p className="text-xs font-bold text-gold uppercase tracking-wider flex items-center gap-1.5">
-                                    <Layers size={13} />
-                                    {tp('lots_detail')}
-                                  </p>
-                                  {lotsList.length > 0 ? (
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                                      {lotsList.map((lot, idx) => {
-                                        const ref = lot.reference || lot.reference_fournisseur || lot.numero_lot || `Lot #${lot.lot_id || lot.id || idx + 1}`;
-                                        const stockRestant = lot.stock_restant ?? lot.quantite_ml ?? '—';
-                                        const bLot = parseFloat(String(lot.benefice_lot || 0));
-                                        return (
-                                          <div key={idx} className="bg-white/5 border border-white/10 rounded-xl p-3 space-y-1 text-xs">
-                                            <div className="flex items-center justify-between">
-                                              <span className="font-mono font-bold text-foreground">{ref}</span>
-                                              <span className={`font-bold ${bLot >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                                                {bLot >= 0 ? '+' : ''}{bLot.toLocaleString()} FCFA
-                                              </span>
-                                            </div>
-                                            <p className="text-[10px] text-foreground/40">
-                                              {tp('lot_stock')}: <span className="text-foreground/70 font-semibold">{stockRestant} ml</span>
-                                            </p>
-                                          </div>
-                                        );
-                                      })}
-                                    </div>
-                                  ) : (
-                                    <p className="text-xs text-foreground/40 italic">{tp('no_lot_detail')}</p>
-                                  )}
-                                </div>
-                              </td>
-                            </tr>
-                          )}
-                        </React.Fragment>
-                      );
-                    })}
-                    {detailEssences.length === 0 && (
-                      <tr>
-                        <td colSpan={6} className="text-center py-16 text-foreground/40 italic text-sm">
-                          No essence sales recorded for this period.
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
         </>
       )}
     </div>
