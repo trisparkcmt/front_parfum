@@ -29,8 +29,7 @@ const FOND_FAMILIES = ['woody', 'oriental', 'gourmand', 'musk'];
 
 const EMOJIS: Record<string, string> = {
   citrus:'🍋', fresh:'🌿', fruity:'🍑', floral:'🌹', spicy:'🌶️',
-  aquatic:'🌊', woody:'🪵', oriental:'✨', gourmand:'🍫', musk:'🤍',
-  premium: '💎', 'super-premium': '👑', high: '🔱'
+  aquatic:'🌊', woody:'🪵', oriental:'✨', gourmand:'🍫', musk:'🤍'
 };
 
 const BOTTLE_SIZES = [
@@ -1268,7 +1267,7 @@ function AtelierContent() {
               {/* Sub-tabs for essences */}
               <div className="atelier-tab-row flex items-center gap-3 overflow-x-auto pb-2">
                 {[
-                  { id: 'high', label: 'High Luxury' },
+                  { id: 'high', label: 'High' },
                   { id: 'premium', label: 'Premium' },
                   { id: 'super-premium', label: 'Super Premium' }
                 ].map(sub => (
@@ -1452,10 +1451,6 @@ function AtelierContent() {
                     return (
                       <div key={item.id} className="group flex items-center justify-between py-3 px-4 sm:p-5 bg-[var(--t-surface)] transition-all hover:bg-foreground/[0.02]">
                         <div className="flex items-center gap-4">
-                          <div className="relative w-10 h-10 flex items-center justify-center flex-shrink-0">
-                            <div className="absolute inset-0 rounded-full blur-xl opacity-20" style={{ backgroundColor: item.color }} />
-                            <span className="text-xl relative z-10">{EMOJIS[essenceSubtab] || '✨'}</span>
-                          </div>
                           <div className="max-w-[120px] sm:max-w-[200px]">
                             <h4 className={`text-sm font-medium tracking-wide transition-colors ${sel ? 'text-gold' : 'text-foreground/80 group-hover:text-gold'}`}>
                               {item.name}
