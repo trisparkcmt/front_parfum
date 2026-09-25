@@ -163,6 +163,12 @@ export default function PerfumesShopClient() {
     }
   }, []);
 
+  // Monotonically-increasing counters: each new fetch increments these.
+  // Both fetch effects read a local snapshot at start; if the global ref has
+  // moved on by the time the response arrives, the stale result is discarded.
+  const fetchIdRef = useRef(0);
+  const essenceFetchIdRef = useRef(0);
+
   // Ref to track actual user filter changes (avoids resetting page on re-mount or debounce init)
   const prevFiltersRef = useRef({
     genre,
@@ -338,10 +344,17 @@ export default function PerfumesShopClient() {
       if (activeTab !== 'all' && activeTab !== 'huile') filters.categorie = Number(activeTab);
       if (currentPage > 1) filters.page = currentPage;
 
+      // Race-condition guard: stamp this request so stale responses can be discarded.
+      const myFetchId = ++fetchIdRef.current;
+
       const response = await productService.getPerfumes(filters);
 
+      // A newer fetch started while we were awaiting — drop this stale result.
+      if (myFetchId !== fetchIdRef.current) return;
+
       if (Array.isArray(response)) {
-        const shuffledProducts = shuffleArray(response);
+        // Preserve backend ordering when searching; only shuffle on browse
+        const shuffledProducts = debouncedSearch ? response : shuffleArray(response);
         setProducts(shuffledProducts);
         setTotalPages(1);
         setTotalCount(response.length);
@@ -371,7 +384,8 @@ export default function PerfumesShopClient() {
           }
         }
       } else {
-        const shuffledProducts = shuffleArray(response.results);
+        // Preserve backend ordering when searching; only shuffle on browse
+        const shuffledProducts = debouncedSearch ? response.results : shuffleArray(response.results);
         setProducts(shuffledProducts);
         setTotalPages(response.pages ?? 1);
         setTotalCount(response.count ?? 0);
@@ -423,6 +437,9 @@ export default function PerfumesShopClient() {
         return;
       }
 
+      // Race-condition guard for essence fetch
+      const myEssenceFetchId = ++essenceFetchIdRef.current;
+
       setFinishedEssenceLoading(true);
       try {
         const response = await productService.getEssencesAsProducts({
@@ -436,7 +453,12 @@ export default function PerfumesShopClient() {
           page: currentPage > 1 ? currentPage : undefined,
         });
 
-        const essenceItems = shuffleArray(Array.isArray(response) ? response : response.results);
+        // Drop stale result — a newer essence request already replaced us
+        if (myEssenceFetchId !== essenceFetchIdRef.current) return;
+
+        const rawEssences = Array.isArray(response) ? response : response.results;
+        // Preserve backend ordering when searching; only shuffle on browse
+        const essenceItems = debouncedSearch ? rawEssences : shuffleArray(rawEssences);
         setFinishedEssenceProducts(essenceItems);
         try {
           sessionStorage.setItem('perfumes_catalog_cached_essence', JSON.stringify(essenceItems));

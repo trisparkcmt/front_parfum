@@ -38,7 +38,7 @@ export function Footer() {
   return (
     <>
       {/* Full footer — hidden on mobile */}
-      <footer className="hidden md:block bg-[var(--t-footer-bg)] text-foreground border-t border-[var(--t-border)]">
+      <footer className="hidden md:block bg-[var(--t-footer-bg)] text-white dark:text-foreground border-t border-[var(--t-border)]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-12">
           {/* Brand */}
@@ -51,10 +51,10 @@ export function Footer() {
               />
               <span className="font-display text-lg font-bold">
                 <span className="text-gold">Accessoires</span>{' '}
-                <span className="text-zinc-900 dark:text-zinc-100">Exclusifs</span>
+                <span className="text-white dark:text-zinc-100">Exclusifs</span>
               </span>
             </Link>
-            <p className="text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">
+            <p className="text-sm leading-relaxed text-white dark:text-zinc-400">
               {t('brand_description', 'Votre destination luxe pour accessoires premium et parfums d\'exception.')}
             </p>
             <div className="flex gap-3">
@@ -101,7 +101,7 @@ export function Footer() {
 
           {/* Navigation */}
           <div className='flex flex-col'>
-            <h4 className="font-display text-sm font-semibold text-zinc-900 dark:text-zinc-100 mb-4 uppercase tracking-wider">{t('navigation', 'Navigation')}</h4>
+            <h4 className="font-display text-sm font-semibold text-white dark:text-zinc-100 mb-4 uppercase tracking-wider">{t('navigation', 'Navigation')}</h4>
             <ul className="space-y-3">
               {[
                 { label: t('nav_home'), href: '/' },
@@ -111,7 +111,7 @@ export function Footer() {
                 { label: t('cart'), href: '/cart' },
               ].map((link) => (
                 <li key={link.href}>
-                  <Link href={link.href} className="text-sm text-zinc-600 dark:text-zinc-400 hover:text-gold transition-colors">
+                  <Link href={link.href} className="text-sm text-white dark:text-zinc-400 hover:text-gold transition-colors">
                     {link.label}
                   </Link>
                 </li>
@@ -121,8 +121,8 @@ export function Footer() {
 
           {/* Services */}
           <div>
-            <h4 className="font-display text-sm font-semibold text-zinc-900 dark:text-zinc-100 mb-4 uppercase tracking-wider">{t('services', { defaultValue: 'Services' })}</h4>
-            <ul className="space-y-3 text-zinc-600 dark:text-zinc-400">
+            <h4 className="font-display text-sm font-semibold text-white dark:text-zinc-100 mb-4 uppercase tracking-wider">{t('services', { defaultValue: 'Services' })}</h4>
+            <ul className="space-y-3 text-white dark:text-zinc-400">
               {[
                 t('custom_perfume', 'Parfum sur Mesure'),
                 t('ai_advisor', 'Sommelier IA'),
@@ -134,7 +134,7 @@ export function Footer() {
 
           {/* Légal */}
           <div>
-            <h4 className="font-display text-sm font-semibold text-zinc-900 dark:text-zinc-100 mb-4 uppercase tracking-wider">
+            <h4 className="font-display text-sm font-semibold text-white dark:text-zinc-100 mb-4 uppercase tracking-wider">
               {t('legal', { defaultValue: isEn ? 'Legal' : 'Légal' })}
             </h4>
             <ul className="space-y-3">
@@ -144,7 +144,7 @@ export function Footer() {
                 { label: t('cookies_policy', { defaultValue: isEn ? 'Cookie Policy' : 'Politique des cookies' }), href: '/privacy#cookies' },
               ].map((link) => (
                 <li key={link.href}>
-                  <Link href={link.href} className="text-sm text-zinc-600 dark:text-zinc-400 hover:text-gold transition-colors">
+                  <Link href={link.href} className="text-sm text-white dark:text-zinc-400 hover:text-gold transition-colors">
                     {link.label}
                   </Link>
                 </li>
@@ -152,7 +152,7 @@ export function Footer() {
               <li>
                 <button
                   onClick={() => window.dispatchEvent(new Event('open_cookie_banner'))}
-                  className="inline-flex items-center gap-2 text-sm text-zinc-600 dark:text-zinc-400 hover:text-gold transition-colors"
+                  className="inline-flex items-center gap-2 text-sm text-white dark:text-zinc-400 hover:text-gold transition-colors"
                 >
                   <CookieIcon className="h-4 w-4 text-gold" />
                   <span>{t('manage_cookies', { defaultValue: isEn ? 'Manage cookies' : 'Gérer les cookies' })}</span>
@@ -163,8 +163,8 @@ export function Footer() {
 
           {/* Contact */}
           <div>
-            <h4 className="font-display text-sm font-semibold text-zinc-900 dark:text-zinc-100 mb-4 uppercase tracking-wider">{t('contact', { defaultValue: 'Contact' })}</h4>
-            <ul className="space-y-3 text-zinc-600 dark:text-zinc-400">
+            <h4 className="font-display text-sm font-semibold text-white dark:text-zinc-100 mb-4 uppercase tracking-wider">{t('contact', { defaultValue: 'Contact' })}</h4>
+            <ul className="space-y-3 text-white dark:text-zinc-400">
               <li className="flex items-center gap-2 text-sm">
                 <Phone size={16} className="text-gold shrink-0" />
                 <a href={companyInfo?.telephone_principal ? `tel:+237${companyInfo.telephone_principal.replace(/\D/g, '')}` : undefined} className="hover:text-gold transition-colors">
@@ -187,23 +187,23 @@ export function Footer() {
 
         {/* Bottom bar */}
         <div className="mt-12 pt-8 border-t border-zinc-200 dark:border-white/10 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p className="text-xs text-zinc-500">
+          <p className="text-xs text-white dark:text-zinc-500">
             © {new Date().getFullYear()} Accessoires Exclusif. {t('all_rights_reserved', { defaultValue: isEn ? 'All rights reserved.' : 'Tous droits réservés.' })}
           </p>
           <div className="flex items-center gap-4">
-            <Link href="/privacy" className="text-xs text-zinc-500 hover:text-gold transition-colors">
+            <Link href="/privacy" className="text-xs text-white dark:text-zinc-500 hover:text-gold transition-colors">
               {t('privacy_policy', 'Politique de confidentialité')}
             </Link>
-            <span className="text-zinc-600 dark:text-zinc-700 text-xs">·</span>
-            <Link href="/terms" className="text-xs text-zinc-500 hover:text-gold transition-colors">
+            <span className="text-white dark:text-zinc-700 text-xs">·</span>
+            <Link href="/terms" className="text-xs text-white dark:text-zinc-500 hover:text-gold transition-colors">
               {t('terms_short', 'CGU')}
             </Link>
-            <span className="text-zinc-600 dark:text-zinc-700 text-xs">·</span>
-            <Link href="/privacy#cookies" className="text-xs text-zinc-500 hover:text-gold transition-colors">
+            <span className="text-white dark:text-zinc-700 text-xs">·</span>
+            <Link href="/privacy#cookies" className="text-xs text-white dark:text-zinc-500 hover:text-gold transition-colors">
               {t('cookies_policy', 'Cookies')}
             </Link>
           </div>
-          <p className="text-xs text-zinc-500">
+          <p className="text-xs text-white dark:text-zinc-500">
             {t('made_by', { defaultValue: isEn ? 'Made by' : 'Fait par' })} TriSpark Digital {t('in_cameroon', { defaultValue: isEn ? 'in Cameroon' : 'au Cameroun' })}
           </p>
         </div>
@@ -211,13 +211,13 @@ export function Footer() {
     </footer>
 
       {/* Mobile-only contact/social footer — always visible at page bottom */}
-      <div className="block md:hidden border-t border-foreground/10 bg-[var(--t-footer-bg)] py-3 px-4 pb-24 text-center space-y-2.5">
+      <div className="block md:hidden border-t border-foreground/10 bg-[var(--t-footer-bg)] py-3 px-4 pb-24 text-center space-y-2.5 text-white dark:text-foreground">
         <div className="flex items-center justify-center gap-3">
           <a
             href={buildSocialUrl('instagram', companyInfo?.instagram_url)}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex h-8 w-8 items-center justify-center rounded-full bg-foreground/5 text-zinc-700 transition hover:bg-foreground/10 hover:text-gold dark:text-zinc-200"
+            className="flex h-8 w-8 items-center justify-center rounded-full bg-foreground/5 text-white transition hover:bg-foreground/10 hover:text-gold dark:text-zinc-200"
             aria-label="Instagram"
           >
             
@@ -229,7 +229,7 @@ export function Footer() {
             href={buildSocialUrl('facebook', companyInfo?.facebook_url)}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center justify-center text-zinc-700 transition hover:text-gold dark:text-zinc-200"
+            className="flex items-center justify-center text-white transition hover:text-gold dark:text-zinc-200"
             aria-label="Facebook"
           >
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" className="h-6 w-6"><path fill="#039be5" d="M24 5A19 19 0 1 0 24 43A19 19 0 1 0 24 5Z"></path><path fill="#fff" d="M26.572,29.036h4.917l0.772-4.995h-5.69v-2.73c0-2.075,0.678-3.915,2.619-3.915h3.119v-4.359c-0.548-0.074-1.707-0.236-3.897-0.236c-4.573,0-7.254,2.415-7.254,7.917v3.323h-4.701v4.995h4.701v13.729C22.089,42.905,23.032,43,24,43c0.875,0,1.729-0.08,2.572-0.194V29.036z"></path></svg>
@@ -238,7 +238,7 @@ export function Footer() {
             href={buildWhatsAppUrl(getCompanyWhatsAppNumber(companyInfo))}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center justify-center text-zinc-700 transition hover:text-gold dark:text-zinc-200"
+            className="flex items-center justify-center text-white transition hover:text-gold dark:text-zinc-200"
             aria-label="WhatsApp"
           >
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" className="h-6 w-6"><path fill="#40c351" d="M4.868,43.303l2.694-9.835C5.9,30.59,5.026,27.324,5.027,23.979C5.032,13.514,13.548,5,24.014,5c5.079,0.002,9.845,1.979,13.43,5.566c3.584,3.588,5.558,8.356,5.556,13.428c-0.004,10.465-8.522,18.98-18.986,18.98c-0.001,0,0,0,0,0h-0.008c-3.177-0.001-6.3-0.798-9.073-2.311L4.868,43.303z"></path><path fill="#fff" d="M19.268,16.045c-0.355-0.79-0.729-0.806-1.068-0.82c-0.277-0.012-0.593-0.011-0.909-0.011c-0.316,0-0.83,0.119-1.265,0.594c-0.435,0.475-1.661,1.622-1.661,3.956c0,2.334,1.7,4.59,1.937,4.906c0.237,0.316,3.282,5.259,8.104,7.161c4.007,1.58,4.823,1.266,5.693,1.187c0.87-0.079,2.807-1.147,3.202-2.255c0.395-1.108,0.395-2.057,0.277-2.255c-0.119-0.198-0.435-0.316-0.909-0.554s-2.807-1.385-3.242-1.543c-0.435-0.158-0.751-0.237-1.068,0.238c-0.316,0.474-1.225,1.543-1.502,1.859c-0.277,0.317-0.554,0.357-1.028,0.119c-0.474-0.238-2.002-0.738-3.815-2.354c-1.41-1.257-2.362-2.81-2.639-3.285c-0.277-0.474-0.03-0.731,0.208-0.968c0.213-0.213,0.474-0.554,0.712-0.831c0.237-0.277,0.316-0.475,0.474-0.791c0.158-0.317,0.079-0.594-0.04-0.831C20.612,19.329,19.69,16.983,19.268,16.045z" /></svg>
@@ -247,14 +247,14 @@ export function Footer() {
             href="https://www.tiktok.com/@accessoires_exclusifs"
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center justify-center text-zinc-700 transition hover:text-gold dark:text-zinc-200"
+            className="flex items-center justify-center text-white transition hover:text-gold dark:text-zinc-200"
             aria-label="TikTok"
           >
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" className="h-6 w-6"><path fill="#212121" fillRule="evenodd" d="M10.904,6h26.191C39.804,6,42,8.196,42,10.904v26.191C42,39.804,39.804,42,37.096,42H10.904C8.196,42,6,39.804,6,37.096V10.904C6,8.196,8.196,6,10.904,6z" clipRule="evenodd" /><path fill="#ec407a" fillRule="evenodd" d="M29.208,20.607c1.576,1.126,3.507,1.788,5.592,1.788v-4.011c-.395,0-.788-.041-1.174-.123v3.157c-2.085,0-4.015-.663-5.592-1.788v8.184c0,4.094-3.321,7.413-7.417,7.413-1.528,0-2.949-.462-4.129-1.254 1.347,1.376,3.225,2.23,5.303,2.23 4.096,0,7.417-3.319,7.417-7.413V20.607z" clipRule="evenodd" /><path fill="#fff" fillRule="evenodd" d="M28.034,19.63c1.576,1.126,3.507,1.788,5.592,1.788v-3.157c-1.164-.248-2.194-.856-2.969-1.701-1.326-.827-2.281-2.191-2.561-3.788h-2.923V28.79c-.007,1.867-1.523,3.379-3.393,3.379-1.102,0-2.081-.525-2.701-1.338-1.107-.558-1.866-1.705-1.866-3.029 0-1.873,1.519-3.391,3.393-3.391.359,0,.705.056,1.03.159V21.38c-4.024.083-7.26,3.369-7.26,7.411 0,2.018.806,3.847,2.114,5.183 1.18.792,2.601,1.254,4.129,1.254 4.096,0,7.417-3.319,7.417-7.413V19.63z" clipRule="evenodd" /><path fill="#81d4fa" fillRule="evenodd" d="M33.626,18.262v-.854c-1.05.002-2.078-.292-2.969-.848.788.863,1.826,1.458,2.969,1.702z M28.095,12.772c-.027-.153-.047-.306-.061-.461v-.516h-4.036v16.019c-.006,1.867-1.523,3.379-3.393,3.379-.549,0-1.067-.13-1.526-.362.62.813,1.599,1.338,2.701,1.338 1.87,0,3.386-1.512,3.393-3.379V12.772h2.922z M21.635,21.38v-.909c-.337-.046-.677-.069-1.018-.069-4.097,0-7.417,3.319-7.417,7.413 0,2.567,1.305,4.829,3.288,6.159-1.308-1.336-2.114-3.165-2.114-5.183 0-4.042,3.237-7.328,7.261-7.411z" clipRule="evenodd" /></svg>
           </a>
         </div>
 
-        <div className="flex flex-col items-center gap-1.5 text-xs text-zinc-600 dark:text-zinc-400">
+        <div className="flex flex-col items-center gap-1.5 text-xs text-white dark:text-zinc-400">
           <a href={companyInfo?.telephone_principal ? `tel:+237${companyInfo.telephone_principal.replace(/\D/g, '')}` : undefined} className="inline-flex items-center gap-1.5 font-medium text-gold hover:text-gold/80 transition-colors">
             <Phone size={13} className="shrink-0" />
             <span>{formatDisplayPhone(companyInfo?.telephone_principal) || '+237 000 000 000'}</span>
@@ -265,18 +265,18 @@ export function Footer() {
           </a>
         </div>
 
-        <p className="text-xs text-zinc-500">
+        <p className="text-xs text-white dark:text-zinc-500">
           © {new Date().getFullYear()} Accessoires Exclusifs. {t('all_rights_reserved', { defaultValue: isEn ? 'All rights reserved.' : 'Tous droits réservés.' })}
         </p>
         <div className="flex items-center justify-center gap-3 flex-wrap">
           <Link href="/privacy" className="text-xs font-medium text-gold underline decoration-gold/80 underline-offset-4 hover:text-gold/80 transition-colors">
             {t('privacy_policy', { defaultValue: isEn ? 'Privacy Policy' : 'Politique de confidentialité' })}
           </Link>
-          <span className="text-zinc-600 text-xs">·</span>
+          <span className="text-white dark:text-zinc-600 text-xs">·</span>
           <Link href="/terms" className="text-xs font-medium text-gold underline decoration-gold/80 underline-offset-4 hover:text-gold/80 transition-colors">
             {t('terms_short', { defaultValue: isEn ? 'Terms & Conditions' : 'Conditions générales' })}
           </Link>
-          <span className="text-zinc-600 text-xs">·</span>
+          <span className="text-white dark:text-zinc-600 text-xs">·</span>
           <button
             onClick={() => window.dispatchEvent(new Event('open_cookie_banner'))}
             className="inline-flex items-center gap-1.5 text-xs font-medium text-gold underline decoration-gold/80 underline-offset-4 hover:text-gold/80 transition-colors"
@@ -285,7 +285,7 @@ export function Footer() {
             <span>{t('manage_cookies', { defaultValue: isEn ? 'Manage cookies' : 'Gérer les cookies' })}</span>
           </button>
         </div>
-        <p className="text-xs text-zinc-500 mt-0.5">
+        <p className="text-xs text-white dark:text-zinc-500 mt-0.5">
           {t('made_by', { defaultValue: isEn ? 'Made by' : 'Fait par' })} TriSpark Digital {t('in_cameroon', { defaultValue: isEn ? 'in Cameroon' : 'au Cameroun' })}
         </p>
       </div>

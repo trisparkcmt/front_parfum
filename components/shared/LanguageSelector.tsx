@@ -17,11 +17,9 @@ export function LanguageSelector() {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Keep desktop controls white in light mode while preserving mobile theme-aware colors.
   const theme = useThemeStore((s) => s.theme);
   const iconColor = cn(
-    theme === 'dark' ? 'text-white' : 'text-black',
-    'lg:text-white'
+    theme === 'dark' ? 'text-white' : 'text-black'
   );
 
   const currentLanguage = languages.find(lang => lang.code === i18n.language) || languages[0];

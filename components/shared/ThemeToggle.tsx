@@ -25,7 +25,6 @@ export function ThemeToggle({ className }: { className?: string }) {
 
   const iconClassName = cn(
     theme === 'dark' ? 'text-white' : 'text-black',
-    'lg:text-white',
     'group-hover:text-gold transition-colors'
   );
 
