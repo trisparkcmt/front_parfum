@@ -327,7 +327,7 @@ function AccessoriesShop() {
             transition={{ duration: 0.3 }}
             className="overflow-hidden mb-8"
           >
-            <div className="bg-white/5 border border-white/10 rounded-2xl p-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 relative">
+            <div className="bg-[var(--t-surface-raised)] border border-[var(--t-border)] rounded-2xl p-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 relative shadow-[0_10px_30px_rgba(0,0,0,0.04)] backdrop-blur-sm">
               
               {/* Color Filter */}
               <div className="flex flex-col gap-2">
@@ -338,7 +338,7 @@ function AccessoriesShop() {
                   <select
                     value={color}
                     onChange={(e) => setColor(e.target.value)}
-                    className="w-full appearance-none bg-white/5 border border-white/10 rounded-xl py-2 px-4 text-xs text-foreground/80 outline-none focus:border-gold cursor-pointer"
+                    className="w-full appearance-none bg-[var(--t-input-bg)] border border-[var(--t-border)] rounded-xl py-2 px-4 text-xs text-foreground/80 outline-none focus:border-gold cursor-pointer"
                   >
                     {colors.map((c) => (
                       <option key={c.value} value={c.value} className="bg-background text-foreground">
@@ -359,7 +359,7 @@ function AccessoriesShop() {
                   <select
                     value={material}
                     onChange={(e) => setMaterial(e.target.value)}
-                    className="w-full appearance-none bg-white/5 border border-white/10 rounded-xl py-2 px-4 text-xs text-foreground/80 outline-none focus:border-gold cursor-pointer"
+                    className="w-full appearance-none bg-[var(--t-input-bg)] border border-[var(--t-border)] rounded-xl py-2 px-4 text-xs text-foreground/80 outline-none focus:border-gold cursor-pointer"
                   >
                     {materials.map((m) => (
                       <option key={m.value} value={m.value} className="bg-background text-foreground">
@@ -384,7 +384,7 @@ function AccessoriesShop() {
                       onChange={(e) => setInStockOnly(e.target.checked)}
                       className="sr-only peer"
                     />
-                    <div className="w-10 h-6 bg-white/10 rounded-full peer peer-focus:ring-0 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-foreground/30 peer-checked:after:bg-gold after:border-white/20 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-gold/25" />
+                    <div className="w-10 h-6 bg-[var(--t-border)] rounded-full peer peer-focus:ring-0 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-[var(--t-surface)] peer-checked:after:bg-gold after:border-[var(--t-border)] after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[var(--t-glass-gold-bg)]" />
                     <span className="ml-3 text-xs font-medium text-foreground/70">
                       {i18n.language === 'en' ? 'In stock only' : 'En stock uniquement'}
                     </span>
@@ -398,7 +398,7 @@ function AccessoriesShop() {
                   <span className="text-xs font-bold uppercase tracking-widest text-gold">
                     {i18n.language === 'en' ? 'Max Price' : 'Prix Maximum'}
                   </span>
-                  <span className="text-xs font-mono font-bold text-foreground bg-white/5 border border-white/10 px-2 py-0.5 rounded-lg">
+                  <span className="text-xs font-mono font-bold text-foreground bg-[var(--t-input-bg)] border border-[var(--t-border)] px-2 py-0.5 rounded-lg">
                     {maxPrice === 200000 
                       ? (i18n.language === 'en' ? 'Unlimited' : 'Illimité') 
                       : `${maxPrice.toLocaleString('fr-FR')} FCFA`}
@@ -412,7 +412,7 @@ function AccessoriesShop() {
                     step="5000"
                     value={maxPrice}
                     onChange={(e) => setMaxPrice(Number(e.target.value))}
-                    className="w-full h-1.5 bg-white/10 rounded-lg appearance-none cursor-pointer accent-gold outline-none"
+                    className="w-full h-1.5 rounded-lg appearance-none cursor-pointer accent-[var(--t-btn-ghost-border)] bg-[var(--t-border)] outline-none"
                   />
                   <div className="flex justify-between text-[10px] text-foreground/45 mt-1 font-mono">
                     <span>5 000 FCFA</span>

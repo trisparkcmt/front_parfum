@@ -19,7 +19,7 @@ const faqData: { fr: FAQItem[]; en: FAQItem[] } = {
     },
     {
       q: "Quels sont les délais de livraison ?",
-      a: "Les commandes standard sont livrées sous 2 à 5 jours ouvrés. Les créations sur mesure nécessitent un délai supplémentaire de 2 à 3 jours pour la fabrication.",
+      a: "Les livraisons sont généralement effectuées le jour même ou le lendemain si c'est un jour ouvré. Les commandes passées en dehors des jours ouvrés peuvent être traitées le premier jour ouvré suivant.",
     },
     {
       q: "Puis-je retourner un article ?",
@@ -30,12 +30,8 @@ const faqData: { fr: FAQItem[]; en: FAQItem[] } = {
       a: "Notre assistant IA analyse vos préférences olfactives, votre humeur et l'occasion pour vous recommander des parfums et compositions adaptés. Il est disponible 24h/24 et vous guide pas à pas.",
     },
     {
-      q: "Les paiements sont-ils sécurisés ?",
-      a: "Oui, toutes les transactions sont chiffrées via SSL et traitées par des prestataires de paiement certifiés. Vos données bancaires ne sont jamais stockées sur nos serveurs.",
-    },
-    {
       q: "Proposez-vous des coffrets cadeaux ?",
-      a: "Absolument. Vous pouvez ajouter un emballage cadeau personnalisé à n'importe quelle commande depuis le panier. Un message manuscrit peut également être inclus.",
+      a: "Oui, nous proposons des coffrets cadeaux. Les livraisons se font généralement le jour même ou le lendemain si c’est un jour ouvré, selon le moment où la commande est passée.",
     },
   ],
   en: [
@@ -45,7 +41,7 @@ const faqData: { fr: FAQItem[]; en: FAQItem[] } = {
     },
     {
       q: "What are the delivery times?",
-      a: "Standard orders are delivered within 2 to 5 business days. Custom creations require an additional 2 to 3 days for production.",
+      a: "Deliveries are generally made the same day or the next day if it is a business day. Orders placed outside business days are usually processed on the next business day.",
     },
     {
       q: "Can I return an item?",
@@ -56,12 +52,8 @@ const faqData: { fr: FAQItem[]; en: FAQItem[] } = {
       a: "Our AI assistant analyses your scent preferences, mood, and occasion to recommend fitting perfumes and compositions. It's available 24/7 and guides you step by step.",
     },
     {
-      q: "Are payments secure?",
-      a: "Yes, all transactions are SSL-encrypted and processed by certified payment providers. Your banking details are never stored on our servers.",
-    },
-    {
       q: "Do you offer gift sets?",
-      a: "Absolutely. You can add personalised gift wrapping to any order directly from the cart. A handwritten message can also be included.",
+      a: "Yes, we offer gift sets. Deliveries are generally made the same day or the next day if it is a business day, depending on when the order is placed.",
     },
   ],
 };

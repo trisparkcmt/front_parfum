@@ -825,7 +825,7 @@ export default function PerfumesShopClient() {
             transition={{ duration: 0.3 }}
             className="overflow-hidden mb-8"
           >
-            <div className="bg-white/5 border border-white/10 rounded-2xl p-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 relative">
+            <div className="bg-[var(--t-surface-raised)] border border-[var(--t-border)] rounded-2xl p-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 relative shadow-[0_10px_30px_rgba(0,0,0,0.04)] backdrop-blur-sm">
               {/* Gender Filter */}
               <div className="flex flex-col gap-2">
                 <span className="text-xs font-bold uppercase tracking-widest text-gold mb-2">
@@ -844,7 +844,7 @@ export default function PerfumesShopClient() {
                       className={`px-3 py-1.5 rounded-lg text-xs font-semibold uppercase tracking-wider transition-all ${
                         genre === item.value
                           ? 'bg-gold text-black shadow-md'
-                          : 'bg-white/5 text-foreground/60 hover:text-foreground hover:bg-white/10'
+                          : 'bg-[var(--t-hover-bg)] text-foreground/60 hover:text-foreground hover:bg-[var(--t-input-bg)]'
                       }`}
                     >
                       {item.label}
@@ -862,7 +862,7 @@ export default function PerfumesShopClient() {
                   <select
                     value={olfactiveFamily}
                     onChange={(e) => setOlfactiveFamily(e.target.value)}
-                    className="w-full appearance-none bg-white/5 border border-white/10 rounded-xl py-2 px-4 text-xs text-foreground/80 outline-none focus:border-gold cursor-pointer"
+                    className="w-full appearance-none bg-[var(--t-input-bg)] border border-[var(--t-border)] rounded-xl py-2 px-4 text-xs text-foreground/80 outline-none focus:border-gold cursor-pointer"
                   >
                     {families.map((fam) => (
                       <option key={fam.value} value={fam.value} className="bg-background text-foreground">
@@ -893,7 +893,7 @@ export default function PerfumesShopClient() {
                       className={`px-2.5 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all ${
                         intensity === item.value
                           ? 'bg-gold text-black shadow-md'
-                          : 'bg-white/5 text-foreground/60 hover:text-foreground hover:bg-white/10'
+                          : 'bg-[var(--t-hover-bg)] text-foreground/60 hover:text-foreground hover:bg-[var(--t-input-bg)]'
                       }`}
                     >
                       {item.label}
@@ -908,7 +908,7 @@ export default function PerfumesShopClient() {
                   <span className="text-xs font-bold uppercase tracking-widest text-gold">
                     {t('max_price')}
                   </span>
-                  <span className="text-xs font-mono font-bold text-foreground bg-white/5 border border-white/10 px-2 py-0.5 rounded-lg">
+                  <span className="text-xs font-mono font-bold text-foreground bg-[var(--t-input-bg)] border border-[var(--t-border)] px-2 py-0.5 rounded-lg">
                     {maxPrice === 150000
                       ? t('unlimited')
                       : `${maxPrice.toLocaleString('fr-FR')} FCFA`}
@@ -922,7 +922,7 @@ export default function PerfumesShopClient() {
                     step="5000"
                     value={maxPrice}
                     onChange={(e) => setMaxPrice(Number(e.target.value))}
-                    className="w-full h-1.5 bg-white/10 rounded-lg appearance-none cursor-pointer accent-gold outline-none"
+                    className="w-full h-1.5 rounded-lg appearance-none cursor-pointer accent-[var(--t-btn-ghost-border)] bg-[var(--t-border)] outline-none"
                   />
                   <div className="flex justify-between text-[10px] text-foreground/45 mt-1 font-mono">
                     <span>5 000 FCFA</span>
@@ -1177,4 +1177,4 @@ export default function PerfumesShopClient() {
       </AnimatePresence>
     </div>
   );
-}
+}
