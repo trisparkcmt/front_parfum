@@ -28,6 +28,12 @@ const SHOPS = [
 const CENTER_LAT = (SHOPS[0].lat + SHOPS[1].lat) / 2;
 const CENTER_LNG = (SHOPS[0].lng + SHOPS[1].lng) / 2;
 
+const STORE_INFO = {
+  name: "Accessoires Exclusifs",
+  addressFr: "Yaoundé, Centre, Cameroun",
+  addressEn: "Yaounde, Centre, Cameroon",
+};
+
 function getDirectionsUrl() {
   // Point directions to the first shop as default, users can choose from the map
   return `https://www.google.com/maps/dir/?api=1&destination=${SHOPS[0].lat},${SHOPS[0].lng}`;
