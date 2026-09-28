@@ -8,17 +8,29 @@ import { shopService } from '@/services/apiService';
 import type { CompanyInfo } from '@/types';
 import { buildWhatsAppUrl, getCompanyWhatsAppNumber } from '@/lib/utils';
 
-const LAT = 3.86484;
-const LNG = 11.52030;
+const SHOPS = [
+  {
+    name: "Accessoires Exclusifs (Marché Central)",
+    addressFr: "VG89+58Q, Yaoundé, Cameroun",
+    addressEn: "VG89+58Q, Yaounde, Cameroon",
+    lat: 3.8654625,
+    lng: 11.5183594
+  },
+  {
+    name: "Accessoires Exclusifs (Rue De Narvik)",
+    addressFr: "Rue De Narvik, Yaoundé, Cameroun",
+    addressEn: "Rue De Narvik, Yaounde, Cameroon",
+    lat: 3.8732791,
+    lng: 11.5160893
+  }
+];
 
-const STORE_INFO = {
-  name: "Accessoires Exclusifs",
-  addressFr: "Yaoundé, Centre, Cameroun",
-  addressEn: "Yaounde, Centre, Cameroon",
-};
+const CENTER_LAT = (SHOPS[0].lat + SHOPS[1].lat) / 2;
+const CENTER_LNG = (SHOPS[0].lng + SHOPS[1].lng) / 2;
 
 function getDirectionsUrl() {
-  return `https://www.google.com/maps/dir/?api=1&destination=${LAT},${LNG}`;
+  // Point directions to the first shop as default, users can choose from the map
+  return `https://www.google.com/maps/dir/?api=1&destination=${SHOPS[0].lat},${SHOPS[0].lng}`;
 }
 
 function cx(...parts: Array<string | false | null | undefined>) {
@@ -48,8 +60,8 @@ function LeafletMap() {
       if (mapInstanceRef.current || !mapRef.current) return;
 
       const map = L.default.map(mapRef.current, {
-        center: [LAT, LNG],
-        zoom: 15,
+        center: [CENTER_LAT, CENTER_LNG],
+        zoom: 14,
         zoomControl: true,
         scrollWheelZoom: false,
       });
@@ -78,15 +90,19 @@ function LeafletMap() {
         popupAnchor: [0, -40],
       });
 
-      L.default.marker([LAT, LNG], { icon: redIcon })
-        .addTo(map)
-        .bindPopup(`
-          <div style="font-family: sans-serif; padding: 4px 2px; text-align:center;">
-            <strong style="color:#C5A059">${STORE_INFO.name}</strong><br/>
-            <small style="color:#666">${isEn ? STORE_INFO.addressEn : STORE_INFO.addressFr}</small>
-          </div>
-        `)
-        .openPopup();
+      SHOPS.forEach((shop, index) => {
+        const marker = L.default.marker([shop.lat, shop.lng], { icon: redIcon })
+          .addTo(map)
+          .bindPopup(`
+            <div style="font-family: sans-serif; padding: 4px 2px; text-align:center;">
+              <strong style="color:#C5A059">${shop.name}</strong><br/>
+              <small style="color:#666">${isEn ? shop.addressEn : shop.addressFr}</small>
+            </div>
+          `);
+        
+        // Open popup for the first shop by default
+        if (index === 0) marker.openPopup();
+      });
 
       map.whenReady(() => setIsReady(true));
     });
