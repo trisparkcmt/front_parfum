@@ -991,6 +991,8 @@ function AtelierContent() {
     }
 
     setIsOrderingDirect(true);
+    const popupWindow = window.open('', '_blank');
+
     try {
       type DirectCompositionLine =
         | { lot_essence_id: number; quantite_ml: number }
@@ -1047,13 +1049,20 @@ function AtelierContent() {
       setShowSuccessModal(false);
       setQuantities({});
 
-      const popupWindow = window.open(waLink, '_blank', 'noopener,noreferrer');
-      if (!popupWindow) {
-        window.open(waLink, '_blank');
+      if (popupWindow) {
+        try {
+          popupWindow.opener = null;
+        } catch (_) {}
+        popupWindow.location.href = waLink;
+      } else {
+        window.location.assign(waLink);
       }
 
       addToast(i18n.language === 'en' ? 'Order placed successfully. Redirecting to WhatsApp...' : 'Commande passée avec succès. Redirection vers WhatsApp...', 'success');
     } catch (error: any) {
+      if (popupWindow) {
+        popupWindow.close();
+      }
       const errorMsg = error?.response?.data?.detail || (i18n.language === 'en' ? 'Error processing your order.' : 'Erreur lors du traitement de votre commande.');
       addToast(errorMsg, 'error');
     } finally {
