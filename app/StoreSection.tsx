@@ -10,18 +10,18 @@ import { buildWhatsAppUrl, getCompanyWhatsAppNumber } from '@/lib/utils';
 
 const SHOPS = [
   {
-    name: "Accessoires Exclusifs (Marché Central)",
-    addressFr: "VG89+58Q, Yaoundé, Cameroun",
-    addressEn: "VG89+58Q, Yaounde, Cameroon",
-    lat: 3.8654625,
-    lng: 11.5183594
+    name: "Accessoires Exclusifs (Tabital Square)",
+    addressFr: "Tabital Square, Yaoundé, Cameroun",
+    addressEn: "Tabital Square, Yaounde, Cameroon",
+    lat: 3.865484148642492,
+    lng: 11.518453228911936
   },
   {
-    name: "Accessoires Exclusifs (Rue De Narvik)",
-    addressFr: "Rue De Narvik, Yaoundé, Cameroun",
-    addressEn: "Rue De Narvik, Yaounde, Cameroon",
-    lat: 3.8732791,
-    lng: 11.5160893
+    name: "Accessoires Exclusifs (Central Mall)",
+    addressFr: "Central Mall, Yaoundé, Cameroun",
+    addressEn: "Central Mall, Yaounde, Cameroon",
+    lat: 3.8669750298785748,
+    lng: 11.518235437448217
   }
 ];
 
