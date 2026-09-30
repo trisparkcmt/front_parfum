@@ -694,7 +694,7 @@ export default function ProductDetailClient({ id }: { id: string }) {
                                 {isEn ? 'Longevity' : 'Longévité'}
                               </td>
                               <td className="py-4 text-foreground font-medium">
-                                {product.longevity || (isEn ? 'Long-lasting (8-10 hrs)' : 'Longue durée (8-10h)')}
+                                {(product.longevity || (isEn ? 'Long-lasting' : 'Longue durée')).replace(/\s*\(\s*\d+(?:\s*[-–]\s*\d+)?\s*(?:hours?|heures?|hrs?|h)\s*\)\s*$/i, '')}
                               </td>
                             </tr>
                             <tr className="border-b border-foreground/10">

@@ -257,6 +257,7 @@ export default function DiffuseursAdminPage() {
   const [diffuseurs, setDiffuseurs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [typeFilter, setTypeFilter] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState<any | null>(null);
   const [saving, setSaving] = useState(false);
@@ -299,6 +300,7 @@ export default function DiffuseursAdminPage() {
       setLoading(true);
       const params: Record<string, unknown> = { page, limit: 50 };
       if (search.trim()) params.search = search.trim();
+      if (typeFilter) params.type_technologie = typeFilter;
       const data = await adminService.getDiffuseurs(params as Parameters<typeof adminService.getDiffuseurs>[0]);
       if (requestId !== activeRequestRef.current) return;
 
@@ -316,14 +318,14 @@ export default function DiffuseursAdminPage() {
         setLoading(false);
       }
     }
-  }, [addToast, permissions.canRead, search]);
+  }, [addToast, permissions.canRead, search, typeFilter]);
 
-  // Fetch page 1 when search changes
+  // Fetch page 1 when search or filters change
   useEffect(() => {
     setCurrentPage(1);
     const timer = setTimeout(() => fetchItems(1), 300);
     return () => clearTimeout(timer);
-  }, [search, fetchItems]);
+  }, [search, typeFilter, fetchItems]);
 
 
   const openAdd = () => {
@@ -520,8 +522,8 @@ export default function DiffuseursAdminPage() {
       </div>
 
       {/* Toolbar / Search */}
-      <div className="flex items-center gap-3">
-        <div className="relative flex-1 max-w-md">
+      <div className="flex flex-col sm:flex-row items-center gap-3">
+        <div className="relative flex-1 w-full sm:max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-foreground/40" size={15} />
           <input
             type="text"
@@ -529,6 +531,25 @@ export default function DiffuseursAdminPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full bg-white/[0.02] border border-white/10 rounded-lg pl-9 pr-3 py-2 text-sm text-foreground placeholder:text-foreground/40 outline-none focus:border-gold/50 transition-colors"
+          />
+        </div>
+        
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-foreground/35 hidden sm:block">Technologie:</span>
+          <CustomSelect
+            size="sm"
+            value={typeFilter}
+            onChange={setTypeFilter}
+            options={[
+              { value: '', label: 'Toutes les technologies' },
+              { value: 'ultrasons', label: 'Ultrasons' },
+              { value: 'nebulisation', label: 'Nébulisation' },
+              { value: 'ventilation', label: 'Ventilation' },
+              { value: 'chaleur', label: 'Chaleur douce' },
+              { value: 'capillarite', label: 'Capillarité' },
+              { value: 'hvac', label: 'Système HVAC' }
+            ]}
+            className="w-full sm:min-w-[160px]"
           />
         </div>
       </div>

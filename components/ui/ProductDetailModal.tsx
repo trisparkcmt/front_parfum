@@ -779,7 +779,7 @@ export function ProductDetailModal({
                                   <>
                                     <tr className="border-b border-foreground/10">
                                       <td className="py-4 text-foreground/40 uppercase text-xs tracking-widest">{isEn ? 'Longevity' : 'Longévité'}</td>
-                                      <td className="py-4 text-foreground font-medium">{product.longevity || (isEn ? 'Long-lasting (8–10 hrs)' : 'Longue durée (8–10h)')}</td>
+                                      <td className="py-4 text-foreground font-medium">{(product.longevity || (isEn ? 'Long-lasting' : 'Longue durée')).replace(/\s*\(\s*\d+(?:\s*[-–]\s*\d+)?\s*(?:hours?|heures?|hrs?|h)\s*\)\s*$/i, '')}</td>
                                     </tr>
                                     <tr className="border-b border-foreground/10">
                                       <td className="py-4 text-foreground/40 uppercase text-xs tracking-widest">Sillage</td>

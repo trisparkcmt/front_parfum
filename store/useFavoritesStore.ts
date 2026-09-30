@@ -160,7 +160,7 @@ export const useFavoritesStore = create<FavoritesState>()(
               description: '',
               price: parseFloat(fav.prix_produit || fav.price || '0'),
               category: isAccessory ? 'accessory' : isCustom ? 'numba-creation' : isFinishedEssence ? 'produit-fini-essence' : 'perfume-brand',
-              images: fav.image_produit ? [fav.image_produit] : ['/parfume1.png'],
+              images: fav.image_produit ? [fav.image_produit] : [],
               inStock: true,
               slug: fav.slug_produit || fav.slug || '',
               createdAt: fav.date_ajout || new Date().toISOString(),

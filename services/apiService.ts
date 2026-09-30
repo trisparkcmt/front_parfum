@@ -1583,7 +1583,7 @@ export const adminService = {
    * Get all diffuseurs (Admin serializer with prix_achat + benefice_unitaire)
    * Endpoint: GET /api/shop/diffuseurs/
    */
-  getDiffuseurs: async (params?: { search?: string; page?: number; actif?: boolean }) => {
+  getDiffuseurs: async (params?: { search?: string; page?: number; actif?: boolean; type_technologie?: string; limit?: number }) => {
     const response = await api.get('shop/diffuseurs/', { params });
     return response.data;
   },

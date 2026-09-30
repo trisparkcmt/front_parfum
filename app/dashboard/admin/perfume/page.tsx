@@ -313,6 +313,7 @@ export default function PerfumeAdminPage() {
   const [search, setSearch] = useState('');
   const [genreFilter, setGenreFilter] = useState('');
   const [estBestsellerFilter, setEstBestsellerFilter] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('');
   const [createdFrom, setCreatedFrom] = useState('');
   const [createdTo, setCreatedTo] = useState('');
   const [showFilters, setShowFilters] = useState(false);
@@ -384,6 +385,7 @@ export default function PerfumeAdminPage() {
       if (genreFilter) params.genre = genreFilter;
       if (estBestsellerFilter === 'true') params.est_bestseller = true;
       if (estBestsellerFilter === 'false') params.est_bestseller = false;
+      if (categoryFilter) params.categorie = categoryFilter;
 
       const data = await shopService.getPerfumes(params as Parameters<typeof shopService.getPerfumes>[0]);
       if (requestId !== activeRequestRef.current) return;
@@ -402,14 +404,14 @@ export default function PerfumeAdminPage() {
         setLoading(false);
       }
     }
-  }, [search, genreFilter, estBestsellerFilter, addToast, permissions.canRead]);
+  }, [search, genreFilter, estBestsellerFilter, categoryFilter, addToast, permissions.canRead]);
 
   // Fetch page 1 when search or filters change
   useEffect(() => {
     setCurrentPage(1);
     const timer = setTimeout(() => fetchPerfumes(1), 300);
     return () => clearTimeout(timer);
-  }, [search, genreFilter, estBestsellerFilter, createdFrom, createdTo, fetchPerfumes]);
+  }, [search, genreFilter, estBestsellerFilter, categoryFilter, createdFrom, createdTo, fetchPerfumes]);
 
 
   useEffect(() => {
@@ -690,7 +692,7 @@ export default function PerfumeAdminPage() {
   };
 
   const filtered = perfumes; // server already filters; date filter applied client-side on current page only
-  const activeFiltersCount = (genreFilter ? 1 : 0) + (estBestsellerFilter ? 1 : 0) + (createdFrom ? 1 : 0) + (createdTo ? 1 : 0);
+  const activeFiltersCount = (genreFilter ? 1 : 0) + (estBestsellerFilter ? 1 : 0) + (categoryFilter ? 1 : 0) + (createdFrom ? 1 : 0) + (createdTo ? 1 : 0);
 
   const profitPreview = form.prix_unitaire && form.prix_achat
     ? (parseFloat(form.prix_unitaire) - parseFloat(form.prix_achat))
@@ -729,7 +731,7 @@ export default function PerfumeAdminPage() {
       <div className="shadow-black/30 shadow-sm flex items-center rounded-xl border border-white/10 bg-white/[0.02] divide-x divide-white/10 overflow-x-auto">
         <div className="flex-1 min-w-[120px] p-4">
           <p className="text-[10px] font-semibold uppercase tracking-wider text-foreground/35">{t('kpi_total')}</p>
-          <p className="text-xl font-semibold tabular-nums text-foreground mt-0.5">{perfumes.length}</p>
+          <p className="text-xl font-semibold tabular-nums text-foreground mt-0.5">{totalItems}</p>
         </div>
         <div className="flex-1 min-w-[120px] p-4">
           <p className="text-[10px] font-semibold uppercase tracking-wider text-foreground/35">{t('bestseller')}</p>
@@ -781,6 +783,20 @@ export default function PerfumeAdminPage() {
         {showFilters && (
           <div className="shadow-black/30 shadow-sm flex flex-wrap items-center gap-3 rounded-xl border border-white/10 bg-white/[0.02] p-3">
             <div className="flex items-center gap-2">
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-foreground/35">Catégorie:</span>
+              <CustomSelect
+                size="sm"
+                value={categoryFilter}
+                onChange={setCategoryFilter}
+                options={[
+                  { value: '', label: 'Toutes les catégories' },
+                  ...categories.map(c => ({ value: String(c.id), label: c.nom || '' }))
+                ]}
+                className="min-w-[130px]"
+              />
+            </div>
+            
+            <div className="flex items-center gap-2">
               <span className="text-[10px] font-semibold uppercase tracking-wider text-foreground/35">Genre:</span>
               <CustomSelect
                 size="sm"
@@ -822,6 +838,7 @@ export default function PerfumeAdminPage() {
             {activeFiltersCount > 0 && (
               <button
                 onClick={() => {
+                  setCategoryFilter('');
                   setGenreFilter('');
                   setEstBestsellerFilter('');
                   setCreatedFrom('');

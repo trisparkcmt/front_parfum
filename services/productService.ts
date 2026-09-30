@@ -96,7 +96,7 @@ export function mapBackendPerfumeToProduct(p: any): Product {
     notes: { top, middle, base },
     tags: normalizeProductTags(p.tags),
     volume: p.contenance_ml ? `${p.contenance_ml}ml` : '100ml',
-    longevity: p.longevite || 'Longue durée (8-10h)',
+    longevity: p.longevite || 'Longue durée',
     sillage: p.sillage || 'Modéré',
     gender: p.genre_cible === 'homme' ? 'masculine' : p.genre_cible === 'femme' ? 'feminine' : 'unisex',
     slug: p.slug || '',
@@ -112,7 +112,7 @@ export function mapBackendPerfumeToProduct(p: any): Product {
           slug: sim.slug,
           price: parseFloat(sim.prix_actuel || sim.prix_unitaire || '0'),
           originalPrice: parseFloat(sim.prix_unitaire || sim.prix_actuel || '0'),
-          images: sim.image_principale ? [sim.image_principale] : ['/parfume1.png'],
+          images: sim.image_principale ? [sim.image_principale] : [],
           image_principale: sim.image_principale,
           description: '',
           category: category,
@@ -140,9 +140,6 @@ function collectProductImages(p: any): string[] {
         images.push(img);
       }
     });
-  }
-  if (images.length === 0) {
-    images.push('/parfume1.png');
   }
   return images;
 }
@@ -328,7 +325,7 @@ export function mapBackendAccessoryToProduct(p: any): Product {
           slug: sim.slug,
           price: parseFloat(sim.prix_actuel || sim.prix_unitaire || '0'),
           originalPrice: parseFloat(sim.prix_unitaire || sim.prix_actuel || '0'),
-          images: sim.image_principale ? [sim.image_principale] : ['/parfume1.png'],
+          images: sim.image_principale ? [sim.image_principale] : [],
           image_principale: sim.image_principale,
           description: '',
           category: 'accessory',
