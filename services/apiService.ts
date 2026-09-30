@@ -356,6 +356,7 @@ export const shopService = {
     prix_max?: number;
     en_stock?: boolean;
     page?: number;
+    limit?: number;
     search?: string;
     ordering?: string;
   }) => {
