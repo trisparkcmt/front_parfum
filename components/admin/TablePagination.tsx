@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useRef, useEffect } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface TablePaginationProps {
@@ -20,6 +21,10 @@ export function TablePagination({
   onPageChange,
   itemLabel = 'éléments',
 }: TablePaginationProps) {
+  const [jumpModeIndex, setJumpModeIndex] = useState<number | null>(null);
+  const [jumpValue, setJumpValue] = useState('');
+  const inputRef = useRef<HTMLInputElement>(null);
+
   const start = totalItems === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1;
   const end = Math.min(currentPage * itemsPerPage, totalItems);
 
@@ -36,6 +41,30 @@ export function TablePagination({
     if (i > 0 && p - sorted[i - 1] > 1) pages.push('...');
     pages.push(p);
   });
+
+  useEffect(() => {
+    if (jumpModeIndex !== null && inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, [jumpModeIndex]);
+
+  const handleJumpSubmit = () => {
+    const pageNum = parseInt(jumpValue, 10);
+    if (!isNaN(pageNum) && pageNum >= 1 && pageNum <= totalPages) {
+      onPageChange(pageNum);
+    }
+    setJumpModeIndex(null);
+    setJumpValue('');
+  };
+
+  const handleJumpKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      handleJumpSubmit();
+    } else if (e.key === 'Escape') {
+      setJumpModeIndex(null);
+      setJumpValue('');
+    }
+  };
 
   return (
     <div className="flex items-center justify-between px-4 py-3 border-t border-white/5 text-xs text-foreground/40">
@@ -56,7 +85,30 @@ export function TablePagination({
 
           {pages.map((p, i) =>
             p === '...' ? (
-              <span key={`ellipsis-${i}`} className="px-1.5 py-1">…</span>
+              jumpModeIndex === i ? (
+                <input
+                  key={`ellipsis-input-${i}`}
+                  ref={inputRef}
+                  type="number"
+                  min={1}
+                  max={totalPages}
+                  value={jumpValue}
+                  onChange={(e) => setJumpValue(e.target.value)}
+                  onBlur={handleJumpSubmit}
+                  onKeyDown={handleJumpKeyDown}
+                  className="w-10 h-7 rounded-md border border-white/10 bg-white/5 px-1.5 text-center text-[11px] text-foreground outline-none focus:border-gold/50"
+                  placeholder="..."
+                />
+              ) : (
+                <button
+                  key={`ellipsis-${i}`}
+                  onClick={() => setJumpModeIndex(i)}
+                  className="px-1.5 py-1 text-foreground/50 hover:text-foreground transition-colors outline-none"
+                  title="Aller à une page spécifique"
+                >
+                  …
+                </button>
+              )
             ) : (
               <button
                 key={p}
