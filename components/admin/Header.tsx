@@ -68,11 +68,14 @@ export default function Header({ onMenuClick }: HeaderProps) {
     if (!q || q.length < 2) { setSuggestions([]); setShowSuggestions(false); return; }
     setSearchLoading(true);
     try {
-      const { adminService: adminSvc, orderService: orderSvc } = await import('@/services/apiService');
+      const { adminService: adminSvc, orderService: orderSvc, shopService: shopSvc } = await import('@/services/apiService');
 
-      const [usersData, ordersData] = await Promise.allSettled([
+      const [usersData, ordersData, perfumesData, accessoriesData, diffuseursData] = await Promise.allSettled([
         adminSvc.getUsers({ search: q }),
         orderSvc.getOrders({ search: q }),
+        shopSvc.getPerfumes({ search: q, limit: 3 }),
+        shopSvc.getAccessories({ search: q, limit: 3 }),
+        adminSvc.getDiffuseurs({ search: q, limit: 3 }),
       ]);
 
       const results: Suggestion[] = [];
@@ -98,6 +101,42 @@ export default function Header({ onMenuClick }: HeaderProps) {
             sub: `${o.livraison_nom_complet ?? ''} — ${Number(o.total_ttc ?? 0).toLocaleString()} FCFA`,
             href: `${dashboardBasePath}/order`,
             icon: <ShoppingCart size={14} />,
+          });
+        });
+      }
+
+      if (perfumesData.status === 'fulfilled') {
+        const items = perfumesData.value.results ?? perfumesData.value.resultats ?? (Array.isArray(perfumesData.value) ? perfumesData.value : []);
+        items.slice(0, 3).forEach((p: any) => {
+          results.push({
+            label: p.nom || p.name,
+            sub: 'Parfum',
+            href: `${dashboardBasePath}/perfume`,
+            icon: <Sparkles size={14} />,
+          });
+        });
+      }
+
+      if (accessoriesData.status === 'fulfilled') {
+        const items = accessoriesData.value.results ?? accessoriesData.value.resultats ?? (Array.isArray(accessoriesData.value) ? accessoriesData.value : []);
+        items.slice(0, 3).forEach((a: any) => {
+          results.push({
+            label: a.nom || a.name,
+            sub: 'Accessoire',
+            href: `${dashboardBasePath}/accessories`,
+            icon: <Gem size={14} />,
+          });
+        });
+      }
+
+      if (diffuseursData.status === 'fulfilled') {
+        const items = diffuseursData.value.results ?? diffuseursData.value.resultats ?? (Array.isArray(diffuseursData.value) ? diffuseursData.value : []);
+        items.slice(0, 3).forEach((d: any) => {
+          results.push({
+            label: d.nom || d.name,
+            sub: 'Diffuseur',
+            href: `${dashboardBasePath}/diffuseurs`,
+            icon: <Package size={14} />,
           });
         });
       }
