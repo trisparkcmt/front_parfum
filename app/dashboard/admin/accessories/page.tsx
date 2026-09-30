@@ -274,11 +274,12 @@ export default function AccessoriesPage() {
   const [totalPages, setTotalPages] = useState(1);
   const activeRequestRef = useRef(0);
 
-  const fetchAccessories = useCallback(async (page = 1) => {
+  const fetchAccessories = useCallback(async (page = 1, silent = false) => {
     if (!permissions.canRead) return;
     const requestId = ++activeRequestRef.current;
+    const savedScrollY = silent ? window.scrollY : 0;
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       const params: Record<string, unknown> = { page, limit: 50 };
       if (search.trim()) params.search = search.trim();
       if (filter !== 'all') params.type_accessoire = Number(filter);
@@ -296,13 +297,14 @@ export default function AccessoriesPage() {
       setTotalItems(total);
       setTotalPages(pages);
       setCurrentPage(apiPage);
+      if (silent) requestAnimationFrame(() => window.scrollTo({ top: savedScrollY, behavior: 'instant' }));
     } catch {
       if (requestId === activeRequestRef.current) {
         addToast(t('toast_load_error'), 'error');
       }
     } finally {
       if (requestId === activeRequestRef.current) {
-        setLoading(false);
+        if (!silent) setLoading(false);
       }
     }
   }, [search, filter, marqueFilter, matiereFilter, couleurFilter, enStockFilter, addToast, permissions.canRead]);
@@ -311,7 +313,7 @@ export default function AccessoriesPage() {
   useEffect(() => {
     setCurrentPage(1);
     const timer = setTimeout(() => {
-      fetchAccessories(1);
+      fetchAccessories(1, false);
     }, 300);
     return () => clearTimeout(timer);
   }, [search, filter, marqueFilter, matiereFilter, couleurFilter, enStockFilter, createdFrom, createdTo, fetchAccessories]);
@@ -489,13 +491,13 @@ export default function AccessoriesPage() {
         addToast(t('toast_update_ok'), 'success');
         setShowModal(false);
         setFormError(null);
-        fetchAccessories(currentPage); // sync to get server-normalised data
+        fetchAccessories(currentPage, true); // sync to get server-normalised data
       } else {
         await adminService.postFormData('shop/accessoires/', formData);
         addToast(t('toast_create_ok'), 'success');
         setShowModal(false);
         setFormError(null);
-        fetchAccessories(1); // add new item
+        fetchAccessories(1, true); // add new item
       }
     } catch (error: any) {
       const errorMessage = error.response?.data?.detail || t('toast_save_error');
@@ -516,7 +518,7 @@ export default function AccessoriesPage() {
       await adminService.patchFormData(`shop/accessoires/${slugOrId}/`, fd);
     } catch {
       addToast(t('toast_patch_error'), 'error');
-      fetchAccessories(currentPage);
+      fetchAccessories(currentPage, true);
     }
   };
 

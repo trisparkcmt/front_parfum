@@ -293,11 +293,12 @@ export default function DiffuseursAdminPage() {
 
   const activeRequestRef = useRef(0);
 
-  const fetchItems = useCallback(async (page = 1) => {
+  const fetchItems = useCallback(async (page = 1, silent = false) => {
     if (!permissions.canRead) return;
     const requestId = ++activeRequestRef.current;
+    const savedScrollY = silent ? window.scrollY : 0;
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       const params: Record<string, unknown> = { page, limit: 50 };
       if (search.trim()) params.search = search.trim();
       if (typeFilter) params.type_technologie = typeFilter;
@@ -309,13 +310,14 @@ export default function DiffuseursAdminPage() {
       setTotalItems(total);
       setTotalPages(pages);
       setCurrentPage(apiPage);
+      if (silent) requestAnimationFrame(() => window.scrollTo({ top: savedScrollY, behavior: 'instant' }));
     } catch {
       if (requestId === activeRequestRef.current) {
         addToast(t('toast_load_error'), 'error');
       }
     } finally {
       if (requestId === activeRequestRef.current) {
-        setLoading(false);
+        if (!silent) setLoading(false);
       }
     }
   }, [addToast, permissions.canRead, search, typeFilter]);
@@ -323,7 +325,7 @@ export default function DiffuseursAdminPage() {
   // Fetch page 1 when search or filters change
   useEffect(() => {
     setCurrentPage(1);
-    const timer = setTimeout(() => fetchItems(1), 300);
+    const timer = setTimeout(() => fetchItems(1, false), 300);
     return () => clearTimeout(timer);
   }, [search, typeFilter, fetchItems]);
 
@@ -437,7 +439,7 @@ export default function DiffuseursAdminPage() {
       }
 
       setShowModal(false);
-      fetchItems(editing ? currentPage : 1);
+      fetchItems(editing ? currentPage : 1, true);
     } catch (err: any) {
       setFormError(err?.message || t('toast_save_error'));
     } finally {
@@ -452,7 +454,7 @@ export default function DiffuseursAdminPage() {
       await adminService.updateDiffuseur(id, { [field]: field === 'nom' ? value : Number(value) });
     } catch {
       addToast(t('toast_patch_error'), 'error');
-      fetchItems(currentPage);
+      fetchItems(currentPage, true);
     }
   };
 

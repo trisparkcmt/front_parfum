@@ -375,11 +375,12 @@ export default function PerfumeAdminPage() {
   const [totalPages, setTotalPages] = useState(1);
   const activeRequestRef = useRef(0);
 
-  const fetchPerfumes = useCallback(async (page = 1) => {
+  const fetchPerfumes = useCallback(async (page = 1, silent = false) => {
     if (!permissions.canRead) return;
     const requestId = ++activeRequestRef.current;
+    const savedScrollY = silent ? window.scrollY : 0;
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       const params: Record<string, unknown> = { page, limit: 50 };
       if (search.trim()) params.search = search.trim();
       if (genreFilter) params.genre = genreFilter;
@@ -395,13 +396,14 @@ export default function PerfumeAdminPage() {
       setTotalItems(total);
       setTotalPages(pages);
       setCurrentPage(apiPage);
+      if (silent) requestAnimationFrame(() => window.scrollTo({ top: savedScrollY, behavior: 'instant' }));
     } catch {
       if (requestId === activeRequestRef.current) {
         addToast(t('toast_load_error'), 'error');
       }
     } finally {
       if (requestId === activeRequestRef.current) {
-        setLoading(false);
+        if (!silent) setLoading(false);
       }
     }
   }, [search, genreFilter, estBestsellerFilter, categoryFilter, addToast, permissions.canRead]);
@@ -409,7 +411,7 @@ export default function PerfumeAdminPage() {
   // Fetch page 1 when search or filters change
   useEffect(() => {
     setCurrentPage(1);
-    const timer = setTimeout(() => fetchPerfumes(1), 300);
+    const timer = setTimeout(() => fetchPerfumes(1, false), 300);
     return () => clearTimeout(timer);
   }, [search, genreFilter, estBestsellerFilter, categoryFilter, createdFrom, createdTo, fetchPerfumes]);
 
@@ -458,7 +460,7 @@ export default function PerfumeAdminPage() {
       await adminService.patchFormData(`shop/parfums/${slug}/`, fd);
     } catch {
       addToast(t('toast_patch_error'), 'error');
-      fetchPerfumes(currentPage);
+      fetchPerfumes(currentPage, true);
     }
   };
 
@@ -657,13 +659,13 @@ export default function PerfumeAdminPage() {
         ));
         addToast(t('toast_update_ok'), 'success');
         setShowModal(false);
-        await fetchPerfumes(currentPage);
+        await fetchPerfumes(currentPage, true);
       } else {
         await adminService.postFormData('shop/parfums/', formData);
         addToast(t('toast_create_ok'), 'success');
         setShowModal(false);
         handleOpenAdd(); // reset form for next entry
-        await fetchPerfumes(1);
+        await fetchPerfumes(1, true);
       }
     } catch (error: unknown) {
       const responseDetail =
