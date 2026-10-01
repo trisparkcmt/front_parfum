@@ -93,7 +93,7 @@ export function ProductCard({
   const mainImageSrc = isEssenceProduct ? '/huile.png' : productImage ? resolveImageUrl(productImage) : '';
 
   const productUrl = isDiffuseur
-    ? `/shop/diffuseurs/${product.id || product.slug}`
+    ? `/shop/product/${product.slug || product.id}?type=diffuseur`
     : isEssenceProduct
     ? `/shop/huile/${product.slug || product.id}`
     : `/shop/product/${product.slug || product.id}${product.category === 'accessory' ? '?type=accessory' : '?type=perfume'}`;
@@ -268,6 +268,10 @@ export function ProductCard({
         {/* Category / volume label — always occupies one line so cards align */}
         <p className="h-4 text-[9px] sm:text-[10px] font-medium uppercase tracking-[0.12em] sm:tracking-[0.15em] text-gold truncate">
           {categoryLabel}
+        </p>
+
+        <p className="h-4 text-[9px] sm:text-[10px] font-medium text-foreground/45 truncate">
+          {product.brand || '\u00a0'}
         </p>
 
         {/* Product name — clamped to 2 lines, fixed min-height reserves space */}

@@ -324,11 +324,13 @@ export default function FinishedEssenceAdminPage() {
       setFormError(null);
       setSaving(true);
       if (editing) {
-        setItems(prev => prev.map(i => i.id === editing.id ? { ...i, essence: Number(form.essence), taille_ml: Number(form.taille_ml), prix: form.prix, prix_promotionnel: form.prix_promotionnel || null, actif: form.actif } : i));
-        await shopService.updateFinishedEssence(editing.id, payload);
+        const updatedData = await shopService.updateFinishedEssence(editing.id, payload);
+        const updatedItem = updatedData?.resultat ?? updatedData?.result ?? updatedData;
+        setItems(prev => prev.map(item =>
+          item.id === editing.id ? { ...item, ...updatedItem } : item
+        ));
         setShowModal(false);
         addToast(getLocalizedToast('Finished essence product updated', 'Produit essence mis à jour'), 'success');
-        fetchItems(currentPage);
       } else {
         await shopService.createFinishedEssence(payload);
         setShowModal(false);

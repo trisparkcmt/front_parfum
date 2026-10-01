@@ -22,7 +22,8 @@ import { ProductDetailModal } from '@/components/ui/ProductDetailModal';
 import { HuileDetailModal } from '@/components/ui/HuileDetailModal';
 
 export default function PerfumesShopClient() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isEn = i18n.language?.startsWith('en') ?? false;
 
   const searchParams = useSearchParams();
   const [mounted, setMounted] = useState(false);
@@ -97,6 +98,9 @@ export default function PerfumesShopClient() {
     const initialPage = Number(searchParams?.get('page'));
     return Number.isInteger(initialPage) && initialPage > 0 ? initialPage : 1;
   });
+  const [jumpModePage, setJumpModePage] = useState<number | null>(null);
+  const [jumpValue, setJumpValue] = useState('');
+  const pageJumpInputRef = useRef<HTMLInputElement>(null);
   const [totalPages, setTotalPages] = useState<number>(() => {
     if (typeof window !== 'undefined' && sessionStorage.getItem('from_product_detail') === 'true') {
       const cached = Number(sessionStorage.getItem('perfumes_catalog_cached_total_pages'));
@@ -200,6 +204,35 @@ export default function PerfumesShopClient() {
     setTimeout(performScroll, 10);
     setTimeout(performScroll, 50);
   };
+
+  const goToPage = (page: number) => {
+    if (!Number.isInteger(page) || page < 1 || page > totalPages) return;
+    try {
+      sessionStorage.setItem('perfumes_catalog_scroll', '0');
+      sessionStorage.removeItem('perfumes_catalog_cached_products');
+      sessionStorage.removeItem('perfumes_catalog_cached_essence');
+    } catch {}
+    hasRestoredFrozenProducts.current = false;
+    hasRestoredFrozenEssence.current = false;
+    setJumpModePage(null);
+    setJumpValue('');
+    scrollCatalogToTop();
+    setCurrentPage(page);
+  };
+
+  const submitPageJump = () => {
+    const page = Number.parseInt(jumpValue, 10);
+    if (Number.isInteger(page) && page >= 1 && page <= totalPages) {
+      goToPage(page);
+      return;
+    }
+    setJumpModePage(null);
+    setJumpValue('');
+  };
+
+  useEffect(() => {
+    if (jumpModePage !== null) pageJumpInputRef.current?.focus();
+  }, [jumpModePage]);
 
   // Debounce search input
   useEffect(() => {
@@ -1052,17 +1085,7 @@ export default function PerfumesShopClient() {
       {!loading && totalPages > 1 && (
         <div className="flex items-center justify-center gap-2 sm:gap-3 mt-12 flex-wrap">
           <button
-            onClick={() => {
-              try {
-                sessionStorage.setItem('perfumes_catalog_scroll', '0');
-                sessionStorage.removeItem('perfumes_catalog_cached_products');
-                sessionStorage.removeItem('perfumes_catalog_cached_essence');
-              } catch {}
-              hasRestoredFrozenProducts.current = false;
-              hasRestoredFrozenEssence.current = false;
-              scrollCatalogToTop();
-              setCurrentPage((p) => Math.max(1, p - 1));
-            }}
+            onClick={() => goToPage(currentPage - 1)}
             disabled={currentPage === 1}
             className="flex items-center gap-1.5 px-3 sm:px-4 py-2.5 rounded-xl border border-foreground/10 text-xs font-bold uppercase tracking-wider text-foreground/60 hover:text-foreground hover:bg-foreground/5 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
             aria-label={t('prev')}
@@ -1080,10 +1103,43 @@ export default function PerfumesShopClient() {
               const isEllipsisAfter = page === currentPage + 2 && page < totalPages - 1;
 
               if (isEllipsisBefore || isEllipsisAfter) {
+                if (jumpModePage === page) {
+                  return (
+                    <input
+                      key={`page-jump-${page}`}
+                      ref={pageJumpInputRef}
+                      type="number"
+                      min={1}
+                      max={totalPages}
+                      value={jumpValue}
+                      onChange={(e) => setJumpValue(e.target.value)}
+                      onBlur={submitPageJump}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') submitPageJump();
+                        if (e.key === 'Escape') {
+                          setJumpModePage(null);
+                          setJumpValue('');
+                        }
+                      }}
+                      className="w-10 h-8 sm:h-9 rounded-xl border border-gold/40 bg-background px-1 text-center text-[11px] text-foreground outline-none focus:border-gold"
+                      aria-label={isEn ? 'Go to page number' : 'Aller à la page numéro'}
+                    />
+                  );
+                }
                 return (
-                  <span key={page} className="text-foreground/30 text-xs px-0.5 sm:px-1 select-none">
+                  <button
+                    key={page}
+                    type="button"
+                    onClick={() => {
+                      setJumpValue('');
+                      setJumpModePage(page);
+                    }}
+                    className="text-foreground/50 text-xs px-0.5 sm:px-1 hover:text-gold transition-colors"
+                    title={isEn ? 'Jump to a specific page' : 'Aller à une page spécifique'}
+                    aria-label={isEn ? 'Enter a page number' : 'Saisir un numéro de page'}
+                  >
                     …
-                  </span>
+                  </button>
                 );
               }
 
@@ -1092,17 +1148,7 @@ export default function PerfumesShopClient() {
               return (
                 <button
                   key={page}
-                  onClick={() => {
-                    try {
-                      sessionStorage.setItem('perfumes_catalog_scroll', '0');
-                      sessionStorage.removeItem('perfumes_catalog_cached_products');
-                      sessionStorage.removeItem('perfumes_catalog_cached_essence');
-                    } catch {}
-                    hasRestoredFrozenProducts.current = false;
-                    hasRestoredFrozenEssence.current = false;
-                    scrollCatalogToTop();
-                    setCurrentPage(page);
-                  }}
+                  onClick={() => goToPage(page)}
                   className={`w-8 h-8 sm:w-9 sm:h-9 rounded-xl text-xs font-bold transition-all duration-200 ${
                     page === currentPage
                       ? 'bg-gold text-black shadow-md'
@@ -1116,17 +1162,7 @@ export default function PerfumesShopClient() {
           </div>
 
           <button
-            onClick={() => {
-              try {
-                sessionStorage.setItem('perfumes_catalog_scroll', '0');
-                sessionStorage.removeItem('perfumes_catalog_cached_products');
-                sessionStorage.removeItem('perfumes_catalog_cached_essence');
-              } catch {}
-              hasRestoredFrozenProducts.current = false;
-              hasRestoredFrozenEssence.current = false;
-              scrollCatalogToTop();
-              setCurrentPage((p) => Math.min(totalPages, p + 1));
-            }}
+            onClick={() => goToPage(currentPage + 1)}
             disabled={currentPage === totalPages}
             className="flex items-center gap-1.5 px-3 sm:px-4 py-2.5 rounded-xl border border-foreground/10 text-xs font-bold uppercase tracking-wider text-foreground/60 hover:text-foreground hover:bg-foreground/5 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
             aria-label={t('next')}

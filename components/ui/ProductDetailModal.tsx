@@ -85,6 +85,8 @@ export function ProductDetailModal({
   const { addFavorite, removeFavorite, isFavorite } = useFavoritesStore();
   const { addToast } = useToastStore();
 
+  const productImages = product?.images?.filter((image): image is string => Boolean(image)) ?? [];
+
   // ── Load product ─────────────────────────────────────────────────────────
   useEffect(() => {
     if (!productId) return;
@@ -246,7 +248,7 @@ export function ProductDetailModal({
   const handleShare = async () => {
     if (!product) return;
     const result = await sharePage(
-      `/shop/product/${product.slug || product.id}`,
+      `/shop/product/${product.slug || product.id}?type=${productType}`,
       product.name,
       isEn
         ? `Explore ${product.name} on Accessories Exclusif`
@@ -402,12 +404,13 @@ export function ProductDetailModal({
                   {/* Gallery */}
                   <div className="space-y-4 lg:sticky lg:top-28 lg:self-start">
                     {/* Hidden preload: eagerly load all images in background */}
-                    {product.images && product.images.filter(Boolean).map((img, idx) =>
+                    {productImages.map((img, idx) =>
                       idx === 0 ? null : (
                         <AppImage
                           key={`preload-${idx}`}
                           src={img}
                           alt=""
+                          fallbackSrc={null}
                           width={1}
                           height={1}
                           priority
@@ -429,7 +432,7 @@ export function ProductDetailModal({
                         if (touchStartXRef.current === null) return;
                         const delta = e.changedTouches[0].clientX - touchStartXRef.current;
                         touchStartXRef.current = null;
-                        const images = product.images?.filter(Boolean) ?? [];
+                        const images = productImages;
                         if (images.length <= 1) return;
                         if (delta < -SWIPE_THRESHOLD) {
                           setActiveImage((prev) => (prev + 1) % images.length);
@@ -462,30 +465,33 @@ export function ProductDetailModal({
                           transition={{ duration: 0.3 }}
                           className="absolute inset-0"
                         >
-                          <AppImage
-                            src={product.images[activeImage]}
-                            alt={product.name}
-                            fill
-                            className="object-cover transition-transform duration-700 group-hover:scale-105"
-                            priority
-                          />
+                          {productImages[activeImage] && (
+                            <AppImage
+                              src={productImages[activeImage]}
+                              alt={product.name}
+                              fallbackSrc={null}
+                              fill
+                              className="object-cover transition-transform duration-700 group-hover:scale-105"
+                              priority
+                            />
+                          )}
                         </motion.div>
                       </AnimatePresence>
 
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent pointer-events-none" />
+                      {productImages.length > 0 && (
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent pointer-events-none" />
+                      )}
 
-                      {product.images && product.images.length > 1 && (
+                      {productImages.length > 1 && (
                         <div className="absolute bottom-4 right-4 px-2.5 py-1 rounded-full bg-black/50 backdrop-blur-sm text-white text-[11px] font-medium tabular-nums">
-                          {activeImage + 1} / {product.images.length}
+                          {activeImage + 1} / {productImages.length}
                         </div>
                       )}
                     </motion.div>
 
-                    {product.images && product.images.filter((img) => img).length > 1 && (
+                    {productImages.length > 1 && (
                       <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
-                        {product.images
-                          .filter((img) => img)
-                          .map((img, idx) => (
+                        {productImages.map((img, idx) => (
                             <motion.button
                               key={idx}
                               whileHover={{ scale: 1.05 }}
@@ -497,7 +503,7 @@ export function ProductDetailModal({
                                   : 'border-foreground/10 hover:border-foreground/30'
                               )}
                             >
-                              <AppImage src={img} alt={`${product.name} vue ${idx + 1}`} fill loading="eager" className="object-cover" />
+                              <AppImage src={img} alt={`${product.name} vue ${idx + 1}`} fallbackSrc={null} fill loading="eager" className="object-cover" />
                             </motion.button>
                           ))}
                       </div>

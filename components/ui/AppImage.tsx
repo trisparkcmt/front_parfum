@@ -7,6 +7,7 @@ import { API_BASE_URL } from '@/lib/constants';
 interface AppImageProps {
   src?: string | null;
   alt?: string;
+  fallbackSrc?: string | null;
   width?: number;
   height?: number;
   className?: string;
@@ -20,6 +21,7 @@ interface AppImageProps {
 export const AppImage: React.FC<AppImageProps> = ({
   src,
   alt = '',
+  fallbackSrc = '/parfume1.png',
   width = 200,
   height = 200,
   className,
@@ -89,8 +91,7 @@ export const AppImage: React.FC<AppImageProps> = ({
     return `${apiRoot.replace(/\/+$|^\/+/, '')}/${src.replace(/^\/+/, '')}`;
   }, [src]);
 
-  const placeholder = '/parfume1.png';
-  const finalSrc = loadState === 'fallback' || !resolved ? placeholder : resolved;
+  const finalSrc = loadState === 'fallback' ? fallbackSrc : resolved || fallbackSrc;
   const unoptimized = loadState === 'direct';
 
   const handleError = () => {
@@ -102,6 +103,8 @@ export const AppImage: React.FC<AppImageProps> = ({
       setLoadState('fallback');
     }
   };
+
+  if (!finalSrc) return null;
 
   if (fill) {
     return (
