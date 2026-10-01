@@ -144,7 +144,7 @@ export function CustomSelect({
             onClick={e => e.stopPropagation()}
             role="listbox"
           >
-            <div className="overflow-y-auto h-full">
+            <div className="overflow-y-auto" style={{ maxHeight: `${position.maxHeight}px` }}>
               {options.map(opt => (
                 <button
                   key={opt.value}

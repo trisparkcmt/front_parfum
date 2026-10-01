@@ -16,6 +16,8 @@ import { InlineCell } from '@/components/admin/InlineCell';
 import { TablePagination } from '@/components/admin/TablePagination';
 import { useTranslation } from 'react-i18next';
 import { CustomSelect } from '@/components/ui/CustomSelect';
+import { Modal } from '@/components/ui/Modal';
+import { Button } from '@/components/ui/Button';
 
 /* ── Inline translations ─────────────────────────────────────────────────── */
 const T = {
@@ -226,6 +228,13 @@ export default function AccessoriesPage() {
   const [showModal, setShowModal] = useState(false);
   const [editingAccessory, setEditingAccessory] = useState<any | null>(null);
   const [selectedAccessories, setSelectedAccessories] = useState<Set<string>>(new Set());
+  const [showPromoModal, setShowPromoModal] = useState(false);
+  const [promoForm, setPromoForm] = useState({
+    taux_reduction: '',
+    date_debut: '',
+    date_fin: '',
+    message_promotion: '',
+  });
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
   const [imageFiles, setImageFiles] = useState<{ [key: string]: File | null }>({
     image_principale: null,
@@ -509,8 +518,9 @@ export default function AccessoriesPage() {
 
   const patchAccessory = async (slugOrId: string, field: string, value: string) => {
     if (!permissions.canUpdate) return;
+    const optVal = value === 'true' ? true : value === 'false' ? false : value;
     setAccessories(prev => prev.map(a =>
-      (a.slug || a.id) === slugOrId ? { ...a, [field]: value } : a
+      (a.slug || a.id) === slugOrId ? { ...a, [field]: optVal } : a
     ));
     try {
       const fd = new FormData();
@@ -565,6 +575,45 @@ export default function AccessoriesPage() {
       }
       return newSet;
     });
+  };
+
+  const handleBulkToggleActif = async (actif: boolean) => {
+    if (!permissions.canUpdate || selectedAccessories.size === 0) return;
+    const ids = Array.from(selectedAccessories);
+    if (!confirm(`Voulez-vous ${actif ? 'activer' : 'désactiver'} ${ids.length} produit(s) sélectionné(s) ?`)) return;
+    setAccessories(prev => prev.map(a => ids.includes(a.slug || a.id) ? { ...a, actif } : a));
+    try {
+      await Promise.all(ids.map(id => {
+        const fd = new FormData();
+        fd.append('actif', actif ? 'true' : 'false');
+        return adminService.patchFormData(`shop/accessoires/${id}/`, fd);
+      }));
+      addToast(`${ids.length} produits mis à jour`, 'success');
+      fetchAccessories(currentPage, true);
+    } catch {
+      addToast(t('toast_patch_error'), 'error');
+      fetchAccessories(currentPage, true);
+    }
+  };
+
+  const handleBulkPromo = async () => {
+    if (!permissions.canUpdate || selectedAccessories.size === 0) return;
+    const ids = Array.from(selectedAccessories);
+    const formData = new FormData();
+    if (promoForm.taux_reduction) formData.append('taux_reduction', promoForm.taux_reduction);
+    else formData.append('taux_reduction', '0');
+    if (promoForm.date_debut) formData.append('date_debut', promoForm.date_debut);
+    if (promoForm.date_fin) formData.append('date_fin', promoForm.date_fin);
+    if (promoForm.message_promotion) formData.append('message_promotion', promoForm.message_promotion);
+    try {
+      await Promise.all(ids.map(id => adminService.patchFormData(`shop/accessoires/${id}/`, formData)));
+      addToast(`Promotion appliquée à ${ids.length} produit(s)`, 'success');
+      setShowPromoModal(false);
+      setPromoForm({ taux_reduction: '', date_debut: '', date_fin: '', message_promotion: '' });
+      fetchAccessories(currentPage, true);
+    } catch {
+      addToast(t('toast_patch_error'), 'error');
+    }
   };
 
   if (!permissions.canRead) {
@@ -733,7 +782,53 @@ export default function AccessoriesPage() {
           - Mobile (below sm): single-line compact rows that expand on tap
             for type/margin/actions; tapping the row itself opens edit modal
       -------------------------------------------------------------------- */}
+      {/* Promo Modal */}
+      {showPromoModal && (
+        <Modal isOpen={showPromoModal} title="Appliquer une promotion" onClose={() => setShowPromoModal(false)}>
+          <div className="space-y-4">
+            <div>
+              <label className="mb-1 block text-xs font-medium text-foreground/70">Taux de réduction (%)</label>
+              <input type="number" value={promoForm.taux_reduction} onChange={(e) => setPromoForm(prev => ({ ...prev, taux_reduction: e.target.value }))} className="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-foreground focus:border-gold focus:outline-none" />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-medium text-foreground/70">Date de début</label>
+              <input type="datetime-local" value={promoForm.date_debut} onChange={(e) => setPromoForm(prev => ({ ...prev, date_debut: e.target.value }))} className="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-foreground focus:border-gold focus:outline-none" />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-medium text-foreground/70">Date de fin</label>
+              <input type="datetime-local" value={promoForm.date_fin} onChange={(e) => setPromoForm(prev => ({ ...prev, date_fin: e.target.value }))} className="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-foreground focus:border-gold focus:outline-none" />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-medium text-foreground/70">Message de promotion</label>
+              <input type="text" value={promoForm.message_promotion} onChange={(e) => setPromoForm(prev => ({ ...prev, message_promotion: e.target.value }))} className="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-foreground focus:border-gold focus:outline-none" />
+            </div>
+            <div className="flex justify-end gap-2 pt-4">
+              <Button type="button" variant="ghost" onClick={() => setShowPromoModal(false)}>Annuler</Button>
+              <Button type="button" variant="primary" onClick={handleBulkPromo}>Appliquer</Button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
       <div className="shadow-black/30 shadow-sm min-h-[300px] overflow-hidden rounded-xl border border-white/10">
+        {/* Selection Bar */}
+        <div className="flex items-center justify-between border-b border-white/10 px-4 py-2.5 bg-white/[0.01]">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-foreground/35">
+            {selectedAccessories.size > 0 ? `${selectedAccessories.size} sélectionné(s)` : t('title')}
+          </p>
+          {selectedAccessories.size > 0 && (
+            <div className="flex items-center gap-4">
+              {permissions.canUpdate && (
+                <>
+                  <button onClick={() => setShowPromoModal(true)} className="text-xs font-medium text-gold hover:text-gold/80 transition-colors">Promo</button>
+                  <button onClick={() => handleBulkToggleActif(true)} className="text-xs font-medium text-emerald-400 hover:text-emerald-300 transition-colors">Activer</button>
+                  <button onClick={() => handleBulkToggleActif(false)} className="text-xs font-medium text-amber-400 hover:text-amber-300 transition-colors">Désactiver</button>
+                </>
+              )}
+            </div>
+          )}
+        </div>
+
         {loading ? (
           <div className="flex flex-col items-center justify-center gap-2.5 py-20 text-foreground/40">
             <Loader2 className="animate-spin text-gold" size={28} />
@@ -788,6 +883,25 @@ export default function AccessoriesPage() {
                       <span className="shrink-0 whitespace-nowrap text-[10px] tabular-nums text-foreground/45">
                         {aStock} {t('units')}
                       </span>
+                      {/* Actif toggle switch */}
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          patchAccessory(rowId, 'actif', (a.actif !== false) ? 'false' : 'true');
+                        }}
+                        className={cx(
+                          'relative inline-flex h-4 w-7 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none disabled:opacity-50 ml-1',
+                          (a.actif !== false) ? 'bg-gold' : 'bg-white/20'
+                        )}
+                        disabled={!permissions.canUpdate}
+                        title={(a.actif !== false) ? 'Désactiver' : 'Activer'}
+                      >
+                        <span className={cx(
+                          'pointer-events-none inline-block h-3 w-3 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out',
+                          (a.actif !== false) ? 'translate-x-3' : 'translate-x-0'
+                        )} />
+                      </button>
                       <button
                         onClick={e => { e.stopPropagation(); setExpandedRow(isExpanded ? null : rowId); }}
                         aria-label={isEn ? 'Toggle details' : 'Afficher les détails'}
@@ -840,12 +954,14 @@ export default function AccessoriesPage() {
                     <th className="w-12 px-4 py-2.5">
                       <input
                         type="checkbox"
-                        checked={accessories.length > 0 && selectedAccessories.size === accessories.length}
+                        checked={accessories.length > 0 && accessories.every(a => selectedAccessories.has(a.slug || a.id))}
                         onChange={(e) => {
-                          if (e.target.checked) {
-                            setSelectedAccessories(new Set(accessories.map(a => a.slug || a.id)));
+                          const pageIds = accessories.map(a => a.slug || a.id);
+                          const allSelected = pageIds.every(id => selectedAccessories.has(id));
+                          if (allSelected) {
+                            setSelectedAccessories(prev => { const n = new Set(prev); pageIds.forEach(id => n.delete(id)); return n; });
                           } else {
-                            setSelectedAccessories(new Set());
+                            setSelectedAccessories(prev => { const n = new Set(prev); pageIds.forEach(id => n.add(id)); return n; });
                           }
                         }}
                         className="rounded border-white/10 bg-white/5 text-gold focus:ring-gold"
@@ -917,9 +1033,30 @@ export default function AccessoriesPage() {
                           </div>
                         </td>
                         <td className="px-4 py-3">
-                          <span className="rounded-full bg-white/6 px-2.5 py-1 text-[11px] font-medium text-foreground/60">
-                            {typeName}
-                          </span>
+                          <div className="flex items-center gap-2">
+                            <span className="rounded-full bg-white/6 px-2.5 py-1 text-[11px] font-medium text-foreground/60">
+                              {typeName}
+                            </span>
+                            {/* Actif toggle switch */}
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                patchAccessory(rowId, 'actif', (a.actif !== false) ? 'false' : 'true');
+                              }}
+                              className={cx(
+                                'relative inline-flex h-4 w-7 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none disabled:opacity-50 ml-1',
+                                (a.actif !== false) ? 'bg-gold' : 'bg-white/20'
+                              )}
+                              disabled={!permissions.canUpdate}
+                              title={(a.actif !== false) ? 'Désactiver' : 'Activer'}
+                            >
+                              <span className={cx(
+                                'pointer-events-none inline-block h-3 w-3 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out',
+                                (a.actif !== false) ? 'translate-x-3' : 'translate-x-0'
+                              )} />
+                            </button>
+                          </div>
                         </td>
                         <td className="whitespace-nowrap px-4 py-3 font-semibold text-foreground" onClick={e => e.stopPropagation()}>
                           <InlineCell

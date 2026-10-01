@@ -15,6 +15,8 @@ import { SlideOver } from '@/components/ui/SlideOver';
 import { useTranslation } from 'react-i18next';
 import { CustomSelect } from '@/components/ui/CustomSelect';
 import { MultiImageUpload } from '@/components/MultiImageUpload';
+import { Modal } from '@/components/ui/Modal';
+import { Button } from '@/components/ui/Button';
 
 /* ── Inline translations ─────────────────────────────────────────────────── */
 const T = {
@@ -258,6 +260,9 @@ export default function DiffuseursAdminPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
+  const [selectedDiffuseurs, setSelectedDiffuseurs] = useState<Set<number>>(new Set());
+  const [showPromoModal, setShowPromoModal] = useState(false);
+  const [promoForm, setPromoForm] = useState({ taux_reduction: '', date_debut: '', date_fin: '', message_promotion: '' });
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState<any | null>(null);
   const [saving, setSaving] = useState(false);
@@ -449,9 +454,15 @@ export default function DiffuseursAdminPage() {
 
   const patchDiffuseur = async (id: number, field: string, value: string) => {
     if (!permissions.canUpdate) return;
-    setDiffuseurs(prev => prev.map(d => d.id === id ? { ...d, [field]: value } : d));
+    const optVal = value === 'true' ? true : value === 'false' ? false : value;
+    setDiffuseurs(prev => prev.map(d => d.id === id ? { ...d, [field]: optVal } : d));
     try {
-      await adminService.updateDiffuseur(id, { [field]: field === 'nom' ? value : Number(value) });
+      let apiValue: string | number | boolean = value;
+      if (value === 'true') apiValue = true;
+      else if (value === 'false') apiValue = false;
+      else if (field !== 'nom') apiValue = Number(value);
+      
+      await adminService.updateDiffuseur(id, { [field]: apiValue });
     } catch {
       addToast(t('toast_patch_error'), 'error');
       fetchItems(currentPage, true);
@@ -478,6 +489,40 @@ export default function DiffuseursAdminPage() {
     const totalStock = diffuseurs.reduce((acc, d) => acc + (parseInt(d.stock_quantite, 10) || 0), 0);
     return { total, connected, totalStock };
   }, [diffuseurs]);
+
+  const handleBulkToggleActif = async (actif: boolean) => {
+    if (!permissions.canUpdate || selectedDiffuseurs.size === 0) return;
+    const ids = Array.from(selectedDiffuseurs);
+    if (!confirm(`Voulez-vous ${actif ? 'activer' : 'désactiver'} ${ids.length} diffuseur(s) ?`)) return;
+    setDiffuseurs(prev => prev.map(d => ids.includes(d.id) ? { ...d, actif } : d));
+    try {
+      await Promise.all(ids.map(id => adminService.updateDiffuseur(id, { actif })));
+      addToast(`${ids.length} diffuseurs mis à jour`, 'success');
+      fetchItems(currentPage, true);
+    } catch {
+      addToast(t('toast_patch_error'), 'error');
+      fetchItems(currentPage, true);
+    }
+  };
+
+  const handleBulkPromo = async () => {
+    if (!permissions.canUpdate || selectedDiffuseurs.size === 0) return;
+    const ids = Array.from(selectedDiffuseurs);
+    const payload: Record<string, string | number> = {};
+    if (promoForm.taux_reduction) payload.taux_reduction = Number(promoForm.taux_reduction);
+    if (promoForm.date_debut) payload.date_debut = promoForm.date_debut;
+    if (promoForm.date_fin) payload.date_fin = promoForm.date_fin;
+    if (promoForm.message_promotion) payload.message_promotion = promoForm.message_promotion;
+    try {
+      await Promise.all(ids.map(id => adminService.updateDiffuseur(id, payload)));
+      addToast(`Promotion appliquée à ${ids.length} diffuseur(s)`, 'success');
+      setShowPromoModal(false);
+      setPromoForm({ taux_reduction: '', date_debut: '', date_fin: '', message_promotion: '' });
+      fetchItems(currentPage, true);
+    } catch {
+      addToast(t('toast_patch_error'), 'error');
+    }
+  };
 
   const profitPreview = form.prix_unitaire && form.prix_achat
     ? (parseFloat(form.prix_unitaire) - parseFloat(form.prix_achat))
@@ -556,8 +601,38 @@ export default function DiffuseursAdminPage() {
         </div>
       </div>
 
+      {/* Promo Modal */}
+      {showPromoModal && (
+        <Modal isOpen={showPromoModal} title="Appliquer une promotion" onClose={() => setShowPromoModal(false)}>
+          <div className="space-y-4">
+            <div><label className="mb-1 block text-xs font-medium text-foreground/70">Taux de réduction (%)</label><input type="number" value={promoForm.taux_reduction} onChange={(e) => setPromoForm(prev => ({ ...prev, taux_reduction: e.target.value }))} className="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-foreground focus:border-gold focus:outline-none" /></div>
+            <div><label className="mb-1 block text-xs font-medium text-foreground/70">Date de début</label><input type="datetime-local" value={promoForm.date_debut} onChange={(e) => setPromoForm(prev => ({ ...prev, date_debut: e.target.value }))} className="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-foreground focus:border-gold focus:outline-none" /></div>
+            <div><label className="mb-1 block text-xs font-medium text-foreground/70">Date de fin</label><input type="datetime-local" value={promoForm.date_fin} onChange={(e) => setPromoForm(prev => ({ ...prev, date_fin: e.target.value }))} className="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-foreground focus:border-gold focus:outline-none" /></div>
+            <div><label className="mb-1 block text-xs font-medium text-foreground/70">Message</label><input type="text" value={promoForm.message_promotion} onChange={(e) => setPromoForm(prev => ({ ...prev, message_promotion: e.target.value }))} className="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-foreground focus:border-gold focus:outline-none" /></div>
+            <div className="flex justify-end gap-2 pt-4"><Button type="button" variant="ghost" onClick={() => setShowPromoModal(false)}>Annuler</Button><Button type="button" variant="primary" onClick={handleBulkPromo}>Appliquer</Button></div>
+          </div>
+        </Modal>
+      )}
+
       {/* Table Section — desktop */}
       <div className="shadow-black/30 shadow-sm hidden md:block rounded-xl border border-white/10 overflow-hidden bg-white/[0.02] min-h-[250px]">
+        {/* Selection Bar */}
+        <div className="flex items-center justify-between border-b border-white/10 px-4 py-2.5 bg-white/[0.01]">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-foreground/35">
+            {selectedDiffuseurs.size > 0 ? `${selectedDiffuseurs.size} sélectionné(s)` : t('title')}
+          </p>
+          {selectedDiffuseurs.size > 0 && (
+            <div className="flex items-center gap-4">
+              {permissions.canUpdate && (
+                <>
+                  <button onClick={() => setShowPromoModal(true)} className="text-xs font-medium text-gold hover:text-gold/80 transition-colors">Promo</button>
+                  <button onClick={() => handleBulkToggleActif(true)} className="text-xs font-medium text-emerald-400 hover:text-emerald-300 transition-colors">Activer</button>
+                  <button onClick={() => handleBulkToggleActif(false)} className="text-xs font-medium text-amber-400 hover:text-amber-300 transition-colors">Désactiver</button>
+                </>
+              )}
+            </div>
+          )}
+        </div>
         {loading ? (
           <div className="flex items-center justify-center py-20 text-foreground/40 gap-2">
             <Loader2 className="animate-spin text-gold" size={18} />
@@ -568,6 +643,9 @@ export default function DiffuseursAdminPage() {
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="border-b border-white/10 bg-white/[0.02]">
+                  <th className="px-4 py-3 w-10">
+                    <input type="checkbox" checked={diffuseurs.length > 0 && diffuseurs.every(d => selectedDiffuseurs.has(d.id))} onChange={() => { const pageIds = diffuseurs.map(d => d.id); const allSel = pageIds.every(id => selectedDiffuseurs.has(id)); if (allSel) { setSelectedDiffuseurs(prev => { const n = new Set(prev); pageIds.forEach(id => n.delete(id)); return n; }); } else { setSelectedDiffuseurs(prev => { const n = new Set(prev); pageIds.forEach(id => n.add(id)); return n; }); } }} className="rounded border-white/10 bg-white/5 text-gold focus:ring-0 focus:ring-offset-0" />
+                  </th>
                   <th className="px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-foreground/35">{t('col_diffuseur')}</th>
                   <th className="px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-foreground/35">{t('col_tech')}</th>
                   <th className="px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-foreground/35">{t('col_reservoir')}</th>
@@ -591,6 +669,9 @@ export default function DiffuseursAdminPage() {
 
                   return (
                     <tr key={item.id} className="hover:bg-white/[0.02] transition-colors">
+                      <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
+                        <input type="checkbox" checked={selectedDiffuseurs.has(item.id)} onChange={() => { setSelectedDiffuseurs(prev => { const n = new Set(prev); n.has(item.id) ? n.delete(item.id) : n.add(item.id); return n; }); }} className="rounded border-white/10 bg-white/5 text-gold focus:ring-0 focus:ring-offset-0" />
+                      </td>
                       <td className="px-4 py-3 text-sm text-foreground">
                         <div className="flex items-center gap-3">
                           <div className="w-9 h-9 rounded-lg bg-white/5 border border-white/10 overflow-hidden relative flex-shrink-0">
@@ -613,9 +694,30 @@ export default function DiffuseursAdminPage() {
                         </div>
                       </td>
                       <td className="px-4 py-3 text-xs text-foreground/60">
-                        <span className="px-2 py-0.5 rounded-full bg-white/5 border border-white/8 text-[10px] font-medium">
-                          {item.type_technologie}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className="px-2 py-0.5 rounded-full bg-white/5 border border-white/8 text-[10px] font-medium">
+                            {item.type_technologie}
+                          </span>
+                          {/* Actif toggle switch */}
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              patchDiffuseur(item.id, 'actif', (item.actif !== false) ? 'false' : 'true');
+                            }}
+                            className={cx(
+                              'relative inline-flex h-4 w-7 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none disabled:opacity-50 ml-1',
+                              (item.actif !== false) ? 'bg-gold' : 'bg-white/20'
+                            )}
+                            disabled={!permissions.canUpdate}
+                            title={(item.actif !== false) ? 'Désactiver' : 'Activer'}
+                          >
+                            <span className={cx(
+                              'pointer-events-none inline-block h-3 w-3 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out',
+                              (item.actif !== false) ? 'translate-x-3' : 'translate-x-0'
+                            )} />
+                          </button>
+                        </div>
                       </td>
                       <td className="px-4 py-3 text-xs tabular-nums text-foreground/60">
                         {item.capacite_reservoir_ml ? `${item.capacite_reservoir_ml} ml` : '—'}
@@ -711,7 +813,28 @@ export default function DiffuseursAdminPage() {
                     </div>
                     <div className="min-w-0">
                       <p className="text-sm font-medium text-foreground truncate">{item.nom}</p>
-                      <p className="text-xs text-foreground/50 capitalize">{item.type_technologie || 'ultrasons'}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="text-xs text-foreground/50 capitalize">{item.type_technologie || 'ultrasons'}</p>
+                        {/* Actif toggle switch */}
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            patchDiffuseur(item.id, 'actif', (item.actif !== false) ? 'false' : 'true');
+                          }}
+                          className={cx(
+                            'relative inline-flex h-4 w-7 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none disabled:opacity-50',
+                            (item.actif !== false) ? 'bg-gold' : 'bg-white/20'
+                          )}
+                          disabled={!permissions.canUpdate}
+                          title={(item.actif !== false) ? 'Désactiver' : 'Activer'}
+                        >
+                          <span className={cx(
+                            'pointer-events-none inline-block h-3 w-3 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out',
+                            (item.actif !== false) ? 'translate-x-3' : 'translate-x-0'
+                          )} />
+                        </button>
+                      </div>
                     </div>
                   </div>
                   <div className="flex items-center gap-1 shrink-0">

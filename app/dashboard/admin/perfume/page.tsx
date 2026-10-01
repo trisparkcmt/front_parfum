@@ -7,6 +7,8 @@ import { adminService } from '@/services/apiService';
 import { InlineCell } from '@/components/admin/InlineCell';
 import { useTranslation } from 'react-i18next';
 import { CustomSelect } from '@/components/ui/CustomSelect';
+import { Modal } from '@/components/ui/Modal';
+import { Button } from '@/components/ui/Button';
 import { AdminTableSkeleton } from '@/components/ui/AdminTableSkeleton';
 import { EmptyState } from '@/components/ui/EmptyState';
 
@@ -324,6 +326,13 @@ export default function PerfumeAdminPage() {
   const [tagValues, setTagValues] = useState<Record<number, string>>({});
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
   const [selectedSlugs, setSelectedSlugs] = useState<string[]>([]);
+  const [showPromoModal, setShowPromoModal] = useState(false);
+  const [promoForm, setPromoForm] = useState({
+    taux_reduction: '',
+    date_debut: '',
+    date_fin: '',
+    message_promotion: '',
+  });
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | null>(null);
@@ -453,7 +462,8 @@ export default function PerfumeAdminPage() {
 
   const patchPerfume = async (slug: string, field: string, value: string) => {
     if (!permissions.canUpdate) return;
-    setPerfumes(prev => prev.map(p => (p.slug || String(p.id)) === slug ? { ...p, [field]: value } : p));
+    const optVal = value === 'true' ? true : value === 'false' ? false : value;
+    setPerfumes(prev => prev.map(p => (p.slug || String(p.id)) === slug ? { ...p, [field]: optVal } : p));
     try {
       const fd = new FormData();
       fd.append(field, value);
@@ -476,6 +486,60 @@ export default function PerfumeAdminPage() {
     } catch {
       setPerfumes(prev => [...snapshots, ...prev]);
       addToast(t('toast_bulk_error'), 'error');
+    }
+  };
+
+  const handleBulkToggleActif = async (actif: boolean) => {
+    if (!permissions.canUpdate || selectedSlugs.length === 0) return;
+    if (!confirm(`Voulez-vous ${actif ? 'activer' : 'désactiver'} ${selectedSlugs.length} produit(s) sélectionné(s) ?`)) return;
+    
+    // optimistically update
+    setPerfumes(prev => prev.map(p => selectedSlugs.includes(p.slug || String(p.id)) ? { ...p, actif } : p));
+    
+    try {
+      await Promise.all(selectedSlugs.map(slug => {
+        const fd = new FormData();
+        fd.append('actif', actif ? 'true' : 'false');
+        return adminService.patchFormData(`shop/parfums/${slug}/`, fd);
+      }));
+      addToast(`${selectedSlugs.length} produits mis à jour`, 'success');
+      fetchPerfumes(currentPage, true);
+    } catch {
+      addToast(t('toast_patch_error'), 'error');
+      fetchPerfumes(currentPage, true);
+    }
+  };
+
+  const handleBulkPromo = async () => {
+    if (!permissions.canUpdate || selectedSlugs.length === 0) return;
+    
+    const formData = new FormData();
+    if (promoForm.taux_reduction) formData.append('taux_reduction', promoForm.taux_reduction);
+    else formData.append('taux_reduction', '0');
+    
+    if (promoForm.date_debut) {
+      const d = fromDatetimeLocalValue(promoForm.date_debut);
+      if (d) formData.append('date_debut', d);
+    } else formData.append('date_debut', '');
+    
+    if (promoForm.date_fin) {
+      const d = fromDatetimeLocalValue(promoForm.date_fin);
+      if (d) formData.append('date_fin', d);
+    } else formData.append('date_fin', '');
+    
+    if (promoForm.message_promotion) formData.append('message_promotion', promoForm.message_promotion);
+
+    setIsSubmitting(true);
+    try {
+      await Promise.all(selectedSlugs.map(slug => adminService.patchFormData(`shop/parfums/${slug}/`, formData)));
+      addToast(`Promotion appliquée à ${selectedSlugs.length} produit(s)`, 'success');
+      setShowPromoModal(false);
+      setPromoForm({ taux_reduction: '', date_debut: '', date_fin: '', message_promotion: '' });
+      fetchPerfumes(currentPage, true);
+    } catch {
+      addToast(t('toast_patch_error'), 'error');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -581,7 +645,7 @@ export default function PerfumeAdminPage() {
       est_nouveau: !!perf.est_nouveau,
       est_bestseller: !!perf.est_bestseller,
       stock_quantite: String(perf.stock_quantite || ''),
-      seuil_alerte_stock: String(perf.seuil_alerte_stock || '5'),
+      seuil_alerte_stock: String(perf.seuil_alerte_stock ?? '5'),
       categorie: String((typeof perf.categorie === 'object' && perf.categorie !== null ? perf.categorie.id : perf.categorie) || ''),
       actif: perf.actif !== undefined ? Boolean(perf.actif) : true,
       message_promotion: perf.message_promotion || '',
@@ -862,19 +926,84 @@ export default function PerfumeAdminPage() {
             for volume/margin/bestseller/actions; tapping the row itself
             opens the edit modal
       -------------------------------------------------------------------- */}
+      {/* Promo Modal */}
+      {showPromoModal && (
+        <Modal isOpen={showPromoModal} title="Appliquer une promotion" onClose={() => setShowPromoModal(false)}>
+          <div className="space-y-4">
+            <Field label="Taux de réduction (%)">
+              <input
+                type="number"
+                value={promoForm.taux_reduction}
+                onChange={(e) => setPromoForm(prev => ({ ...prev, taux_reduction: e.target.value }))}
+                className="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-foreground focus:border-gold focus:outline-none"
+              />
+            </Field>
+            <Field label="Date de début">
+              <input
+                type="datetime-local"
+                value={promoForm.date_debut}
+                onChange={(e) => setPromoForm(prev => ({ ...prev, date_debut: e.target.value }))}
+                className="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-foreground focus:border-gold focus:outline-none"
+              />
+            </Field>
+            <Field label="Date de fin">
+              <input
+                type="datetime-local"
+                value={promoForm.date_fin}
+                onChange={(e) => setPromoForm(prev => ({ ...prev, date_fin: e.target.value }))}
+                className="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-foreground focus:border-gold focus:outline-none"
+              />
+            </Field>
+            <Field label="Message de promotion">
+              <input
+                type="text"
+                value={promoForm.message_promotion}
+                onChange={(e) => setPromoForm(prev => ({ ...prev, message_promotion: e.target.value }))}
+                className="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-foreground focus:border-gold focus:outline-none"
+              />
+            </Field>
+            <div className="flex justify-end gap-2 pt-4">
+              <Button type="button" variant="ghost" onClick={() => setShowPromoModal(false)}>
+                {isEn ? 'Cancel' : 'Annuler'}
+              </Button>
+              <Button type="button" variant="primary" onClick={handleBulkPromo} disabled={isSubmitting}>
+                {isSubmitting ? 'Application...' : 'Appliquer'}
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
       <div className="shadow-black/30 shadow-sm rounded-xl border border-white/10 bg-white/[0.02] overflow-hidden min-h-[300px]">
         {/* Selection Bar */}
         <div className="flex items-center justify-between border-b border-white/10 px-4 py-2.5 bg-white/[0.01]">
           <p className="text-[10px] font-semibold uppercase tracking-wider text-foreground/35">
             {selectedSlugs.length > 0 ? `${selectedSlugs.length} sélectionné(s)` : t('catalogue')}
           </p>
-          {selectedSlugs.length > 0 && permissions.canDelete && (
-            <button
-              onClick={handleBulkDelete}
-              className="text-xs font-medium text-red-400 hover:text-red-300 transition-colors"
-            >
-              {t('delete_selected')}
-            </button>
+          {selectedSlugs.length > 0 && (
+            <div className="flex items-center gap-4">
+              {permissions.canUpdate && (
+                <>
+                  <button onClick={() => setShowPromoModal(true)} className="text-xs font-medium text-gold hover:text-gold/80 transition-colors">
+                    Promo
+                  </button>
+                  <button onClick={() => handleBulkToggleActif(true)} className="text-xs font-medium text-emerald-400 hover:text-emerald-300 transition-colors">
+                    Activer
+                  </button>
+                  <button onClick={() => handleBulkToggleActif(false)} className="text-xs font-medium text-amber-400 hover:text-amber-300 transition-colors">
+                    Désactiver
+                  </button>
+                </>
+              )}
+              {permissions.canDelete && (
+                <button
+                  onClick={handleBulkDelete}
+                  className="text-xs font-medium text-red-400 hover:text-red-300 transition-colors"
+                >
+                  {t('delete_selected')}
+                </button>
+              )}
+            </div>
           )}
         </div>
 
@@ -934,11 +1063,32 @@ export default function PerfumeAdminPage() {
                       </p>
                       {stockQty === 0 ? (
                         <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-red-400" title={t('out_of_stock')} />
-                      ) : stockQty <= Number(p.seuil_alerte_stock || 5) ? (
+                      ) : stockQty <= Number(p.seuil_alerte_stock ?? 5) ? (
                         <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-amber-400" title={t('low_stock')} />
                       ) : (
                         <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-400" title={t('in_stock')} />
                       )}
+
+                      {/* Actif toggle switch */}
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          patchPerfume(slugKey, 'actif', (p.actif !== false) ? 'false' : 'true');
+                        }}
+                        className={cx(
+                          'relative inline-flex h-4 w-7 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none disabled:opacity-50',
+                          (p.actif !== false) ? 'bg-gold' : 'bg-white/20'
+                        )}
+                        disabled={!permissions.canUpdate}
+                        title={(p.actif !== false) ? 'Désactiver' : 'Activer'}
+                      >
+                        <span className={cx(
+                          'pointer-events-none inline-block h-3 w-3 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out',
+                          (p.actif !== false) ? 'translate-x-3' : 'translate-x-0'
+                        )} />
+                      </button>
+
                       <button
                         onClick={e => { e.stopPropagation(); setExpandedRow(isExpanded ? null : slugKey); }}
                         aria-label={isEn ? 'Toggle details' : 'Afficher les détails'}
@@ -951,8 +1101,8 @@ export default function PerfumeAdminPage() {
                     {isExpanded && (
                       <div className="flex flex-wrap items-center gap-2 bg-white/[0.02] px-3 pb-3 pt-1">
                         <StatusChip
-                          label={stockQty === 0 ? t('out_of_stock') : stockQty <= Number(p.seuil_alerte_stock || 5) ? t('low_stock') : t('in_stock')}
-                          type={stockQty === 0 ? 'red' : stockQty <= Number(p.seuil_alerte_stock || 5) ? 'amber' : 'emerald'}
+                          label={stockQty === 0 ? t('out_of_stock') : stockQty <= Number(p.seuil_alerte_stock ?? 5) ? t('low_stock') : t('in_stock')}
+                          type={stockQty === 0 ? 'red' : stockQty <= Number(p.seuil_alerte_stock ?? 5) ? 'amber' : 'emerald'}
                         />
                         {Boolean(p.est_bestseller) && <StatusChip label={t('bestseller')} type="gold" />}
                         <span className="rounded-full bg-white/6 px-2.5 py-1 text-[11px] font-medium text-foreground/60">
@@ -993,12 +1143,14 @@ export default function PerfumeAdminPage() {
                     <th className="px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-foreground/35 w-10">
                       <input
                         type="checkbox"
-                        checked={filtered.length > 0 && selectedSlugs.length === filtered.length}
+                        checked={filtered.length > 0 && filtered.every((p: PerfumeRecord) => selectedSlugs.includes(p.slug || String(p.id)))}
                         onChange={() => {
-                          if (selectedSlugs.length === filtered.length) {
-                            setSelectedSlugs([]);
+                          const pageSlugs = filtered.map((p: PerfumeRecord) => p.slug || String(p.id));
+                          const allSelected = pageSlugs.every(s => selectedSlugs.includes(s));
+                          if (allSelected) {
+                            setSelectedSlugs(prev => prev.filter(s => !pageSlugs.includes(s)));
                           } else {
-                            setSelectedSlugs(filtered.map((p: PerfumeRecord) => p.slug || String(p.id)));
+                            setSelectedSlugs(prev => Array.from(new Set([...prev, ...pageSlugs])));
                           }
                         }}
                         className="rounded border-white/10 bg-white/5 text-gold focus:ring-0 focus:ring-offset-0"
@@ -1069,12 +1221,32 @@ export default function PerfumeAdminPage() {
                           <div className="flex items-center gap-1.5 flex-wrap">
                             {stockQty === 0 ? (
                               <StatusChip label={t('out_of_stock')} type="red" />
-                            ) : stockQty <= Number(p.seuil_alerte_stock || 5) ? (
+                            ) : stockQty <= Number(p.seuil_alerte_stock ?? 5) ? (
                               <StatusChip label={t('low_stock')} type="amber" />
                             ) : (
                               <StatusChip label={t('in_stock')} type="emerald" />
                             )}
                             {Boolean(p.est_bestseller) && <StatusChip label={t('bestseller')} type="gold" />}
+                            
+                            {/* Actif toggle switch */}
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                patchPerfume(p.slug || String(p.id), 'actif', (p.actif !== false) ? 'false' : 'true');
+                              }}
+                              className={cx(
+                                'relative inline-flex h-4 w-7 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none disabled:opacity-50 ml-2',
+                                (p.actif !== false) ? 'bg-gold' : 'bg-white/20'
+                              )}
+                              disabled={!permissions.canUpdate}
+                              title={(p.actif !== false) ? 'Désactiver' : 'Activer'}
+                            >
+                              <span className={cx(
+                                'pointer-events-none inline-block h-3 w-3 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out',
+                                (p.actif !== false) ? 'translate-x-3' : 'translate-x-0'
+                              )} />
+                            </button>
                           </div>
                         </td>
                         <td className="px-4 py-3 text-xs tabular-nums text-foreground/60 whitespace-nowrap" onClick={e => e.stopPropagation()}>
