@@ -85,14 +85,12 @@ export function ProductCard({
     product.essence_id !== undefined ||
     product.produits_finis !== undefined ||
     product.prix_par_ml !== undefined;
-  const mainImage =
-    product.image_principale ||
-    (product.images && product.images[0]) ||
-    (isEssenceProduct ? '/huile.png' : '');
+  const productImage = product.image_principale || (product.images && product.images[0]) || '';
+  const mainImage = isEssenceProduct ? '/huile.png' : productImage;
   const secondImage = isEssenceProduct
     ? ''
     : product.image_supp_1 || (product.images && product.images[1]) || '';
-  const mainImageSrc = resolveImageUrl(mainImage);
+  const mainImageSrc = isEssenceProduct ? '/huile.png' : productImage ? resolveImageUrl(productImage) : '';
 
   const productUrl = isDiffuseur
     ? `/shop/diffuseurs/${product.id || product.slug}`
@@ -120,7 +118,7 @@ export function ProductCard({
       productUrl,
       product.name,
       `Découvrez ${product.name} sur Accessories Exclusif`,
-      mainImage ? resolveImageUrl(mainImage) : undefined
+      mainImage ? mainImageSrc : undefined
     );
     if (result === 'shared' || result === 'copied') {
       try {
