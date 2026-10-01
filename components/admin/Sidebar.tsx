@@ -184,7 +184,7 @@ export default function Sidebar({ open, setOpen }: SidebarProps) {
       href: '/dashboard/admin/essences',
     },
     {
-      label: t('admin_nav_essence_products', { defaultValue: isEn ? 'Essence Products' : 'Produits Essence' }),
+      label: isEn ? 'Oil' : 'Huile',
       icon: <EssenceIcon size={18} />,
       href: '/dashboard/admin/produits-essence',
     },

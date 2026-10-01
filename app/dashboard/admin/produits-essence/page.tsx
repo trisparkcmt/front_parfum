@@ -151,6 +151,7 @@ export default function FinishedEssenceAdminPage() {
   const [showEssenceDropdown, setShowEssenceDropdown] = useState(false);
 
   const activeRequestRef = useRef(0);
+  const itemOrderByQueryRef = useRef(new Map<string, string[]>());
 
   const fetchItems = useCallback(async (page = 1) => {
     if (!permissions.canRead) return;
@@ -165,7 +166,32 @@ export default function FinishedEssenceAdminPage() {
       if (requestId !== activeRequestRef.current) return;
 
       const { items, total, pages, currentPage: apiPage } = extractCatalogMeta<any>(data);
-      setItems(items);
+      const orderKey = JSON.stringify([page, search.trim(), tailleFilter]);
+      const previousOrder = itemOrderByQueryRef.current.get(orderKey);
+      if (!previousOrder) {
+        itemOrderByQueryRef.current.set(orderKey, items.map(item => String(item.id)));
+        setItems(items);
+      } else {
+        const positions = new Map(previousOrder.map((id, index) => [id, index]));
+        const responsePositions = new Map(items.map((item, index) => [String(item.id), index]));
+        const orderedItems = [...items].sort((a, b) => {
+          const aPosition = positions.get(String(a.id));
+          const bPosition = positions.get(String(b.id));
+          if (aPosition === undefined && bPosition === undefined) {
+            return responsePositions.get(String(a.id))! - responsePositions.get(String(b.id))!;
+          }
+          if (aPosition === undefined) return 1;
+          if (bPosition === undefined) return -1;
+          return aPosition - bPosition;
+        });
+        const knownIds = new Set(previousOrder);
+        const receivedIds = new Set(items.map(item => String(item.id)));
+        itemOrderByQueryRef.current.set(orderKey, [
+          ...previousOrder.filter(id => receivedIds.has(id)),
+          ...items.map(item => String(item.id)).filter(id => !knownIds.has(id)),
+        ]);
+        setItems(orderedItems);
+      }
       setTotalItems(total);
       setTotalPages(pages);
       setCurrentPage(apiPage);
