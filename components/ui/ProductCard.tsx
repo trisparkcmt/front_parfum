@@ -85,7 +85,10 @@ export function ProductCard({
     product.essence_id !== undefined ||
     product.produits_finis !== undefined ||
     product.prix_par_ml !== undefined;
-  const mainImage = product.image_principale || (product.images && product.images[0]) || '';
+  const mainImage =
+    product.image_principale ||
+    (product.images && product.images[0]) ||
+    (isEssenceProduct ? '/huile.png' : '');
   const secondImage = isEssenceProduct
     ? ''
     : product.image_supp_1 || (product.images && product.images[1]) || '';

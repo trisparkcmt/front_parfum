@@ -91,14 +91,14 @@ export function Navbar() {
           {isAuthenticated && user ? (
             <Link
               href="/dashboard/profile"
-              className="relative flex items-center flex-shrink-0"
+              className="flex items-center gap-2 flex-shrink-0"
               aria-label={isEn ? UI_DICT.profile.en : UI_DICT.profile.fr}
             >
               <div className="flex items-center justify-center text-[10px] font-bold hover:scale-105 transition-transform">
                 <ProfileIcon size={18} className={iconColor} />
               </div>
               {isAuthenticated && unreadNotificationCount > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 min-w-4 h-4 px-1 rounded-full bg-red-500 text-[9px] font-bold text-white flex items-center justify-center leading-none">
+                <span className="min-w-4 h-4 px-1 rounded-full bg-red-500 text-[9px] font-bold text-white flex items-center justify-center leading-none shrink-0">
                   {unreadNotificationCount > 99 ? '99+' : unreadNotificationCount}
                 </span>
               )}

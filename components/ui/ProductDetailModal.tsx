@@ -42,6 +42,7 @@ import { useFavoritesStore } from '@/store/useFavoritesStore';
 import { useToastStore } from '@/store/useToastStore';
 import { EssenceSizePickerModal } from '@/components/ui/EssenceSizePickerModal';
 import { QuantityInput } from '@/components/ui/QuantityInput';
+import { ProductInquiryWhatsAppButton } from '@/components/ui/ProductInquiryWhatsAppButton';
 import type { Product, ProduitFiniEssence } from '@/types';
 
 interface ProductDetailModalProps {
@@ -691,6 +692,10 @@ export function ProductDetailModal({
                           <ShoppingBag size={18} className="group-hover:scale-110 transition-transform" />
                           {isEn ? 'Add to Shopping Bag' : 'Ajouter au panier'}
                         </button>
+                      </div>
+
+                      <div className="mb-6">
+                        <ProductInquiryWhatsAppButton product={product} isEn={Boolean(isEn)} productType={productType} />
                       </div>
 
                       {/* Trust badges */}

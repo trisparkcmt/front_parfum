@@ -28,18 +28,21 @@ import { useCartStore } from '@/store/useCartStore';
 import { useFavoritesStore } from '@/store/useFavoritesStore';
 import { useToastStore } from '@/store/useToastStore';
 import { QuantityInput } from '@/components/ui/QuantityInput';
+import { ProductInquiryWhatsAppButton } from '@/components/ui/ProductInquiryWhatsAppButton';
 import type { Product, ProduitFiniEssence } from '@/types';
 
 interface HuileDetailModalProps {
   /** Product id or slug to display */
   productId: string | null;
+  /** Product data already available from the catalog list */
+  initialProduct?: Product | null;
   /** Called when the panel should close */
   onClose: () => void;
   /** Optionally open a related huile inside the same modal */
   onRelatedHuileClick?: (product: Product) => void;
 }
 
-export function HuileDetailModal({ productId, onClose, onRelatedHuileClick }: HuileDetailModalProps) {
+export function HuileDetailModal({ productId, initialProduct, onClose, onRelatedHuileClick }: HuileDetailModalProps) {
   const { i18n } = useTranslation();
   const isEn = i18n.language?.startsWith('en');
 
@@ -60,7 +63,7 @@ export function HuileDetailModal({ productId, onClose, onRelatedHuileClick }: Hu
     if (!productId) return;
     let mounted = true;
     setLoading(true);
-    setProduct(null);
+    setProduct(initialProduct ?? null);
     setSelectedQuantities({});
     setActiveTab('description');
     setRelatedProducts([]);
@@ -69,36 +72,45 @@ export function HuileDetailModal({ productId, onClose, onRelatedHuileClick }: Hu
       try {
         const p = await productService.getProductById(productId, 'essence');
         if (!mounted) return;
-        setProduct(p);
+        const resolvedProduct = p
+          ? {
+              ...initialProduct,
+              ...p,
+              produits_finis: p.produits_finis?.length
+                ? p.produits_finis
+                : initialProduct?.produits_finis ?? [],
+            }
+          : initialProduct ?? null;
+        setProduct(resolvedProduct);
 
-        if (p) {
+        if (resolvedProduct) {
           try {
             const { trackViewItem } = await import('@/lib/gtag');
             trackViewItem({
-              value: p.price,
-              items: [{ item_id: String(p.id), item_name: p.name, item_category: p.category, price: p.price, quantity: 1 }],
+              value: resolvedProduct.price,
+              items: [{ item_id: String(resolvedProduct.id), item_name: resolvedProduct.name, item_category: resolvedProduct.category, price: resolvedProduct.price, quantity: 1 }],
             });
           } catch {}
 
           // Pre-select first available variant
-          if (p.produits_finis?.length) {
-            const first = p.produits_finis.find(v => v.stock_disponible > 0) || p.produits_finis[0];
+          if (resolvedProduct.produits_finis?.length) {
+            const first = resolvedProduct.produits_finis.find(v => v.stock_disponible > 0) || resolvedProduct.produits_finis[0];
             if (first && first.stock_disponible > 0) {
               setSelectedQuantities({ [first.id]: 1 });
             }
           }
 
-          setRelatedProducts(p.relatedProducts?.slice(0, 4) ?? []);
+          setRelatedProducts(resolvedProduct.relatedProducts?.slice(0, 4) ?? []);
         }
       } catch {
-        if (mounted) setProduct(null);
+        if (mounted) setProduct(initialProduct ?? null);
       } finally {
         if (mounted) setLoading(false);
       }
     })();
 
     return () => { mounted = false; };
-  }, [productId]);
+  }, [productId, initialProduct]);
 
   // ── Lock body scroll ───────────────────────────────────────────────────────
   useEffect(() => {
@@ -565,6 +577,9 @@ export function HuileDetailModal({ productId, onClose, onRelatedHuileClick }: Hu
                           </button>
                         </div>
                       )}
+                      <div className="mt-6">
+                        <ProductInquiryWhatsAppButton product={product} isEn={Boolean(isEn)} />
+                      </div>
                     </div>
                   )}
                 </div>

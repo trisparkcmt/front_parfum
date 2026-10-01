@@ -503,15 +503,18 @@ export default function PerfumesShopClient() {
 
   // ── Huile detail modal (separate, specialised layout) ────────────────────
   const [huileModalProductId, setHuileModalProductId] = useState<string | null>(null);
+  const [huileModalInitialProduct, setHuileModalInitialProduct] = useState<Product | null>(null);
 
   const openHuileModal = useCallback((product: Product) => {
     const productId = String(product.slug || product.id);
     setHuileModalProductId(productId);
+    setHuileModalInitialProduct(product);
     window.history.pushState({ modalProductId: productId, isHuile: true }, '', `/shop/huile/${productId}`);
   }, []);
 
   const closeHuileModal = useCallback(() => {
     setHuileModalProductId(null);
+    setHuileModalInitialProduct(null);
   }, []);
 
   /**
@@ -564,6 +567,7 @@ export default function PerfumesShopClient() {
       if (!e.state?.modalProductId) {
         setModalProductId(null);
         setHuileModalProductId(null);
+        setHuileModalInitialProduct(null);
       }
     };
     window.addEventListener('popstate', handlePopState);
@@ -1170,6 +1174,7 @@ export default function PerfumesShopClient() {
         {huileModalProductId && (
           <HuileDetailModal
             productId={huileModalProductId}
+            initialProduct={huileModalInitialProduct}
             onClose={closeHuileModal}
             onRelatedHuileClick={openHuileModal}
           />
