@@ -112,6 +112,37 @@ function IconButton({
   );
 }
 
+function getEssenceGroupKey(item: any): string {
+  const essence = item.essence_details ?? item.essence;
+  if (essence && typeof essence === 'object') {
+    return String(essence.id ?? essence.slug ?? essence.nom ?? item.essence_id ?? item.id);
+  }
+  return String(item.essence_id ?? essence ?? item.id);
+}
+
+function orderFinishedEssences(items: any[], previousOrder: string[] = []): any[] {
+  const previousPositions = new Map(previousOrder.map((id, index) => [id, index]));
+  const responsePositions = new Map(items.map((item, index) => [String(item.id), index]));
+  const groupPositions = new Map<string, number>();
+
+  items.forEach((item) => {
+    const id = String(item.id);
+    const position = previousPositions.get(id) ?? previousOrder.length + (responsePositions.get(id) ?? 0);
+    const groupKey = getEssenceGroupKey(item);
+    groupPositions.set(groupKey, Math.min(groupPositions.get(groupKey) ?? position, position));
+  });
+
+  return [...items].sort((a, b) => {
+    const groupDifference = groupPositions.get(getEssenceGroupKey(a))! - groupPositions.get(getEssenceGroupKey(b))!;
+    if (groupDifference !== 0) return groupDifference;
+
+    const sizeDifference = Number(a.taille_ml) - Number(b.taille_ml);
+    if (Number.isFinite(sizeDifference) && sizeDifference !== 0) return sizeDifference;
+
+    return (responsePositions.get(String(a.id)) ?? 0) - (responsePositions.get(String(b.id)) ?? 0);
+  });
+}
+
 export default function FinishedEssenceAdminPage() {
   const permissions = useCatalogPermissions('produits_essence');
   const { i18n } = useTranslation();
@@ -167,31 +198,10 @@ export default function FinishedEssenceAdminPage() {
 
       const { items, total, pages, currentPage: apiPage } = extractCatalogMeta<any>(data);
       const orderKey = JSON.stringify([page, search.trim(), tailleFilter]);
-      const previousOrder = itemOrderByQueryRef.current.get(orderKey);
-      if (!previousOrder) {
-        itemOrderByQueryRef.current.set(orderKey, items.map(item => String(item.id)));
-        setItems(items);
-      } else {
-        const positions = new Map(previousOrder.map((id, index) => [id, index]));
-        const responsePositions = new Map(items.map((item, index) => [String(item.id), index]));
-        const orderedItems = [...items].sort((a, b) => {
-          const aPosition = positions.get(String(a.id));
-          const bPosition = positions.get(String(b.id));
-          if (aPosition === undefined && bPosition === undefined) {
-            return responsePositions.get(String(a.id))! - responsePositions.get(String(b.id))!;
-          }
-          if (aPosition === undefined) return 1;
-          if (bPosition === undefined) return -1;
-          return aPosition - bPosition;
-        });
-        const knownIds = new Set(previousOrder);
-        const receivedIds = new Set(items.map(item => String(item.id)));
-        itemOrderByQueryRef.current.set(orderKey, [
-          ...previousOrder.filter(id => receivedIds.has(id)),
-          ...items.map(item => String(item.id)).filter(id => !knownIds.has(id)),
-        ]);
-        setItems(orderedItems);
-      }
+      const previousOrder = itemOrderByQueryRef.current.get(orderKey) ?? [];
+      const orderedItems = orderFinishedEssences(items, previousOrder);
+      itemOrderByQueryRef.current.set(orderKey, orderedItems.map(item => String(item.id)));
+      setItems(orderedItems);
       setTotalItems(total);
       setTotalPages(pages);
       setCurrentPage(apiPage);
