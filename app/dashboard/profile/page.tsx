@@ -228,7 +228,6 @@ export default function ProfilePage() {
   });
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
-  const [isApplyingPartner, setIsApplyingPartner] = useState(false);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const [isInstallingPWA, setIsInstallingPWA] = useState(false);
   const partnerMenuRef = useRef<HTMLDivElement | null>(null);
@@ -301,37 +300,6 @@ export default function ProfilePage() {
     i18n.changeLanguage(i18n.language === 'fr' ? 'en' : 'fr');
   };
 
-  const handleBecomePartner = async () => {
-    setIsApplyingPartner(true);
-    try {
-      const res = await api.post('/auth/prestataire/apply/');
-      addToast(
-        res.data.detail ||
-          t('become_partner_request_sent', {
-            defaultValue: isEn
-              ? 'Partner application submitted successfully.'
-              : 'Demande de partenariat envoyée avec succès.',
-          }),
-        'success'
-      );
-    } catch (err: unknown) {
-      const errorDetails = err as {
-        response?: { data?: { detail?: string } };
-      };
-
-      addToast(
-        errorDetails.response?.data?.detail ||
-          t('become_partner_error', {
-            defaultValue: isEn
-              ? 'An application is already pending or you are already a partner.'
-              : 'Une demande est déjà en cours ou vous êtes déjà prestataire.',
-          }),
-        'error'
-      );
-    } finally {
-      setIsApplyingPartner(false);
-    }
-  };
 
   const handleProfilePhotoChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const photo = event.target.files?.[0];
@@ -449,29 +417,48 @@ export default function ProfilePage() {
                     type="button"
                     onClick={() => setShowPartnerMenu((prev) => !prev)}
                     className="flex h-8 w-8 items-center justify-center rounded-full border border-foreground/10 bg-background text-foreground/60 transition hover:border-gold/30 hover:text-gold"
-                    aria-label={isEn ? 'More profile actions' : 'Plus d’actions du profil'}
+                    aria-label={isEn ? 'More profile actions' : 'Plus d'actions du profil'}
                   >
                     <MoreHorizontal size={16} />
                   </button>
 
                   {showPartnerMenu && (
-                    <div className="absolute right-0 top-10 w-56 rounded-xl border border-foreground/10 bg-background/95 p-2 shadow-2xl shadow-black/20 backdrop-blur-sm">
+                    <div className="absolute right-0 top-10 w-64 rounded-xl border border-foreground/10 bg-background/95 p-2 shadow-2xl shadow-black/20 backdrop-blur-sm">
+                      {/* Become Partner */}
                       <button
                         type="button"
                         onClick={() => {
                           setShowPartnerMenu(false);
-                          handleBecomePartner();
+                          router.push('/apply/prestataire');
                         }}
-                        disabled={isApplyingPartner}
-                        className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-foreground transition hover:bg-foreground/5"
+                        className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm text-foreground transition hover:bg-foreground/5"
                       >
-                        {isApplyingPartner ? (
-                          <Loader2 size={14} className="animate-spin text-gold" />
-                        ) : (
-                          <Sparkles size={14} className="text-gold" />
-                        )}
-                        <span>{t('become_partner', { defaultValue: isEn ? 'Become a Partner' : 'Devenir Prestataire' })}</span>
+                        <Sparkles size={14} className="text-gold shrink-0" />
+                        <div>
+                          <p className="font-medium">{t('become_partner', { defaultValue: isEn ? 'Become a Partner' : 'Devenir Prestataire' })}</p>
+                          <p className="text-[10px] text-foreground/40 mt-0.5">{isEn ? 'Earn commissions on affiliated sales' : 'Gagnez des commissions sur vos ventes affiliées'}</p>
+                        </div>
                       </button>
+
+                      <div className="h-px bg-foreground/10 my-1" />
+
+                      {/* Open a Boutique */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowPartnerMenu(false);
+                          router.push('/apply/boutique');
+                        }}
+                        className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm text-foreground transition hover:bg-foreground/5"
+                      >
+                        <ShieldCheck size={14} className="text-gold shrink-0" />
+                        <div>
+                          <p className="font-medium">{isEn ? 'Open a Boutique' : 'Ouvrir une Boutique'}</p>
+                          <p className="text-[10px] text-foreground/40 mt-0.5">{isEn ? 'Sell your perfumes & accessories online' : 'Vendez vos parfums & accessoires en ligne'}</p>
+                        </div>
+                      </button>
+
+                      <div className="h-px bg-foreground/10 my-1" />
 
                       <button
                         type="button"
@@ -479,10 +466,9 @@ export default function ProfilePage() {
                         className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-red-400 transition hover:bg-red-500/5"
                       >
                         <X size={14} />
-                        <span>{isEn ? 'Cancel partner application' : 'Annuler la demande'}</span>
+                        <span>{isEn ? 'Cancel pending application' : 'Annuler ma demande en cours'}</span>
                       </button>
 
-                      
                     </div>
                   )}
                 </div>
