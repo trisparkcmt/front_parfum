@@ -211,7 +211,10 @@ const inputCls = 'w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 
 export default function AccessoriesPage() {
   const pathname = usePathname();
   const isBoutiqueContext = pathname?.includes('/dashboard/boutique');
-  const permissions = useCatalogPermissions('accessoires');
+  const catalogPermissions = useCatalogPermissions('accessoires');
+  const permissions = isBoutiqueContext
+    ? { ...catalogPermissions, canCreate: true, canUpdate: true, canDelete: true }
+    : catalogPermissions;
   const { user } = useAuthStore();
   const isAdmin = Boolean(user?.is_staff || user?.is_superuser || user?.role === 'superadmin');
   const { i18n } = useTranslation();

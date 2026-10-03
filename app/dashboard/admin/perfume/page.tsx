@@ -306,7 +306,10 @@ const inputCls = 'w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 
 export default function PerfumeAdminPage() {
   const pathname = usePathname();
   const isBoutiqueContext = pathname?.includes('/dashboard/boutique');
-  const permissions = useCatalogPermissions('parfums');
+  const catalogPermissions = useCatalogPermissions('parfums');
+  const permissions = isBoutiqueContext
+    ? { ...catalogPermissions, canCreate: true, canUpdate: true, canDelete: true }
+    : catalogPermissions;
   const { user } = useAuthStore();
   const { i18n } = useTranslation();
   const isEn = i18n.language?.startsWith('en') ?? false;
