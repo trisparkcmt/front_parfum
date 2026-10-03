@@ -1511,7 +1511,11 @@ export const adminService = {
    * Get paginated list of all users
    */
   getUsers: async (params?: { search?: string; page?: number }) => {
-    const response = await api.get('auth/admin/users/', { params });
+    const cleanParams = { ...params };
+    if (cleanParams.search === '') {
+      delete cleanParams.search;
+    }
+    const response = await api.get('auth/admin/users/', { params: cleanParams });
     return response.data;
   },
 
