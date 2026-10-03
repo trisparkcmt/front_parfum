@@ -38,7 +38,12 @@ export default function Header({ onMenuClick }: HeaderProps) {
   const searchRef = useRef<HTMLDivElement>(null);
 
   const isServeuseContext = pathname?.includes('/dashboard/serveuse');
-  const dashboardBasePath = isServeuseContext ? '/dashboard/serveuse' : '/dashboard/admin';
+  const isBoutiqueContext = pathname?.includes('/dashboard/boutique');
+  const dashboardBasePath = isServeuseContext
+    ? '/dashboard/serveuse'
+    : isBoutiqueContext
+    ? '/dashboard/boutique'
+    : '/dashboard/admin';
 
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
