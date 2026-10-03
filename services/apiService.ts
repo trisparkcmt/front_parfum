@@ -23,6 +23,7 @@ import type {
   BoutiqueEffectuerVersementResponse,
   BoutiqueValidatePayload,
   BoutiqueFullDetail,
+  PrestataireApplyPayload,
 } from '@/types';
 
 // ============================================================================

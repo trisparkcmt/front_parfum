@@ -8,7 +8,7 @@ import { useAuthGuard } from '@/hooks/useAuthGuard';
 import { Loader2, LayoutDashboard, Package, Wallet, Menu, X, Store } from 'lucide-react';
 
 export default function BoutiqueLayout({ children }: { children: React.ReactNode }) {
-  const { isAuthorized, isLoading } = useAuthGuard(['partner', 'vendeur', 'client']); // Allow appropriate roles
+  const { isAuthorized, isLoading } = useAuthGuard(['partner', 'superadmin']); // Allow appropriate roles
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const pathname = usePathname();
 
