@@ -1509,6 +1509,22 @@ export const adminService = {
     }
   },
 
+  updateBoutiqueCommission: async (
+    boutiqueId: number,
+    taux_commission: string
+  ): Promise<any> => {
+    try {
+      const response = await api.patch(`auth/admin/boutiques/${boutiqueId}/`, { taux_commission });
+      return response.data;
+    } catch (err: any) {
+      if (err.response?.status === 405 || err.response?.status === 404) {
+        const fallback = await api.post(`auth/admin/boutiques/validate/${boutiqueId}/`, { taux_commission });
+        return fallback.data;
+      }
+      throw err;
+    }
+  },
+
   getBoutiqueRequests: async (): Promise<BoutiqueAdminRequest[]> => {
     let response;
     try {

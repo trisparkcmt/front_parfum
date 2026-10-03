@@ -4,7 +4,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { adminService } from '@/services/apiService';
 import { BoutiqueFullDetail, BoutiqueEffectuerVersementPayload } from '@/types';
 import { useToastStore } from '@/store/useToastStore';
-import { Loader2, ArrowLeft, Wallet, CheckCircle, Package, Store } from 'lucide-react';
+import { Loader2, ArrowLeft, Wallet, CheckCircle, Package, Store, Edit2 } from 'lucide-react';
 import { useRouter, useParams } from 'next/navigation';
 import { resolveImageUrl } from '@/lib/utils';
 
@@ -28,6 +28,10 @@ export default function AdminBoutiqueDetailPage() {
   const [validateComm, setValidateComm] = useState('10');
   const [isValidating, setIsValidating] = useState(false);
   const [showValidation, setShowValidation] = useState(false);
+
+  const [editComm, setEditComm] = useState('10');
+  const [showEditCommModal, setShowEditCommModal] = useState(false);
+  const [isSavingComm, setIsSavingComm] = useState(false);
 
   const fetchDetail = async () => {
     setLoading(true);
@@ -61,6 +65,25 @@ export default function AdminBoutiqueDetailPage() {
       addToast(err.response?.data?.detail || 'Erreur de validation', 'error');
     } finally {
       setIsValidating(false);
+    }
+  };
+
+  const handleSaveCommission = async () => {
+    const commission = Number(editComm);
+    if (!Number.isFinite(commission) || commission < 0 || commission > 100) {
+      addToast('Le taux de commission doit être compris entre 0 et 100 %', 'error');
+      return;
+    }
+    setIsSavingComm(true);
+    try {
+      await adminService.updateBoutiqueCommission(boutiqueId, commission.toFixed(2));
+      addToast('Taux de commission mis à jour avec succès !', 'success');
+      setShowEditCommModal(false);
+      fetchDetail();
+    } catch (err: any) {
+      addToast(err.response?.data?.detail || 'Erreur lors de la mise à jour de la commission', 'error');
+    } finally {
+      setIsSavingComm(false);
     }
   };
 
@@ -180,6 +203,24 @@ export default function AdminBoutiqueDetailPage() {
             <div className="flex justify-between items-center pb-3 border-b border-white/5">
               <span className="text-foreground/50">Chiffre d'affaires brut</span>
               <span className="font-mono text-foreground/80">{boutique.chiffre_affaires_brut ?? '—'} FCFA</span>
+            </div>
+            <div className="flex justify-between items-center pb-3 border-b border-white/5">
+              <span className="text-foreground/50">Taux de Commission</span>
+              <div className="flex items-center gap-2">
+                <span className="font-mono font-bold text-gold">{boutique.taux_commission ?? '10.00'} %</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditComm(String(boutique.taux_commission || '10'));
+                    setShowEditCommModal(true);
+                  }}
+                  className="p-1 rounded hover:bg-white/10 text-foreground/60 hover:text-gold transition-colors flex items-center gap-1 text-xs"
+                  title="Modifier le taux de commission"
+                >
+                  <Edit2 size={14} />
+                  <span className="underline">Éditer</span>
+                </button>
+              </div>
             </div>
             <div className="flex justify-between items-center pb-3 border-b border-white/5">
               <span className="text-foreground/50">Commissions plateforme</span>
@@ -343,6 +384,49 @@ export default function AdminBoutiqueDetailPage() {
               >
                 {isValidating ? <Loader2 className="animate-spin" size={14} /> : <CheckCircle size={14} />}
                 Valider
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Commission Modal */}
+      {showEditCommModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-[#0a0a0a] border border-white/10 rounded-2xl p-6 w-full max-w-sm animate-in zoom-in-95 duration-200">
+            <h3 className="text-lg font-bold mb-2">Modifier la Commission</h3>
+            <p className="text-sm text-foreground/50 mb-6">Mettez à jour le taux de commission prélevé sur les ventes de cette boutique.</p>
+            
+            <div className="mb-6">
+              <label className="text-xs font-bold uppercase text-foreground/40 mb-2 block tracking-widest">Taux de Commission (%)</label>
+              <input
+                type="number"
+                min="0"
+                max="100"
+                step="0.1"
+                value={editComm}
+                onChange={(e) => setEditComm(e.target.value)}
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:border-gold outline-none"
+              />
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setShowEditCommModal(false)}
+                disabled={isSavingComm}
+                className="flex-1 border border-white/10 py-3 rounded-xl text-xs font-bold uppercase hover:bg-white/5"
+              >
+                Annuler
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveCommission}
+                disabled={isSavingComm}
+                className="flex-1 bg-gold text-black py-3 rounded-xl text-xs font-bold uppercase hover:bg-gold/90 flex justify-center items-center gap-2"
+              >
+                {isSavingComm ? <Loader2 className="animate-spin" size={14} /> : <CheckCircle size={14} />}
+                Enregistrer
               </button>
             </div>
           </div>

@@ -678,7 +678,8 @@ export default function PerfumeAdminPage() {
     const nextTagValues: Record<number, string> = {};
     (Array.isArray((perf as any).tags) ? (perf as any).tags : []).forEach((tag: any) => {
       const tagId = Number(tag.tag ?? tag.id ?? 0);
-      if (tagId > 0 && tag.valeur !== undefined) nextTagValues[tagId] = String(tag.valeur);
+      const val = tag.valeur !== undefined && tag.valeur !== '' ? String(tag.valeur) : (tag.nom || tag.name || 'true');
+      if (tagId > 0) nextTagValues[tagId] = val;
     });
     setTagValues(nextTagValues);
     setFormErrors({});
@@ -723,12 +724,14 @@ export default function PerfumeAdminPage() {
       .filter(([, value]) => typeof value === 'string' && value.trim() !== '')
       .map(([tagId, valeur]) => ({ tag: Number(tagId), valeur: valeur.trim() }));
     formData.append('tags', JSON.stringify(normalizedTags));
+    formData.append('tag_ids', JSON.stringify(normalizedTags.map(t => t.tag)));
 
     try {
       if (editingPerfume) {
-        await adminService.patchFormData(`shop/parfums/${editingPerfume.slug}/`, formData);
+        const slugOrId = editingPerfume.slug || editingPerfume.id;
+        await adminService.patchFormData(`shop/parfums/${slugOrId}/`, formData);
         setPerfumes(prev => prev.map(p =>
-          (p.slug || String(p.id)) === editingPerfume.slug
+          (p.slug || String(p.id)) === (editingPerfume.slug || String(editingPerfume.id))
             ? { ...p, ...Object.fromEntries(Array.from(formData.entries()).filter(([k]) => !k.startsWith('image'))) }
             : p
         ));
@@ -1649,22 +1652,58 @@ export default function PerfumeAdminPage() {
                 </div>
               </FormSection>
 
-              {tagTypes.length > 0 && (
-                <FormSection title="Tags" icon={<Tag size={11} />}>
-                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                    {tagTypes.map((tagType) => (
-                      <Field key={tagType.id} label={tagType.nom}>
-                        <input
-                          value={tagValues[tagType.id] ?? ''}
-                          onChange={(e) => updateTagValue(tagType.id, e.target.value)}
-                          placeholder={tagType.nom}
-                          className={inputCls}
-                        />
-                      </Field>
-                    ))}
-                  </div>
-                </FormSection>
-              )}
+              <FormSection title="Tags" icon={<Tag size={11} />}>
+                <div className="space-y-3">
+                  {tagTypes.length > 0 ? (
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                      {tagTypes.map((tagType) => {
+                        const isSelected = tagValues[tagType.id] !== undefined;
+                        return (
+                          <div key={tagType.id} className="rounded-xl border border-white/10 bg-white/[0.02] p-3 space-y-2">
+                            <div className="flex items-center justify-between">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (isSelected) {
+                                    setTagValues(prev => {
+                                      const next = { ...prev };
+                                      delete next[tagType.id];
+                                      return next;
+                                    });
+                                  } else {
+                                    updateTagValue(Number(tagType.id), tagType.nom || 'true');
+                                  }
+                                }}
+                                className={`flex items-center gap-2 text-xs font-semibold px-3 py-1.5 rounded-lg border transition-all ${
+                                  isSelected
+                                    ? 'bg-gold/20 border-gold text-gold shadow-sm shadow-gold/10'
+                                    : 'bg-white/5 border-white/10 text-foreground/60 hover:text-foreground hover:bg-white/10'
+                                }`}
+                              >
+                                <Tag size={12} />
+                                <span>{tagType.nom}</span>
+                              </button>
+                              <span className="text-[10px] text-foreground/40 font-mono">
+                                {isSelected ? 'Actif' : 'Inactif'}
+                              </span>
+                            </div>
+                            {isSelected && (
+                              <input
+                                value={tagValues[tagType.id] ?? ''}
+                                onChange={e => updateTagValue(Number(tagType.id), e.target.value)}
+                                placeholder={`Valeur du tag (${tagType.nom})...`}
+                                className={inputCls}
+                              />
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-foreground/40 italic">Aucun tag configuré dans le système.</p>
+                  )}
+                </div>
+              </FormSection>
             </div>
 
             {/* ── Right: sticky images panel ───────────────────────────── */}

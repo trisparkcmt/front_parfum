@@ -2,6 +2,7 @@
 
 import { useAuthGuard } from '@/hooks/useAuthGuard';
 import { useAuthStore } from '@/store/useAuthStore';
+import { usePathname } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -10,6 +11,7 @@ import { BackButton } from '@/components/ui/BackButton';
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { isAuthorized, isLoading } = useAuthGuard();
   const { user } = useAuthStore();
+  const pathname = usePathname();
 
   if (isLoading || !isAuthorized) {
     return (
@@ -22,9 +24,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     );
   }
 
-  // Admin and Serveuse have their own layouts with sidebars, so just pass through
+  // Admin, Serveuse, and Boutique (partner/boutique) have their own full-width layout with sidebar, so pass through
   const userRoles = user?.roles || (user?.role ? [user.role] : []);
-  if (userRoles.includes('superadmin') || userRoles.includes('serveuse')) {
+  const isBoutiquePath = pathname?.startsWith('/dashboard/boutique');
+  if (userRoles.includes('superadmin') || userRoles.includes('serveuse') || userRoles.includes('partner') || isBoutiquePath) {
     return <>{children}</>;
   }
 
