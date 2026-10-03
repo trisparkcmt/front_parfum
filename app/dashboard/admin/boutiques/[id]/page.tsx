@@ -17,10 +17,11 @@ import {
   ShoppingBag,
   Store,
   TrendingUp,
+  Trash2,
   Wallet,
   X,
 } from 'lucide-react';
-import { adminService } from '@/services/apiService';
+import { adminService, shopService } from '@/services/apiService';
 import { BoutiqueFullDetail, BoutiqueEffectuerVersementPayload } from '@/types';
 import { useToastStore } from '@/store/useToastStore';
 import { resolveImageUrl } from '@/lib/utils';
@@ -71,6 +72,9 @@ const T = {
     col_price: 'Prix',
     col_stock: 'Stock',
     col_visibility: 'Visibilité',
+    col_actions: 'Actions',
+    edit_price: 'Modifier le prix',
+    delete_product: 'Supprimer le produit',
     col_date: 'Date',
     col_reference: 'Référence',
     col_method: 'Mode / destination',
@@ -165,6 +169,9 @@ const T = {
     col_price: 'Price',
     col_stock: 'Stock',
     col_visibility: 'Visibility',
+    col_actions: 'Actions',
+    edit_price: 'Edit price',
+    delete_product: 'Delete product',
     col_date: 'Date',
     col_reference: 'Reference',
     col_method: 'Method / destination',
@@ -240,6 +247,7 @@ function cx(...parts: Array<string | false | null | undefined>) {
 
 interface ProductRow {
   id: number;
+  slug?: string;
   type_produit: 'parfum' | 'accessoire';
   nom: string;
   marque?: string | null;
@@ -400,10 +408,14 @@ function ProductsTable({
   rows,
   kind,
   t,
+  onEditPrice,
+  onDeleteProduct,
 }: {
   rows: ProductRow[];
   kind: 'parfum' | 'accessoire';
   t: (k: TKey) => string;
+  onEditPrice: (product: ProductRow) => void;
+  onDeleteProduct: (product: ProductRow) => Promise<void>;
 }) {
   const categoryOf = (p: ProductRow) => (kind === 'parfum' ? p.categorie?.nom : p.type_accessoire?.nom) || '—';
 
@@ -445,7 +457,7 @@ function ProductsTable({
         <table className="w-full text-left text-xs">
           <thead>
             <tr className="border-b border-white/10 bg-white/[0.02]">
-              {(['col_product', 'col_category', 'col_price', 'col_stock', 'col_visibility'] as TKey[]).map((k) => (
+              {(['col_product', 'col_category', 'col_price', 'col_stock', 'col_visibility', 'col_actions'] as TKey[]).map((k) => (
                 <th key={k} className="px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-foreground/35">
                   {k === 'col_category' && kind === 'accessoire' ? t('col_type') : t(k)}
                 </th>
@@ -470,6 +482,16 @@ function ProductsTable({
                 <td className="px-4 py-2.5"><Price p={p} /></td>
                 <td className="px-4 py-2.5"><Stock p={p} /></td>
                 <td className="px-4 py-2.5"><Visibility p={p} /></td>
+                <td className="px-4 py-2.5">
+                  <div className="flex items-center justify-end gap-1">
+                    <button type="button" onClick={() => onEditPrice(p)} title={`${t('edit_price')}: ${p.nom}`} aria-label={`${t('edit_price')}: ${p.nom}`} className="rounded-md p-1.5 text-foreground/50 transition-colors hover:bg-gold/10 hover:text-gold">
+                      <Edit2 size={14} />
+                    </button>
+                    <button type="button" onClick={() => { void onDeleteProduct(p); }} title={`${t('delete_product')}: ${p.nom}`} aria-label={`${t('delete_product')}: ${p.nom}`} className="rounded-md p-1.5 text-foreground/50 transition-colors hover:bg-red-500/10 hover:text-red-400">
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                </td>
               </tr>
             ))}
           </tbody>
@@ -498,6 +520,14 @@ function ProductsTable({
                 <span className="mr-1.5 text-foreground/40">{t('col_stock')}:</span>
                 <Stock p={p} />
               </div>
+            </div>
+            <div className="flex justify-end gap-2 border-t border-white/5 pt-2">
+              <button type="button" onClick={() => onEditPrice(p)} className="inline-flex items-center gap-1.5 rounded-md border border-white/10 px-2.5 py-1.5 text-[11px] text-foreground/60 hover:border-gold/30 hover:text-gold">
+                <Edit2 size={12} />{t('edit_price')}
+              </button>
+              <button type="button" onClick={() => { void onDeleteProduct(p); }} aria-label={`${t('delete_product')}: ${p.nom}`} title={`${t('delete_product')}: ${p.nom}`} className="rounded-md border border-white/10 p-1.5 text-foreground/50 hover:border-red-500/30 hover:text-red-400">
+                <Trash2 size={13} />
+              </button>
             </div>
           </div>
         ))}
