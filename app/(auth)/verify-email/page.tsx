@@ -144,13 +144,13 @@ function VerifyEmailContent() {
         <span className="inline-block text-[10px] uppercase tracking-[0.3em] text-gold/80 mb-2">{t('validation', { defaultValue: 'Validation' })}</span>
         <h1 className="font-display text-3xl font-bold mb-2">
           {arrivedFromRegistration
-            ? t('email_not_received_title', { defaultValue: 'Vous n'avez pas reçu l'e-mail ?' })
+            ? t('email_not_received_title', { defaultValue: "Vous n'avez pas reçu l'e-mail ?" })
             : t('resend_verification_title', { defaultValue: 'Validation de compte' })
           }
         </h1>
         <p className="text-foreground/60 text-sm leading-relaxed">
           {arrivedFromRegistration
-            ? t('email_not_received_desc', { defaultValue: 'Si vous n'avez pas reçu l'e-mail de confirmation après quelques minutes, utilisez le formulaire ci-dessous pour en recevoir un nouveau.' })
+            ? t('email_not_received_desc', { defaultValue: "Si vous n'avez pas reçu l'e-mail de confirmation après quelques minutes, utilisez le formulaire ci-dessous pour en recevoir un nouveau." })
             : t('resend_verification_instructions', { defaultValue: 'Entrez votre adresse e-mail pour recevoir un nouveau lien de validation.' })
           }
         </p>

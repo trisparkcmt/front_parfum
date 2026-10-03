@@ -446,7 +446,7 @@ export default function ProfilePage() {
                     type="button"
                     onClick={() => setShowPartnerMenu((prev) => !prev)}
                     className="flex h-8 w-8 items-center justify-center rounded-full border border-foreground/10 bg-background text-foreground/60 transition hover:border-gold/30 hover:text-gold"
-                    aria-label={isEn ? 'More profile actions' : 'Plus d'actions du profil'}
+                    aria-label={isEn ? 'More profile actions' : "Plus d'actions du profil"}
                   >
                     <MoreHorizontal size={16} />
                   </button>
