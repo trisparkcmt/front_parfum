@@ -496,7 +496,16 @@ export default function ProfilePage() {
                         className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-red-400 transition hover:bg-red-500/5"
                       >
                         <X size={14} />
-                        <span>{isEn ? 'Cancel pending application' : 'Annuler ma demande en cours'}</span>
+                        <span>{isEn ? 'Cancel partner application' : 'Annuler ma demande prestataire'}</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={handleCancelBoutiqueApplication}
+                        className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-red-400 transition hover:bg-red-500/5"
+                      >
+                        <X size={14} />
+                        <span>{isEn ? 'Cancel boutique application' : 'Annuler ma demande boutique'}</span>
                       </button>
 
                     </div>

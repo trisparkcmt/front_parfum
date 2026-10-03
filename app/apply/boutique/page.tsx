@@ -4,13 +4,13 @@ import React, { useState } from 'react';
 import { boutiqueService } from '@/services/apiService';
 import { useToastStore } from '@/store/useToastStore';
 import { Loader2, Store, UploadCloud } from 'lucide-react';
-import { useRouter } from 'next/navigation';
 
 export default function ApplyBoutiquePage() {
-  const router = useRouter();
   const addToast = useToastStore((s) => s.addToast);
   const [loading, setLoading] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
   const [file, setFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     nom: '',
     adresse: '',
@@ -21,7 +21,7 @@ export default function ApplyBoutiquePage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!file || !formData.nom) {
-      addToast('Le nom et la photo (logo/vitrine) sont obligatoires', 'error');
+      addToast('Le nom et le logo / photo vitrine de votre boutique sont obligatoires', 'error');
       return;
     }
 
@@ -36,9 +36,24 @@ export default function ApplyBoutiquePage() {
 
       await boutiqueService.apply(payload);
       addToast('Votre demande a été envoyée avec succès !', 'success');
-      router.push('/dashboard/profile');
+      setSubmitted(true);
     } catch (err: any) {
       addToast(err.response?.data?.detail || 'Erreur lors de la candidature', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCancelApplication = async () => {
+    setLoading(true);
+    try {
+      await boutiqueService.cancelApplication();
+      setSubmitted(false);
+      setFile(null);
+      setPreviewUrl(null);
+      addToast('Votre demande de boutique a été annulée.', 'success');
+    } catch (err: any) {
+      addToast(err.response?.data?.detail || 'Impossible d’annuler la demande', 'error');
     } finally {
       setLoading(false);
     }
@@ -55,10 +70,25 @@ export default function ApplyBoutiquePage() {
         
         <h1 className="text-2xl font-bold text-center text-foreground mb-2">Ouvrir votre Boutique</h1>
         <p className="text-center text-sm text-foreground/50 mb-8">
-          Rejoignez la plateforme et vendez vos parfums et accessoires.
+          Rejoignez la plateforme et vendez vos parfums et accessoires avec le logo ou la photo vitrine de votre boutique.
         </p>
 
-        <form onSubmit={handleSubmit} className="space-y-5">
+        {submitted ? (
+          <div className="space-y-5 text-center">
+            <div className="rounded-xl border border-green-500/20 bg-green-500/5 p-4">
+              <p className="font-semibold text-green-300">Demande envoyée</p>
+              <p className="mt-2 text-sm text-foreground/55">Votre demande est en attente d’examen par l’administration.</p>
+            </div>
+            <button
+              type="button"
+              onClick={handleCancelApplication}
+              disabled={loading}
+              className="w-full rounded-xl border border-red-500/30 py-3 text-sm font-semibold text-red-300 transition hover:bg-red-500/10 disabled:opacity-50"
+            >
+              {loading ? <Loader2 className="mx-auto animate-spin" size={18} /> : 'Annuler ma demande'}
+            </button>
+          </div>
+        ) : <form onSubmit={handleSubmit} className="space-y-5">
           <div>
             <label className="block text-xs font-bold uppercase tracking-wider text-foreground/60 mb-2">Nom de la boutique *</label>
             <input
@@ -72,18 +102,35 @@ export default function ApplyBoutiquePage() {
           </div>
 
           <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-foreground/60 mb-2">Logo ou Vitrine *</label>
+            <label className="block text-xs font-bold uppercase tracking-wider text-foreground/60 mb-2">Logo de la boutique / Photo vitrine *</label>
             <div className="relative border-2 border-dashed border-white/20 rounded-xl p-6 text-center hover:bg-white/5 hover:border-gold/50 transition-colors cursor-pointer">
               <input
                 type="file"
                 required
                 accept="image/*"
-                onChange={e => setFile(e.target.files?.[0] || null)}
+                onChange={e => {
+                  const selected = e.target.files?.[0] || null;
+                  setFile(selected);
+                  setPreviewUrl(selected ? URL.createObjectURL(selected) : null);
+                }}
                 className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
               />
-              <UploadCloud className="mx-auto text-foreground/40 mb-2" size={24} />
+              {previewUrl ? (
+                <div className="mb-4 flex justify-center">
+                  <img
+                    src={previewUrl}
+                    alt="Aperçu de la boutique"
+                    className="h-28 w-28 rounded-2xl object-cover border border-gold/30 bg-black shadow-lg shadow-gold/10"
+                  />
+                </div>
+              ) : (
+                <UploadCloud className="mx-auto text-foreground/40 mb-2" size={24} />
+              )}
               <p className="text-sm font-semibold text-foreground/70">
-                {file ? file.name : 'Cliquez ou glissez une image'}
+                {file ? file.name : 'Cliquez ou glissez le logo / photo vitrine'}
+              </p>
+              <p className="text-[11px] text-foreground/40 mt-2">
+                Cette image servira comme logo visuel de votre boutique après validation.
               </p>
             </div>
           </div>
@@ -129,7 +176,7 @@ export default function ApplyBoutiquePage() {
           >
             {loading ? <Loader2 className="animate-spin" size={20} /> : 'Soumettre la demande'}
           </button>
-        </form>
+        </form>}
       </div>
     </div>
   );

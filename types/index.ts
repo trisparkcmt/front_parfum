@@ -974,6 +974,9 @@ export interface BoutiqueAdminFinancier {
   id: number;
   nom: string;
   proprietaire: string;
+  photo?: string;
+  photo_url?: string;
+  avatar_url?: string;
   taux_commission: string;
   solde_disponible: string;
   solde_total_recu: string;
@@ -982,6 +985,27 @@ export interface BoutiqueAdminFinancier {
   net_boutique_cumule: string;
   telephone_paiement: string;
   mode_paiement_prefere: string;
+}
+
+export interface BoutiqueAdminRequest {
+  id: number;
+  nom: string;
+  photo?: string;
+  photo_url?: string;
+  statut: string;
+  adresse?: string;
+  ville?: string;
+  telephone?: string;
+  proprietaire_nom?: string;
+  proprietaire_email?: string;
+  proprietaire_telephone?: string;
+  user_details?: {
+    first_name?: string;
+    last_name?: string;
+    email?: string;
+    telephone?: string;
+  };
+  date_creation?: string;
 }
 
 export interface BoutiqueEffectuerVersementPayload {
@@ -1044,7 +1068,9 @@ export interface BoutiqueProductsPaginatedResponse {
 export interface BoutiqueFullDetail {
   id: number;
   nom: string;
-  photo: string;
+  photo?: string;
+  photo_url?: string;
+  avatar_url?: string;
   adresse: string;
   ville: string;
   telephone: string;
@@ -1058,6 +1084,11 @@ export interface BoutiqueFullDetail {
   solde_total_recu: string;
   telephone_paiement: string;
   mode_paiement_prefere: string;
+  chiffre_affaires_brut?: string;
+  total_commissions_admin?: string;
+  total_net_gagne?: string;
+  commissions_admin_perdues?: string;
+  versements_recents?: BoutiqueVersementRecent[];
   nb_produits_parfums: number;
   nb_produits_accessoires: number;
   nb_produits_total: number;

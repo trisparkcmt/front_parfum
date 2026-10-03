@@ -4,8 +4,8 @@ import React, { useEffect, useState } from 'react';
 import { boutiqueService } from '@/services/apiService';
 import { BoutiqueProductItem, BoutiqueProductsParams } from '@/types';
 import { useToastStore } from '@/store/useToastStore';
-import { Loader2, Package, Search, Filter } from 'lucide-react';
-import Image from 'next/image';
+import { Loader2, Package, Search } from 'lucide-react';
+import { resolveImageUrl } from '@/lib/utils';
 
 export default function BoutiqueProductsPage() {
   const addToast = useToastStore((s) => s.addToast);
@@ -16,18 +16,23 @@ export default function BoutiqueProductsPage() {
   const [search, setSearch] = useState('');
   const [type, setType] = useState<'all' | 'parfum' | 'accessoire'>('all');
   const [actif, setActif] = useState<'all' | 'true' | 'false'>('all');
+  const [category, setCategory] = useState('');
+  const [ordering, setOrdering] = useState('-date_creation');
+  const [pageSize, setPageSize] = useState(100);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
-  const fetchProducts = async () => {
+  const fetchProducts = async (requestedPage = page) => {
     setLoading(true);
     try {
       const params: BoutiqueProductsParams = {
-        page,
-        page_size: 20, // using 20 for better display, but can be 100
+        page: requestedPage,
+        page_size: pageSize,
         search: search || undefined,
         type: type === 'all' ? undefined : type,
         actif: actif === 'all' ? undefined : actif === 'true',
+        categorie: category.trim() || undefined,
+        ordering,
       };
       
       const res = await boutiqueService.getProduits(params);
@@ -42,12 +47,12 @@ export default function BoutiqueProductsPage() {
 
   useEffect(() => {
     fetchProducts();
-  }, [page, type, actif]);
+  }, [page, type, actif, category, ordering, pageSize]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setPage(1);
-    fetchProducts();
+    fetchProducts(1);
   };
 
   return (
@@ -57,16 +62,16 @@ export default function BoutiqueProductsPage() {
           <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
             <Package className="text-gold" /> Catalogue Boutique
           </h1>
-          <p className="text-sm text-foreground/50 mt-1">Gérez vos parfums et accessoires en ligne</p>
+          <p className="text-sm text-foreground/50 mt-1">Consultez vos parfums et accessoires, leur visibilité et leur stock</p>
         </div>
       </div>
 
       {/* Filters */}
-      <div className="bg-[#0a0a0a] border border-white/10 p-4 rounded-2xl flex flex-col md:flex-row gap-4 items-center">
+      <div className="bg-[#0a0a0a] border border-white/10 p-4 rounded-2xl grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-3 items-center">
         <form onSubmit={handleSearchSubmit} className="flex-1 w-full relative">
           <input
             type="text"
-            placeholder="Rechercher (nom, marque, SKU)..."
+            placeholder="Rechercher (nom, marque, SKU, description)..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-sm focus:border-gold outline-none"
@@ -74,7 +79,7 @@ export default function BoutiqueProductsPage() {
           <Search className="absolute left-3.5 top-3 text-foreground/40" size={16} />
         </form>
 
-        <div className="flex gap-2 w-full md:w-auto">
+        <div className="flex gap-2 w-full">
           <select
             value={type}
             onChange={(e) => { setType(e.target.value as any); setPage(1); }}
@@ -94,6 +99,39 @@ export default function BoutiqueProductsPage() {
             <option value="false">Inactifs (Masqués)</option>
           </select>
         </div>
+        <input
+          type="text"
+          value={category}
+          onChange={(e) => { setCategory(e.target.value); setPage(1); }}
+          placeholder="Catégorie, slug ou ID"
+          aria-label="Filtrer par catégorie, slug ou identifiant"
+          className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm focus:border-gold outline-none"
+        />
+        <select
+          value={ordering}
+          onChange={(e) => { setOrdering(e.target.value); setPage(1); }}
+          aria-label="Trier les produits"
+          className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-foreground outline-none cursor-pointer"
+        >
+          <option value="-date_creation">Plus récents</option>
+          <option value="date_creation">Plus anciens</option>
+          <option value="nom">Nom A-Z</option>
+          <option value="-nom">Nom Z-A</option>
+          <option value="prix_unitaire">Prix croissant</option>
+          <option value="-prix_unitaire">Prix décroissant</option>
+          <option value="stock_quantite">Stock croissant</option>
+          <option value="-stock_quantite">Stock décroissant</option>
+        </select>
+        <select
+          value={pageSize}
+          onChange={(e) => { setPageSize(Number(e.target.value)); setPage(1); }}
+          aria-label="Nombre de produits par page"
+          className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-foreground outline-none cursor-pointer"
+        >
+          <option value={20}>20 par page</option>
+          <option value={50}>50 par page</option>
+          <option value={100}>100 par page</option>
+        </select>
       </div>
 
       {/* Product List */}
@@ -110,7 +148,8 @@ export default function BoutiqueProductsPage() {
         <>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {products.map((product) => {
-              const mainImage = product.images?.find(img => img.est_principale)?.image || product.images?.[0]?.image || '/placeholder.jpg';
+              const imagePath = product.images?.find(img => img.est_principale)?.image || product.images?.[0]?.image;
+              const mainImage = imagePath ? resolveImageUrl(imagePath) : '/placeholder.jpg';
               return (
                 <div key={product.id} className="bg-[#0a0a0a] border border-white/10 rounded-2xl overflow-hidden hover:border-gold/30 transition-all flex flex-col group">
                   <div className="relative h-48 w-full bg-white/5">
@@ -130,8 +169,9 @@ export default function BoutiqueProductsPage() {
                     </div>
                   </div>
                   <div className="p-4 flex-1 flex flex-col">
-                    <p className="text-[10px] text-foreground/50 uppercase font-bold tracking-widest">{product.marque}</p>
+                    <p className="text-[10px] text-foreground/50 uppercase font-bold tracking-widest">{product.marque || product.type_accessoire?.nom || 'Sans marque'}</p>
                     <h3 className="font-bold text-foreground mt-1 line-clamp-1" title={product.nom}>{product.nom}</h3>
+                    <p className="text-xs text-foreground/45 mt-1">{product.categorie?.nom || product.type_accessoire?.nom || 'Sans catégorie'}</p>
                     <p className="text-xs text-foreground/40 font-mono mt-1">SKU: {product.reference_sku}</p>
                     
                     <div className="mt-auto pt-4 flex justify-between items-end">
@@ -159,6 +199,7 @@ export default function BoutiqueProductsPage() {
           </div>
 
           {/* Pagination */}
+          <p className="text-center text-xs text-foreground/45">{products.length} produit(s) affiché(s) par page · {pageSize} max</p>
           {totalPages > 1 && (
             <div className="flex justify-center items-center gap-2 mt-8">
               <button
