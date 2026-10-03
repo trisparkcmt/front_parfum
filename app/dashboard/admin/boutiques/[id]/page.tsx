@@ -4,7 +4,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation';
 import { useTranslation } from 'react-i18next';
 import {
-  AlertCircle,
+  AlertCircle, 
   ArrowLeft,
   CheckCircle,
   Edit2,
@@ -542,7 +542,7 @@ export default function AdminBoutiqueDetailPage() {
   const fetchDetail = useCallback(async () => {
     setRefreshing(true);
     try {
-      const data = await adminService.getBoutiqueDetail(boutiqueId, { page: productsPage, page_size: 100 });
+      const data = await adminService.getBoutiqueDetail(boutiqueId, { page: productsPage , page_size: 100 });
       setBoutique(data);
     } catch (err: any) {
       addToast(err.response?.data?.detail || t('toast_load_error'), 'error');
