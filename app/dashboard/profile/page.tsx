@@ -177,6 +177,18 @@ const DASHBOARD_OPTIONS: DashboardOption[] = [
     roles: ['partner'],
   },
   {
+    id: 'boutique',
+    titleKey: 'dashboard_boutique_title',
+    defaultTitle: 'My Boutique',
+    defaultTitleFr: 'Ma Boutique',
+    descKey: 'dashboard_boutique_desc',
+    defaultDesc: 'Manage your products, sales and wallet.',
+    defaultDescFr: 'Gérez vos produits, ventes et portefeuille.',
+    href: '/dashboard/boutique',
+    icon: '🏪',
+    roles: ['partner'],
+  },
+  {
     id: 'serveuse',
     titleKey: 'dashboard_serveuse_title',
     defaultTitle: 'Boutique / Staff Space',
@@ -342,6 +354,23 @@ export default function ProfilePage() {
       addToast(
         errorDetails.response?.data?.detail ||
           (isEn ? 'Unable to cancel the application.' : 'Impossible d’annuler la demande.'),
+        'error'
+      );
+    }
+  };
+
+  const handleCancelBoutiqueApplication = async () => {
+    if (!window.confirm(isEn ? 'Cancel your pending boutique application?' : 'Annuler votre demande d\'ouverture de boutique ?')) return;
+
+    try {
+      await boutiqueService.cancelApplication();
+      setShowPartnerMenu(false);
+      addToast(isEn ? 'Boutique application cancelled.' : 'Demande de boutique annulée.', 'success');
+    } catch (error: unknown) {
+      const errorDetails = error as { response?: { data?: { detail?: string } } };
+      addToast(
+        errorDetails.response?.data?.detail ||
+          (isEn ? 'Unable to cancel the boutique application.' : 'Impossible d\'annuler la demande de boutique.'),
         'error'
       );
     }

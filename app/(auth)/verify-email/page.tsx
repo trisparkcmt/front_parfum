@@ -117,13 +117,42 @@ function VerifyEmailContent() {
   }
 
   // resend
+  const emailFromParams = searchParams.get('email');
+  const arrivedFromRegistration = !!emailFromParams;
+
   return (
     <div>
+      {/* ✅ Show confirmation banner if user just registered and was redirected here */}
+      {arrivedFromRegistration && (
+        <div className="mb-6 rounded-xl border border-green-500/20 bg-green-500/10 p-4 flex items-start gap-3">
+          <CheckCircle2 className="text-green-400 mt-0.5 shrink-0" size={18} />
+          <div>
+            <p className="text-sm font-semibold text-green-300">
+              {t('email_sent_confirmation_title', { defaultValue: 'Un e-mail de confirmation a été envoyé !' })}
+            </p>
+            <p className="text-xs text-green-200/70 mt-1 leading-relaxed">
+              {t('email_sent_confirmation_body', {
+                defaultValue: `Vérifiez votre boîte de réception à l'adresse ${emailFromParams}. Pensez à consulter vos spams si vous ne le voyez pas dans quelques minutes.`,
+                email: emailFromParams,
+              })}
+            </p>
+          </div>
+        </div>
+      )}
+
       <div className="mb-7">
         <span className="inline-block text-[10px] uppercase tracking-[0.3em] text-gold/80 mb-2">{t('validation', { defaultValue: 'Validation' })}</span>
-        <h1 className="font-display text-3xl font-bold mb-2">{t('resend_verification_title', { defaultValue: 'Validation de compte' })}</h1>
+        <h1 className="font-display text-3xl font-bold mb-2">
+          {arrivedFromRegistration
+            ? t('email_not_received_title', { defaultValue: 'Vous n'avez pas reçu l'e-mail ?' })
+            : t('resend_verification_title', { defaultValue: 'Validation de compte' })
+          }
+        </h1>
         <p className="text-foreground/60 text-sm leading-relaxed">
-          {t('resend_verification_instructions', { defaultValue: 'Entrez votre adresse e-mail pour recevoir un nouveau lien de validation.' })}
+          {arrivedFromRegistration
+            ? t('email_not_received_desc', { defaultValue: 'Si vous n'avez pas reçu l'e-mail de confirmation après quelques minutes, utilisez le formulaire ci-dessous pour en recevoir un nouveau.' })
+            : t('resend_verification_instructions', { defaultValue: 'Entrez votre adresse e-mail pour recevoir un nouveau lien de validation.' })
+          }
         </p>
       </div>
 
