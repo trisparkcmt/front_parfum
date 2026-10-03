@@ -21,7 +21,7 @@ import { useToastStore } from '@/store/useToastStore';
 import { useTranslation } from 'react-i18next';
 import i18n from '@/lib/i18n';
 import { api } from '@/services/api';
-import { authService, partnerService } from '@/services/apiService';
+import { authService, boutiqueService, partnerService } from '@/services/apiService';
 import { attemptPWAInstall, isPWAInstalled as checkPWAInstalled, isIOS, isAndroid } from '@/lib/pwa';
 
 import { BackButton } from '@/components/ui/BackButton';
