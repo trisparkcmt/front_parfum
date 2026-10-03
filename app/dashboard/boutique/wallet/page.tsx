@@ -27,7 +27,7 @@ export default function BoutiqueWalletPage() {
   }
 
   return (
-    <div className="mx-auto max-w-6xl space-y-6 p-6">
+    <div className="w-full space-y-6">
       <header>
         <h1 className="text-2xl font-bold text-foreground">Portefeuille de {wallet.nom_boutique}</h1>
         <p className="mt-1 text-sm text-foreground/50">Soldes, commissions et versements reçus</p>

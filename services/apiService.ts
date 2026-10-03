@@ -27,6 +27,8 @@ import type {
   PrestataireApplyPayload,
 } from '@/types';
 
+import { fetchAllCatalogPages } from '@/lib/catalogUtils';
+
 // ============================================================================
 // AUTHENTICATION & USER MANAGEMENT
 // ============================================================================
@@ -895,13 +897,18 @@ export const labService = {
     page?: number;
     ordering?: string;
   }): Promise<Essence[]> => {
-    const response = await api.get('lab/essences/', {
-      params,
-      headers: {
-        'X-Context': typeof window !== 'undefined' && isDashboardContext() ? 'dashboard' : 'labo',
-      },
-    });
-    return response.data.resultats || response.data.results || response.data;
+    if (params?.page) {
+      const response = await api.get('lab/essences/', {
+        params,
+        headers: {
+          'X-Context': typeof window !== 'undefined' && isDashboardContext() ? 'dashboard' : 'labo',
+        },
+      });
+      return response.data.resultats || response.data.results || response.data;
+    }
+    return fetchAllCatalogPages<Essence>((p: number) =>
+      labService.getEssencesRaw({ ...params, page: p })
+    );
   },
 
   getEssencesRaw: async (params?: Record<string, any>): Promise<any> => {

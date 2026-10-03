@@ -482,6 +482,8 @@ export default function AccessoriesPage() {
       // On s'assure d'envoyer les valeurs, y compris les booleans (actif)
       if (val !== undefined && val !== null && (val !== '' || typeof val === 'boolean')) {
         formData.append(key, String(val));
+      } else if (editingAccessory && val === '') {
+        formData.append(key, '');
       }
     });
 

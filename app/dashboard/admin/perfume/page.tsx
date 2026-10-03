@@ -701,6 +701,8 @@ export default function PerfumeAdminPage() {
       if (key === 'date_debut' || key === 'date_fin') return;
       if (val !== undefined && val !== null && (val !== '' || typeof val === 'boolean')) {
         formData.append(key, String(val));
+      } else if (editingPerfume && val === '') {
+        formData.append(key, '');
       }
     });
     const promoDateDebut = fromDatetimeLocalValue(form.date_debut);

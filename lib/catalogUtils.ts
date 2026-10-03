@@ -49,8 +49,14 @@ export async function fetchAllCatalogPages<T = unknown>(
     const items = extractCatalogList<T>(data);
     allItems.push(...items);
 
-    const nextUrl = data && typeof data === 'object' ? (data as Record<string, unknown>).next : null;
-    if (Array.isArray(data) || !data || typeof data !== 'object' || !('next' in data) || !nextUrl || items.length === 0) {
+    if (Array.isArray(data) || !data || typeof data !== 'object') {
+      break;
+    }
+
+    const obj = data as Record<string, unknown>;
+    const nextUrl = obj.next || obj.suivant;
+
+    if (!nextUrl || items.length === 0) {
       break;
     }
 

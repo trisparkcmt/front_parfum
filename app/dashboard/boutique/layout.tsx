@@ -33,7 +33,7 @@ export default function BoutiqueLayout({ children }: { children: React.ReactNode
   return (
     <div className="flex h-screen bg-background font-[family-name:var(--font-geist-sans)]">
       <BoutiqueSidebar open={sidebarOpen} setOpen={setSidebarOpen} />
-      <div className="flex flex-col flex-1 overflow-hidden">
+      <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
         <Header onMenuClick={() => setSidebarOpen(!sidebarOpen)} />
         <main className="flex-1 overflow-y-auto p-6 relative">
           {children}
