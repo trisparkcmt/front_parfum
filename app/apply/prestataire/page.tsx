@@ -11,6 +11,7 @@ export default function ApplyPrestatairePage() {
   const addToast = useToastStore((s) => s.addToast);
   const [loading, setLoading] = useState(false);
   const [file, setFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -56,10 +57,24 @@ export default function ApplyPrestatairePage() {
                 type="file"
                 required
                 accept="image/*"
-                onChange={e => setFile(e.target.files?.[0] || null)}
+                onChange={e => {
+                  const selected = e.target.files?.[0] || null;
+                  setFile(selected);
+                  setPreviewUrl(selected ? URL.createObjectURL(selected) : null);
+                }}
                 className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
               />
-              <UploadCloud className="mx-auto text-foreground/40 mb-2" size={24} />
+              {previewUrl ? (
+                <div className="mb-4 flex justify-center">
+                  <img
+                    src={previewUrl}
+                    alt="Preview"
+                    className="h-28 w-28 rounded-full object-cover border border-gold/30 shadow-lg shadow-gold/10"
+                  />
+                </div>
+              ) : (
+                <UploadCloud className="mx-auto text-foreground/40 mb-2" size={24} />
+              )}
               <p className="text-sm font-semibold text-foreground/70">
                 {file ? file.name : 'Cliquez ou glissez votre photo'}
               </p>

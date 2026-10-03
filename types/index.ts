@@ -75,6 +75,7 @@ export interface User {
   is_staff?: boolean;
   is_superuser?: boolean;
   avatarUrl?: string;
+  photo?: string;
   createdAt: string;
   client?: ClientProfile;
   preferences?: UserPreference[];

@@ -31,7 +31,9 @@ import {
 import { adminService } from '@/services/apiService';
 import { useToastStore } from '@/store/useToastStore';
 import { SlideOver } from '@/components/ui/SlideOver';
+import { Modal } from '@/components/ui/Modal';
 import { localAuth } from '@/lib/localAuth';
+import { resolveImageUrl } from '@/lib/utils';
 import { CustomSelect } from '@/components/ui/CustomSelect';
 import { getLocalizedToast } from '@/lib/toastMessages';
 
@@ -114,11 +116,15 @@ interface ProviderUserDetails {
   first_name: string;
   last_name: string;
   role: string;
+  photo?: string;
+  photo_url?: string;
+  avatar_url?: string;
 }
 
 interface Provider {
   id: string;
   user_details?: ProviderUserDetails;
+  photo?: string;
   solde_commission?: string;
   taux_commission?: string;
   reduction_client_pourcentage?: string;
@@ -198,6 +204,7 @@ export default function ProviderDashboardPage() {
   const [validateDisc, setValidateDisc] = useState('5');
   const [isValidating, setIsValidating] = useState(false);
   const [deletingProviderId, setDeletingProviderId] = useState<number | null>(null);
+  const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
 
   // Payout states
   const [payoutAmount, setPayoutAmount] = useState('');
@@ -1038,6 +1045,24 @@ export default function ProviderDashboardPage() {
                     <tr key={provider.id} className="hover:bg-white/[0.02] transition-colors">
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2.5">
+                          <button
+                            type="button"
+                            onClick={() => setImagePreviewUrl(resolveImageUrl((provider as any)?.photo || user?.photo || provider.user_details?.photo || provider.user_details?.avatar_url || provider.user_details?.photo_url))}
+                            className="h-10 w-10 shrink-0 overflow-hidden rounded-full border border-white/10 bg-white/5 hover:border-gold/40 transition-colors"
+                            title="Voir la photo du prestataire"
+                          >
+                            {(provider as any)?.photo || user?.photo || provider.user_details?.photo || provider.user_details?.avatar_url || provider.user_details?.photo_url ? (
+                              <img
+                                src={resolveImageUrl((provider as any)?.photo || user?.photo || provider.user_details?.photo || provider.user_details?.avatar_url || provider.user_details?.photo_url)}
+                                alt={`${user.first_name || 'Prestataire'} ${user.last_name || ''}`}
+                                className="h-full w-full object-cover"
+                              />
+                            ) : (
+                              <div className="flex h-full w-full items-center justify-center text-[10px] font-bold uppercase text-foreground/50">
+                                {((user.first_name || 'P').charAt(0) + (user.last_name || 'P').charAt(0)).toUpperCase()}
+                              </div>
+                            )}
+                          </button>
                           <div>
                             <p className="font-semibold text-foreground">
                               {user.first_name || ''} {user.last_name || 'Partenaire'}
@@ -1107,6 +1132,14 @@ export default function ProviderDashboardPage() {
         )}
         {filteredProviders.length > pageSize && <div className="flex items-center justify-end gap-2 border-t border-white/10 px-4 py-3"><button disabled={providerPage === 1} onClick={() => setProviderPage((page) => page - 1)} className="px-2 py-1 text-xs border border-white/10 rounded disabled:opacity-30">Précédent</button><span className="text-xs text-foreground/40">{providerPage}/{providerPageCount}</span><button disabled={providerPage === providerPageCount} onClick={() => setProviderPage((page) => page + 1)} className="px-2 py-1 text-xs border border-white/10 rounded disabled:opacity-30">Suivant</button></div>}
       </div>
+
+      {imagePreviewUrl && (
+        <Modal isOpen={!!imagePreviewUrl} onClose={() => setImagePreviewUrl(null)} title="Photo du prestataire" size="lg">
+          <div className="flex items-center justify-center">
+            <img src={imagePreviewUrl} alt="Photo prestataire" className="max-h-[70vh] w-auto rounded-xl border border-white/10 object-contain" />
+          </div>
+        </Modal>
+      )}
 
       {/* Validation modal - Form left untouched */}
       {approvingProvider && (

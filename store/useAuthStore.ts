@@ -292,6 +292,7 @@ export const useAuthStore = create<AuthState>()(
 
           const mapUser = (userObj: any, meData?: any): User => {
             const roles = extractUserRoles(userObj, access);
+            const avatarUrl = userObj.photo || meData?.photo || userObj.avatar_url || meData?.avatar_url || userObj.photo_url || meData?.photo_url || undefined;
             return {
               id: String(userObj.id),
               firstName: userObj.first_name || '',
@@ -300,6 +301,8 @@ export const useAuthStore = create<AuthState>()(
               phone: userObj.telephone || userObj.phone || '',
               role: resolvePrimaryRole(roles),
               roles,
+              avatarUrl,
+              photo: avatarUrl,
               createdAt: meData?.client?.date_creation || userObj.date_creation || new Date().toISOString(),
               client: meData?.client,
               preferences: meData?.preferences,
@@ -556,6 +559,7 @@ export const useAuthStore = create<AuthState>()(
 
           const roles = extractUserRoles(userObj, tokenAtStart);
 
+          const avatarUrl = userObj.photo || meData.photo || userObj.avatar_url || meData.avatar_url || userObj.photo_url || meData.photo_url || undefined;
           const meUser: User = {
             id: String(userObj.id),
             firstName: userObj.first_name || '',
@@ -564,6 +568,8 @@ export const useAuthStore = create<AuthState>()(
             phone: userObj.telephone || userObj.phone || '',
             role: resolvePrimaryRole(roles),
             roles,
+            avatarUrl,
+            photo: avatarUrl,
             createdAt: meData.client?.date_creation || userObj.date_creation || new Date().toISOString(),
             client: meData.client,
             preferences: meData.preferences,

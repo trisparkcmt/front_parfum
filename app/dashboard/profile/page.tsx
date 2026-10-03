@@ -23,6 +23,7 @@ import i18n from '@/lib/i18n';
 import { api } from '@/services/api';
 import { authService, boutiqueService, partnerService } from '@/services/apiService';
 import { attemptPWAInstall, isPWAInstalled as checkPWAInstalled, isIOS, isAndroid } from '@/lib/pwa';
+import { resolveImageUrl } from '@/lib/utils';
 
 import { BackButton } from '@/components/ui/BackButton';
 import { Modal } from '@/components/ui/Modal';
@@ -516,8 +517,8 @@ export default function ProfilePage() {
                   disabled={isUploadingPhoto}
                 />
                 <div className="w-24 h-24 rounded-xl bg-gold/10 border border-gold/20 flex items-center justify-center text-gold text-3xl font-bold">
-                  {user?.avatarUrl ? (
-                    <img src={user.avatarUrl} alt="" className="h-full w-full rounded-xl object-cover" />
+                  {user?.avatarUrl || user?.photo ? (
+                    <img src={resolveImageUrl(user?.avatarUrl || user?.photo)} alt="" className="h-full w-full rounded-xl object-cover" />
                   ) : initials}
                 </div>
                 <button
