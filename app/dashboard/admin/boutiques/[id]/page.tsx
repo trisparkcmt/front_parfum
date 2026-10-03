@@ -539,6 +539,13 @@ export default function AdminBoutiqueDetailPage() {
   const [amountError, setAmountError] = useState('');
   const payoutIdempotencyKey = useRef<string | null>(null);
 
+  // Product edit / delete state
+  const [editingProduct, setEditingProduct] = useState<ProductRow | null>(null);
+  const [editPriceValue, setEditPriceValue] = useState('');
+  const [editPromoValue, setEditPromoValue] = useState('');
+  const [showEditPriceModal, setShowEditPriceModal] = useState(false);
+  const [isSavingProduct, setIsSavingProduct] = useState(false);
+
   const fetchDetail = useCallback(async () => {
     setRefreshing(true);
     try {
@@ -654,6 +661,53 @@ export default function AdminBoutiqueDetailPage() {
       addToast(err.response?.data?.detail || t('toast_payout_error'), 'error');
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleEditPrice = (p: ProductRow) => {
+    setEditingProduct(p);
+    setEditPriceValue(String(p.prix_unitaire || ''));
+    setEditPromoValue(String((p as any).prix_promotionnel || p.prix_promo || ''));
+    setShowEditPriceModal(true);
+  };
+
+  const handleSaveProductPrice = async () => {
+    if (!editingProduct) return;
+    setIsSavingProduct(true);
+    try {
+      const slugOrId = editingProduct.slug || String(editingProduct.id);
+      const formData = new FormData();
+      formData.append('prix_unitaire', editPriceValue);
+      // Send empty string to clear promo price
+      formData.append('prix_promotionnel', editPromoValue);
+      if (editingProduct.type_produit === 'parfum') {
+        await adminService.patchFormData(`shop/parfums/${slugOrId}/`, formData);
+      } else {
+        await adminService.patchFormData(`shop/accessoires/${slugOrId}/`, formData);
+      }
+      addToast('Prix mis à jour avec succès', 'success');
+      setShowEditPriceModal(false);
+      fetchDetail();
+    } catch (err: any) {
+      addToast(err.response?.data?.detail || 'Erreur lors de la mise à jour du prix', 'error');
+    } finally {
+      setIsSavingProduct(false);
+    }
+  };
+
+  const handleDeleteProduct = async (p: ProductRow) => {
+    if (!confirm(`Supprimer "${p.nom}" du catalogue ?`)) return;
+    const slugOrId = p.slug || String(p.id);
+    try {
+      if (p.type_produit === 'parfum') {
+        await shopService.deletePerfume(slugOrId);
+      } else {
+        await shopService.deleteAccessory(slugOrId);
+      }
+      addToast('Produit supprimé avec succès', 'success');
+      fetchDetail();
+    } catch (err: any) {
+      addToast(err.response?.data?.detail || 'Erreur lors de la suppression', 'error');
     }
   };
 
@@ -828,14 +882,14 @@ export default function AdminBoutiqueDetailPage() {
                 ((boutique.nb_produits_parfums ?? 0) === 0 && allProducts.every((p) => p.type_produit !== 'parfum') ? (
                   <EmptyState icon={<FlaskConical size={48} />} title={t('empty_parfums_title')} description={t('empty_products_desc')} />
                 ) : (
-                  <ProductsTable rows={parfums} kind="parfum" t={t} />
+                  <ProductsTable rows={parfums} kind="parfum" t={t} onEditPrice={handleEditPrice} onDeleteProduct={handleDeleteProduct} />
                 ))}
 
               {activeTab === 'accessoires' &&
                 ((boutique.nb_produits_accessoires ?? 0) === 0 && allProducts.every((p) => p.type_produit !== 'accessoire') ? (
                   <EmptyState icon={<Gem size={48} />} title={t('empty_accessoires_title')} description={t('empty_products_desc')} />
                 ) : (
-                  <ProductsTable rows={accessoires} kind="accessoire" t={t} />
+                  <ProductsTable rows={accessoires} kind="accessoire" t={t} onEditPrice={handleEditPrice} onDeleteProduct={handleDeleteProduct} />
                 ))}
 
               {activeTab === 'versements' &&

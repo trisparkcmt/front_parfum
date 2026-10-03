@@ -133,10 +133,10 @@ const formatFcfa = (v: number | null) =>
 
 const photoOf = (r: any): string | null => r?.photo || r?.photo_url || r?.avatar_url || null;
 
-/** Merge the three API sources (requests, all boutiques, financial) into one row per boutique id. */
-function mergeRows(requests: any[], all: any[], financier: any[], ownerFallback: string): ShopRow[] {
+/** Merge the boutique list and financial data into one row per boutique id. */
+function mergeRows(all: any[], financier: any[], ownerFallback: string): ShopRow[] {
   const map = new Map<number, any>();
-  [...requests, ...all].forEach((r) => map.set(r.id, { ...map.get(r.id), ...r }));
+  all.forEach((r) => map.set(r.id, { ...map.get(r.id), ...r }));
   financier.forEach((f) => map.set(f.id, { statut: 'actif', ...map.get(f.id), ...f }));
 
   return Array.from(map.values()).map((r): ShopRow => {
@@ -299,8 +299,7 @@ export default function AdminBoutiquesPage() {
 
   const fetchAll = useCallback(async () => {
     setLoading(true);
-    const [reqRes, allRes, finRes] = await Promise.allSettled([
-      adminService.getBoutiqueRequests(),
+    const [allRes, finRes] = await Promise.allSettled([
       adminService.getBoutiquesAdmin(),
       adminService.getBoutiquesFinancier(),
     ]);
@@ -311,10 +310,10 @@ export default function AdminBoutiquesPage() {
       return Array.isArray(v) ? v : v?.results || [];
     };
 
-    const failed = [reqRes, allRes, finRes].find((r) => r.status === 'rejected') as PromiseRejectedResult | undefined;
+    const failed = [allRes, finRes].find((r) => r.status === 'rejected') as PromiseRejectedResult | undefined;
     if (failed) addToast(failed.reason?.response?.data?.detail || t('toast_load_error'), 'error');
 
-    setRows(mergeRows(pick(reqRes), pick(allRes), pick(finRes), t('owner_fallback')));
+    setRows(mergeRows(pick(allRes), pick(finRes), t('owner_fallback')));
     setLoading(false);
   }, [addToast, t]);
 

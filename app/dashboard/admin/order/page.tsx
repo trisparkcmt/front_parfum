@@ -5,13 +5,13 @@ import {
   Search, Eye, CheckCircle, Truck, XCircle, Loader2, RefreshCw,
   ChevronLeft, ChevronRight, X, Package, Bike, CreditCard,
   MapPin, Phone, Calendar, Tag, ClipboardList, AlertTriangle,
-  SlidersHorizontal, Download, FileText, Mail, ChevronDown,
+  SlidersHorizontal, Download, FileText, Mail, ChevronDown, Store,
 } from 'lucide-react';
 import { orderService, adminService } from '@/services/apiService';
 import { invoiceService } from '@/services/invoiceService';
 import { useToastStore } from '@/store/useToastStore';
 import { useTranslation } from 'react-i18next';
-import type { BackendOrder, BackendOrderLine } from '@/types';
+import type { BackendOrder, BackendOrderLine, BoutiqueSupplierDetails } from '@/types';
 import { useOptimisticOrders } from '@/hooks/useOptimisticOrders';
 import { CustomSelect } from '@/components/ui/CustomSelect';
 import { ProductDetailModal } from '@/components/ui/ProductDetailModal';
@@ -128,6 +128,8 @@ const T = {
     receipt_total: 'Total TTC',
     receipt_commission: 'Commission',
     receipt_provider: 'Prestataire',
+    supplier_shops: 'Boutiques fournisseurs',
+    platform_shop: 'Vendu par la plateforme',
     group_perfumes: 'Parfums',
     group_accessories: 'Accessoires',
     group_essences: 'Essences finies',
@@ -253,6 +255,8 @@ const T = {
     receipt_total: 'Total',
     receipt_commission: 'Commission',
     receipt_provider: 'Provider',
+    supplier_shops: 'Supplier boutiques',
+    platform_shop: 'Sold by the platform',
     group_perfumes: 'Perfumes',
     group_accessories: 'Accessories',
     group_essences: 'Finished essences',
@@ -586,6 +590,17 @@ export default function OrdersPage() {
   const searchRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const { runOptimisticUpdate, pendingIds } = useOptimisticOrders(setOrders, addToast);
+
+  useEffect(() => {
+    if (!selected) return;
+    let isCurrent = true;
+    orderService.getOrderByNumero(selected.numero_commande)
+      .then((detail: BackendOrder) => {
+        if (isCurrent) setSelected((current) => current?.id === selected.id ? { ...current, ...detail } : current);
+      })
+      .catch(() => {});
+    return () => { isCurrent = false; };
+  }, [selected?.id]);
 
   const fetchOrders = useCallback(async (pg = page) => {
     setLoading(true);
@@ -1540,12 +1555,20 @@ function OrderDetailModal({
   const lines = allLines(order);
   const [modalProductId, setModalProductId] = useState<string | null>(null);
   const [modalProductType, setModalProductType] = useState<'perfume' | 'accessory' | 'diffuseur'>('perfume');
+  const [modalSupplier, setModalSupplier] = useState<BoutiqueSupplierDetails | null>(null);
+  const [modalPlatformSupplied, setModalPlatformSupplied] = useState(false);
 
   const handleOpenOrderLineProduct = (line: BackendOrderLine) => {
     const target = getOrderLineProductTarget(line);
     if (!target) return;
     setModalProductId(target.productId);
     setModalProductType(target.productType);
+    setModalSupplier(line.boutique_details ?? (line.boutique_id != null && line.boutique_nom
+      ? { id: line.boutique_id, nom: line.boutique_nom }
+      : line.boutique_id != null
+        ? { id: line.boutique_id, nom: `Boutique #${line.boutique_id}` }
+        : null));
+    setModalPlatformSupplied(line.boutique_id === null);
   };
 
   const groups: Array<{ title: string; icon: React.ReactNode; lines: BackendOrderLine[] }> = [
@@ -1708,6 +1731,26 @@ function OrderDetailModal({
 
           {/* Right: items + receipt */}
           <div className="space-y-5 overflow-y-auto pr-1 lg:col-span-3">
+            {order.boutiques_fournisseurs && order.boutiques_fournisseurs.length > 0 && (
+              <section className="rounded-xl border border-emerald-500/20 bg-emerald-500/[0.04] p-4">
+                <SectionLabel icon={<Store size={11} />}>{t('supplier_shops')}</SectionLabel>
+                <div className="space-y-2">
+                  {order.boutiques_fournisseurs.map((shop) => (
+                    <div key={shop.id} className="flex flex-wrap items-start justify-between gap-x-4 gap-y-1 text-xs">
+                      <div className="min-w-0">
+                        <p className="font-medium text-foreground/85">{shop.nom}</p>
+                        <p className="text-[11px] text-foreground/40">{[shop.ville, shop.telephone].filter(Boolean).join(' · ')}</p>
+                      </div>
+                      <div className="grid grid-cols-3 gap-x-3 text-right text-[10px] sm:text-[11px]">
+                        <span className="text-foreground/45">{isEn ? 'Gross' : 'Brut'}<strong className="mt-0.5 block text-foreground/75">{fmt(shop.montant_brut)}</strong></span>
+                        <span className="text-foreground/45">{isEn ? 'Commission' : 'Commission'}<strong className="mt-0.5 block text-foreground/75">{fmt(shop.montant_commission_admin)}</strong></span>
+                        <span className="text-foreground/45">{isEn ? 'Boutique net' : 'Net boutique'}<strong className="mt-0.5 block text-emerald-300">{fmt(shop.montant_net_boutique)}</strong></span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
             <section>
               <SectionLabel icon={<Package size={11} />}>{t('section_items')} ({lines.length})</SectionLabel>
               <div className="space-y-4">
@@ -1733,6 +1776,8 @@ function OrderDetailModal({
       <ProductDetailModal
         productId={modalProductId}
         productType={modalProductType}
+        supplier={modalSupplier}
+        platformSupplied={modalPlatformSupplied}
         onClose={() => setModalProductId(null)}
       />
     )}
@@ -1943,6 +1988,19 @@ function LinesGroup({
                   <span className="font-semibold text-foreground/75">{Number(line.sous_total).toLocaleString()} FCFA</span>
                 </div>
               </div>
+              {(line.boutique_nom || line.boutique_details?.nom || line.boutique_id !== undefined) && (
+                <div className="mt-2 flex items-center gap-1.5 border-t border-white/5 pt-1.5 text-[11px] text-emerald-300/80">
+                  <Store size={11} className="shrink-0" />
+                  <span>
+                    {line.boutique_nom || line.boutique_details?.nom || (line.boutique_id === null
+                      ? (isEn ? T.en.platform_shop : T.fr.platform_shop)
+                      : `Boutique #${line.boutique_id}`)}
+                  </span>
+                  {(line.boutique_details?.ville || line.boutique_details?.telephone) && (
+                    <span className="truncate text-foreground/35">· {[line.boutique_details.ville, line.boutique_details.telephone].filter(Boolean).join(' · ')}</span>
+                  )}
+                </div>
+              )}
               {isCustom && line.composition?.lignes && line.composition.lignes.length > 0 && (
                 <div className="mt-2 ml-3 space-y-1 border-l border-white/10 pl-3">
                   {line.composition.lignes.map((essence, i) => (

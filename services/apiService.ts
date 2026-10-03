@@ -1525,18 +1525,6 @@ export const adminService = {
     }
   },
 
-  getBoutiqueRequests: async (): Promise<BoutiqueAdminRequest[]> => {
-    let response;
-    try {
-      response = await api.get('auth/admin/boutiques/pending/');
-    } catch (err: any) {
-      if (err.response?.status !== 404) throw err;
-      response = await api.get('auth/admin/boutiques/', { params: { statut: 'en_attente' } });
-    }
-    const items = response.data?.results || response.data?.resultats || response.data;
-    return (Array.isArray(items) ? items : []).filter((item) => item.statut === 'en_attente');
-  },
-
   getBoutiquesAdmin: async (): Promise<BoutiqueAdminRequest[]> => {
     const response = await api.get('auth/admin/boutiques/');
     const items = response.data?.results || response.data?.resultats || response.data?.boutiques || response.data;

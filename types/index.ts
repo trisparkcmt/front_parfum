@@ -338,6 +338,20 @@ export interface Order {
 
 // ---- Backend Order (API response format) ----
 
+export interface BoutiqueSupplierDetails {
+  id: number;
+  nom: string;
+  telephone?: string;
+  ville?: string;
+  statut?: string;
+}
+
+export interface BackendOrderSupplier extends BoutiqueSupplierDetails {
+  montant_brut: string;
+  montant_commission_admin: string;
+  montant_net_boutique: string;
+}
+
 export interface BackendOrderLine {
   id: number;
   parfum?: number;
@@ -345,6 +359,9 @@ export interface BackendOrderLine {
   produit_fini_essence?: number;
   parfum_personnalise?: number;
   essence_personnalisee?: number;
+  boutique_id?: number | null;
+  boutique_nom?: string | null;
+  boutique_details?: BoutiqueSupplierDetails | null;
   nom_snapshot: string;
   nom?: string;
   quantite: number;
@@ -428,6 +445,7 @@ export interface BackendOrder {
   motif_echec_livraison: string | null;
   date_creation: string;
   date_modification: string;
+  boutiques_fournisseurs?: BackendOrderSupplier[];
   lignes_parfums: BackendOrderLine[];
   lignes_accessoires: BackendOrderLine[];
   lignes_produit_fini_essence: BackendOrderLine[];

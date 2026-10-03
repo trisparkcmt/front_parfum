@@ -32,6 +32,7 @@ import {
   Plus,
   X,
   ArrowLeft,
+  Store,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { cn, formatPrice, sharePage, resolveImageUrl } from '@/lib/utils';
@@ -43,7 +44,7 @@ import { useToastStore } from '@/store/useToastStore';
 import { EssenceSizePickerModal } from '@/components/ui/EssenceSizePickerModal';
 import { QuantityInput } from '@/components/ui/QuantityInput';
 import { ProductInquiryWhatsAppButton } from '@/components/ui/ProductInquiryWhatsAppButton';
-import type { Product, ProduitFiniEssence } from '@/types';
+import type { BoutiqueSupplierDetails, Product, ProduitFiniEssence } from '@/types';
 
 interface ProductDetailModalProps {
   /** The product id/slug to display. Pass null to unmount the panel. */
@@ -52,6 +53,9 @@ interface ProductDetailModalProps {
   productType?: 'perfume' | 'accessory' | 'diffuseur';
   /** Called when the panel should close (back button, backdrop, × button) */
   onClose: () => void;
+  /** Supplier snapshot supplied by an order detail view. */
+  supplier?: BoutiqueSupplierDetails | null;
+  platformSupplied?: boolean;
   /** Optionally intercept card clicks inside the related products grid */
   onRelatedCardClick?: (product: Product) => void;
 }
@@ -60,6 +64,8 @@ export function ProductDetailModal({
   productId,
   productType = 'perfume',
   onClose,
+  supplier,
+  platformSupplied = false,
   onRelatedCardClick,
 }: ProductDetailModalProps) {
   if (!productId) return null;
@@ -583,6 +589,23 @@ export function ProductDetailModal({
                           </button>
                         </div>
                       </div>
+
+                      {(supplier || platformSupplied) && (
+                        <div className="mb-6 flex items-start gap-2 border-y border-foreground/10 py-3 text-sm">
+                          <Store size={15} className="mt-0.5 shrink-0 text-emerald-400" />
+                          <div>
+                            <p className="text-[10px] font-semibold uppercase tracking-wider text-foreground/40">
+                              {isEn ? 'Supplier boutique' : 'Boutique fournisseur'}
+                            </p>
+                            <p className="font-medium text-foreground/85">
+                              {supplier?.nom || (isEn ? 'Sold by the platform' : 'Vendu par la plateforme')}
+                            </p>
+                            {(supplier?.ville || supplier?.telephone) && (
+                              <p className="text-xs text-foreground/45">{[supplier.ville, supplier.telephone].filter(Boolean).join(' · ')}</p>
+                            )}
+                          </div>
+                        </div>
+                      )}
 
                       {/* Price */}
                       <div className="text-2xl md:text-3xl font-light text-foreground mb-7 font-mono">
