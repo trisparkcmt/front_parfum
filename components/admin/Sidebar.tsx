@@ -12,7 +12,7 @@ import { useNotificationCountStore } from '@/store/useNotificationCountStore';
 import {
   LayoutDashboard, ShoppingCart, BarChart2, Users2,
   TrendingUp, Package, DollarSign, Truck,
-  Sparkles, Gem, X, ChevronDown, Bell, FileText, Tag,
+  Sparkles, Gem, X, ChevronDown, Bell, FileText, Tag, Store,
 } from 'lucide-react';
 import { PerfumeIcon, EssenceIcon, DiffuseurIcon, LaptopIcon } from '@/components/icons/CustomIcons';
 
@@ -216,6 +216,11 @@ export default function Sidebar({ open, setOpen }: SidebarProps) {
   ];
 
   const gestionItems: NavItem[] = [
+    {
+      label: 'Boutiques',
+      icon: <Store size={18} />,
+      href: '/dashboard/admin/boutiques',
+    },
     {
       label: t('admin_nav_clients', { defaultValue: isEn ? 'Clients' : 'Clients' }),
       icon: <Users2 size={18} />,

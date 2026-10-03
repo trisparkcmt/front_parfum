@@ -13,6 +13,16 @@ import type {
   CustomComposition,
   Accessory,
   CompanyInfo,
+  BoutiqueVente,
+  BoutiquePortefeuille,
+  BoutiqueProductsParams,
+  BoutiqueProductsPaginatedResponse,
+  BoutiqueApplyPayload,
+  BoutiqueAdminFinancier,
+  BoutiqueEffectuerVersementPayload,
+  BoutiqueEffectuerVersementResponse,
+  BoutiqueValidatePayload,
+  BoutiqueFullDetail,
 } from '@/types';
 
 // ============================================================================
@@ -1297,6 +1307,55 @@ export const labService = {
 
 
 // ============================================================================
+// BOUTIQUE SPACE
+// ============================================================================
+
+export const boutiqueService = {
+  getVentes: async (): Promise<BoutiqueVente[]> => {
+    const response = await api.get('auth/boutique/ventes/');
+    return response.data;
+  },
+
+  getPortefeuille: async (): Promise<BoutiquePortefeuille> => {
+    const response = await api.get('auth/boutique/portefeuille/');
+    return response.data;
+  },
+
+  getProduits: async (params?: BoutiqueProductsParams): Promise<BoutiqueProductsPaginatedResponse> => {
+    try {
+      const response = await api.get('auth/me/boutique/produits/', { params });
+      return response.data;
+    } catch (err: any) {
+      if (err.response && err.response.status === 404) {
+        // Fallback
+        const response = await api.get('auth/boutique/produits/', { params });
+        return response.data;
+      }
+      throw err;
+    }
+  },
+
+  apply: async (data: BoutiqueApplyPayload | FormData): Promise<any> => {
+    let payload = data;
+    if (!(data instanceof FormData)) {
+      payload = new FormData();
+      Object.entries(data).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          (payload as FormData).append(key, value as Blob | string);
+        }
+      });
+    }
+    const response = await api.post('auth/boutique/apply/', payload);
+    return response.data;
+  },
+
+  cancelApplication: async (): Promise<any> => {
+    const response = await api.delete('auth/boutique/cancel-application/');
+    return response.data;
+  },
+};
+
+// ============================================================================
 // PARTNER & PROVIDER SPACE
 // ============================================================================
 
@@ -1304,15 +1363,30 @@ export const partnerService = {
   /**
    * Apply to become a partner/provider
    */
-  applyAsPartner: async () => {
-    const response = await api.post('auth/prestataire/apply/');
+  applyAsPartner: async (data: PrestataireApplyPayload | FormData) => {
+    let payload = data;
+    if (!(data instanceof FormData)) {
+      payload = new FormData();
+      if (data.photo) {
+        (payload as FormData).append('photo', data.photo);
+      }
+    }
+    const response = await api.post('auth/prestataire/apply/', payload);
     return response.data;
   },
 
   /** Cancel the authenticated client's pending provider application. */
   cancelPartnerApplication: async () => {
-    const response = await api.delete('auth/prestataire/cancel/');
-    return response.data;
+    try {
+      const response = await api.delete('auth/prestataire/cancel-application/');
+      return response.data;
+    } catch (err: any) {
+      if (err.response && err.response.status === 404) {
+        const fallback = await api.delete('auth/prestataire/cancel/');
+        return fallback.data;
+      }
+      throw err;
+    }
   },
 
   /**
@@ -1385,6 +1459,43 @@ export const adminService = {
    */
   postFormData: async (url: string, data: FormData) => {
     const response = await api.post(url, data);
+    return response.data;
+  },
+
+  // ---- BOUTIQUE ADMIN METHODS ----
+
+  getBoutiquesFinancier: async (): Promise<BoutiqueAdminFinancier[]> => {
+    const response = await api.get('auth/admin/boutiques/financier/');
+    return response.data;
+  },
+
+  effectuerVersementBoutique: async (
+    boutiqueId: number,
+    payload: BoutiqueEffectuerVersementPayload
+  ): Promise<BoutiqueEffectuerVersementResponse> => {
+    const response = await api.post(`auth/admin/boutiques/${boutiqueId}/effectuer-versement/`, payload);
+    return response.data;
+  },
+
+  validateBoutique: async (
+    boutiqueId: number,
+    data: BoutiqueValidatePayload
+  ): Promise<any> => {
+    try {
+      const response = await api.post(`auth/admin/boutiques/validate/${boutiqueId}/`, data);
+      return response.data;
+    } catch (err: any) {
+      if (err.response && err.response.status === 404) {
+        // Fallback for potentially named endpoint
+        const fallback = await api.post(`auth/admin/boutiques/${boutiqueId}/valider/`, data);
+        return fallback.data;
+      }
+      throw err;
+    }
+  },
+
+  getBoutiqueDetail: async (boutiqueId: number): Promise<BoutiqueFullDetail> => {
+    const response = await api.get(`auth/admin/boutiques/${boutiqueId}/`);
     return response.data;
   },
 

@@ -928,3 +928,157 @@ export interface Notification {
   body?: string;
 }
 
+
+
+// ============================================================
+// Boutique (Vendeur) & Prestataire Types
+// ============================================================
+
+export interface BoutiqueVente {
+  id: number;
+  commande_id: number;
+  commande_reference: string;
+  date_vente: string;
+  montant_brut: string;
+  taux_commission_applique: string;
+  montant_commission_admin: string;
+  montant_net_boutique: string;
+  statut: string;
+}
+
+export interface BoutiqueVersementRecent {
+  id: number;
+  montant: string;
+  reference_transaction: string;
+  mode_paiement: string;
+  telephone_destination: string;
+  note_admin: string;
+  date_versement: string;
+}
+
+export interface BoutiquePortefeuille {
+  boutique_id: number;
+  nom_boutique: string;
+  solde_disponible: string;
+  solde_total_recu: string;
+  chiffre_affaires_brut: string;
+  total_commissions_admin: string;
+  total_net_gagne: string;
+  telephone_paiement: string;
+  mode_paiement_prefere: string;
+  versements_recents: BoutiqueVersementRecent[];
+}
+
+export interface BoutiqueAdminFinancier {
+  id: number;
+  nom: string;
+  proprietaire: string;
+  taux_commission: string;
+  solde_disponible: string;
+  solde_total_recu: string;
+  chiffre_affaires_brut: string;
+  commissions_admin_perdues: string;
+  net_boutique_cumule: string;
+  telephone_paiement: string;
+  mode_paiement_prefere: string;
+}
+
+export interface BoutiqueEffectuerVersementPayload {
+  montant: string;
+  mode_paiement?: string;
+  telephone_destination?: string;
+  note_admin?: string;
+  idempotency_key?: string;
+}
+
+export interface BoutiqueEffectuerVersementResponse {
+  detail: string;
+  idempotent?: boolean;
+  versement: BoutiqueVersementRecent;
+  nouveau_solde_disponible: string;
+}
+
+export interface BoutiqueValidatePayload {
+  taux_commission: string;
+}
+
+export interface BoutiqueProductItem {
+  id: number;
+  type_produit: 'parfum' | 'accessoire';
+  nom: string;
+  slug: string;
+  marque: string;
+  reference_sku: string;
+  prix_unitaire: string;
+  prix_promo: string | null;
+  stock_quantite: number;
+  actif: boolean;
+  date_creation: string;
+  categorie?: { id: number; nom: string; slug: string };
+  type_accessoire?: { id: number; nom: string; slug: string };
+  boutique: { id: number; nom: string };
+  images: Array<{ id: number; image: string; est_principale: boolean }>;
+}
+
+export interface BoutiqueProductsParams {
+  type?: 'all' | 'parfum' | 'accessoire';
+  categorie?: string | number;
+  search?: string;
+  actif?: boolean;
+  ordering?: string;
+  page?: number;
+  page_size?: number;
+}
+
+export interface BoutiqueProductsPaginatedResponse {
+  count: number;
+  total_pages: number;
+  current_page: number;
+  page_size: number;
+  next: number | string | null;
+  previous: number | string | null;
+  results: BoutiqueProductItem[];
+}
+
+export interface BoutiqueFullDetail {
+  id: number;
+  nom: string;
+  photo: string;
+  adresse: string;
+  ville: string;
+  telephone: string;
+  user_details: any; // Or a more specific UserDetails type if available
+  proprietaire_nom: string;
+  proprietaire_email: string;
+  proprietaire_telephone: string;
+  taux_commission: string;
+  statut: string;
+  solde_disponible: string;
+  solde_total_recu: string;
+  telephone_paiement: string;
+  mode_paiement_prefere: string;
+  nb_produits_parfums: number;
+  nb_produits_accessoires: number;
+  nb_produits_total: number;
+  nb_ventes_total: number;
+  date_creation: string;
+  date_modification: string;
+  produits: {
+    count: number;
+    total_pages: number;
+    current_page: number;
+    results: BoutiqueProductItem[];
+  };
+}
+
+export interface BoutiqueApplyPayload {
+  nom: string;
+  photo: File;
+  adresse?: string;
+  ville?: string;
+  telephone?: string;
+}
+
+export interface PrestataireApplyPayload {
+  photo: File;
+}
