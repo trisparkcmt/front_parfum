@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Search, Plus, Edit2, Trash2, Loader2, SlidersHorizontal, X, Tag, Layers, Palette, DollarSign, Boxes, AlertCircle, ChevronDown } from 'lucide-react';
-import { shopService, adminService } from '@/services/apiService';
+import { usePathname } from 'next/navigation';
+import { shopService, adminService, boutiqueService } from '@/services/apiService';
 import { useToastStore } from '@/store/useToastStore';
 import { useCatalogPermissions } from '@/hooks/useCatalogPermissions';
 import CatalogAccessNotice from '@/components/catalog/CatalogAccessNotice';
@@ -208,6 +209,8 @@ function Field({
 const inputCls = 'w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-gold/50';
 
 export default function AccessoriesPage() {
+  const pathname = usePathname();
+  const isBoutiqueContext = pathname?.includes('/dashboard/boutique');
   const permissions = useCatalogPermissions('accessoires');
   const { user } = useAuthStore();
   const isAdmin = Boolean(user?.is_staff || user?.is_superuser || user?.role === 'superadmin');
@@ -289,16 +292,23 @@ export default function AccessoriesPage() {
     const savedScrollY = silent ? window.scrollY : 0;
     try {
       if (!silent) setLoading(true);
-      const params: Record<string, unknown> = { page, limit: 50 };
-      if (search.trim()) params.search = search.trim();
-      if (filter !== 'all') params.type_accessoire = Number(filter);
-      if (marqueFilter) params.marque = marqueFilter;
-      if (matiereFilter) params.matiere = matiereFilter;
-      if (couleurFilter) params.couleur = couleurFilter;
-      if (enStockFilter === 'true') params.en_stock = true;
-      if (enStockFilter === 'false') params.en_stock = false;
-
-      const data = await shopService.getAccessories(params as Parameters<typeof shopService.getAccessories>[0]);
+      let data;
+      if (isBoutiqueContext) {
+        const bParams: Record<string, unknown> = { type: 'accessoire', page, page_size: 50 };
+        if (search.trim()) bParams.search = search.trim();
+        if (filter !== 'all') bParams.categorie = filter;
+        data = await boutiqueService.getProduits(bParams as any);
+      } else {
+        const params: Record<string, unknown> = { page, limit: 50 };
+        if (search.trim()) params.search = search.trim();
+        if (filter !== 'all') params.type_accessoire = Number(filter);
+        if (marqueFilter) params.marque = marqueFilter;
+        if (matiereFilter) params.matiere = matiereFilter;
+        if (couleurFilter) params.couleur = couleurFilter;
+        if (enStockFilter === 'true') params.en_stock = true;
+        if (enStockFilter === 'false') params.en_stock = false;
+        data = await shopService.getAccessories(params as Parameters<typeof shopService.getAccessories>[0]);
+      }
       if (requestId !== activeRequestRef.current) return;
 
       const { items, total, pages, currentPage: apiPage } = extractCatalogMeta<any>(data);
@@ -1201,15 +1211,17 @@ export default function AccessoriesPage() {
                         className="relative z-[9999]"
                       />
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => setIsTypeModalOpen(true)}
-                      className="flex h-11 w-11 items-center justify-center rounded-lg border border-gold/40 bg-gold/10 text-lg font-semibold text-gold transition-colors hover:bg-gold/20"
-                      aria-label="Créer un nouveau type d'accessoire"
-                      title="Créer un nouveau type d'accessoire"
-                    >
-                      +
-                    </button>
+                    {!isBoutiqueContext && (
+                      <button
+                        type="button"
+                        onClick={() => setIsTypeModalOpen(true)}
+                        className="flex h-11 w-11 items-center justify-center rounded-lg border border-gold/40 bg-gold/10 text-lg font-semibold text-gold transition-colors hover:bg-gold/20"
+                        aria-label="Créer un nouveau type d'accessoire"
+                        title="Créer un nouveau type d'accessoire"
+                      >
+                        +
+                      </button>
+                    )}
                   </div>
                 </Field>
                 <Field label={t('field_sku')} error={formErrors.reference_sku}>

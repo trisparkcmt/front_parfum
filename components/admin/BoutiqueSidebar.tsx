@@ -13,7 +13,7 @@ import {
   LayoutDashboard, ShoppingCart, BarChart2,
   Package, Gem, X, ChevronDown, Sparkles, Bell, Wallet, Store
 } from 'lucide-react';
-import { PerfumeIcon, EssenceIcon, DiffuseurIcon, LaptopIcon } from '@/components/icons/CustomIcons';
+import { PerfumeIcon } from '@/components/icons/CustomIcons';
 
 interface SidebarProps {
   open: boolean;
@@ -25,71 +25,11 @@ interface NavItem {
   icon: React.ReactNode;
   href?: string;
   badge?: string;
-  children?: { label: string; href: string; badge?: string }[];
 }
 
 function NavItemComponent({ item, onNavigate }: { item: NavItem; onNavigate: () => void }) {
   const pathname = usePathname();
-  const [expanded, setExpanded] = useState(
-    item.children?.some(c => pathname.startsWith(c.href)) || false
-  );
-
-  const hasChildren = item.children && item.children.length > 0;
-  const isActive = item.href ? pathname === item.href : false;
-
-  if (hasChildren) {
-    return (
-      <div>
-        <button
-          onClick={() => setExpanded(!expanded)}
-          className={`w-full flex items-center justify-between px-4 py-2.5 rounded-lg text-sm transition-all duration-200 group ${
-            expanded ? 'text-gold' : 'text-foreground/60 hover:text-foreground hover:bg-white/5'
-          }`}
-        >
-          <span className="flex items-center gap-3">
-            <span
-              className={`transition-colors ${
-                expanded ? 'text-gold' : 'text-foreground/40 group-hover:text-foreground/60'
-              }`}
-            >
-              {item.icon}
-            </span>
-            {item.label}
-          </span>
-          <span className={`transition-transform duration-200 ${expanded ? 'rotate-0' : '-rotate-90'}`}>
-            <ChevronDown size={14} />
-          </span>
-        </button>
-        <div
-          className={`overflow-hidden transition-all duration-200 ${
-            expanded ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
-          }`}
-        >
-          <div className="ml-4 pl-4 border-l border-white/10 mt-1 space-y-0.5">
-            {item.children!.map((child) => (
-              <Link
-                key={child.href}
-                href={child.href}
-                onClick={onNavigate}
-                className={`flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-all duration-200 ${
-                  pathname === child.href
-                    ? 'bg-gold/10 text-gold font-medium'
-                    : 'text-foreground/60 hover:text-foreground hover:bg-white/5'
-                }`}
-              >
-                {child.label}
-                {child.badge && (
-                  <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-gold/10 text-gold">
-                    {child.badge}
-                  </span>
-                )}
-              </Link>
-            ))}
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const isActive = item.href ? (pathname === item.href || (item.href !== '/dashboard/boutique' && pathname.startsWith(item.href))) : false;
 
   return (
     <Link
@@ -133,18 +73,13 @@ function SectionLabel({ label }: { label: string }) {
 export default function BoutiqueSidebar({ open, setOpen }: SidebarProps) {
   const { t, i18n } = useTranslation();
   const isEn = i18n?.language?.startsWith('en');
-  const { unreadNotificationCount, pendingActionCount } = useNotificationCountStore();
+  const { unreadNotificationCount } = useNotificationCountStore();
 
   const spaceItems: NavItem[] = [
     {
       label: t('boutique_nav_dashboard', { defaultValue: isEn ? 'Dashboard' : 'Tableau de Bord' }),
       icon: <LayoutDashboard size={18} />,
       href: '/dashboard/boutique',
-    },
-    {
-      label: t('boutique_nav_my_products', { defaultValue: isEn ? 'My Products' : 'Mes Produits' }),
-      icon: <Package size={18} />,
-      href: '/dashboard/boutique/produits',
     },
     {
       label: t('boutique_nav_wallet', { defaultValue: isEn ? 'My Wallet' : 'Mon Portefeuille' }),
@@ -159,57 +94,16 @@ export default function BoutiqueSidebar({ open, setOpen }: SidebarProps) {
     },
   ];
 
-  const shopItems: NavItem[] = [
-    {
-      label: t('admin_nav_orders', { defaultValue: isEn ? 'Orders' : 'Commandes' }),
-      icon: <ShoppingCart size={18} />,
-      href: '/dashboard/boutique/order',
-      badge: pendingActionCount > 0 ? String(pendingActionCount) : undefined,
-    },
+  const catalogItems: NavItem[] = [
     {
       label: t('admin_nav_perfumes', { defaultValue: isEn ? 'Perfumes' : 'Parfums' }),
       icon: <PerfumeIcon size={18} />,
       href: '/dashboard/boutique/perfume',
     },
     {
-      label: t('admin_nav_categories', { defaultValue: isEn ? 'Categories' : 'Catégories' }),
-      icon: <Package size={18} />,
-      href: '/dashboard/boutique/categories',
-    },
-    {
-      label: t('admin_nav_essences', { defaultValue: 'Essences' }),
-      icon: <EssenceIcon size={18} />,
-      href: '/dashboard/boutique/essences',
-    },
-    {
-      label: isEn ? 'Oil' : 'Huile',
-      icon: <EssenceIcon size={18} />,
-      href: '/dashboard/boutique/produits-essence',
-    },
-    {
-      label: t('admin_nav_lab', { defaultValue: isEn ? 'Laboratory' : 'Laboratoire' }),
-      icon: <LaptopIcon size={18} />,
-      href: '/dashboard/boutique/lab',
-    },
-    {
-      label: t('admin_nav_bottles', { defaultValue: isEn ? 'Bottles' : 'Flacons' }),
-      icon: <Package size={18} />,
-      href: '/dashboard/boutique/flacons',
-    },
-    {
       label: t('admin_nav_accessories', { defaultValue: isEn ? 'Accessories' : 'Accessoires' }),
       icon: <Gem size={18} />,
       href: '/dashboard/boutique/accessories',
-    },
-    {
-      label: t('admin_nav_diffusers', { defaultValue: isEn ? 'Diffusers' : 'Diffuseurs' }),
-      icon: <DiffuseurIcon size={18} />,
-      href: '/dashboard/boutique/diffuseurs',
-    },
-    {
-      label: t('admin_nav_compositions', { defaultValue: 'Compositions' }),
-      icon: <LaptopIcon size={18} />,
-      href: '/dashboard/boutique/compositions',
     },
   ];
 
@@ -258,8 +152,8 @@ export default function BoutiqueSidebar({ open, setOpen }: SidebarProps) {
             <NavItemComponent key={item.label} item={item} onNavigate={() => setOpen(false)} />
           ))}
 
-          <SectionLabel label={t('admin_nav_shop', { defaultValue: isEn ? 'SHOP' : 'BOUTIQUE' })} />
-          {shopItems.map((item) => (
+          <SectionLabel label={t('admin_nav_catalog', { defaultValue: isEn ? 'CATALOG' : 'CATALOGUE' })} />
+          {catalogItems.map((item) => (
             <NavItemComponent key={item.label} item={item} onNavigate={() => setOpen(false)} />
           ))}
         </nav>

@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Loader2, Edit2, Trash2, Plus, Search, Image as ImageIcon, SlidersHorizontal, AlertCircle, X, Package, ChevronDown, Tag, Layers, DollarSign, Boxes, Sparkles } from 'lucide-react';
-import { shopService } from '@/services/apiService';
-import { adminService } from '@/services/apiService';
+import { usePathname } from 'next/navigation';
+import { shopService, adminService, boutiqueService } from '@/services/apiService';
 import { InlineCell } from '@/components/admin/InlineCell';
 import { useTranslation } from 'react-i18next';
 import { CustomSelect } from '@/components/ui/CustomSelect';
@@ -304,6 +304,8 @@ const inputCls = 'w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 
 /* -------------------------------------------------------------------------- */
 
 export default function PerfumeAdminPage() {
+  const pathname = usePathname();
+  const isBoutiqueContext = pathname?.includes('/dashboard/boutique');
   const permissions = useCatalogPermissions('parfums');
   const { user } = useAuthStore();
   const { i18n } = useTranslation();
@@ -390,14 +392,21 @@ export default function PerfumeAdminPage() {
     const savedScrollY = silent ? window.scrollY : 0;
     try {
       if (!silent) setLoading(true);
-      const params: Record<string, unknown> = { page, limit: 50 };
-      if (search.trim()) params.search = search.trim();
-      if (genreFilter) params.genre = genreFilter;
-      if (estBestsellerFilter === 'true') params.est_bestseller = true;
-      if (estBestsellerFilter === 'false') params.est_bestseller = false;
-      if (categoryFilter) params.categorie = categoryFilter;
-
-      const data = await shopService.getPerfumes(params as Parameters<typeof shopService.getPerfumes>[0]);
+      let data;
+      if (isBoutiqueContext) {
+        const bParams: Record<string, unknown> = { type: 'parfum', page, page_size: 50 };
+        if (search.trim()) bParams.search = search.trim();
+        if (categoryFilter) bParams.categorie = categoryFilter;
+        data = await boutiqueService.getProduits(bParams as any);
+      } else {
+        const params: Record<string, unknown> = { page, limit: 50 };
+        if (search.trim()) params.search = search.trim();
+        if (genreFilter) params.genre = genreFilter;
+        if (estBestsellerFilter === 'true') params.est_bestseller = true;
+        if (estBestsellerFilter === 'false') params.est_bestseller = false;
+        if (categoryFilter) params.categorie = categoryFilter;
+        data = await shopService.getPerfumes(params as Parameters<typeof shopService.getPerfumes>[0]);
+      }
       if (requestId !== activeRequestRef.current) return;
 
       const { items, total, pages, currentPage: apiPage } = extractCatalogMeta<PerfumeRecord>(data);
@@ -1369,15 +1378,17 @@ export default function PerfumeAdminPage() {
                           className="relative z-[9999]"
                         />
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => setIsCategoryModalOpen(true)}
-                        className="flex h-11 w-11 items-center justify-center rounded-lg border border-gold/40 bg-gold/10 text-lg font-semibold text-gold transition-colors hover:bg-gold/20"
-                        aria-label="Créer une nouvelle catégorie"
-                        title="Créer une nouvelle catégorie"
-                      >
-                        +
-                      </button>
+                      {!isBoutiqueContext && (
+                        <button
+                          type="button"
+                          onClick={() => setIsCategoryModalOpen(true)}
+                          className="flex h-11 w-11 items-center justify-center rounded-lg border border-gold/40 bg-gold/10 text-lg font-semibold text-gold transition-colors hover:bg-gold/20"
+                          aria-label="Créer une nouvelle catégorie"
+                          title="Créer une nouvelle catégorie"
+                        >
+                          +
+                        </button>
+                      )}
                     </div>
                   </Field>
                   <Field label={t('field_sku')}>

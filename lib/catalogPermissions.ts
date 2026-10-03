@@ -35,10 +35,18 @@ export function getCatalogPermissions(
   isAuthenticated = false
 ): CatalogPermissions {
   const staff = isStaff(role);
+  const canManageCatalog = staff || role === 'partner';
 
   switch (resource) {
     case 'parfums':
     case 'accessoires':
+      return {
+        canRead: true,
+        canCreate: canManageCatalog,
+        canUpdate: canManageCatalog,
+        canDelete: canManageCatalog,
+      };
+
     case 'flacons':
     case 'produits_essence':
     case 'essences':
