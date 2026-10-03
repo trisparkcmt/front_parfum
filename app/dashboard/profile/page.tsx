@@ -234,6 +234,7 @@ export default function ProfilePage() {
   const [showPWAHelp, setShowPWAHelp] = useState(false);
   const [showPartnerMenu, setShowPartnerMenu] = useState(false);
   const [showDeleteAccountModal, setShowDeleteAccountModal] = useState(false);
+  const [boutiqueAccess, setBoutiqueAccess] = useState<{ userId: string; allowed: boolean } | null>(null);
   const [deleteAccountQuestions, setDeleteAccountQuestions] = useState({
     reason: '',
     painPoint: '',
@@ -304,8 +305,27 @@ export default function ProfilePage() {
   const isPartner = userRoles.includes('partner');
   const isStaff = userRoles.some((r) => ['serveuse', 'superadmin', 'delivery'].includes(r));
 
+  useEffect(() => {
+    if (!user?.id || isPartner || isStaff) return;
+    let isCurrent = true;
+    boutiqueService.getPortefeuille()
+      .then(() => {
+        if (isCurrent) setBoutiqueAccess({ userId: user.id, allowed: true });
+      })
+      .catch(() => {
+        if (isCurrent) setBoutiqueAccess({ userId: user.id, allowed: false });
+      });
+    return () => { isCurrent = false; };
+  }, [user?.id, isPartner, isStaff]);
+
+  const hasBoutiqueDashboard = isPartner || (
+    boutiqueAccess?.userId === user?.id && boutiqueAccess?.allowed === true
+  );
+
   const accessibleDashboards = DASHBOARD_OPTIONS.filter((d) =>
-    d.roles.some((role) => userRoles.includes(role))
+    d.id === 'boutique'
+      ? hasBoutiqueDashboard
+      : d.roles.some((role) => userRoles.includes(role))
   );
 
   /* ----- handlers ----- */

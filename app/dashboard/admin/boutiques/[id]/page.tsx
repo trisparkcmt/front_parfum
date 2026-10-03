@@ -74,6 +74,8 @@ const T = {
     col_visibility: 'Visibilité',
     col_actions: 'Actions',
     edit_price: 'Modifier le prix',
+    price_modal_desc: 'Mettez à jour le prix de vente et le prix promotionnel du produit.',
+    field_promo_price: 'Prix promotionnel',
     delete_product: 'Supprimer le produit',
     col_date: 'Date',
     col_reference: 'Référence',
@@ -171,6 +173,8 @@ const T = {
     col_visibility: 'Visibility',
     col_actions: 'Actions',
     edit_price: 'Edit price',
+    price_modal_desc: 'Update the product sale price and promotional price.',
+    field_promo_price: 'Promotional price',
     delete_product: 'Delete product',
     col_date: 'Date',
     col_reference: 'Reference',
@@ -1172,6 +1176,58 @@ export default function AdminBoutiqueDetailPage() {
             </Field>
           </FormSection>
         )}
+      </SlideOver>
+
+      <SlideOver
+        isOpen={showEditPriceModal}
+        onClose={() => !isSavingProduct && setShowEditPriceModal(false)}
+        title={t('edit_price')}
+        description={t('price_modal_desc')}
+        size={FORM_PANEL_SIZE}
+        footer={
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={() => setShowEditPriceModal(false)}
+              disabled={isSavingProduct}
+              className="flex-1 rounded-lg border border-white/10 px-4 py-2 text-xs font-medium text-foreground/60 transition-colors hover:bg-white/5 disabled:opacity-60"
+            >
+              {t('cancel')}
+            </button>
+            <button
+              type="button"
+              onClick={handleSaveProductPrice}
+              disabled={isSavingProduct || !editPriceValue}
+              className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-gold px-4 py-2 text-xs font-semibold text-black transition-colors hover:bg-gold/85 disabled:opacity-60"
+            >
+              {isSavingProduct ? <Loader2 size={13} className="animate-spin" /> : null}
+              {isSavingProduct ? t('saving') : t('save_btn')}
+            </button>
+          </div>
+        }
+      >
+        <div className="space-y-4">
+          <Field label={t('col_price')} required>
+            <input
+              type="number"
+              min="0"
+              step="1"
+              value={editPriceValue}
+              onChange={(event) => setEditPriceValue(event.target.value)}
+              className={inputClassName}
+            />
+          </Field>
+          <Field label={t('field_promo_price')} hint={t('field_optional')}>
+            <input
+              type="number"
+              min="0"
+              step="1"
+              value={editPromoValue}
+              onChange={(event) => setEditPromoValue(event.target.value)}
+              className={inputClassName}
+            />
+          </Field>
+        </div>
       </SlideOver>
 
       {/* Logo preview */}

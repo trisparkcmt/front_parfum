@@ -130,6 +130,7 @@ const T = {
     receipt_provider: 'Prestataire',
     supplier_shops: 'Boutiques fournisseurs',
     platform_shop: 'Vendu par la plateforme',
+    supplier_financials_unavailable: 'Commission et net boutique non fournis par l’API.',
     group_perfumes: 'Parfums',
     group_accessories: 'Accessoires',
     group_essences: 'Essences finies',
@@ -257,6 +258,7 @@ const T = {
     receipt_provider: 'Provider',
     supplier_shops: 'Supplier boutiques',
     platform_shop: 'Sold by the platform',
+    supplier_financials_unavailable: 'Commission and boutique net are not provided by the API.',
     group_perfumes: 'Perfumes',
     group_accessories: 'Accessories',
     group_essences: 'Finished essences',
@@ -338,9 +340,25 @@ function allLines(order: BackendOrder): BackendOrderLine[] {
 }
 
 function getDeliveryMethod(order: BackendOrder, isEn = false): string {
-  return order.livreur
-    ? (isEn ? T.en.delivery_method : T.fr.delivery_method)
-    : (isEn ? T.en.pickup : T.fr.pickup);
+  const location = order.livraison_ville?.trim().toLocaleLowerCase();
+  const isPickup = Boolean(location && (
+    location.includes('pickup') || location.includes('retrait')
+  ));
+  return isPickup
+    ? (isEn ? T.en.pickup : T.fr.pickup)
+    : (isEn ? T.en.delivery_method : T.fr.delivery_method);
+}
+
+function getSupplierGross(order: BackendOrder, shopId: number, reportedAmount: string | null): string | number | null {
+  if (reportedAmount != null) return reportedAmount;
+  const supplierLines = allLines(order).filter((line) =>
+    line.boutique_id === shopId || line.boutique_details?.id === shopId
+  );
+  if (supplierLines.length === 0) return null;
+  return supplierLines.reduce((total, line) => {
+    const lineTotal = Number(line.sous_total);
+    return total + (Number.isFinite(lineTotal) ? lineTotal : 0);
+  }, 0);
 }
 
 function driverDisplayName(d: any): string {
@@ -1736,16 +1754,21 @@ function OrderDetailModal({
                 <SectionLabel icon={<Store size={11} />}>{t('supplier_shops')}</SectionLabel>
                 <div className="space-y-2">
                   {order.boutiques_fournisseurs.map((shop) => (
-                    <div key={shop.id} className="flex flex-wrap items-start justify-between gap-x-4 gap-y-1 text-xs">
-                      <div className="min-w-0">
-                        <p className="font-medium text-foreground/85">{shop.nom}</p>
-                        <p className="text-[11px] text-foreground/40">{[shop.ville, shop.telephone].filter(Boolean).join(' · ')}</p>
+                    <div key={shop.id}>
+                      <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-1 text-xs">
+                        <div className="min-w-0">
+                          <p className="font-medium text-foreground/85">{shop.nom}</p>
+                          <p className="text-[11px] text-foreground/40">{[shop.ville, shop.telephone].filter(Boolean).join(' · ')}</p>
+                        </div>
+                        <div className="grid grid-cols-3 gap-x-3 text-right text-[10px] sm:text-[11px]">
+                          <span className="text-foreground/45">{isEn ? 'Gross' : 'Brut'}<strong className="mt-0.5 block text-foreground/75">{fmt(getSupplierGross(order, shop.id, shop.montant_brut))}</strong></span>
+                          <span className="text-foreground/45">{isEn ? 'Commission' : 'Commission'}<strong className="mt-0.5 block text-foreground/75">{fmt(shop.montant_commission_admin)}</strong></span>
+                          <span className="text-foreground/45">{isEn ? 'Boutique net' : 'Net boutique'}<strong className="mt-0.5 block text-emerald-300">{fmt(shop.montant_net_boutique)}</strong></span>
+                        </div>
                       </div>
-                      <div className="grid grid-cols-3 gap-x-3 text-right text-[10px] sm:text-[11px]">
-                        <span className="text-foreground/45">{isEn ? 'Gross' : 'Brut'}<strong className="mt-0.5 block text-foreground/75">{fmt(shop.montant_brut)}</strong></span>
-                        <span className="text-foreground/45">{isEn ? 'Commission' : 'Commission'}<strong className="mt-0.5 block text-foreground/75">{fmt(shop.montant_commission_admin)}</strong></span>
-                        <span className="text-foreground/45">{isEn ? 'Boutique net' : 'Net boutique'}<strong className="mt-0.5 block text-emerald-300">{fmt(shop.montant_net_boutique)}</strong></span>
-                      </div>
+                      {(shop.montant_commission_admin == null || shop.montant_net_boutique == null) && (
+                        <p className="mt-1 text-right text-[10px] text-foreground/35">{t('supplier_financials_unavailable')}</p>
+                      )}
                     </div>
                   ))}
                 </div>

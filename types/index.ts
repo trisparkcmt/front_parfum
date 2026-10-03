@@ -347,9 +347,9 @@ export interface BoutiqueSupplierDetails {
 }
 
 export interface BackendOrderSupplier extends BoutiqueSupplierDetails {
-  montant_brut: string;
-  montant_commission_admin: string;
-  montant_net_boutique: string;
+  montant_brut: string | null;
+  montant_commission_admin: string | null;
+  montant_net_boutique: string | null;
 }
 
 export interface BackendOrderLine {

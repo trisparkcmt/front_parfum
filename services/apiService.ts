@@ -1330,7 +1330,7 @@ export const boutiqueService = {
       const response = await api.get('auth/boutique/portefeuille/');
       return response.data;
     } catch (err: any) {
-      if (err.response?.status !== 404) throw err;
+      if (err.response?.status !== 404 && err.response?.status !== 403) throw err;
       const fallback = await api.get('auth/me/boutique/portefeuille/');
       return fallback.data;
     }
