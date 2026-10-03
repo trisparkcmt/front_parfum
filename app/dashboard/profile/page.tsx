@@ -492,7 +492,7 @@ export default function ProfilePage() {
 
                       <div className="h-px bg-foreground/10 my-1" />
 
-                      {/* Open a Boutique */}
+                      {/* Temporarily hidden; restore when boutique applications are enabled.
                       <button
                         type="button"
                         onClick={() => {
@@ -509,6 +509,7 @@ export default function ProfilePage() {
                       </button>
 
                       <div className="h-px bg-foreground/10 my-1" />
+                      */}
 
                       <button
                         type="button"
