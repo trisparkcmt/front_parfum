@@ -382,12 +382,22 @@ export default function FinishedEssenceAdminPage() {
 
   const patchProduitEssence = async (id: number, field: string, value: string) => {
     if (!permissions.canUpdate) return;
-    setItems(prev => prev.map(i => i.id === id ? { ...i, [field]: value } : i));
     try {
       const { adminService: adm } = await import('@/services/apiService');
       const fd = new FormData();
       fd.append(field, value);
-      await adm.patchFormData(`shop/produits-essence/${id}/`, fd);
+      const response = await adm.patchFormData(`shop/produits-essence/${id}/`, fd);
+      const updatedData = response?.resultat ?? response?.result ?? response?.data ?? response;
+      setItems(prev => prev.map(item => {
+        if (String(item.id) !== String(id)) return item;
+        const updatedItem = updatedData && typeof updatedData === 'object' ? updatedData : {};
+        return {
+          ...item,
+          ...updatedItem,
+          [field]: value,
+          ...(field === 'prix' ? { prix_actuel: updatedItem.prix_actuel ?? value } : {}),
+        };
+      }));
     } catch {
       addToast(t('toast_patch_error'), 'error');
       fetchItems(currentPage);

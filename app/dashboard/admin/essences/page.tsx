@@ -11,7 +11,6 @@ import { TablePagination } from '@/components/admin/TablePagination';
 import { AdminTableSkeleton } from '@/components/ui/AdminTableSkeleton';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { CustomSelect } from '@/components/ui/CustomSelect';
-import { fetchAllCatalogPages } from '@/lib/catalogUtils';
 import { mapErrorToUserMessage } from '@/lib/errorMapper';
 import { labService, shopService } from '@/services/apiService';
 import { useToastStore } from '@/store/useToastStore';
@@ -203,9 +202,9 @@ export default function EssencesPage() {
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const { addToast } = useToastStore();
 
-  // Pagination locale (Max 20 éléments par page)
+  // Match the backend page size.
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 20;
+  const itemsPerPage = 50;
 
   // Form State
   const [form, setForm] = useState({
@@ -329,9 +328,7 @@ export default function EssencesPage() {
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
-      const allEssences = await fetchAllCatalogPages<EssenceRecord>(async (page) =>
-        labService.getEssences({ page })
-      );
+      const allEssences = await labService.getEssences();
       setEssences(allEssences);
     } catch {
       addToast(t('toast_load_error'), 'error');
