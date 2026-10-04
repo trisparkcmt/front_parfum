@@ -216,11 +216,13 @@ export default function Sidebar({ open, setOpen }: SidebarProps) {
   ];
 
   const gestionItems: NavItem[] = [
+    /*
     {
       label: 'Boutiques',
       icon: <Store size={18} />,
       href: '/dashboard/admin/boutiques',
     },
+    */
     {
       label: t('admin_nav_clients', { defaultValue: isEn ? 'Clients' : 'Clients' }),
       icon: <Users2 size={18} />,

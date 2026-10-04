@@ -180,7 +180,7 @@ const DASHBOARD_OPTIONS: DashboardOption[] = [
   {
     id: 'boutique',
     titleKey: 'dashboard_boutique_title',
-    defaultTitle: 'My Boutique',
+    defaultTitle: 'My Shop',
     defaultTitleFr: 'Ma Boutique',
     descKey: 'dashboard_boutique_desc',
     defaultDesc: 'Manage your products, sales and wallet.',
@@ -192,7 +192,7 @@ const DASHBOARD_OPTIONS: DashboardOption[] = [
   {
     id: 'serveuse',
     titleKey: 'dashboard_serveuse_title',
-    defaultTitle: 'Boutique / Staff Space',
+    defaultTitle: 'Shop / Staff Space',
     defaultTitleFr: 'Espace Boutique / Serveuse',
     descKey: 'dashboard_serveuse_desc',
     defaultDesc: 'Manage orders, catalog and lab work.',
@@ -381,17 +381,17 @@ export default function ProfilePage() {
   };
 
   const handleCancelBoutiqueApplication = async () => {
-    if (!window.confirm(isEn ? 'Cancel your pending boutique application?' : 'Annuler votre demande d\'ouverture de boutique ?')) return;
+    if (!window.confirm(isEn ? 'Cancel your pending shop application?' : 'Annuler votre demande d\'ouverture de boutique ?')) return;
 
     try {
       await boutiqueService.cancelApplication();
       setShowPartnerMenu(false);
-      addToast(isEn ? 'Boutique application cancelled.' : 'Demande de boutique annulée.', 'success');
+      addToast(isEn ? 'Shop application cancelled.' : 'Demande de boutique annulée.', 'success');
     } catch (error: unknown) {
       const errorDetails = error as { response?: { data?: { detail?: string } } };
       addToast(
         errorDetails.response?.data?.detail ||
-          (isEn ? 'Unable to cancel the boutique application.' : 'Impossible d\'annuler la demande de boutique.'),
+          (isEn ? 'Unable to cancel the shop application.' : 'Impossible d\'annuler la demande de boutique.'),
         'error'
       );
     }
@@ -492,23 +492,33 @@ export default function ProfilePage() {
 
                       <div className="h-px bg-foreground/10 my-1" />
 
-                      {/* Open a Boutique */}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setShowPartnerMenu(false);
-                          router.push('/apply/boutique');
-                        }}
-                        className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm text-foreground transition hover:bg-foreground/5"
-                      >
-                        <ShieldCheck size={14} className="text-gold shrink-0" />
-                        <div>
-                          <p className="font-medium">{isEn ? 'Open a Boutique' : 'Ouvrir une Boutique'}</p>
-                          <p className="text-[10px] text-foreground/40 mt-0.5">{isEn ? 'Sell your perfumes & accessories online' : 'Vendez vos parfums & accessoires en ligne'}</p>
-                        </div>
-                      </button>
+                      {/*
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowPartnerMenu(false);
+                            router.push('/apply/boutique');
+                          }}
+                          className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm text-foreground transition hover:bg-foreground/5"
+                        >
+                          <ShieldCheck size={14} className="text-gold shrink-0" />
+                          <div>
+                            <p className="font-medium">{isEn ? 'Open a Shop' : 'Ouvrir une Boutique'}</p>
+                            <p className="text-[10px] text-foreground/40 mt-0.5">{isEn ? 'Sell your perfumes & accessories online' : 'Vendez vos parfums & accessoires en ligne'}</p>
+                          </div>
+                        </button>
 
-                      <div className="h-px bg-foreground/10 my-1" />
+                        <div className="h-px bg-foreground/10 my-1" />
+
+                        <button
+                          type="button"
+                          onClick={handleCancelBoutiqueApplication}
+                          className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-red-400 transition hover:bg-red-500/5"
+                        >
+                          <X size={14} />
+                          <span>{isEn ? 'Cancel shop application' : 'Annuler ma demande boutique'}</span>
+                        </button>
+                      */}
 
                       <button
                         type="button"
@@ -517,15 +527,6 @@ export default function ProfilePage() {
                       >
                         <X size={14} />
                         <span>{isEn ? 'Cancel partner application' : 'Annuler ma demande prestataire'}</span>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={handleCancelBoutiqueApplication}
-                        className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-red-400 transition hover:bg-red-500/5"
-                      >
-                        <X size={14} />
-                        <span>{isEn ? 'Cancel boutique application' : 'Annuler ma demande boutique'}</span>
                       </button>
 
                     </div>

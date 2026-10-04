@@ -256,9 +256,9 @@ const T = {
     receipt_total: 'Total',
     receipt_commission: 'Commission',
     receipt_provider: 'Provider',
-    supplier_shops: 'Supplier boutiques',
+    supplier_shops: 'Supplier shops',
     platform_shop: 'Sold by the platform',
-    supplier_financials_unavailable: 'Commission and boutique net are not provided by the API.',
+    supplier_financials_unavailable: 'Commission and shop net are not provided by the API.',
     group_perfumes: 'Perfumes',
     group_accessories: 'Accessories',
     group_essences: 'Finished essences',
@@ -1584,7 +1584,7 @@ function OrderDetailModal({
     setModalSupplier(line.boutique_details ?? (line.boutique_id != null && line.boutique_nom
       ? { id: line.boutique_id, nom: line.boutique_nom }
       : line.boutique_id != null
-        ? { id: line.boutique_id, nom: `Boutique #${line.boutique_id}` }
+        ? { id: line.boutique_id, nom: isEn ? `Shop #${line.boutique_id}` : `Boutique #${line.boutique_id}` }
         : null));
     setModalPlatformSupplied(line.boutique_id === null);
   };
@@ -1763,7 +1763,7 @@ function OrderDetailModal({
                         <div className="grid grid-cols-3 gap-x-3 text-right text-[10px] sm:text-[11px]">
                           <span className="text-foreground/45">{isEn ? 'Gross' : 'Brut'}<strong className="mt-0.5 block text-foreground/75">{fmt(getSupplierGross(order, shop.id, shop.montant_brut))}</strong></span>
                           <span className="text-foreground/45">{isEn ? 'Commission' : 'Commission'}<strong className="mt-0.5 block text-foreground/75">{fmt(shop.montant_commission_admin)}</strong></span>
-                          <span className="text-foreground/45">{isEn ? 'Boutique net' : 'Net boutique'}<strong className="mt-0.5 block text-emerald-300">{fmt(shop.montant_net_boutique)}</strong></span>
+                          <span className="text-foreground/45">{isEn ? 'Shop net' : 'Net boutique'}<strong className="mt-0.5 block text-emerald-300">{fmt(shop.montant_net_boutique)}</strong></span>
                         </div>
                       </div>
                       {(shop.montant_commission_admin == null || shop.montant_net_boutique == null) && (
@@ -2017,7 +2017,7 @@ function LinesGroup({
                   <span>
                     {line.boutique_nom || line.boutique_details?.nom || (line.boutique_id === null
                       ? (isEn ? T.en.platform_shop : T.fr.platform_shop)
-                      : `Boutique #${line.boutique_id}`)}
+                      : (isEn ? `Shop #${line.boutique_id}` : `Boutique #${line.boutique_id}`))}
                   </span>
                   {(line.boutique_details?.ville || line.boutique_details?.telephone) && (
                     <span className="truncate text-foreground/35">· {[line.boutique_details.ville, line.boutique_details.telephone].filter(Boolean).join(' · ')}</span>

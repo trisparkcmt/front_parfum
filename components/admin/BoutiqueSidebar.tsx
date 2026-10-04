@@ -133,7 +133,7 @@ export default function BoutiqueSidebar({ open, setOpen }: SidebarProps) {
               <Store size={18} className="text-black" />
             </div>
             <span className="font-bold text-foreground text-lg tracking-tight">
-              Espace Boutique
+              {isEn ? 'Shop Space' : 'Espace Boutique'}
             </span>
           </Link>
           <button
@@ -167,7 +167,7 @@ export default function BoutiqueSidebar({ open, setOpen }: SidebarProps) {
             <div>
               <p className="text-xs font-semibold text-foreground">Accessoires Exclusifs</p>
               <p className="text-[10px] text-foreground/40">
-                v1.0 · {t('boutique_panel_title', { defaultValue: isEn ? 'Boutique Panel' : 'Panel Boutique' })}
+                v1.0 · {t('boutique_panel_title', { defaultValue: isEn ? 'Shop Panel' : 'Panel Boutique' })}
               </p>
             </div>
           </div>

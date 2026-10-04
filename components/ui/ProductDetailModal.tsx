@@ -595,7 +595,7 @@ export function ProductDetailModal({
                           <Store size={15} className="mt-0.5 shrink-0 text-emerald-400" />
                           <div>
                             <p className="text-[10px] font-semibold uppercase tracking-wider text-foreground/40">
-                              {isEn ? 'Supplier boutique' : 'Boutique fournisseur'}
+                              {isEn ? 'Supplier shop' : 'Boutique fournisseur'}
                             </p>
                             <p className="font-medium text-foreground/85">
                               {supplier?.nom || (isEn ? 'Sold by the platform' : 'Vendu par la plateforme')}
