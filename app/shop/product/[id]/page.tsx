@@ -40,12 +40,20 @@ export async function generateMetadata({
 }
 
 export default async function ProductDetailPage({
+  params,
   searchParams,
 }: {
+  params: Promise<{ id: string }>;
   searchParams: Promise<{ type?: string }>;
 }) {
   const { type } = await searchParams;
-  const fallback = type === 'accessory' ? '/shop/accessories' : '/shop/perfumes';
+  const { id } = await params;
+  const encodedId = encodeURIComponent(id);
+  const fallback = type === 'accessory'
+    ? `/shop/accessories?product=${encodedId}&type=accessory`
+    : type === 'diffuseur'
+      ? `/shop/diffuseurs?product=${encodedId}&type=diffuseur`
+      : '/shop/perfumes';
   
   return <ClientRedirect fallback={fallback} />;
 }

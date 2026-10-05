@@ -93,10 +93,12 @@ export function ProductCard({
   const mainImageSrc = isEssenceProduct ? '/huile.png' : productImage ? resolveImageUrl(productImage) : '';
 
   const productUrl = isDiffuseur
-    ? `/shop/product/${product.slug || product.id}?type=diffuseur`
+    ? `/shop/diffuseurs?product=${encodeURIComponent(product.slug || product.id)}&type=diffuseur`
     : isEssenceProduct
     ? `/shop/huile/${product.slug || product.id}`
-    : `/shop/product/${product.slug || product.id}${product.category === 'accessory' ? '?type=accessory' : '?type=perfume'}`;
+    : product.category === 'accessory'
+    ? `/shop/accessories?product=${encodeURIComponent(product.slug || product.id)}&type=accessory`
+    : `/shop/product/${product.slug || product.id}?type=perfume`;
 
   // Derive category label
   const categoryLabel = isDiffuseur

@@ -253,8 +253,14 @@ export function ProductDetailModal({
 
   const handleShare = async () => {
     if (!product) return;
+    const productId = encodeURIComponent(String(product.slug || product.id));
+    const productPath = productType === 'diffuseur'
+      ? `/shop/diffuseurs?product=${productId}&type=diffuseur`
+      : productType === 'accessory'
+        ? `/shop/accessories?product=${productId}&type=accessory`
+        : `/shop/product/${productId}?type=${productType}`;
     const result = await sharePage(
-      `/shop/product/${product.slug || product.id}?type=${productType}`,
+      productPath,
       product.name,
       isEn
         ? `Explore ${product.name} on Accessories Exclusif`

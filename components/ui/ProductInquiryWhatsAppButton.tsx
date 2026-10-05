@@ -36,6 +36,10 @@ export function ProductInquiryWhatsAppButton({ product, isEn, productType = 'per
   const productId = encodeURIComponent(String(product.slug || product.id));
   const productPath = product.category === 'huile'
     ? `/shop/huile/${productId}`
+    : productType === 'diffuseur'
+      ? `/shop/diffuseurs?product=${productId}&type=diffuseur`
+      : productType === 'accessory'
+        ? `/shop/accessories?product=${productId}&type=accessory`
     : `/shop/product/${productId}?type=${encodeURIComponent(productType)}`;
   const productUrl = buildAbsoluteUrl(productPath);
   const imageUrl = resolveImageUrl(product.image_principale || product.images?.[0] || product.image_supp_1);

@@ -81,7 +81,7 @@ export function DiffuseurCard({
 
   const mainImage = product.image_principale || (product.images && product.images[0]) || '';
   const secondImage = product.images && product.images[1] ? product.images[1] : '';
-  const productUrl = `/shop/diffuseurs/${product.id || product.slug}`;
+  const productUrl = `/shop/diffuseurs?product=${encodeURIComponent(product.slug || product.id)}&type=diffuseur`;
 
   const techLabel = product.type_technologie
     ? (product.type_technologie === 'ultrasons'

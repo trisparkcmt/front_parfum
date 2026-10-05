@@ -17,6 +17,7 @@ import { useTranslation } from 'react-i18next';
 import { productService } from '@/services/productService';
 import { shuffleArray } from '@/lib/utils';
 import type { Product, AccessorySubCategory } from '@/types';
+import { ProductDetailModal } from '@/components/ui/ProductDetailModal';
 
 interface AccessoryType {
   id: number;
@@ -41,10 +42,28 @@ function AccessoriesShop() {
   const [inStockOnly, setInStockOnly] = useState<boolean>(false);
   const [ordering, setOrdering] = useState<string>('-date_creation');
   const [showFilters, setShowFilters] = useState(false);
+  const [modalProductId, setModalProductId] = useState<string | null>(null);
+  const [modalProductType, setModalProductType] = useState<'accessory' | 'diffuseur'>('accessory');
 
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const router = useRouter();
+
+  useEffect(() => {
+    const productId = searchParams.get('product');
+    setModalProductId(productId);
+    setModalProductType(searchParams.get('type') === 'diffuseur' ? 'diffuseur' : 'accessory');
+  }, [searchParams]);
+
+  useEffect(() => {
+    const handlePopState = () => {
+      const params = new URLSearchParams(window.location.search);
+      setModalProductId(params.get('product'));
+      setModalProductType(params.get('type') === 'diffuseur' ? 'diffuseur' : 'accessory');
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
 
   const updateAccessoryCategory = (nextType: number | 'all') => {
     setActiveTypeId(nextType);
@@ -179,6 +198,43 @@ function AccessoriesShop() {
       addFavorite(product);
       addToast(`${product.name} ${t('added_to_favorites')}`, 'info');
     }
+  };
+
+  const openProductModal = (product: Product) => {
+    const productId = String(product.slug || product.id);
+    const isDiffuseur = Boolean(
+      product.type_technologie ||
+      product.capacite_reservoir_ml !== undefined ||
+      product.est_connecte !== undefined ||
+      product.a_jeux_de_lumiere !== undefined ||
+      product.name.toLowerCase().includes('diffuseur') ||
+      product.description.toLowerCase().includes('diffuseur')
+    );
+    const productType = isDiffuseur ? 'diffuseur' : 'accessory';
+    const params = new URLSearchParams(window.location.search);
+    params.set('product', productId);
+    params.set('type', productType);
+    window.history.pushState(
+      { modalProductId: productId, modalProductType: productType },
+      '',
+      `${pathname}?${params.toString()}`
+    );
+    setModalProductId(productId);
+    setModalProductType(productType);
+  };
+
+  const closeProductModal = () => {
+    if (window.history.state?.modalProductId) {
+      window.history.back();
+      return;
+    }
+
+    const params = new URLSearchParams(window.location.search);
+    params.delete('product');
+    params.delete('type');
+    const query = params.toString();
+    router.replace(`${pathname}${query ? `?${query}` : ''}`, { scroll: false });
+    setModalProductId(null);
   };
 
   const resetFilters = () => {
@@ -464,6 +520,7 @@ function AccessoriesShop() {
                   onAddToCart={handleAddToCart}
                   onToggleFavorite={handleToggleFavorite}
                   isFavorite={isFavorite(product.id)}
+                  onCardClick={openProductModal}
                 />
               </motion.div>
             ))}
@@ -487,6 +544,16 @@ function AccessoriesShop() {
           </motion.div>
         </AnimatePresence>
       )}
+      <AnimatePresence>
+        {modalProductId && (
+          <ProductDetailModal
+            productId={modalProductId}
+            productType={modalProductType}
+            onClose={closeProductModal}
+            onRelatedCardClick={openProductModal}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }

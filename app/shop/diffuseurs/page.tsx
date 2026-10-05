@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, Suspense, useCallback } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, SlidersHorizontal, RotateCcw, LayoutGrid, List } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -19,6 +19,7 @@ import type { Product } from '@/types';
 function DiffuseursShopContent() {
   const { i18n } = useTranslation();
   const isEn = i18n.language?.startsWith('en');
+  const router = useRouter();
 
   const scrollCatalogToTop = () => {
     if (typeof window === 'undefined') return;
@@ -59,16 +60,31 @@ function DiffuseursShopContent() {
   const openProductModal = useCallback((product: Product) => {
     const productId = String(product.slug || product.id);
     setModalProductId(productId);
-    window.history.pushState({ modalProductId: productId }, '', `/shop/diffuseurs/${productId}`);
+    window.history.pushState(
+      { modalProductId: productId, modalProductType: 'diffuseur' },
+      '',
+      `/shop/diffuseurs?product=${encodeURIComponent(productId)}&type=diffuseur`
+    );
   }, []);
 
   const closeProductModal = useCallback(() => {
+    if (window.history.state?.modalProductId) {
+      window.history.back();
+      return;
+    }
+
+    const params = new URLSearchParams(window.location.search);
+    params.delete('product');
+    params.delete('type');
+    const query = params.toString();
+    router.replace(`${window.location.pathname}${query ? `?${query}` : ''}`, { scroll: false });
     setModalProductId(null);
-  }, []);
+  }, [router]);
 
   useEffect(() => {
-    const handlePopState = (e: PopStateEvent) => {
-      if (!e.state?.modalProductId) setModalProductId(null);
+    const handlePopState = () => {
+      const params = new URLSearchParams(window.location.search);
+      setModalProductId(params.get('product'));
     };
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
@@ -80,6 +96,7 @@ function DiffuseursShopContent() {
     setMounted(true);
     const q = searchParams.get('search');
     if (q) setSearch(q);
+    setModalProductId(searchParams.get('product'));
   }, [searchParams]);
 
   useEffect(() => {

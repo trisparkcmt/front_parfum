@@ -1,4 +1,4 @@
-﻿import ProductDetailClient from '../../product/[id]/ProductDetailClient';
+﻿import ClientRedirect from '../../ClientRedirect';
 
 export default async function AccessoryDetailPage({
   params,
@@ -6,5 +6,5 @@ export default async function AccessoryDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  return <ProductDetailClient id={id} />;
+  return <ClientRedirect fallback={`/shop/accessories?product=${encodeURIComponent(id)}&type=accessory`} />;
 }
