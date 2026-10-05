@@ -207,8 +207,8 @@ function AccessoriesShop() {
       product.capacite_reservoir_ml !== undefined ||
       product.est_connecte !== undefined ||
       product.a_jeux_de_lumiere !== undefined ||
-      product.name.toLowerCase().includes('diffuseur') ||
-      product.description.toLowerCase().includes('diffuseur')
+      (product.name || '').toLowerCase().includes('diffuseur') ||
+      (product.description || '').toLowerCase().includes('diffuseur')
     );
     const productType = isDiffuseur ? 'diffuseur' : 'accessory';
     const params = new URLSearchParams(window.location.search);

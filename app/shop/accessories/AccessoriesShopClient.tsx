@@ -69,6 +69,7 @@ export default function AccessoriesShop() {
     const typeAccessoireParam = searchParams.get('type_accessoire');
     const legacyTypeParam = searchParams.get('type');
     const searchParam = searchParams.get('search');
+    const productParam = searchParams.get('product');
 
     const nextTypeId = typeAccessoireParam
       ? Number(typeAccessoireParam)
@@ -83,6 +84,14 @@ export default function AccessoriesShop() {
     }
 
     if (searchParam) setSearch(searchParam);
+
+    // Open modal when arriving via a share link (?product=...)
+    if (productParam) {
+      setModalProductId(productParam);
+      setModalProductType(legacyTypeParam === 'diffuseur' ? 'diffuseur' : 'accessory');
+    } else {
+      setModalProductId(null);
+    }
   }, [searchParams]);
 
   useEffect(() => {
@@ -199,10 +208,18 @@ export default function AccessoriesShop() {
     const typeHint: 'accessory' | 'diffuseur' = isDiffuseur ? 'diffuseur' : 'accessory';
     setModalProductId(productId);
     setModalProductType(typeHint);
-    window.history.pushState({ modalProductId: productId }, '', `/shop/product/${productId}?type=accessory`);
+    window.history.pushState(
+      { modalProductId: productId, modalProductType: typeHint },
+      '',
+      `/shop/accessories?product=${encodeURIComponent(productId)}&type=${typeHint}`
+    );
   }, []);
 
   const closeProductModal = useCallback(() => {
+    if (window.history.state?.modalProductId) {
+      window.history.back();
+      return;
+    }
     setModalProductId(null);
   }, []);
 
