@@ -46,7 +46,7 @@ export function LayoutWrapper({ children }: { children: React.ReactNode }) {
   const canPullToRefresh = !isDashboard && !isAuth;
 
   return (
-    <div className={`flex flex-col min-h-screen ${!shouldHideNav ? 'nav:pb-24' : ''}`}>
+    <div className="flex flex-col min-h-screen">
       <PullToRefresh enabled={canPullToRefresh} onRefresh={() => window.location.reload()} />
       {!shouldHideNav && (
         <Navbar />
