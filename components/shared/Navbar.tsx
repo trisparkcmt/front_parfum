@@ -1,11 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { motion } from 'framer-motion';
+import { motion, useMotionValue, useSpring, useTransform, type MotionValue } from 'framer-motion';
 import { CartIcon, ProfileIcon } from '@/components/icons/CustomIcons';
-import { Heart } from 'lucide-react';
+import { Clapperboard, FlaskConical, Gem, Heart, House, Sparkles, Wind, type LucideIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 import { PUBLIC_NAV_LINKS } from '@/lib/constants';
@@ -36,13 +36,78 @@ const UI_DICT: Record<string, { fr: string; en: string }> = {
   favorites: { fr: 'Favoris', en: 'Favorites' },
 };
 
+const NAV_ICONS: Record<string, LucideIcon> = {
+  '/': House,
+  '/shop/accessories': Gem,
+  '/shop/perfumes': Sparkles,
+  '/shop/diffuseurs': Wind,
+  '/reels': Clapperboard,
+  '/numba': FlaskConical,
+};
+
+function DockLink({
+  href,
+  label,
+  Icon,
+  isActive,
+  mouseX,
+}: {
+  href: string;
+  label: string;
+  Icon: LucideIcon;
+  isActive: boolean;
+  mouseX: MotionValue<number>;
+}) {
+  const ref = useRef<HTMLAnchorElement>(null);
+  const [isHovered, setIsHovered] = useState(false);
+  const distance = useTransform(mouseX, (value) => {
+    const bounds = ref.current?.getBoundingClientRect();
+    return bounds ? value - bounds.left - bounds.width / 2 : Infinity;
+  });
+  const sizeSync = useTransform(distance, [-150, 0, 150], [44, 64, 44]);
+  const size = useSpring(sizeSync, { mass: 0.1, stiffness: 150, damping: 12 });
+
+  return (
+    <motion.div style={{ width: size, height: size }} className="relative flex shrink-0 items-center justify-center">
+      <Link
+        ref={ref}
+        href={href}
+        onClick={(event) => {
+          if (isActive) {
+            event.preventDefault();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }
+        }}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+        aria-label={label}
+        aria-current={isActive ? 'page' : undefined}
+        className={`relative flex h-full w-full items-center justify-center rounded-xl transition-colors ${
+          isActive ? 'bg-gold/15 text-gold' : 'text-foreground/70 hover:text-gold'
+        }`}
+      >
+        <Icon size={22} strokeWidth={1.8} />
+        <motion.span
+          initial={{ opacity: 0, y: 8, scale: 0.9 }}
+          animate={{ opacity: isHovered ? 1 : 0, y: isHovered ? 0 : 8, scale: isHovered ? 1 : 0.9 }}
+          transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+          className="pointer-events-none absolute -top-10 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-md border border-foreground/10 bg-background/95 px-2.5 py-1 text-xs text-foreground shadow-lg backdrop-blur-md"
+        >
+          {label}
+        </motion.span>
+      </Link>
+      {isActive && <span className="absolute -bottom-1 h-1 w-1 rounded-full bg-gold" />}
+    </motion.div>
+  );
+}
+
 export function Navbar() {
   const [mounted, setMounted] = useState(false);
   const { i18n } = useTranslation();
   const isEn = mounted && i18n.language?.startsWith('en');
 
   const pathname = usePathname();
-  const [scrolled, setScrolled] = useState(false);
+  const mouseX = useMotionValue(Infinity);
 
   const user = useAuthStore((s) => s.user);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
@@ -56,9 +121,6 @@ export function Navbar() {
 
   useEffect(() => {
     setMounted(true);
-    const handleScroll = () => setScrolled(window.scrollY > 20);
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
   useEffect(() => {
@@ -68,13 +130,6 @@ export function Navbar() {
 
   const isDashboard = pathname.startsWith('/dashboard') || pathname.startsWith('/admin') || pathname.startsWith('/delivery') || pathname.startsWith('/partner') || pathname.startsWith('/client');
   if (isDashboard) return null;
-
-  const glass = cn(
-    'rounded-full border backdrop-blur-xl backdrop-saturate-150 shadow-md shadow-black/5 transition-colors duration-300',
-    scrolled
-      ? 'bg-white/90 border-black/15 shadow-lg dark:bg-zinc-900/70 dark:border-white/10'
-      : 'bg-white/70 border-white/70 dark:bg-zinc-900/60 dark:border-white/10'
-  );
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50">
@@ -148,124 +203,99 @@ export function Navbar() {
         </div>
       </div>
 
-      {/* DESKTOP */}
-      <nav className={cn('hidden nav:block transition-all duration-300', scrolled ? 'py-2.5' : 'py-4')}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between relative">
-            <Link
-              href="/"
-              onClick={(e) => {
-                if (pathname === '/') {
-                  e.preventDefault();
-                  window.scrollTo({ top: 0, behavior: 'smooth' });
-                }
-              }}
-              className={cn( 'flex items-center gap-2 group flex-shrink-0 z-10 px-2')}
-            >
-              <img
-                src="/logo/Longo only2.svg"
-                alt="Accessoires Exclusifs"
-                className="h-20 w-auto object-contain group-hover:scale-105 transition-transform duration-300"
-              />
-            </Link>
+      {/* DESKTOP DOCK */}
+      <motion.nav
+        aria-label={isEn ? 'Main navigation' : 'Navigation principale'}
+        onMouseMove={(event) => mouseX.set(event.clientX)}
+        onMouseLeave={() => mouseX.set(Infinity)}
+        initial={{ y: 80, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ type: 'spring', stiffness: 260, damping: 20, delay: 0.1 }}
+        className="fixed bottom-5 left-1/2 z-[100] hidden h-[76px] w-max max-w-[calc(100vw-2rem)] -translate-x-1/2 items-end gap-1.5 rounded-2xl border border-foreground/15 bg-background/85 px-3 pb-2.5 shadow-[0_12px_36px_rgba(0,0,0,0.35)] backdrop-blur-2xl nav:flex"
+      >
+        {PUBLIC_NAV_LINKS.map((link) => {
+          const label = NAV_LABEL_MAP[link.href]
+            ? (isEn ? NAV_LABEL_MAP[link.href].en : NAV_LABEL_MAP[link.href].fr)
+            : link.label;
+          const Icon = NAV_ICONS[link.href];
+          const isActive = link.href === '/' ? pathname === '/' : pathname.startsWith(link.href);
 
-            <div className={cn(glass, 'flex items-center gap-1 p-1.5 mx-auto')}>
-              {PUBLIC_NAV_LINKS.map((link) => {
-                const localizedLabel = NAV_LABEL_MAP[link.href]
-                  ? (isEn ? NAV_LABEL_MAP[link.href].en : NAV_LABEL_MAP[link.href].fr)
-                  : link.label;
-                const isActive = pathname === link.href;
+          return Icon ? (
+            <DockLink
+              key={link.href}
+              href={link.href}
+              label={label}
+              Icon={Icon}
+              isActive={isActive}
+              mouseX={mouseX}
+            />
+          ) : null;
+        })}
 
-                return (
-                  <Link
-                    key={link.href}
-                    href={link.href}
-                    onClick={(e) => {
-                      if (isActive) {
-                        e.preventDefault();
-                        window.scrollTo({ top: 0, behavior: 'smooth' });
-                      }
-                    }}
-                    className={cn(
-                      'relative px-4 py-2 rounded-full text-sm font-semibold transition-colors duration-200',
-                      isActive ? 'text-gold' : 'text-zinc-900 dark:text-zinc-100 hover:text-gold'
-                    )}
-                  >
-                    {isActive && (
-                      <motion.span
-                        layoutId="navbar-active-pill"
-                        className="absolute inset-0 rounded-full bg-gold/15 border border-gold/20"
-                        transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-                      />
-                    )}
-                    <span className="relative">{localizedLabel}</span>
-                  </Link>
-                );
-              })}
-            </div>
+        <span aria-hidden="true" className="mx-1 mb-2 h-8 w-px shrink-0 bg-foreground/15" />
 
-            <div className="flex items-center gap-2 z-10">
-              <div className={cn(glass, 'p-1.5 flex items-center')}>
-                <ThemeToggle />
-              </div>
-
-              <div className={cn(glass, 'p-1.5 flex items-center gap-0.5')}>
-                <button
-                  onClick={() => openCartDrawer()}
-                  className="relative p-1.5 flex items-center rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
-                  aria-label={isEn ? UI_DICT.cart.en : UI_DICT.cart.fr}
-                >
-                  <CartIcon size={19} className="text-zinc-900 dark:text-zinc-100 group-hover:text-gold transition-colors" />
-                  {itemCount > 0 && (
-                    <motion.span
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-gold text-deep-black text-[10px] font-bold flex items-center justify-center"
-                    >
-                      {itemCount}
-                    </motion.span>
-                  )}
-                </button>
-
-                <Link
-                  href="/dashboard/client/favorites"
-                  aria-label={isEn ? UI_DICT.favorites.en : UI_DICT.favorites.fr}
-                  className="p-1.5 flex items-center rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
-                >
-                  <Heart size={19} className="text-zinc-900 dark:text-zinc-100 hover:text-gold transition-colors" />
-                </Link>
-              </div>
-
-              <div className={cn(glass, 'p-1.5 flex items-center')}>
-                <LanguageSelector />
-              </div>
-
-              {isAuthenticated && user ? (
-                <Link
-                  href="/dashboard/profile"
-                  className={cn(glass, 'relative flex items-center justify-center p-1.5 hover:bg-black/5 dark:hover:bg-white/10 transition-colors group')}
-                  aria-label={isEn ? UI_DICT.profile.en : UI_DICT.profile.fr}
-                >
-                  <div className="h-8 w-8 rounded-full bg-foreground/5 border border-foreground/10 dark:bg-white/10 dark:border-white/10 flex items-center justify-center text-foreground/80 group-hover:scale-105 transition-transform">
-                    <ProfileIcon size={18} className="text-zinc-900 dark:text-zinc-100 group-hover:text-gold transition-colors" />
-                  </div>
-                  {unreadNotificationCount > 0 && (
-                    <span className="absolute -top-1 -right-1 min-w-4 h-4 px-1 rounded-full bg-red-500 text-[9px] font-bold text-white flex items-center justify-center leading-none">
-                      {unreadNotificationCount > 99 ? '99+' : unreadNotificationCount}
-                    </span>
-                  )}
-                </Link>
-              ) : (
-                <Link href="/login" onClick={() => { preloadGoogleIdentityScript(); }}>
-                  <Button variant="secondary" size="sm" suppressHydrationWarning className={cn(glass, 'border-gold/30 text-gold hover:bg-gold/10')}>
-                    {isEn ? UI_DICT.login.en : UI_DICT.login.fr}
-                  </Button>
-                </Link>
-              )}
-            </div>
-          </div>
+        <div className="relative flex h-11 w-11 shrink-0 items-center justify-center" title={isEn ? 'Shopping cart' : 'Panier'}>
+          <button
+            type="button"
+            onClick={openCartDrawer}
+            className="relative flex h-full w-full items-center justify-center rounded-xl text-foreground/70 transition-colors hover:bg-foreground/5 hover:text-gold"
+            aria-label={isEn ? UI_DICT.cart.en : UI_DICT.cart.fr}
+          >
+            <CartIcon size={21} />
+            {itemCount > 0 && (
+              <motion.span
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                className="absolute right-0 top-0 flex h-4 min-w-4 items-center justify-center rounded-full bg-gold px-1 text-[9px] font-bold text-deep-black"
+              >
+                {itemCount}
+              </motion.span>
+            )}
+          </button>
         </div>
-      </nav>
+
+        <Link
+          href="/dashboard/client/favorites"
+          aria-label={isEn ? UI_DICT.favorites.en : UI_DICT.favorites.fr}
+          title={isEn ? UI_DICT.favorites.en : UI_DICT.favorites.fr}
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-foreground/70 transition-colors hover:bg-foreground/5 hover:text-gold"
+        >
+          <Heart size={20} />
+        </Link>
+
+        <div className="flex h-11 shrink-0 items-center justify-center" title={isEn ? 'Language' : 'Langue'}>
+          <LanguageSelector />
+        </div>
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center" title={isEn ? 'Change theme' : 'Changer de thème'}>
+          <ThemeToggle />
+        </div>
+
+        {isAuthenticated && user ? (
+          <Link
+            href="/dashboard/profile"
+            className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-foreground/70 transition-colors hover:bg-foreground/5 hover:text-gold"
+            aria-label={isEn ? UI_DICT.profile.en : UI_DICT.profile.fr}
+            title={isEn ? UI_DICT.profile.en : UI_DICT.profile.fr}
+          >
+            <ProfileIcon size={20} />
+            {unreadNotificationCount > 0 && (
+              <span className="absolute right-0 top-0 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-bold leading-none text-white">
+                {unreadNotificationCount > 99 ? '99+' : unreadNotificationCount}
+              </span>
+            )}
+          </Link>
+        ) : (
+          <Link
+            href="/login"
+            onClick={() => preloadGoogleIdentityScript()}
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-foreground/70 transition-colors hover:bg-foreground/5 hover:text-gold"
+            aria-label={isEn ? UI_DICT.login.en : UI_DICT.login.fr}
+            title={isEn ? UI_DICT.login.en : UI_DICT.login.fr}
+          >
+            <ProfileIcon size={20} />
+          </Link>
+        )}
+      </motion.nav>
     </header>
   );
 }
