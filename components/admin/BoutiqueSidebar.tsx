@@ -38,7 +38,7 @@ function NavItemComponent({ item, onNavigate }: { item: NavItem; onNavigate: () 
       className={`flex items-center justify-between px-4 py-2.5 rounded-lg text-sm transition-all duration-200 group ${
         isActive
           ? 'bg-gold/10 text-gold font-medium'
-          : 'text-foreground/60 hover:text-foreground hover:bg-white/5'
+          : 'text-foreground/60 hover:text-foreground hover:bg-foreground/5'
       }`}
     >
       <span className="flex items-center gap-3">
@@ -118,12 +118,12 @@ export default function BoutiqueSidebar({ open, setOpen }: SidebarProps) {
       )}
 
       <aside
-        className={`fixed nav:static inset-y-0 left-0 z-30 flex flex-col w-[260px] bg-background border-r border-white/10 transition-transform duration-300 ease-in-out ${
+        className={`fixed nav:static inset-y-0 left-0 z-30 flex flex-col w-[260px] bg-background border-r border-foreground/10 transition-transform duration-300 ease-in-out ${
           open ? 'translate-x-0' : '-translate-x-full nav:translate-x-0'
         }`}
       >
         {/* Logo */}
-        <div className="flex items-center justify-between px-5 py-5 border-b border-white/10">
+        <div className="flex items-center justify-between px-5 py-5 border-b border-foreground/10">
           <Link
             href="/dashboard/boutique"
             onClick={() => setOpen(false)}
@@ -159,7 +159,7 @@ export default function BoutiqueSidebar({ open, setOpen }: SidebarProps) {
         </nav>
 
         {/* Bottom branding */}
-        <div className="px-5 py-4 border-t border-white/10">
+        <div className="px-5 py-4 border-t border-foreground/10">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-lg bg-gold/10 flex items-center justify-center">
               <Sparkles size={14} className="text-gold" />

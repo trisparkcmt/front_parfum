@@ -51,31 +51,31 @@ export default function VendorDashboardPage() {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4 mb-8">
-        <div className="bg-[#0a0a0a] border border-white/10 p-6 rounded-2xl">
+        <div className="bg-[var(--t-surface)] border border-foreground/10 p-6 rounded-2xl">
           <div className="flex items-center gap-3 text-foreground/50 mb-2">
             <Wallet size={18} /> <span className="text-sm uppercase font-bold">Solde Disponible</span>
           </div>
-          <p className="text-2xl font-mono font-bold text-green-400">{wallet.solde_disponible} FCFA</p>
+          <p className="text-2xl font-mono font-bold text-green-700 dark:text-green-400">{wallet.solde_disponible} FCFA</p>
         </div>
-        <div className="bg-[#0a0a0a] border border-white/10 p-6 rounded-2xl">
+        <div className="bg-[var(--t-surface)] border border-foreground/10 p-6 rounded-2xl">
           <div className="flex items-center gap-3 text-foreground/50 mb-2">
             <Wallet size={18} /> <span className="text-sm uppercase font-bold">Total Reçu</span>
           </div>
           <p className="text-2xl font-mono font-bold">{wallet.solde_total_recu} FCFA</p>
         </div>
-        <div className="bg-[#0a0a0a] border border-white/10 p-6 rounded-2xl">
+        <div className="bg-[var(--t-surface)] border border-foreground/10 p-6 rounded-2xl">
           <div className="flex items-center gap-3 text-foreground/50 mb-2">
             <TrendingUp size={18} /> <span className="text-sm uppercase font-bold">CA Brut</span>
           </div>
           <p className="text-2xl font-mono font-bold">{wallet.chiffre_affaires_brut} FCFA</p>
         </div>
-        <div className="bg-[#0a0a0a] border border-white/10 p-6 rounded-2xl">
+        <div className="bg-[var(--t-surface)] border border-foreground/10 p-6 rounded-2xl">
           <div className="flex items-center gap-3 text-foreground/50 mb-2">
             <DollarSign size={18} /> <span className="text-sm uppercase font-bold">Commissions</span>
           </div>
-          <p className="text-2xl font-mono font-bold text-red-300">{wallet.total_commissions_admin} FCFA</p>
+          <p className="text-2xl font-mono font-bold text-red-700 dark:text-red-300">{wallet.total_commissions_admin} FCFA</p>
         </div>
-        <div className="bg-[#0a0a0a] border border-white/10 p-6 rounded-2xl">
+        <div className="bg-[var(--t-surface)] border border-foreground/10 p-6 rounded-2xl">
           <div className="flex items-center gap-3 text-foreground/50 mb-2">
             <DollarSign size={18} /> <span className="text-sm uppercase font-bold">Total Net Gagné</span>
           </div>
@@ -83,7 +83,7 @@ export default function VendorDashboardPage() {
         </div>
       </div>
 
-      <div className="border-b border-white/10 flex gap-6 mb-6">
+      <div className="border-b border-foreground/10 flex gap-6 mb-6">
         <button
           onClick={() => setActiveTab('wallet')}
           className={`pb-3 text-sm font-bold uppercase tracking-wider transition-colors ${
@@ -108,9 +108,9 @@ export default function VendorDashboardPage() {
           {wallet.versements_recents.length === 0 ? (
             <p className="text-foreground/40 italic">Aucun versement reçu pour le moment.</p>
           ) : (
-            <div className="bg-[#0a0a0a] border border-white/10 rounded-2xl overflow-hidden">
+            <div className="bg-[var(--t-surface)] border border-foreground/10 rounded-2xl overflow-hidden">
               <table className="w-full text-left text-sm">
-                <thead className="bg-white/5 border-b border-white/10">
+                <thead className="bg-foreground/5 border-b border-foreground/10">
                   <tr>
                     <th className="p-4 font-semibold text-foreground/60">Date</th>
                     <th className="p-4 font-semibold text-foreground/60">Référence</th>
@@ -119,12 +119,12 @@ export default function VendorDashboardPage() {
                     <th className="p-4 font-semibold text-foreground/60">Note Admin</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-white/5">
+                <tbody className="divide-y divide-foreground/5">
                   {wallet.versements_recents.map(v => (
-                    <tr key={v.id} className="hover:bg-white/[0.02]">
+                    <tr key={v.id} className="hover:bg-foreground/[0.02]">
                       <td className="p-4 text-foreground/70">{new Date(v.date_versement).toLocaleDateString()}</td>
                       <td className="p-4 font-mono text-xs">{v.reference_transaction}</td>
-                      <td className="p-4 font-mono font-bold text-green-400">{v.montant} FCFA</td>
+                      <td className="p-4 font-mono font-bold text-green-700 dark:text-green-400">{v.montant} FCFA</td>
                       <td className="p-4 text-xs text-foreground/60">{v.mode_paiement || '—'}<br />{v.telephone_destination || '—'}</td>
                       <td className="p-4 text-foreground/50 text-xs">{v.note_admin || '-'}</td>
                     </tr>
@@ -142,9 +142,9 @@ export default function VendorDashboardPage() {
           {ventes.length === 0 ? (
             <p className="text-foreground/40 italic">Aucune vente enregistrée.</p>
           ) : (
-            <div className="bg-[#0a0a0a] border border-white/10 rounded-2xl overflow-hidden">
+            <div className="bg-[var(--t-surface)] border border-foreground/10 rounded-2xl overflow-hidden">
               <table className="w-full text-left text-sm">
-                <thead className="bg-white/5 border-b border-white/10">
+                <thead className="bg-foreground/5 border-b border-foreground/10">
                   <tr>
                     <th className="p-4 font-semibold text-foreground/60">Date</th>
                     <th className="p-4 font-semibold text-foreground/60">Commande</th>
@@ -154,13 +154,13 @@ export default function VendorDashboardPage() {
                     <th className="p-4 font-semibold text-foreground/60">Statut</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-white/5">
+                <tbody className="divide-y divide-foreground/5">
                   {ventes.map(vente => (
-                    <tr key={vente.id} className="hover:bg-white/[0.02]">
+                    <tr key={vente.id} className="hover:bg-foreground/[0.02]">
                       <td className="p-4 text-foreground/70">{new Date(vente.date_vente).toLocaleDateString()}</td>
                       <td className="p-4 font-mono text-xs">{vente.commande_reference}</td>
                       <td className="p-4 font-mono">{vente.montant_brut} FCFA</td>
-                      <td className="p-4 text-red-400 font-mono">-{vente.montant_commission_admin} ({vente.taux_commission_applique}%)</td>
+                      <td className="p-4 text-red-700 dark:text-red-400 font-mono">-{vente.montant_commission_admin} ({vente.taux_commission_applique}%)</td>
                       <td className="p-4 font-mono font-bold text-gold">{vente.montant_net_boutique} FCFA</td>
                       <td className="p-4 text-foreground/60">{vente.statut}</td>
                     </tr>

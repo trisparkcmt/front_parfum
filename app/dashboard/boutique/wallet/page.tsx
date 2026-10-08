@@ -35,13 +35,13 @@ export default function BoutiqueWalletPage() {
 
       <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
         {[
-          { label: 'Solde disponible', value: wallet.solde_disponible, tone: 'text-green-400' },
+          { label: 'Solde disponible', value: wallet.solde_disponible, tone: 'text-green-700 dark:text-green-400' },
           { label: 'Total reçu', value: wallet.solde_total_recu, tone: 'text-foreground' },
           { label: 'Chiffre d’affaires brut', value: wallet.chiffre_affaires_brut, tone: 'text-foreground' },
-          { label: 'Commissions plateforme', value: wallet.total_commissions_admin, tone: 'text-red-300' },
+          { label: 'Commissions plateforme', value: wallet.total_commissions_admin, tone: 'text-red-700 dark:text-red-300' },
           { label: 'Net gagné', value: wallet.total_net_gagne, tone: 'text-gold' },
         ].map((metric) => (
-          <div key={metric.label} className="border border-white/10 bg-[#0a0a0a] p-5">
+          <div key={metric.label} className="border border-foreground/10 bg-[var(--t-surface)] p-5">
             <p className="text-xs font-semibold uppercase text-foreground/45">{metric.label}</p>
             <p className={`mt-3 text-xl font-mono font-bold ${metric.tone}`}>{metric.value} FCFA</p>
           </div>
@@ -54,21 +54,21 @@ export default function BoutiqueWalletPage() {
           <h2 className="text-lg font-semibold">10 derniers versements</h2>
         </div>
         {!wallet.versements_recents.length ? (
-          <p className="border border-white/10 p-5 text-sm text-foreground/45">Aucun versement reçu pour le moment.</p>
+          <p className="border border-foreground/10 p-5 text-sm text-foreground/45">Aucun versement reçu pour le moment.</p>
         ) : (
-          <div className="overflow-x-auto border border-white/10 bg-[#0a0a0a]">
+          <div className="overflow-x-auto border border-foreground/10 bg-[var(--t-surface)]">
             <table className="w-full min-w-[720px] text-left text-sm">
-              <thead className="border-b border-white/10 bg-white/[0.03] text-xs text-foreground/50">
+              <thead className="border-b border-foreground/10 bg-foreground/[0.03] text-xs text-foreground/50">
                 <tr><th className="px-4 py-3">Date</th><th className="px-4 py-3">Référence</th><th className="px-4 py-3">Mode</th><th className="px-4 py-3">Destination</th><th className="px-4 py-3">Montant</th><th className="px-4 py-3">Note</th></tr>
               </thead>
-              <tbody className="divide-y divide-white/5">
+              <tbody className="divide-y divide-foreground/5">
                 {wallet.versements_recents.map((payment) => (
                   <tr key={payment.id}>
                     <td className="px-4 py-3 text-foreground/65">{payment.date_versement ? new Date(payment.date_versement).toLocaleDateString('fr-FR') : '—'}</td>
                     <td className="px-4 py-3 font-mono text-xs">{payment.reference_transaction || '—'}</td>
                     <td className="px-4 py-3">{payment.mode_paiement || '—'}</td>
                     <td className="px-4 py-3">{payment.telephone_destination || '—'}</td>
-                    <td className="px-4 py-3 font-mono font-semibold text-green-400">{payment.montant} FCFA</td>
+                    <td className="px-4 py-3 font-mono font-semibold text-green-700 dark:text-green-400">{payment.montant} FCFA</td>
                     <td className="px-4 py-3 text-xs text-foreground/50">{payment.note_admin || '—'}</td>
                   </tr>
                 ))}

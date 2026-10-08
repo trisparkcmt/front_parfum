@@ -231,8 +231,8 @@ export default function Header({ onMenuClick }: HeaderProps) {
   };
 
   return (
-    <header className="h-16 bg-background border-b border-white/10 flex items-center px-4 sm:px-6 gap-3 sm:gap-4 shrink-0">
-      <div className="flex items-center gap-2 pr-4 border-r border-white/10">
+    <header className="h-16 bg-background border-b border-foreground/10 flex items-center px-4 sm:px-6 gap-3 sm:gap-4 shrink-0">
+      <div className="flex items-center gap-2 pr-4 border-r border-foreground/10">
         <button
           onClick={() => router.push(profilePath)}
           className="flex items-center gap-2 text-foreground/60 hover:text-gold transition-colors group"
@@ -244,13 +244,13 @@ export default function Header({ onMenuClick }: HeaderProps) {
 
       <button
         onClick={onMenuClick}
-        className="nav:hidden text-foreground/60 hover:text-foreground transition-colors p-1.5 rounded-lg hover:bg-white/5"
+        className="nav:hidden text-foreground/60 hover:text-foreground transition-colors p-1.5 rounded-lg hover:bg-foreground/5"
       >
         <Menu size={20} />
       </button>
 
       <div ref={searchRef} className="hidden sm:block relative flex-1 max-w-md">
-        <div className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-lg px-3 py-2 focus-within:border-gold focus-within:ring-1 focus-within:ring-gold/20 transition-all">
+        <div className="flex items-center gap-2 bg-foreground/5 border border-foreground/10 rounded-lg px-3 py-2 focus-within:border-gold focus-within:ring-1 focus-within:ring-gold/20 transition-all">
           <Search size={16} className={`transition-colors ${searchLoading ? 'text-gold animate-pulse' : 'text-foreground/40'}`} />
           <input
             type="text"
@@ -266,11 +266,11 @@ export default function Header({ onMenuClick }: HeaderProps) {
               <span className="text-xs">✕</span>
             </button>
           )}
-          {!search && <span className="text-xs text-foreground/40 bg-white/5 border border-white/10 rounded px-1.5 py-0.5 font-mono flex-shrink-0">⏎</span>}
+          {!search && <span className="text-xs text-foreground/40 bg-foreground/5 border border-foreground/10 rounded px-1.5 py-0.5 font-mono flex-shrink-0">⏎</span>}
         </div>
 
         {showSuggestions && suggestions.length > 0 && (
-          <div className="absolute top-full left-0 right-0 mt-1.5 bg-background border border-white/10 rounded-xl shadow-sm z-50 overflow-hidden">
+          <div className="absolute top-full left-0 right-0 mt-1.5 bg-background border border-foreground/10 rounded-xl shadow-sm z-50 overflow-hidden">
             <div className="py-1">
               {suggestions.map((s, idx) => (
                 <button
@@ -281,7 +281,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
                     setShowSuggestions(false);
                   }}
                   className={`w-full flex items-center gap-3 px-4 py-2.5 text-left transition-colors ${
-                    idx === activeSuggestion ? 'bg-gold/10 text-gold' : 'hover:bg-white/5 text-foreground'
+                    idx === activeSuggestion ? 'bg-gold/10 text-gold' : 'hover:bg-foreground/5 text-foreground'
                   }`}
                 >
                   <span className={`flex-shrink-0 ${idx === activeSuggestion ? 'text-gold' : 'text-foreground/40'}`}>{s.icon}</span>
@@ -292,7 +292,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
                 </button>
               ))}
             </div>
-            <div className="border-t border-white/10 px-4 py-2 flex items-center justify-between">
+            <div className="border-t border-foreground/10 px-4 py-2 flex items-center justify-between">
               <span className="text-[10px] text-foreground/30">↑↓ navigate · ↵ select</span>
               <button
                 onClick={() => {
@@ -312,7 +312,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
       <div className="ml-auto flex items-center gap-1 sm:gap-2">
         <button
           onClick={toggleTheme}
-          className="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-white/5 text-foreground/60 transition-colors"
+          className="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-foreground/5 text-foreground/60 transition-colors"
         >
           {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
         </button>
@@ -320,7 +320,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
         <div ref={notifRef} className="relative">
           <button
             onClick={() => setShowNotifs(!showNotifs)}
-            className="relative w-9 h-9 flex items-center justify-center rounded-lg hover:bg-white/5 text-foreground/60 transition-colors"
+            className="relative w-9 h-9 flex items-center justify-center rounded-lg hover:bg-foreground/5 text-foreground/60 transition-colors"
           >
             <Bell size={18} />
             {unreadNotificationCount > 0 && (
@@ -331,8 +331,8 @@ export default function Header({ onMenuClick }: HeaderProps) {
           </button>
 
           {showNotifs && (
-            <div className="absolute right-0 mt-2 w-80 bg-background rounded-xl border border-white/10 shadow-sm z-50 overflow-hidden">
-              <div className="px-4 py-3 border-b border-white/10 flex items-center justify-between">
+            <div className="absolute right-0 mt-2 w-80 bg-background rounded-xl border border-foreground/10 shadow-sm z-50 overflow-hidden">
+              <div className="px-4 py-3 border-b border-foreground/10 flex items-center justify-between">
                 <h3 className="font-semibold text-sm text-foreground">Notifications</h3>
                 <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-red-500/10 text-red-500">
                   {unreadNotificationCount} new
@@ -361,7 +361,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
                         }
                         setShowNotifs(false);
                       }}
-                      className="px-4 py-3 border-b border-white/5 hover:bg-white/5 transition-colors cursor-pointer bg-white/[0.02]"
+                      className="px-4 py-3 border-b border-foreground/5 hover:bg-foreground/5 transition-colors cursor-pointer bg-foreground/[0.02]"
                     >
                       <div className="flex items-start gap-3">
                         <div className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${n.type === 'order' ? 'bg-red-500' : 'bg-gold'}`} />
@@ -373,7 +373,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
                         {n.type !== 'order' && (
                           <button
                             onClick={(e) => handleMarkAsRead(n, e)}
-                            className="p-1 rounded hover:bg-white/10 text-foreground/40 hover:text-foreground transition-colors shrink-0"
+                            className="p-1 rounded hover:bg-foreground/10 text-foreground/40 hover:text-foreground transition-colors shrink-0"
                             title="Mark as read"
                           >
                             <Check size={12} />
@@ -389,7 +389,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
                   </div>
                 )}
               </div>
-              <div className="px-4 py-2 bg-white/5 border-t border-white/10 text-center">
+              <div className="px-4 py-2 bg-foreground/5 border-t border-foreground/10 text-center">
                 <Link
                   href={user?.roles?.includes('serveuse') ? '/dashboard/serveuse/notifications' : '/dashboard/admin/notifications'}
                   onClick={() => setShowNotifs(false)}
@@ -405,7 +405,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
 
         <Link 
           href={profilePath}
-          className="flex items-center gap-2 cursor-pointer hover:bg-white/5 rounded-lg px-2 py-1.5 transition-colors group"
+          className="flex items-center gap-2 cursor-pointer hover:bg-foreground/5 rounded-lg px-2 py-1.5 transition-colors group"
           title="My Profile"
         >
           <User size={18} className="text-foreground/60 group-hover:text-gold transition-colors" />
