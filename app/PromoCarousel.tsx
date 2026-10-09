@@ -317,7 +317,7 @@ export default function PromoCarousel() {
             ))}
           </div>
         </div>
-        <div className="hidden lg:block w-full h-[500px] bg-foreground/5 animate-pulse" />
+        <div className="hidden lg:block w-full h-[580px] bg-foreground/5 animate-pulse" />
       </div>
     );
   }
