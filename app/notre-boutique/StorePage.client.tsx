@@ -26,9 +26,6 @@ const SHOPS = [
   }
 ];
 
-const CENTER_LAT = (SHOPS[0].lat + SHOPS[1].lat) / 2;
-const CENTER_LNG = (SHOPS[0].lng + SHOPS[1].lng) / 2;
-
 const STORE_INFO = {
   name: 'Accessoires Exclusifs',
   addressFr: 'Yaoundé, Centre, Cameroun',
@@ -71,7 +68,7 @@ function LeafletMap() {
       if (mapInstanceRef.current || !mapRef.current) return;
 
       const map = L.default.map(mapRef.current, {
-        center: [CENTER_LAT, CENTER_LNG],
+        center: [SHOPS[0].lat, SHOPS[0].lng],
         zoom: 14,
         zoomControl: true,
         scrollWheelZoom: false,
@@ -115,6 +112,11 @@ function LeafletMap() {
         
         if (index === 0) marker.openPopup();
       });
+
+      map.fitBounds(
+        L.default.latLngBounds(SHOPS.map((shop) => [shop.lat, shop.lng])),
+        { padding: [64, 64], maxZoom: 17 }
+      );
     });
 
     return () => {
