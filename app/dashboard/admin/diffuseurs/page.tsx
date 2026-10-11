@@ -274,6 +274,7 @@ export default function DiffuseursAdminPage() {
     image_supp_3: null,
     image_supp_4: null,
   });
+  const [existingImages, setExistingImages] = useState<Partial<Record<'image_principale' | 'image_supp_1' | 'image_supp_2' | 'image_supp_3' | 'image_supp_4', string | null>>>({});
   const { addToast } = useToastStore();
 
   // ── Server-side pagination state ──────────────────────────────────────────
@@ -359,6 +360,7 @@ export default function DiffuseursAdminPage() {
       image_supp_3: null,
       image_supp_4: null,
     });
+    setExistingImages({});
     setShowModal(true);
   };
 
@@ -368,7 +370,7 @@ export default function DiffuseursAdminPage() {
     setFormError(null);
     setForm({
       nom: item.nom || '',
-      description_courte: item.description_courte || '',
+      description_courte: item.description_courte || item.description || '',
       prix_unitaire: String(item.prix_unitaire || ''),
       prix_achat: item.prix_achat ? String(item.prix_achat) : '',
       stock_quantite: String(item.stock_quantite ?? ''),
@@ -386,6 +388,13 @@ export default function DiffuseursAdminPage() {
       image_supp_3: null,
       image_supp_4: null,
     });
+    setExistingImages({
+      image_principale: item.image_principale || null,
+      image_supp_1: item.image_supp_1 || null,
+      image_supp_2: item.image_supp_2 || null,
+      image_supp_3: item.image_supp_3 || null,
+      image_supp_4: item.image_supp_4 || null,
+    });
     setShowModal(true);
   };
 
@@ -400,18 +409,13 @@ export default function DiffuseursAdminPage() {
       setSaving(true);
       const payload: Record<string, any> = {
         nom: form.nom,
-        description_courte: form.description_courte,
+        description: form.description_courte,
         prix_unitaire: form.prix_unitaire,
         type_technologie: form.type_technologie,
         type_alimentation: form.type_alimentation,
         est_connecte: form.est_connecte,
         a_jeux_de_lumiere: form.a_jeux_de_lumiere,
         actif: form.actif,
-        image_principale: null,
-        image_supp_1: null,
-        image_supp_2: null,
-        image_supp_3: null,
-        image_supp_4: null,
       };
 
       if (form.prix_achat) payload.prix_achat = form.prix_achat;
@@ -430,7 +434,10 @@ export default function DiffuseursAdminPage() {
       Object.entries(imageFiles).forEach(([key, file]) => {
         if (file instanceof File) {
           formData.append(key, file);
-        } else {
+        }
+      });
+      Object.entries(existingImages).forEach(([key, url]) => {
+        if (editing && url === null && editing[key] && !(imageFiles[key] instanceof File)) {
           formData.append(key, '');
         }
       });
@@ -1000,7 +1007,12 @@ export default function DiffuseursAdminPage() {
           </FormSection>
 
           <FormSection title={isEn ? 'Images' : 'Images'} icon={<Settings2 size={11} />}>
-            <MultiImageUpload onImagesChange={(images) => setImageFiles(images)} />
+            <MultiImageUpload
+              key={editing?.slug || editing?.id || 'new'}
+              initialImages={existingImages}
+              onExistingImagesChange={(changes) => setExistingImages((previous) => ({ ...previous, ...changes }))}
+              onImagesChange={(images) => setImageFiles(images)}
+            />
           </FormSection>
 
           <FormSection title={isEn ? 'Features & status' : 'Fonctionnalités & statut'} icon={<Settings2 size={11} />}>
