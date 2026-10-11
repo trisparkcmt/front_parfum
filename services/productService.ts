@@ -80,6 +80,8 @@ export function mapBackendPerfumeToProduct(p: any): Product {
     id: String(p.id),
     name: p.nom,
     description: p.description_courte || p.description_longue || '',
+    description_courte: p.description_courte || '',
+    description_longue: p.description_longue || '',
     price: parseFloat(p.prix_actuel || p.prix_unitaire || '0'),
     originalPrice: parseFloat(p.prix_unitaire),
     taux_reduction: p.taux_reduction || (
@@ -294,7 +296,9 @@ export function mapBackendAccessoryToProduct(p: any): Product {
   return {
     id: String(p.id),
     name: p.nom,
-    description: p.description_courte || '',
+    description: p.description_courte || p.description_longue || '',
+    description_courte: p.description_courte || '',
+    description_longue: p.description_longue || '',
     price: parseFloat(p.prix_actuel || p.prix_unitaire || '0'),
     originalPrice: parseFloat(p.prix_unitaire),
     taux_reduction: p.taux_reduction || (

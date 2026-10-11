@@ -635,6 +635,17 @@ export function ProductDetailModal({
                       <p className="text-foreground/70 leading-relaxed mb-8 text-[15px] md:text-base max-w-lg">
                         {product.description}
                       </p>
+                      {product.description_longue?.trim() &&
+                        product.description_longue.trim() !== product.description.trim() && (
+                          <div className="mb-8 max-w-lg">
+                            <h3 className="mb-2 text-xs font-bold uppercase tracking-widest text-foreground/60">
+                              {isEn ? 'Full Description' : 'Description détaillée'}
+                            </h3>
+                            <p className="whitespace-pre-line text-foreground/70 leading-relaxed text-[15px] md:text-base">
+                              {product.description_longue}
+                            </p>
+                          </div>
+                        )}
 
                       {/* Color swatches */}
                       {product.availableColors && product.availableColors.length > 0 && (
