@@ -538,28 +538,32 @@ export default function ProfilePage() {
             <div className="flex flex-col items-center text-center pt-2">
               {/* Avatar */}
               <div className="relative mb-4">
-                <input
-                  id="profile-photo-input"
-                  type="file"
-                  accept="image/*"
-                  className="sr-only"
-                  onChange={handleProfilePhotoChange}
-                  disabled={isUploadingPhoto}
-                />
+                {hasBoutiqueDashboard && (
+                  <input
+                    id="profile-photo-input"
+                    type="file"
+                    accept="image/*"
+                    className="sr-only"
+                    onChange={handleProfilePhotoChange}
+                    disabled={isUploadingPhoto}
+                  />
+                )}
                 <div className="w-24 h-24 rounded-xl bg-gold/10 border border-gold/20 flex items-center justify-center text-gold text-3xl font-bold">
                   {user?.avatarUrl || user?.photo ? (
                     <img src={resolveImageUrl(user?.avatarUrl || user?.photo)} alt="" className="h-full w-full rounded-xl object-cover" />
                   ) : initials}
                 </div>
-                <button
-                  type="button"
-                  onClick={() => document.getElementById('profile-photo-input')?.click()}
-                  disabled={isUploadingPhoto}
-                  className="absolute -bottom-1 -right-1 rounded-lg p-1.5 border border-foreground/10 bg-background text-foreground/45 hover:text-gold hover:border-gold/30 transition-colors"
-                  aria-label={isEn ? 'Edit avatar' : 'Modifier la photo'}
-                >
-                  {isUploadingPhoto ? <Loader2 size={13} className="animate-spin" /> : <Edit2 size={13} />}
-                </button>
+                {hasBoutiqueDashboard && (
+                  <button
+                    type="button"
+                    onClick={() => document.getElementById('profile-photo-input')?.click()}
+                    disabled={isUploadingPhoto}
+                    className="absolute -bottom-1 -right-1 rounded-lg p-1.5 border border-foreground/10 bg-background text-foreground/45 hover:text-gold hover:border-gold/30 transition-colors"
+                    aria-label={isEn ? 'Edit avatar' : 'Modifier la photo'}
+                  >
+                    {isUploadingPhoto ? <Loader2 size={13} className="animate-spin" /> : <Edit2 size={13} />}
+                  </button>
+                )}
               </div>
 
               {/* Identity Info */}

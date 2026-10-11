@@ -4,8 +4,16 @@ import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { motion, useMotionValue, useSpring, useTransform, type MotionValue } from 'framer-motion';
-import { CartIcon, ProfileIcon } from '@/components/icons/CustomIcons';
-import { Clapperboard, FlaskConical, Gem, Heart, House, Sparkles, Wind, type LucideIcon } from 'lucide-react';
+import {
+  CartIcon,
+  DiffuseurIcon,
+  HomeIcon,
+  LaptopIcon,
+  PerfumeIcon,
+  ProfileIcon,
+  ReelsIcon,
+} from '@/components/icons/CustomIcons';
+import { Heart, Watch } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 import { PUBLIC_NAV_LINKS } from '@/lib/constants';
@@ -36,14 +44,16 @@ const UI_DICT: Record<string, { fr: string; en: string }> = {
   favorites: { fr: 'Favoris', en: 'Favorites' },
 };
 
-const NAV_ICONS: Record<string, LucideIcon> = {
-  '/': House,
-  '/shop/accessories': Gem,
-  '/shop/perfumes': Sparkles,
-  '/shop/diffuseurs': Wind,
-  '/reels': Clapperboard,
-  '/numba': FlaskConical,
+const NAV_ICONS: Record<string, DockIcon> = {
+  '/': HomeIcon,
+  '/shop/accessories': Watch,
+  '/shop/perfumes': PerfumeIcon,
+  '/shop/diffuseurs': DiffuseurIcon,
+  '/reels': ReelsIcon,
+  '/numba': LaptopIcon,
 };
+
+type DockIcon = typeof HomeIcon | typeof Watch | typeof DiffuseurIcon | typeof PerfumeIcon | typeof LaptopIcon | typeof ReelsIcon;
 
 function DockLink({
   href,
@@ -54,7 +64,7 @@ function DockLink({
 }: {
   href: string;
   label: string;
-  Icon: LucideIcon;
+  Icon: DockIcon;
   isActive: boolean;
   mouseX: MotionValue<number>;
 }) {
@@ -86,7 +96,7 @@ function DockLink({
           isActive ? 'bg-gold/15 text-gold' : 'text-foreground/70 hover:text-gold'
         }`}
       >
-        <Icon size={22} strokeWidth={1.8} />
+        <Icon size={22} className="shrink-0" />
         <motion.span
           initial={{ opacity: 0, y: 8, scale: 0.9 }}
           animate={{ opacity: isHovered ? 1 : 0, y: isHovered ? 0 : 8, scale: isHovered ? 1 : 0.9 }}
@@ -234,12 +244,13 @@ export function Navbar() {
 
         <span aria-hidden="true" className="mx-1 mb-2 h-8 w-px shrink-0 bg-foreground/15" />
 
-        <div className="relative flex h-11 w-11 shrink-0 items-center justify-center" title={isEn ? 'Shopping cart' : 'Panier'}>
+        <DockControl mouseX={mouseX} className="h-11 w-11">
           <button
             type="button"
             onClick={openCartDrawer}
-            className="relative flex h-full w-full items-center justify-center rounded-xl text-foreground/70 transition-colors hover:bg-foreground/5 hover:text-gold"
+            className="group relative flex h-full w-full items-center justify-center rounded-xl text-foreground/70 transition-colors hover:bg-foreground/5 hover:text-gold"
             aria-label={isEn ? UI_DICT.cart.en : UI_DICT.cart.fr}
+            title={isEn ? 'Shopping cart' : 'Panier'}
           >
             <CartIcon size={21} />
             {itemCount > 0 && (
@@ -252,50 +263,85 @@ export function Navbar() {
               </motion.span>
             )}
           </button>
-        </div>
+        </DockControl>
 
-        <Link
-          href="/dashboard/client/favorites"
-          aria-label={isEn ? UI_DICT.favorites.en : UI_DICT.favorites.fr}
-          title={isEn ? UI_DICT.favorites.en : UI_DICT.favorites.fr}
-          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-foreground/70 transition-colors hover:bg-foreground/5 hover:text-gold"
-        >
-          <Heart size={20} />
-        </Link>
+        <DockControl mouseX={mouseX} className="h-11 w-11">
+          <Link
+            href="/dashboard/client/favorites"
+            aria-label={isEn ? UI_DICT.favorites.en : UI_DICT.favorites.fr}
+            title={isEn ? UI_DICT.favorites.en : UI_DICT.favorites.fr}
+            className="flex h-full w-full items-center justify-center rounded-xl text-foreground/70 transition-colors hover:bg-foreground/5 hover:text-gold"
+          >
+            <Heart size={20} />
+          </Link>
+        </DockControl>
 
-        <div className="flex h-11 shrink-0 items-center justify-center" title={isEn ? 'Language' : 'Langue'}>
+        <DockControl mouseX={mouseX} className="h-11" title={isEn ? 'Language' : 'Langue'}>
           <LanguageSelector />
-        </div>
-        <div className="flex h-11 w-11 shrink-0 items-center justify-center" title={isEn ? 'Change theme' : 'Changer de thème'}>
+        </DockControl>
+        <DockControl mouseX={mouseX} className="h-11 w-11" title={isEn ? 'Change theme' : 'Changer de thème'}>
           <ThemeToggle />
-        </div>
+        </DockControl>
 
-        {isAuthenticated && user ? (
-          <Link
-            href="/dashboard/profile"
-            className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-foreground/70 transition-colors hover:bg-foreground/5 hover:text-gold"
-            aria-label={isEn ? UI_DICT.profile.en : UI_DICT.profile.fr}
-            title={isEn ? UI_DICT.profile.en : UI_DICT.profile.fr}
-          >
-            <ProfileIcon size={20} />
-            {unreadNotificationCount > 0 && (
-              <span className="absolute right-0 top-0 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-bold leading-none text-white">
-                {unreadNotificationCount > 99 ? '99+' : unreadNotificationCount}
-              </span>
-            )}
-          </Link>
-        ) : (
-          <Link
-            href="/login"
-            onClick={() => preloadGoogleIdentityScript()}
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-foreground/70 transition-colors hover:bg-foreground/5 hover:text-gold"
-            aria-label={isEn ? UI_DICT.login.en : UI_DICT.login.fr}
-            title={isEn ? UI_DICT.login.en : UI_DICT.login.fr}
-          >
-            <ProfileIcon size={20} />
-          </Link>
-        )}
+        <DockControl mouseX={mouseX} className="h-11 w-11">
+          {isAuthenticated && user ? (
+            <Link
+              href="/dashboard/profile"
+              className="relative flex h-full w-full items-center justify-center rounded-xl text-foreground/70 transition-colors hover:bg-foreground/5 hover:text-gold"
+              aria-label={isEn ? UI_DICT.profile.en : UI_DICT.profile.fr}
+              title={isEn ? UI_DICT.profile.en : UI_DICT.profile.fr}
+            >
+              <ProfileIcon size={20} />
+              {unreadNotificationCount > 0 && (
+                <span className="absolute right-0 top-0 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-bold leading-none text-white">
+                  {unreadNotificationCount > 99 ? '99+' : unreadNotificationCount}
+                </span>
+              )}
+            </Link>
+          ) : (
+            <Link
+              href="/login"
+              onClick={() => preloadGoogleIdentityScript()}
+              className="flex h-full w-full items-center justify-center rounded-xl text-foreground/70 transition-colors hover:bg-foreground/5 hover:text-gold"
+              aria-label={isEn ? UI_DICT.login.en : UI_DICT.login.fr}
+              title={isEn ? UI_DICT.login.en : UI_DICT.login.fr}
+            >
+              <ProfileIcon size={20} />
+            </Link>
+          )}
+        </DockControl>
       </motion.nav>
     </header>
+  );
+}
+
+function DockControl({
+  children,
+  mouseX,
+  className,
+  title,
+}: {
+  children: React.ReactNode;
+  mouseX: MotionValue<number>;
+  className?: string;
+  title?: string;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const distance = useTransform(mouseX, (value) => {
+    const bounds = ref.current?.getBoundingClientRect();
+    return bounds ? value - bounds.left - bounds.width / 2 : Infinity;
+  });
+  const sizeSync = useTransform(distance, [-150, 0, 150], [44, 64, 44]);
+  const size = useSpring(sizeSync, { mass: 0.1, stiffness: 150, damping: 12 });
+
+  return (
+    <motion.div
+      ref={ref}
+      style={{ width: size, height: size }}
+      className={cn('relative flex shrink-0 items-center justify-center', className)}
+      title={title}
+    >
+      {children}
+    </motion.div>
   );
 }
