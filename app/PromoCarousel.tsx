@@ -317,7 +317,7 @@ export default function PromoCarousel() {
             ))}
           </div>
         </div>
-        <div className="hidden lg:block w-full h-[580px] bg-foreground/5 animate-pulse" />
+        <div className="hidden lg:block w-full h-[550px] bg-foreground/5 animate-pulse" />
       </div>
     );
   }
@@ -483,7 +483,7 @@ export default function PromoCarousel() {
       )}
 
       {/* DESKTOP */}
-      <div className="hidden lg:block relative w-full h-[500px] overflow-hidden bg-deep-black">
+      <div className="hidden lg:block relative w-full h-[550px] overflow-hidden bg-deep-black">
         <AnimatePresence mode="wait">
           <motion.div
             key={activeSlide.key}
