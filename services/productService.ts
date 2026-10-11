@@ -743,35 +743,22 @@ export const productService = {
           }
 
           if (kind === 'diffuseur') {
-            const diffuseur = await apiShopService.getDiffuseurBySlug(candidate).catch(() => null);
+            let diffuseur = await apiShopService.getDiffuseurBySlug(candidate).catch(() => null);
+            if (!diffuseur) {
+              const catalog = await apiShopService.getDiffuseurs({ limit: 1000 }).catch(() => null);
+              const items: Array<{ id?: number | string; slug?: string }> = Array.isArray(catalog)
+                ? catalog
+                : Array.isArray(catalog?.results)
+                  ? catalog.results
+                  : Array.isArray(catalog?.resultats)
+                    ? catalog.resultats
+                    : [];
+              diffuseur = items.find((item) =>
+                String(item.id) === candidate || String(item.slug) === candidate
+              ) ?? null;
+            }
             if (diffuseur) {
-              const images = collectProductImages(diffuseur);
-              return {
-                id: String(diffuseur.id),
-                name: diffuseur.nom || 'Diffuseur de Parfum',
-                nom: diffuseur.nom,
-                description: diffuseur.description_longue || diffuseur.description_courte || '',
-                description_courte: diffuseur.description_courte,
-                price: parseFloat(diffuseur.prix_unitaire || '0'),
-                prix_unitaire: diffuseur.prix_unitaire,
-                originalPrice: parseFloat(diffuseur.prix_unitaire || '0'),
-                category: 'accessory',
-                subCategory: 'other',
-                images,
-                brand: 'Exclusif Diffuseurs',
-                inStock: diffuseur.stock_quantite > 0 && diffuseur.actif !== false,
-                rating: 4.8,
-                reviews: 12,
-                slug: diffuseur.slug || String(diffuseur.id),
-                createdAt: diffuseur.date_creation || new Date().toISOString(),
-                image_principale: diffuseur.image_principale || images[0],
-                type_technologie: diffuseur.type_technologie,
-                is_new: diffuseur.est_nouveau,
-                is_bestseller: diffuseur.est_bestseller,
-                capacite_reservoir_ml: diffuseur.capacite_reservoir_ml,
-                est_connecte: diffuseur.est_connecte,
-                a_jeux_de_lumiere: diffuseur.a_jeux_de_lumiere,
-              };
+              return mapBackendDiffuseurToProduct(diffuseur);
             }
           }
         }
