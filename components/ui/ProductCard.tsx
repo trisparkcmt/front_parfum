@@ -100,6 +100,10 @@ export function ProductCard({
     ? `/shop/accessories?product=${encodeURIComponent(product.slug || product.id)}&type=accessory`
     : `/shop/product/${product.slug || product.id}?type=perfume`;
 
+  const shareUrl = isEssenceProduct || product.category === 'accessory'
+    ? productUrl
+    : `/shop/perfumes?product=${encodeURIComponent(product.slug || product.id)}&type=perfume`;
+
   // Derive category label
   const categoryLabel = isDiffuseur
     ? (product.type_technologie === 'ultrasons' ? (isEn ? 'Ultrasonic' : 'Ultrasons')
@@ -117,7 +121,7 @@ export function ProductCard({
     e.preventDefault();
     e.stopPropagation();
     const result = await sharePage(
-      productUrl,
+      shareUrl,
       product.name,
       `Découvrez ${product.name} sur Accessories Exclusif`,
       mainImage ? mainImageSrc : undefined
