@@ -93,12 +93,12 @@
   --t-btn-add-hover-text: #FFFFFF;
   --t-fav-btn-bg: rgba(0, 0, 0, 0.2);
   --t-footer-bg: #050505;
-  --t-glass-bg: rgba(255, 255, 255, 0.08);
-  --t-glass-border: rgba(255, 255, 255, 0.1);
-  --t-glass-gold-bg: rgba(197, 160, 89, 0.08);
-  --t-glass-gold-border: rgba(197, 160, 89, 0.2);
-  --t-glass-dark-bg: rgba(5, 5, 5, 0.6);
-  --t-glass-dark-border: rgba(255, 255, 255, 0.06);
+  --t-glass-bg: rgba(20, 20, 20, 0.72);
+  --t-glass-border: rgba(255, 255, 255, 0.14);
+  --t-glass-gold-bg: rgba(197, 160, 89, 0.18);
+  --t-glass-gold-border: rgba(197, 160, 89, 0.3);
+  --t-glass-dark-bg: rgba(5, 5, 5, 0.82);
+  --t-glass-dark-border: rgba(255, 255, 255, 0.08);
   --t-nav-dark-bg:#0b0b0b;
   /* Scrollbar */
   --t-scrollbar-thumb: #C5A059;
@@ -173,12 +173,12 @@
   --t-btn-add-hover-text: #FFFFFF;
   --t-fav-btn-bg: rgba(254, 251, 243, 0.85);
   --t-footer-bg: #2E2316;
-  --t-glass-bg: rgba(254, 251, 243, 0.6);
-  --t-glass-border: rgba(180, 165, 135, 0.25);
-  --t-glass-gold-bg: rgba(197, 160, 89, 0.1);
-  --t-glass-gold-border: rgba(197, 160, 89, 0.25);
-  --t-glass-dark-bg: rgba(237, 229, 213, 0.9);
-  --t-glass-dark-border: rgba(180, 165, 135, 0.2);
+  --t-glass-bg: rgba(254, 251, 243, 0.80);
+  --t-glass-border: rgba(180, 165, 135, 0.35);
+  --t-glass-gold-bg: rgba(197, 160, 89, 0.14);
+  --t-glass-gold-border: rgba(197, 160, 89, 0.35);
+  --t-glass-dark-bg: rgba(237, 229, 213, 0.92);
+  --t-glass-dark-border: rgba(180, 165, 135, 0.25);
   --t-nav-dark-bg:#FFFFFF;
   /* Scrollbar */
   --t-scrollbar-thumb: #B4A587;
