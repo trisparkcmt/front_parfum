@@ -17,7 +17,7 @@ type FlashTab = "all" | "newest" | "popular" | "men" | "women";
 const GENDERLESS_COUNTS_AS_BOTH = true;
 
 export default function FlashSales() {
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation();
   const isEn = i18n.language?.startsWith("en");
 
   const [bestsellers, setBestsellers] = useState<Product[]>([]);
@@ -185,12 +185,10 @@ export default function FlashSales() {
   const handleToggleFavorite = (product: Product) => {
     if (isFavorite(product.id)) {
       removeFavorite(product.id);
+      addToast(`${product.name} ${t('removed_from_favorites')}`, 'info');
     } else {
       addFavorite(product);
-      addToast(
-        `${product.name} ${isEn ? "added to favorites" : "ajouté aux favoris"}`,
-        "info"
-      );
+      addToast(`${product.name} ${t('added_to_favorites')}`, 'success');
     }
   };
 

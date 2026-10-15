@@ -188,6 +188,7 @@ export default function AccessoriesShop() {
   const handleToggleFavorite = (product: Product) => {
     if (isFavorite(product.id)) {
       removeFavorite(product.id);
+      addToast(`${product.name} ${t('removed_from_favorites')}`, 'info');
     } else {
       addFavorite(product);
       addToast(`${product.name} ${t('added_to_favorites')}`, 'info');

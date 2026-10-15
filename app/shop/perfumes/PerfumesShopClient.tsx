@@ -697,7 +697,7 @@ export default function PerfumesShopClient() {
     if (isFavorite(product.id)) {
       removeFavorite(product.id);
       addToast(
-        `${product.name} ${t('removed_from_wishlist')}`,
+        `${product.name} ${t('removed_from_favorites')}`,
         'info'
       );
     } else {
