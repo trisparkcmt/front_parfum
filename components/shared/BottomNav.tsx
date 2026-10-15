@@ -60,7 +60,7 @@ const BottomNav = () => {
       <div
         className="relative flex h-16 w-full items-center justify-between gap-0.5 px-2
                    rounded-[28px] border border-white/10
-                   bg-deep-black/70 backdrop-blur-2xl glass-liquid
+                   bg-deep-black/70 backdrop-blur-2xl
                    shadow-[0_8px_32px_rgba(0,0,0,0.55)]
                    before:absolute before:inset-0 before:rounded-[28px]
                    before:bg-gradient-to-b before:from-white/[0.06] before:to-transparent

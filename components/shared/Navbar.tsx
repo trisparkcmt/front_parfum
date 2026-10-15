@@ -215,7 +215,7 @@ export function Navbar() {
         initial={{ y: 80, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ type: 'spring', stiffness: 260, damping: 20, delay: 0.1 }}
-        className="fixed bottom-5 left-1/2 z-[100] hidden h-[76px] w-max max-w-[calc(100vw-2rem)] -translate-x-1/2 items-end gap-1.5 rounded-2xl border border-foreground/15 bg-background/85 px-3 pb-2.5 shadow-[0_12px_36px_rgba(0,0,0,0.35)] backdrop-blur-2xl glass-liquid nav:flex"
+        className="fixed bottom-5 left-1/2 z-[100] hidden h-[76px] w-max max-w-[calc(100vw-2rem)] -translate-x-1/2 items-end gap-1.5 rounded-2xl border border-foreground/15 bg-background/85 px-3 pb-2.5 shadow-[0_12px_36px_rgba(0,0,0,0.35)] backdrop-blur-2xl nav:flex"
       >
         {PUBLIC_NAV_LINKS.map((link) => {
           const label = NAV_LABEL_MAP[link.href]
