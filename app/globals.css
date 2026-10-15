@@ -255,28 +255,91 @@ body {
 }
 
 /* ============================================================
-   GLASS MORPHISM
+   GLASS MORPHISM & LIQUID GLASS EFFECT
    ============================================================ */
 
-.glass {
+.glass,
+.glass-liquid {
   background: var(--t-glass-bg);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: url("#container-glass") blur(20px);
   border: 1px solid var(--t-glass-border);
+  box-shadow: 
+    0 0 6px rgba(0,0,0,0.03),
+    0 2px 6px rgba(0,0,0,0.08),
+    inset 3px 3px 0.5px -3px rgba(0,0,0,0.9),
+    inset -3px -3px 0.5px -3px rgba(0,0,0,0.85),
+    inset 1px 1px 1px -0.5px rgba(0,0,0,0.6),
+    inset -1px -1px 1px -0.5px rgba(0,0,0,0.6),
+    inset 0 0 6px 6px rgba(0,0,0,0.12),
+    inset 0 0 2px 2px rgba(0,0,0,0.06),
+    0 0 12px rgba(255,255,255,0.15);
+  transition: all 0.3s ease;
+}
+
+[data-theme="dark"] .glass,
+[data-theme="dark"] .glass-liquid {
+  box-shadow: 
+    0 0 8px rgba(0,0,0,0.03),
+    0 2px 6px rgba(0,0,0,0.08),
+    inset 3px 3px 0.5px -3.5px rgba(255,255,255,0.09),
+    inset -3px -3px 0.5px -3.5px rgba(255,255,255,0.85),
+    inset 1px 1px 1px -0.5px rgba(255,255,255,0.6),
+    inset -1px -1px 1px -0.5px rgba(255,255,255,0.6),
+    inset 0 0 6px 6px rgba(255,255,255,0.12),
+    inset 0 0 2px 2px rgba(255,255,255,0.06),
+    0 0 12px rgba(0,0,0,0.15);
 }
 
 .glass-gold {
   background: var(--t-glass-gold-bg);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: url("#container-glass") blur(20px);
   border: 1px solid var(--t-glass-gold-border);
+  box-shadow: 
+    0 0 6px rgba(197, 160, 89, 0.08),
+    0 2px 6px rgba(0,0,0,0.08),
+    inset 3px 3px 0.5px -3px rgba(197, 160, 89, 0.9),
+    inset -3px -3px 0.5px -3px rgba(197, 160, 89, 0.85),
+    inset 1px 1px 1px -0.5px rgba(197, 160, 89, 0.6),
+    inset -1px -1px 1px -0.5px rgba(197, 160, 89, 0.6),
+    inset 0 0 6px 6px rgba(197, 160, 89, 0.12),
+    inset 0 0 2px 2px rgba(197, 160, 89, 0.06),
+    0 0 12px rgba(255, 255, 255, 0.15);
+  transition: all 0.3s ease;
+}
+
+[data-theme="dark"] .glass-gold {
+  box-shadow: 
+    0 0 8px rgba(197, 160, 89, 0.1),
+    0 2px 6px rgba(0,0,0,0.2),
+    inset 3px 3px 0.5px -3.5px rgba(255,255,255,0.09),
+    inset -3px -3px 0.5px -3.5px rgba(255,255,255,0.85),
+    inset 1px 1px 1px -0.5px rgba(212,175,55,0.6),
+    inset -1px -1px 1px -0.5px rgba(212,175,55,0.6),
+    inset 0 0 6px 6px rgba(197, 160, 89, 0.15),
+    inset 0 0 2px 2px rgba(197, 160, 89, 0.08),
+    0 0 12px rgba(0,0,0,0.25);
 }
 
 .glass-dark {
   background: var(--t-glass-dark-bg);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
+  backdrop-filter: url("#container-glass") blur(24px);
   border: 1px solid var(--t-glass-dark-border);
+  box-shadow: 
+    0 0 8px rgba(0,0,0,0.03),
+    0 2px 6px rgba(0,0,0,0.08),
+    inset 3px 3px 0.5px -3.5px rgba(255,255,255,0.09),
+    inset -3px -3px 0.5px -3.5px rgba(255,255,255,0.85),
+    inset 1px 1px 1px -0.5px rgba(255,255,255,0.6),
+    inset -1px -1px 1px -0.5px rgba(255,255,255,0.6),
+    inset 0 0 6px 6px rgba(255,255,255,0.12),
+    inset 0 0 2px 2px rgba(255,255,255,0.06),
+    0 0 12px rgba(0,0,0,0.15);
 }
 
 /* ============================================================

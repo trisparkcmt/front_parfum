@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import { shopService } from "@/services/apiService";
 import { extractCatalogList } from "@/lib/catalogUtils";
 import AppImage from "@/components/ui/AppImage";
+import { LiquidButton } from "@/components/ui/LiquidButton";
 
 interface PromoEntry {
   key: string;
@@ -25,7 +26,7 @@ interface PromoEntry {
 
 const FALLBACK_IMAGE = "/promo2.png";
 const AUTO_SLIDE_INTERVAL = 5000;
-const glass = 'rounded-full border border-white/10 bg-white/[0.06] backdrop-blur-2xl shadow-[0_4px_30px_rgba(0,0,0,0.25)] supports-[backdrop-filter]:bg-white/[0.06]';
+const glass = 'rounded-full glass-liquid shadow-lg hover:scale-105 transition-all duration-300';
 
 const textDict = {
   createPerfume: { fr: "Créez votre parfum", en: "Create your perfume" },
@@ -565,22 +566,24 @@ export default function PromoCarousel() {
 
         {items.length > 1 && (
           <>
-            <button
+            <LiquidButton
               type="button"
               aria-label={isEn ? textDict.prev.en : textDict.prev.fr}
               onClick={() => goTo(slideIndex - 1)}
-              className={cn(glass, 'absolute left-6 top-1/2 -translate-y-1/2 z-20 size-12 flex items-center justify-center text-white/80 hover:text-gold hover:bg-white/10 transition-colors cursor-pointer')}
+              size="icon"
+              className="absolute left-6 top-1/2 -translate-y-1/2 z-20 size-12 text-white/90 hover:text-gold transition-colors"
             >
               <ArrowLeft size={18} />
-            </button>
-            <button
+            </LiquidButton>
+            <LiquidButton
               type="button"
               aria-label={isEn ? textDict.next.en : textDict.next.fr}
               onClick={() => goTo(slideIndex + 1)}
-              className={cn(glass, 'absolute right-6 top-1/2 -translate-y-1/2 z-20 size-12 flex items-center justify-center text-white/80 hover:text-gold hover:bg-white/10 transition-colors cursor-pointer')}
+              size="icon"
+              className="absolute right-6 top-1/2 -translate-y-1/2 z-20 size-12 text-white/90 hover:text-gold transition-colors"
             >
               <ArrowRight size={18} />
-            </button>
+            </LiquidButton>
 
             <div className="absolute bottom-7 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2">
               {items.map((_, idx) => (
