@@ -694,8 +694,9 @@ export default function PerfumesShopClient() {
   };
 
   const handleToggleFavorite = (product: Product) => {
-    if (isFavorite(product.id)) {
-      removeFavorite(product.id);
+    const isFav = isFavorite(product.id, product.category);
+    if (isFav) {
+      removeFavorite(product.id, product.category);
       addToast(
         `${product.name} ${t('removed_from_favorites')}`,
         'info'
@@ -1074,7 +1075,7 @@ export default function PerfumesShopClient() {
                     product={product}
                     onAddToCart={handleAddToCart}
                     onToggleFavorite={handleToggleFavorite}
-                    isFavorite={isFavorite(product.id)}
+                    isFavorite={isFavorite(product.id, product.category)}
                     onCardClick={openProductModal}
                   />
                 </motion.div>

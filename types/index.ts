@@ -116,7 +116,8 @@ export type ProductCategory =
   | 'perfume-dupe'
   | 'numba-creation'
   | 'huile'
-  | 'produit-fini-essence';
+  | 'produit-fini-essence'
+  | 'diffuseur';
 
 export type AccessorySubCategory =
   | 'watches'
@@ -299,9 +300,9 @@ export interface CartState {
 
 export interface FavoritesState {
   items: Product[];
-  addFavorite: (product: Product) => void;
-  removeFavorite: (productId: string) => void;
-  isFavorite: (productId: string) => boolean;
+  addFavorite: (product: Product) => void | Promise<void>;
+  removeFavorite: (productId: string, category?: string) => void | Promise<void>;
+  isFavorite: (productId: string, category?: string) => boolean;
   clearFavorites: () => void;
 }
 

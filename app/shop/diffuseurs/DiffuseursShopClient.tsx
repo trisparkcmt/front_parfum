@@ -187,14 +187,15 @@ function DiffuseursShopContent() {
   };
 
   const handleToggleFavorite = (product: Product) => {
-    if (isFavorite(product.id)) {
-      removeFavorite(product.id);
+    const isFav = isFavorite(product.id, 'diffuseur');
+    if (isFav) {
+      removeFavorite(product.id, 'diffuseur');
       addToast(
         isEn ? `${product.name} removed from wishlist` : `${product.name} retiré des favoris`,
         'info'
       );
     } else {
-      addFavorite(product);
+      addFavorite({ ...product, category: 'diffuseur' });
       addToast(
         isEn ? `${product.name} saved to wishlist` : `${product.name} ajouté aux favoris`,
         'success'
@@ -388,7 +389,7 @@ function DiffuseursShopContent() {
                   product={product}
                   onAddToCart={handleAddToCart}
                   onToggleFavorite={handleToggleFavorite}
-                  isFavorite={isFavorite(product.id)}
+                  isFavorite={isFavorite(product.id, 'diffuseur')}
                   viewMode="grid"
                   index={i}
                   onCardClick={openProductModal}
@@ -403,7 +404,7 @@ function DiffuseursShopContent() {
                   product={product}
                   onAddToCart={handleAddToCart}
                   onToggleFavorite={handleToggleFavorite}
-                  isFavorite={isFavorite(product.id)}
+                  isFavorite={isFavorite(product.id, 'diffuseur')}
                   viewMode="horizontal"
                   index={i}
                   onCardClick={openProductModal}

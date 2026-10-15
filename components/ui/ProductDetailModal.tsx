@@ -240,8 +240,9 @@ export function ProductDetailModal({
 
   const handleToggleFavorite = () => {
     if (!product) return;
-    if (isFavorite(product.id)) {
-      removeFavorite(product.id);
+    const isFav = isFavorite(product.id, product.category);
+    if (isFav) {
+      removeFavorite(product.id, product.category);
     } else {
       addFavorite(product);
       addToast(
@@ -585,13 +586,13 @@ export function ProductDetailModal({
                             onClick={handleToggleFavorite}
                             className={cn(
                               'p-3 rounded-full border transition-all',
-                              isFavorite(product.id)
+                              isFavorite(product.id, product.category)
                                 ? 'bg-red-500/10 border-red-500 text-red-500'
                                 : 'bg-foreground/5 border-foreground/10 text-foreground hover:bg-foreground/10 hover:border-foreground/20'
                             )}
                             aria-label="Save to wishlist"
                           >
-                            <Heart size={18} fill={isFavorite(product.id) ? 'currentColor' : 'none'} />
+                            <Heart size={18} fill={isFavorite(product.id, product.category) ? 'currentColor' : 'none'} />
                           </button>
                         </div>
                       </div>
@@ -906,7 +907,7 @@ export function ProductDetailModal({
                           product={p}
                           onAddToCart={handleRelatedAddToCart}
                           onToggleFavorite={() => addFavorite(p)}
-                          isFavorite={isFavorite(p.id)}
+                          isFavorite={isFavorite(p.id, p.category)}
                           onCardClick={onRelatedCardClick ? () => onRelatedCardClick(p) : undefined}
                         />
                       ))}

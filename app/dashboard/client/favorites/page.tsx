@@ -95,10 +95,10 @@ export default function FavoritesPage() {
     setFilteredFavorites(filtered);
   }, [favorites, customPerfumes, searchTerm, user?.parfums_personnalises]);
 
-  const handleRemoveFavorite = (id: string) => {
+  const handleRemoveFavorite = (id: string, category?: string) => {
     setRemovingId(id);
     setTimeout(() => {
-      removeFavorite(id);
+      removeFavorite(id, category);
       setRemovingId(null);
     }, 200);
   };
@@ -284,7 +284,7 @@ export default function FavoritesPage() {
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleRemoveFavorite(product.id);
+                          handleRemoveFavorite(product.id, product.category);
                         }}
                         aria-label={t('remove', 'Supprimer')}
                         className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-black/50 text-white/80 backdrop-blur-sm transition-colors hover:bg-black/70 hover:text-white"

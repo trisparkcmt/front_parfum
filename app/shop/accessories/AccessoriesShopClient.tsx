@@ -186,11 +186,12 @@ export default function AccessoriesShop() {
   };
 
   const handleToggleFavorite = (product: Product) => {
-    if (isFavorite(product.id)) {
-      removeFavorite(product.id);
+    const isFav = isFavorite(product.id, 'accessory');
+    if (isFav) {
+      removeFavorite(product.id, 'accessory');
       addToast(`${product.name} ${t('removed_from_favorites')}`, 'info');
     } else {
-      addFavorite(product);
+      addFavorite({ ...product, category: 'accessory' });
       addToast(`${product.name} ${t('added_to_favorites')}`, 'info');
     }
   };
@@ -507,8 +508,7 @@ export default function AccessoriesShop() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.3 }}
-            className="flex flex-row flex-wrap justify-center sm:justify-start -mx-4 gap-2
-             md:gap-6"
+            className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4 md:gap-6"
           >
              {products.map((product, index) => (
                <motion.div
@@ -522,7 +522,7 @@ export default function AccessoriesShop() {
                   product={product}
                   onAddToCart={handleAddToCart}
                   onToggleFavorite={handleToggleFavorite}
-                  isFavorite={isFavorite(product.id)}
+                  isFavorite={isFavorite(product.id, 'accessory')}
                   onCardClick={openProductModal}
                 />
               </motion.div>
