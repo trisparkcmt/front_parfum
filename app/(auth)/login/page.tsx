@@ -51,6 +51,7 @@ function LoginFormContent() {
   const redirectUrl = searchParams.get('redirect') || '/';
   const { login, loginWithGoogle, isLoading } = useAuthStore();
   const [formError, setFormError] = useState<string | null>(null);
+  const [honeypot, setHoneypot] = useState('');
 
   // Read persisted remember state values
   const getRememberedLogin = () => {
@@ -76,6 +77,14 @@ function LoginFormContent() {
 
   const onSubmit = async (data: LoginForm) => {
     setFormError(null);
+
+    // Bot trap: if honeypot is filled, abort immediately and never send request
+    if (honeypot && honeypot.trim().length > 0) {
+      console.warn('Bot detected by honeypot. Request blocked.');
+      setFormError(t('login_error', { defaultValue: 'Identifiant ou mot de passe incorrect.' }));
+      return;
+    }
+
     try {
       const success = await login(data.loginInput, data.password, data.rememberMe === true);
       if (success) {
@@ -124,6 +133,24 @@ function LoginFormContent() {
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+        {/* Invisible honeypot field - anti-bot trap */}
+        <div
+          className="absolute -left-[9999px] -top-[9999px] opacity-0 pointer-events-none select-none h-0 w-0 overflow-hidden"
+          tabIndex={-1}
+          aria-hidden="true"
+        >
+          <label htmlFor="auth_user_website">Website</label>
+          <input
+            id="auth_user_website"
+            type="text"
+            name="website_url"
+            tabIndex={-1}
+            autoComplete="off"
+            value={honeypot}
+            onChange={(e) => setHoneypot(e.target.value)}
+          />
+        </div>
+
         {formError && (
           <div className="p-3.5 bg-red-500/10 border border-red-500/20 rounded-xl text-red-500 text-xs font-semibold text-center">
             {formError}

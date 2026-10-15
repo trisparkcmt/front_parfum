@@ -54,6 +54,7 @@ function RegisterFormContent() {
   const { addToast } = useToastStore();
   const [formError, setFormError] = useState<string | null>(null);
   const [passwordValue, setPasswordValue] = useState('');
+  const [honeypot, setHoneypot] = useState('');
 
   const {
     register: registerField,
@@ -76,6 +77,14 @@ function RegisterFormContent() {
 
   const onSubmit = async (data: RegisterForm) => {
     setFormError(null);
+
+    // Bot trap: if honeypot is filled, abort immediately and never send request
+    if (honeypot && honeypot.trim().length > 0) {
+      console.warn('Bot detected by honeypot on registration. Request blocked.');
+      setFormError(t('registration_failed', { defaultValue: 'Registration failed. Please try again.' }));
+      return;
+    }
+
     try {
       const success = await registerUser({
         firstName: data.firstName,
@@ -206,6 +215,24 @@ function RegisterFormContent() {
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        {/* Invisible honeypot field - anti-bot trap */}
+        <div
+          className="absolute -left-[9999px] -top-[9999px] opacity-0 pointer-events-none select-none h-0 w-0 overflow-hidden"
+          tabIndex={-1}
+          aria-hidden="true"
+        >
+          <label htmlFor="reg_user_website">Website</label>
+          <input
+            id="reg_user_website"
+            type="text"
+            name="website_url"
+            tabIndex={-1}
+            autoComplete="off"
+            value={honeypot}
+            onChange={(e) => setHoneypot(e.target.value)}
+          />
+        </div>
+
         {formError && (
           <div className="p-3.5 bg-red-500/10 border border-red-500/20 rounded-xl text-red-500 text-xs font-semibold text-center">
             {formError}
