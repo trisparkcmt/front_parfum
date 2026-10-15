@@ -204,13 +204,8 @@ export default function Header({ onMenuClick }: HeaderProps) {
   const { 
     unreadNotificationCount, 
     recentItems, 
-    fetchCounts, 
     markAsRead 
   } = useNotificationCountStore();
-
-  useEffect(() => {
-    fetchCounts();
-  }, [fetchCounts]);
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {

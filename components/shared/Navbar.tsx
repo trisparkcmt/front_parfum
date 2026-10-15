@@ -124,7 +124,6 @@ export function Navbar() {
   const itemCount = useCartStore((s) => s.getItemCount());
   const openCartDrawer = useCartDrawerStore((s) => s.open);
   const unreadNotificationCount = useNotificationCountStore((s) => s.unreadNotificationCount);
-  const fetchCounts = useNotificationCountStore((s) => s.fetchCounts);
 
   const theme = useThemeStore((s) => s.theme);
   const iconColor = theme === 'dark' ? 'text-white' : 'text-black';
@@ -132,11 +131,6 @@ export function Navbar() {
   useEffect(() => {
     setMounted(true);
   }, []);
-
-  useEffect(() => {
-    if (!isAuthenticated) return;
-    void fetchCounts();
-  }, [fetchCounts, isAuthenticated]);
 
   const isDashboard = pathname.startsWith('/dashboard') || pathname.startsWith('/admin') || pathname.startsWith('/delivery') || pathname.startsWith('/partner') || pathname.startsWith('/client');
   if (isDashboard) return null;

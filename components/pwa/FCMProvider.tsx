@@ -71,20 +71,17 @@ export function FCMProvider() {
   }, [isAuthenticated, _hasHydrated, user]);
 
 
-  // Connect to useNotificationCountStore to fetch & poll counts
+  // Refresh counts for the authenticated user on sign-in and when returning to the app.
   useEffect(() => {
-    if (!isAuthenticated) return;
+    if (!_hasHydrated || !isAuthenticated || !user) return;
     const { fetchCounts } = useNotificationCountStore.getState();
-    fetchCounts();
+    void fetchCounts();
 
-    const interval = setInterval(() => {
-      fetchCounts();
-    }, 30000);
-
-    // Refresh counts when window comes into focus or when notification is clicked
+    // Refresh counts when the app returns to the foreground or a notification is clicked.
     const handleFocus = () => {
       const currentUser = useAuthStore.getState().user;
-      const roles = (currentUser?.roles || []).map((r: string) => String(r).toLowerCase());
+      const roles = [...(currentUser?.roles || []), ...(currentUser?.role ? [currentUser.role] : [])]
+        .map((role: string) => String(role).toLowerCase());
       const isClient = !roles.some((r) => r === 'admin' || r === 'serveuse' || r === 'superadmin' || r === 'livreur' || r === 'delivery');
 
       if (isClient) {
@@ -99,7 +96,8 @@ export function FCMProvider() {
     const handleSWMessage = (event: MessageEvent) => {
       if (event.data?.type === 'FCM_NOTIFICATION_CLICKED') {
         const currentUser = useAuthStore.getState().user;
-        const roles = (currentUser?.roles || []).map((r: string) => String(r).toLowerCase());
+        const roles = [...(currentUser?.roles || []), ...(currentUser?.role ? [currentUser.role] : [])]
+          .map((role: string) => String(role).toLowerCase());
         const isClient = !roles.some((r) => r === 'admin' || r === 'serveuse' || r === 'superadmin' || r === 'livreur' || r === 'delivery');
 
         if (isClient) {
@@ -115,20 +113,15 @@ export function FCMProvider() {
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.addEventListener('message', handleSWMessage);
     }
-
     return () => {
-      clearInterval(interval);
       window.removeEventListener('focus', handleFocus);
       if ('serviceWorker' in navigator) {
         navigator.serviceWorker.removeEventListener('message', handleSWMessage);
       }
     };
-  }, [isAuthenticated]);
+  }, [_hasHydrated, isAuthenticated, user]);
 
   return null;
 }
-
-
-
 
 
