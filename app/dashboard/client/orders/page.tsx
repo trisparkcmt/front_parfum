@@ -45,7 +45,7 @@ const LIVRAISON_OPTIONS = ['', 'en_attente_affectation', 'assignée', 'livrée',
 const PAIEMENT_OPTIONS  = ['', 'en_attente', 'payé', 'échoué'];
 
 const PAGE_SIZE = 100;
-const ROWS_PER_TABLE = 10;
+const ROWS_PER_TABLE = 25;
 
 // ─────────────────────────────────────────────────────────────────────────
 // Translation — this page has no shared locale-file setup yet, so all

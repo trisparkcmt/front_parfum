@@ -8,6 +8,7 @@ import type { BackendOrder, Order } from '@/types';
 export const useClientDashboard = () => {
   const { addToast } = useToastStore();
   const [orders, setOrders] = useState<Order[]>([]);
+  const [totalCount, setTotalCount] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -33,8 +34,10 @@ export const useClientDashboard = () => {
         setLoading(true);
         setError(null);
 
-        const data = await orderService.getMyOrders({ page_size: 100 });
+        // Making the request without params automatically paginates at the backend default (100)
+        const data = await orderService.getMyOrders();
         const list = (data?.results ?? data?.resultats ?? (Array.isArray(data) ? data : [])) as BackendOrder[];
+        setTotalCount(typeof data?.count === 'number' ? data.count : list.length);
 
         const mapBackendLines = (o: BackendOrder): Order['items'] => {
           const lines = [
@@ -112,5 +115,5 @@ export const useClientDashboard = () => {
     loadOrders();
   }, [addToast]);
 
-  return { orders, loading, error };
+  return { orders, totalCount, loading, error };
 };
