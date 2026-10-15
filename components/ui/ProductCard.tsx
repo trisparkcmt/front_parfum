@@ -27,6 +27,7 @@ import AppImage from '@/components/ui/AppImage';
 import { Heart, ShoppingBag, BellRing, Share2 } from 'lucide-react';
 import { cn, formatPrice, sharePage, resolveImageUrl } from '@/lib/utils';
 import type { Product } from '@/types';
+import { CustomPerfumeBottle } from '@/components/ui/CustomPerfumeBottle';
 import { useTranslation } from 'react-i18next';
 import { useState, type MouseEvent } from 'react';
 import { useToastStore } from '@/store/useToastStore';
@@ -197,8 +198,20 @@ export function ProductCard({
             </div>
           )}
 
+          {/* Custom Perfume Bottle visual */}
+          {((product as any).isCustomComposition || (product as any).color || (product as any).couleur) && (
+            <div className="relative flex h-full w-full items-center justify-center p-3 bg-gradient-to-b from-white/[0.04] via-black/40 to-black/80">
+              <CustomPerfumeBottle
+                color={(product as any).color || (product as any).couleur}
+                name={product.name}
+                customLabel={(product as any).nom_sur_flacon}
+                className="h-full w-full max-h-[92%] transition-transform duration-500 ease-out group-hover:scale-[1.06]"
+              />
+            </div>
+          )}
+
           {/* Main image */}
-          {mainImage && (
+          {mainImage && !((product as any).isCustomComposition || (product as any).color || (product as any).couleur) && (
             <AppImage
               src={mainImageSrc}
               alt={product.name}
@@ -214,7 +227,7 @@ export function ProductCard({
           )}
 
           {/* Secondary image crossfade */}
-          {secondImage && (
+          {secondImage && !((product as any).isCustomComposition || (product as any).color || (product as any).couleur) && (
             <AppImage
               src={resolveImageUrl(secondImage)}
               alt={`${product.name} - vue 2`}

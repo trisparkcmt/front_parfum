@@ -1904,6 +1904,25 @@ export const orderService = {
   },
 
   /**
+   * Get authenticated client's orders from /orders/mes-commandes/
+   * Query params: statut, statut_paiement, statut_livraison, search, date_debut, date_fin, page, page_size
+   */
+  getMyOrders: async (params?: {
+    statut?: string;
+    statut_paiement?: string;
+    statut_livraison?: string;
+    search?: string;
+    date_debut?: string;
+    date_fin?: string;
+    page?: number;
+    page_size?: number;
+    [key: string]: any;
+  }) => {
+    const response = await api.get('orders/mes-commandes/', { params });
+    return response.data;
+  },
+
+  /**
    * Get order details by numero_commande (e.g. "CMD-A8F2K4")
    */
   getOrderByNumero: async (numeroCommande: string) => {

@@ -13,6 +13,7 @@ import { useAuthStore } from './useAuthStore';
 
 interface FavoritesState {
   items: Product[];
+  customPerfumes: any[];
   addFavorite: (product: Product) => Promise<void>;
   removeFavorite: (productId: string) => Promise<void>;
   isFavorite: (productId: string) => boolean;
@@ -36,6 +37,7 @@ export const useFavoritesStore = create<FavoritesState>()(
   persist(
     (set, get) => ({
       items: [],
+      customPerfumes: [],
 
       addFavorite: async (product) => {
         // Optimistically add to state
@@ -129,31 +131,39 @@ export const useFavoritesStore = create<FavoritesState>()(
         if (!isAuth) return;
 
         try {
-          // Fetch enriched user profile directly from /auth/me/
-          const meData = await authService.getMe();
+          // Fetch favorites & custom perfumes directly from /shop/favoris/ (no /auth/me/ call)
+          const data = await shopService.getFavorites();
 
-          // Sync user store with fresh profile data (favoris & parfums_personnalises)
+          let backendFavs: any[] = [];
+          let backendCustom: any[] = [];
+
+          if (data && typeof data === 'object') {
+            if (Array.isArray(data.favoris)) {
+              backendFavs = data.favoris;
+              backendCustom = Array.isArray(data.parfums_personnalises) ? data.parfums_personnalises : [];
+            } else if (Array.isArray(data)) {
+              backendFavs = data;
+            }
+          }
+
+          // Sync user store with fresh parfums_personnalises without calling /auth/me/
           const currentUser = useAuthStore.getState().user;
-          if (currentUser && meData) {
+          if (currentUser && backendCustom.length > 0) {
             useAuthStore.setState({
               user: {
                 ...currentUser,
-                favoris: meData.favoris || currentUser.favoris,
-                parfums_personnalises: meData.parfums_personnalises || currentUser.parfums_personnalises,
-                commandes: meData.commandes || currentUser.commandes,
-                preferences: meData.preferences || currentUser.preferences,
-                client: meData.client || currentUser.client,
+                parfums_personnalises: backendCustom,
               },
             });
           }
-          
-          // Map backend favoris from /auth/me/ to Products
-          const backendFavs: any[] = meData?.favoris || [];
+
+          // Map backend favoris from /shop/favoris/ to Products
           const products: Product[] = backendFavs.map((fav: any) => {
             const typeProduit = String(fav.type_produit || fav.type || '').toLowerCase();
             const isAccessory = typeProduit === 'accessoire' || typeProduit === 'accessory';
             const isCustom = typeProduit === 'parfum-personnalise' || typeProduit === 'custom' || typeProduit === 'numba-creation';
-            const isFinishedEssence = typeProduit === 'produit-fini-essence' || typeProduit === 'huile' || fav.essence_id || fav.taille_ml;
+            const isFinishedEssence = typeProduit === 'produit_fini_essence' || typeProduit === 'produit-fini-essence' || typeProduit === 'huile' || fav.essence_id || fav.taille_ml;
+            const isDiffuseur = typeProduit === 'diffuseur';
             return {
               id: String(fav.produit_id || fav.id_produit || fav.id),
               name: fav.nom_produit || fav.nom || 'Produit',
@@ -169,9 +179,9 @@ export const useFavoritesStore = create<FavoritesState>()(
             };
           });
 
-          set({ items: products });
+          set({ items: products, customPerfumes: backendCustom });
         } catch (e) {
-          console.warn('Could not pull favorites from /auth/me/, keeping local stored list.', e);
+          console.warn('Could not pull favorites from /shop/favoris/, keeping local stored list.', e);
         }
       }
     }),

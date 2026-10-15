@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useToastStore } from '@/store/useToastStore';
-import { authService } from '@/services/apiService';
+import { orderService } from '@/services/apiService';
 import type { BackendOrder, Order } from '@/types';
 
 export const useClientDashboard = () => {
@@ -24,7 +24,8 @@ export const useClientDashboard = () => {
     (o.lignes_accessoires?.length ?? 0) +
     (o.lignes_produit_fini_essence?.length ?? 0) +
     (o.lignes_parfums_perso?.length ?? 0) +
-    (o.lignes_essence_personnalisee?.length ?? 0);
+    (o.lignes_essence_personnalisee?.length ?? 0) +
+    ((o as any).lignes_diffuseurs?.length ?? 0);
 
   useEffect(() => {
     const loadOrders = async () => {
@@ -32,8 +33,8 @@ export const useClientDashboard = () => {
         setLoading(true);
         setError(null);
 
-        const meData = await authService.getMe();
-        const list = ((meData as any)?.commandes ?? (Array.isArray(meData) ? meData : [])) as BackendOrder[];
+        const data = await orderService.getMyOrders({ page_size: 100 });
+        const list = (data?.results ?? data?.resultats ?? (Array.isArray(data) ? data : [])) as BackendOrder[];
 
         const mapBackendLines = (o: BackendOrder): Order['items'] => {
           const lines = [
@@ -42,6 +43,7 @@ export const useClientDashboard = () => {
             ...(o.lignes_produit_fini_essence ?? []),
             ...(o.lignes_parfums_perso ?? []),
             ...(o.lignes_essence_personnalisee ?? []),
+            ...((o as any).lignes_diffuseurs ?? []),
           ];
 
           if (lines.length === 0) {

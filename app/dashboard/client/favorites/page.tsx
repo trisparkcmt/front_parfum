@@ -12,6 +12,7 @@ import { useToastStore } from '@/store/useToastStore';
 import { labService, authService } from '@/services/apiService';
 import { formatPrice, sharePage } from '@/lib/utils';
 import Image from 'next/image';
+import { CustomPerfumeBottle } from '@/components/ui/CustomPerfumeBottle';
 
 interface FavoriteProduct {
   id: string;
@@ -33,7 +34,7 @@ interface FavoriteProduct {
 export default function FavoritesPage() {
   const { t } = useTranslation();
   const router = useRouter();
-  const { items: favorites, removeFavorite, clearFavorites, syncWithBackend } = useFavoritesStore();
+  const { items: favorites, customPerfumes, removeFavorite, clearFavorites, syncWithBackend } = useFavoritesStore();
   const user = useAuthStore((state) => state.user);
   const [searchTerm, setSearchTerm] = useState('');
   const [filteredFavorites, setFilteredFavorites] = useState<FavoriteProduct[]>([]);
@@ -64,7 +65,11 @@ export default function FavoritesPage() {
       raw: fav,
     }));
 
-    const customFavorites: FavoriteProduct[] = (user?.parfums_personnalises || []).map((item: any) => ({
+    const customList = (customPerfumes && customPerfumes.length > 0)
+      ? customPerfumes
+      : (user?.parfums_personnalises || []);
+
+    const customFavorites: FavoriteProduct[] = customList.map((item: any) => ({
       id: `custom-${item.id}`,
       name: item.nom || t('custom_perfume', 'Composition sur mesure'),
       price: Number(item.prix_total || item.prix || item.composition?.prix_total || 0),
@@ -88,7 +93,7 @@ export default function FavoritesPage() {
     );
 
     setFilteredFavorites(filtered);
-  }, [favorites, searchTerm, user?.parfums_personnalises]);
+  }, [favorites, customPerfumes, searchTerm, user?.parfums_personnalises]);
 
   const handleRemoveFavorite = (id: string) => {
     setRemovingId(id);
@@ -105,9 +110,8 @@ export default function FavoritesPage() {
     setRemovingId(customId);
     try {
       await labService.deleteCustomPerfume(numericId);
-      await authService.getMe();
-      // Refresh user data to update parfums_personnalises
-      await useAuthStore.getState().fetchUser();
+      // Refresh favorites directly from shop/favoris/ without calling /auth/me/
+      await syncWithBackend();
       const { addToast } = useToastStore.getState();
       addToast(t('favorite_deleted', 'Parfum supprimé avec succès'), 'success');
       setRemovingId(null);
@@ -182,8 +186,8 @@ export default function FavoritesPage() {
             {t('my_favorites_action', 'Mes Favoris')}
           </h1>
           <span className="mb-1 text-sm text-foreground/50">
-            {(favorites.length + (user?.parfums_personnalises?.length || 0)).toString().padStart(2, '0')}{' '}
-            {(favorites.length + (user?.parfums_personnalises?.length || 0)) > 1
+            {(favorites.length + (customPerfumes?.length > 0 ? customPerfumes.length : (user?.parfums_personnalises?.length || 0))).toString().padStart(2, '0')}{' '}
+            {(favorites.length + (customPerfumes?.length > 0 ? customPerfumes.length : (user?.parfums_personnalises?.length || 0))) > 1
               ? t('pieces_plural', 'pièces')
               : t('pieces_singular', 'pièce')}
           </span>
@@ -211,7 +215,7 @@ export default function FavoritesPage() {
             <Heart size={22} className="text-gold/60" />
           </div>
         </div>
-      ) : favorites.length === 0 && (!user?.parfums_personnalises || user.parfums_personnalises.length === 0) ? (
+      ) : favorites.length === 0 && (!customPerfumes || customPerfumes.length === 0) && (!user?.parfums_personnalises || user.parfums_personnalises.length === 0) ? (
         <div className="flex flex-col items-center justify-center rounded-2xl border border-white/10 bg-white/[0.02] px-6 py-20 text-center">
           <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-full border border-gold/20">
             <Heart size={20} className="text-gold/50" />
@@ -254,11 +258,15 @@ export default function FavoritesPage() {
                     onClick={() => handleViewProduct(product)}
                   >
                     {product.isCustomComposition ? (
-                      <div
-                        className="h-full w-full transition-transform duration-500 ease-out group-hover:scale-[1.04]"
-                        style={{ backgroundColor: product.color || '#C5A059' }}
-                        aria-label={product.color ? `Couleur ${product.color}` : undefined}
-                      />
+                      <div className="relative flex h-full w-full items-center justify-center p-3 bg-gradient-to-b from-white/[0.04] via-black/40 to-black/80">
+                        <CustomPerfumeBottle
+                          color={product.color || '#C5A059'}
+                          name={product.name}
+                          customLabel={product.raw?.nom_sur_flacon}
+                          bottleName={product.bottleName}
+                          className="h-full w-full max-h-[92%] transition-transform duration-500 ease-out group-hover:scale-[1.06]"
+                        />
+                      </div>
                     ) : product.image ? (
                       <Image
                         src={product.image}
@@ -361,11 +369,13 @@ export default function FavoritesPage() {
 
                     <div className="relative flex items-start justify-between gap-4">
                       <div className="flex items-center gap-3">
-                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-gold/20 bg-gold/5">
-                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-gold/80">
-                            <path d="M9 3h6M10 3v2.5M14 3v2.5M7 7c0-1 .5-1.5 1.5-1.5h7c1 0 1.5.5 1.5 1.5v11c0 2-1 3-3 3H9c-2 0-3-1-3-3V7z"/>
-                            <path d="M9 12h6M9 15h4"/>
-                          </svg>
+                        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-gold/20 bg-black/50 p-1">
+                          <CustomPerfumeBottle
+                            color={selectedCustom.color || '#C5A059'}
+                            name={selectedCustom.name}
+                            customLabel={selectedCustom.raw?.nom_sur_flacon}
+                            bottleName={selectedCustom.bottleName}
+                          />
                         </div>
                         <div>
                           <p className="text-[9px] font-bold uppercase tracking-[0.3em] text-gold/60">Parfum sur mesure</p>
