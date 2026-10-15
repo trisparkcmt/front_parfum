@@ -11,10 +11,11 @@ export interface SlotProps extends React.HTMLAttributes<HTMLElement> {
 export const Slot = React.forwardRef<HTMLElement, SlotProps>(
   ({ children, className, ...props }, ref) => {
     if (React.isValidElement(children)) {
+      const childProps = (children.props || {}) as Record<string, unknown>
       return React.cloneElement(children as React.ReactElement<any>, {
         ...props,
-        ...children.props,
-        className: cn(className, (children.props as any)?.className),
+        ...childProps,
+        className: cn(className, childProps.className as string | undefined),
         ref,
       })
     }

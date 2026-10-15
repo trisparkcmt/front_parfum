@@ -31,8 +31,7 @@ import {
 } from './LiquidButton';
 
 interface ButtonProps
-  extends React.ButtonHTMLAttributes<HTMLButtonElement>,
-    VariantProps<typeof buttonVariants> {
+  extends Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, 'size'> {
   variant?:
     | 'primary'
     | 'secondary'
