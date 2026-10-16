@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ShoppingBag, X, Plus, Minus, Trash2, ArrowRight, Package } from 'lucide-react';
 import Link from 'next/link';
@@ -8,6 +8,10 @@ import { useTranslation } from 'react-i18next';
 import AppImage from '@/components/ui/AppImage';
 import { useCartStore } from '@/store/useCartStore';
 import { useThemeStore } from '@/store/useThemeStore';
+import { useToastStore } from '@/store/useToastStore';
+import { ProductDetailModal } from '@/components/ui/ProductDetailModal';
+import { HuileDetailModal } from '@/components/ui/HuileDetailModal';
+import { getCartLineTarget } from '@/lib/utils';
 import type { CartLine } from '@/store/useCartStore';
 
 interface CartDrawerProps {
@@ -19,7 +23,13 @@ function formatPrice(amount: number) {
   return amount.toLocaleString('fr-FR') + ' FCFA';
 }
 
-function CartLineItem({ line }: { line: CartLine }) {
+function CartLineItem({
+  line,
+  onOpenProduct,
+}: {
+  line: CartLine;
+  onOpenProduct: (line: CartLine) => void;
+}) {
   const { updateQuantity, removeItem, isLoading } = useCartStore();
   const theme = useThemeStore((s) => s.theme);
   const isDark = theme === 'dark';
@@ -33,7 +43,10 @@ function CartLineItem({ line }: { line: CartLine }) {
       className={`flex gap-3 py-4 border-b ${isDark ? 'border-white/5' : 'border-black/10'}`}
     >
       {/* Thumbnail */}
-      <div className={`w-16 h-16 rounded-xl overflow-hidden ${isDark ? 'bg-white/5' : 'bg-black/5'} flex-shrink-0 flex items-center justify-center`}>
+      <div
+        onClick={() => onOpenProduct(line)}
+        className={`w-16 h-16 rounded-xl overflow-hidden ${isDark ? 'bg-white/5' : 'bg-black/5'} flex-shrink-0 flex items-center justify-center cursor-pointer hover:opacity-80 transition-opacity`}
+      >
         {line.image ? (
           <AppImage
             src={line.image}
@@ -49,7 +62,10 @@ function CartLineItem({ line }: { line: CartLine }) {
 
       {/* Details */}
       <div className="flex-1 min-w-0">
-        <p className="text-xs font-semibold text-foreground leading-snug line-clamp-2 mb-1">
+        <p
+          onClick={() => onOpenProduct(line)}
+          className="text-xs font-semibold text-foreground leading-snug line-clamp-2 mb-1 cursor-pointer hover:text-gold transition-colors"
+        >
           {line.nom}
         </p>
         <p className="text-[10px] text-gold font-mono">
@@ -59,7 +75,10 @@ function CartLineItem({ line }: { line: CartLine }) {
         {/* Qty controls */}
         <div className="flex items-center gap-2 mt-2">
           <button
-            onClick={() => updateQuantity(line.type, line.id, Math.max(1, Number(line.quantite || 1) - 1))}
+            onClick={(e) => {
+              e.stopPropagation();
+              updateQuantity(line.type, line.id, Math.max(1, Number(line.quantite || 1) - 1));
+            }}
             disabled={isLoading || Number(line.quantite || 1) <= 1}
             className={`w-6 h-6 rounded-lg ${isDark ? 'bg-white/5 hover:bg-white/10 border-white/10' : 'bg-black/5 hover:bg-black/10 border-black/10'} border flex items-center justify-center transition-colors disabled:opacity-30`}
           >
@@ -67,7 +86,10 @@ function CartLineItem({ line }: { line: CartLine }) {
           </button>
           <span className="text-xs font-mono w-4 text-center">{Number(line.quantite || 1)}</span>
           <button
-            onClick={() => updateQuantity(line.type, line.id, Number(line.quantite || 1) + 1)}
+            onClick={(e) => {
+              e.stopPropagation();
+              updateQuantity(line.type, line.id, Number(line.quantite || 1) + 1);
+            }}
             disabled={isLoading}
             className={`w-6 h-6 rounded-lg ${isDark ? 'bg-white/5 hover:bg-white/10 border-white/10' : 'bg-black/5 hover:bg-black/10 border-black/10'} border flex items-center justify-center transition-colors disabled:opacity-30`}
           >
@@ -75,7 +97,10 @@ function CartLineItem({ line }: { line: CartLine }) {
           </button>
 
           <button
-            onClick={() => removeItem(line.type, line.id)}
+            onClick={(e) => {
+              e.stopPropagation();
+              removeItem(line.type, line.id);
+            }}
             disabled={isLoading}
             className="ml-auto text-foreground/30 hover:text-red-400 transition-colors disabled:opacity-30"
           >
@@ -93,10 +118,16 @@ function CartLineItem({ line }: { line: CartLine }) {
 }
 
 export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isEn = i18n.language?.startsWith('en');
   const { getAllLines, getItemCount, getTotalPrice, getSubtotal, getDiscount, getShipping } = useCartStore();
+  const { addToast } = useToastStore();
   const theme = useThemeStore((s) => s.theme);
   const isDark = theme === 'dark';
+
+  const [modalProductId, setModalProductId] = useState<string | null>(null);
+  const [modalProductType, setModalProductType] = useState<'perfume' | 'accessory' | 'diffuseur'>('perfume');
+  const [huileModalProductId, setHuileModalProductId] = useState<string | null>(null);
 
   const lines = getAllLines();
   const itemCount = getItemCount();
@@ -104,6 +135,28 @@ export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
   const discount = getDiscount();
   const shipping = getShipping();
   const total = getTotalPrice();
+
+  const handleOpenProduct = (line: CartLine) => {
+    const target = getCartLineTarget(line);
+    if (!target) return;
+
+    if (target.kind === 'custom') {
+      addToast(
+        isEn
+          ? 'Custom bespoke creation from Atelier Numba'
+          : 'Création sur-mesure de l’Atelier Numba',
+        'info'
+      );
+      return;
+    }
+
+    if (target.kind === 'huile') {
+      setHuileModalProductId(target.productId);
+    } else if (target.kind === 'product') {
+      setModalProductId(target.productId);
+      setModalProductType(target.productType || 'perfume');
+    }
+  };
 
   // Lock body scroll when open
   useEffect(() => {
@@ -117,126 +170,165 @@ export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
 
   // Close on Escape
   useEffect(() => {
-    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (modalProductId) {
+          setModalProductId(null);
+        } else if (huileModalProductId) {
+          setHuileModalProductId(null);
+        } else {
+          onClose();
+        }
+      }
+    };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [onClose]);
+  }, [onClose, modalProductId, huileModalProductId]);
 
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <>
-          {/* Backdrop */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.25 }}
-            onClick={onClose}
-            className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm"
-          />
+    <>
+      <AnimatePresence>
+        {isOpen && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.25 }}
+              onClick={onClose}
+              className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm"
+            />
 
-          {/* Drawer panel */}
-          <motion.div
-            initial={{ x: '100%' }}
-            animate={{ x: 0 }}
-            exit={{ x: '100%' }}
-            transition={{ type: 'spring', damping: 28, stiffness: 280 }}
-            className={`fixed right-0 top-0 bottom-0 z-[110] w-full max-w-sm flex flex-col backdrop-blur-2xl border-l pb-[calc(env(safe-area-inset-bottom,1rem)+1rem)] ${isDark ? 'bg-[#0d0d0d]/95 border-white/[0.06] shadow-2xl' : 'bg-white/95 border-black/[0.08] shadow-[0_20px_60px_rgba(0,0,0,0.16)]'}`}
-          >
-            {/* Header */}
-            <div className={`flex items-center justify-between px-5 py-4 border-b ${isDark ? 'border-white/[0.06]' : 'border-black/[0.08]'}`}>
-              <div className="flex items-center gap-3">
-                <ShoppingBag size={18} className="text-gold" />
-                <span className="text-sm font-bold tracking-wide text-foreground">{t('cart_title', { defaultValue: 'My Cart' })}</span>
-                {itemCount > 0 && (
-                  <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-gold text-black">
-                    {itemCount}
-                  </span>
-                )}
-              </div>
-              <button
-                onClick={onClose}
-                className={`w-8 h-8 rounded-full ${isDark ? 'bg-white/5 hover:bg-white/10 border-white/10' : 'bg-black/5 hover:bg-black/10 border-black/10'} border flex items-center justify-center text-foreground/60 hover:text-foreground transition-all`}
-              >
-                <X size={14} />
-              </button>
-            </div>
-
-            {/* Line items */}
-            <div className="flex-1 overflow-y-auto px-5 min-h-0">
-              <AnimatePresence mode="popLayout">
-                {lines.length === 0 ? (
-                  <motion.div
-                    key="empty"
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="flex flex-col items-center justify-center h-full gap-4 py-20 text-center"
-                  >
-                    <div className={`w-16 h-16 rounded-full ${isDark ? 'bg-white/5 border-white/10' : 'bg-black/5 border-black/10'} border flex items-center justify-center`}>
-                      <ShoppingBag size={24} className="text-foreground/30" />
-                    </div>
-                    <p className="text-sm text-foreground/40">{t('cart_empty', { defaultValue: 'Your cart is empty' })}</p>
-                    <button
-                      onClick={onClose}
-                      className="text-xs text-gold hover:underline"
-                    >
-                      {t('continue_shopping_short', { defaultValue: 'Continue shopping →' })}
-                    </button>
-                  </motion.div>
-                ) : (
-                  lines.map((line, index) => (
-                    <CartLineItem key={`${line.type}-${line.id ?? index}`} line={line} />
-                  ))
-                )}
-              </AnimatePresence>
-            </div>
-
-            {/* Footer summary */}
-            {lines.length > 0 && (
-              <div className={`border-t px-5 pb-[1.25rem] pt-5 space-y-3 ${isDark ? 'border-white/[0.06]' : 'border-black/[0.08]'}`}>
-                {/* Summary rows */}
-                <div className="space-y-1.5 text-xs">
-                  <div className="flex justify-between text-foreground/50">
-                    <span>{t('subtotal', { defaultValue: 'Subtotal' })}</span>
-                    <span>{formatPrice(subtotal)}</span>
-                  </div>
-                  {discount > 0 && (
-                    <div className="flex justify-between text-emerald-400">
-                      <span>{t('discount', { defaultValue: 'Discount' })}</span>
-                      <span>-{formatPrice(discount)}</span>
-                    </div>
+            {/* Drawer panel */}
+            <motion.div
+              initial={{ x: '100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '100%' }}
+              transition={{ type: 'spring', damping: 28, stiffness: 280 }}
+              className={`fixed right-0 top-0 bottom-0 z-[110] w-full max-w-sm flex flex-col backdrop-blur-2xl border-l pb-[calc(env(safe-area-inset-bottom,1rem)+1rem)] ${isDark ? 'bg-[#0d0d0d]/95 border-white/[0.06] shadow-2xl' : 'bg-white/95 border-black/[0.08] shadow-[0_20px_60px_rgba(0,0,0,0.16)]'}`}
+            >
+              {/* Header */}
+              <div className={`flex items-center justify-between px-5 py-4 border-b ${isDark ? 'border-white/[0.06]' : 'border-black/[0.08]'}`}>
+                <div className="flex items-center gap-3">
+                  <ShoppingBag size={18} className="text-gold" />
+                  <span className="text-sm font-bold tracking-wide text-foreground">{t('cart_title', { defaultValue: 'My Cart' })}</span>
+                  {itemCount > 0 && (
+                    <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-gold text-black">
+                      {itemCount}
+                    </span>
                   )}
-                  <div className="flex justify-between text-foreground/50">
-                    <span>{t('shipping', { defaultValue: 'Shipping' })}</span>
-                    <span>{shipping > 0 ? formatPrice(shipping) : t('shipping_calculated', { defaultValue: 'Calculated at checkout' })}</span>
-                  </div>
-                  <div className={`flex justify-between font-bold text-foreground border-t pt-2 mt-2 text-sm ${isDark ? 'border-white/5' : 'border-black/10'}`}>
-                    <span>{t('total', { defaultValue: 'Total' })}</span>
-                    <span className="text-gold">{formatPrice(total)}</span>
-                  </div>
                 </div>
-
-                {/* CTAs */}
-                <Link
-                  href="/cart"
-                  onClick={onClose}
-                  className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-gold text-black font-bold text-sm hover:bg-gold/90 active:scale-[0.98] transition-all"
-                >
-                  {t('checkout', { defaultValue: 'Checkout' })}
-                  <ArrowRight size={15} />
-                </Link>
                 <button
                   onClick={onClose}
-                  className={`w-full py-2.5 rounded-xl border text-xs text-foreground/50 hover:text-foreground transition-all ${isDark ? 'border-white/10 hover:border-white/20' : 'border-black/10 hover:border-black/20'}`}
+                  className={`w-8 h-8 rounded-full ${isDark ? 'bg-white/5 hover:bg-white/10 border-white/10' : 'bg-black/5 hover:bg-black/10 border-black/10'} border flex items-center justify-center text-foreground/60 hover:text-foreground transition-all`}
                 >
-                  {t('continue_shopping', { defaultValue: 'Continue shopping' })}
+                  <X size={14} />
                 </button>
               </div>
-            )}
-          </motion.div>
-        </>
-      )}
-    </AnimatePresence>
+
+              {/* Line items */}
+              <div className="flex-1 overflow-y-auto px-5 min-h-0">
+                <AnimatePresence mode="popLayout">
+                  {lines.length === 0 ? (
+                    <motion.div
+                      key="empty"
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="flex flex-col items-center justify-center h-full gap-4 py-20 text-center"
+                    >
+                      <div className={`w-16 h-16 rounded-full ${isDark ? 'bg-white/5 border-white/10' : 'bg-black/5 border-black/10'} border flex items-center justify-center`}>
+                        <ShoppingBag size={24} className="text-foreground/30" />
+                      </div>
+                      <p className="text-sm text-foreground/40">{t('cart_empty', { defaultValue: 'Your cart is empty' })}</p>
+                      <button
+                        onClick={onClose}
+                        className="text-xs text-gold hover:underline"
+                      >
+                        {t('continue_shopping_short', { defaultValue: 'Continue shopping →' })}
+                      </button>
+                    </motion.div>
+                  ) : (
+                    lines.map((line, index) => (
+                      <CartLineItem
+                        key={`${line.type}-${line.id ?? index}`}
+                        line={line}
+                        onOpenProduct={handleOpenProduct}
+                      />
+                    ))
+                  )}
+                </AnimatePresence>
+              </div>
+
+              {/* Footer summary */}
+              {lines.length > 0 && (
+                <div className={`border-t px-5 pb-[1.25rem] pt-5 space-y-3 ${isDark ? 'border-white/[0.06]' : 'border-black/[0.08]'}`}>
+                  {/* Summary rows */}
+                  <div className="space-y-1.5 text-xs">
+                    <div className="flex justify-between text-foreground/50">
+                      <span>{t('subtotal', { defaultValue: 'Subtotal' })}</span>
+                      <span>{formatPrice(subtotal)}</span>
+                    </div>
+                    {discount > 0 && (
+                      <div className="flex justify-between text-emerald-400">
+                        <span>{t('discount', { defaultValue: 'Discount' })}</span>
+                        <span>-{formatPrice(discount)}</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between text-foreground/50">
+                      <span>{t('shipping', { defaultValue: 'Shipping' })}</span>
+                      <span>{shipping > 0 ? formatPrice(shipping) : t('shipping_calculated', { defaultValue: 'Calculated at checkout' })}</span>
+                    </div>
+                    <div className={`flex justify-between font-bold text-foreground border-t pt-2 mt-2 text-sm ${isDark ? 'border-white/5' : 'border-black/10'}`}>
+                      <span>{t('total', { defaultValue: 'Total' })}</span>
+                      <span className="text-gold">{formatPrice(total)}</span>
+                    </div>
+                  </div>
+
+                  {/* CTAs */}
+                  <Link
+                    href="/cart"
+                    onClick={onClose}
+                    className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-gold text-black font-bold text-sm hover:bg-gold/90 active:scale-[0.98] transition-all"
+                  >
+                    {t('checkout', { defaultValue: 'Checkout' })}
+                    <ArrowRight size={15} />
+                  </Link>
+                  <button
+                    onClick={onClose}
+                    className={`w-full py-2.5 rounded-xl border text-xs text-foreground/50 hover:text-foreground transition-all ${isDark ? 'border-white/10 hover:border-white/20' : 'border-black/10 hover:border-black/20'}`}
+                  >
+                    {t('continue_shopping', { defaultValue: 'Continue shopping' })}
+                  </button>
+                </div>
+              )}
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Product Detail Modal */}
+      <AnimatePresence>
+        {modalProductId && (
+          <ProductDetailModal
+            productId={modalProductId}
+            productType={modalProductType}
+            zIndex={130}
+            onClose={() => setModalProductId(null)}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Huile Detail Modal */}
+      <AnimatePresence>
+        {huileModalProductId && (
+          <HuileDetailModal
+            productId={huileModalProductId}
+            zIndex={130}
+            onClose={() => setHuileModalProductId(null)}
+          />
+        )}
+      </AnimatePresence>
+    </>
   );
 }

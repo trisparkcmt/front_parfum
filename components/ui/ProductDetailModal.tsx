@@ -58,6 +58,8 @@ interface ProductDetailModalProps {
   platformSupplied?: boolean;
   /** Optionally intercept card clicks inside the related products grid */
   onRelatedCardClick?: (product: Product) => void;
+  /** Optional base z-index override (default: 80) */
+  zIndex?: number;
 }
 
 export function ProductDetailModal({
@@ -67,6 +69,7 @@ export function ProductDetailModal({
   supplier,
   platformSupplied = false,
   onRelatedCardClick,
+  zIndex,
 }: ProductDetailModalProps) {
   if (!productId) return null;
 
@@ -344,7 +347,11 @@ export function ProductDetailModal({
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         transition={{ duration: 0.2 }}
-        className="fixed inset-0 z-[80] bg-black/60 backdrop-blur-sm"
+        className={cn(
+          "fixed inset-0 bg-black/60 backdrop-blur-sm",
+          !zIndex && "z-[80]"
+        )}
+        style={zIndex ? { zIndex } : undefined}
         onClick={closeModal}
         aria-hidden="true"
       />
@@ -356,7 +363,11 @@ export function ProductDetailModal({
         animate={{ opacity: 1, x: 0 }}
         exit={{ opacity: 0, x: '100%' }}
         transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-        className="fixed inset-0 z-[81] overflow-y-auto bg-background text-foreground"
+        className={cn(
+          "fixed inset-0 overflow-y-auto bg-background text-foreground",
+          !zIndex && "z-[81]"
+        )}
+        style={zIndex ? { zIndex: zIndex + 1 } : undefined}
         role="dialog"
         aria-modal="true"
         aria-label={product?.name ?? 'Product detail'}
@@ -365,7 +376,11 @@ export function ProductDetailModal({
         <button
           onClick={closeModal}
           aria-label={isEn ? 'Close' : 'Fermer'}
-          className="fixed top-4 left-4 z-[82] flex items-center gap-2 text-foreground/70 hover:text-gold transition-colors bg-background/80 backdrop-blur-sm rounded-xl px-3 py-2 border border-foreground/10 hover:border-gold/30"
+          className={cn(
+            "fixed top-4 left-4 flex items-center gap-2 text-foreground/70 hover:text-gold transition-colors bg-background/80 backdrop-blur-sm rounded-xl px-3 py-2 border border-foreground/10 hover:border-gold/30",
+            !zIndex && "z-[82]"
+          )}
+          style={zIndex ? { zIndex: zIndex + 2 } : undefined}
         >
           <ArrowLeft size={18} />
           <span className="text-sm font-medium uppercase tracking-widest hidden sm:inline">

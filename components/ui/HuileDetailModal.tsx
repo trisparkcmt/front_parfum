@@ -40,9 +40,11 @@ interface HuileDetailModalProps {
   onClose: () => void;
   /** Optionally open a related huile inside the same modal */
   onRelatedHuileClick?: (product: Product) => void;
+  /** Optional base z-index override (default: 80) */
+  zIndex?: number;
 }
 
-export function HuileDetailModal({ productId, initialProduct, onClose, onRelatedHuileClick }: HuileDetailModalProps) {
+export function HuileDetailModal({ productId, initialProduct, onClose, onRelatedHuileClick, zIndex }: HuileDetailModalProps) {
   const { i18n } = useTranslation();
   const isEn = i18n.language?.startsWith('en');
 
@@ -119,12 +121,16 @@ export function HuileDetailModal({ productId, initialProduct, onClose, onRelated
     return () => { document.body.style.overflow = prev; };
   }, []);
 
+  const closeModal = useCallback(() => {
+    onClose();
+  }, [onClose]);
+
   // ── Escape key ─────────────────────────────────────────────────────────────
   useEffect(() => {
-    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') window.history.back(); };
+    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') closeModal(); };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, []);
+  }, [closeModal]);
 
   // ── Variant helpers ────────────────────────────────────────────────────────
   const variants = useMemo(() => product?.produits_finis || [], [product]);
@@ -236,8 +242,12 @@ export function HuileDetailModal({ productId, initialProduct, onClose, onRelated
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         transition={{ duration: 0.2 }}
-        className="fixed inset-0 z-[80] bg-black/60 backdrop-blur-sm"
-        onClick={() => window.history.back()}
+        className={cn(
+          "fixed inset-0 bg-black/60 backdrop-blur-sm",
+          !zIndex && "z-[80]"
+        )}
+        style={zIndex ? { zIndex } : undefined}
+        onClick={closeModal}
         aria-hidden="true"
       />
 
@@ -248,16 +258,24 @@ export function HuileDetailModal({ productId, initialProduct, onClose, onRelated
         animate={{ opacity: 1, x: 0 }}
         exit={{ opacity: 0, x: '100%' }}
         transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-        className="fixed inset-0 z-[81] overflow-y-auto bg-background text-foreground"
+        className={cn(
+          "fixed inset-0 overflow-y-auto bg-background text-foreground",
+          !zIndex && "z-[81]"
+        )}
+        style={zIndex ? { zIndex: zIndex + 1 } : undefined}
         role="dialog"
         aria-modal="true"
         aria-label={product?.name ?? 'Huile essentielle'}
       >
         {/* Back button */}
         <button
-          onClick={() => window.history.back()}
+          onClick={closeModal}
           aria-label={isEn ? 'Close' : 'Fermer'}
-          className="fixed top-4 left-4 z-[82] flex items-center gap-2 text-foreground/70 hover:text-gold transition-colors bg-background/80 backdrop-blur-sm rounded-xl px-3 py-2 border border-foreground/10 hover:border-gold/30"
+          className={cn(
+            "fixed top-4 left-4 flex items-center gap-2 text-foreground/70 hover:text-gold transition-colors bg-background/80 backdrop-blur-sm rounded-xl px-3 py-2 border border-foreground/10 hover:border-gold/30",
+            !zIndex && "z-[82]"
+          )}
+          style={zIndex ? { zIndex: zIndex + 2 } : undefined}
         >
           <ArrowLeft size={18} />
           <span className="text-sm font-medium uppercase tracking-widest hidden sm:inline">
@@ -286,7 +304,7 @@ export function HuileDetailModal({ productId, initialProduct, onClose, onRelated
                 <p className="text-foreground/40 text-lg uppercase tracking-[0.2em]">
                   {isEn ? 'Oil not found' : 'Huile introuvable'}
                 </p>
-                <button onClick={() => window.history.back()} className="text-gold underline text-sm">
+                <button onClick={closeModal} className="text-gold underline text-sm">
                   {isEn ? 'Go back' : 'Retour'}
                 </button>
               </div>
@@ -296,11 +314,11 @@ export function HuileDetailModal({ productId, initialProduct, onClose, onRelated
               <>
                 {/* Breadcrumb */}
                 <nav className="mt-2 mb-8 flex items-center gap-2 text-[11px] text-foreground/40 uppercase tracking-widest overflow-x-auto whitespace-nowrap scrollbar-hide">
-                  <span className="hover:text-gold transition-colors cursor-pointer" onClick={() => window.history.back()}>
+                  <span className="hover:text-gold transition-colors cursor-pointer" onClick={closeModal}>
                     {isEn ? 'Shop' : 'Boutique'}
                   </span>
                   <ChevronRight size={11} className="shrink-0" />
-                  <span className="hover:text-gold transition-colors cursor-pointer" onClick={() => window.history.back()}>
+                  <span className="hover:text-gold transition-colors cursor-pointer" onClick={closeModal}>
                     {isEn ? 'Pure Oils' : 'Huiles Pures'}
                   </span>
                   <ChevronRight size={11} className="shrink-0" />
@@ -732,7 +750,7 @@ export function HuileDetailModal({ productId, initialProduct, onClose, onRelated
                         <div className="h-1 w-20 bg-gold" />
                       </div>
                       <button
-                        onClick={() => window.history.back()}
+                        onClick={closeModal}
                         className="flex shrink-0 items-center gap-2 text-sm text-gold hover:underline"
                       >
                         {isEn ? 'See all oils' : 'Voir toutes les huiles'}
