@@ -16,6 +16,7 @@ import {
   Link2,
   Copy,
   Building2,
+  Plus,
 } from 'lucide-react';
 import { shopService } from '@/services/apiService';
 import { useToastStore } from '@/store/useToastStore';
@@ -55,7 +56,10 @@ const T = {
     save: 'Enregistrer',
     saving: 'Enregistrement...',
     no_data_title: 'Aucune information',
-    no_data_desc: 'Aucun enregistrement trouvé — contactez votre développeur si celui-ci devrait déjà exister.',
+    create: 'Créer les informations',
+    create_modal: 'Créer les informations de l’entreprise',
+    create_subtitle: 'Renseignez les coordonnées de la boutique visibles par vos clients.',
+    no_data_desc: 'Aucun enregistrement trouvé. Vous pouvez créer les informations de l’entreprise dès maintenant.',
     toast_load_error: 'Impossible de charger les informations de l’entreprise.',
     toast_save_ok: 'Informations enregistrées avec succès.',
     toast_save_error: 'Erreur lors de l’enregistrement des informations.',
@@ -69,6 +73,9 @@ const T = {
     edit: 'Edit',
     edit_modal: 'Edit company information',
     edit_subtitle: 'This information is publicly visible on the shop.',
+    create: 'Create company info',
+    create_modal: 'Create company information',
+    create_subtitle: 'Fill in your shop details visible to your customers.',
     kpi_status: 'Status',
     kpi_phones: 'Phones on file',
     kpi_social: 'Social profiles',
@@ -91,7 +98,7 @@ const T = {
     save: 'Save',
     saving: 'Saving...',
     no_data_title: 'No information',
-    no_data_desc: 'No record found — contact your developer if this should already exist.',
+    no_data_desc: 'No record found. You can create your company details now.',
     toast_load_error: 'Unable to load company information.',
     toast_save_ok: 'Company information saved successfully.',
     toast_save_error: 'Failed to save company information.',
@@ -356,8 +363,26 @@ export default function AdminCompanyInfoPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const openCreate = () => {
+    setFormState({
+      nom: 'Accessoires Exclusifs',
+      localisation: '',
+      telephone_principal: '',
+      telephone_secondaire: '',
+      whatsapp: '',
+      facebook_url: '',
+      instagram_url: '',
+      jours_ouverture: createDefaultOpeningDays(),
+    });
+    setFormError(null);
+    setShowModal(true);
+  };
+
   const openEdit = () => {
-    if (!companyInfo) return;
+    if (!companyInfo) {
+      openCreate();
+      return;
+    }
     setFormState({
       nom: companyInfo.nom,
       localisation: companyInfo.localisation || '',
@@ -403,7 +428,6 @@ export default function AdminCompanyInfoPage() {
   };
 
   const handleSave = async () => {
-    if (!companyInfo) return;
     setFormError(null);
 
     if (!formState.nom || !formState.telephone_principal || !formState.jours_ouverture) {
@@ -433,16 +457,22 @@ export default function AdminCompanyInfoPage() {
       }
 
       setSaving(true);
-      await shopService.updateCompanyInfo(companyInfo.id, {
+      const payload = {
         nom: formState.nom,
-        localisation: formState.localisation,
+        localisation: formState.localisation || '',
         telephone_principal: formState.telephone_principal,
-        telephone_secondaire: formState.telephone_secondaire,
-        whatsapp,
-        facebook_url: facebookUrl,
-        instagram_url: instagramUrl,
+        telephone_secondaire: formState.telephone_secondaire || '',
+        whatsapp: whatsapp || '',
+        facebook_url: facebookUrl || '',
+        instagram_url: instagramUrl || '',
         jours_ouverture: jours,
-      });
+      };
+
+      if (companyInfo?.id) {
+        await shopService.updateCompanyInfo(companyInfo.id, payload);
+      } else {
+        await shopService.createCompanyInfo(payload);
+      }
 
       addToast(t('toast_save_ok'), 'success');
       await fetchCompanyInfo();
@@ -470,13 +500,13 @@ export default function AdminCompanyInfoPage() {
           <h1 className="text-xl font-semibold text-foreground">{t('title')}</h1>
           <p className="text-sm text-foreground/40">{t('subtitle')}</p>
         </div>
-        {companyInfo && !loading && (
+        {!loading && (
           <button
-            onClick={openEdit}
+            onClick={companyInfo ? openEdit : openCreate}
             className="flex items-center gap-2 rounded-lg bg-gold px-3.5 py-2 text-xs font-semibold text-black transition-opacity hover:opacity-90"
           >
-            <Edit2 size={15} />
-            <span>{t('edit')}</span>
+            {companyInfo ? <Edit2 size={15} /> : <Plus size={15} />}
+            <span>{companyInfo ? t('edit') : t('create')}</span>
           </button>
         )}
       </div>
@@ -523,10 +553,18 @@ export default function AdminCompanyInfoPage() {
         </div>
       )}
 
-      {/* Empty state — no record exists; admin can only edit, not create */}
+      {/* Empty state — no record exists */}
       {!loading && !companyInfo && (
-        <div className="shadow-black/30 shadow-sm rounded-xl border border-white/10 bg-white/[0.02] overflow-hidden min-h-[300px] flex items-center justify-center">
-          <EmptyState icon={<Building2 size={48} />} title={t('no_data_title')} description={t('no_data_desc')} />
+        <div className="shadow-black/30 shadow-sm rounded-xl border border-white/10 bg-white/[0.02] overflow-hidden min-h-[300px] flex items-center justify-center p-6">
+          <EmptyState
+            icon={<Building2 size={48} />}
+            title={t('no_data_title')}
+            description={t('no_data_desc')}
+            action={{
+              label: t('create'),
+              onClick: openCreate,
+            }}
+          />
         </div>
       )}
 
@@ -588,8 +626,14 @@ export default function AdminCompanyInfoPage() {
         </div>
       )}
 
-      {/* Edit Modal ─────────────────────────────────────────────────────── */}
-      <FormModal isOpen={showModal} onClose={() => !saving && setShowModal(false)} title={t('edit_modal')} subtitle={t('edit_subtitle')} size="2xl">
+      {/* Modal ─────────────────────────────────────────────────────── */}
+      <FormModal
+        isOpen={showModal}
+        onClose={() => !saving && setShowModal(false)}
+        title={companyInfo ? t('edit_modal') : t('create_modal')}
+        subtitle={companyInfo ? t('edit_subtitle') : t('create_subtitle')}
+        size="2xl"
+      >
         <div className="p-6 lg:p-8">
           {formError && (
             <div className="mb-6 rounded-xl bg-red-500/10 border border-red-500/20 p-4 flex items-start gap-3">
