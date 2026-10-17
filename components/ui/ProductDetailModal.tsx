@@ -262,7 +262,7 @@ export function ProductDetailModal({
       ? `/shop/diffuseurs?product=${productId}&type=diffuseur`
       : productType === 'accessory'
         ? `/shop/accessories?product=${productId}&type=accessory`
-        : `/shop/product/${productId}?type=${productType}`;
+        : `/shop/perfumes?product=${productId}&type=perfume`;
     const result = await sharePage(
       productPath,
       product.name,

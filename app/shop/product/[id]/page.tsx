@@ -53,7 +53,7 @@ export default async function ProductDetailPage({
     ? `/shop/accessories?product=${encodedId}&type=accessory`
     : type === 'diffuseur'
       ? `/shop/diffuseurs?product=${encodedId}&type=diffuseur`
-      : '/shop/perfumes';
+      : `/shop/perfumes?product=${encodedId}&type=perfume`;
   
   return <ClientRedirect fallback={fallback} />;
 }
