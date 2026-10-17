@@ -224,11 +224,6 @@ export function ProductDetailModal({
       await addProduct(product, quantity);
     }
 
-    addToast(
-      isEn ? `${addedName} added to bag` : `${addedName} ajouté au panier`,
-      'success'
-    );
-
     try {
       const { trackAddToCart } = await import('@/lib/gtag');
       trackAddToCart({
