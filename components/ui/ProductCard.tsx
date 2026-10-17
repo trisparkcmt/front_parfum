@@ -123,8 +123,7 @@ export function ProductCard({
     const result = await sharePage(
       shareUrl,
       product.name,
-      `Découvrez ${product.name} sur Accessories Exclusif`,
-      mainImage ? mainImageSrc : undefined
+      `Découvrez ${product.name} sur Accessories Exclusif`
     );
     if (result === 'shared' || result === 'copied') {
       try {

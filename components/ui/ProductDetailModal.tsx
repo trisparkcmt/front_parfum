@@ -258,15 +258,12 @@ export function ProductDetailModal({
       : productType === 'accessory'
         ? `/shop/accessories?product=${productId}&type=accessory`
         : `/shop/perfumes?product=${productId}&type=perfume`;
-    const rawImage = product.image_principale || (product.images && product.images[0]) || product.image_supp_1;
-    const mainImage = rawImage ? resolveImageUrl(rawImage) : undefined;
     const result = await sharePage(
       productPath,
       product.name,
       isEn
         ? `Explore ${product.name} on Accessories Exclusif`
-        : `Découvrez ${product.name} sur Accessories Exclusif`,
-      mainImage
+        : `Découvrez ${product.name} sur Accessories Exclusif`
     );
     if (result === 'shared') addToast(isEn ? 'Link shared' : 'Lien partagé', 'success');
     else if (result === 'copied') addToast(isEn ? 'Link copied' : 'Lien copié dans le presse-papiers', 'success');
