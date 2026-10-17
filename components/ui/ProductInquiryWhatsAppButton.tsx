@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { MessageCircle } from 'lucide-react';
 import { shopService } from '@/services/apiService';
-import { buildAbsoluteUrl, buildWhatsAppUrl, getCompanyWhatsAppNumber, resolveImageUrl } from '@/lib/utils';
+import { buildAbsoluteUrl, buildWhatsAppUrl, getCompanyWhatsAppNumber } from '@/lib/utils';
 import type { Product } from '@/types';
 
 interface ProductInquiryWhatsAppButtonProps {
@@ -54,11 +54,9 @@ export function ProductInquiryWhatsAppButton({ product, isEn, productType = 'per
         ? `/shop/accessories?product=${productId}&type=accessory`
       : `/shop/perfumes?product=${productId}&type=perfume`;
   const productUrl = buildAbsoluteUrl(productPath);
-  const imageUrl = resolveImageUrl(product.image_principale || product.images?.[0] || product.image_supp_1);
   const message = [
     isEn ? 'Can I get more information about this product?' : "Puis-je avoir plus d'informations sur ce produit ?",
     `${isEn ? 'Product' : 'Produit'}: ${product.name}`,
-    imageUrl ? `${isEn ? 'Image' : 'Image'}: ${imageUrl}` : '',
     `${isEn ? 'Link' : 'Lien'}: ${productUrl}`,
   ].filter(Boolean).join('\n');
 
