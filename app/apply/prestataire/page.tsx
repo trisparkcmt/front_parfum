@@ -84,7 +84,7 @@ export default function ApplyPrestatairePage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-gold text-black font-bold py-3.5 rounded-xl uppercase tracking-wider text-sm hover:bg-gold/90 transition-colors flex items-center justify-center gap-2"
+            className="w-full bg-gold text-black font-bold py-3.5 rounded-xl uppercase tracking-wider text-sm hover:bg-gold/90 transition-colors   flex items-center justify-center gap-2"
           >
             {loading ? <Loader2 className="animate-spin" size={18} /> : 'Soumettre ma demande'}
           </button>
