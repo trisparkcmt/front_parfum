@@ -281,7 +281,7 @@ export function ProductCard({
         </p>
         {inspiredBy && (
           <p className="text-[9px] text-foreground/40 truncate">
-            {isEn ? 'Inspired by' : 'Inspiré par'} {inspiredBy}
+            {isEn ? 'Inspired by' : 'Inspiré de'} {inspiredBy}
           </p>
         )}
 
@@ -289,7 +289,7 @@ export function ProductCard({
         <Link
           href={productUrl}
           onClick={(e) => handleProductLinkClick(e)}
-          className="mt-0.5  min-h-[2.2rem] sm:min-h-[2.6rem] font-serif font-bold text-[13px] sm:text-[14px] leading-[1.3] text-foreground transition-colors hover:text-gold"
+          className="mt-0.5 min-h-[2.2rem] sm:min-h-[2.6rem] font-serif font-bold text-[13px] sm:text-[14px] leading-[1.3] text-foreground uppercase transition-colors hover:text-gold"
         >
           {product.name}
         </Link>

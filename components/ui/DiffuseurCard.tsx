@@ -220,7 +220,7 @@ export function DiffuseurCard({
           <Link
             href={productUrl}
             onClick={handleProductLinkClick}
-            className="mb-1 block truncate font-serif text-sm font-medium leading-snug text-[var(--foreground)] transition-colors hover:text-[var(--color-gold)] sm:text-base md:text-lg"
+            className="mb-1 block truncate font-serif text-sm font-medium leading-snug text-[var(--foreground)] uppercase transition-colors hover:text-[var(--color-gold)] sm:text-base md:text-lg"
           >
             {product.name}
           </Link>

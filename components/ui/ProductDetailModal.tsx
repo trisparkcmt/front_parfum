@@ -583,7 +583,7 @@ export function ProductDetailModal({
                           </p>
                           {inspiredBy && (
                             <p className="text-foreground/50 text-sm mb-2">
-                              {isEn ? 'Inspired by' : 'Inspiré par'} {inspiredBy}
+                              {isEn ? 'Inspired by' : 'Inspiré de'} {inspiredBy}
                             </p>
                           )}
                           <h1 className="text-3xl md:text-4xl lg:text-5xl font-display font-bold text-foreground leading-[1.08]">

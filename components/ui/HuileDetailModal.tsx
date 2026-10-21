@@ -779,7 +779,7 @@ export function HuileDetailModal({ productId, initialProduct, onClose, onRelated
                                 <img src={resolveImageUrl(p.images[0])} alt={p.name} className="w-full aspect-square object-cover" />
                               )}
                               <div className="p-3">
-                                <p className="text-xs font-bold text-foreground truncate">{p.name}</p>
+                                <p className="text-xs font-bold text-foreground truncate uppercase">{p.name}</p>
                                 <p className="text-xs text-gold font-mono mt-1">{formatPrice(p.price)}</p>
                               </div>
                             </div>

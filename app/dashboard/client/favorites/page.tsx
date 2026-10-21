@@ -313,7 +313,7 @@ export default function FavoritesPage() {
                       {product.type === 'custom' ? t('custom_perfume', 'Parfum sur mesure') : product.type === 'perfume' ? t('perfume', 'Parfum') : t('accessory', 'Accessoire')}
                     </p>
                     <h3
-                      className="cursor-pointer truncate font-serif text-[15px] text-foreground/90 transition-colors hover:text-gold"
+                      className="cursor-pointer truncate font-serif text-[15px] text-foreground/90 uppercase transition-colors hover:text-gold"
                       onClick={() => handleViewProduct(product)}
                     >
                       {product.name}

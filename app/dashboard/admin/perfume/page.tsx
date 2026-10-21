@@ -9,6 +9,7 @@ import { useTranslation } from 'react-i18next';
 import { CustomSelect } from '@/components/ui/CustomSelect';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
+import { FloatInput } from '@/components/ui/Input';
 import { AdminTableSkeleton } from '@/components/ui/AdminTableSkeleton';
 import { EmptyState } from '@/components/ui/EmptyState';
 
@@ -41,7 +42,7 @@ const T = {
     field_purchase: "Prix d'achat (FCFA)", field_promo_price: 'Prix promotionnel (FCFA)',
     field_reduction: 'Réduction (%)', field_stock: 'Stock', field_alert: "Seuil d'alerte",
     field_notes_tete: 'Notes de tête', field_notes_coeur: 'Notes de cœur', field_notes_fond: 'Notes de fond',
-    field_desc_short: 'Description courte', field_desc_long: 'Description longue', field_desc_ai: 'Description IA', field_inspire_de: 'Inspiré par',
+    field_desc_short: 'Description courte', field_desc_long: 'Description longue', field_desc_ai: 'Description IA', field_inspire_de: 'Inspiré de',
     field_bestseller: 'Bestseller', field_new: 'Nouveau', field_active: 'Actif',
     field_date_debut: 'Date début promo', field_date_fin: 'Date fin promo',
     field_promo_msg: 'Message promotion', field_reset_dates: 'Réinitialiser les dates',
@@ -1668,51 +1669,18 @@ export default function PerfumeAdminPage() {
               </FormSection>
 
               <FormSection title="Tags" icon={<Tag size={11} />}>
-                <div className="space-y-3">
+                <div>
                   {tagTypes.length > 0 ? (
                     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                      {tagTypes.map((tagType) => {
-                        const isSelected = tagValues[tagType.id] !== undefined;
-                        return (
-                          <div key={tagType.id} className="rounded-xl border border-white/10 bg-white/[0.02] p-3 space-y-2">
-                            <div className="flex items-center justify-between">
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  if (isSelected) {
-                                    setTagValues(prev => {
-                                      const next = { ...prev };
-                                      delete next[tagType.id];
-                                      return next;
-                                    });
-                                  } else {
-                                    updateTagValue(Number(tagType.id), tagType.nom || 'true');
-                                  }
-                                }}
-                                className={`flex items-center gap-2 text-xs font-semibold px-3 py-1.5 rounded-lg border transition-all ${
-                                  isSelected
-                                    ? 'bg-gold/20 border-gold text-gold shadow-sm shadow-gold/10'
-                                    : 'bg-white/5 border-white/10 text-foreground/60 hover:text-foreground hover:bg-white/10'
-                                }`}
-                              >
-                                <Tag size={12} />
-                                <span>{tagType.nom}</span>
-                              </button>
-                              <span className="text-[10px] text-foreground/40 font-mono">
-                                {isSelected ? 'Actif' : 'Inactif'}
-                              </span>
-                            </div>
-                            {isSelected && (
-                              <input
-                                value={tagValues[tagType.id] ?? ''}
-                                onChange={e => updateTagValue(Number(tagType.id), e.target.value)}
-                                placeholder={`Valeur du tag (${tagType.nom})...`}
-                                className={inputCls}
-                              />
-                            )}
-                          </div>
-                        );
-                      })}
+                      {tagTypes.map(tagType => (
+                        <FloatInput
+                          key={tagType.id}
+                          label={tagType.nom}
+                          aria-label={tagType.nom}
+                          value={tagValues[tagType.id] ?? ''}
+                          onChange={e => updateTagValue(Number(tagType.id), e.target.value)}
+                        />
+                      ))}
                     </div>
                   ) : (
                     <p className="text-xs text-foreground/40 italic">Aucun tag configuré dans le système.</p>
