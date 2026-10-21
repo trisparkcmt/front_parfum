@@ -82,6 +82,7 @@ export function mapBackendPerfumeToProduct(p: any): Product {
     description: p.description_courte || p.description_longue || '',
     description_courte: p.description_courte || '',
     description_longue: p.description_longue || '',
+    inspire_de: p.inspire_de || '',
     price: parseFloat(p.prix_actuel || p.prix_unitaire || '0'),
     originalPrice: parseFloat(p.prix_unitaire),
     taux_reduction: p.taux_reduction || (

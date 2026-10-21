@@ -41,7 +41,7 @@ const T = {
     field_purchase: "Prix d'achat (FCFA)", field_promo_price: 'Prix promotionnel (FCFA)',
     field_reduction: 'Réduction (%)', field_stock: 'Stock', field_alert: "Seuil d'alerte",
     field_notes_tete: 'Notes de tête', field_notes_coeur: 'Notes de cœur', field_notes_fond: 'Notes de fond',
-    field_desc_short: 'Description courte', field_desc_long: 'Description longue', field_desc_ai: 'Description IA',
+    field_desc_short: 'Description courte', field_desc_long: 'Description longue', field_desc_ai: 'Description IA', field_inspire_de: 'Inspiré par',
     field_bestseller: 'Bestseller', field_new: 'Nouveau', field_active: 'Actif',
     field_date_debut: 'Date début promo', field_date_fin: 'Date fin promo',
     field_promo_msg: 'Message promotion', field_reset_dates: 'Réinitialiser les dates',
@@ -86,7 +86,7 @@ const T = {
     field_purchase: 'Purchase price (FCFA)', field_promo_price: 'Promotional price (FCFA)',
     field_reduction: 'Discount (%)', field_stock: 'Stock', field_alert: 'Alert threshold',
     field_notes_tete: 'Top notes', field_notes_coeur: 'Heart notes', field_notes_fond: 'Base notes',
-    field_desc_short: 'Short description', field_desc_long: 'Long description', field_desc_ai: 'AI description',
+    field_desc_short: 'Short description', field_desc_long: 'Long description', field_desc_ai: 'AI description', field_inspire_de: 'Inspired by',
     field_bestseller: 'Bestseller', field_new: 'New', field_active: 'Active',
     field_date_debut: 'Promo start date', field_date_fin: 'Promo end date',
     field_promo_msg: 'Promo message', field_reset_dates: 'Reset dates',
@@ -117,6 +117,7 @@ type PerfumeRecord = {
   description_courte?: string;
   description_longue?: string;
   description_ia?: string;
+  inspire_de?: string;
   contenance_ml?: number | string;
   prix_unitaire?: number | string;
   prix_achat?: number | string;
@@ -350,6 +351,7 @@ export default function PerfumeAdminPage() {
     description_courte: '',
     description_longue: '',
     description_ia: '',
+    inspire_de: '',
     contenance_ml: '',
     prix_unitaire: '',
     prix_achat: '',
@@ -597,6 +599,7 @@ export default function PerfumeAdminPage() {
       description_courte: '',
       description_longue: '',
       description_ia: '',
+      inspire_de: '',
       contenance_ml: '',
       prix_unitaire: '',
       prix_achat: '',
@@ -642,6 +645,7 @@ export default function PerfumeAdminPage() {
       description_courte: perf.description_courte || '',
       description_longue: perf.description_longue || '',
       description_ia: perf.description_ia || '',
+      inspire_de: perf.inspire_de || '',
       contenance_ml: String(perf.contenance_ml || ''),
       prix_unitaire: String(perf.prix_unitaire || ''),
       prix_achat: perf.prix_achat ? String(perf.prix_achat) : '',
@@ -1486,6 +1490,14 @@ export default function PerfumeAdminPage() {
                       />
                     </Field>
                   </div>
+                  <Field label={t('field_inspire_de')}>
+                    <input
+                      data-field="inspire_de"
+                      value={form.inspire_de}
+                      onChange={(e) => updateForm('inspire_de', e.target.value)}
+                      className={inputCls}
+                    />
+                  </Field>
                   <Field label={t('field_desc_long')}>
                     <textarea
                       data-field="description_longue"

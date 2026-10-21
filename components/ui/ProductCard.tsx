@@ -62,6 +62,7 @@ export function ProductCard({
   const [isHovered, setIsHovered] = useState(false);
 
   const isEn = i18n.language?.startsWith('en');
+  const inspiredBy = product.inspire_de?.trim();
 
   const perfumeText = t('perfume_label', { defaultValue: isEn ? 'Perfume' : 'Parfum' });
   const oilText = t('pure_oils', { defaultValue: isEn ? 'Oil' : 'Huile' });
@@ -278,6 +279,11 @@ export function ProductCard({
         <p className="h-4 text-[9px] sm:text-[10px] font-medium text-foreground/45 truncate">
           {product.brand || '\u00a0'}
         </p>
+        {inspiredBy && (
+          <p className="text-[9px] text-foreground/40 truncate">
+            {isEn ? 'Inspired by' : 'Inspiré par'} {inspiredBy}
+          </p>
+        )}
 
         {/* Product name — clamped to 2 lines, fixed min-height reserves space */}
         <Link

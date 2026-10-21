@@ -95,6 +95,7 @@ export function ProductDetailModal({
   const { addToast } = useToastStore();
 
   const productImages = product?.images?.filter((image): image is string => Boolean(image)) ?? [];
+  const inspiredBy = product?.inspire_de?.trim();
 
   // ── Load product ─────────────────────────────────────────────────────────
   useEffect(() => {
@@ -580,6 +581,11 @@ export function ProductDetailModal({
                           <p className="text-gold font-medium tracking-widest uppercase text-xs mb-3">
                             {product.brand || 'Exclusif Collection'}
                           </p>
+                          {inspiredBy && (
+                            <p className="text-foreground/50 text-sm mb-2">
+                              {isEn ? 'Inspired by' : 'Inspiré par'} {inspiredBy}
+                            </p>
+                          )}
                           <h1 className="text-3xl md:text-4xl lg:text-5xl font-display font-bold text-foreground leading-[1.08]">
                             {product.name}
                           </h1>
