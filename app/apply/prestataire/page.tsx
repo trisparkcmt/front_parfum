@@ -29,7 +29,7 @@ export default function ApplyPrestatairePage() {
       addToast('Votre demande a été envoyée avec succès !', 'success');
       router.push('/dashboard/profile');
     } catch (err: any) {
-      addToast(err.response?.data?.detail || 'Erreur lors de la candidature', 'error');
+      addToast('Erreur lors de la candidature', 'error');
     } finally {
       setLoading(false);
     }

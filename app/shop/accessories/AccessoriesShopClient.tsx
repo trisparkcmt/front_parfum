@@ -189,10 +189,10 @@ export default function AccessoriesShop() {
     const isFav = isFavorite(product.id, 'accessory');
     if (isFav) {
       removeFavorite(product.id, 'accessory');
-      addToast(`${product.name} ${t('removed_from_favorites')}`, 'info');
+      addToast(t('removed_from_favorites'), 'info');
     } else {
       addFavorite({ ...product, category: 'accessory' });
-      addToast(`${product.name} ${t('added_to_favorites')}`, 'info');
+      addToast(t('added_to_favorites'), 'info');
     }
   };
 

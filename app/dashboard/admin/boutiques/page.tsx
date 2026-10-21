@@ -311,7 +311,7 @@ export default function AdminBoutiquesPage() {
     };
 
     const failed = [allRes, finRes].find((r) => r.status === 'rejected') as PromiseRejectedResult | undefined;
-    if (failed) addToast(failed.reason?.response?.data?.detail || t('toast_load_error'), 'error');
+    if (failed) addToast(t('toast_load_error'), 'error');
 
     setRows(mergeRows(pick(allRes), pick(finRes), t('owner_fallback')));
     setLoading(false);

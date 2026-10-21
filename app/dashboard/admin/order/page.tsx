@@ -712,7 +712,7 @@ export default function OrdersPage() {
       await invoiceService.downloadInvoiceFile(num, `facture-${num}.pdf`);
       addToast(isEn ? T.en.download_success : T.fr.download_success, 'success');
     } catch (err: any) {
-      addToast(err.response?.data?.detail ?? (isEn ? T.en.download_error : T.fr.download_error), 'error');
+      addToast(isEn ? T.en.download_error : T.fr.download_error, 'error');
     } finally {
       setDownloadingInvoice(false);
     }

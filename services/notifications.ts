@@ -135,7 +135,7 @@ export function listenForegroundNotifications(): void {
 
       // HOOK TOAST / UI ALERTS HERE
       const addToast = useToastStore.getState().addToast;
-      addToast(`${title}: ${body}`, 'info');
+      addToast('New notification', 'info');
     });
     console.log('[FCM] Listening for foreground notifications.');
   } catch (error) {
@@ -183,7 +183,7 @@ export async function triggerTestNotification(
       new Notification(title, notificationOptions);
     }
 
-    useToastStore.getState().addToast(`${title} — ${body}`, 'info');
+    useToastStore.getState().addToast('Test notification sent', 'info');
     return true;
   } catch (error) {
     console.error('[FCM] Test notification error:', error);

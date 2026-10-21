@@ -276,7 +276,7 @@ export function ProductDetailModal({
       setSelectedEssence(p);
     } else {
       addProduct(p, 1);
-      addToast(isEn ? `${p.name} added to bag` : `${p.name} ajouté au panier`, 'success');
+      addToast(isEn ? 'Added' : 'Ajouté', 'success');
     }
   };
 
@@ -311,8 +311,8 @@ export function ProductDetailModal({
     const totalQty = items.reduce((s, it) => s + it.quantity, 0);
     addToast(
       isEn
-        ? `${essence.name} (${totalQty} bottle${totalQty > 1 ? 's' : ''}) added to bag`
-        : `${essence.name} (${totalQty} flacon${totalQty > 1 ? 's' : ''}) ajouté au panier`,
+        ? 'Added'
+        : 'Ajouté',
       'success'
     );
   };

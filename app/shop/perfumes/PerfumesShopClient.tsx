@@ -688,7 +688,7 @@ export default function PerfumesShopClient() {
 
     const totalCount = items.reduce((s, it) => s + it.quantity, 0);
     addToast(
-      `${essence.name} (${totalCount} flacon${totalCount > 1 ? 's' : ''}) ${t('added_to_cart')}`,
+      t('added_to_cart'),
       'success'
     );
   };
@@ -698,13 +698,13 @@ export default function PerfumesShopClient() {
     if (isFav) {
       removeFavorite(product.id, product.category);
       addToast(
-        `${product.name} ${t('removed_from_favorites')}`,
+        t('removed_from_favorites'),
         'info'
       );
     } else {
       addFavorite(product);
       addToast(
-        `${product.name} ${t('added_to_favorites')}`,
+        t('added_to_favorites'),
         'success'
       );
     }

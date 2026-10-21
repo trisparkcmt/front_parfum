@@ -177,7 +177,7 @@ export default function FlashSales() {
 
     const totalCount = items.reduce((s, it) => s + it.quantity, 0);
     addToast(
-      `${essence.name} (${totalCount} flacon${totalCount > 1 ? 's' : ''}) ${isEn ? 'added to cart' : 'ajouté au panier'}`,
+      isEn ? 'Added' : 'Ajouté',
       'success'
     );
   };
@@ -186,10 +186,10 @@ export default function FlashSales() {
     const isFav = isFavorite(product.id, product.category);
     if (isFav) {
       removeFavorite(product.id, product.category);
-      addToast(`${product.name} ${t('removed_from_favorites')}`, 'info');
+      addToast(t('removed_from_favorites'), 'info');
     } else {
       addFavorite(product);
-      addToast(`${product.name} ${t('added_to_favorites')}`, 'success');
+      addToast(t('added_to_favorites'), 'success');
     }
   };
 

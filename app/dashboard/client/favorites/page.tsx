@@ -118,7 +118,7 @@ export default function FavoritesPage() {
     } catch (error: any) {
       console.error('Error deleting custom perfume:', error);
       const { addToast } = useToastStore.getState();
-      addToast(error?.response?.data?.detail || t('delete_error', 'Erreur lors de la suppression'), 'error');
+      addToast(t('delete_error', 'Erreur lors de la suppression'), 'error');
       setRemovingId(null);
     }
   };

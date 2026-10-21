@@ -284,7 +284,7 @@ export default function ProductDetailClient({ id }: { id: string }) {
     } else {
       addProduct(p, 1);
       addToast(
-        isEn ? `${p.name} added to bag` : `${p.name} ajouté au panier`,
+        isEn ? 'Added' : 'Ajouté',
         'success'
       );
     }
@@ -319,8 +319,8 @@ export default function ProductDetailClient({ id }: { id: string }) {
     const totalCount = items.reduce((s, it) => s + it.quantity, 0);
     addToast(
       isEn
-        ? `${essence.name} (${totalCount} bottle${totalCount > 1 ? 's' : ''}) added to bag`
-        : `${essence.name} (${totalCount} flacon${totalCount > 1 ? 's' : ''}) ajouté au panier`,
+        ? 'Added'
+        : 'Ajouté',
       'success'
     );
   };

@@ -496,7 +496,7 @@ export default function PerfumeAdminPage() {
     setSelectedSlugs([]);
     try {
       await Promise.all(selectedSlugs.map((slug) => shopService.deletePerfume(slug)));
-      addToast(`${snapshots.length} ${t('toast_bulk_ok')}`, 'success');
+      addToast(t('toast_bulk_ok'), 'success');
     } catch {
       setPerfumes(prev => [...snapshots, ...prev]);
       addToast(t('toast_bulk_error'), 'error');
@@ -516,7 +516,7 @@ export default function PerfumeAdminPage() {
         fd.append('actif', actif ? 'true' : 'false');
         return adminService.patchFormData(`shop/parfums/${slug}/`, fd);
       }));
-      addToast(`${selectedSlugs.length} produits mis à jour`, 'success');
+      addToast('Produits mis à jour', 'success');
       fetchPerfumes(currentPage, true);
     } catch {
       addToast(t('toast_patch_error'), 'error');
@@ -546,7 +546,7 @@ export default function PerfumeAdminPage() {
     setIsSubmitting(true);
     try {
       await Promise.all(selectedSlugs.map(slug => adminService.patchFormData(`shop/parfums/${slug}/`, formData)));
-      addToast(`Promotion appliquée à ${selectedSlugs.length} produit(s)`, 'success');
+      addToast('Promotion appliquée', 'success');
       setShowPromoModal(false);
       setPromoForm({ taux_reduction: '', date_debut: '', date_fin: '', message_promotion: '' });
       fetchPerfumes(currentPage, true);

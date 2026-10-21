@@ -213,8 +213,8 @@ export default function HuileDetailClient({ id }: { id: string }) {
 
     addToast(
       isEn
-        ? `${product.name} (${totalQuantity} bottle${totalQuantity > 1 ? 's' : ''}) added to bag`
-        : `${product.name} (${totalQuantity} flacon${totalQuantity > 1 ? 's' : ''}) ajouté au panier`,
+        ? 'Added'
+        : 'Ajouté',
       'success'
     );
   };
@@ -223,11 +223,11 @@ export default function HuileDetailClient({ id }: { id: string }) {
     const isFav = product.is_favori ?? isFavorite(product.id, product.category);
     if (isFav) {
       removeFavorite(product.id, product.category);
-      addToast(isEn ? `${product.name} removed from wishlist` : `${product.name} retiré des favoris`, 'info');
+      addToast(isEn ? 'Removed from favorites' : 'Retiré des favoris', 'info');
       setProduct({ ...product, is_favori: false });
     } else {
       addFavorite(product);
-      addToast(isEn ? `${product.name} added to wishlist` : `${product.name} ajouté aux favoris`, 'info');
+      addToast(isEn ? 'Added to favorites' : 'Ajouté aux favoris', 'info');
       setProduct({ ...product, is_favori: true });
     }
   };

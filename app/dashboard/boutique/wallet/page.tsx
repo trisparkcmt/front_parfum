@@ -14,7 +14,7 @@ export default function BoutiqueWalletPage() {
   useEffect(() => {
     boutiqueService.getPortefeuille()
       .then(setWallet)
-      .catch((error: any) => addToast(error.response?.data?.detail || 'Erreur lors du chargement du portefeuille', 'error'))
+      .catch(() => addToast('Erreur lors du chargement du portefeuille', 'error'))
       .finally(() => setLoading(false));
   }, [addToast]);
 

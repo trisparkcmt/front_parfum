@@ -586,7 +586,7 @@ export default function AdminBoutiqueDetailPage() {
       const data = await adminService.getBoutiqueDetail(boutiqueId, { page: productsPage , page_size: 100 });
       setBoutique(data);
     } catch (err: any) {
-      addToast(err.response?.data?.detail || t('toast_load_error'), 'error');
+      addToast(t('toast_load_error'), 'error');
     } finally {
       setRefreshing(false);
       setInitialLoading(false);
@@ -686,13 +686,13 @@ export default function AdminBoutiqueDetailPage() {
         idempotency_key: payoutIdempotencyKey.current,
       };
       const res = await adminService.effectuerVersementBoutique(boutiqueId, payload);
-      addToast(res.detail, 'success');
+      addToast('Versement initié avec succès', 'success');
       payoutIdempotencyKey.current = null;
       setPanel(null);
       setActiveTab('versements');
       fetchDetail();
     } catch (err: any) {
-      addToast(err.response?.data?.detail || t('toast_payout_error'), 'error');
+      addToast(t('toast_payout_error'), 'error');
     } finally {
       setIsSaving(false);
     }
@@ -723,7 +723,7 @@ export default function AdminBoutiqueDetailPage() {
       setShowEditPriceModal(false);
       fetchDetail();
     } catch (err: any) {
-      addToast(err.response?.data?.detail || 'Erreur lors de la mise à jour du prix', 'error');
+      addToast('Erreur lors de la mise à jour du prix', 'error');
     } finally {
       setIsSavingProduct(false);
     }
@@ -741,7 +741,7 @@ export default function AdminBoutiqueDetailPage() {
       addToast('Produit supprimé avec succès', 'success');
       fetchDetail();
     } catch (err: any) {
-      addToast(err.response?.data?.detail || 'Erreur lors de la suppression', 'error');
+      addToast('Erreur lors de la suppression', 'error');
     }
   };
 

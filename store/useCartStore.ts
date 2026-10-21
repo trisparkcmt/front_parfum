@@ -235,7 +235,7 @@ export const useCartStore = create<CartState>()(
           const errorMsg =
             error.response?.data?.detail || 'Erreur lors de la synchronisation du panier';
           set({ error: errorMsg, isLoading: false });
-          addToast(errorMsg, 'error');
+          addToast(getLocalizedToast('Unable to sync your cart', 'Impossible de synchroniser le panier'), 'error');
         }
       },
 
@@ -260,7 +260,7 @@ export const useCartStore = create<CartState>()(
           const errorMsg =
             error.response?.data?.detail || 'Erreur lors de l\'ajout du parfum';
           set({ error: errorMsg, isLoading: false });
-          addToast(errorMsg, 'error');
+          addToast(getLocalizedToast('Unable to add item', 'Impossible d’ajouter l’article'), 'error');
         }
       },
 
@@ -285,7 +285,7 @@ export const useCartStore = create<CartState>()(
           const errorMsg =
             error.response?.data?.detail || 'Erreur lors de l\'ajout de l\'accessoire';
           set({ error: errorMsg, isLoading: false });
-          addToast(errorMsg, 'error');
+          addToast(getLocalizedToast('Unable to add item', 'Impossible d’ajouter l’article'), 'error');
         }
       },
 
@@ -309,7 +309,7 @@ export const useCartStore = create<CartState>()(
         } catch (error: any) {
           const errorMsg = extractApiError(error, 'Erreur lors de l\'ajout du diffuseur');
           set({ error: errorMsg, isLoading: false });
-          addToast(errorMsg, 'error');
+          addToast(getLocalizedToast('Unable to add item', 'Impossible d’ajouter l’article'), 'error');
         }
       },
 
@@ -334,7 +334,7 @@ export const useCartStore = create<CartState>()(
           const errorMsg =
             error.response?.data?.detail || 'Erreur lors de l\'ajout de l\'essence';
           set({ error: errorMsg, isLoading: false });
-          addToast(errorMsg, 'error');
+          addToast(getLocalizedToast('Unable to add item', 'Impossible d’ajouter l’article'), 'error');
         }
       },
 
@@ -361,7 +361,7 @@ export const useCartStore = create<CartState>()(
         } catch (error: any) {
           const errorMsg = extractApiError(error, 'Erreur lors de l\'ajout du parfum personnalisé');
           set({ error: errorMsg, isLoading: false });
-          addToast(errorMsg, 'error');
+          addToast(getLocalizedToast('Unable to add item', 'Impossible d’ajouter l’article'), 'error');
         }
       },
 
@@ -386,7 +386,7 @@ export const useCartStore = create<CartState>()(
         } catch (error: any) {
           const errorMsg = extractApiError(error, 'Erreur lors de l\'ajout de la composition');
           set({ error: errorMsg, isLoading: false });
-          addToast(errorMsg, 'error');
+          addToast(getLocalizedToast('Unable to add item', 'Impossible d’ajouter l’article'), 'error');
           throw error;
         }
       },
@@ -412,7 +412,7 @@ export const useCartStore = create<CartState>()(
           const errorMsg =
             error.response?.data?.detail || 'Erreur lors de l\'ajout de l\'essence personnalisée';
           set({ error: errorMsg, isLoading: false });
-          addToast(errorMsg, 'error');
+          addToast(getLocalizedToast('Unable to add item', 'Impossible d’ajouter l’article'), 'error');
         }
       },
 
@@ -439,7 +439,7 @@ export const useCartStore = create<CartState>()(
           const errorMsg =
             error.response?.data?.detail || 'Erreur lors de la mise à jour de la quantité';
           set({ error: errorMsg, isLoading: false });
-          addToast(errorMsg, 'error');
+          addToast(getLocalizedToast('Unable to update quantity', 'Impossible de modifier la quantité'), 'error');
         }
       },
 
@@ -490,7 +490,7 @@ export const useCartStore = create<CartState>()(
           const errorMsg =
             error.response?.data?.detail || 'Erreur lors de la suppression du produit';
           set({ error: errorMsg, isLoading: false });
-          addToast(errorMsg, 'error');
+          addToast(getLocalizedToast('Unable to remove item', 'Impossible de supprimer l’article'), 'error');
         }
       },
 
@@ -511,8 +511,8 @@ export const useCartStore = create<CartState>()(
           });
           addToast(
             getLocalizedToast(
-              `Promo code applied: ${cartData.remise_pourcentage}% off`,
-              `Code promo appliqué: ${cartData.remise_pourcentage}% de réduction`
+              'Promo code applied',
+              'Code promo appliqué'
             ),
             'success'
           );
@@ -520,7 +520,7 @@ export const useCartStore = create<CartState>()(
           const errorMsg =
             error.response?.data?.detail || 'Code promo invalide';
           set({ error: errorMsg, isLoading: false });
-          addToast(errorMsg, 'error');
+          addToast(getLocalizedToast('Unable to remove promo code', 'Impossible de retirer le code promo'), 'error');
         }
       },
 

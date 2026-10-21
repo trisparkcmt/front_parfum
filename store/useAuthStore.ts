@@ -227,7 +227,7 @@ export const useAuthStore = create<AuthState>()(
             isLoading: false,
           });
           initializeTokenRefresh();
-          addToast(getLocalizedToast(`Welcome, ${meUser.firstName}!`, `Bienvenue, ${meUser.firstName} !`), 'success');
+          addToast(getLocalizedToast('Welcome', 'Bienvenue'), 'success');
 
           // Clear stale cart and sync fresh cart from backend after login
           // NOTE: Cart sync disabled until backend orders/panier endpoints are implemented
@@ -244,7 +244,7 @@ export const useAuthStore = create<AuthState>()(
         } catch (error: any) {
           console.error('Login failed:', error);
           set({ isLoading: false });
-          addToast(error.response?.data?.detail || getLocalizedToast('Login failed', 'Échec de la connexion'), 'error');
+          addToast(getLocalizedToast('Login failed', 'Échec de la connexion'), 'error');
           return false;
         }
       },
@@ -338,7 +338,7 @@ export const useAuthStore = create<AuthState>()(
             isLoading: false,
           });
           initializeTokenRefresh();
-          addToast(getLocalizedToast(`Welcome, ${meUser.firstName}!`, `Bienvenue, ${meUser.firstName} !`), 'success');
+          addToast(getLocalizedToast('Welcome', 'Bienvenue'), 'success');
           // NOTE: FCM device registration is handled by FCMProvider which watches
           // isAuthenticated — no need to call initializeFCM here (would cause race condition).
 
@@ -348,7 +348,7 @@ export const useAuthStore = create<AuthState>()(
         } catch (error: any) {
           console.error('Google login failed:', error);
           set({ isLoading: false });
-          addToast(error.response?.data?.detail || getLocalizedToast('Google login failed', 'Échec de la connexion Google'), 'error');
+          addToast(getLocalizedToast('Google login failed', 'Échec de la connexion Google'), 'error');
           return false;
         }
       },

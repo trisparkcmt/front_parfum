@@ -1330,7 +1330,7 @@ export function GeminiChat({ onChatStarted }: GeminiChatProps) {
   const handleResetConversation = useCallback(async () => {
     try {
       const res = await apiLabService.resetIAChatSummary();
-      addToast(res.detail || t.resetSuccess, 'success');
+      addToast(t.resetSuccess, 'success');
     } catch (err: unknown) {
       console.warn('Failed to reset AI chat summary:', err);
     } finally {

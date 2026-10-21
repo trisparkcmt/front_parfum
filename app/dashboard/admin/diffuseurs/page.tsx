@@ -504,7 +504,7 @@ export default function DiffuseursAdminPage() {
     setDiffuseurs(prev => prev.map(d => ids.includes(d.id) ? { ...d, actif } : d));
     try {
       await Promise.all(ids.map(id => adminService.updateDiffuseur(id, { actif })));
-      addToast(`${ids.length} diffuseurs mis à jour`, 'success');
+      addToast('Diffuseurs mis à jour', 'success');
       fetchItems(currentPage, true);
     } catch {
       addToast(t('toast_patch_error'), 'error');
@@ -522,7 +522,7 @@ export default function DiffuseursAdminPage() {
     if (promoForm.message_promotion) payload.message_promotion = promoForm.message_promotion;
     try {
       await Promise.all(ids.map(id => adminService.updateDiffuseur(id, payload)));
-      addToast(`Promotion appliquée à ${ids.length} diffuseur(s)`, 'success');
+      addToast('Promotion appliquée', 'success');
       setShowPromoModal(false);
       setPromoForm({ taux_reduction: '', date_debut: '', date_fin: '', message_promotion: '' });
       fetchItems(currentPage, true);

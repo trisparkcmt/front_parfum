@@ -199,7 +199,7 @@ export default function PromoCodesPage() {
       });
       const ids = list.map(c => c.id);
       setFormClients(prev => Array.from(new Set([...prev, ...ids])));
-      addToast(getLocalizedToast(`${ids.length} client(s) added`, `${ids.length} client(s) ajouté(s)`), 'success');
+      addToast(getLocalizedToast('Clients added', 'Clients ajoutés'), 'success');
     } catch {
       addToast('Erreur lors du chargement du groupe', 'error');
     } finally {

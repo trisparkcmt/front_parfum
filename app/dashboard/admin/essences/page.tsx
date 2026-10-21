@@ -594,7 +594,7 @@ export default function EssencesPage() {
       for (const slugOrId of slugsOrIds) {
         try { await labService.deleteEssence(slugOrId); } catch (e) { console.error(`Failed to delete essence ${slugOrId}:`, e); }
       }
-      addToast(`${slugsOrIds.length} ${t('toast_bulk_ok')}`, 'success');
+      addToast(t('toast_bulk_ok'), 'success');
     } catch {
       setEssences(prev => [...snapshots, ...prev]);
       addToast(t('toast_bulk_error'), 'error');

@@ -38,7 +38,7 @@ export default function ApplyBoutiquePage() {
       addToast('Votre demande a été envoyée avec succès !', 'success');
       setSubmitted(true);
     } catch (err: any) {
-      addToast(err.response?.data?.detail || 'Erreur lors de la candidature', 'error');
+      addToast('Erreur lors de la candidature', 'error');
     } finally {
       setLoading(false);
     }
@@ -53,7 +53,7 @@ export default function ApplyBoutiquePage() {
       setPreviewUrl(null);
       addToast('Votre demande de boutique a été annulée.', 'success');
     } catch (err: any) {
-      addToast(err.response?.data?.detail || 'Impossible d’annuler la demande', 'error');
+      addToast('Impossible d’annuler la demande', 'error');
     } finally {
       setLoading(false);
     }

@@ -157,7 +157,7 @@ export default function ServeusesPage() {
       addToast(getLocalizedToast('Serveuse deleted successfully', 'Serveuse supprimée avec succès'), 'success');
     } catch (error: any) {
       if (snapshot) setServeuses(prev => [snapshot, ...prev]);
-      addToast(error.response?.data?.detail || 'Erreur lors de la suppression', 'error');
+      addToast('Erreur lors de la suppression', 'error');
     }
   };
 

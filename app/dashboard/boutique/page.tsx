@@ -23,7 +23,7 @@ export default function VendorDashboardPage() {
         setWallet(walletData);
         setVentes(ventesData);
       } catch (err: any) {
-        addToast(err.response?.data?.detail || 'Erreur lors du chargement', 'error');
+        addToast('Erreur lors du chargement', 'error');
       } finally {
         setLoading(false);
       }
