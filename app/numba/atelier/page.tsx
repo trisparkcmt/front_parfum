@@ -59,7 +59,16 @@ function hexToRgb(h: string) {
   return { r:parseInt(h.substring(0,2),16), g:parseInt(h.substring(2,4),16), b:parseInt(h.substring(4,6),16) };
 }
 
-function blendColor(quantities: Record<string, number>, allItems: EssenceClient[]) {
+function blendColor(quantities: Record<string, number>, allItems: EssenceClient[], selectedColor = '') {
+  if (/^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/i.test(selectedColor)) {
+    const { r, g, b } = hexToRgb(selectedColor);
+    return {
+      top:`rgba(${Math.min(255,r+30)},${Math.min(255,g+30)},${Math.min(255,b+20)},0.90)`,
+      mid:`rgba(${r},${g},${b},0.95)`,
+      bot:`rgba(${Math.max(0,r-25)},${Math.max(0,g-25)},${Math.max(0,b-15)},0.98)`,
+    };
+  }
+
   let r=0,g=0,b=0,tw=0;
   for (const e of allItems) {
     const q = quantities[e.id]||0;
@@ -116,10 +125,10 @@ const GlassDefs = ({ col, id }: any) => (
 /* ═══════════════════════════════════════
    BOTTLE SVG COMPONENTS (WITH DYNAMIC COLORS)
    ═══════════════════════════════════════ */
-function Bottle100({ totalMl, maxFillMl, quantities, allItems }: any) {
+function Bottle100({ totalMl, maxFillMl, quantities, allItems, couleur }: any) {
   const pct = Math.min(1, totalMl / Math.max(1, maxFillMl));
   const topY = Math.round(420 - pct * 300);
-  const col = blendColor(quantities, allItems);
+  const col = blendColor(quantities, allItems, couleur);
   const isEmpty = totalMl === 0;
 
   return (
@@ -153,9 +162,9 @@ function Bottle100({ totalMl, maxFillMl, quantities, allItems }: any) {
   );
 }
 
-function Bottle50({ totalMl, maxFillMl, quantities, allItems }: any) {
+function Bottle50({ totalMl, maxFillMl, quantities, allItems, couleur }: any) {
   const pct = Math.min(1, totalMl / Math.max(1, maxFillMl));
-  const col = blendColor(quantities, allItems);
+  const col = blendColor(quantities, allItems, couleur);
   const topY = Math.round(380 - pct * 240);
   const isEmpty = totalMl === 0;
 
@@ -185,9 +194,9 @@ function Bottle50({ totalMl, maxFillMl, quantities, allItems }: any) {
   );
 }
 
-function Bottle30({ totalMl, maxFillMl, quantities, allItems }: any) {
+function Bottle30({ totalMl, maxFillMl, quantities, allItems, couleur }: any) {
   const pct = Math.min(1, totalMl / Math.max(1, maxFillMl));
-  const col = blendColor(quantities, allItems);
+  const col = blendColor(quantities, allItems, couleur);
   const topY = Math.round(400 - pct * 300);
   const isEmpty = totalMl === 0;
 
