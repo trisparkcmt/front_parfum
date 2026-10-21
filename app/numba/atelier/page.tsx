@@ -1220,9 +1220,9 @@ function AtelierContent() {
                 </span>
               </div>
             )}
-            {bottleSize >= 61 && <Bottle100 totalMl={totalMl} maxFillMl={maxFillMl} quantities={quantities} allItems={ALL_ITEMS} />}
-            {bottleSize >= 31 && bottleSize <= 60 && <Bottle50 totalMl={totalMl} maxFillMl={maxFillMl} quantities={quantities} allItems={ALL_ITEMS} />}
-            {bottleSize <= 30 && <Bottle30 totalMl={totalMl} maxFillMl={maxFillMl} quantities={quantities} allItems={ALL_ITEMS} />}
+            {bottleSize >= 61 && <Bottle100 totalMl={totalMl} maxFillMl={maxFillMl} quantities={quantities} allItems={ALL_ITEMS} couleur={couleur} />}
+            {bottleSize >= 31 && bottleSize <= 60 && <Bottle50 totalMl={totalMl} maxFillMl={maxFillMl} quantities={quantities} allItems={ALL_ITEMS} couleur={couleur} />}
+            {bottleSize <= 30 && <Bottle30 totalMl={totalMl} maxFillMl={maxFillMl} quantities={quantities} allItems={ALL_ITEMS} couleur={couleur} />}
 
             {/* Live total price — always visible next to the bottle */}
             <div className="absolute -left-14 top-1/2 -translate-y-1/2 flex flex-col items-center gap-1 opacity-70 pointer-events-none">
