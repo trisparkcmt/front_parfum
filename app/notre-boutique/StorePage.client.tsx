@@ -18,7 +18,7 @@ const SHOPS = [
     lng: 11.518453228911936
   },
   {
-    name: 'Accessoires Exclusifs (Central Mall)',
+    name: 'Accessoires Exclusifs / NUMBA',
     addressFr: 'Central Mall, Yaoundé, Cameroun',
     addressEn: 'Central Mall, Yaounde, Cameroon',
     lat: 3.8669750298785748,
