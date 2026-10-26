@@ -768,16 +768,7 @@ export default function HuileDetailClient({ id }: { id: string }) {
                           </td>
                         </tr>
                       )}
-                      {product.stock_total_ml != null && (
-                        <tr className="border-b border-foreground/10">
-                          <td className="py-3.5 text-xs uppercase tracking-widest text-foreground/40">
-                            {isEn ? 'Lab stock' : 'Stock laboratoire'}
-                          </td>
-                          <td className="py-3.5 font-medium text-foreground font-mono">
-                            {product.stock_total_ml.toLocaleString('fr-FR')} ml
-                          </td>
-                        </tr>
-                      )}
+                      
                     </tbody>
                   </table>
                 </motion.div>

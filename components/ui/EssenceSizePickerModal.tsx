@@ -178,12 +178,7 @@ export function EssenceSizePickerModal({ product, onConfirm, onClose }: EssenceS
               <h3 className="text-sm font-bold text-foreground line-clamp-1 leading-tight">
                 {product.name}
               </h3>
-              {product.stock_total_ml != null && (
-                <p className="text-[10px] text-foreground/45 mt-0.5 flex items-center gap-1">
-                  <Droplets size={10} className="text-gold" />
-                  Stock: {product.stock_total_ml.toLocaleString('fr-FR')} ml (Dispo: {Math.max(0, labTotalMl - totalMlUsed)} ml)
-                </p>
-              )}
+              
             </div>
             <button
               onClick={onClose}

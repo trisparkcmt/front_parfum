@@ -777,7 +777,7 @@ export default function AdminBoutiqueDetailPage() {
 
     setTogglingProducts((current) => new Set(current).add(productKey));
     try {
-      const slugOrId = product.slug || String(product.id);
+      const productId = product.id ?? product.slug;
       const formData = new FormData();
       formData.append('actif', String(actif));
       const endpoint = product.type_produit === 'parfum' ? 'shop/parfums' : 'shop/accessoires';

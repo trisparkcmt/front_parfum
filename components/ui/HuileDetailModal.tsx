@@ -685,7 +685,7 @@ export function HuileDetailModal({ productId, initialProduct, onClose, onRelated
                               <tr className="border-b border-foreground/10"><td className="py-3.5 text-xs uppercase tracking-widest text-foreground/40">{isEn ? 'Brand' : 'Marque'}</td><td className="py-3.5 font-medium text-foreground">{product.brand || 'Exclusif Collection'}</td></tr>
                               {product.origine_pays && (<tr className="border-b border-foreground/10"><td className="py-3.5 text-xs uppercase tracking-widest text-foreground/40">{isEn ? 'Origin' : 'Pays d\'origine'}</td><td className="py-3.5 font-medium text-foreground">{product.origine_pays}</td></tr>)}
                               {variants.length > 0 && (<tr className="border-b border-foreground/10"><td className="py-3.5 text-xs uppercase tracking-widest text-foreground/40">{isEn ? 'Available sizes' : 'Formats disponibles'}</td><td className="py-3.5 font-medium text-foreground">{variants.map(v => `${v.taille_ml}ml (${formatPrice(v.prix_actuel)})`).join(', ')}</td></tr>)}
-                              {product.stock_total_ml != null && (<tr className="border-b border-foreground/10"><td className="py-3.5 text-xs uppercase tracking-widest text-foreground/40">{isEn ? 'Lab stock' : 'Stock laboratoire'}</td><td className="py-3.5 font-medium text-foreground font-mono">{product.stock_total_ml.toLocaleString('fr-FR')} ml</td></tr>)}
+                              
                             </tbody>
                           </table>
                         </motion.div>
