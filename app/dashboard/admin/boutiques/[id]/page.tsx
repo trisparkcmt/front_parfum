@@ -77,6 +77,8 @@ const T = {
     price_modal_desc: 'Mettez à jour le prix de vente et le prix promotionnel du produit.',
     field_promo_price: 'Prix promotionnel',
     delete_product: 'Supprimer le produit',
+    activate_product: 'Activer le produit',
+    deactivate_product: 'Désactiver le produit',
     col_date: 'Date',
     col_reference: 'Référence',
     col_method: 'Mode / destination',
@@ -126,6 +128,9 @@ const T = {
     toast_commission_ok: 'Taux de commission mis à jour',
     toast_commission_error: 'Erreur lors de la mise à jour de la commission',
     toast_payout_error: 'Erreur lors du versement',
+    toast_product_activated: 'Produit activé',
+    toast_product_deactivated: 'Produit désactivé',
+    toast_product_status_error: 'Erreur lors de la mise à jour du statut du produit',
     not_found_title: 'Boutique introuvable',
     not_found_desc: "Cette boutique n'existe pas ou n'est plus accessible.",
     view_logo: 'Voir le logo de la boutique',
@@ -176,6 +181,8 @@ const T = {
     price_modal_desc: 'Update the product sale price and promotional price.',
     field_promo_price: 'Promotional price',
     delete_product: 'Delete product',
+    activate_product: 'Activate product',
+    deactivate_product: 'Deactivate product',
     col_date: 'Date',
     col_reference: 'Reference',
     col_method: 'Method / destination',
@@ -225,6 +232,9 @@ const T = {
     toast_commission_ok: 'Commission rate updated',
     toast_commission_error: 'Error updating the commission',
     toast_payout_error: 'Error recording the payout',
+    toast_product_activated: 'Product activated',
+    toast_product_deactivated: 'Product deactivated',
+    toast_product_status_error: 'Error updating product status',
     not_found_title: 'Shop not found',
     not_found_desc: "This shop doesn't exist or is no longer available.",
     view_logo: 'View shop logo',
@@ -414,12 +424,16 @@ function ProductsTable({
   t,
   onEditPrice,
   onDeleteProduct,
+  onToggleProduct,
+  togglingProducts,
 }: {
   rows: ProductRow[];
   kind: 'parfum' | 'accessoire';
   t: (k: TKey) => string;
   onEditPrice: (product: ProductRow) => void;
   onDeleteProduct: (product: ProductRow) => Promise<void>;
+  onToggleProduct: (product: ProductRow, actif: boolean) => Promise<void>;
+  togglingProducts: Set<string>;
 }) {
   const categoryOf = (p: ProductRow) => (kind === 'parfum' ? p.categorie?.nom : p.type_accessoire?.nom) || '—';
 
@@ -439,16 +453,43 @@ function ProductsTable({
     return <span className={cx('tabular-nums', q <= 5 ? 'text-amber-400' : 'text-foreground/70')}>{q}</span>;
   };
 
-  const Visibility = ({ p }: { p: ProductRow }) => (
-    <span
-      className={cx(
-        'inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ring-inset',
-        p.actif ? 'bg-green-500/10 text-green-400 ring-green-500/20' : 'bg-white/5 text-foreground/45 ring-white/10'
-      )}
-    >
-      {p.actif ? t('online') : t('hidden')}
-    </span>
-  );
+  const Visibility = ({ p }: { p: ProductRow }) => {
+    const isActive = Boolean(p.actif);
+    const isToggling = togglingProducts.has(`${p.type_produit}-${p.id}`);
+    const actionLabel = isActive ? t('deactivate_product') : t('activate_product');
+    return (
+      <div className="flex items-center gap-2">
+        <span
+          className={cx(
+            'inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ring-inset',
+            isActive ? 'bg-green-500/10 text-green-400 ring-green-500/20' : 'bg-white/5 text-foreground/45 ring-white/10'
+          )}
+        >
+          {isActive ? t('online') : t('hidden')}
+        </span>
+        <button
+          type="button"
+          role="switch"
+          aria-checked={isActive}
+          aria-label={`${actionLabel}: ${p.nom}`}
+          title={`${actionLabel}: ${p.nom}`}
+          disabled={isToggling}
+          onClick={() => { void onToggleProduct(p, !isActive); }}
+          className={cx(
+            'relative h-5 w-9 flex-shrink-0 rounded-full transition-colors disabled:cursor-wait disabled:opacity-60',
+            isActive ? 'bg-gold' : 'bg-white/10'
+          )}
+        >
+          <span
+            className={cx(
+              'absolute top-0.5 h-4 w-4 rounded-full bg-black transition-all',
+              isActive ? 'left-[18px]' : 'left-0.5'
+            )}
+          />
+        </button>
+      </div>
+    );
+  };
 
   if (rows.length === 0) {
     return <div className="py-12 text-center text-sm italic text-foreground/30">{t('no_results')}</div>;
@@ -579,6 +620,7 @@ export default function AdminBoutiqueDetailPage() {
   const [editPromoValue, setEditPromoValue] = useState('');
   const [showEditPriceModal, setShowEditPriceModal] = useState(false);
   const [isSavingProduct, setIsSavingProduct] = useState(false);
+  const [togglingProducts, setTogglingProducts] = useState<Set<string>>(() => new Set());
 
   const fetchDetail = useCallback(async () => {
     setRefreshing(true);
@@ -726,6 +768,30 @@ export default function AdminBoutiqueDetailPage() {
       addToast('Erreur lors de la mise à jour du prix', 'error');
     } finally {
       setIsSavingProduct(false);
+    }
+  };
+
+  const handleToggleProduct = async (product: ProductRow, actif: boolean) => {
+    const productKey = `${product.type_produit}-${product.id}`;
+    if (togglingProducts.has(productKey)) return;
+
+    setTogglingProducts((current) => new Set(current).add(productKey));
+    try {
+      const slugOrId = product.slug || String(product.id);
+      const formData = new FormData();
+      formData.append('actif', String(actif));
+      const endpoint = product.type_produit === 'parfum' ? 'shop/parfums' : 'shop/accessoires';
+      await adminService.patchFormData(`${endpoint}/${slugOrId}/`, formData);
+      addToast(t(actif ? 'toast_product_activated' : 'toast_product_deactivated'), 'success');
+      await fetchDetail();
+    } catch {
+      addToast(t('toast_product_status_error'), 'error');
+    } finally {
+      setTogglingProducts((current) => {
+        const next = new Set(current);
+        next.delete(productKey);
+        return next;
+      });
     }
   };
 
@@ -916,14 +982,14 @@ export default function AdminBoutiqueDetailPage() {
                 ((boutique.nb_produits_parfums ?? 0) === 0 && allProducts.every((p) => p.type_produit !== 'parfum') ? (
                   <EmptyState icon={<FlaskConical size={48} />} title={t('empty_parfums_title')} description={t('empty_products_desc')} />
                 ) : (
-                  <ProductsTable rows={parfums} kind="parfum" t={t} onEditPrice={handleEditPrice} onDeleteProduct={handleDeleteProduct} />
+                  <ProductsTable rows={parfums} kind="parfum" t={t} onEditPrice={handleEditPrice} onDeleteProduct={handleDeleteProduct} onToggleProduct={handleToggleProduct} togglingProducts={togglingProducts} />
                 ))}
 
               {activeTab === 'accessoires' &&
                 ((boutique.nb_produits_accessoires ?? 0) === 0 && allProducts.every((p) => p.type_produit !== 'accessoire') ? (
                   <EmptyState icon={<Gem size={48} />} title={t('empty_accessoires_title')} description={t('empty_products_desc')} />
                 ) : (
-                  <ProductsTable rows={accessoires} kind="accessoire" t={t} onEditPrice={handleEditPrice} onDeleteProduct={handleDeleteProduct} />
+                  <ProductsTable rows={accessoires} kind="accessoire" t={t} onEditPrice={handleEditPrice} onDeleteProduct={handleDeleteProduct} onToggleProduct={handleToggleProduct} togglingProducts={togglingProducts} />
                 ))}
 
               {activeTab === 'versements' &&
