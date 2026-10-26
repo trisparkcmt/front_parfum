@@ -156,12 +156,15 @@ export function DiffuseurCard({
         onClick={handleProductLinkClick}
         className="relative block w-24 shrink-0 self-stretch overflow-hidden bg-[var(--t-surface-overlay)] sm:w-36 md:w-44"
       >
-        <AppImage
-          src={getImageUrl(isHovered && secondImage ? secondImage : mainImage)}
-          alt={product.name}
-          fill
-          className="object-cover transition-transform duration-500 group-hover:scale-105"
-        />
+        {(isHovered && secondImage ? secondImage : mainImage) && (
+          <AppImage
+            src={getImageUrl(isHovered && secondImage ? secondImage : mainImage)}
+            alt={product.name}
+            fill
+            fallbackSrc={null}
+            className="object-cover transition-transform duration-500 group-hover:scale-105"
+          />
+        )}
 
         {/* Scrim so the overlay buttons stay legible over any photo, in any theme */}
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-black/25 via-transparent to-transparent" />

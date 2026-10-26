@@ -422,7 +422,6 @@ function ProductsTable({
   rows,
   kind,
   t,
-  onEditPrice,
   onDeleteProduct,
   onToggleProduct,
   togglingProducts,
@@ -430,7 +429,6 @@ function ProductsTable({
   rows: ProductRow[];
   kind: 'parfum' | 'accessoire';
   t: (k: TKey) => string;
-  onEditPrice: (product: ProductRow) => void;
   onDeleteProduct: (product: ProductRow) => Promise<void>;
   onToggleProduct: (product: ProductRow, actif: boolean) => Promise<void>;
   togglingProducts: Set<string>;
@@ -529,9 +527,6 @@ function ProductsTable({
                 <td className="px-4 py-2.5"><Visibility p={p} /></td>
                 <td className="px-4 py-2.5">
                   <div className="flex items-center justify-end gap-1">
-                    <button type="button" onClick={() => onEditPrice(p)} title={`${t('edit_price')}: ${p.nom}`} aria-label={`${t('edit_price')}: ${p.nom}`} className="rounded-md p-1.5 text-foreground/50 transition-colors hover:bg-gold/10 hover:text-gold">
-                      <Edit2 size={14} />
-                    </button>
                     <button type="button" onClick={() => { void onDeleteProduct(p); }} title={`${t('delete_product')}: ${p.nom}`} aria-label={`${t('delete_product')}: ${p.nom}`} className="rounded-md p-1.5 text-foreground/50 transition-colors hover:bg-red-500/10 hover:text-red-400">
                       <Trash2 size={14} />
                     </button>
@@ -567,9 +562,6 @@ function ProductsTable({
               </div>
             </div>
             <div className="flex justify-end gap-2 border-t border-white/5 pt-2">
-              <button type="button" onClick={() => onEditPrice(p)} className="inline-flex items-center gap-1.5 rounded-md border border-white/10 px-2.5 py-1.5 text-[11px] text-foreground/60 hover:border-gold/30 hover:text-gold">
-                <Edit2 size={12} />{t('edit_price')}
-              </button>
               <button type="button" onClick={() => { void onDeleteProduct(p); }} aria-label={`${t('delete_product')}: ${p.nom}`} title={`${t('delete_product')}: ${p.nom}`} className="rounded-md border border-white/10 p-1.5 text-foreground/50 hover:border-red-500/30 hover:text-red-400">
                 <Trash2 size={13} />
               </button>
@@ -615,11 +607,6 @@ export default function AdminBoutiqueDetailPage() {
   const payoutIdempotencyKey = useRef<string | null>(null);
 
   // Product edit / delete state
-  const [editingProduct, setEditingProduct] = useState<ProductRow | null>(null);
-  const [editPriceValue, setEditPriceValue] = useState('');
-  const [editPromoValue, setEditPromoValue] = useState('');
-  const [showEditPriceModal, setShowEditPriceModal] = useState(false);
-  const [isSavingProduct, setIsSavingProduct] = useState(false);
   const [togglingProducts, setTogglingProducts] = useState<Set<string>>(() => new Set());
 
   const fetchDetail = useCallback(async () => {
@@ -740,48 +727,17 @@ export default function AdminBoutiqueDetailPage() {
     }
   };
 
-  const handleEditPrice = (p: ProductRow) => {
-    setEditingProduct(p);
-    setEditPriceValue(String(p.prix_unitaire || ''));
-    setEditPromoValue(String((p as any).prix_promotionnel || p.prix_promo || ''));
-    setShowEditPriceModal(true);
-  };
-
-  const handleSaveProductPrice = async () => {
-    if (!editingProduct) return;
-    setIsSavingProduct(true);
-    try {
-      const slugOrId = editingProduct.slug || String(editingProduct.id);
-      const formData = new FormData();
-      formData.append('prix_unitaire', editPriceValue);
-      // Send empty string to clear promo price
-      formData.append('prix_promotionnel', editPromoValue);
-      if (editingProduct.type_produit === 'parfum') {
-        await adminService.patchFormData(`shop/parfums/${slugOrId}/`, formData);
-      } else {
-        await adminService.patchFormData(`shop/accessoires/${slugOrId}/`, formData);
-      }
-      addToast('Prix mis à jour avec succès', 'success');
-      setShowEditPriceModal(false);
-      fetchDetail();
-    } catch (err: any) {
-      addToast('Erreur lors de la mise à jour du prix', 'error');
-    } finally {
-      setIsSavingProduct(false);
-    }
-  };
-
   const handleToggleProduct = async (product: ProductRow, actif: boolean) => {
     const productKey = `${product.type_produit}-${product.id}`;
     if (togglingProducts.has(productKey)) return;
 
     setTogglingProducts((current) => new Set(current).add(productKey));
     try {
-      const productId = product.id ?? product.slug;
-      const formData = new FormData();
-      formData.append('actif', String(actif));
-      const endpoint = product.type_produit === 'parfum' ? 'shop/parfums' : 'shop/accessoires';
-      await adminService.patchFormData(`${endpoint}/${productId}/`, formData);
+      const productId = product.id;
+      const endpoint = product.type_produit === 'parfum'
+        ? `auth/admin/boutiques/${boutiqueId}/parfums/${productId}/toggle-actif/`
+        : `auth/admin/boutiques/${boutiqueId}/accessoires/${productId}/toggle-actif/`;
+      await adminService.patch(endpoint, { actif });
       addToast(t(actif ? 'toast_product_activated' : 'toast_product_deactivated'), 'success');
       await fetchDetail();
     } catch {
@@ -982,14 +938,14 @@ export default function AdminBoutiqueDetailPage() {
                 ((boutique.nb_produits_parfums ?? 0) === 0 && allProducts.every((p) => p.type_produit !== 'parfum') ? (
                   <EmptyState icon={<FlaskConical size={48} />} title={t('empty_parfums_title')} description={t('empty_products_desc')} />
                 ) : (
-                  <ProductsTable rows={parfums} kind="parfum" t={t} onEditPrice={handleEditPrice} onDeleteProduct={handleDeleteProduct} onToggleProduct={handleToggleProduct} togglingProducts={togglingProducts} />
+                  <ProductsTable rows={parfums} kind="parfum" t={t} onDeleteProduct={handleDeleteProduct} onToggleProduct={handleToggleProduct} togglingProducts={togglingProducts} />
                 ))}
 
               {activeTab === 'accessoires' &&
                 ((boutique.nb_produits_accessoires ?? 0) === 0 && allProducts.every((p) => p.type_produit !== 'accessoire') ? (
                   <EmptyState icon={<Gem size={48} />} title={t('empty_accessoires_title')} description={t('empty_products_desc')} />
                 ) : (
-                  <ProductsTable rows={accessoires} kind="accessoire" t={t} onEditPrice={handleEditPrice} onDeleteProduct={handleDeleteProduct} onToggleProduct={handleToggleProduct} togglingProducts={togglingProducts} />
+                  <ProductsTable rows={accessoires} kind="accessoire" t={t} onDeleteProduct={handleDeleteProduct} onToggleProduct={handleToggleProduct} togglingProducts={togglingProducts} />
                 ))}
 
               {activeTab === 'versements' &&
@@ -1242,58 +1198,6 @@ export default function AdminBoutiqueDetailPage() {
             </Field>
           </FormSection>
         )}
-      </SlideOver>
-
-      <SlideOver
-        isOpen={showEditPriceModal}
-        onClose={() => !isSavingProduct && setShowEditPriceModal(false)}
-        title={t('edit_price')}
-        description={t('price_modal_desc')}
-        size={FORM_PANEL_SIZE}
-        footer={
-          <div className="flex gap-3">
-            <button
-              type="button"
-              onClick={() => setShowEditPriceModal(false)}
-              disabled={isSavingProduct}
-              className="flex-1 rounded-lg border border-white/10 px-4 py-2 text-xs font-medium text-foreground/60 transition-colors hover:bg-white/5 disabled:opacity-60"
-            >
-              {t('cancel')}
-            </button>
-            <button
-              type="button"
-              onClick={handleSaveProductPrice}
-              disabled={isSavingProduct || !editPriceValue}
-              className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-gold px-4 py-2 text-xs font-semibold text-black transition-colors hover:bg-gold/85 disabled:opacity-60"
-            >
-              {isSavingProduct ? <Loader2 size={13} className="animate-spin" /> : null}
-              {isSavingProduct ? t('saving') : t('save_btn')}
-            </button>
-          </div>
-        }
-      >
-        <div className="space-y-4">
-          <Field label={t('col_price')} required>
-            <input
-              type="number"
-              min="0"
-              step="1"
-              value={editPriceValue}
-              onChange={(event) => setEditPriceValue(event.target.value)}
-              className={inputClassName}
-            />
-          </Field>
-          <Field label={t('field_promo_price')} hint={t('field_optional')}>
-            <input
-              type="number"
-              min="0"
-              step="1"
-              value={editPromoValue}
-              onChange={(event) => setEditPromoValue(event.target.value)}
-              className={inputClassName}
-            />
-          </Field>
-        </div>
       </SlideOver>
 
       {/* Logo preview */}

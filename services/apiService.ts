@@ -1544,6 +1544,13 @@ export const adminService = {
     return response.data;
   },
   /**
+   * Generic JSON PATCH helper
+   */
+  patch: async (url: string, data: Record<string, unknown>) => {
+    const response = await api.patch(url, data);
+    return response.data;
+  },
+  /**
    * Get paginated list of all users
    */
   getUsers: async (params?: { search?: string; page?: number }) => {
