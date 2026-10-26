@@ -781,7 +781,7 @@ export default function AdminBoutiqueDetailPage() {
       const formData = new FormData();
       formData.append('actif', String(actif));
       const endpoint = product.type_produit === 'parfum' ? 'shop/parfums' : 'shop/accessoires';
-      await adminService.patchFormData(`//`, formData);
+      await adminService.patchFormData(`${endpoint}/${productId}/`, formData);
       addToast(t(actif ? 'toast_product_activated' : 'toast_product_deactivated'), 'success');
       await fetchDetail();
     } catch {

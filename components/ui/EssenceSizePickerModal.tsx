@@ -250,13 +250,11 @@ export function EssenceSizePickerModal({ product, onConfirm, onClose }: EssenceS
                                 </span>
                               )}
                             </div>
-                            <div className="text-[10px] text-foreground/45 mt-0.5">
+                            <div className="text-[10px] mt-0.5">
                               {isOutOfStock ? (
-                                <span className="text-red-400 font-semibold">Rupture / Volume épuisé</span>
+                                <span className="text-red-400 font-semibold">Rupture de stock</span>
                               ) : (
-                                <span className={remainingQuantity <= 5 ? 'text-amber-400 font-medium' : 'text-foreground/45'}>
-                                  Max : {remainingQuantity} flacon{remainingQuantity > 1 ? 's' : ''}
-                                </span>
+                                <span className="text-emerald-400 font-semibold">En stock</span>
                               )}
                             </div>
                           </div>

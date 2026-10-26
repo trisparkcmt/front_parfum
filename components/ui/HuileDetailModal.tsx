@@ -510,13 +510,11 @@ export function HuileDetailModal({ productId, initialProduct, onClose, onRelated
                                         <span className="bg-red-500/10 border border-red-500/20 text-red-400 text-[9px] font-bold px-1.5 py-0.5 uppercase tracking-wide rounded-md">Promo</span>
                                       )}
                                     </div>
-                                    <div className="text-[11px] text-foreground/45 mt-0.5">
+                                    <div className="text-[10px] mt-0.5">
                                       {isOutOfStock ? (
                                         <span className="text-red-400 font-semibold">Rupture de stock</span>
-                                      ) : v.stock_disponible <= 5 ? (
-                                        <span className="text-amber-400 font-medium">Plus que {v.stock_disponible} en stock</span>
                                       ) : (
-                                        <span>{v.stock_disponible} flacons disponibles</span>
+                                        <span className="text-emerald-400 font-semibold">En stock</span>
                                       )}
                                     </div>
                                   </div>
