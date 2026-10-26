@@ -3,7 +3,7 @@
 import { useState, useEffect, Suspense, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, SlidersHorizontal, RotateCcw, LayoutGrid, List } from 'lucide-react';
+import { Search, SlidersHorizontal, RotateCcw } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 import { DiffuseurCard } from '@/components/ui/DiffuseurCard';
@@ -42,7 +42,6 @@ function DiffuseursShopContent() {
   const [mounted, setMounted] = useState(false);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
-  const [viewMode, setViewMode] = useState<'grid' | 'horizontal'>('grid');
 
   const { addDiffuseur } = useCartStore();
   const { isFavorite, addFavorite, removeFavorite } = useFavoritesStore();
@@ -51,14 +50,13 @@ function DiffuseursShopContent() {
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [techFilter, setTechFilter] = useState<string>('all');
-  const [ordering, setOrdering] = useState<string>('-date_creation');
   const [showFilters, setShowFilters] = useState(false);
 
   // ── Product detail modal ─────────────────────────────────────────────────
   const [modalProductId, setModalProductId] = useState<string | null>(null);
 
   const openProductModal = useCallback((product: Product) => {
-    const productId = String(product.slug || product.id);
+    const productId = String(product.id);
     setModalProductId(productId);
     window.history.pushState(
       { modalProductId: productId, modalProductType: 'diffuseur' },
@@ -109,7 +107,7 @@ function DiffuseursShopContent() {
   useEffect(() => {
     if (!mounted) return;
     window.scrollTo({ top: 0, left: 0 });
-  }, [mounted, debouncedSearch, techFilter, ordering, viewMode]);
+  }, [mounted, debouncedSearch, techFilter]);
 
   useEffect(() => {
     if (!mounted) return;
@@ -119,7 +117,6 @@ function DiffuseursShopContent() {
         setLoading(true);
         const mappedProducts = await productService.getDiffuseurs({
           search: debouncedSearch || undefined,
-          ordering: ordering || undefined,
         });
         setProducts(shuffleArray(mappedProducts));
         
@@ -150,7 +147,7 @@ function DiffuseursShopContent() {
     }
 
     fetchProducts();
-  }, [mounted, debouncedSearch, ordering]);
+  }, [mounted, debouncedSearch]);
 
   const filteredProducts = products.filter((p: any) => {
     if (techFilter !== 'all' && p.type_technologie && p.type_technologie !== techFilter) {
@@ -163,7 +160,6 @@ function DiffuseursShopContent() {
     scrollCatalogToTop();
     setSearch('');
     setTechFilter('all');
-    setOrdering('-date_creation');
     setShowFilters(false);
   };
 
@@ -203,7 +199,7 @@ function DiffuseursShopContent() {
     }
   };
 
-  const activeFiltersCount = (techFilter !== 'all' ? 1 : 0) + (ordering !== '-date_creation' ? 1 : 0);
+  const activeFiltersCount = (techFilter !== 'all' ? 1 : 0);
 
   return (
     <div className="min-h-screen bg-background text-foreground font-sans">
@@ -289,39 +285,6 @@ function DiffuseursShopContent() {
               </span>
             )}
           </button>
-
-          <div className="flex items-center p-1 bg-foreground/5 border border-foreground/10 rounded-xl shrink-0">
-            <button
-              onClick={() => {
-                scrollCatalogToTop();
-                setTimeout(() => scrollCatalogToTop(), 0);
-                setViewMode('grid');
-              }}
-              title={isEn ? 'Grid View' : 'Vue grille'}
-              className={`p-1.5 sm:p-2.5 rounded-lg transition-all ${
-                viewMode === 'grid'
-                  ? 'bg-gold text-black'
-                  : 'text-foreground/60 hover:text-foreground'
-              }`}
-            >
-              <LayoutGrid size={15} />
-            </button>
-            <button
-              onClick={() => {
-                scrollCatalogToTop();
-                setTimeout(() => scrollCatalogToTop(), 0);
-                setViewMode('horizontal');
-              }}
-              title={isEn ? 'Expanded List View' : 'Vue liste détaillée'}
-              className={`p-1.5 sm:p-2.5 rounded-lg transition-all ${
-                viewMode === 'horizontal'
-                  ? 'bg-gold text-black'
-                  : 'text-foreground/60 hover:text-foreground'
-              }`}
-            >
-              <List size={15} />
-            </button>
-          </div>
         </div>
 
         {showFilters && (
@@ -349,22 +312,6 @@ function DiffuseursShopContent() {
               </option>
             </select>
 
-            <select
-              value={ordering}
-              onChange={(e) => setOrdering(e.target.value)}
-              className="w-full min-w-[160px] flex-1 appearance-none rounded-xl border border-foreground/10 bg-foreground/5 px-4 py-3 text-[13px] text-foreground/60 outline-none transition-all duration-300 hover:border-gold/40 hover:text-foreground focus:border-gold sm:max-w-[220px]"
-            >
-              <option value="-date_creation" className="bg-background">
-                {isEn ? 'Newest Arrivals' : 'Nouveautés'}
-              </option>
-              <option value="prix_unitaire" className="bg-background">
-                {isEn ? 'Price: Low to High' : 'Prix : croissant'}
-              </option>
-              <option value="-prix_unitaire" className="bg-background">
-                {isEn ? 'Price: High to Low' : 'Prix : décroissant'}
-              </option>
-            </select>
-
             <button
               onClick={resetFilters}
               className="inline-flex items-center gap-2 rounded-xl border border-foreground/10 bg-foreground/5 px-3 py-3 text-[13px] text-foreground/60 transition-all duration-300 hover:border-gold hover:text-foreground"
@@ -381,37 +328,20 @@ function DiffuseursShopContent() {
         {loading ? (
           <ProductGridSkeleton />
         ) : filteredProducts.length > 0 ? (
-          viewMode === 'grid' ? (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6 justify-items-center">
-              {filteredProducts.map((product, i) => (
-                <DiffuseurCard
-                  key={product.id}
-                  product={product}
-                  onAddToCart={handleAddToCart}
-                  onToggleFavorite={handleToggleFavorite}
-                  isFavorite={isFavorite(product.id, 'diffuseur')}
-                  viewMode="grid"
-                  index={i}
-                  onCardClick={openProductModal}
-                />
-              ))}
-            </div>
-          ) : (
-            <div className="flex flex-col gap-6 w-full">
-              {filteredProducts.map((product, i) => (
-                <DiffuseurCard
-                  key={product.id}
-                  product={product}
-                  onAddToCart={handleAddToCart}
-                  onToggleFavorite={handleToggleFavorite}
-                  isFavorite={isFavorite(product.id, 'diffuseur')}
-                  viewMode="horizontal"
-                  index={i}
-                  onCardClick={openProductModal}
-                />
-              ))}
-            </div>
-          )
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6 justify-items-center">
+            {filteredProducts.map((product, i) => (
+              <DiffuseurCard
+                key={product.id}
+                product={product}
+                onAddToCart={handleAddToCart}
+                onToggleFavorite={handleToggleFavorite}
+                isFavorite={isFavorite(product.id, 'diffuseur')}
+                viewMode="grid"
+                index={i}
+                onCardClick={openProductModal}
+              />
+            ))}
+          </div>
         ) : (
           <motion.div
             initial={{ opacity: 0 }}
