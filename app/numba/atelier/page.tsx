@@ -230,6 +230,7 @@ function buildDirectCompositionWhatsAppLink({
   compositionName,
   bottleSize,
   items,
+  baseNumbaMl,
   total,
   orderNumber,
   contactName,
@@ -239,6 +240,7 @@ function buildDirectCompositionWhatsAppLink({
   compositionName: string;
   bottleSize: number;
   items: Array<{ name: string; quantity: number; unitPrice: number }>; 
+  baseNumbaMl?: number;
   total: number;
   orderNumber?: string | null;
   contactName?: string;
@@ -252,6 +254,7 @@ function buildDirectCompositionWhatsAppLink({
     `*Flacon:* ${bottleSize}ml`,
     '',
     ...items.map((item, index) => `${index + 1}. ${item.name} — ${item.quantity} x ${item.unitPrice.toLocaleString()} FCFA`),
+    ...(baseNumbaMl && baseNumbaMl > 0 ? [`Base Numba: ${baseNumbaMl.toFixed(1)}ml`] : []),
     '',
     `*Total:* ${total.toLocaleString()} FCFA`,
   ];
@@ -308,6 +311,7 @@ function AtelierContent() {
   const [cartAdded, setCartAdded] = useState(false);
   const [ctaSuccess, setCtaSuccess] = useState(false);
   const [showSaveModal, setShowSaveModal] = useState(false);
+  const [showAddToCartModal, setShowAddToCartModal] = useState(false);
   const [saveModalName, setSaveModalName] = useState('');
   const [couleur, setCouleur] = useState(''); // Default empty color
 
@@ -319,12 +323,23 @@ function AtelierContent() {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [companyWhatsapp, setCompanyWhatsapp] = useState('');
 
+  const [directOrderFullName, setDirectOrderFullName] = useState('');
+  const [directOrderPhone, setDirectOrderPhone] = useState('');
+
+  useEffect(() => {
+    if (user) {
+      const name = `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email || '';
+      if (name && !directOrderFullName) setDirectOrderFullName(name);
+      if (user.phone && !directOrderPhone) setDirectOrderPhone(user.phone);
+    }
+  }, [user]);
+
   const orderProfileDetails = useMemo(() => ({
-    fullName: `${user?.firstName || ''} ${user?.lastName || ''}`.trim(),
-    phone: user?.phone || '',
+    fullName: directOrderFullName.trim() || `${user?.firstName || ''} ${user?.lastName || ''}`.trim(),
+    phone: directOrderPhone.trim() || user?.phone || '',
     city: '',
     quartier: '',
-  }), [user]);
+  }), [user, directOrderFullName, directOrderPhone]);
 
   useEffect(() => {
     if (compositionIdParam && !isAuthenticated) {
@@ -642,10 +657,18 @@ function AtelierContent() {
     });
   }, [bottleSize]);
 
+  const handleResetComposition = useCallback(() => {
+    setQuantities({});
+    setCouleur('');
+    setSaveModalName('');
+    setCompositionName('');
+    setSavedParfumId(null);
+  }, []);
+
   const handleBottleSizeChange = (size: number, flaconId?: number) => {
     const limit = size * 0.45;
     if (totalMl > limit) {
-      setQuantities({});
+      handleResetComposition();
       addToast(
         i18n.language === 'en'
           ? `Bottle changed to ${size}ml — mixture reset due to 45% fill limit.`
@@ -682,16 +705,27 @@ function AtelierContent() {
   }, [quantities, bottleSize, ALL_ITEMS, flacons, selectedFlaconId]);
 
   const formulaSummary = useMemo(() => {
-    const list: { name: string; ml: number }[] = [];
+    const list: { name: string; ml: number; isBase?: boolean }[] = [];
     
     // Ingredients
     for (const item of ALL_ITEMS) {
       const ml = quantities[item.id] || 0;
       if (ml > 0) list.push({ name: item.name, ml });
     }
+
+    if (list.length > 0) {
+      const baseMl = Math.max(0, bottleSize - totalMl);
+      if (baseMl > 0) {
+        list.push({
+          name: 'Base Numba',
+          ml: Number(baseMl.toFixed(1)),
+          isBase: true,
+        });
+      }
+    }
     
     return list;
-  }, [quantities, ingredients, essences, i18n.language]);
+  }, [quantities, ALL_ITEMS, bottleSize, totalMl]);
 
   const sommelierHint = useMemo(() => {
     if (totalMl === 0) return { visible: true, text: i18n.language === 'en' 
@@ -890,14 +924,9 @@ function AtelierContent() {
     }
   };
 
-  const handleAddToCart = async () => {
-    if (totalMl === 0) {
-      addToast(
-        i18n.language === 'en' ? 'Please select at least one essence/ingredient.' : 'Veuillez sélectionner au moins une essence.',
-        'info'
-      );
-      return;
-    }
+  const proceedAddToCart = async () => {
+    if (totalMl === 0) return;
+    if (!selectedFlaconId) return;
 
     setIsAddingToCart(true);
     try {
@@ -926,28 +955,26 @@ function AtelierContent() {
         })
         .filter((line): line is DirectCompositionLine => line !== null);
 
-      if (!selectedFlaconId) {
-        addToast(
-          i18n.language === 'en' ? 'Please select a valid bottle size.' : 'Veuillez sélectionner une taille de flacon valide.',
-          'error'
-        );
-        return;
-      }
-
       if (savedParfumId) {
         await addCustomPerfume(savedParfumId, 1);
       } else {
         await addDirectComposition({
           flacon_id: selectedFlaconId,
           lignes,
-          nom: saveModalName || compositionName || `Création Numba ${bottleSize}ml`,
+          nom: saveModalName.trim() || compositionName || `Création Numba ${bottleSize}ml`,
+          couleur: couleur || undefined,
           quantite: 1,
         }, { silent: false });
       }
 
+      setShowAddToCartModal(false);
       setCtaSuccess(true);
-      addToast('Added', 'success');
+      addToast(i18n.language === 'en' ? 'Added to cart!' : 'Ajouté au panier !', 'success');
       playSound('success');
+
+      // Reset composition so next creation starts fresh
+      handleResetComposition();
+
       setTimeout(() => setCtaSuccess(false), 3000);
     } catch (error: any) {
       const errorMsg = error?.response?.data?.detail || (i18n.language === 'en' ? 'Error adding to cart.' : 'Erreur lors de l\'ajout au panier.');
@@ -956,6 +983,31 @@ function AtelierContent() {
     } finally {
       setIsAddingToCart(false);
     }
+  };
+
+  const handleAddToCart = async () => {
+    if (totalMl === 0) {
+      addToast(
+        i18n.language === 'en' ? 'Please select at least one essence/ingredient.' : 'Veuillez sélectionner au moins une essence.',
+        'info'
+      );
+      return;
+    }
+
+    if (!selectedFlaconId) {
+      addToast(
+        i18n.language === 'en' ? 'Please select a valid bottle size.' : 'Veuillez sélectionner une taille de flacon valide.',
+        'error'
+      );
+      return;
+    }
+
+    if (!isAuthenticated && !savedParfumId) {
+      setShowAddToCartModal(true);
+      return;
+    }
+
+    await proceedAddToCart();
   };
 
   const handleOrder = async () => {
@@ -999,6 +1051,22 @@ function AtelierContent() {
       return;
     }
 
+    if (!directOrderFullName.trim()) {
+      addToast(
+        i18n.language === 'en' ? 'Please enter your full name.' : 'Veuillez entrer votre nom complet.',
+        'error'
+      );
+      return;
+    }
+
+    if (!directOrderPhone.trim()) {
+      addToast(
+        i18n.language === 'en' ? 'Please enter your phone number.' : 'Veuillez entrer votre numéro de téléphone.',
+        'error'
+      );
+      return;
+    }
+
     setIsOrderingDirect(true);
     const popupWindow = window.open('', '_blank');
 
@@ -1024,10 +1092,10 @@ function AtelierContent() {
         flacon_id: selectedFlaconId,
         lignes,
         nom: orderName,
-        couleur: couleur,
+        couleur: couleur || undefined,
         quantite: 1,
-        livraison_nom_complet: orderProfileDetails.fullName || undefined,
-        livraison_telephone: orderProfileDetails.phone || undefined,
+        livraison_nom_complet: directOrderFullName.trim() || undefined,
+        livraison_telephone: directOrderPhone.trim() || undefined,
       });
 
       const orderNumber = orderResponse.numero_commande || orderResponse.order?.numero_commande || `#${orderResponse.id ?? 'DIRECT'}`;
@@ -1046,17 +1114,18 @@ function AtelierContent() {
         compositionName: orderName,
         bottleSize,
         items: messageItems,
+        baseNumbaMl: Math.max(0, bottleSize - totalMl),
         total: calcPrice,
         orderNumber,
-        contactName: orderProfileDetails.fullName || undefined,
-        phone: orderProfileDetails.phone || undefined,
+        contactName: directOrderFullName.trim() || undefined,
+        phone: directOrderPhone.trim() || undefined,
         whatsappNumber: companyWhatsapp,
       });
 
       setCreatedOrderNumber(String(orderNumber));
       setShowDirectOrderModal(false);
       setShowSuccessModal(false);
-      setQuantities({});
+      handleResetComposition();
 
       if (popupWindow) {
         try {
@@ -1162,7 +1231,7 @@ function AtelierContent() {
         
         <div className="flex items-center gap-2 z-20">
           <button 
-            onClick={() => setQuantities({})}
+            onClick={handleResetComposition}
             className="flex items-center gap-1.5 px-4 py-2 bg-foreground/5 hover:bg-red-500/10 border border-[var(--t-border)] rounded-full text-[10px] uppercase tracking-widest text-foreground/40 hover:text-red-400 transition-all"
           >
             <RefreshCcw size={12} />
@@ -1623,9 +1692,12 @@ function AtelierContent() {
                   ) : (
                     <div className="space-y-4">
                       {formulaSummary.map((item, idx) => (
-                        <div key={idx} className="flex justify-between items-center text-sm">
-                          <span className="text-foreground/40">{item.name}</span>
-                          <span className="text-foreground/70 font-light">{item.ml} ml</span>
+                        <div 
+                          key={idx} 
+                          className={`flex justify-between items-center text-sm ${item.isBase ? 'pt-3 border-t border-[var(--t-border)] font-medium text-gold' : ''}`}
+                        >
+                          <span className={item.isBase ? 'text-gold' : 'text-foreground/40'}>{item.name}</span>
+                          <span className={item.isBase ? 'text-gold font-normal' : 'text-foreground/70 font-light'}>{item.ml} ml</span>
                         </div>
                       ))}
                     </div>
@@ -1764,6 +1836,100 @@ function AtelierContent() {
         </div>
       )}
 
+      {/* ── Guest Add to Cart Modal (Name & Color) ── */}
+      {showAddToCartModal && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-background rounded-2xl p-6 sm:p-8 w-full max-w-md border border-white/10 shadow-2xl animate-in fade-in zoom-in-95 max-h-[90vh] overflow-y-auto">
+            {/* Header */}
+            <div className="flex items-start justify-between mb-5">
+              <div>
+                <h2 className="text-xl sm:text-2xl font-extralight text-foreground">
+                  {i18n.language === 'en' ? 'Personalize Your Perfume' : 'Personnalisez votre Parfum'}
+                </h2>
+                <p className="text-xs text-foreground/40 uppercase tracking-widest mt-1">
+                  {i18n.language === 'en' ? 'Choose name & liquid color' : 'Choisissez le nom et la couleur du liquide'}
+                </p>
+              </div>
+              <button
+                onClick={() => setShowAddToCartModal(false)}
+                className="p-2 rounded-lg hover:bg-white/10 text-foreground/40 hover:text-foreground transition-colors"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Perfume Name */}
+            <div className="mb-5">
+              <label className="block text-xs font-bold uppercase tracking-widest text-foreground/70 mb-2">
+                {i18n.language === 'en' ? 'Perfume Name' : 'Nom du Parfum'} <span className="text-red-400">*</span>
+              </label>
+              <input
+                type="text"
+                placeholder={i18n.language === 'en' ? 'e.g. Rose & Oud Evening' : 'ex. Rose & Oud Soirée'}
+                value={saveModalName}
+                onChange={(e) => setSaveModalName(e.target.value)}
+                className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-foreground placeholder-foreground/30 focus:outline-none focus:border-gold/50 text-sm"
+              />
+              <p className="text-[10px] text-gold/80 mt-1.5 italic font-medium">
+                {i18n.language === 'en'
+                  ? '✦ This is the exact name that will be inscribed on your physical bottle.'
+                  : '✦ Ce nom sera exactement celui inscrit sur votre flacon physique.'}
+              </p>
+            </div>
+
+            {/* Liquid Color */}
+            <div className="mb-5">
+              <ColorPicker 
+                value={couleur}
+                onChange={setCouleur}
+                label={i18n.language === 'en' ? 'Liquid Color' : 'Couleur du Liquide'}
+              />
+              <p className="text-[10px] text-foreground/40 mt-1.5 italic">
+                {i18n.language === 'en'
+                  ? '✦ This is the color of the fragrance liquid inside the bottle, not the bottle itself.'
+                  : '✦ Il s\'agit de la couleur du liquide parfumé à l\'intérieur du flacon, pas du flacon lui-même.'}
+              </p>
+            </div>
+
+            {/* Summary preview */}
+            <div className="bg-white/5 border border-white/10 rounded-xl p-4 mb-6">
+              <div className="flex justify-between items-center mb-2">
+                <p className="text-xs font-bold uppercase tracking-widest text-foreground/40">
+                  {i18n.language === 'en' ? 'Composition Summary' : 'Résumé de la création'}
+                </p>
+                <p className="text-lg font-light text-gold">{calcPrice.toLocaleString()} <span className="text-[10px]">FCFA</span></p>
+              </div>
+              <p className="text-[11px] text-foreground/60">
+                {bottleSize}ml · {totalMl.toFixed(1)}ml {i18n.language === 'en' ? 'essences' : "d'essences"} + {Math.max(0, bottleSize - totalMl).toFixed(1)}ml Base Numba
+              </p>
+            </div>
+
+            {/* Actions */}
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setShowAddToCartModal(false)}
+                className="flex-1 px-6 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-sm text-foreground/60 transition-colors"
+              >
+                {i18n.language === 'en' ? 'Cancel' : 'Annuler'}
+              </button>
+              <button
+                type="button"
+                onClick={proceedAddToCart}
+                disabled={isAddingToCart || !saveModalName.trim()}
+                className="flex-1 px-6 py-3 bg-gold text-black hover:bg-cream rounded-lg text-sm font-bold transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {isAddingToCart ? (
+                  <Loader2 size={14} className="animate-spin" />
+                ) : (
+                  <><ShoppingCart size={14} /> {i18n.language === 'en' ? 'Add to Cart' : 'Ajouter au Panier'}</>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── Direct Order Modal ── */}
       {showDirectOrderModal && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
@@ -1829,42 +1995,57 @@ function AtelierContent() {
               </p>
             </div>
 
-            <div className="space-y-4">
-              <div className="rounded-xl border border-white/10 bg-white/5 p-4 text-sm text-foreground/70">
-                <p className="text-[10px] font-bold uppercase tracking-widest text-foreground/40 mb-2">
-                  {i18n.language === 'en' ? 'Using your profile' : 'Utilisation de votre profil'}
-                </p>
-                <p className="font-medium text-foreground">{orderProfileDetails.fullName || (i18n.language === 'en' ? 'No full name yet' : 'Nom incomplet')}</p>
-                <p className="text-xs text-foreground/50 mt-1">{orderProfileDetails.phone || (i18n.language === 'en' ? 'No phone number yet' : 'Aucun numéro')}</p>
+            {/* Contact details */}
+            <div className="space-y-4 mb-6">
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-widest text-foreground/70 mb-2">
+                  {i18n.language === 'en' ? 'Full Name' : 'Nom complet'} <span className="text-red-400">*</span>
+                </label>
+                <input
+                  type="text"
+                  placeholder={i18n.language === 'en' ? 'Your full name' : 'Votre nom complet'}
+                  value={directOrderFullName}
+                  onChange={(e) => setDirectOrderFullName(e.target.value)}
+                  className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-foreground placeholder-foreground/30 focus:outline-none focus:border-gold/50 text-sm"
+                  required
+                />
               </div>
 
-              <p className="text-[10px] text-foreground/30 italic">
-                {i18n.language === 'en'
-                  ? 'We will use the contact details already saved in your profile for this order.'
-                  : 'Nous utiliserons les coordonnées déjà enregistrées dans votre profil pour cette commande.'}
-              </p>
-
-              <div className="flex gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setShowDirectOrderModal(false)}
-                  className="flex-1 px-6 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-sm text-foreground/60 transition-colors"
-                >
-                  {i18n.language === 'en' ? 'Cancel' : 'Annuler'}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleDirectOrderSubmit(new Event('submit') as unknown as React.FormEvent)}
-                  disabled={isOrderingDirect || totalMl === 0}
-                  className="flex-1 px-6 py-3 bg-gold text-black hover:bg-cream rounded-lg text-sm font-bold transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-                >
-                  {isOrderingDirect ? (
-                    <Loader2 size={14} className="animate-spin" />
-                  ) : (
-                    <><Send size={13} /> {i18n.language === 'en' ? 'Place Order' : 'Passer la commande'}</>
-                  )}
-                </button>
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-widest text-foreground/70 mb-2">
+                  {i18n.language === 'en' ? 'Phone Number (WhatsApp)' : 'Numéro de téléphone (WhatsApp)'} <span className="text-red-400">*</span>
+                </label>
+                <input
+                  type="tel"
+                  placeholder={i18n.language === 'en' ? 'e.g. +225 07...' : 'ex. +225 07...'}
+                  value={directOrderPhone}
+                  onChange={(e) => setDirectOrderPhone(e.target.value)}
+                  className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-foreground placeholder-foreground/30 focus:outline-none focus:border-gold/50 text-sm"
+                  required
+                />
               </div>
+            </div>
+
+            <div className="flex gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowDirectOrderModal(false)}
+                className="flex-1 px-6 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-sm text-foreground/60 transition-colors"
+              >
+                {i18n.language === 'en' ? 'Cancel' : 'Annuler'}
+              </button>
+              <button
+                type="button"
+                onClick={() => handleDirectOrderSubmit(new Event('submit') as unknown as React.FormEvent)}
+                disabled={isOrderingDirect || totalMl === 0 || !directOrderFullName.trim() || !directOrderPhone.trim()}
+                className="flex-1 px-6 py-3 bg-gold text-black hover:bg-cream rounded-lg text-sm font-bold transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {isOrderingDirect ? (
+                  <Loader2 size={14} className="animate-spin" />
+                ) : (
+                  <><Send size={13} /> {i18n.language === 'en' ? 'Place Order' : 'Passer la commande'}</>
+                )}
+              </button>
             </div>
           </div>
         </div>
