@@ -705,7 +705,7 @@ function AtelierContent() {
   }, [quantities, bottleSize, ALL_ITEMS, flacons, selectedFlaconId]);
 
   const formulaSummary = useMemo(() => {
-    const list: { name: string; ml: number; isBase?: boolean }[] = [];
+    const list: { name: string; ml: number; isBase?: boolean; isTotal?: boolean }[] = [];
     
     // Ingredients
     for (const item of ALL_ITEMS) {
@@ -722,10 +722,15 @@ function AtelierContent() {
           isBase: true,
         });
       }
+      list.push({
+        name: i18n.language === 'en' ? 'Total' : 'Total',
+        ml: bottleSize,
+        isTotal: true,
+      });
     }
     
     return list;
-  }, [quantities, ALL_ITEMS, bottleSize, totalMl]);
+  }, [quantities, ALL_ITEMS, bottleSize, totalMl, i18n.language]);
 
   const sommelierHint = useMemo(() => {
     if (totalMl === 0) return { visible: true, text: i18n.language === 'en' 
@@ -1694,10 +1699,20 @@ function AtelierContent() {
                       {formulaSummary.map((item, idx) => (
                         <div 
                           key={idx} 
-                          className={`flex justify-between items-center text-sm ${item.isBase ? 'pt-3 border-t border-[var(--t-border)] font-medium text-gold' : ''}`}
+                          className={`flex justify-between items-center text-sm ${
+                            item.isTotal 
+                              ? 'pt-3 border-t border-[var(--t-border)] font-semibold text-foreground' 
+                              : item.isBase 
+                              ? 'pt-3 border-t border-[var(--t-border)]/50 font-medium text-gold' 
+                              : ''
+                          }`}
                         >
-                          <span className={item.isBase ? 'text-gold' : 'text-foreground/40'}>{item.name}</span>
-                          <span className={item.isBase ? 'text-gold font-normal' : 'text-foreground/70 font-light'}>{item.ml} ml</span>
+                          <span className={item.isTotal ? 'text-foreground font-semibold uppercase tracking-wider text-xs' : item.isBase ? 'text-gold' : 'text-foreground/40'}>
+                            {item.name}
+                          </span>
+                          <span className={item.isTotal ? 'text-foreground font-semibold text-base' : item.isBase ? 'text-gold font-normal' : 'text-foreground/70 font-light'}>
+                            {item.ml} ml
+                          </span>
                         </div>
                       ))}
                     </div>
@@ -1932,105 +1947,112 @@ function AtelierContent() {
 
       {/* ── Direct Order Modal ── */}
       {showDirectOrderModal && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-background rounded-2xl p-8 w-full max-w-md border border-white/10 shadow-2xl animate-in fade-in zoom-in-95">
-            {/* Header */}
-            <div className="flex items-start justify-between mb-6">
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4">
+          <div className="bg-background rounded-2xl flex flex-col w-full max-w-md max-h-[85vh] border border-white/10 shadow-2xl animate-in fade-in zoom-in-95 overflow-hidden">
+            {/* Header (Pinned) */}
+            <div className="flex items-start justify-between p-5 sm:p-6 pb-3 border-b border-white/5 flex-shrink-0">
               <div>
-                <h2 className="text-2xl font-extralight text-foreground">
+                <h2 className="text-xl sm:text-2xl font-extralight text-foreground">
                   {i18n.language === 'en' ? 'Order Your Composition' : 'Commander votre Composition'}
                 </h2>
-                <p className="text-xs text-foreground/40 uppercase tracking-widest mt-1">
-                  {i18n.language === 'en' ? 'Delivery information (optional)' : 'Informations de livraison (optionnelles)'}
+                <p className="text-[10px] sm:text-xs text-foreground/40 uppercase tracking-widest mt-0.5">
+                  {i18n.language === 'en' ? 'Delivery & contact details' : 'Informations de contact et livraison'}
                 </p>
               </div>
               <button
                 onClick={() => setShowDirectOrderModal(false)}
-                className="p-2 rounded-lg hover:bg-white/10 text-foreground/40 hover:text-foreground transition-colors"
+                className="p-1.5 sm:p-2 rounded-lg hover:bg-white/10 text-foreground/40 hover:text-foreground transition-colors"
               >
                 <X size={16} />
               </button>
             </div>
 
-            {/* Composition Name Input */}
-            <div className="mb-6">
-              <label className="block text-xs font-bold uppercase tracking-widest text-foreground/70 mb-2">
-                {i18n.language === 'en' ? 'Name your composition' : 'Nommez votre composition'}
-              </label>
-              <input
-                type="text"
-                placeholder={i18n.language === 'en' ? 'e.g. Rose & Oud Evening' : 'ex. Rose & Oud Soirée'}
-                value={saveModalName}
-                onChange={(e) => setSaveModalName(e.target.value)}
-                className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-foreground placeholder-foreground/30 focus:outline-none focus:border-gold/50 text-sm"
-              />
-              <p className="text-[10px] text-gold/80 mt-1.5 italic font-medium">
-                {i18n.language === 'en'
-                  ? '✦ This is the exact name that will be inscribed on your physical bottle.'
-                  : '✦ Ce nom sera exactement celui inscrit sur votre flacon physique.'}
-              </p>
-            </div>
-
-            {/* Composition Summary */}
-            <div className="bg-white/5 border border-white/10 rounded-xl p-4 mb-6">
-              <div className="flex justify-between items-center">
-                <div>
-                  <p className="text-xs font-bold uppercase tracking-widest text-foreground/40">{i18n.language === 'en' ? 'Order Summary' : 'Résumé de commande'}</p>
-                  <p className="text-[11px] text-foreground/60 mt-1">{bottleSize}ml · {totalMl.toFixed(1)}ml {i18n.language === 'en' ? 'of essences' : "d'essences"}</p>
-                </div>
-                <p className="text-xl font-light text-gold">{calcPrice.toLocaleString()} <span className="text-[10px]">FCFA</span></p>
-              </div>
-            </div>
-
-            <div className="mb-6">
-              <ColorPicker 
-                value={couleur}
-                onChange={setCouleur}
-                label={i18n.language === 'en' ? 'Liquid Color' : 'Couleur du Liquide'}
-              />
-              <p className="text-[10px] text-foreground/40 mt-1.5 italic">
-                {i18n.language === 'en'
-                  ? '✦ This is the color of the fragrance liquid inside the bottle, not the bottle itself.'
-                  : '✦ Il s\'agit de la couleur du liquide parfumé à l\'intérieur du flacon, pas du flacon lui-même.'}
-              </p>
-            </div>
-
-            {/* Contact details */}
-            <div className="space-y-4 mb-6">
+            {/* Scrollable Content Body */}
+            <div className="p-5 sm:p-6 overflow-y-auto overscroll-contain flex-1 space-y-5 text-left">
+              {/* Composition Name Input */}
               <div>
-                <label className="block text-xs font-bold uppercase tracking-widest text-foreground/70 mb-2">
-                  {i18n.language === 'en' ? 'Full Name' : 'Nom complet'} <span className="text-red-400">*</span>
+                <label className="block text-xs font-bold uppercase tracking-widest text-foreground/70 mb-1.5">
+                  {i18n.language === 'en' ? 'Name your composition' : 'Nommez votre composition'}
                 </label>
                 <input
                   type="text"
-                  placeholder={i18n.language === 'en' ? 'Your full name' : 'Votre nom complet'}
-                  value={directOrderFullName}
-                  onChange={(e) => setDirectOrderFullName(e.target.value)}
-                  className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-foreground placeholder-foreground/30 focus:outline-none focus:border-gold/50 text-sm"
-                  required
+                  placeholder={i18n.language === 'en' ? 'e.g. Rose & Oud Evening' : 'ex. Rose & Oud Soirée'}
+                  value={saveModalName}
+                  onChange={(e) => setSaveModalName(e.target.value)}
+                  className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-lg text-foreground placeholder-foreground/30 focus:outline-none focus:border-gold/50 text-sm"
                 />
+                <p className="text-[10px] text-gold/80 mt-1 italic font-medium">
+                  {i18n.language === 'en'
+                    ? '✦ This is the exact name that will be inscribed on your physical bottle.'
+                    : '✦ Ce nom sera exactement celui inscrit sur votre flacon physique.'}
+                </p>
               </div>
 
+              {/* Composition Summary */}
+              <div className="bg-white/5 border border-white/10 rounded-xl p-3.5 sm:p-4">
+                <div className="flex justify-between items-center mb-1">
+                  <p className="text-xs font-bold uppercase tracking-widest text-foreground/40">
+                    {i18n.language === 'en' ? 'Order Summary' : 'Résumé de commande'}
+                  </p>
+                  <p className="text-lg font-light text-gold">{calcPrice.toLocaleString()} <span className="text-[10px]">FCFA</span></p>
+                </div>
+                <p className="text-[11px] text-foreground/60">
+                  {totalMl.toFixed(1)}ml {i18n.language === 'en' ? 'essences' : "d'essences"} + {Math.max(0, bottleSize - totalMl).toFixed(1)}ml Base Numba · Total: {bottleSize}ml
+                </p>
+              </div>
+
+              {/* Liquid Color */}
               <div>
-                <label className="block text-xs font-bold uppercase tracking-widest text-foreground/70 mb-2">
-                  {i18n.language === 'en' ? 'Phone Number (WhatsApp)' : 'Numéro de téléphone (WhatsApp)'} <span className="text-red-400">*</span>
-                </label>
-                <input
-                  type="tel"
-                  placeholder={i18n.language === 'en' ? 'e.g. +225 07...' : 'ex. +225 07...'}
-                  value={directOrderPhone}
-                  onChange={(e) => setDirectOrderPhone(e.target.value)}
-                  className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-foreground placeholder-foreground/30 focus:outline-none focus:border-gold/50 text-sm"
-                  required
+                <ColorPicker 
+                  value={couleur}
+                  onChange={setCouleur}
+                  label={i18n.language === 'en' ? 'Liquid Color' : 'Couleur du Liquide'}
                 />
+                <p className="text-[10px] text-foreground/40 mt-1 italic">
+                  {i18n.language === 'en'
+                    ? '✦ This is the color of the fragrance liquid inside the bottle, not the bottle itself.'
+                    : '✦ Il s\'agit de la couleur du liquide parfumé à l\'intérieur du flacon, pas du flacon lui-même.'}
+                </p>
+              </div>
+
+              {/* Contact details */}
+              <div className="space-y-3.5 pt-1">
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-widest text-foreground/70 mb-1.5">
+                    {i18n.language === 'en' ? 'Full Name' : 'Nom complet'} <span className="text-red-400">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    placeholder={i18n.language === 'en' ? 'Your full name' : 'Votre nom complet'}
+                    value={directOrderFullName}
+                    onChange={(e) => setDirectOrderFullName(e.target.value)}
+                    className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-lg text-foreground placeholder-foreground/30 focus:outline-none focus:border-gold/50 text-sm"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-widest text-foreground/70 mb-1.5">
+                    {i18n.language === 'en' ? 'Phone Number (WhatsApp)' : 'Numéro de téléphone (WhatsApp)'} <span className="text-red-400">*</span>
+                  </label>
+                  <input
+                    type="tel"
+                    placeholder={i18n.language === 'en' ? 'e.g. +225 07...' : 'ex. +225 07...'}
+                    value={directOrderPhone}
+                    onChange={(e) => setDirectOrderPhone(e.target.value)}
+                    className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-lg text-foreground placeholder-foreground/30 focus:outline-none focus:border-gold/50 text-sm"
+                    required
+                  />
+                </div>
               </div>
             </div>
 
-            <div className="flex gap-3 pt-2">
+            {/* Actions (Pinned Footer) */}
+            <div className="p-4 sm:p-5 border-t border-white/5 flex gap-3 flex-shrink-0 bg-background/95 backdrop-blur-sm">
               <button
                 type="button"
                 onClick={() => setShowDirectOrderModal(false)}
-                className="flex-1 px-6 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-sm text-foreground/60 transition-colors"
+                className="flex-1 px-4 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-sm text-foreground/60 transition-colors"
               >
                 {i18n.language === 'en' ? 'Cancel' : 'Annuler'}
               </button>
@@ -2038,7 +2060,7 @@ function AtelierContent() {
                 type="button"
                 onClick={() => handleDirectOrderSubmit(new Event('submit') as unknown as React.FormEvent)}
                 disabled={isOrderingDirect || totalMl === 0 || !directOrderFullName.trim() || !directOrderPhone.trim()}
-                className="flex-1 px-6 py-3 bg-gold text-black hover:bg-cream rounded-lg text-sm font-bold transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                className="flex-1 px-4 py-3 bg-gold text-black hover:bg-cream rounded-lg text-sm font-bold transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 {isOrderingDirect ? (
                   <Loader2 size={14} className="animate-spin" />
