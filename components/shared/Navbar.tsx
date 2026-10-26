@@ -222,7 +222,7 @@ export function Navbar() {
           <img
             src="/logo/Logo Accessoirs Exclusifs gold transparent.svg"
             alt="Accessoires Exclusifs"
-            className="h-20 lg:h-24 w-auto object-contain drop-shadow-md"
+            className="h-40 lg:h-48 w-auto object-contain drop-shadow-md"
           />
         </Link>
       </div>
