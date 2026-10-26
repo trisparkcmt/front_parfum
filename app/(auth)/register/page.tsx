@@ -199,8 +199,8 @@ function RegisterFormContent() {
   const handleGoogleRegister = async (googleAccessToken: string) => {
     setFormError(null);
     try {
-      const success = await loginWithGoogle(googleAccessToken);
-      if (success) router.push(redirectUrl);
+      useAuthStore.getState().setGoogleLoginRedirectUrl(redirectUrl);
+      await loginWithGoogle(googleAccessToken);
     } catch (err: any) {
       setFormError(err.message || t('google_login_failed', { defaultValue: 'Google login failed' }));
     }

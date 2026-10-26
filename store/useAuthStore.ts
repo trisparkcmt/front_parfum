@@ -106,6 +106,10 @@ interface AuthState {
   isAuthenticated: boolean;
   isLoading: boolean;
   _hasHydrated: boolean;
+  showGooglePersistencePrompt: boolean;
+  setShowGooglePersistencePrompt: (open: boolean) => void;
+  googleLoginRedirectUrl: string | null;
+  setGoogleLoginRedirectUrl: (url: string | null) => void;
   setHasHydrated: (state: boolean) => void;
   login: (loginInput: string, password: string, rememberMe?: boolean) => Promise<boolean>;
   loginWithGoogle: (accessToken?: string, code?: string, idToken?: string) => Promise<boolean>;
@@ -131,6 +135,10 @@ export const useAuthStore = create<AuthState>()(
       isAuthenticated: false,
       isLoading: false,
       _hasHydrated: false,
+      showGooglePersistencePrompt: false,
+      setShowGooglePersistencePrompt: (open) => set({ showGooglePersistencePrompt: open }),
+      googleLoginRedirectUrl: null,
+      setGoogleLoginRedirectUrl: (url) => set({ googleLoginRedirectUrl: url }),
 
       setHasHydrated: (state) => {
         set({ _hasHydrated: state });
@@ -225,6 +233,7 @@ export const useAuthStore = create<AuthState>()(
             user: meUser,
             isAuthenticated: true,
             isLoading: false,
+            showGooglePersistencePrompt: true,
           });
           initializeTokenRefresh();
           addToast(getLocalizedToast('Welcome', 'Bienvenue'), 'success');
@@ -606,6 +615,10 @@ export const useAuthStore = create<AuthState>()(
     {
       name: 'ae-auth',
       storage: authStateStorage,
+      partialize: (state) => ({
+        user: state.user,
+        isAuthenticated: state.isAuthenticated,
+      }),
       onRehydrateStorage: () => (state) => {
         if (state) {
           state.setHasHydrated(true);

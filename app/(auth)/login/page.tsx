@@ -117,8 +117,8 @@ function LoginFormContent() {
   const handleGoogleLogin = async (googleAccessToken: string) => {
     setFormError(null);
     try {
-      const success = await loginWithGoogle(googleAccessToken);
-      if (success) router.push(redirectUrl);
+      useAuthStore.getState().setGoogleLoginRedirectUrl(redirectUrl);
+      await loginWithGoogle(googleAccessToken);
     } catch (err: unknown) {
       setFormError(extractApiError(err, t('login_error', { defaultValue: 'Échec de la connexion Google' })));
     }

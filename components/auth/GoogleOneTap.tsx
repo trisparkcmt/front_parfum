@@ -74,6 +74,7 @@ export function GoogleOneTap() {
             try {
               // Cancel prompt immediately on selection
               window.google?.accounts?.id?.cancel();
+              useAuthStore.getState().setGoogleLoginRedirectUrl(null);
               await loginWithGoogle(undefined, undefined, oneTapResponse.credential);
             } catch (err) {
               console.error('[GoogleOneTap] Login failed:', err);
