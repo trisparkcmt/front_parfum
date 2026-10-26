@@ -136,15 +136,15 @@ export function Navbar() {
   if (isDashboard) return null;
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50">
+    <header className="fixed top-0 left-0 right-0 z-50 pointer-events-none">
       {/* Mobile offline banner — sits between phone status bar and nav content */}
-      <div className="nav:hidden">
+      <div className="nav:hidden pointer-events-auto">
         <MobileOfflineBanner />
       </div>
       <div className="absolute inset-x-0 top-0 h-0.5 bg-gold opacity-0" />
 
       {/* MOBILE */}
-      <div className="flex items-center nav:hidden bg-background border-b border-foreground/10 px-4 py-2.5 relative">
+      <div className="flex items-center nav:hidden bg-background border-b border-foreground/10 px-4 py-2.5 relative pointer-events-auto">
         <div className="flex items-center gap-3  flex-shrink-0">
           <LanguageSelector />
           {isAuthenticated && user ? (
@@ -207,6 +207,26 @@ export function Navbar() {
         </div>
       </div>
 
+      {/* DESKTOP TOP-LEFT LOGO */}
+      <div className="hidden nav:flex items-center px-6 lg:px-10 py-3 pointer-events-none">
+        <Link
+          href="/"
+          onClick={(e) => {
+            if (pathname === '/') {
+              e.preventDefault();
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+          }}
+          className="pointer-events-auto flex items-center group relative z-10 transition-transform duration-300 hover:scale-105"
+        >
+          <img
+            src="/logo/Logo Accessoirs Exclusifs gold transparent.svg"
+            alt="Accessoires Exclusifs"
+            className="h-20 lg:h-24 w-auto object-contain drop-shadow-md"
+          />
+        </Link>
+      </div>
+
       {/* DESKTOP DOCK */}
       <motion.nav
         aria-label={isEn ? 'Main navigation' : 'Navigation principale'}
@@ -215,7 +235,7 @@ export function Navbar() {
         initial={{ y: 80, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ type: 'spring', stiffness: 260, damping: 20, delay: 0.1 }}
-        className="fixed bottom-5 left-1/2 z-[100] hidden h-[76px] w-max max-w-[calc(100vw-2rem)] -translate-x-1/2 items-end gap-1.5 rounded-2xl border border-foreground/15 bg-background/85 px-3 pb-2.5 shadow-[0_12px_36px_rgba(0,0,0,0.35)] backdrop-blur-2xl nav:flex"
+        className="pointer-events-auto fixed bottom-5 left-1/2 z-[100] hidden h-[76px] w-max max-w-[calc(100vw-2rem)] -translate-x-1/2 items-end gap-1.5 rounded-2xl border border-foreground/15 bg-background/85 px-3 pb-2.5 shadow-[0_12px_36px_rgba(0,0,0,0.35)] backdrop-blur-2xl nav:flex"
       >
         {PUBLIC_NAV_LINKS.map((link) => {
           const label = NAV_LABEL_MAP[link.href]

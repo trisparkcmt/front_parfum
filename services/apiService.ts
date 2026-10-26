@@ -500,13 +500,8 @@ export const shopService = {
     ordering?: string;
     page?: number;
   }) => {
-    try {
-      const response = await api.get('catalogue/flacons/', { params });
-      return response.data;
-    } catch (error) {
-      const response = await api.get('shop/flacons/', { params }).catch(() => null);
-      return response?.data ?? [];
-    }
+    const response = await api.get('shop/flacons/', { params });
+    return response.data;
   },
 
   /**
@@ -521,13 +516,8 @@ export const shopService = {
    * Get bottle details by ID
    */
   getBottleById: async (id: number) => {
-    try {
-      const response = await api.get(`catalogue/flacons/${id}/`);
-      return response.data;
-    } catch (error) {
-      const response = await api.get(`shop/flacons/${id}/`).catch(() => null);
-      return response?.data ?? null;
-    }
+    const response = await api.get(`shop/flacons/${id}/`);
+    return response.data;
   },
 
   /**

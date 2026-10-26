@@ -49,7 +49,7 @@ const T = {
     section_stock: 'Stock & spécifications',
     section_tech: 'Caractéristiques techniques',
     field_nom: 'Nom du diffuseur *',
-    field_description: 'Description courte',
+    field_description: 'Description',
     field_prix_vente: 'Prix de vente (FCFA) *',
     field_prix_achat: "Prix d'achat (FCFA)",
     field_admin_badge: 'Admin',
@@ -115,7 +115,7 @@ const T = {
     section_stock: 'Stock & specifications',
     section_tech: 'Technical characteristics',
     field_nom: 'Diffuser name *',
-    field_description: 'Short description',
+    field_description: 'Description',
     field_prix_vente: 'Sale price (FCFA) *',
     field_prix_achat: 'Purchase price (FCFA)',
     field_admin_badge: 'Admin',
@@ -285,7 +285,7 @@ export default function DiffuseursAdminPage() {
 
   const [form, setForm] = useState({
     nom: '',
-    description_courte: '',
+    description: '',
     prix_unitaire: '',
     prix_achat: '',
     stock_quantite: '',
@@ -342,7 +342,7 @@ export default function DiffuseursAdminPage() {
     setFormError(null);
     setForm({
       nom: '',
-      description_courte: '',
+      description: '',
       prix_unitaire: '',
       prix_achat: '',
       stock_quantite: '',
@@ -370,7 +370,7 @@ export default function DiffuseursAdminPage() {
     setFormError(null);
     setForm({
       nom: item.nom || '',
-      description_courte: item.description_courte || item.description || '',
+      description: item.description || item.description_courte || '',
       prix_unitaire: String(item.prix_unitaire || ''),
       prix_achat: item.prix_achat ? String(item.prix_achat) : '',
       stock_quantite: String(item.stock_quantite ?? ''),
@@ -409,7 +409,7 @@ export default function DiffuseursAdminPage() {
       setSaving(true);
       const payload: Record<string, any> = {
         nom: form.nom,
-        description: form.description_courte,
+        description: form.description,
         prix_unitaire: form.prix_unitaire,
         type_technologie: form.type_technologie,
         type_alimentation: form.type_alimentation,
@@ -948,7 +948,13 @@ export default function DiffuseursAdminPage() {
               <input type="text" value={form.nom} onChange={(e) => setForm((p) => ({ ...p, nom: e.target.value }))} placeholder={isEn ? 'e.g. Zen Ultrasonic Diffuser' : 'ex: Diffuseur Ultrasonique Zen'} className={inputCls} />
             </Field>
             <Field label={t('field_description')}>
-              <input type="text" value={form.description_courte} onChange={(e) => setForm((p) => ({ ...p, description_courte: e.target.value }))} placeholder={isEn ? 'e.g. High-frequency 300ml with LED' : 'ex: Diffusion haute fréquence 300ml avec LED'} className={inputCls} />
+              <textarea
+                value={form.description}
+                onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))}
+                placeholder={isEn ? 'e.g. High-frequency 300ml diffuser with LED ambiance lighting...' : 'ex: Diffuseur haute fréquence 300ml avec éclairage d’ambiance LED...'}
+                rows={3}
+                className={cx(inputCls, 'resize-none')}
+              />
             </Field>
           </FormSection>
 
