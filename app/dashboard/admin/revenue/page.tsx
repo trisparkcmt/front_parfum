@@ -2,30 +2,16 @@
 
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import {
-  TrendingUp,
-  TrendingDown,
-} from 'lucide-react';
-import {
-  Area,
-  AreaChart,
-  CartesianGrid,
-  Cell,
-  Pie,
-  PieChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from 'recharts';
 import GA4AnalyticsDashboard from '@/components/admin/dashboard/GA4AnalyticsDashboard';
 import ProfitAnalyticsDashboard from '@/components/admin/dashboard/ProfitAnalyticsDashboard';
+import StockValueAnalyticsDashboard from '@/components/admin/dashboard/StockValueAnalyticsDashboard';
 
 const T = {
   fr: {
     page_title: 'Revenus & Analyses',
-    page_subtitle: "Suivi financier, coûts d'achat, bénéfices et entonnoir e-commerce",
+    page_subtitle: "Suivi financier, coûts d'achat, bénéfices, valeur marchande du stock et entonnoir e-commerce",
     tab_benefices: 'Analyse des Bénéfices',
+    tab_stock_marchand: 'Valeur Stock Marchand',
     tab_ga4: 'Google Analytics 4 (Funnel)',
     tab_internal: 'Bilan Interne (Base de données)',
     kpi_total_revenue: 'Revenu Total',
@@ -39,8 +25,9 @@ const T = {
   },
   en: {
     page_title: 'Revenue & Analytics',
-    page_subtitle: 'Financial tracking, purchase costs, profits and e-commerce funnel',
+    page_subtitle: 'Financial tracking, purchase costs, profits, commercial stock value and e-commerce funnel',
     tab_benefices: 'Profit Analysis',
+    tab_stock_marchand: 'Commercial Stock Value',
     tab_ga4: 'Google Analytics 4 (Funnel)',
     tab_internal: 'Internal Report (Database)',
     kpi_total_revenue: 'Total Revenue',
@@ -60,47 +47,13 @@ function cx(...classes: (string | boolean | undefined)[]) {
   return classes.filter(Boolean).join(' ');
 }
 
-const monthly = [
-  { month: 'Jan', parfums: 3200000, accessoires: 1800000, total: 5000000 },
-  { month: 'Fév', parfums: 4100000, accessoires: 2200000, total: 6300000 },
-  { month: 'Mar', parfums: 3800000, accessoires: 1900000, total: 5700000 },
-  { month: 'Avr', parfums: 5200000, accessoires: 2700000, total: 7900000 },
-  { month: 'Mai', parfums: 4600000, accessoires: 2400000, total: 7000000 },
-];
-
-const pieData = [
-  { name: 'Grande Marque', value: 38, color: '#C5A059' },
-  { name: 'Dupe Numba', value: 24, color: '#6366F1' },
-  { name: 'Atelier Numba', value: 20, color: '#A855F7' },
-  { name: 'Sur Mesure', value: 10, color: '#10B981' },
-  { name: 'Accessoires', value: 8, color: '#EC4899' },
-];
-
-function CustomTooltip({ active, payload, label }: any) {
-  if (!active || !payload) return null;
-  return (
-    <div className="bg-background border border-white/10 text-foreground px-3 py-2 rounded-lg text-xs">
-      <p className="font-semibold mb-1 text-foreground/80">{label}</p>
-      {payload.map((p: any, i: number) => (
-        <p key={i} className="flex items-center gap-2 mt-1">
-          <span className="w-1.5 h-1.5 rounded-full" style={{ background: p.stroke }} />
-          <span className="text-foreground/60">{p.name}:</span>
-          <span className="font-semibold text-foreground tabular-nums">
-            {(p.value / 1000000).toFixed(1)}M FCFA
-          </span>
-        </p>
-      ))}
-    </div>
-  );
-}
-
 export default function RevenuePage() {
   const { i18n } = useTranslation();
   const isEn = i18n.language?.startsWith('en') ?? false;
   const t = (k: TKey) => isEn ? T.en[k] : T.fr[k];
 
   const [isMounted, setIsMounted] = useState(false);
-  const [activeTab, setActiveTab] = useState<'benefices' | 'ga4'>('benefices');
+  const [activeTab, setActiveTab] = useState<'benefices' | 'stock_marchand' | 'ga4'>('benefices');
 
   // Force client-only render to avoid Recharts hydration errors
   useEffect(() => {
@@ -121,6 +74,7 @@ export default function RevenuePage() {
       <div className="flex border-b border-white/10 gap-6">
         {[
           { id: 'benefices', label: t('tab_benefices') },
+          { id: 'stock_marchand', label: t('tab_stock_marchand') },
           { id: 'ga4', label: t('tab_ga4') },
         ].map((tab) => (
           <button
@@ -141,6 +95,8 @@ export default function RevenuePage() {
       {/* Tab Panels */}
       {activeTab === 'benefices' ? (
         <ProfitAnalyticsDashboard />
+      ) : activeTab === 'stock_marchand' ? (
+        <StockValueAnalyticsDashboard />
       ) : (
         <GA4AnalyticsDashboard />
       )}

@@ -1135,3 +1135,68 @@ export interface BoutiqueApplyPayload {
 export interface PrestataireApplyPayload {
   photo: File;
 }
+
+
+// ---- Valeur Stock Marchand (Admin Statistics) ----
+
+export interface ValeurStockItem {
+  valeur_totale: string;
+  quantite_totale: number;
+}
+
+export interface ValeurStockEssencesLabo {
+  valeur_totale: string;
+  stock_ml_total: string;
+}
+
+export interface ValeurStockAutresDetail {
+  diffuseurs?: ValeurStockItem;
+  flacons?: ValeurStockItem;
+  essences_labo?: ValeurStockEssencesLabo;
+}
+
+export interface ValeurStockAutres {
+  valeur_totale: string;
+  detail?: ValeurStockAutresDetail;
+}
+
+export interface ValeurStockParTypeGlobal {
+  parfums?: ValeurStockItem;
+  accessoires?: ValeurStockItem;
+  autres?: ValeurStockAutres;
+}
+
+export interface ValeurStockProduitsMaison {
+  valeur_totale: string;
+  parfums?: ValeurStockItem;
+  accessoires?: ValeurStockItem;
+  diffuseurs?: ValeurStockItem;
+  flacons?: ValeurStockItem;
+  essences_labo?: ValeurStockEssencesLabo;
+}
+
+export interface BoutiqueStockDetail {
+  boutique_id: number;
+  boutique_nom: string;
+  statut: string;
+  valeur_totale: string;
+  quantite_totale: number;
+  parfums?: ValeurStockItem;
+  accessoires?: ValeurStockItem;
+}
+
+export interface ValeurStockProduitsBoutiques {
+  valeur_totale: string;
+  quantite_totale: number;
+  parfums?: ValeurStockItem;
+  accessoires?: ValeurStockItem;
+  detail_par_boutique?: BoutiqueStockDetail[];
+}
+
+export interface ValeurStockMarchand {
+  description?: string;
+  valeur_totale_globale: string;
+  par_type_produit_global?: ValeurStockParTypeGlobal;
+  produits_maison?: ValeurStockProduitsMaison;
+  produits_boutiques?: ValeurStockProduitsBoutiques;
+}
