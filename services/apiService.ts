@@ -1722,7 +1722,7 @@ export const adminService = {
    * Get profit statistics for admin financial dashboard
    * Endpoint: GET /api/v1/orders/commandes/statistiques-benefices/
    */
-  getProfitStats: async (params?: { date_debut?: string; date_fin?: string; statut?: string }) => {
+  getProfitStats: async (params?: { date_debut?: string; date_fin?: string; statut?: string; statut_paiement?: string }) => {
     const response = await api.get('orders/commandes/statistiques-benefices/', { params });
     return response.data;
   },

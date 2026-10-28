@@ -41,7 +41,7 @@ import { adminService } from '@/services/apiService';
 import { useToastStore } from '@/store/useToastStore';
 import { useTranslation } from 'react-i18next';
 import { getLocalizedToast } from '@/lib/toastMessages';
-import type { ValeurStockMarchand } from '@/types';
+import type { ValeurStockMarchand, StatistiquesBeneficesResponse } from '@/types';
 
 const TS = {
   fr: {
@@ -233,32 +233,101 @@ const CHART_COLORS = [
   '#F59E0B', // Amber (Diffuseurs)
 ];
 
-interface StockValueAnalyticsDashboardProps {
-  initialData?: ValeurStockMarchand | null;
+function resolveStockData(raw: any, fallback?: ValeurStockMarchand | null): ValeurStockMarchand | null {
+  if (fallback && parseFloat(String(fallback.valeur_totale_globale || '0')) > 0) {
+    return fallback;
+  }
+  if (!raw) return fallback || null;
+  if (raw.valeur_stock_marchand) {
+    const vsm = raw.valeur_stock_marchand;
+    if (vsm.valeur_totale_globale || vsm.par_categorie_global || vsm.par_type_produit_global || vsm.produits_maison) {
+      return vsm;
+    }
+  }
+  if (raw.valeur_totale_globale !== undefined && (raw.par_categorie_global || raw.par_type_produit_global || raw.produits_maison)) {
+    return raw as ValeurStockMarchand;
+  }
+  // Smart fallback: If raw has par_categorie.essences.detail_par_essence
+  const essencesList = raw?.par_categorie?.essences?.detail_par_essence;
+  if (Array.isArray(essencesList) && essencesList.length > 0) {
+    let totalMl = 0;
+    let totalVal = 0;
+    essencesList.forEach((ess: any) => {
+      if (Array.isArray(ess.lots)) {
+        ess.lots.forEach((lot: any) => {
+          const qty = parseFloat(lot.stock_restant || '0') || 0;
+          const price = parseFloat(lot.prix_achat_par_ml || '0') || 0;
+          totalMl += qty;
+          totalVal += qty * price;
+        });
+      }
+    });
+
+    return {
+      description: "Valeur marchande basée sur les lots d'essences disponibles au laboratoire.",
+      valeur_totale_globale: totalVal.toFixed(2),
+      par_categorie_global: {
+        essences_labo: {
+          valeur_totale: totalVal.toFixed(2),
+          stock_ml_total: totalMl.toFixed(2),
+        },
+      },
+      produits_maison: {
+        valeur_totale: totalVal.toFixed(2),
+        essences_labo: {
+          valeur_totale: totalVal.toFixed(2),
+          stock_ml_total: totalMl.toFixed(2),
+        },
+      },
+    };
+  }
+  return raw.valeur_stock_marchand || fallback || null;
 }
 
-export default function StockValueAnalyticsDashboard({ initialData }: StockValueAnalyticsDashboardProps) {
+interface StockValueAnalyticsDashboardProps {
+  initialData?: ValeurStockMarchand | null;
+  rawStats?: StatistiquesBeneficesResponse | any | null;
+  isLoading?: boolean;
+  onRefresh?: () => void;
+}
+
+export default function StockValueAnalyticsDashboard({
+  initialData,
+  rawStats,
+  isLoading: externalLoading,
+  onRefresh,
+}: StockValueAnalyticsDashboardProps) {
   const { i18n } = useTranslation();
   const isEn = i18n.language?.startsWith('en') ?? false;
-  const ts = (k: TSKey) => isEn ? TS.en[k] : TS.fr[k];
+  const ts = (k: TSKey) => (isEn ? TS.en[k] : TS.fr[k]);
 
-  const [loading, setLoading] = useState(!initialData);
-  const [data, setData] = useState<ValeurStockMarchand | null>(initialData || null);
+  const initialResolved = resolveStockData(rawStats, initialData);
+  const [internalLoading, setInternalLoading] = useState(!initialResolved && !rawStats);
+  const loading = externalLoading !== undefined ? externalLoading : internalLoading;
+  const [data, setData] = useState<ValeurStockMarchand | null>(initialResolved);
   const [error, setError] = useState<string | null>(null);
   const [searchBoutique, setSearchBoutique] = useState('');
   const { addToast } = useToastStore();
 
+  useEffect(() => {
+    const resolved = resolveStockData(rawStats, initialData);
+    if (resolved) {
+      setData(resolved);
+      setInternalLoading(false);
+    }
+  }, [rawStats, initialData]);
+
   const fetchData = useCallback(async () => {
+    if (onRefresh) {
+      onRefresh();
+      return;
+    }
     try {
-      setLoading(true);
+      setInternalLoading(true);
       setError(null);
-      const res = await adminService.getProfitStats();
-      if (res && res.valeur_stock_marchand) {
-        setData(res.valeur_stock_marchand);
-      } else if (res && typeof res === 'object') {
-        // In case the API returns the section directly or at root
-        setData(res.valeur_stock_marchand || null);
-      }
+      const res = await adminService.getProfitStats({ statut_paiement: 'tous' });
+      const resolved = resolveStockData(res);
+      setData(resolved);
     } catch (requestError: any) {
       const status = requestError?.response?.status;
       if (status === 401) {
@@ -268,40 +337,39 @@ export default function StockValueAnalyticsDashboard({ initialData }: StockValue
         addToast(getLocalizedToast('Failed to load stock valuation', 'Échec du chargement de la valeur marchande'), 'error');
       }
     } finally {
-      setLoading(false);
+      setInternalLoading(false);
     }
-  }, [addToast]);
+  }, [onRefresh, addToast]);
 
   useEffect(() => {
-    if (!initialData) {
+    if (!initialData && !rawStats) {
       fetchData();
     }
-  }, [fetchData, initialData]);
+  }, [fetchData, initialData, rawStats]);
 
-  // Extract variables with safe defaults
+  // Extract variables with safe defaults (handling both par_categorie_global and par_type_produit_global)
   const valeurTotaleGlobale = parseFloat(String(data?.valeur_totale_globale ?? 0));
-  const parType = data?.par_type_produit_global;
+  const parType = data?.par_categorie_global || data?.par_type_produit_global;
   const maison = data?.produits_maison;
   const boutiques = data?.produits_boutiques;
 
   const totalMaisonVal = parseFloat(String(maison?.valeur_totale ?? 0));
   const totalBoutiquesVal = parseFloat(String(boutiques?.valeur_totale ?? 0));
 
-  const parfumsGlobalVal = parseFloat(String(parType?.parfums?.valeur_totale ?? 0));
-  const parfumsGlobalQty = parType?.parfums?.quantite_totale ?? 0;
+  const parfumsGlobalVal = parseFloat(String(parType?.parfums?.valeur_totale ?? maison?.parfums?.valeur_totale ?? 0));
+  const parfumsGlobalQty = parType?.parfums?.quantite_totale ?? maison?.parfums?.quantite_totale ?? 0;
 
-  const accessoiresGlobalVal = parseFloat(String(parType?.accessoires?.valeur_totale ?? 0));
-  const accessoiresGlobalQty = parType?.accessoires?.quantite_totale ?? 0;
+  const accessoiresGlobalVal = parseFloat(String(parType?.accessoires?.valeur_totale ?? maison?.accessoires?.valeur_totale ?? 0));
+  const accessoiresGlobalQty = parType?.accessoires?.quantite_totale ?? maison?.accessoires?.quantite_totale ?? 0;
 
-  const autresGlobalVal = parseFloat(String(parType?.autres?.valeur_totale ?? 0));
-  const essencesLaboVal = parseFloat(String(parType?.autres?.detail?.essences_labo?.valeur_totale ?? maison?.essences_labo?.valeur_totale ?? 0));
-  const essencesLaboMl = parseFloat(String(parType?.autres?.detail?.essences_labo?.stock_ml_total ?? maison?.essences_labo?.stock_ml_total ?? 0));
+  const essencesLaboVal = parseFloat(String(parType?.essences_labo?.valeur_totale ?? parType?.autres?.detail?.essences_labo?.valeur_totale ?? maison?.essences_labo?.valeur_totale ?? 0));
+  const essencesLaboMl = parseFloat(String(parType?.essences_labo?.stock_ml_total ?? parType?.autres?.detail?.essences_labo?.stock_ml_total ?? maison?.essences_labo?.stock_ml_total ?? 0));
 
-  const flaconsVal = parseFloat(String(parType?.autres?.detail?.flacons?.valeur_totale ?? maison?.flacons?.valeur_totale ?? 0));
-  const flaconsQty = parType?.autres?.detail?.flacons?.quantite_totale ?? maison?.flacons?.quantite_totale ?? 0;
+  const flaconsVal = parseFloat(String(parType?.flacons?.valeur_totale ?? parType?.autres?.detail?.flacons?.valeur_totale ?? maison?.flacons?.valeur_totale ?? 0));
+  const flaconsQty = parType?.flacons?.quantite_totale ?? parType?.autres?.detail?.flacons?.quantite_totale ?? maison?.flacons?.quantite_totale ?? 0;
 
-  const diffuseursVal = parseFloat(String(parType?.autres?.detail?.diffuseurs?.valeur_totale ?? maison?.diffuseurs?.valeur_totale ?? 0));
-  const diffuseursQty = parType?.autres?.detail?.diffuseurs?.quantite_totale ?? maison?.diffuseurs?.quantite_totale ?? 0;
+  const diffuseursVal = parseFloat(String(parType?.diffuseurs?.valeur_totale ?? parType?.autres?.detail?.diffuseurs?.valeur_totale ?? maison?.diffuseurs?.valeur_totale ?? 0));
+  const diffuseursQty = parType?.diffuseurs?.quantite_totale ?? parType?.autres?.detail?.diffuseurs?.quantite_totale ?? maison?.diffuseurs?.quantite_totale ?? 0;
 
   // Donut chart distribution data
   const pieChartData = useMemo(() => {
@@ -763,7 +831,9 @@ export default function StockValueAnalyticsDashboard({ initialData }: StockValue
                             </div>
                             <div>
                               <span className="font-semibold block">{boutique.boutique_nom}</span>
-                              <span className="text-[10px] text-foreground/40">ID #{boutique.boutique_id}</span>
+                              <span className="text-[10px] text-foreground/40">
+                                {boutique.ville ? `${boutique.ville} • ` : ''}ID #{boutique.boutique_id}
+                              </span>
                             </div>
                           </td>
                           <td className="py-3.5 px-4">

@@ -1,10 +1,12 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import GA4AnalyticsDashboard from '@/components/admin/dashboard/GA4AnalyticsDashboard';
 import ProfitAnalyticsDashboard from '@/components/admin/dashboard/ProfitAnalyticsDashboard';
 import StockValueAnalyticsDashboard from '@/components/admin/dashboard/StockValueAnalyticsDashboard';
+import { adminService } from '@/services/apiService';
+import type { StatistiquesBeneficesResponse } from '@/types';
 
 const T = {
   fr: {
@@ -55,10 +57,34 @@ export default function RevenuePage() {
   const [isMounted, setIsMounted] = useState(false);
   const [activeTab, setActiveTab] = useState<'benefices' | 'stock_marchand' | 'ga4'>('benefices');
 
-  // Force client-only render to avoid Recharts hydration errors
+  // Shared endpoint data (/api/v1/orders/commandes/statistiques-benefices/)
+  const [statsData, setStatsData] = useState<StatistiquesBeneficesResponse | null>(null);
+  const [statsLoading, setStatsLoading] = useState(false);
+
+  const fetchStats = useCallback(async (params?: {
+    date_debut?: string;
+    date_fin?: string;
+    statut?: string;
+    statut_paiement?: string;
+  }) => {
+    try {
+      setStatsLoading(true);
+      const res = await adminService.getProfitStats(params);
+      setStatsData(res);
+    } catch (err) {
+      console.error('Failed to load shared financial stats:', err);
+    } finally {
+      setStatsLoading(false);
+    }
+  }, []);
+
+  // Initial fetch on mount
   useEffect(() => {
     setIsMounted(true);
-  }, []);
+    fetchStats();
+  }, [fetchStats]);
+
+  if (!isMounted) return null;
 
   return (
     <div className="space-y-6">
@@ -92,11 +118,20 @@ export default function RevenuePage() {
         ))}
       </div>
 
-      {/* Tab Panels */}
+      {/* Tab Panels with stats grouped based on which tab they belong to */}
       {activeTab === 'benefices' ? (
-        <ProfitAnalyticsDashboard />
+        <ProfitAnalyticsDashboard
+          initialData={statsData}
+          isLoading={statsLoading}
+          onFetchWithFilters={fetchStats}
+        />
       ) : activeTab === 'stock_marchand' ? (
-        <StockValueAnalyticsDashboard />
+        <StockValueAnalyticsDashboard
+          rawStats={statsData}
+          initialData={statsData?.valeur_stock_marchand}
+          isLoading={statsLoading}
+          onRefresh={() => fetchStats()}
+        />
       ) : (
         <GA4AnalyticsDashboard />
       )}

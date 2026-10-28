@@ -1137,7 +1137,65 @@ export interface PrestataireApplyPayload {
 }
 
 
-// ---- Valeur Stock Marchand (Admin Statistics) ----
+// ---- Statistiques Bénéfices & Valeur Stock Marchand (Admin Statistics) ----
+
+export interface StatistiquesBeneficesFiltres {
+  statut_commande?: string;
+  statut_paiement?: string;
+  date_debut?: string | null;
+  date_fin?: string | null;
+}
+
+export interface TotauxBoutiqueGlobaleMaison {
+  description?: string;
+  chiffre_affaires: string;
+  cout_total: string;
+  benefice_net: string;
+}
+
+export interface TotauxBoutiquesPartenaires {
+  description?: string;
+  chiffre_affaires_brut: string;
+  commission_admin_gagne: string;
+  net_a_reverser: string;
+}
+
+export interface StatistiquesBeneficesTotaux {
+  chiffre_affaires: string;
+  cout_total: string;
+  benefice_net: string;
+  boutique_globale_maison?: TotauxBoutiqueGlobaleMaison;
+  boutiques_partenaires?: TotauxBoutiquesPartenaires;
+}
+
+export interface CategorieVenteBase {
+  nb_ventes: number;
+  chiffre_affaires: string;
+  cout_total: string;
+  benefice: string;
+}
+
+export interface CategorieVenteDetail extends CategorieVenteBase {
+  maison?: CategorieVenteBase;
+  boutiques?: CategorieVenteBase;
+}
+
+export interface CategorieLaboratoireDetail extends CategorieVenteBase {
+  parfums_personnalises?: CategorieVenteBase;
+  produits_finis_essence?: CategorieVenteBase;
+  essences_personnalisees?: CategorieVenteBase;
+}
+
+export interface StatistiquesBeneficesParCategorie {
+  parfums?: CategorieVenteDetail;
+  accessoires?: CategorieVenteDetail;
+  laboratoire?: CategorieLaboratoireDetail;
+  diffuseurs?: CategorieVenteBase;
+  // Legacy / alternative properties
+  essences?: any;
+  parfums_personnalises?: any;
+  essences_sur_mesure?: any;
+}
 
 export interface ValeurStockItem {
   valeur_totale: string;
@@ -1163,6 +1221,9 @@ export interface ValeurStockAutres {
 export interface ValeurStockParTypeGlobal {
   parfums?: ValeurStockItem;
   accessoires?: ValeurStockItem;
+  diffuseurs?: ValeurStockItem;
+  flacons?: ValeurStockItem;
+  essences_labo?: ValeurStockEssencesLabo;
   autres?: ValeurStockAutres;
 }
 
@@ -1178,9 +1239,10 @@ export interface ValeurStockProduitsMaison {
 export interface BoutiqueStockDetail {
   boutique_id: number;
   boutique_nom: string;
-  statut: string;
+  ville?: string;
+  statut?: string;
   valeur_totale: string;
-  quantite_totale: number;
+  quantite_totale?: number;
   parfums?: ValeurStockItem;
   accessoires?: ValeurStockItem;
 }
@@ -1196,7 +1258,24 @@ export interface ValeurStockProduitsBoutiques {
 export interface ValeurStockMarchand {
   description?: string;
   valeur_totale_globale: string;
+  par_categorie_global?: ValeurStockParTypeGlobal;
   par_type_produit_global?: ValeurStockParTypeGlobal;
   produits_maison?: ValeurStockProduitsMaison;
   produits_boutiques?: ValeurStockProduitsBoutiques;
+}
+
+export interface StatistiquesBeneficesResponse {
+  filtres_appliques?: StatistiquesBeneficesFiltres;
+  nb_commandes: number;
+  totaux: StatistiquesBeneficesTotaux;
+  par_categorie: StatistiquesBeneficesParCategorie;
+  valeur_stock_marchand?: ValeurStockMarchand;
+  // Legacy / fallback arrays
+  produits?: any[];
+  lots?: any[];
+  benefices_par_type?: any[];
+  chiffre_affaires_total?: string;
+  benefice_total?: string;
+  cout_total?: string;
+  marge_globale?: string | number;
 }
