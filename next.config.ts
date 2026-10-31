@@ -23,8 +23,46 @@ const nextConfig: NextConfig = {
     'api.accessoiresexclusifs.com',
     '0.0.0.0'
   ],
-  
-  // 2. Image optimization rules for your Django backend and CDNs
+
+  // 2. 301 redirects — old WordPress/WooCommerce URLs → new Next.js pages.
+  //    Google crawled these old URLs and they now cause "Duplicate without
+  //    user-selected canonical" errors in Search Console.
+  async redirects() {
+    return [
+      // /index.php/categorie-produit/parfums/* → /shop/perfumes
+      {
+        source: '/index.php/categorie-produit/parfums/:path*',
+        destination: '/shop/perfumes',
+        permanent: true,
+      },
+      // /index.php/categorie-produit/accessoires/* → /shop/accessories
+      {
+        source: '/index.php/categorie-produit/accessoires/:path*',
+        destination: '/shop/accessories',
+        permanent: true,
+      },
+      // /index.php/categorie-produit/diffuseurs/* → /shop/diffuseurs
+      {
+        source: '/index.php/categorie-produit/diffuseurs/:path*',
+        destination: '/shop/diffuseurs',
+        permanent: true,
+      },
+      // Any remaining /index.php/* WordPress path → home
+      {
+        source: '/index.php/:path*',
+        destination: '/',
+        permanent: true,
+      },
+      // Bare /index.php → home
+      {
+        source: '/index.php',
+        destination: '/',
+        permanent: true,
+      },
+    ];
+  },
+
+  // 3. Image optimization rules for your Django backend and CDNs
   images: {
     remotePatterns: [
       {
