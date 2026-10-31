@@ -5,7 +5,7 @@ export const metadata: Metadata = {
   title: 'Création parfum sur mesure et atelier olfactif',
   description: 'Créez votre parfum sur mesure avec notre atelier olfactif, un accompagnement personnalisé et des compositions uniques.',
   alternates: {
-    canonical: 'https://accessoiresexclusifs.com/numba',
+    canonical: '/numba',
   },
   openGraph: {
     title: 'Création parfum sur mesure et atelier olfactif',

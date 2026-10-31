@@ -4,6 +4,9 @@ import { Metadata } from 'next';
 export const metadata: Metadata = {
   title: 'Nos Reels TikTok | Accessoires Exclusifs',
   description: 'Découvrez nos dernières vidéos, tutoriels et nouveautés sur notre feed TikTok.',
+  alternates: {
+    canonical: '/reels',
+  },
 };
 
 export default function ReelsPage() {

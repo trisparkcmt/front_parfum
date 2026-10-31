@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import AppImage from '@/components/ui/AppImage';
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Share2,
@@ -45,15 +44,20 @@ function getProductCollectionPath(category?: Product['category']) {
   }
 }
 
-export default function ProductDetailClient({ id }: { id: string }) {
+export default function ProductDetailClient({
+  id,
+  initialProduct,
+  preferredType,
+}: {
+  id: string;
+  initialProduct?: Product;
+  preferredType: 'perfume' | 'accessory' | 'diffuseur';
+}) {
   const { i18n } = useTranslation();
   const isEn = i18n.language?.startsWith('en');
-  const searchParams = useSearchParams();
-  const typeHints = searchParams.get('type');
-  const preferredType = typeHints === 'accessory' ? 'accessory' : typeHints === 'diffuseur' ? 'diffuseur' : 'perfume';
 
-  const [product, setProduct] = useState<Product | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [product, setProduct] = useState<Product | null>(initialProduct ?? null);
+  const [loading, setLoading] = useState(!initialProduct);
   const [activeImage, setActiveImage] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [activeTab, setActiveTab] = useState<'details' | 'supplementary'>('details');
@@ -94,11 +98,15 @@ export default function ProductDetailClient({ id }: { id: string }) {
     let isMounted = true;
 
     async function loadProduct() {
-      setLoading(true);
+      if (initialProduct) {
+        setProduct(initialProduct);
+        setActiveImage(0);
+      }
+      if (!initialProduct) setLoading(true);
       try {
         const p = await productService.getProductById(String(id), preferredType);
         if (!isMounted) return;
-        setProduct(p);
+        if (p || !initialProduct) setProduct(p);
         setActiveImage(0);
 
         // Track view_item event for GA4
@@ -141,7 +149,7 @@ export default function ProductDetailClient({ id }: { id: string }) {
     return () => {
       isMounted = false;
     };
-  }, [id, preferredType]);
+  }, [id, preferredType, initialProduct]);
 
   if (loading) {
     return (

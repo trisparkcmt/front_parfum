@@ -1,0 +1,2136 @@
+'use client';
+
+import { useState, useCallback, useMemo, useEffect, useRef, Suspense } from 'react';
+import Link from 'next/link';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useCartStore } from '@/store/useCartStore';
+import { useFavoritesStore } from '@/store/useFavoritesStore';
+import { useAuthStore } from '@/store/useAuthStore';
+import { useToastStore } from '@/store/useToastStore';
+import { buildWhatsAppUrl, generateId, getCompanyWhatsAppNumber, sharePage } from '@/lib/utils';
+import GoogleAuthButton from '@/components/auth/GoogleAuthButton';
+import { useTranslation } from 'react-i18next';
+import { ArrowLeft, Minus, Plus, ChevronLeft, ChevronRight, RefreshCcw, Loader2, Save, ShoppingCart, X, Send, Share2, Eye, Search } from 'lucide-react';
+import AppImage from '@/components/ui/AppImage';
+import { useSound } from '@/hooks/useSound';
+import { useLiquidPouringSound } from '@/hooks/useLiquidPouringSound';
+import type { CustomComposition, CompositionEssence, EssenceClient, Product } from '@/types';
+import { labService } from '@/services/labService';
+import { labService as apiLabService, shopService, orderService } from '@/services/apiService';
+import ColorPicker from '@/components/ui/ColorPicker';
+import './atelier.css';
+
+/* ═══════════════════════════════════════
+   ESSENCE CONSTANTS & HELPER FUNCTIONS
+   ═══════════════════════════════════════ */
+const TETE_FAMILIES = ['citrus', 'fresh', 'fruity'];
+const COEUR_FAMILIES = ['floral', 'spicy', 'aquatic'];
+const FOND_FAMILIES = ['woody', 'oriental', 'gourmand', 'musk'];
+
+const EMOJIS: Record<string, string> = {
+  citrus:'🍋', fresh:'🌿', fruity:'🍑', floral:'🌹', spicy:'🌶️',
+  aquatic:'🌊', woody:'🪵', oriental:'✨', gourmand:'🍫', musk:'🤍'
+};
+
+const BOTTLE_SIZES = [
+  { ml: 30, label: '30ml', desc: 'Discovery' },
+  { ml: 50, label: '50ml', desc: 'Signature' },
+  { ml: 100, label: '100ml', desc: 'Prestige' },
+];
+
+function getBottleCapacity(bottle: any): number {
+  return Number(
+    bottle?.contenance_ml ||
+    bottle?.capacite_ml ||
+    bottle?.capacity_ml ||
+    bottle?.size_ml ||
+    bottle?.type_flacon?.contenance_ml ||
+    bottle?.type_flacon?.capacite_ml ||
+    0
+  );
+}
+
+const FORMAT_PRICES: Record<string, number> = { edc: 5000, edp: 8500, extrait: 12000 };
+const FORMAT_LABELS: Record<string, string> = { edc: 'Eau de Cologne', edp: 'Eau de Parfum', extrait: 'Extrait' };
+
+function hexToRgb(h: string) {
+  h = h.replace('#','');
+  if (h.length===3) h = h[0]+h[0]+h[1]+h[1]+h[2]+h[2];
+  return { r:parseInt(h.substring(0,2),16), g:parseInt(h.substring(2,4),16), b:parseInt(h.substring(4,6),16) };
+}
+
+function blendColor(quantities: Record<string, number>, allItems: EssenceClient[]) {
+  let r=0,g=0,b=0,tw=0;
+  for (const e of allItems) {
+    const q = quantities[e.id]||0;
+    if (q>0) { const c=hexToRgb(e.color); r+=c.r*q; g+=c.g*q; b+=c.b*q; tw+=q; }
+  }
+  if (tw===0) return { top:'#D4B87A', mid:'#C5A059', bot:'#A8864A' };
+  r=Math.round(r/tw); g=Math.round(g/tw); b=Math.round(b/tw);
+  return {
+    top:`rgba(${Math.min(255,r+30)},${Math.min(255,g+30)},${Math.min(255,b+20)},0.90)`,
+    mid:`rgba(${r},${g},${b},0.95)`,
+    bot:`rgba(${Math.max(0,r-25)},${Math.max(0,g-25)},${Math.max(0,b-15)},0.98)`,
+  };
+}
+
+/* ═══════════════════════════════════════
+   DETAILED GLASS SHADERS
+   ═══════════════════════════════════════ */
+const GlassDefs = ({ col, id }: any) => (
+  <defs>
+    <linearGradient id={`g-glass-${id}`} x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stopColor="rgba(255,255,255,0.80)" />
+      <stop offset="12%" stopColor="rgba(255,255,255,0.18)" />
+      <stop offset="50%" stopColor="rgba(255,255,255,0.04)" />
+      <stop offset="88%" stopColor="rgba(255,255,255,0.22)" />
+      <stop offset="100%" stopColor="rgba(255,255,255,0.75)" />
+    </linearGradient>
+    <linearGradient id={`g-glass-v-${id}`} x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stopColor="rgba(255,255,255,0.30)" />
+      <stop offset="100%" stopColor="rgba(220,210,195,0.12)" />
+    </linearGradient>
+    <linearGradient id={`g-liquid-${id}`} x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stopColor={col.top} stopOpacity="0.95" />
+      <stop offset="100%" stopColor={col.bot} stopOpacity="0.98" />
+    </linearGradient>
+    <radialGradient id={`g-surface-${id}`} cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stopColor={col.top} stopOpacity="0.8" />
+      <stop offset="100%" stopColor={col.top} stopOpacity="1" />
+    </radialGradient>
+    <linearGradient id={`g-drip-${id}`} x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stopColor={col.top} stopOpacity="0.5" />
+      <stop offset="100%" stopColor={col.mid} stopOpacity="1" />
+    </linearGradient>
+    <linearGradient id={`g-chrome-${id}`} x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stopColor="#D0CECE" /><stop offset="30%" stopColor="#F8F8F8" />
+      <stop offset="60%" stopColor="#BDBDBD" /><stop offset="100%" stopColor="#E8E8E8" />
+    </linearGradient>
+    <linearGradient id={`g-chrome-v-${id}`} x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stopColor="#E0E0E0" /><stop offset="50%" stopColor="#A8A8A8" />
+      <stop offset="100%" stopColor="#C8C8C8" />
+    </linearGradient>
+  </defs>
+);
+
+/* ═══════════════════════════════════════
+   BOTTLE SVG COMPONENTS (WITH DYNAMIC COLORS)
+   ═══════════════════════════════════════ */
+function Bottle100({ totalMl, maxFillMl, quantities, allItems }: any) {
+  const pct = Math.min(1, totalMl / Math.max(1, maxFillMl));
+  const topY = Math.round(420 - pct * 300);
+  const col = blendColor(quantities, allItems);
+  const isEmpty = totalMl === 0;
+
+  return (
+    <svg width="260" height="480" viewBox="0 0 260 480" fill="none" className="mx-auto">
+      <GlassDefs col={col} id="100" />
+      <clipPath id="c-100"><rect x="42" y="118" width="176" height="310" rx="6" ry="6" /></clipPath>
+      <rect x="42" y="118" width="176" height="310" rx="6" fill="url(#g-glass-v-100)" stroke="rgba(180,170,155,0.50)" strokeWidth="1" />
+      {!isEmpty && (
+        <g clipPath="url(#c-100)">
+          <rect x="42" y={topY} width="176" height={Math.max(2, 430 - topY)} fill="url(#g-liquid-100)" className="liquid-body" />
+          <ellipse cx="130" cy={topY} rx={Math.round(52 + pct * 32)} ry="8" fill="url(#g-surface-100)" />
+        </g>
+      )}
+      <rect x="42" y="118" width="176" height="310" rx="6" fill="url(#g-glass-100)" opacity="0.60" />
+      <line x1="48" y1="124" x2="48" y2="422" stroke="rgba(255,255,255,0.88)" strokeWidth="2.5" strokeLinecap="round" />
+      <line x1="212" y1="124" x2="212" y2="422" stroke="rgba(255,255,255,0.40)" strokeWidth="1.5" strokeLinecap="round" />
+      <line x1="130" y1="120" x2="130" y2="428" stroke="rgba(255,255,255,0.08)" strokeWidth="0.6" />
+      <text x="130" y="306" textAnchor="middle" fontFamily="serif" fontSize="24" fill="rgba(197,160,89,0.70)" letterSpacing="6">NUMBA</text>
+      <text x="130" y="330" textAnchor="middle" fontFamily="sans-serif" fontSize="13" fill="rgba(197,160,89,0.50)" letterSpacing="8">ATELIER</text>
+      <rect x="100" y="58" width="60" height="64" rx="2" fill="url(#g-glass-v-100)" stroke="rgba(180,170,155,0.40)" strokeWidth="0.8" />
+      <rect x="95" y="48" width="70" height="16" rx="3" fill="url(#g-chrome-100)" stroke="rgba(160,160,160,0.4)" strokeWidth="0.5" />
+      <rect x="98" y="38" width="64" height="14" rx="3" fill="url(#g-chrome-100)" stroke="rgba(160,160,160,0.35)" strokeWidth="0.5" />
+      <rect x="88" y="6" width="84" height="36" rx="10" fill="url(#g-glass-v-100)" stroke="rgba(180,170,155,0.55)" strokeWidth="1" />
+      <rect x="88" y="6" width="84" height="36" rx="10" fill="url(#g-glass-100)" opacity="0.70" />
+      <text x="130" y="29" textAnchor="middle" fontFamily="serif" fontSize="8" fontStyle="italic" fill="rgba(197,160,89,0.80)" letterSpacing="2">N</text>
+      <g className="drip-group">
+        <line x1="130" y1="0" x2="130" y2="46" stroke="url(#g-drip-100)" strokeWidth="3.5" strokeLinecap="round" />
+        {!isEmpty && <ellipse cx="130" cy={50} rx={4.5} ry={6} fill={col.mid} opacity="0.90" />}
+      </g>
+    </svg>
+  );
+}
+
+function Bottle50({ totalMl, maxFillMl, quantities, allItems }: any) {
+  const pct = Math.min(1, totalMl / Math.max(1, maxFillMl));
+  const col = blendColor(quantities, allItems);
+  const topY = Math.round(380 - pct * 240);
+  const isEmpty = totalMl === 0;
+
+  return (
+    <svg width="260" height="480" viewBox="0 0 260 480" fill="none" className="mx-auto">
+      <GlassDefs col={col} id="50" />
+      <clipPath id="c-50">
+        <path d="M130,120 C80,120 45,180 45,280 C45,380 85,415 130,415 C175,415 215,380 215,280 C215,180 180,120 130,120 Z" />
+      </clipPath>
+      <path d="M130,120 C80,120 45,180 45,280 C45,380 85,415 130,415 C175,415 215,380 215,280 C215,180 180,120 130,120 Z" fill="url(#g-glass-v-50)" stroke="rgba(180,170,155,0.50)" strokeWidth="1" />
+      {!isEmpty && (
+        <g clipPath="url(#c-50)">
+          <rect x="40" y={topY} width="180" height="300" fill="url(#g-liquid-50)" className="liquid-body" />
+          <ellipse cx="130" cy={topY} rx={Math.round(40 + pct * 30)} ry={7} fill="url(#g-surface-50)" />
+        </g>
+      )}
+      <path d="M130,120 C80,120 45,180 45,280 C45,380 85,415 130,415 C175,415 215,380 215,280 C215,180 180,120 130,120 Z" fill="url(#g-glass-50)" opacity="0.60" />
+      <path d="M70,160 C55,200 55,340 130,400" stroke="rgba(255,255,255,0.7)" strokeWidth="2.5" strokeLinecap="round" opacity="0.4" />
+      <rect x="118" y="80" width="24" height="45" fill="url(#g-glass-v-50)" stroke="rgba(180,170,155,0.4)" />
+      <circle cx="130" cy="45" r="35" fill="url(#g-glass-v-50)" stroke="rgba(197,160,89,0.5)" strokeWidth="1" />
+      <circle cx="130" cy="45" r="35" fill="url(#g-glass-50)" opacity="0.7" />
+      <text x="130" y="52" textAnchor="middle" fontFamily="serif" fontSize="18" fill="rgba(197,160,89,0.8)" >N</text>
+      <g className="drip-group">
+        <line x1="130" y1="0" x2="130" y2="40" stroke="url(#g-drip-50)" strokeWidth="3" strokeLinecap="round" />
+      </g>
+    </svg>
+  );
+}
+
+function Bottle30({ totalMl, maxFillMl, quantities, allItems }: any) {
+  const pct = Math.min(1, totalMl / Math.max(1, maxFillMl));
+  const col = blendColor(quantities, allItems);
+  const topY = Math.round(400 - pct * 300);
+  const isEmpty = totalMl === 0;
+
+  return (
+    <svg width="260" height="480" viewBox="0 0 260 480" fill="none" className="mx-auto">
+      <GlassDefs col={col} id="30" />
+      <clipPath id="c-30"><rect x="90" y="100" width="80" height="320" rx="40" /></clipPath>
+      <rect x="90" y="100" width="80" height="320" rx="40" fill="url(#g-glass-v-30)" stroke="rgba(180,170,155,0.50)" strokeWidth="1" />
+      {!isEmpty && (
+        <g clipPath="url(#c-30)">
+          <rect x="90" y={topY} width="80" height="330" fill="url(#g-liquid-30)" className="liquid-body" />
+          <ellipse cx="130" cy={topY} rx={32} ry="6" fill="url(#g-surface-30)" />
+        </g>
+      )}
+      <rect x="90" y="100" width="80" height="320" rx="40" fill="url(#g-glass-30)" opacity="0.60" />
+      <rect x="98" y="140" width="4" height="200" rx="2" fill="rgba(255,255,255,0.6)" opacity="0.3" />
+      <rect x="110" y="70" width="40" height="35" rx="2" fill="url(#g-chrome-30)" />
+      <rect x="95" y="15" width="70" height="55" rx="5" fill="#111" stroke="#C5A059" strokeWidth="1.5" />
+      <text x="130" y="49" textAnchor="middle" fontFamily="serif" fontSize="16" fill="#C5A059">N</text>
+      <g className="drip-group">
+        <line x1="130" y1="0" x2="130" y2="25" stroke="url(#g-drip-30)" strokeWidth="3" strokeLinecap="round" />
+      </g>
+    </svg>
+  );
+}
+
+/* ═══════════════════════════════════════
+   MAIN COMPONENT
+   ═══════════════════════════════════════ */
+function buildDirectCompositionWhatsAppLink({
+  compositionName,
+  bottleSize,
+  items,
+  total,
+  orderNumber,
+  contactName,
+  phone,
+  whatsappNumber,
+}: {
+  compositionName: string;
+  bottleSize: number;
+  items: Array<{ name: string; quantity: number; unitPrice: number }>; 
+  total: number;
+  orderNumber?: string | null;
+  contactName?: string;
+  phone?: string;
+  whatsappNumber?: string | null;
+}) {
+  const messageLines = [
+    '🧴 *Nouvelle commande Atelier Numba*',
+    '',
+    `*Composition:* ${compositionName}`,
+    `*Flacon:* ${bottleSize}ml`,
+    '',
+    ...items.map((item, index) => `${index + 1}. ${item.name} — ${item.quantity} x ${item.unitPrice.toLocaleString()} FCFA`),
+    '',
+    `*Total:* ${total.toLocaleString()} FCFA`,
+  ];
+
+  if (contactName || phone) {
+    messageLines.push('', `*Contact:* ${contactName || '—'}`);
+    if (phone) messageLines.push(`*Téléphone:* ${phone}`);
+  }
+
+  if (orderNumber) {
+    messageLines.push('', `*Commande:* ${orderNumber}`);
+  }
+
+  messageLines.push('', 'Merci de confirmer cette commande 🙏');
+
+  const encodedMessage = encodeURIComponent(messageLines.join('\n'));
+  return buildWhatsAppUrl(whatsappNumber, messageLines.join('\n'));
+}
+
+function AtelierContent() {
+  const { addCustomPerfume, addComposition, addDirectComposition } = useCartStore();
+  const { addFavorite } = useFavoritesStore();
+  const { user, isAuthenticated, loginWithGoogle } = useAuthStore();
+  const { addToast } = useToastStore();
+  const { playSound } = useSound();
+  const { playPouringForMl, startDragPouring, stopDragPouring } = useLiquidPouringSound();
+  const { i18n } = useTranslation();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const compositionIdParam = searchParams.get('composition');
+
+  const [mounted, setMounted] = useState(false);
+  const [activeTab, setActiveTab] = useState<'ingredients' | 'essences' | 'recap'>('essences');
+  
+  // Sub-tabs
+  const [ingredientSubtab, setIngredientSubtab] = useState<'tete' | 'coeur' | 'fond'>('tete');
+  const [essenceSubtab, setEssenceSubtab] = useState<'high' | 'premium' | 'super-premium'>('high');
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Datasets
+  const [ingredients, setIngredients] = useState<EssenceClient[]>([]);
+  const [essences, setEssences] = useState<EssenceClient[]>([]);
+  const [flacons, setFlacons] = useState<any[]>([]);
+  const [loadingData, setLoadingData] = useState(true);
+
+  const [format, setFormat] = useState('edp');
+  const [bottleSize, setBottleSize] = useState(100);
+  const [selectedFlaconId, setSelectedFlaconId] = useState<number | null>(null);
+  const [quantities, setQuantities] = useState<Record<string, number>>({});
+  const [compositionName, setCompositionName] = useState('');
+  const [savedParfumId, setSavedParfumId] = useState<number | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isAddingToCart, setIsAddingToCart] = useState(false);
+  const [cartAdded, setCartAdded] = useState(false);
+  const [ctaSuccess, setCtaSuccess] = useState(false);
+  const [showSaveModal, setShowSaveModal] = useState(false);
+  const [saveModalName, setSaveModalName] = useState('');
+  const [couleur, setCouleur] = useState(''); // Default empty color
+
+  // Direct Order Workflow states
+  const [showDirectOrderModal, setShowDirectOrderModal] = useState(false);
+  const [showGuestSignupPrompt, setShowGuestSignupPrompt] = useState(false);
+  const [isOrderingDirect, setIsOrderingDirect] = useState(false);
+  const [createdOrderNumber, setCreatedOrderNumber] = useState<string | null>(null);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [companyWhatsapp, setCompanyWhatsapp] = useState('');
+
+  const orderProfileDetails = useMemo(() => ({
+    fullName: `${user?.firstName || ''} ${user?.lastName || ''}`.trim(),
+    phone: user?.phone || '',
+    city: '',
+    quartier: '',
+  }), [user]);
+
+  useEffect(() => {
+    if (compositionIdParam && !isAuthenticated) {
+      setShowGuestSignupPrompt(true);
+    }
+  }, [compositionIdParam, isAuthenticated]);
+
+  useEffect(() => {
+    setMounted(true);
+    async function loadData() {
+      setLoadingData(true);
+      const [ingredientsResult, essencesResult, bottlesResult] = await Promise.allSettled([
+        labService.getIngredients(),
+        labService.getEssences(),
+        shopService.getBottles({ en_stock: true }),
+      ]);
+      const ingreds = ingredientsResult.status === 'fulfilled' ? ingredientsResult.value : [];
+      const esss = essencesResult.status === 'fulfilled' ? essencesResult.value : [];
+      const bottlesRes = bottlesResult.status === 'fulfilled' ? bottlesResult.value : [];
+      const bottles = bottlesRes.results || bottlesRes.resultats || (Array.isArray(bottlesRes) ? bottlesRes : []);
+      setIngredients(ingreds);
+      setEssences(esss);
+      setFlacons(bottles);
+      // Auto-select the 100ml flacon by default
+      const defaultFlacon = bottles.find((f: any) => {
+        const cap = Number(f.contenance_ml || f.capacite_ml || f.capacity_ml || f.size_ml || 0);
+        return cap === 100;
+      });
+      if (defaultFlacon) setSelectedFlaconId(Number(defaultFlacon.id));
+      setLoadingData(false);
+    }
+    loadData();
+  }, []);
+
+  useEffect(() => {
+    shopService.getCompanyInfos().then((data) => {
+      if (Array.isArray(data) && data.length > 0) {
+        setCompanyWhatsapp(getCompanyWhatsAppNumber(data[0]));
+      }
+    }).catch(() => {});
+  }, []);
+
+  const ALL_ITEMS = useMemo(() => [...ingredients, ...essences], [ingredients, essences]);
+
+  useEffect(() => {
+    if (!mounted || !compositionIdParam || loadingData || ALL_ITEMS.length === 0) return;
+
+    async function loadPrefilledComposition() {
+      try {
+        const comp = await apiLabService.getCustomPerfume(Number(compositionIdParam));
+        if (comp) {
+          const normalizedName = comp.nom || comp.composition?.nom || '';
+          const normalizedFlaconId = comp.flacon ?? comp.composition?.flacon ?? null;
+          const normalizedFlaconDetail = comp.flacon_detail || comp.composition?.flacon_detail || null;
+          const normalizedLines = Array.isArray(comp.composition?.lignes)
+            ? comp.composition.lignes
+            : Array.isArray(comp.lignes)
+              ? comp.lignes
+              : [];
+
+          setCompositionName(normalizedName);
+          setSaveModalName(normalizedName);
+          setSavedParfumId(Number(comp.id));
+          if (comp.couleur || comp.composition?.couleur) {
+            setCouleur(comp.couleur || comp.composition?.couleur || '');
+          }
+
+          const flaconId = normalizedFlaconDetail?.id ?? normalizedFlaconId ?? null;
+          if (flaconId) {
+            setSelectedFlaconId(Number(flaconId));
+            let matchingFlacon = flacons.find(f => Number(f.id) === Number(flaconId));
+            if (!matchingFlacon && normalizedFlaconDetail) {
+              matchingFlacon = {
+                id: normalizedFlaconDetail.id,
+                nom: normalizedFlaconDetail.nom || `Flacon ${normalizedFlaconDetail.id}`,
+                contenance_ml: normalizedFlaconDetail.contenance_ml || 100,
+                prix_unitaire: normalizedFlaconDetail.prix_unitaire || '0',
+                image_principale: normalizedFlaconDetail.image_principale,
+              };
+              setFlacons(prev => [...prev, matchingFlacon]);
+            }
+            const cap = Number(
+              normalizedFlaconDetail?.contenance_ml ||
+              normalizedFlaconDetail?.capacite_ml ||
+              matchingFlacon?.contenance_ml ||
+              matchingFlacon?.capacite_ml ||
+              matchingFlacon?.capacity_ml ||
+              matchingFlacon?.size_ml ||
+              100
+            );
+            setBottleSize(cap);
+          }
+
+          const newQuantities: Record<string, number> = {};
+          const extraEssences: EssenceClient[] = [];
+          const extraIngredients: EssenceClient[] = [];
+
+          for (const line of normalizedLines) {
+            const essId = (() => {
+              const essenceValue = line?.essence ?? line?.essence_id ?? line?.essence_detail?.id ?? null;
+              if (essenceValue == null) return null;
+              return typeof essenceValue === 'object' ? essenceValue.id : essenceValue;
+            })();
+
+            const ingId = (() => {
+              const ingredientValue = line?.ingredient ?? line?.ingredient_id ?? line?.ingredient_detail?.id ?? null;
+              if (ingredientValue == null) return null;
+              return typeof ingredientValue === 'object' ? ingredientValue.id : ingredientValue;
+            })();
+
+            const qtyMl = Number(line?.quantite_ml ?? line?.quantite ?? 0);
+            if (qtyMl <= 0) continue;
+
+            if (essId != null) {
+              let matchingItem = ALL_ITEMS.find(item =>
+                item.itemType === 'essence' &&
+                (
+                  Number(item.backendId) === Number(essId) ||
+                  Number(item.id) === Number(essId) ||
+                  (item.lotEssenceId != null && Number(item.lotEssenceId) === Number(essId))
+                )
+              );
+
+              if (!matchingItem && line.essence_detail) {
+                const detail = line.essence_detail;
+                matchingItem = {
+                  id: String(essId),
+                  backendId: Number(essId),
+                  itemType: 'essence',
+                  name: detail.nom || detail.name || `Essence ${essId}`,
+                  family: (detail.categorie || detail.family || 'high') as any,
+                  description: detail.description || '',
+                  pricePerMl: Number(detail.prix_par_ml || line.prix_par_ml_snapshot || 0),
+                  color: detail.couleur_hex || '#D4B87A',
+                  intensity: 'medium',
+                  available: true,
+                };
+                extraEssences.push(matchingItem);
+              }
+
+              if (matchingItem) {
+                newQuantities[matchingItem.id] = qtyMl;
+              }
+            } else if (ingId != null) {
+              let matchingItem = ALL_ITEMS.find(item =>
+                item.itemType === 'ingredient' &&
+                (
+                  Number(item.backendId) === Number(ingId) ||
+                  Number(item.id) === Number(ingId)
+                )
+              );
+
+              if (!matchingItem && line.ingredient_detail) {
+                const detail = line.ingredient_detail;
+                matchingItem = {
+                  id: String(ingId),
+                  backendId: Number(ingId),
+                  itemType: 'ingredient',
+                  name: detail.nom || detail.name || `Ingrédient ${ingId}`,
+                  family: (detail.family || detail.categorie || 'fresh') as any,
+                  description: detail.description || '',
+                  pricePerMl: Number(detail.prix_par_ml || line.prix_par_ml_snapshot || 0),
+                  color: detail.couleur_hex || '#D4B87A',
+                  intensity: 'medium',
+                  available: true,
+                };
+                extraIngredients.push(matchingItem);
+              }
+
+              if (matchingItem) {
+                newQuantities[matchingItem.id] = qtyMl;
+              }
+            }
+          }
+
+          if (extraEssences.length > 0) {
+            setEssences(prev => [...prev, ...extraEssences]);
+          }
+          if (extraIngredients.length > 0) {
+            setIngredients(prev => [...prev, ...extraIngredients]);
+          }
+
+          setQuantities(newQuantities);
+          addToast(
+            i18n.language === 'en' ? 'Composition loaded successfully.' : 'Composition chargée avec succès.',
+            'success'
+          );
+        }
+      } catch (err) {
+        console.error('Error prefilling composition:', err);
+        addToast(
+          i18n.language === 'en' ? 'Could not load the requested composition.' : 'Impossible de charger la composition demandée.',
+          'error'
+        );
+      }
+    }
+
+    loadPrefilledComposition();
+  }, [mounted, compositionIdParam, loadingData, ALL_ITEMS, flacons, i18n.language, addToast]);
+
+  const maxMl = bottleSize;
+  const maxFillMl = bottleSize * 0.45;
+  const totalMl = useMemo(() => Object.values(quantities).reduce((s, v) => s + v, 0), [quantities]);
+  const remaining = maxFillMl - totalMl;
+
+  // Flacon detail modal state
+  const [showFlaconDetail, setShowFlaconDetail] = useState(false);
+  // Flacon drawer state
+  const [showFlaconDrawer, setShowFlaconDrawer] = useState(false);
+  const [isDrawerFullScreen, setIsDrawerFullScreen] = useState(false);
+  const [drawerSizeFilter, setDrawerSizeFilter] = useState<number | null>(null);
+  const [drawerSort, setDrawerSort] = useState<'asc' | 'desc'>('asc');
+
+  const availableBottleSizes = useMemo(() => {
+    const capacities = Array.from(new Set(flacons.map(getBottleCapacity).filter((capacity) => capacity > 0))).sort((a, b) => a - b);
+    return capacities.map((ml) => ({
+      ml,
+      label: `${ml}ml`,
+      desc: ml <= 30 ? 'Discovery' : ml <= 60 ? 'Signature' : 'Prestige',
+    }));
+  }, [flacons]);
+
+  useEffect(() => {
+    if (availableBottleSizes.length === 0 || availableBottleSizes.some((bottle) => bottle.ml === bottleSize)) return;
+    const firstAvailableSize = availableBottleSizes[0].ml;
+    const firstBottle = flacons.find((bottle) => getBottleCapacity(bottle) === firstAvailableSize);
+    setBottleSize(firstAvailableSize);
+    setSelectedFlaconId(firstBottle ? Number(firstBottle.id) : null);
+  }, [availableBottleSizes, bottleSize, flacons]);
+
+  const currentIngredientsFiltered = useMemo(() => {
+    return ingredients.filter(item => {
+      const matchesSearch = searchQuery
+        ? item.name.toLowerCase().includes(searchQuery.toLowerCase())
+        : true;
+      if (!matchesSearch) return false;
+      if (ingredientSubtab === 'tete') return TETE_FAMILIES.includes(item.family);
+      if (ingredientSubtab === 'coeur') return COEUR_FAMILIES.includes(item.family);
+      if (ingredientSubtab === 'fond') return FOND_FAMILIES.includes(item.family);
+      return false;
+    });
+  }, [ingredients, ingredientSubtab, searchQuery]);
+
+  const currentEssencesFiltered = useMemo(() => {
+    return essences.filter(item => {
+      const matchesSearch = searchQuery
+        ? item.name.toLowerCase().includes(searchQuery.toLowerCase()) || (item.description || '').toLowerCase().includes(searchQuery.toLowerCase())
+        : true;
+      if (!matchesSearch) return false;
+      const familyStr = String(item.family || '').toLowerCase();
+      const normalizedFamily = familyStr.replace(/[_\s]+/g, '-');
+      const cat = normalizedFamily === 'premium' || normalizedFamily === 'super-premium' || normalizedFamily === 'high'
+        ? normalizedFamily
+        : (item.id.includes('sprem') ? 'super-premium' : item.id.includes('high') ? 'high' : 'premium');
+      return cat === essenceSubtab;
+    });
+  }, [essences, essenceSubtab, searchQuery]);
+
+  const listContainerRef = useRef<HTMLDivElement>(null);
+  const ITEMS_PER_PAGE = 25;
+  const [essencePage, setEssencePage] = useState(1);
+  const [ingredientPage, setIngredientPage] = useState(1);
+
+  const handleEssencePageChange = (newPage: number) => {
+    setEssencePage(newPage);
+  };
+
+  const handleIngredientPageChange = (newPage: number) => {
+    setIngredientPage(newPage);
+  };
+
+  useEffect(() => {
+    if (listContainerRef.current) {
+      listContainerRef.current.scrollTop = 0;
+    }
+    if (typeof window !== 'undefined') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, [essencePage, ingredientPage]);
+
+  useEffect(() => {
+    setEssencePage(1);
+    setIngredientPage(1);
+  }, [searchQuery, essenceSubtab, ingredientSubtab, activeTab]);
+
+  const totalEssencePages = Math.max(1, Math.ceil(currentEssencesFiltered.length / ITEMS_PER_PAGE));
+  const paginatedEssences = useMemo(() => {
+    const start = (essencePage - 1) * ITEMS_PER_PAGE;
+    return currentEssencesFiltered.slice(start, start + ITEMS_PER_PAGE);
+  }, [currentEssencesFiltered, essencePage]);
+
+  const totalIngredientPages = Math.max(1, Math.ceil(currentIngredientsFiltered.length / ITEMS_PER_PAGE));
+  const paginatedIngredients = useMemo(() => {
+    const start = (ingredientPage - 1) * ITEMS_PER_PAGE;
+    return currentIngredientsFiltered.slice(start, start + ITEMS_PER_PAGE);
+  }, [currentIngredientsFiltered, ingredientPage]);
+
+  const updateQtySlider = useCallback((id: string, value: number) => {
+    setSavedParfumId(null);
+    setCartAdded(false);
+    setQuantities(prev => {
+      const prevVal = prev[id] || 0;
+      const currentOtherTotal = Object.entries(prev)
+        .filter(([k]) => k !== id)
+        .reduce((sum, [_, v]) => sum + v, 0);
+      const limit = bottleSize * 0.45;
+      const allowedValue = Math.min(value, Math.max(0, limit - currentOtherTotal));
+      const newQ = { ...prev };
+      if (allowedValue <= 0) {
+        delete newQ[id];
+      } else {
+        newQ[id] = allowedValue;
+      }
+      return newQ;
+    });
+  }, [bottleSize]);
+
+  const handleBottleSizeChange = (size: number, flaconId?: number) => {
+    const limit = size * 0.45;
+    if (totalMl > limit) {
+      setQuantities({});
+      addToast(
+        i18n.language === 'en'
+          ? `Bottle changed to ${size}ml — mixture reset due to 45% fill limit.`
+          : `Flacon changé à ${size}ml — composition réinitialisée (limite de 45% dépassée).`, 
+        'info'
+      );
+    }
+    setBottleSize(size);
+    setSavedParfumId(null);
+    if (flaconId !== undefined && flaconId !== null) {
+      setSelectedFlaconId(flaconId);
+    } else {
+      // Find the matching flacon from the loaded list
+      const matched = flacons.find((f: any) => {
+        const cap = getBottleCapacity(f);
+        return cap === size;
+      });
+      setSelectedFlaconId(matched ? Number(matched.id) : null);
+    }
+  };
+
+  const calcPrice = useMemo(() => {
+    let total = 0;
+    // Add flacon price if available
+    const matchedFlacon = flacons.find(f => Number(f.id) === selectedFlaconId);
+    if (matchedFlacon) {
+      total += Number(matchedFlacon.prix_unitaire || 0);
+    }
+    for (const e of ALL_ITEMS) {
+      const q = quantities[e.id] || 0;
+      if (q > 0) total += q * e.pricePerMl;
+    }
+    return Math.round(total);
+  }, [quantities, bottleSize, ALL_ITEMS, flacons, selectedFlaconId]);
+
+  const formulaSummary = useMemo(() => {
+    const list: { name: string; ml: number }[] = [];
+    
+    // Ingredients
+    for (const item of ALL_ITEMS) {
+      const ml = quantities[item.id] || 0;
+      if (ml > 0) list.push({ name: item.name, ml });
+    }
+    
+    return list;
+  }, [quantities, ingredients, essences, i18n.language]);
+
+  const sommelierHint = useMemo(() => {
+    if (totalMl === 0) return { visible: true, text: i18n.language === 'en' 
+      ? `Explore our ingredients and premium essences. Add them by <em>1ml</em> to fill your <em>${maxFillMl}ml</em> (45% limit).`
+      : `Explorez nos ingrédients et essences d'exception. Ajoutez-les par <em>1ml</em> jusqu'à remplir vos <em>${maxFillMl}ml</em> (limite 45%).` 
+    };
+    if (remaining > 0) return { visible: true, text: i18n.language === 'en'
+      ? `There are <em>${remaining}ml</em> left to compose.`
+      : `Il reste <em>${remaining}ml</em> à composer.`
+    };
+    return { visible: true, text: i18n.language === 'en'
+      ? 'Perfect harmony! Your formulation is <em>complete</em>.'
+      : 'Harmonie parfaite ! Votre formule est <em>complète</em>.'
+    };
+  }, [totalMl, remaining, maxFillMl, i18n.language]);
+
+  const handleSaveComposition = async (name: string) => {
+    if (totalMl === 0) {
+      addToast(
+        i18n.language === 'en' ? 'Please select at least one essence/ingredient.' : 'Veuillez sélectionner au moins une essence.',
+        'info'
+      );
+      return;
+    }
+    if (!name.trim()) {
+      addToast(
+        i18n.language === 'en' ? 'Please enter a name for your composition.' : 'Veuillez donner un nom à votre composition.',
+        'error'
+      );
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      // Build lignes — backend requires EITHER essence (lot id) OR ingredient, never both
+      const lignes = Object.entries(quantities)
+        .filter(([_, qty]) => qty > 0)
+        .map(([essenceId, quantityMl]) => {
+          const item = ALL_ITEMS.find(e => e.id === essenceId);
+          if (!item) return null;
+          if (item.itemType === 'essence') {
+            // Use the lot d'essence ID (lotEssenceId), not the essence catalogue ID
+            return {
+              essence: item.lotEssenceId || item.backendId,
+              quantite_ml: quantityMl,
+            };
+          } else {
+            // ingredient
+            return {
+              ingredient: item.backendId,
+              quantite_ml: quantityMl,
+            };
+          }
+        })
+        .filter(Boolean);
+
+      if (!selectedFlaconId) {
+        addToast(
+          i18n.language === 'en' ? 'Please select a valid bottle size.' : 'Veuillez sélectionner un format de flacon valide.',
+          'error'
+        );
+        setIsSaving(false);
+        return;
+      }
+
+      const response = await apiLabService.createCustomPerfume({
+        nom: name,
+        flacon: selectedFlaconId,
+        lignes: lignes as any[],
+        couleur: couleur,
+      });
+
+      setSavedParfumId(Number(response.id));
+      setShowSaveModal(false);
+      setSaveModalName('');
+      addFavorite({
+        id: `composition-${response.id}`,
+        name,
+        description: i18n.language === 'en'
+          ? `Numba Atelier custom composition (${bottleSize}ml)`
+          : `Composition personnalisée Numba Atelier (${bottleSize}ml)`,
+        price: calcPrice,
+        originalPrice: calcPrice,
+        category: 'numba-creation',
+        images: ['/parfume1.png'],
+        brand: 'Numba Atelier',
+        inStock: true,
+        slug: `composition-${response.id}`,
+        createdAt: new Date().toISOString(),
+        isCustomComposition: true,
+        volume: `${bottleSize}ml`,
+        image_principale: '/parfume1.png',
+      });
+      addToast(
+        i18n.language === 'en' ? `Composition saved! (ID: ${response.id})` : `Composition sauvegardée ! (ID: ${response.id})`,
+        'success'
+      );
+      playSound('success');
+    } catch (error: any) {
+      const errorMsg = error?.response?.data?.detail || (i18n.language === 'en' ? 'Error saving composition.' : 'Erreur lors de la sauvegarde.');
+      addToast(errorMsg, 'error');
+      playSound('error');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleUpdateComposition = async () => {
+    if (totalMl === 0) {
+      addToast(
+        i18n.language === 'en' ? 'Please select at least one essence/ingredient.' : 'Veuillez sélectionner au moins une essence.',
+        'info'
+      );
+      return;
+    }
+    if (!savedParfumId) return;
+
+    setIsSaving(true);
+    try {
+      const lignes = Object.entries(quantities)
+        .filter(([_, qty]) => qty > 0)
+        .map(([essenceId, quantityMl]) => {
+          const item = ALL_ITEMS.find(e => e.id === essenceId);
+          if (!item) return null;
+          if (item.itemType === 'essence') {
+            return {
+              essence: item.lotEssenceId || item.backendId,
+              quantite_ml: quantityMl,
+            };
+          } else {
+            return {
+              ingredient: item.backendId,
+              quantite_ml: quantityMl,
+            };
+          }
+        })
+        .filter(Boolean);
+
+      if (!selectedFlaconId) {
+        addToast(
+          i18n.language === 'en' ? 'Please select a valid bottle size.' : 'Veuillez sélectionner un format de flacon valide.',
+          'error'
+        );
+        setIsSaving(false);
+        return;
+      }
+
+      await apiLabService.updateCustomPerfume(savedParfumId, {
+        nom: compositionName || `Création Numba ${bottleSize}ml`,
+        flacon: selectedFlaconId,
+        lignes: lignes as any[],
+        couleur: couleur,
+      });
+
+      addToast(
+        i18n.language === 'en' ? 'Composition updated!' : 'Composition modifiée avec succès !',
+        'success'
+      );
+      playSound('success');
+    } catch (error: any) {
+      const errorMsg = error?.response?.data?.detail || (i18n.language === 'en' ? 'Error updating composition.' : 'Erreur lors de la modification.');
+      addToast(errorMsg, 'error');
+      playSound('error');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleShareComposition = async () => {
+    if (!savedParfumId) return;
+    const name = saveModalName || compositionName || `Création Numba ${bottleSize}ml`;
+    const result = await sharePage(
+      `/numba/atelier/composition-${savedParfumId}`,
+      name,
+      `Découvrez ma création personnalisée « ${name} » sur Accessories Exclusif`
+    );
+    if (result === 'shared' || result === 'copied') {
+      try {
+        const { trackShare } = await import('@/lib/gtag');
+        trackShare({
+          id: savedParfumId,
+          name: name,
+          category: 'Parfum personnalisé',
+          method: result === 'shared' ? 'Web Share API' : 'Clipboard',
+        });
+      } catch (err) {
+        console.warn('[Atelier] Failed to track share event:', err);
+      }
+    }
+    if (result === 'shared') {
+      addToast('Lien partagé', 'success');
+    } else if (result === 'copied') {
+      addToast('Lien copié dans le presse-papiers', 'success');
+    } else {
+      addToast('Le partage n’est pas disponible sur ce navigateur', 'error');
+    }
+  };
+
+  const handleAddToCart = async () => {
+    if (totalMl === 0) {
+      addToast(
+        i18n.language === 'en' ? 'Please select at least one essence/ingredient.' : 'Veuillez sélectionner au moins une essence.',
+        'info'
+      );
+      return;
+    }
+
+    setIsAddingToCart(true);
+    try {
+      type DirectCompositionLine =
+        | { lot_essence_id: number; quantite_ml: number }
+        | { ingredient: number; quantite_ml: number };
+
+      // Build lines using the backend contract for direct composition
+      const lignes = Object.entries(quantities)
+        .filter(([_, qty]) => Number(qty) > 0)
+        .map<DirectCompositionLine | null>(([essenceId, quantityMl]) => {
+          const item = ALL_ITEMS.find(e => e.id === essenceId);
+          if (!item) return null;
+
+          if (item.itemType === 'ingredient') {
+            return {
+              ingredient: item.backendId ?? Number(essenceId),
+              quantite_ml: Number(quantityMl),
+            };
+          }
+
+          return {
+            lot_essence_id: item.lotEssenceId || item.backendId || Number(essenceId),
+            quantite_ml: Number(quantityMl),
+          };
+        })
+        .filter((line): line is DirectCompositionLine => line !== null);
+
+      if (!selectedFlaconId) {
+        addToast(
+          i18n.language === 'en' ? 'Please select a valid bottle size.' : 'Veuillez sélectionner une taille de flacon valide.',
+          'error'
+        );
+        return;
+      }
+
+      if (savedParfumId) {
+        await addCustomPerfume(savedParfumId, 1);
+      } else {
+        await addDirectComposition({
+          flacon_id: selectedFlaconId,
+          lignes,
+          nom: saveModalName || compositionName || `Création Numba ${bottleSize}ml`,
+          quantite: 1,
+        }, { silent: false });
+      }
+
+      setCtaSuccess(true);
+      addToast('Added', 'success');
+      playSound('success');
+      setTimeout(() => setCtaSuccess(false), 3000);
+    } catch (error: any) {
+      const errorMsg = error?.response?.data?.detail || (i18n.language === 'en' ? 'Error adding to cart.' : 'Erreur lors de l\'ajout au panier.');
+      addToast(errorMsg, 'error');
+      playSound('error');
+    } finally {
+      setIsAddingToCart(false);
+    }
+  };
+
+  const handleOrder = async () => {
+    if (totalMl === 0) { 
+      addToast(
+        i18n.language === 'en' ? 'Please select at least one essence/ingredient.' : 'Veuillez sélectionner au moins une essence.', 
+        'info'
+      ); 
+      return; 
+    }
+    const selectedItems: CompositionEssence[] = ALL_ITEMS
+      .filter(e => (quantities[e.id]||0) > 0)
+      .map(e => ({ essence: e, quantityMl: quantities[e.id] }));
+      
+    const comp: CustomComposition = {
+      id: generateId(), 
+      name: `Création Numba ${maxMl}ml`, 
+      essences: selectedItems, 
+      totalMl, 
+      totalPrice: calcPrice,
+      createdBy: user?.id || 'guest', 
+      createdAt: new Date().toISOString(), 
+      isAiGenerated: false,
+    };
+    
+    addComposition(comp);
+    setCtaSuccess(true);
+    addToast(i18n.language === 'en' ? 'Added to cart!' : 'Ajouté au panier !', 'success');
+    setTimeout(() => setCtaSuccess(false), 3000);
+  };
+
+  const handleDirectOrderSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (totalMl === 0) return;
+
+    if (!selectedFlaconId) {
+      addToast(
+        i18n.language === 'en' ? 'Please select a valid bottle size.' : 'Veuillez sélectionner une taille de flacon valide.',
+        'error'
+      );
+      return;
+    }
+
+    setIsOrderingDirect(true);
+    const popupWindow = window.open('', '_blank');
+
+    try {
+      type DirectCompositionLine =
+        | { lot_essence_id: number; quantite_ml: number }
+        | { ingredient: number; quantite_ml: number };
+
+      const lignes = Object.entries(quantities)
+        .filter(([_, qty]) => Number(qty) > 0)
+        .map<DirectCompositionLine | null>(([essenceId, quantityMl]) => {
+          const item = ALL_ITEMS.find(e => e.id === essenceId);
+          if (!item) return null;
+          if (item.itemType === 'ingredient') {
+            return { ingredient: item.backendId ?? Number(essenceId), quantite_ml: Number(quantityMl) };
+          }
+          return { lot_essence_id: item.lotEssenceId || item.backendId || Number(essenceId), quantite_ml: Number(quantityMl) };
+        })
+        .filter((line): line is DirectCompositionLine => line !== null);
+
+      const orderName = saveModalName || compositionName || `Création Numba ${bottleSize}ml`;
+      const orderResponse = await orderService.placeDirectCompositionOrder({
+        flacon_id: selectedFlaconId,
+        lignes,
+        nom: orderName,
+        couleur: couleur,
+        quantite: 1,
+        livraison_nom_complet: orderProfileDetails.fullName || undefined,
+        livraison_telephone: orderProfileDetails.phone || undefined,
+      });
+
+      const orderNumber = orderResponse.numero_commande || orderResponse.order?.numero_commande || `#${orderResponse.id ?? 'DIRECT'}`;
+      const messageItems = Object.entries(quantities)
+        .filter(([_, qty]) => Number(qty) > 0)
+        .map(([id, qty]) => {
+          const item = ALL_ITEMS.find(entry => entry.id === id);
+          return {
+            name: item?.name || 'Essence',
+            quantity: Number(qty),
+            unitPrice: Number(item?.pricePerMl || 0),
+          };
+        });
+
+      const waLink = buildDirectCompositionWhatsAppLink({
+        compositionName: orderName,
+        bottleSize,
+        items: messageItems,
+        total: calcPrice,
+        orderNumber,
+        contactName: orderProfileDetails.fullName || undefined,
+        phone: orderProfileDetails.phone || undefined,
+        whatsappNumber: companyWhatsapp,
+      });
+
+      setCreatedOrderNumber(String(orderNumber));
+      setShowDirectOrderModal(false);
+      setShowSuccessModal(false);
+      setQuantities({});
+
+      if (popupWindow) {
+        try {
+          popupWindow.opener = null;
+        } catch (_) {}
+        popupWindow.location.href = waLink;
+      } else {
+        window.location.assign(waLink);
+      }
+
+      addToast(i18n.language === 'en' ? 'Order placed successfully. Redirecting to WhatsApp...' : 'Commande passée avec succès. Redirection vers WhatsApp...', 'success');
+    } catch (error: any) {
+      if (popupWindow) {
+        popupWindow.close();
+      }
+      const errorMsg = error?.response?.data?.detail || (i18n.language === 'en' ? 'Error processing your order.' : 'Erreur lors du traitement de votre commande.');
+      addToast(errorMsg, 'error');
+    } finally {
+      setIsOrderingDirect(false);
+    }
+  };
+
+  if (!mounted) return <div className="min-h-screen bg-background" />;
+
+  return (
+    <div className="atelier-layout !pt-0">
+      {showGuestSignupPrompt && !isAuthenticated && compositionIdParam && (
+        <div className="fixed right-3 top-3 z-[80] w-[min(92vw,320px)] animate-[toastIn_0.28s_ease-out] sm:right-5 sm:top-5">
+          <div className="rounded-2xl border border-gold/30 bg-[#111111]/95 p-3.5 shadow-xl shadow-black/35 backdrop-blur-md transition-all duration-300 ease-out sm:p-4">
+            <div className="flex items-start justify-between gap-3 mb-2.5">
+              <div>
+                <p className="text-[9px] uppercase tracking-[0.22em] text-gold/70">Atelier</p>
+                <h3 className="text-sm font-semibold text-white mt-1 sm:text-base">
+                  {i18n.language === 'en' ? 'Sign up to save this perfume' : 'Créez un compte pour enregistrer ce parfum'}
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowGuestSignupPrompt(false);
+                }}
+                className="rounded-full border border-white/10 p-1 text-foreground/50 hover:text-white transition-colors"
+                aria-label="Close"
+              >
+                <X size={12} />
+              </button>
+            </div>
+
+            <p className="text-xs leading-5 text-foreground/70 mb-3 sm:text-sm sm:leading-6">
+              {i18n.language === 'en'
+                ? 'Sign in with Google to keep this composition, save it to your profile, and continue your custom order without losing your work.'
+                : 'Connectez-vous avec Google pour garder cette composition, la sauvegarder dans votre profil et poursuivre votre commande sans perdre votre travail.'}
+            </p>
+
+            <div className="space-y-2">
+              <GoogleAuthButton
+                label={i18n.language === 'en' ? 'Sign up with Google' : 'S’inscrire avec Google'}
+                onTokenReceived={async (accessToken) => {
+                  const success = await loginWithGoogle(accessToken);
+                  if (success) {
+                    setShowGuestSignupPrompt(false);
+                  }
+                }}
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  window.setTimeout(() => setShowGuestSignupPrompt(false), 220);
+                }}
+                className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-xs font-medium text-foreground/70 transition-colors hover:border-white/20 hover:text-white sm:text-sm"
+              >
+                {i18n.language === 'en' ? 'Decline' : 'Refuser'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Floating Back Button */}
+      <div className="fixed top-6 left-6 z-[60]">
+        <Link 
+          href="/numba" 
+          className="flex items-center gap-2 px-4 py-2 bg-background/40 backdrop-blur-md border border-[var(--t-border)] rounded-full text-[10px] uppercase tracking-widest text-foreground/60 hover:text-gold hover:border-gold/30 transition-all group"
+        >
+          <ArrowLeft size={14} className="group-hover:-translate-x-1 transition-transform" />
+        </Link>
+      </div>
+
+      {/* LEFT: VISUALIZER */}
+      <div className="flacon-panel">
+        <div className="flacon-panel-bg" />
+        {/* <div className="flex flex-col items-center gap-2 mb-2 z-10">
+          
+        </div> */}
+        <div className="flacon-eyebrow">Atelier 
+            <img
+              src="/logo/Numba gold.svg"
+              alt="Numba Logo"
+              className="-mt-20 -mb-20 h-20 w-auto object-contain "
+            />
+           · {maxMl}ml
+           </div>
+        
+        <div className="flex items-center gap-2 z-20">
+          <button 
+            onClick={() => setQuantities({})}
+            className="flex items-center gap-1.5 px-4 py-2 bg-foreground/5 hover:bg-red-500/10 border border-[var(--t-border)] rounded-full text-[10px] uppercase tracking-widest text-foreground/40 hover:text-red-400 transition-all"
+          >
+            <RefreshCcw size={12} />
+            {i18n.language === 'en' ? 'Empty bottle' : 'Vider le flacon'}
+          </button>
+
+          <button 
+            onClick={() => setShowFlaconDrawer(true)}
+            className="flex items-center gap-1.5 px-4 py-2 bg-gold/10 hover:bg-gold/20 border border-gold/30 rounded-full text-[10px] uppercase tracking-widest text-gold transition-all"
+          >
+            {i18n.language === 'en' ? 'Boutique Flacons' : 'Nos Flacons'}
+          </button>
+        </div>
+
+        <div className="relative w-full flex items-center justify-center mt-8">
+          <div className="size-slider-wrap">
+            {availableBottleSizes.length > 0 && availableBottleSizes.findIndex(s => s.ml === bottleSize) > 0 && (
+              <button
+                className="size-slider-nav"
+                onClick={() => {
+                  const idx = availableBottleSizes.findIndex(s => s.ml === bottleSize);
+                  const nextIdx = Math.max(0, idx - 1);
+                  if (availableBottleSizes[nextIdx]) handleBottleSizeChange(availableBottleSizes[nextIdx].ml);
+                }}
+              >
+                <ChevronLeft size={20} />
+              </button>
+            )}
+
+            {availableBottleSizes.length > 0 && availableBottleSizes.findIndex(s => s.ml === bottleSize) < availableBottleSizes.length - 1 && (
+              <button
+                className="size-slider-nav"
+                onClick={() => {
+                  const idx = availableBottleSizes.findIndex(s => s.ml === bottleSize);
+                  const nextIdx = Math.min(availableBottleSizes.length - 1, idx + 1);
+                  if (availableBottleSizes[nextIdx]) handleBottleSizeChange(availableBottleSizes[nextIdx].ml);
+                }}
+              >
+                <ChevronRight size={20} />
+              </button>
+            )}
+          </div>
+
+          <div
+            className="flacon-stage relative transition-all duration-700 cursor-pointer group"
+            onClick={() => { if (selectedFlaconId) setShowFlaconDetail(true); }}
+            title={selectedFlaconId ? (i18n.language === 'en' ? 'View flacon details' : 'Voir les détails du flacon') : undefined}
+          >
+            <div className="bottle-glow" />
+            {/* Hint overlay on hover */}
+            {selectedFlaconId && (
+              <div className="absolute inset-0 flex items-end justify-center pb-4 opacity-0 group-hover:opacity-100 transition-opacity z-10 pointer-events-none">
+                <span className="bg-black/60 backdrop-blur-sm text-gold text-[9px] uppercase tracking-widest px-3 py-1 rounded-full border border-gold/20">
+                  {i18n.language === 'en' ? 'Click for details' : 'Cliquer pour détails'}
+                </span>
+              </div>
+            )}
+            {bottleSize >= 61 && <Bottle100 totalMl={totalMl} maxFillMl={maxFillMl} quantities={quantities} allItems={ALL_ITEMS} />}
+            {bottleSize >= 31 && bottleSize <= 60 && <Bottle50 totalMl={totalMl} maxFillMl={maxFillMl} quantities={quantities} allItems={ALL_ITEMS} />}
+            {bottleSize <= 30 && <Bottle30 totalMl={totalMl} maxFillMl={maxFillMl} quantities={quantities} allItems={ALL_ITEMS} />}
+
+            {/* Live total price — always visible next to the bottle */}
+            <div className="absolute -left-14 top-1/2 -translate-y-1/2 flex flex-col items-center gap-1 opacity-70 pointer-events-none">
+              <div className="w-[1px] h-20 bg-gold/50" />
+              <span className="text-[9px] tracking-widest vertical-text uppercase text-gold/70">Total</span>
+              <span className="text-[11px] tracking-widest vertical-text text-foreground/80 whitespace-nowrap">{calcPrice.toLocaleString()} FCFA</span>
+              <div className="w-[1px] h-20 bg-gold/50" />
+            </div>
+
+            <div className="absolute -right-12 top-1/2 -translate-y-1/2 flex flex-col items-center gap-1 opacity-40">
+              <div className="w-[1px] h-20 bg-gold/50" />
+              <span className="text-[10px] tracking-widest vertical-text uppercase">{totalMl}ml</span>
+              <div className="w-[1px] h-20 bg-gold/50" />
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-auto pb-12 w-full max-w-xs hidden md:block">
+          <div className="flex justify-between items-end mb-2">
+            <span className="text-[10px] uppercase tracking-widest text-gold/60">Composition</span>
+            <span className="text-[14px] font-light text-foreground/70">{totalMl} / {maxFillMl} ml</span>
+          </div>
+          <div className="h-[2px] w-full bg-foreground/5 overflow-hidden">
+            <div className="h-full bg-gold transition-all duration-700" style={{ width: `${Math.min(100, (totalMl/maxFillMl)*100)}%` }} />
+          </div>
+        </div>
+      </div>
+
+      {/* RIGHT: APOTHECARY INTERFACE */}
+      <div className="config-panel !bg-background flex flex-col h-full overflow-hidden"> 
+        
+        {/* Fixed Header Section (Tabs & Search Bar) - NEVER scrolls, stays under the bottle */}
+        <div className="flex-shrink-0 bg-background pt-2 pb-3 z-20 border-b border-white/5">
+          {/* Unified Glassmorphism Tabs */}
+          <div className="atelier-tab-row flex items-center gap-3 mb-3 overflow-x-auto pb-2">
+            {[
+              /*
+              { id: 'ingredients', label: i18n.language === 'en' ? '🧪 Raw Notes' : '🧪 Notes de Base' },
+              */
+              { id: 'essences', label: i18n.language === 'en' ? '✨ Premium Bases' : `✨ Essences d'Exception` },
+              { id: 'recap', label: i18n.language === 'en' ? '📋 Formula' : '📋 Finalisation' }
+            ].map(tab => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id as any)}
+                className={`whitespace-nowrap px-3 py-1.5 text-sm font-medium transition-colors border-b-2 ${
+                  activeTab === tab.id 
+                    ? 'border-gold text-gold font-semibold' 
+                    : 'border-transparent text-foreground/60 hover:border-gold/50 hover:text-foreground'
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Sub-tabs & Search Bar (only for essences/ingredients, not for recap) */}
+          {!loadingData && activeTab === 'essences' && (
+            <div className="flex flex-col gap-3 mt-1">
+              {/* Sub-tabs for essences */}
+              <div className="atelier-tab-row flex items-center gap-3 overflow-x-auto pb-2">
+                {[
+                  { id: 'high', label: 'High' },
+                  { id: 'premium', label: 'Premium' },
+                  { id: 'super-premium', label: 'Super Premium' }
+                ].map(sub => (
+                  <button
+                    key={sub.id}
+                    onClick={() => setEssenceSubtab(sub.id as any)}
+                    className={`whitespace-nowrap px-3 py-1 text-xs font-medium transition-colors border-b-2 ${
+                      essenceSubtab === sub.id 
+                        ? 'border-gold text-gold font-semibold' 
+                        : 'border-transparent text-foreground/60 hover:border-gold/50 hover:text-foreground'
+                    }`}
+                  >
+                    {sub.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Search Bar */}
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder={i18n.language === 'en' ? 'Search an essence...' : 'Rechercher une essence...'}
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 pl-10 text-xs text-foreground focus:outline-none focus:border-gold/50 transition-all font-sans"
+                />
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-foreground/40 w-3.5 h-3.5" />
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-foreground/40 hover:text-foreground p-0.5"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Scrollable Content Section */}
+        <div ref={listContainerRef} className="flex-1 overflow-y-auto py-4 pr-1 scrollbar-thin">
+
+        {/* LOADING INDICATOR */}
+        {loadingData ? (
+          <div className="flex flex-col items-center justify-center py-24 gap-4 text-foreground/40">
+            <Loader2 className="w-8 h-8 animate-spin text-gold" />
+            <span className="text-xs uppercase tracking-widest font-mono">Chargement du laboratoire...</span>
+          </div>
+        ) : (
+          <>
+            {/* SUB-TABS NAVIGATION OR PANEL VIEW */}
+            {activeTab === 'ingredients' && (
+              <div className="flex flex-col gap-6 animate-in fade-in duration-300">
+                <div className="sommelier visible !mb-0 !bg-transparent !border-white/5 !px-0 hidden lg:block">
+                  <div className="sommelier-text text-sm font-light italic text-foreground/50" dangerouslySetInnerHTML={{ __html: sommelierHint.text }} />
+                </div>
+
+                {/* List of Ingredients */}
+                <div className="grid grid-cols-1 gap-px bg-[var(--t-border)] border border-[var(--t-border)] rounded-sm overflow-hidden">
+                  {paginatedIngredients.map(item => {
+                    const qty = quantities[item.id] || 0;
+                    const sel = qty > 0;
+                    return (
+                      <div key={item.id} className="group flex items-center justify-between py-3 px-4 sm:p-5 bg-[var(--t-surface)] transition-all hover:bg-foreground/[0.02]">
+                        <div className="flex items-center gap-4">
+                          <div className="relative w-10 h-10 flex items-center justify-center flex-shrink-0">
+                            <div className="absolute inset-0 rounded-full blur-xl opacity-20" style={{ backgroundColor: item.color }} />
+                            <span className="text-xl relative z-10">{EMOJIS[item.family] || '💧'}</span>
+                          </div>
+                          <div>
+                            <h4 className={`text-sm font-medium tracking-wide transition-colors ${sel ? 'text-gold' : 'text-foreground/80 group-hover:text-gold'}`}>
+                              {item.name}
+                            </h4>
+                            <p className="text-[10px] uppercase tracking-widest text-foreground/30 mt-1">
+                              {item.pricePerMl.toLocaleString()} FCFA / ml
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Slider controls */}
+                        <div className="flex items-center gap-3">
+                          <button
+                            onClick={() => {
+                              const targetVal = Math.max(0, qty - 1);
+                              const delta = Math.abs(targetVal - qty);
+                              if (delta > 0) playPouringForMl(delta);
+                              updateQtySlider(item.id, targetVal);
+                            }}
+                            className="w-7 h-7 rounded-full bg-foreground/5 hover:bg-foreground/10 flex items-center justify-center text-foreground/60 transition-colors disabled:opacity-20"
+                            disabled={qty <= 0}
+                          >
+                            <Minus size={12} />
+                          </button>
+
+                          <div className="flex flex-col gap-1 w-24 sm:w-32">
+                            <div className="flex justify-between items-center text-[9px] uppercase tracking-wider text-foreground/40 font-mono">
+                              <span className={sel ? "text-gold font-bold font-sans" : "font-sans"}>{qty} ml</span>
+                              <span className="text-foreground/30 font-sans">max {qty + remaining} ml</span>
+                            </div>
+                            <input
+                              type="range"
+                              min="0"
+                              max={qty + remaining}
+                              step="1"
+                              value={qty}
+                              onPointerDown={() => startDragPouring()}
+                              onPointerUp={() => stopDragPouring()}
+                              onPointerCancel={() => stopDragPouring()}
+                              onChange={(evt) => updateQtySlider(item.id, Number(evt.target.value))}
+                              className="w-full h-1 bg-foreground/10 rounded appearance-none cursor-pointer accent-gold outline-none"
+                            />
+                          </div>
+
+                          <button
+                            onClick={() => {
+                              const targetVal = Math.min(qty + remaining, qty + 1);
+                              const delta = Math.abs(targetVal - qty);
+                              if (delta > 0) playPouringForMl(delta);
+                              updateQtySlider(item.id, targetVal);
+                            }}
+                            className="w-7 h-7 rounded-full bg-foreground/5 hover:bg-foreground/10 flex items-center justify-center text-foreground/60 transition-colors disabled:opacity-20"
+                            disabled={remaining <= 0}
+                          >
+                            <Plus size={12} />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Ingredients Pagination Controls */}
+                {totalIngredientPages > 1 && (
+                  <div className="flex items-center justify-between border-t border-white/10 pt-4 mt-2 px-1">
+                    <span className="text-[10px] text-foreground/40 font-mono">
+                      {i18n.language === 'en'
+                        ? `Showing ${(ingredientPage - 1) * ITEMS_PER_PAGE + 1}–${Math.min(ingredientPage * ITEMS_PER_PAGE, currentIngredientsFiltered.length)} of ${currentIngredientsFiltered.length}`
+                        : `Affichage de ${(ingredientPage - 1) * ITEMS_PER_PAGE + 1} à ${Math.min(ingredientPage * ITEMS_PER_PAGE, currentIngredientsFiltered.length)} sur ${currentIngredientsFiltered.length}`}
+                    </span>
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => handleIngredientPageChange(Math.max(1, ingredientPage - 1))}
+                        disabled={ingredientPage === 1}
+                        className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-white/10 bg-white/5 text-[11px] font-semibold text-foreground/70 hover:text-gold hover:border-gold/30 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                      >
+                        <ChevronLeft size={13} />
+                        {i18n.language === 'en' ? 'Prev' : 'Préc.'}
+                      </button>
+
+                      <span className="text-[11px] font-mono text-gold font-bold px-1">
+                        {ingredientPage} / {totalIngredientPages}
+                      </span>
+
+                      <button
+                        onClick={() => handleIngredientPageChange(Math.min(totalIngredientPages, ingredientPage + 1))}
+                        disabled={ingredientPage === totalIngredientPages}
+                        className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-white/10 bg-white/5 text-[11px] font-semibold text-foreground/70 hover:text-gold hover:border-gold/30 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                      >
+                        {i18n.language === 'en' ? 'Next' : 'Suiv.'}
+                        <ChevronRight size={13} />
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {activeTab === 'essences' && (
+              <div className="flex flex-col gap-6 animate-in fade-in duration-300">
+                <div className="sommelier visible !mb-0 !bg-transparent !border-white/5 !px-0 hidden lg:block">
+                  <div className="sommelier-text text-sm font-light italic text-foreground/50" dangerouslySetInnerHTML={{ __html: sommelierHint.text }} />
+                </div>
+
+                {/* List of Premium Essences */}
+                <div className="grid grid-cols-1 gap-px bg-[var(--t-border)] border border-[var(--t-border)] rounded-sm overflow-hidden">
+                  {paginatedEssences.map(item => {
+                    const qty = quantities[item.id] || 0;
+                    const sel = qty > 0;
+                    return (
+                      <div key={item.id} className="group flex items-center justify-between py-3 px-4 sm:p-5 bg-[var(--t-surface)] transition-all hover:bg-foreground/[0.02]">
+                        <div className="flex items-center gap-4">
+                          <div className="max-w-[120px] sm:max-w-[200px]">
+                            <h4 className={`text-sm font-medium tracking-wide transition-colors ${sel ? 'text-gold' : 'text-foreground/80 group-hover:text-gold'}`}>
+                              {item.name}
+                            </h4>
+                            <p className="text-[10px] text-foreground/40 line-clamp-1 mt-0.5">{item.description}</p>
+                            <p className="text-[10px] uppercase tracking-widest text-gold/70 mt-1">
+                              {item.pricePerMl.toLocaleString()} FCFA / ml
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Slider controls */}
+                        <div className="flex items-center gap-3">
+                          <button
+                            onClick={() => {
+                              const targetVal = Math.max(0, qty - 1);
+                              const delta = Math.abs(targetVal - qty);
+                              if (delta > 0) playPouringForMl(delta);
+                              updateQtySlider(item.id, targetVal);
+                            }}
+                            className="w-7 h-7 rounded-full bg-foreground/5 hover:bg-foreground/10 flex items-center justify-center text-foreground/60 transition-colors disabled:opacity-20"
+                            disabled={qty <= 0}
+                          >
+                            <Minus size={12} />
+                          </button>
+
+                          <div className="flex flex-col gap-1 w-24 sm:w-32">
+                            <div className="flex justify-between items-center text-[9px] uppercase tracking-wider text-foreground/40 font-mono">
+                              <span className={sel ? "text-gold font-bold font-sans" : "font-sans"}>{qty} ml</span>
+                              <span className="text-foreground/30 font-sans">max {qty + remaining} ml</span>
+                            </div>
+                            <input
+                              type="range"
+                              min="0"
+                              max={qty + remaining}
+                              step="1"
+                              value={qty}
+                              onPointerDown={() => startDragPouring()}
+                              onPointerUp={() => stopDragPouring()}
+                              onPointerCancel={() => stopDragPouring()}
+                              onChange={(evt) => updateQtySlider(item.id, Number(evt.target.value))}
+                              className="w-full h-1 bg-foreground/10 rounded appearance-none cursor-pointer accent-gold outline-none"
+                            />
+                          </div>
+
+                          <button
+                            onClick={() => {
+                              const targetVal = Math.min(qty + remaining, qty + 1);
+                              const delta = Math.abs(targetVal - qty);
+                              if (delta > 0) playPouringForMl(delta);
+                              updateQtySlider(item.id, targetVal);
+                            }}
+                            className="w-7 h-7 rounded-full bg-foreground/5 hover:bg-foreground/10 flex items-center justify-center text-foreground/60 transition-colors disabled:opacity-20"
+                            disabled={remaining <= 0}
+                          >
+                            <Plus size={12} />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Essence Pagination Controls */}
+                {totalEssencePages > 1 && (
+                  <div className="flex items-center justify-between border-t border-white/10 pt-4 mt-2 px-1">
+                    <span className="text-[10px] text-foreground/40 font-mono">
+                      {i18n.language === 'en'
+                        ? `Showing ${(essencePage - 1) * ITEMS_PER_PAGE + 1}–${Math.min(essencePage * ITEMS_PER_PAGE, currentEssencesFiltered.length)} of ${currentEssencesFiltered.length}`
+                        : `Affichage de ${(essencePage - 1) * ITEMS_PER_PAGE + 1} à ${Math.min(essencePage * ITEMS_PER_PAGE, currentEssencesFiltered.length)} sur ${currentEssencesFiltered.length}`}
+                    </span>
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => handleEssencePageChange(Math.max(1, essencePage - 1))}
+                        disabled={essencePage === 1}
+                        className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-white/10 bg-white/5 text-[11px] font-semibold text-foreground/70 hover:text-gold hover:border-gold/30 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                      >
+                        <ChevronLeft size={13} />
+                        {i18n.language === 'en' ? 'Prev' : 'Préc.'}
+                      </button>
+
+                      <span className="text-[11px] font-mono text-gold font-bold px-1">
+                        {essencePage} / {totalEssencePages}
+                      </span>
+
+                      <button
+                        onClick={() => handleEssencePageChange(Math.min(totalEssencePages, essencePage + 1))}
+                        disabled={essencePage === totalEssencePages}
+                        className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-white/10 bg-white/5 text-[11px] font-semibold text-foreground/70 hover:text-gold hover:border-gold/30 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                      >
+                        {i18n.language === 'en' ? 'Next' : 'Suiv.'}
+                        <ChevronRight size={13} />
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {activeTab === 'recap' && (
+              <div className="animate-in fade-in duration-300 space-y-6">
+                <div>
+                  <h3 className="text-xs uppercase tracking-[0.2em] text-foreground/30 mb-4">Format du Flacon</h3>
+                  {(() => {
+                    const matchedFlacon = flacons.find((f: any) => Number(f.id) === selectedFlaconId) || flacons[0];
+                    if (!matchedFlacon) {
+                      return (
+                        <button 
+                          onClick={() => setShowFlaconDrawer(true)}
+                          className="w-full p-6 border border-dashed border-white/20 rounded-xl text-center text-sm text-foreground/60 hover:border-gold/40 hover:text-gold transition-colors"
+                        >
+                          Choisir un Flacon...
+                        </button>
+                      );
+                    }
+                    const cap = Number(matchedFlacon.contenance_ml || matchedFlacon.capacite_ml || 0);
+                    return (
+                      <div className="bg-white/5 border border-white/10 rounded-2xl p-5 flex items-center justify-between gap-4">
+                        <button
+                          onClick={() => setShowFlaconDetail(true)}
+                          className="flex items-center gap-4 text-left group hover:opacity-90 transition-opacity flex-1 min-w-0 relative"
+                        >
+                          {(matchedFlacon.image_principale || matchedFlacon.image || matchedFlacon.type_flacon?.image) ? (
+                            <AppImage src={matchedFlacon.image_principale || matchedFlacon.image || matchedFlacon.type_flacon!.image} alt={matchedFlacon.nom || 'Flacon'} width={64} height={64} className="size-16 rounded-xl object-cover border border-white/10 group-hover:ring-1 group-hover:ring-gold/40 transition-all flex-shrink-0" />
+                          ) : (
+                            <div className="size-16 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-[10px] text-foreground/30 text-center px-1 flex-shrink-0">Aucune Image</div>
+                          )}
+                          <div className="min-w-0">
+                            <p className="font-semibold text-foreground text-base">{matchedFlacon.nom}</p>
+                            <p className="text-xs text-foreground/40 mt-0.5">{cap} ml · {matchedFlacon.matiere || 'Verre'} · {matchedFlacon.couleur || 'Transparent'}</p>
+                            <p className="text-sm font-bold text-gold mt-1">{Number(matchedFlacon.prix_unitaire).toLocaleString()} FCFA</p>
+                            <p className="text-[9px] text-gold/50 mt-1 uppercase tracking-widest">{i18n.language === 'en' ? 'Click to see details' : 'Cliquer pour détails'}</p>
+                          </div>
+                          <Eye size={16} className="text-gold hover:text-white flex-shrink-0 transition-colors absolute right-3 top-1/2 -translate-y-1/2 bg-gold/10 border border-gold/20 p-1 rounded-lg" />
+                        </button>
+                        <button 
+                          onClick={() => setShowFlaconDrawer(true)}
+                          className="px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-xs font-semibold text-foreground transition-all flex-shrink-0"
+                        >
+                          {i18n.language === 'en' ? 'Change' : 'Modifier'}
+                        </button>
+                      </div>
+                    );
+                  })()}
+                </div>
+
+                <div className="bg-foreground/5 p-8 border border-[var(--t-border)] rounded-xl">
+                  <h4 className="text-[10px] uppercase tracking-widest text-gold mb-6">Résumé de la Formule</h4>
+                  {formulaSummary.length === 0 ? (
+                     <p className="text-xs text-foreground/30 italic uppercase tracking-wider text-center">Aucun ingrédient sélectionné</p>
+                  ) : (
+                    <div className="space-y-4">
+                      {formulaSummary.map((item, idx) => (
+                        <div key={idx} className="flex justify-between items-center text-sm">
+                          <span className="text-foreground/40">{item.name}</span>
+                          <span className="text-foreground/70 font-light">{item.ml} ml</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </>
+        )}
+
+        {/* Footer Summary */}
+        <div className="mt-8 pt-6 border-t border-[var(--t-border)] flex flex-col gap-4">
+          <div>
+            <p className="text-[10px] uppercase tracking-[0.3em] text-foreground/30 mb-1">Investissement Total</p>
+            <p className="text-4xl font-extralight text-gold">{calcPrice.toLocaleString()} <span className="text-xs tracking-normal">FCFA</span></p>
+            <p className="text-[10px] text-foreground/20 mt-1 uppercase tracking-widest">{bottleSize}ml</p>
+          </div>
+          
+          <div className="flex flex-col gap-2.5 w-full">
+             {/* Save button (authenticated only) */}
+             {isAuthenticated && !savedParfumId && (
+               <button 
+                 onClick={() => setShowSaveModal(true)}
+                 disabled={totalMl === 0 || isSaving}
+                 className="w-full px-8 py-4 text-[10px] uppercase tracking-[0.2em] font-medium rounded-lg transition-all duration-300 border border-gold/40 text-gold hover:bg-gold/10 disabled:opacity-20"
+               >
+                 {isSaving ? <Loader2 size={14} className="inline animate-spin mr-1" /> : <Save size={14} className="inline mr-1" />}
+                 {i18n.language === 'en' ? 'Save' : 'Sauvegarder'}
+               </button>
+             )}
+
+             {/* Share button (after save) */}
+             {isAuthenticated && savedParfumId && (
+               <button 
+                 onClick={handleShareComposition}
+                 className="w-full px-8 py-4 text-[10px] uppercase tracking-[0.2em] font-medium rounded-lg transition-all duration-300 border border-white/20 text-foreground/70 hover:border-gold/50 hover:text-gold"
+               >
+                 <Share2 size={14} className="inline mr-1" />
+                 {i18n.language === 'en' ? 'Share' : 'Partager'}
+               </button>
+             )}
+
+             {/* Save Changes button (after save/load) */}
+             {isAuthenticated && savedParfumId && (
+               <button 
+                 onClick={handleUpdateComposition}
+                 disabled={totalMl === 0 || isSaving}
+                 className="w-full px-8 py-4 text-[10px] uppercase tracking-[0.2em] font-medium rounded-lg transition-all duration-300 bg-gold/10 border border-gold text-gold hover:bg-gold hover:text-black disabled:opacity-20 flex items-center justify-center gap-1.5"
+               >
+                 {isSaving ? <Loader2 size={14} className="inline animate-spin mr-1" /> : <Save size={14} className="inline mr-1" />}
+                 {i18n.language === 'en' ? 'Save Modifications' : 'Sauvegarder les modifications'}
+               </button>
+             )}
+
+            {/* Add to cart button */}
+            <button 
+              onClick={handleAddToCart}
+              disabled={totalMl === 0 || isAddingToCart || (isAuthenticated && !savedParfumId)}
+              className={`w-full px-8 py-4 text-[10px] uppercase tracking-[0.2em] font-medium rounded-lg transition-all duration-300
+                ${ctaSuccess ? 'bg-green-600 text-foreground' : 'bg-gold text-black hover:bg-cream disabled:opacity-20'}
+              `}
+            >
+              {ctaSuccess ? '✓ Ajouté' : (isAddingToCart ? <Loader2 size={14} className="inline animate-spin" /> : <>
+                <ShoppingCart size={14} className="inline mr-1" />
+                {isAuthenticated && !savedParfumId 
+                  ? (i18n.language === 'en' ? 'Save first' : 'Sauvegarder d’abord')
+                  : (i18n.language === 'en' ? 'Add to Cart' : 'Ajouter au Panier')}
+              </>)}
+            </button>
+
+            {/* Direct Order button */}
+            <button
+              onClick={() => setShowDirectOrderModal(true)}
+              disabled={totalMl === 0 || isOrderingDirect || !selectedFlaconId}
+              className="w-full px-8 py-3.5 text-[10px] uppercase tracking-[0.2em] font-medium rounded-lg transition-all duration-300 border border-white/20 text-foreground/70 hover:border-gold/50 hover:text-gold disabled:opacity-20 flex items-center justify-center gap-2"
+            >
+              <Send size={12} />
+              {i18n.language === 'en' ? 'Order Directly' : 'Commander directement'}
+            </button>
+          </div>
+        </div>
+        </div>
+      </div>
+
+      {/* Save Modal */}
+      {showSaveModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-background rounded-2xl p-8 w-full max-w-sm shadow-sm border border-white/10 animate-in fade-in zoom-in-95 max-h-[90vh] overflow-y-auto">
+            <h2 className="text-2xl font-extralight text-foreground mb-2">
+              {i18n.language === 'en' ? 'Save Your Composition' : 'Sauvegarder votre Composition'}
+            </h2>
+            <p className="text-xs text-foreground/40 uppercase tracking-widest mb-6">
+              {i18n.language === 'en' ? 'Give your creation a name' : 'Donnez un nom à votre création'}
+            </p>
+
+            <input
+              type="text"
+              placeholder={i18n.language === 'en' ? 'e.g. Rose & Oud Evening' : 'ex. Rose & Oud Soirée'}
+              value={saveModalName}
+              onChange={(e) => setSaveModalName(e.target.value)}
+              className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-foreground placeholder-foreground/30 focus:outline-none focus:border-gold/50 mb-6 text-sm"
+            />
+
+            <div className="mb-6">
+              <ColorPicker 
+                value={couleur}
+                onChange={setCouleur}
+                label={i18n.language === 'en' ? 'Liquid Color' : 'Couleur du Liquide'}
+              />
+              <p className="text-[10px] text-foreground/40 mt-1.5 italic">
+                {i18n.language === 'en'
+                  ? '✦ This is the color of the fragrance liquid inside the bottle, not the bottle itself.'
+                  : '✦ Il s\'agit de la couleur du liquide parfumé à l\'intérieur du flacon, pas du flacon lui-même.'}
+              </p>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  setShowSaveModal(false);
+                  setSaveModalName('');
+                }}
+                className="flex-1 px-6 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-sm text-foreground/60 transition-colors"
+              >
+                {i18n.language === 'en' ? 'Cancel' : 'Annuler'}
+              </button>
+              <button
+                onClick={() => handleSaveComposition(saveModalName)}
+                disabled={isSaving || !saveModalName.trim()}
+                className="flex-1 px-6 py-3 bg-gold text-black hover:bg-cream rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+              >
+                {isSaving ? <Loader2 size={14} className="inline animate-spin" /> : (i18n.language === 'en' ? 'Save' : 'Sauvegarder')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Direct Order Modal ── */}
+      {showDirectOrderModal && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-background rounded-2xl p-8 w-full max-w-md border border-white/10 shadow-2xl animate-in fade-in zoom-in-95">
+            {/* Header */}
+            <div className="flex items-start justify-between mb-6">
+              <div>
+                <h2 className="text-2xl font-extralight text-foreground">
+                  {i18n.language === 'en' ? 'Order Your Composition' : 'Commander votre Composition'}
+                </h2>
+                <p className="text-xs text-foreground/40 uppercase tracking-widest mt-1">
+                  {i18n.language === 'en' ? 'Delivery information (optional)' : 'Informations de livraison (optionnelles)'}
+                </p>
+              </div>
+              <button
+                onClick={() => setShowDirectOrderModal(false)}
+                className="p-2 rounded-lg hover:bg-white/10 text-foreground/40 hover:text-foreground transition-colors"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Composition Name Input */}
+            <div className="mb-6">
+              <label className="block text-xs font-bold uppercase tracking-widest text-foreground/70 mb-2">
+                {i18n.language === 'en' ? 'Name your composition' : 'Nommez votre composition'}
+              </label>
+              <input
+                type="text"
+                placeholder={i18n.language === 'en' ? 'e.g. Rose & Oud Evening' : 'ex. Rose & Oud Soirée'}
+                value={saveModalName}
+                onChange={(e) => setSaveModalName(e.target.value)}
+                className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-foreground placeholder-foreground/30 focus:outline-none focus:border-gold/50 text-sm"
+              />
+              <p className="text-[10px] text-gold/80 mt-1.5 italic font-medium">
+                {i18n.language === 'en'
+                  ? '✦ This is the exact name that will be inscribed on your physical bottle.'
+                  : '✦ Ce nom sera exactement celui inscrit sur votre flacon physique.'}
+              </p>
+            </div>
+
+            {/* Composition Summary */}
+            <div className="bg-white/5 border border-white/10 rounded-xl p-4 mb-6">
+              <div className="flex justify-between items-center">
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-widest text-foreground/40">{i18n.language === 'en' ? 'Order Summary' : 'Résumé de commande'}</p>
+                  <p className="text-[11px] text-foreground/60 mt-1">{bottleSize}ml · {totalMl.toFixed(1)}ml {i18n.language === 'en' ? 'of essences' : "d'essences"}</p>
+                </div>
+                <p className="text-xl font-light text-gold">{calcPrice.toLocaleString()} <span className="text-[10px]">FCFA</span></p>
+              </div>
+            </div>
+
+            <div className="mb-6">
+              <ColorPicker 
+                value={couleur}
+                onChange={setCouleur}
+                label={i18n.language === 'en' ? 'Liquid Color' : 'Couleur du Liquide'}
+              />
+              <p className="text-[10px] text-foreground/40 mt-1.5 italic">
+                {i18n.language === 'en'
+                  ? '✦ This is the color of the fragrance liquid inside the bottle, not the bottle itself.'
+                  : '✦ Il s\'agit de la couleur du liquide parfumé à l\'intérieur du flacon, pas du flacon lui-même.'}
+              </p>
+            </div>
+
+            <div className="space-y-4">
+              <div className="rounded-xl border border-white/10 bg-white/5 p-4 text-sm text-foreground/70">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-foreground/40 mb-2">
+                  {i18n.language === 'en' ? 'Using your profile' : 'Utilisation de votre profil'}
+                </p>
+                <p className="font-medium text-foreground">{orderProfileDetails.fullName || (i18n.language === 'en' ? 'No full name yet' : 'Nom incomplet')}</p>
+                <p className="text-xs text-foreground/50 mt-1">{orderProfileDetails.phone || (i18n.language === 'en' ? 'No phone number yet' : 'Aucun numéro')}</p>
+              </div>
+
+              <p className="text-[10px] text-foreground/30 italic">
+                {i18n.language === 'en'
+                  ? 'We will use the contact details already saved in your profile for this order.'
+                  : 'Nous utiliserons les coordonnées déjà enregistrées dans votre profil pour cette commande.'}
+              </p>
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowDirectOrderModal(false)}
+                  className="flex-1 px-6 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-sm text-foreground/60 transition-colors"
+                >
+                  {i18n.language === 'en' ? 'Cancel' : 'Annuler'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleDirectOrderSubmit(new Event('submit') as unknown as React.FormEvent)}
+                  disabled={isOrderingDirect || totalMl === 0}
+                  className="flex-1 px-6 py-3 bg-gold text-black hover:bg-cream rounded-lg text-sm font-bold transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {isOrderingDirect ? (
+                    <Loader2 size={14} className="animate-spin" />
+                  ) : (
+                    <><Send size={13} /> {i18n.language === 'en' ? 'Place Order' : 'Passer la commande'}</>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Order Success Modal ── */}
+      {showSuccessModal && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-background rounded-2xl p-10 w-full max-w-sm border border-white/10 shadow-2xl text-center animate-in fade-in zoom-in-95">
+            <div className="w-16 h-16 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mx-auto mb-6">
+              <span className="text-3xl">✓</span>
+            </div>
+            <h2 className="text-2xl font-extralight text-foreground mb-2">
+              {i18n.language === 'en' ? 'Order Confirmed!' : 'Commande confirmée !'}
+            </h2>
+            {createdOrderNumber && (
+              <p className="text-xs text-foreground/40 uppercase tracking-widest mb-1">
+                {i18n.language === 'en' ? 'Order #' : 'Commande #'}
+                <span className="text-gold font-bold ml-1">{createdOrderNumber}</span>
+              </p>
+            )}
+            <p className="text-sm text-foreground/50 mt-4 mb-8">
+              {i18n.language === 'en'
+                ? 'Your custom composition has been ordered. Our team will prepare it and contact you shortly.'
+                : 'Votre composition personnalisée a été commandée. Notre équipe va la préparer et vous contactera très bientôt.'}
+            </p>
+            <button
+              onClick={() => { setShowSuccessModal(false); setCreatedOrderNumber(null); }}
+              className="w-full px-6 py-3 bg-gold text-black hover:bg-cream rounded-lg text-sm font-bold transition-colors"
+            >
+              {i18n.language === 'en' ? "Back to Atelier" : "Retour à l'Atelier"}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Flacon Detail Modal ── */}
+      {showFlaconDetail && (() => {
+        const f = flacons.find((f: any) => Number(f.id) === selectedFlaconId) || flacons[0];
+        if (!f) return null;
+        const cap = Number(f.contenance_ml || f.capacite_ml || 0);
+        const imgSrc = f.image_principale || f.image || f.type_flacon?.image;
+        const isEn = i18n.language === 'en';
+        return (
+          <div
+            className="fixed inset-0 z-[70] flex items-center justify-center bg-black/75 backdrop-blur-sm p-4"
+            onClick={() => setShowFlaconDetail(false)}
+          >
+            <div
+              className="relative bg-background border border-[var(--t-border)] rounded-2xl w-full max-w-md shadow-2xl overflow-hidden animate-in fade-in zoom-in-95"
+              onClick={e => e.stopPropagation()}
+            >
+              {/* Close */}
+              <button
+                onClick={() => setShowFlaconDetail(false)}
+                className="absolute top-3 right-3 z-10 p-1.5 rounded-full bg-black/40 hover:bg-black/60 text-white/70 hover:text-white transition-colors"
+              >
+                <X size={15} />
+              </button>
+
+              {/* Image */}
+              <div className="relative w-full h-72 bg-foreground/[0.03] flex items-center justify-center overflow-hidden">
+                {imgSrc ? (
+                  <AppImage
+                    src={imgSrc}
+                    alt={f.nom || 'Flacon'}
+                    fill
+                    className="object-contain p-6"
+                  />
+                ) : (
+                  <div className="flex flex-col items-center gap-2 text-foreground/20">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1"><path d="M9 2h6l1 4H8L9 2z"/><path d="M8 6v14a2 2 0 002 2h4a2 2 0 002-2V6"/></svg>
+                    <span className="text-xs">{isEn ? 'No image' : 'Aucune image'}</span>
+                  </div>
+                )}
+                {/* Gold gradient bottom */}
+                <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-background to-transparent" />
+              </div>
+
+              {/* Details */}
+              <div className="px-6 pb-6 pt-3 space-y-4">
+                <div>
+                  <h2 className="text-xl font-semibold text-foreground">{f.nom}</h2>
+                  <p className="text-xs text-foreground/40 mt-0.5 uppercase tracking-widest">
+                    {f.type_flacon?.nom || f.type_flacon_nom || (isEn ? 'Bottle' : 'Flacon')}
+                  </p>
+                </div>
+
+                {/* Specs grid */}
+                <div className="grid grid-cols-2 gap-3">
+                  {[
+                    { label: isEn ? 'Volume' : 'Contenance', value: cap ? `${cap} ml` : '—' },
+                    { label: isEn ? 'Material' : 'Matière', value: f.matiere || '—' },
+                    { label: isEn ? 'Color' : 'Couleur', value: f.couleur || '—' },
+                    ...(f.hauteur_cm ? [{ label: isEn ? 'Height' : 'Hauteur', value: `${f.hauteur_cm} cm` }] : []),
+                    ...(f.largeur_cm ? [{ label: isEn ? 'Width' : 'Largeur', value: `${f.largeur_cm} cm` }] : []),
+                    ...(f.poids_grammes ? [{ label: isEn ? 'Weight' : 'Poids', value: `${f.poids_grammes} g` }] : []),
+                  ].map(spec => (
+                    <div key={spec.label} className="bg-foreground/[0.04] rounded-xl p-3">
+                      <p className="text-[9px] uppercase tracking-widest text-foreground/35 mb-0.5">{spec.label}</p>
+                      <p className="text-sm font-medium text-foreground">{spec.value}</p>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Price */}
+                <div className="flex items-center justify-between pt-2 border-t border-[var(--t-border)]">
+                  <span className="text-xs text-foreground/40 uppercase tracking-widest">{isEn ? 'Sale Price' : 'Prix de vente'}</span>
+                  <span className="text-2xl font-extralight text-gold">
+                    {Number(f.prix_unitaire).toLocaleString()} <span className="text-xs font-normal">FCFA</span>
+                  </span>
+                </div>
+
+                {/* Actions */}
+                <div className="flex gap-2 pt-1">
+                  <button
+                    onClick={() => { setShowFlaconDetail(false); setShowFlaconDrawer(true); }}
+                    className="flex-1 px-4 py-2.5 bg-foreground/5 hover:bg-foreground/10 border border-[var(--t-border)] rounded-xl text-xs font-semibold text-foreground/70 transition-all"
+                  >
+                    {isEn ? 'Change bottle' : 'Changer de flacon'}
+                  </button>
+                  <button
+                    onClick={() => setShowFlaconDetail(false)}
+                    className="flex-1 px-4 py-2.5 bg-gold text-black hover:bg-gold/90 rounded-xl text-xs font-bold transition-all"
+                  >
+                    {isEn ? 'Keep this one' : 'Garder ce flacon'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* ── Flacon Selector Drawer ── */}
+      {showFlaconDrawer && (
+        <div className="fixed inset-0 z-50 flex flex-col justify-end" style={{ height: '100dvh' }}>
+          {/* Backdrop */}
+          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setShowFlaconDrawer(false)} />
+          
+          {/* Drawer Sheet */}
+          <div className={`relative bg-background border-t border-[var(--t-border)] rounded-t-[2.5rem] shadow-sm transition-all duration-300 flex flex-col overflow-hidden w-full mx-auto max-w-xl ${
+            isDrawerFullScreen ? 'h-[92vh]' : 'h-[65vh]'
+          }`}>
+            
+            {/* Draggable header indicator */}
+            <div 
+              className="py-3 flex justify-center cursor-pointer select-none hover:bg-white/5 transition-colors"
+              onClick={() => setIsDrawerFullScreen(!isDrawerFullScreen)}
+            >
+              <div className="w-12 h-1.5 bg-white/20 rounded-full" />
+            </div>
+
+            {/* Header */}
+            <div className="px-6 pb-4 border-b border-white/10 flex items-center justify-between flex-shrink-0">
+              <div>
+                <h3 className="font-bold text-foreground text-lg">Sélectionner un Flacon</h3>
+                <p className="text-[10px] text-foreground/40 uppercase tracking-widest mt-0.5">Choisissez le flacon pour votre création</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <button 
+                  onClick={() => setIsDrawerFullScreen(!isDrawerFullScreen)}
+                  className="px-2.5 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-xs font-semibold text-foreground/70"
+                >
+                  {isDrawerFullScreen ? 'Réduire' : 'Agrandir'}
+                </button>
+                <button 
+                  onClick={() => setShowFlaconDrawer(false)}
+                  className="p-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-foreground/40 hover:text-foreground"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+            </div>
+
+            {/* Filters */}
+            <div className="p-4 border-b border-[var(--t-border)] flex flex-wrap items-center justify-between gap-3 bg-foreground/[0.03] flex-shrink-0">
+              {/* Size tabs */}
+              <div className="flex gap-1.5">
+                {[
+                  { value: null, label: 'Tous' },
+                  { value: 30, label: '0-30ml' },
+                  { value: 50, label: '31-60ml' },
+                  { value: 100, label: '61ml+' }
+                ].map(tab => (
+                  <button
+                    key={String(tab.value)}
+                    onClick={() => setDrawerSizeFilter(tab.value)}
+                    className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
+                      drawerSizeFilter === tab.value
+                        ? 'bg-gold border-gold text-black'
+                        : 'border-white/10 bg-white/5 text-foreground/60 hover:text-foreground'
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Price Sort */}
+              <select
+                value={drawerSort}
+                onChange={e => setDrawerSort(e.target.value as any)}
+                className="bg-white/5 border border-white/10 rounded-xl px-3 py-1.5 text-xs text-foreground outline-none cursor-pointer"
+              >
+                <option value="asc" className="bg-neutral-900 text-foreground">Prix : croissant</option>
+                <option value="desc" className="bg-neutral-900 text-foreground">Prix : décroissant</option>
+              </select>
+            </div>
+
+            {/* List */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-4">
+              {flacons
+                .filter((f: any) => {
+                  const cap = Number(f.contenance_ml || f.capacite_ml || f.capacity_ml || f.size_ml || f.type_flacon?.contenance_ml || 0);
+                  if (drawerSizeFilter === 30) return cap <= 30;
+                  if (drawerSizeFilter === 50) return cap > 30 && cap <= 60;
+                  if (drawerSizeFilter === 100) return cap > 60;
+                  return true;
+                })
+                .sort((a: any, b: any) => {
+                  const pA = Number(a.prix_unitaire || 0);
+                  const pB = Number(b.prix_unitaire || 0);
+                  return drawerSort === 'asc' ? pA - pB : pB - pA;
+                })
+                .map((f: any) => {
+                  const cap = getBottleCapacity(f);
+                  const selected = Number(f.id) === selectedFlaconId;
+                  return (
+                    <button
+                      key={f.id}
+                      onClick={() => {
+                        handleBottleSizeChange(cap, Number(f.id));
+                        setShowFlaconDrawer(false);
+                      }}
+                      className={`w-full flex items-center justify-between gap-4 p-4 border rounded-2xl text-left transition-all ${
+                        selected
+                          ? 'border-gold bg-gold/5 shadow-lg shadow-gold/5'
+                          : 'border-[var(--t-border)] hover:border-foreground/20 bg-foreground/[0.03]'
+                      }`}
+                    >
+                      <div className="flex items-center gap-4">
+                        {(f.image_principale || f.image || f.type_flacon?.image) ? (
+                          <AppImage src={f.image_principale || f.image || f.type_flacon!.image} alt={f.nom || 'Flacon'} width={64} height={64} className="size-16 rounded-xl object-cover border border-white/10" />
+                        ) : (
+                          <div className="size-16 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-[10px] text-foreground/30 text-center px-1">Aucune Image</div>
+                        )}
+                        <div>
+                          <h4 className="font-bold text-foreground text-sm flex items-center gap-1.5">
+                            {f.nom}
+                            {selected && <span className="text-[9px] bg-gold text-black px-1.5 py-0.5 rounded-full font-bold uppercase">Actuel</span>}
+                          </h4>
+                          <p className="text-xs text-foreground/40 mt-0.5">{cap}ml · {f.matiere || 'Verre'} · {f.couleur || 'Transparent'}</p>
+                          <p className="text-xs text-foreground/30 mt-1 font-mono">Stock: {f.stock_quantite}</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-bold text-gold text-base">{Number(f.prix_unitaire).toLocaleString()} FCFA</p>
+                        <p className="text-[10px] text-foreground/40 mt-0.5">Sélectionner</p>
+                      </div>
+                    </button>
+                  );
+                })}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default function AtelierPage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center min-h-screen"><Loader2 className="animate-spin text-gold" size={32} /></div>}>
+      <AtelierContent />
+    </Suspense>
+  );
+}

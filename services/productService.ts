@@ -240,7 +240,7 @@ function mapBackendCatalogItemToProduct(item: any): Product {
   }
 }
 
-function mapBackendDiffuseurToProduct(p: any): Product {
+export function mapBackendDiffuseurToProduct(p: any): Product {
   const images = collectProductImages(p);
 
   return {
