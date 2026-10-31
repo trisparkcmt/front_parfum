@@ -47,7 +47,6 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Accessoires Exclusifs | Luxe & Création de Parfums',
     description: 'Découvrez notre plateforme e-commerce de luxe, notre boutique d\'accessoires, et notre atelier de création olfactive assisté par IA.',
-    url: 'https://accessoiresexclusifs.com',
     siteName: 'Accessoires Exclusifs',
     locale: 'fr_FR',
     type: 'website',
