@@ -83,7 +83,7 @@ export const metadata: Metadata = {
     telephone: false,
   },
   alternates: {
-    canonical: 'https://accessoiresexclusifs.com',
+    canonical: './',
   },
 };
 
