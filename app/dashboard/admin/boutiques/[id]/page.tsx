@@ -21,7 +21,7 @@ import {
   Wallet,
   X,
 } from 'lucide-react';
-import { adminService, shopService } from '@/services/apiService';
+import { adminService, api, shopService } from '@/services/apiService';
 import { BoutiqueFullDetail, BoutiqueEffectuerVersementPayload } from '@/types';
 import { useToastStore } from '@/store/useToastStore';
 import { resolveImageUrl } from '@/lib/utils';
@@ -103,6 +103,11 @@ const T = {
     commission_title: 'Modifier la commission',
     commission_desc: 'Le nouveau taux sera appliqué aux prochaines ventes de cette boutique.',
     field_commission: 'Taux de commission (%)',
+    promo_guard_loading: 'Vérification des codes promo admin actifs…',
+    promo_guard_unavailable: 'Impossible de vérifier les codes promo actifs. Réessayez avant de modifier ce taux.',
+    promo_guard_none: 'Aucun code promo admin actif : aucun seuil minimal à appliquer.',
+    promo_guard_minimum: 'Commission minimale requise : {reduction}% (réduction admin active la plus élevée).',
+    promo_guard_limit: '🚨 SÉCURITÉ FINANCIÈRE : Ce taux de commission ({commission}%) est inférieur au coût du code promo actif le plus élevé ({reduction}%). Ajustez d’abord vos codes promo pour éviter toute perte financière.',
     validate_btn: 'Valider',
     save_btn: 'Enregistrer',
     saving: 'Enregistrement…',
@@ -207,6 +212,11 @@ const T = {
     commission_title: 'Edit commission',
     commission_desc: "The new rate applies to this shop's upcoming sales.",
     field_commission: 'Commission rate (%)',
+    promo_guard_loading: 'Checking active admin promo codes…',
+    promo_guard_unavailable: 'Unable to verify active promo codes. Retry before changing this rate.',
+    promo_guard_none: 'No active admin promo code: no minimum rate applies.',
+    promo_guard_minimum: 'Minimum commission required: {reduction}% (highest active admin discount).',
+    promo_guard_limit: '🚨 FINANCIAL SAFETY: This commission rate ({commission}%) is below the highest active promo discount ({reduction}%). Adjust promo codes first to avoid a financial loss.',
     validate_btn: 'Validate',
     save_btn: 'Save',
     saving: 'Saving…',
@@ -598,6 +608,9 @@ export default function AdminBoutiqueDetailPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [commissionValue, setCommissionValue] = useState('10');
   const [commissionError, setCommissionError] = useState('');
+  const [maximumActivePromoReduction, setMaximumActivePromoReduction] = useState<number | null>(null);
+  const [promoSafetyLoading, setPromoSafetyLoading] = useState(false);
+  const [promoSafetyError, setPromoSafetyError] = useState('');
 
   const [amount, setAmount] = useState('');
   const [payoutMode, setPayoutMode] = useState('');
@@ -621,6 +634,53 @@ export default function AdminBoutiqueDetailPage() {
       setInitialLoading(false);
     }
   }, [boutiqueId, productsPage, addToast, t]);
+
+  const fetchPromoSafetyThreshold = useCallback(async () => {
+    try {
+      const endpoint = 'orders/admin/codes-promo/';
+      let response = await api.get(endpoint);
+      let data = response.data;
+      const promoCodes: Array<{ est_actif?: boolean; reduction_pourcentage?: string | number }> = [];
+      let page = 1;
+
+      while (true) {
+        const pageCodes = Array.isArray(data)
+          ? data
+          : data?.results ?? data?.resultats;
+        if (!Array.isArray(pageCodes)) {
+          throw new Error('Réponse invalide lors du chargement des codes promo.');
+        }
+        promoCodes.push(...pageCodes);
+        if (Array.isArray(data) || !data.next) break;
+        if (pageCodes.length === 0 || page > 1000) {
+          throw new Error('La pagination des codes promo est invalide.');
+        }
+        page += 1;
+        response = await api.get(endpoint, { params: { page } });
+        data = response.data;
+      }
+
+      const activePromoCodes = promoCodes.filter((promo) => promo.est_actif);
+      const reductions = activePromoCodes.map((promo) => Number(promo.reduction_pourcentage));
+      if (reductions.some((reduction) => !Number.isFinite(reduction) || reduction < 0 || reduction > 100)) {
+        throw new Error('Un taux de réduction promo actif est invalide.');
+      }
+      setMaximumActivePromoReduction(reductions.length > 0 ? Math.max(...reductions) : null);
+    } catch {
+      setMaximumActivePromoReduction(null);
+      setPromoSafetyError(t('promo_guard_unavailable'));
+      addToast(t('promo_guard_unavailable'), 'error');
+    } finally {
+      setPromoSafetyLoading(false);
+    }
+  }, [addToast, t]);
+
+  const retryPromoSafetyThreshold = () => {
+    setCommissionError('');
+    setPromoSafetyLoading(true);
+    setPromoSafetyError('');
+    void fetchPromoSafetyThreshold();
+  };
 
   useEffect(() => {
     if (boutiqueId) fetchDetail();
@@ -652,6 +712,9 @@ export default function AdminBoutiqueDetailPage() {
   const openCommissionPanel = (mode: 'validate' | 'commission') => {
     setCommissionValue(mode === 'commission' ? String(toNum(boutique?.taux_commission) ?? 10) : '10');
     setCommissionError('');
+    setPromoSafetyLoading(true);
+    setPromoSafetyError('');
+    void fetchPromoSafetyThreshold();
     setPanel(mode);
   };
 
@@ -670,6 +733,18 @@ export default function AdminBoutiqueDetailPage() {
     const commission = Number(commissionValue);
     if (!Number.isFinite(commission) || commission < 0 || commission > 100) {
       setCommissionError(t('err_commission'));
+      return;
+    }
+    if (promoSafetyLoading || promoSafetyError) {
+      setCommissionError(promoSafetyError || t('promo_guard_loading'));
+      return;
+    }
+    if (maximumActivePromoReduction !== null && commission < maximumActivePromoReduction) {
+      setCommissionError(
+        t('promo_guard_limit')
+          .replace('{commission}', commission.toFixed(2))
+          .replace('{reduction}', maximumActivePromoReduction.toFixed(2))
+      );
       return;
     }
     setIsSaving(true);
@@ -813,6 +888,16 @@ export default function AdminBoutiqueDetailPage() {
     panel === 'validate' ? t('validate_title') : panel === 'commission' ? t('commission_title') : t('payout_title');
   const panelDescription =
     panel === 'validate' ? t('validate_desc') : panel === 'commission' ? t('commission_desc') : t('payout_desc');
+  const enteredCommission = Number(commissionValue);
+  const promoCommissionError =
+    panel !== 'payout' &&
+    maximumActivePromoReduction !== null &&
+    Number.isFinite(enteredCommission) &&
+    enteredCommission < maximumActivePromoReduction
+      ? t('promo_guard_limit')
+          .replace('{commission}', enteredCommission.toFixed(2))
+          .replace('{reduction}', maximumActivePromoReduction.toFixed(2))
+      : '';
 
   return (
     <>
@@ -1084,7 +1169,12 @@ export default function AdminBoutiqueDetailPage() {
             </button>
             <button
               onClick={panel === 'payout' ? handlePayout : handleCommissionSubmit}
-              disabled={isSaving || (panel === 'payout' && !amount)}
+              disabled={
+                isSaving ||
+                (panel === 'payout' && !amount) ||
+                (panel !== 'payout' &&
+                  (promoSafetyLoading || Boolean(promoSafetyError) || Boolean(promoCommissionError)))
+              }
               className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-gold px-4 py-2 text-xs font-semibold text-black transition-colors hover:bg-gold/85 disabled:opacity-60"
             >
               {isSaving ? <Loader2 size={13} className="animate-spin" /> : null}
@@ -1185,7 +1275,31 @@ export default function AdminBoutiqueDetailPage() {
           </div>
         ) : (
           <FormSection>
-            <Field label={t('field_commission')} required error={commissionError}>
+            <p className="mb-4 flex items-start gap-2 text-[11px] text-foreground/55">
+              <AlertCircle size={13} className="mt-0.5 shrink-0 text-gold" />
+              <span>
+                {promoSafetyLoading
+                  ? t('promo_guard_loading')
+                  : promoSafetyError
+                  ? promoSafetyError
+                  : maximumActivePromoReduction === null
+                  ? t('promo_guard_none')
+                  : t('promo_guard_minimum').replace(
+                      '{reduction}',
+                      maximumActivePromoReduction.toFixed(2)
+                    )}
+              </span>
+            </p>
+            {promoSafetyError && (
+              <button
+                type="button"
+                onClick={retryPromoSafetyThreshold}
+                className="mb-4 text-[11px] font-medium text-gold underline underline-offset-2"
+              >
+                {isEn ? 'Retry verification' : 'Réessayer la vérification'}
+              </button>
+            )}
+            <Field label={t('field_commission')} required error={commissionError || promoCommissionError}>
               <input
                 type="number"
                 min="0"

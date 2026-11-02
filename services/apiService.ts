@@ -1469,7 +1469,10 @@ export const adminService = {
 
   // ---- BOUTIQUE ADMIN METHODS ----
 
-  getBoutiquesFinancier: async (): Promise<BoutiqueAdminFinancier[]> => {
+  getBoutiquesFinancier: async (): Promise<
+    | BoutiqueAdminFinancier[]
+    | { results?: BoutiqueAdminFinancier[]; resultats?: BoutiqueAdminFinancier[] }
+  > => {
     const response = await api.get('auth/admin/boutiques/financier/');
     return response.data;
   },
