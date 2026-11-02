@@ -31,7 +31,7 @@ export default function Home() {
 
   return (
     <div className="flex flex-col w-full pt-14 lg:pt-0">
-      <h1 className="sr-only">Accessoires Exclusifs | Luxe & Création de Parfums</h1>
+      <h1 className="sr-only">Accessoires Exclusifs | Luxe & Création de Parfums </h1>
       <section className="flex min-h-[calc(100svh-3.5rem)] flex-col lg:min-h-svh">
         <HomeHeader />
         <PromoCarousel />
