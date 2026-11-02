@@ -2,12 +2,13 @@
 
 import { useEffect, useState } from 'react';
 import { useToastStore } from '@/store/useToastStore';
-import { authService } from '@/services/apiService';
+import { orderService } from '@/services/apiService';
 import type { BackendOrder, Order } from '@/types';
 
 export const useClientDashboard = () => {
   const { addToast } = useToastStore();
   const [orders, setOrders] = useState<Order[]>([]);
+  const [totalCount, setTotalCount] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -24,7 +25,8 @@ export const useClientDashboard = () => {
     (o.lignes_accessoires?.length ?? 0) +
     (o.lignes_produit_fini_essence?.length ?? 0) +
     (o.lignes_parfums_perso?.length ?? 0) +
-    (o.lignes_essence_personnalisee?.length ?? 0);
+    (o.lignes_essence_personnalisee?.length ?? 0) +
+    ((o as any).lignes_diffuseurs?.length ?? 0);
 
   useEffect(() => {
     const loadOrders = async () => {
@@ -32,8 +34,10 @@ export const useClientDashboard = () => {
         setLoading(true);
         setError(null);
 
-        const meData = await authService.getMe();
-        const list = ((meData as any)?.commandes ?? (Array.isArray(meData) ? meData : [])) as BackendOrder[];
+        // Making the request without params automatically paginates at the backend default (100)
+        const data = await orderService.getMyOrders();
+        const list = (data?.results ?? data?.resultats ?? (Array.isArray(data) ? data : [])) as BackendOrder[];
+        setTotalCount(typeof data?.count === 'number' ? data.count : list.length);
 
         const mapBackendLines = (o: BackendOrder): Order['items'] => {
           const lines = [
@@ -42,6 +46,7 @@ export const useClientDashboard = () => {
             ...(o.lignes_produit_fini_essence ?? []),
             ...(o.lignes_parfums_perso ?? []),
             ...(o.lignes_essence_personnalisee ?? []),
+            ...((o as any).lignes_diffuseurs ?? []),
           ];
 
           if (lines.length === 0) {
@@ -110,5 +115,5 @@ export const useClientDashboard = () => {
     loadOrders();
   }, [addToast]);
 
-  return { orders, loading, error };
+  return { orders, totalCount, loading, error };
 };

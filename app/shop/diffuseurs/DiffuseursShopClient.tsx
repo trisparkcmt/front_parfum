@@ -1,9 +1,9 @@
 'use client';
 
 import { useState, useEffect, Suspense, useCallback } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, SlidersHorizontal, RotateCcw, LayoutGrid, List } from 'lucide-react';
+import { Search, SlidersHorizontal, RotateCcw } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 import { DiffuseurCard } from '@/components/ui/DiffuseurCard';
@@ -16,9 +16,10 @@ import { useToastStore } from '@/store/useToastStore';
 import { shuffleArray } from '@/lib/utils';
 import type { Product } from '@/types';
 
-function DiffuseursShopContent({ initialProducts = [] }: { initialProducts?: Product[] }) {
+function DiffuseursShopContent() {
   const { i18n } = useTranslation();
   const isEn = i18n.language?.startsWith('en');
+  const router = useRouter();
 
   const scrollCatalogToTop = () => {
     if (typeof window === 'undefined') return;
@@ -39,9 +40,8 @@ function DiffuseursShopContent({ initialProducts = [] }: { initialProducts?: Pro
   };
 
   const [mounted, setMounted] = useState(false);
-  const [products, setProducts] = useState<Product[]>(initialProducts);
-  const [loading, setLoading] = useState(initialProducts.length === 0);
-  const [viewMode, setViewMode] = useState<'grid' | 'horizontal'>('grid');
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const { addDiffuseur } = useCartStore();
   const { isFavorite, addFavorite, removeFavorite } = useFavoritesStore();
@@ -50,25 +50,39 @@ function DiffuseursShopContent({ initialProducts = [] }: { initialProducts?: Pro
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [techFilter, setTechFilter] = useState<string>('all');
-  const [ordering, setOrdering] = useState<string>('-date_creation');
   const [showFilters, setShowFilters] = useState(false);
 
   // ── Product detail modal ─────────────────────────────────────────────────
   const [modalProductId, setModalProductId] = useState<string | null>(null);
 
   const openProductModal = useCallback((product: Product) => {
-    const productId = String(product.slug || product.id);
+    const productId = String(product.id);
     setModalProductId(productId);
-    window.history.pushState({ modalProductId: productId }, '', `/shop/diffuseurs/${productId}`);
+    window.history.pushState(
+      { modalProductId: productId, modalProductType: 'diffuseur' },
+      '',
+      `/shop/diffuseurs?product=${encodeURIComponent(productId)}&type=diffuseur`
+    );
   }, []);
 
   const closeProductModal = useCallback(() => {
+    if (window.history.state?.modalProductId) {
+      window.history.back();
+      return;
+    }
+
+    const params = new URLSearchParams(window.location.search);
+    params.delete('product');
+    params.delete('type');
+    const query = params.toString();
+    router.replace(`${window.location.pathname}${query ? `?${query}` : ''}`, { scroll: false });
     setModalProductId(null);
-  }, []);
+  }, [router]);
 
   useEffect(() => {
-    const handlePopState = (e: PopStateEvent) => {
-      if (!e.state?.modalProductId) setModalProductId(null);
+    const handlePopState = () => {
+      const params = new URLSearchParams(window.location.search);
+      setModalProductId(params.get('product'));
     };
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
@@ -80,6 +94,7 @@ function DiffuseursShopContent({ initialProducts = [] }: { initialProducts?: Pro
     setMounted(true);
     const q = searchParams.get('search');
     if (q) setSearch(q);
+    setModalProductId(searchParams.get('product'));
   }, [searchParams]);
 
   useEffect(() => {
@@ -92,7 +107,7 @@ function DiffuseursShopContent({ initialProducts = [] }: { initialProducts?: Pro
   useEffect(() => {
     if (!mounted) return;
     window.scrollTo({ top: 0, left: 0 });
-  }, [mounted, debouncedSearch, techFilter, ordering, viewMode]);
+  }, [mounted, debouncedSearch, techFilter]);
 
   useEffect(() => {
     if (!mounted) return;
@@ -102,7 +117,6 @@ function DiffuseursShopContent({ initialProducts = [] }: { initialProducts?: Pro
         setLoading(true);
         const mappedProducts = await productService.getDiffuseurs({
           search: debouncedSearch || undefined,
-          ordering: ordering || undefined,
         });
         setProducts(shuffleArray(mappedProducts));
         
@@ -133,7 +147,7 @@ function DiffuseursShopContent({ initialProducts = [] }: { initialProducts?: Pro
     }
 
     fetchProducts();
-  }, [mounted, debouncedSearch, ordering]);
+  }, [mounted, debouncedSearch]);
 
   const filteredProducts = products.filter((p: any) => {
     if (techFilter !== 'all' && p.type_technologie && p.type_technologie !== techFilter) {
@@ -146,7 +160,6 @@ function DiffuseursShopContent({ initialProducts = [] }: { initialProducts?: Pro
     scrollCatalogToTop();
     setSearch('');
     setTechFilter('all');
-    setOrdering('-date_creation');
     setShowFilters(false);
   };
 
@@ -163,21 +176,22 @@ function DiffuseursShopContent({ initialProducts = [] }: { initialProducts?: Pro
       });
     } catch {
       addToast(
-        isEn ? 'Error adding item to bag' : 'Erreur lors de l’ajout au panier',
+        isEn ? 'Error adding item to bag' : 'Erreur lors de l\'ajout au panier',
         'error'
       );
     }
   };
 
   const handleToggleFavorite = (product: Product) => {
-    if (isFavorite(product.id)) {
-      removeFavorite(product.id);
+    const isFav = isFavorite(product.id, 'diffuseur');
+    if (isFav) {
+      removeFavorite(product.id, 'diffuseur');
       addToast(
         isEn ? `${product.name} removed from wishlist` : `${product.name} retiré des favoris`,
         'info'
       );
     } else {
-      addFavorite(product);
+      addFavorite({ ...product, category: 'diffuseur' });
       addToast(
         isEn ? `${product.name} saved to wishlist` : `${product.name} ajouté aux favoris`,
         'success'
@@ -185,7 +199,7 @@ function DiffuseursShopContent({ initialProducts = [] }: { initialProducts?: Pro
     }
   };
 
-  const activeFiltersCount = (techFilter !== 'all' ? 1 : 0) + (ordering !== '-date_creation' ? 1 : 0);
+  const activeFiltersCount = (techFilter !== 'all' ? 1 : 0);
 
   return (
     <div className="min-h-screen bg-background text-foreground font-sans">
@@ -271,39 +285,6 @@ function DiffuseursShopContent({ initialProducts = [] }: { initialProducts?: Pro
               </span>
             )}
           </button>
-
-          <div className="flex items-center p-1 bg-foreground/5 border border-foreground/10 rounded-xl shrink-0">
-            <button
-              onClick={() => {
-                scrollCatalogToTop();
-                setTimeout(() => scrollCatalogToTop(), 0);
-                setViewMode('grid');
-              }}
-              title={isEn ? 'Grid View' : 'Vue grille'}
-              className={`p-1.5 sm:p-2.5 rounded-lg transition-all ${
-                viewMode === 'grid'
-                  ? 'bg-gold text-black'
-                  : 'text-foreground/60 hover:text-foreground'
-              }`}
-            >
-              <LayoutGrid size={15} />
-            </button>
-            <button
-              onClick={() => {
-                scrollCatalogToTop();
-                setTimeout(() => scrollCatalogToTop(), 0);
-                setViewMode('horizontal');
-              }}
-              title={isEn ? 'Expanded List View' : 'Vue liste détaillée'}
-              className={`p-1.5 sm:p-2.5 rounded-lg transition-all ${
-                viewMode === 'horizontal'
-                  ? 'bg-gold text-black'
-                  : 'text-foreground/60 hover:text-foreground'
-              }`}
-            >
-              <List size={15} />
-            </button>
-          </div>
         </div>
 
         {showFilters && (
@@ -331,22 +312,6 @@ function DiffuseursShopContent({ initialProducts = [] }: { initialProducts?: Pro
               </option>
             </select>
 
-            <select
-              value={ordering}
-              onChange={(e) => setOrdering(e.target.value)}
-              className="w-full min-w-[160px] flex-1 appearance-none rounded-xl border border-foreground/10 bg-foreground/5 px-4 py-3 text-[13px] text-foreground/60 outline-none transition-all duration-300 hover:border-gold/40 hover:text-foreground focus:border-gold sm:max-w-[220px]"
-            >
-              <option value="-date_creation" className="bg-background">
-                {isEn ? 'Newest Arrivals' : 'Nouveautés'}
-              </option>
-              <option value="prix_unitaire" className="bg-background">
-                {isEn ? 'Price: Low to High' : 'Prix : croissant'}
-              </option>
-              <option value="-prix_unitaire" className="bg-background">
-                {isEn ? 'Price: High to Low' : 'Prix : décroissant'}
-              </option>
-            </select>
-
             <button
               onClick={resetFilters}
               className="inline-flex items-center gap-2 rounded-xl border border-foreground/10 bg-foreground/5 px-3 py-3 text-[13px] text-foreground/60 transition-all duration-300 hover:border-gold hover:text-foreground"
@@ -363,37 +328,20 @@ function DiffuseursShopContent({ initialProducts = [] }: { initialProducts?: Pro
         {loading ? (
           <ProductGridSkeleton />
         ) : filteredProducts.length > 0 ? (
-          viewMode === 'grid' ? (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6 justify-items-center">
-              {filteredProducts.map((product, i) => (
-                <DiffuseurCard
-                  key={product.id}
-                  product={product}
-                  onAddToCart={handleAddToCart}
-                  onToggleFavorite={handleToggleFavorite}
-                  isFavorite={isFavorite(product.id)}
-                  viewMode="grid"
-                  index={i}
-                  onCardClick={openProductModal}
-                />
-              ))}
-            </div>
-          ) : (
-            <div className="flex flex-col gap-6 w-full">
-              {filteredProducts.map((product, i) => (
-                <DiffuseurCard
-                  key={product.id}
-                  product={product}
-                  onAddToCart={handleAddToCart}
-                  onToggleFavorite={handleToggleFavorite}
-                  isFavorite={isFavorite(product.id)}
-                  viewMode="horizontal"
-                  index={i}
-                  onCardClick={openProductModal}
-                />
-              ))}
-            </div>
-          )
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6 justify-items-center">
+            {filteredProducts.map((product, i) => (
+              <DiffuseurCard
+                key={product.id}
+                product={product}
+                onAddToCart={handleAddToCart}
+                onToggleFavorite={handleToggleFavorite}
+                isFavorite={isFavorite(product.id, 'diffuseur')}
+                viewMode="grid"
+                index={i}
+                onCardClick={openProductModal}
+              />
+            ))}
+          </div>
         ) : (
           <motion.div
             initial={{ opacity: 0 }}
@@ -434,10 +382,10 @@ function DiffuseursShopContent({ initialProducts = [] }: { initialProducts?: Pro
   );
 }
 
-export default function DiffuseursShopPage({ initialProducts = [] }: { initialProducts?: Product[] }) {
+export default function DiffuseursShopClient() {
   return (
     <Suspense fallback={<ProductGridSkeleton />}>
-      <DiffuseursShopContent initialProducts={initialProducts} />
+      <DiffuseursShopContent />
     </Suspense>
   );
 }

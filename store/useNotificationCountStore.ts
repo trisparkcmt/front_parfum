@@ -52,7 +52,9 @@ export const useNotificationCountStore = create<NotificationCountState>((set, ge
   },
 
   fetchCounts: async () => {
-    const { isAuthenticated, user } = useAuthStore.getState();
+    const { isAuthenticated, user, _hasHydrated } = useAuthStore.getState();
+    if (!_hasHydrated) return;
+
     if (!isAuthenticated || !user) {
       set({ unreadNotificationCount: 0, pendingActionCount: 0, recentItems: [], isLoading: false });
       return;
@@ -60,7 +62,8 @@ export const useNotificationCountStore = create<NotificationCountState>((set, ge
 
     set({ isLoading: true });
     try {
-      const roles = (user.roles || []).map((r: string) => String(r).toLowerCase());
+      const roles = [...(user.roles || []), ...(user.role ? [user.role] : [])]
+        .map((role: string) => String(role).toLowerCase());
 
       const isAdminOrServeuse = roles.some((r) => r === 'admin' || r === 'serveuse' || r === 'superadmin');
       const isLivreur = roles.some((r) => r === 'livreur' || r === 'delivery');
@@ -74,6 +77,9 @@ export const useNotificationCountStore = create<NotificationCountState>((set, ge
           ? orderService.getOrders({ statut_livraison: 'assignée' })
           : Promise.resolve(null),
       ]);
+
+      const currentAuth = useAuthStore.getState();
+      if (!currentAuth.isAuthenticated || currentAuth.user?.id !== user.id) return;
 
       // 1. System / Stock Alerts (Admin / Serveuse)
       let shopUnread: UnifiedNotificationItem[] = [];
@@ -227,5 +233,4 @@ export const useNotificationCountStore = create<NotificationCountState>((set, ge
     });
   },
 }));
-
 

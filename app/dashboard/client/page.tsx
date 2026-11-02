@@ -63,7 +63,7 @@ export default function ClientDashboard() {
   const { t, i18n } = useTranslation();
   const router = useRouter();
   const { user } = useAuthStore();
-  const { orders } = useClientDashboard();
+  const { orders, totalCount } = useClientDashboard();
 
   // Resolve current language, falling back to French for anything not listed above.
   const lang = LOCAL_STRINGS[i18n.language] ? i18n.language : 'fr';
@@ -84,23 +84,23 @@ export default function ClientDashboard() {
     () => orders.reduce((acc, order) => acc + order.items.filter(i => i.type === 'custom-composition').length, 0),
     [orders],
   );
-  const [rowsPerPage, setRowsPerPage] = useState<10 | 15>(10);
+  const ROWS_PER_PAGE = 25;
   const [ongoingPage, setOngoingPage] = useState(1);
   const [deliveredPage, setDeliveredPage] = useState(1);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
 
   const paginatedOngoingOrders = useMemo(() => {
-    const start = (ongoingPage - 1) * rowsPerPage;
-    return ongoingOrders.slice(start, start + rowsPerPage);
-  }, [ongoingOrders, ongoingPage, rowsPerPage]);
+    const start = (ongoingPage - 1) * ROWS_PER_PAGE;
+    return ongoingOrders.slice(start, start + ROWS_PER_PAGE);
+  }, [ongoingOrders, ongoingPage]);
 
   const paginatedDeliveredOrders = useMemo(() => {
-    const start = (deliveredPage - 1) * rowsPerPage;
-    return deliveredOrders.slice(start, start + rowsPerPage);
-  }, [deliveredOrders, deliveredPage, rowsPerPage]);
+    const start = (deliveredPage - 1) * ROWS_PER_PAGE;
+    return deliveredOrders.slice(start, start + ROWS_PER_PAGE);
+  }, [deliveredOrders, deliveredPage]);
 
-  const ongoingPages = Math.max(1, Math.ceil(ongoingOrders.length / rowsPerPage));
-  const deliveredPages = Math.max(1, Math.ceil(deliveredOrders.length / rowsPerPage));
+  const ongoingPages = Math.max(1, Math.ceil(ongoingOrders.length / ROWS_PER_PAGE));
+  const deliveredPages = Math.max(1, Math.ceil(deliveredOrders.length / ROWS_PER_PAGE));
 
   const tableHeaders = [
     tr('order_id'),
@@ -124,7 +124,7 @@ export default function ClientDashboard() {
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { label: t('orders_count'), value: orders.length, icon: <Package size={18} />, color: 'text-gold bg-gold/10' },
+          { label: t('orders_count'), value: totalCount || orders.length, icon: <Package size={18} />, color: 'text-gold bg-gold/10' },
           { label: t('delivered_count'), value: deliveredOrders.length, icon: <ShoppingBag size={18} />, color: 'text-emerald-400 bg-emerald-400/10' },
           { label: tr('loyalty_points'), value: user?.client?.points_fidelite ?? 0, icon: <Star size={18} />, color: 'text-amber-400 bg-amber-400/10' },
           { label: tr('total_spent'), value: formatPrice(user?.client?.total_depenses ?? totalSpent), icon: <CreditCard size={18} />, color: 'text-blue-400 bg-blue-400/10' },
@@ -144,22 +144,12 @@ export default function ClientDashboard() {
               <h2 className="font-semibold text-foreground">{t('ongoing_orders')}</h2>
               <p className="text-xs text-foreground/40">{ongoingOrders.length} {t('orders')}</p>
             </div>
-            <div className="flex items-center gap-2">
-              <label className="text-xs text-foreground/40">{t('rows_per_page')}</label>
-              <select
-                value={rowsPerPage}
-                onChange={(event) => {
-                  const newValue = Number(event.target.value) as 10 | 15;
-                  setRowsPerPage(newValue);
-                  setOngoingPage(1);
-                  setDeliveredPage(1);
-                }}
-                className="rounded-xl border border-white/10 bg-background px-3 py-2 text-sm text-foreground outline-none"
-              >
-                <option value={10}>10</option>
-                <option value={15}>15</option>
-              </select>
-            </div>
+            <button
+              onClick={() => router.push('/dashboard/client/orders')}
+              className="text-xs text-gold hover:text-gold/80 transition-colors flex items-center gap-1 font-medium"
+            >
+              {tr('my_orders_action')} <ChevronRight size={12} />
+            </button>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -195,7 +185,7 @@ export default function ClientDashboard() {
             </table>
           </div>
           <div className="px-6 py-4 border-t border-white/10 flex flex-wrap items-center justify-between gap-3 text-xs text-foreground/40">
-            <span>{t('showing')} {(ongoingPage - 1) * rowsPerPage + 1} - {Math.min(ongoingOrders.length, ongoingPage * rowsPerPage)} / {ongoingOrders.length}</span>
+            <span>{t('showing')} {(ongoingPage - 1) * ROWS_PER_PAGE + 1} - {Math.min(ongoingOrders.length, ongoingPage * ROWS_PER_PAGE)} / {ongoingOrders.length}</span>
             <span>{t('page')} {ongoingPage} / {ongoingPages}</span>
             <div className="flex items-center gap-2">
               <button
@@ -257,7 +247,7 @@ export default function ClientDashboard() {
             </table>
           </div>
           <div className="px-6 py-4 border-t border-white/10 flex flex-wrap items-center justify-between gap-3 text-xs text-foreground/40">
-            <span>{t('showing')} {(deliveredPage - 1) * rowsPerPage + 1} - {Math.min(deliveredOrders.length, deliveredPage * rowsPerPage)} / {deliveredOrders.length}</span>
+            <span>{t('showing')} {(deliveredPage - 1) * ROWS_PER_PAGE + 1} - {Math.min(deliveredOrders.length, deliveredPage * ROWS_PER_PAGE)} / {deliveredOrders.length}</span>
             <span>{t('page', { defaultValue: 'Page' })} {deliveredPage} / {deliveredPages}</span>
             <div className="flex items-center gap-2">
               <button

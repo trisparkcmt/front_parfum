@@ -45,7 +45,7 @@ const LIVRAISON_OPTIONS = ['', 'en_attente_affectation', 'assignée', 'livrée',
 const PAIEMENT_OPTIONS  = ['', 'en_attente', 'payé', 'échoué'];
 
 const PAGE_SIZE = 100;
-const ROWS_PER_TABLE = 10;
+const ROWS_PER_TABLE = 25;
 
 // ─────────────────────────────────────────────────────────────────────────
 // Translation — this page has no shared locale-file setup yet, so all
@@ -355,11 +355,12 @@ function fmtDate(d?: string | null, time = false, lang: string = 'fr') {
 
 function allLines(order: BackendOrder): BackendOrderLine[] {
   return [
-    ...order.lignes_parfums,
-    ...order.lignes_accessoires,
-    ...order.lignes_produit_fini_essence,
-    ...order.lignes_parfums_perso,
-    ...order.lignes_essence_personnalisee,
+    ...(order.lignes_parfums ?? []),
+    ...(order.lignes_accessoires ?? []),
+    ...(order.lignes_produit_fini_essence ?? []),
+    ...(order.lignes_parfums_perso ?? []),
+    ...(order.lignes_essence_personnalisee ?? []),
+    ...(order.lignes_diffuseurs ?? []),
   ];
 }
 
@@ -572,14 +573,14 @@ export default function OrdersPage() {
   const fetchOrders = useCallback(async (pg = page) => {
     setLoading(true);
     try {
-      const params: Record<string, any> = { page: pg };
+      const params: Record<string, any> = { page: pg, page_size: PAGE_SIZE };
       if (statutFilter)    params.statut = statutFilter;
       if (livraisonFilter) params.statut_livraison = livraisonFilter;
       if (paiementFilter)  params.statut_paiement = paiementFilter;
       if (nomFilter)       params.nom = nomFilter;
       if (search)          params.search = search;
 
-      const data = await orderService.getOrders(params);
+      const data = await orderService.getMyOrders(params);
       const list = data.results ?? data.resultats ?? (Array.isArray(data) ? data : []);
       setOrders(list);
       setTotal(data.count ?? list.length);
@@ -661,7 +662,7 @@ export default function OrdersPage() {
       await invoiceService.downloadInvoiceFile(num, `facture-${num}.pdf`);
       addToast(t('toast_invoice_downloaded'), 'success');
     } catch (err: any) {
-      addToast(err.response?.data?.detail ?? t('toast_invoice_unavailable'), 'error');
+      addToast(t('toast_invoice_unavailable'), 'error');
     } finally {
       setDownloadingInvoice(false);
     }

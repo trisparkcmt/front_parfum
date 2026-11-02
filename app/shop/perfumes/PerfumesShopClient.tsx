@@ -140,6 +140,18 @@ export default function PerfumesShopClient({ initialProducts = [] }: { initialPr
       setSearch(q);
       setDebouncedSearch(q);
     }
+
+    // Open modal when arriving via a share link (?product=...)
+    const productParam = searchParams?.get('product');
+    const typeParam = searchParams?.get('type');
+    if (productParam) {
+      setModalProductId(productParam);
+      setModalProductType(
+        typeParam === 'accessory' ? 'accessory'
+        : typeParam === 'diffuseur' ? 'diffuseur'
+        : 'perfume'
+      );
+    }
   }, [searchParams]);
 
   // Initialise activeTab from URL or session storage when returning from product
@@ -579,17 +591,26 @@ export default function PerfumesShopClient({ initialProducts = [] }: { initialPr
 
     const typeHint = getTypeHint(product);
     const productId = String(product.slug || product.id);
-    const productUrl = `/shop/product/${productId}${product.category === 'accessory' ? '?type=accessory' : '?type=perfume'}`;
+    // Use ?product= format so the URL is a valid share link that re-opens the modal
+    const productUrl = typeHint === 'accessory'
+      ? `/shop/accessories?product=${encodeURIComponent(productId)}&type=accessory`
+      : typeHint === 'diffuseur'
+        ? `/shop/diffuseurs?product=${encodeURIComponent(productId)}&type=diffuseur`
+        : `/shop/perfumes?product=${encodeURIComponent(productId)}&type=perfume`;
 
     setModalProductId(productId);
     setModalProductType(typeHint);
 
     // Update the address bar without full navigation, so deep-link works and
     // back button pops back to the catalog URL.
-    window.history.pushState({ modalProductId: productId }, '', productUrl);
+    window.history.pushState({ modalProductId: productId, modalProductType: typeHint }, '', productUrl);
   }, [getTypeHint, openHuileModal]);
 
   const closeProductModal = useCallback(() => {
+    if (window.history.state?.modalProductId) {
+      window.history.back();
+      return;
+    }
     setModalProductId(null);
   }, []);
 
@@ -667,22 +688,23 @@ export default function PerfumesShopClient({ initialProducts = [] }: { initialPr
 
     const totalCount = items.reduce((s, it) => s + it.quantity, 0);
     addToast(
-      `${essence.name} (${totalCount} flacon${totalCount > 1 ? 's' : ''}) ${t('added_to_cart')}`,
+      t('added_to_cart'),
       'success'
     );
   };
 
   const handleToggleFavorite = (product: Product) => {
-    if (isFavorite(product.id)) {
-      removeFavorite(product.id);
+    const isFav = isFavorite(product.id, product.category);
+    if (isFav) {
+      removeFavorite(product.id, product.category);
       addToast(
-        `${product.name} ${t('removed_from_wishlist')}`,
+        t('removed_from_favorites'),
         'info'
       );
     } else {
       addFavorite(product);
       addToast(
-        `${product.name} ${t('added_to_favorites')}`,
+        t('added_to_favorites'),
         'success'
       );
     }
@@ -1053,7 +1075,7 @@ export default function PerfumesShopClient({ initialProducts = [] }: { initialPr
                     product={product}
                     onAddToCart={handleAddToCart}
                     onToggleFavorite={handleToggleFavorite}
-                    isFavorite={isFavorite(product.id)}
+                    isFavorite={isFavorite(product.id, product.category)}
                     onCardClick={openProductModal}
                   />
                 </motion.div>

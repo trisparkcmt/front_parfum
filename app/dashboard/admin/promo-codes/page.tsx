@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import {
-  Plus, Trash2, Edit2, Search, Loader2, Tag, X,
+  AlertCircle, Plus, Trash2, Edit2, Search, Loader2, Tag, X,
   CheckCircle, Users2, Percent, RefreshCw, Eye, EyeOff,
 } from 'lucide-react';
 import { InlineCell } from '@/components/admin/InlineCell';
@@ -92,6 +92,9 @@ export default function PromoCodesPage() {
   const [formDateFin, setFormDateFin] = useState<string | null>(null);
   const [selectedPromoForDetails, setSelectedPromoForDetails] = useState<PromoCode | null>(null);
   const [groupLoading, setGroupLoading] = useState<string | null>(null);
+  const [minimumShopCommission, setMinimumShopCommission] = useState<number | null>(null);
+  const [commissionSafetyLoading, setCommissionSafetyLoading] = useState(false);
+  const [commissionSafetyError, setCommissionSafetyError] = useState<string | null>(null);
 
   const fetchCodes = useCallback(async () => {
     setLoading(true);
@@ -103,6 +106,37 @@ export default function PromoCodesPage() {
   }, [addToast]);
 
   useEffect(() => { fetchCodes(); }, [fetchCodes]);
+
+  const fetchCommissionFloor = useCallback(async () => {
+    try {
+      const response = await adminService.getBoutiquesFinancier();
+      const boutiques = Array.isArray(response)
+        ? response
+        : response.results ?? response.resultats;
+      if (!Array.isArray(boutiques)) {
+        throw new Error('Réponse invalide lors du chargement des commissions boutiques.');
+      }
+      const commissions = boutiques.map((boutique) =>
+        boutique.taux_commission == null ? Number.NaN : Number(boutique.taux_commission)
+      );
+      if (commissions.some((commission) => !Number.isFinite(commission) || commission < 0 || commission > 100)) {
+        throw new Error('Un taux de commission boutique est invalide.');
+      }
+      setMinimumShopCommission(commissions.length > 0 ? Math.min(...commissions) : null);
+    } catch {
+      setMinimumShopCommission(null);
+      setCommissionSafetyError('Impossible de vérifier les commissions des boutiques actives. Réessayez avant de créer ou modifier un code actif.');
+    } finally {
+      setCommissionSafetyLoading(false);
+    }
+  }, []);
+
+  const loadCommissionFloor = () => {
+    setFormError(null);
+    setCommissionSafetyLoading(true);
+    setCommissionSafetyError(null);
+    void fetchCommissionFloor();
+  };
 
   const fetchClients = useCallback(async (search: string) => {
     setClientsLoading(true);
@@ -119,13 +153,29 @@ export default function PromoCodesPage() {
     return () => { if (clientDebounce.current) clearTimeout(clientDebounce.current); };
   }, [clientSearch, fetchClients]);
 
-  const openCreate = () => { setFormError(null); setEditingCode(null); setFormCode(''); setFormReduction('10.00'); setFormActif(true); setFormClients([]); setFormDateDebut(null); setFormDateFin(null); setShowModal(true); setClientSearch(''); setShowClientPicker(false); };
-  const openEdit = (code: PromoCode) => { setFormError(null); setEditingCode(code); setFormCode(code.code); setFormReduction(code.reduction_pourcentage); setFormActif(code.est_actif); setFormClients(code.clients_autorises ?? []); setShowModal(true); setClientSearch(''); setShowClientPicker(false); };
+  const openCreate = () => { setFormError(null); setEditingCode(null); setFormCode(''); setFormReduction('10.00'); setFormActif(true); setFormClients([]); setFormDateDebut(null); setFormDateFin(null); setShowModal(true); setClientSearch(''); setShowClientPicker(false); loadCommissionFloor(); };
+  const openEdit = (code: PromoCode) => { setFormError(null); setEditingCode(code); setFormCode(code.code); setFormReduction(code.reduction_pourcentage); setFormActif(code.est_actif); setFormClients(code.clients_autorises ?? []); setShowModal(true); setClientSearch(''); setShowClientPicker(false); loadCommissionFloor(); };
+
+  const getCommissionSafetyError = (percentage: number) => {
+    if (commissionSafetyLoading) return 'Vérification des commissions des boutiques en cours.';
+    if (commissionSafetyError) return commissionSafetyError;
+    if (minimumShopCommission !== null && percentage > minimumShopCommission) {
+      return `🚨 SÉCURITÉ FINANCIÈRE : Cette réduction (${percentage.toFixed(2)}%) dépasse la commission boutique active la plus basse (${minimumShopCommission.toFixed(2)}%).`;
+    }
+    return null;
+  };
 
   const handleSave = async () => {
     if (!formCode.trim()) { addToast(getLocalizedToast('Code is required', 'Le code est requis'), 'error'); return; }
     const pct = parseFloat(formReduction);
     if (isNaN(pct) || pct < 0 || pct > 100) { addToast(getLocalizedToast('The reduction must be between 0 and 100%', 'La reduction doit etre entre 0 et 100%'), 'error'); return; }
+    if (formActif) {
+      const safetyError = getCommissionSafetyError(pct);
+      if (safetyError) {
+        setFormError(safetyError);
+        return;
+      }
+    }
     setFormError(null);
     setSaving(true);
     try {
@@ -154,6 +204,18 @@ export default function PromoCodesPage() {
   };
 
   const patchPromoCode = async (id: number, field: string, value: string) => {
+    const currentCode = codes.find(code => code.id === id);
+    if (field === 'reduction_pourcentage' && currentCode?.est_actif) {
+      const percentage = Number(value);
+      const safetyError = getCommissionSafetyError(percentage);
+      if (!Number.isFinite(percentage) || percentage < 0 || percentage > 100 || safetyError) {
+        addToast(
+          safetyError || 'La réduction doit être comprise entre 0 et 100%.',
+          'error'
+        );
+        return;
+      }
+    }
     setCodes(prev => prev.map(c => c.id === id ? { ...c, [field]: value } : c));
     try {
       await promoApi.update(id, { [field]: field === 'code' ? value.toUpperCase() : value });
@@ -199,7 +261,7 @@ export default function PromoCodesPage() {
       });
       const ids = list.map(c => c.id);
       setFormClients(prev => Array.from(new Set([...prev, ...ids])));
-      addToast(getLocalizedToast(`${ids.length} client(s) added`, `${ids.length} client(s) ajouté(s)`), 'success');
+      addToast(getLocalizedToast('Clients added', 'Clients ajoutés'), 'success');
     } catch {
       addToast('Erreur lors du chargement du groupe', 'error');
     } finally {
@@ -347,7 +409,16 @@ export default function PromoCodesPage() {
         size="xl"
         footer={
           <div className="flex gap-3">
-            <button onClick={handleSave} disabled={saving} className="flex-1 bg-gold text-black rounded-xl py-3 text-sm font-bold flex items-center justify-center gap-2 hover:bg-gold/80 transition-all disabled:opacity-50">
+            <button
+              onClick={handleSave}
+              disabled={
+                saving ||
+                (formActif &&
+                  formReduction !== '' &&
+                  Boolean(getCommissionSafetyError(Number(formReduction))))
+              }
+              className="flex-1 bg-gold text-black rounded-xl py-3 text-sm font-bold flex items-center justify-center gap-2 hover:bg-gold/80 transition-all disabled:opacity-50"
+            >
               {saving ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle size={16} />}
               {editingCode ? 'Enregistrer les modifications' : 'Creer et envoyer'}
             </button>
@@ -363,9 +434,36 @@ export default function PromoCodesPage() {
           <div>
             <label className="text-[10px] font-bold text-foreground/40 uppercase tracking-widest mb-2 block">Reduction (%) *</label>
             <div className="relative">
-              <input type="number" min="0" max="100" step="0.5" value={formReduction} onChange={e => setFormReduction(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-foreground outline-none focus:border-gold transition-all pr-10" />
+              <input type="number" min="0" max="100" step="0.5" value={formReduction} onChange={e => { setFormReduction(e.target.value); setFormError(null); }} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-foreground outline-none focus:border-gold transition-all pr-10" />
               <Percent size={16} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-foreground/30" />
             </div>
+            <div className="mt-2 flex items-start gap-2 text-[11px]">
+              <AlertCircle size={13} className="mt-0.5 shrink-0 text-gold" />
+              <p className="text-foreground/55">
+                {commissionSafetyLoading
+                  ? 'Vérification de la commission minimale des boutiques actives…'
+                  : commissionSafetyError
+                  ? commissionSafetyError
+                  : minimumShopCommission === null
+                  ? 'Aucune boutique active : aucun plafond de commission boutique à appliquer.'
+                  : `Plafond pour un code actif : ${minimumShopCommission}% (commission minimale des boutiques actives).`}
+              </p>
+            </div>
+            {commissionSafetyError && (
+              <button
+                type="button"
+                onClick={loadCommissionFloor}
+                className="mt-2 text-[11px] font-medium text-gold underline underline-offset-2"
+              >
+                Réessayer la vérification
+              </button>
+            )}
+            {formActif && formReduction !== '' && getCommissionSafetyError(Number(formReduction)) && (
+              <p className="mt-2 text-xs text-red-400">
+                {getCommissionSafetyError(Number(formReduction))}
+              </p>
+            )}
+            {formError && <p className="mt-2 text-xs text-red-400">{formError}</p>}
           </div>
           <label className="flex items-center gap-3 cursor-pointer select-none">
             <div onClick={() => setFormActif(v => !v)} className={`w-10 h-5 rounded-full transition-all relative flex-shrink-0 ${formActif ? 'bg-gold' : 'bg-white/10'}`}>

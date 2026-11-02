@@ -210,10 +210,10 @@ export default function DeliveryDashboard() {
     setUpdating(task.id);
     try {
       await deliveryService.updateDeliveryStatus(task.id, { action: 'livrer' });
-      addToast(getLocalizedToast(`Order ${task.orderId} marked as delivered.`, `Livraison ${task.orderId} marquée comme livrée !`), 'success');
+      addToast(getLocalizedToast('Delivery marked as delivered', 'Livraison marquée comme livrée'), 'success');
       await fetchData();
     } catch (err: any) {
-      addToast(err.response?.data?.detail ?? getLocalizedToast('Error updating delivery', 'Erreur lors de la mise à jour'), 'error');
+      addToast(getLocalizedToast('Error updating delivery', 'Erreur lors de la mise à jour'), 'error');
     } finally {
       setUpdating(null);
     }
@@ -233,7 +233,7 @@ export default function DeliveryDashboard() {
       setFailReason('');
       await fetchData();
     } catch (err: any) {
-      addToast(err.response?.data?.detail ?? getLocalizedToast('Error', 'Erreur'), 'error');
+      addToast(getLocalizedToast('Error', 'Erreur'), 'error');
     } finally {
       setUpdating(null);
     }

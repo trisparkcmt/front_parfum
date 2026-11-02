@@ -231,7 +231,7 @@ export default function DeliveryPage() {
       addToast(getLocalizedToast('Driver removed from fleet successfully', 'Livreur supprimé de la flotte avec succès'), 'success');
     } catch (error: any) {
       if (snapshot) setDrivers(prev => [snapshot, ...prev]);
-      addToast(error.response?.data?.detail || 'Erreur lors de la suppression', 'error');
+      addToast('Erreur lors de la suppression', 'error');
     }
   };
 

@@ -17,7 +17,7 @@ type FlashTab = "all" | "newest" | "popular" | "men" | "women";
 const GENDERLESS_COUNTS_AS_BOTH = true;
 
 export default function FlashSales() {
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation();
   const isEn = i18n.language?.startsWith("en");
 
   const [bestsellers, setBestsellers] = useState<Product[]>([]);
@@ -177,20 +177,19 @@ export default function FlashSales() {
 
     const totalCount = items.reduce((s, it) => s + it.quantity, 0);
     addToast(
-      `${essence.name} (${totalCount} flacon${totalCount > 1 ? 's' : ''}) ${isEn ? 'added to cart' : 'ajouté au panier'}`,
+      isEn ? 'Added' : 'Ajouté',
       'success'
     );
   };
 
   const handleToggleFavorite = (product: Product) => {
-    if (isFavorite(product.id)) {
-      removeFavorite(product.id);
+    const isFav = isFavorite(product.id, product.category);
+    if (isFav) {
+      removeFavorite(product.id, product.category);
+      addToast(t('removed_from_favorites'), 'info');
     } else {
       addFavorite(product);
-      addToast(
-        `${product.name} ${isEn ? "added to favorites" : "ajouté aux favoris"}`,
-        "info"
-      );
+      addToast(t('added_to_favorites'), 'success');
     }
   };
 
@@ -244,7 +243,7 @@ export default function FlashSales() {
                 product={product}
                 onAddToCart={handleAddToCart}
                 onToggleFavorite={handleToggleFavorite}
-                isFavorite={isFavorite(product.id)}
+                isFavorite={isFavorite(product.id, product.category)}
               />
             </motion.div>
           ))

@@ -88,7 +88,7 @@ export default function AiFloatingButton() {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: 14 }}
           transition={{ type: "spring", stiffness: 300, damping: 26, delay: 0.4 }}
-          className="fixed bottom-24 right-4 lg:bottom-8 lg:right-6 z-50 flex items-center"
+          className="fixed bottom-4 right-4 lg:bottom-8 lg:right-6 z-50 flex items-center"
         >
           {/* Ribbon tag — unfurls from behind the medallion, once, then retracts */}
           <AnimatePresence>

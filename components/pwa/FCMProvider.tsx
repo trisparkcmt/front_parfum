@@ -2,7 +2,6 @@
 
 import { useEffect, useRef } from 'react';
 import { initializeFCM, cleanupFCM } from '@/services/fcmService';
-import { useToastStore } from '@/store/useToastStore';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useNotificationCountStore } from '@/store/useNotificationCountStore';
 
@@ -13,7 +12,6 @@ import { useNotificationCountStore } from '@/store/useNotificationCountStore';
  * - Sets up foreground FCM message listener for in-app toast notifications
  */
 export function FCMProvider() {
-  const { addToast } = useToastStore();
   const { isAuthenticated, _hasHydrated, user } = useAuthStore();
   const prevAuthRef = useRef<boolean | null>(null);
 
@@ -26,28 +24,6 @@ export function FCMProvider() {
       .then((reg) => console.log('[SW] Registered:', reg.scope))
       .catch((err) => console.error('[SW] Registration failed:', err));
   }, []);
-
-  // Run iOS diagnostics on page mount
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-
-    const userAgent = window.navigator.userAgent || '';
-    const isIOS = /iPad|iPhone|iPod/.test(userAgent);
-
-    if (isIOS) {
-      const standalone = Boolean(
-        window.matchMedia('(display-mode: standalone)').matches || 
-        (window.navigator as any).standalone
-      );
-
-      if (!standalone) {
-        addToast(
-          "⚠️ Action requise: Pour recevoir des notifications sur iPhone, vous devez installer l'application sur l'écran d'accueil (Partager > Sur l'écran d'accueil) et l'ouvrir depuis l'icône installée.",
-          'warning' as any
-        );
-      }
-    }
-  }, [addToast]);
 
   // Watch auth state — initialize FCM after login and cleanup on logout
   useEffect(() => {
@@ -71,20 +47,17 @@ export function FCMProvider() {
   }, [isAuthenticated, _hasHydrated, user]);
 
 
-  // Connect to useNotificationCountStore to fetch & poll counts
+  // Refresh counts for the authenticated user on sign-in and when returning to the app.
   useEffect(() => {
-    if (!isAuthenticated) return;
+    if (!_hasHydrated || !isAuthenticated || !user) return;
     const { fetchCounts } = useNotificationCountStore.getState();
-    fetchCounts();
+    void fetchCounts();
 
-    const interval = setInterval(() => {
-      fetchCounts();
-    }, 30000);
-
-    // Refresh counts when window comes into focus or when notification is clicked
+    // Refresh counts when the app returns to the foreground or a notification is clicked.
     const handleFocus = () => {
       const currentUser = useAuthStore.getState().user;
-      const roles = (currentUser?.roles || []).map((r: string) => String(r).toLowerCase());
+      const roles = [...(currentUser?.roles || []), ...(currentUser?.role ? [currentUser.role] : [])]
+        .map((role: string) => String(role).toLowerCase());
       const isClient = !roles.some((r) => r === 'admin' || r === 'serveuse' || r === 'superadmin' || r === 'livreur' || r === 'delivery');
 
       if (isClient) {
@@ -99,7 +72,8 @@ export function FCMProvider() {
     const handleSWMessage = (event: MessageEvent) => {
       if (event.data?.type === 'FCM_NOTIFICATION_CLICKED') {
         const currentUser = useAuthStore.getState().user;
-        const roles = (currentUser?.roles || []).map((r: string) => String(r).toLowerCase());
+        const roles = [...(currentUser?.roles || []), ...(currentUser?.role ? [currentUser.role] : [])]
+          .map((role: string) => String(role).toLowerCase());
         const isClient = !roles.some((r) => r === 'admin' || r === 'serveuse' || r === 'superadmin' || r === 'livreur' || r === 'delivery');
 
         if (isClient) {
@@ -115,20 +89,15 @@ export function FCMProvider() {
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.addEventListener('message', handleSWMessage);
     }
-
     return () => {
-      clearInterval(interval);
       window.removeEventListener('focus', handleFocus);
       if ('serviceWorker' in navigator) {
         navigator.serviceWorker.removeEventListener('message', handleSWMessage);
       }
     };
-  }, [isAuthenticated]);
+  }, [_hasHydrated, isAuthenticated, user]);
 
   return null;
 }
-
-
-
 
 

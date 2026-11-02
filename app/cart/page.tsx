@@ -30,9 +30,17 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { useCartStore } from '@/store/useCartStore';
 import { useToastStore } from '@/store/useToastStore';
-import { formatPrice, generateWhatsAppLink, getCompanyWhatsAppNumber } from '@/lib/utils';
+import {
+  formatPrice,
+  generateWhatsAppLink,
+  getCompanyWhatsAppNumber,
+  getCartLineTarget,
+  type WhatsAppOrderItem,
+} from '@/lib/utils';
 import { PRODUCT_CATEGORY_LABELS } from '@/lib/constants';
 import { useTranslation } from 'react-i18next';
+import { ProductDetailModal } from '@/components/ui/ProductDetailModal';
+import { HuileDetailModal } from '@/components/ui/HuileDetailModal';
 
 import { BackButton } from '@/components/ui/BackButton';
 import { useAuthStore } from '@/store/useAuthStore';
@@ -93,6 +101,32 @@ export default function CartPage() {
         delete newErrors[field];
         return newErrors;
       });
+    }
+  };
+
+  const [modalProductId, setModalProductId] = useState<string | null>(null);
+  const [modalProductType, setModalProductType] = useState<'perfume' | 'accessory' | 'diffuseur'>('perfume');
+  const [huileModalProductId, setHuileModalProductId] = useState<string | null>(null);
+
+  const handleOpenItem = (item: any) => {
+    const target = getCartLineTarget(item);
+    if (!target) return;
+
+    if (target.kind === 'custom') {
+      addToast(
+        isEn
+          ? 'Custom bespoke creation from Atelier Numba'
+          : 'Création sur-mesure de l’Atelier Numba',
+        'info'
+      );
+      return;
+    }
+
+    if (target.kind === 'huile') {
+      setHuileModalProductId(target.productId);
+    } else if (target.kind === 'product') {
+      setModalProductId(target.productId);
+      setModalProductType(target.productType || 'perfume');
     }
   };
 
@@ -237,21 +271,20 @@ export default function CartPage() {
 
     const popupWindow = window.open('', '_blank');
 
-    const formattedItems = allItems.map((item: any) => ({
-      id: String(item.id),
-      type: 'product' as const,
-      product: {
-        id: String(item.id),
-        name: item.nom,
-        price: item.prix_unitaire_snapshot,
-        description: '',
-        category: 'accessory' as const,
-        images: [],
-        stock: 99,
-        inStock: true,
-        isActive: true,
-        createdAt: '',
-      },
+    const formattedItems: WhatsAppOrderItem[] = allItems.map((item) => ({
+      name: item.nom,
+      type:
+        item.type === 'parfum'
+          ? 'perfume'
+          : item.type === 'accessoire'
+          ? 'accessory'
+          : item.type === 'diffuseur-parfum'
+          ? 'diffuser'
+          : item.type === 'produit-fini-essence'
+          ? 'huile'
+          : item.type === 'parfum-personnalise'
+          ? 'custom-perfume'
+          : 'custom-essence',
       quantity: item.quantite,
       unitPrice: item.prix_unitaire_snapshot,
     }));
@@ -434,7 +467,10 @@ export default function CartPage() {
                   className="flex gap-4 sm:gap-5 p-4 sm:p-5"
                 >
                   {/* Thumbnail */}
-                  <div className="w-20 h-20 sm:w-24 sm:h-24 shrink-0 rounded-xl bg-foreground/5 border border-foreground/10 overflow-hidden relative">
+                  <div
+                    onClick={() => handleOpenItem(item)}
+                    className="w-20 h-20 sm:w-24 sm:h-24 shrink-0 rounded-xl bg-foreground/5 border border-foreground/10 overflow-hidden relative cursor-pointer hover:opacity-80 transition-opacity"
+                  >
                     {item.image ? (
                       <AppImage src={item.image} alt={item.nom} fill className="object-cover" />
                     ) : (
@@ -453,7 +489,10 @@ export default function CartPage() {
                         <p className="text-[11px] text-gold font-semibold mb-1 uppercase tracking-widest">
                           {itemTypeLabel(item.type)}
                         </p>
-                        <h3 className="font-display text-sm sm:text-base font-bold text-foreground truncate">
+                        <h3
+                          onClick={() => handleOpenItem(item)}
+                          className="font-display text-sm sm:text-base font-bold text-foreground truncate cursor-pointer hover:text-gold transition-colors"
+                        >
                           {item.nom}
                         </h3>
                       </div>
@@ -790,6 +829,27 @@ export default function CartPage() {
           </div>
         </div>
       </div>
+
+      {/* Product Detail Modal */}
+      <AnimatePresence>
+        {modalProductId && (
+          <ProductDetailModal
+            productId={modalProductId}
+            productType={modalProductType}
+            onClose={() => setModalProductId(null)}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Huile Detail Modal */}
+      <AnimatePresence>
+        {huileModalProductId && (
+          <HuileDetailModal
+            productId={huileModalProductId}
+            onClose={() => setHuileModalProductId(null)}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }

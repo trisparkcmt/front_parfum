@@ -737,7 +737,7 @@ function ProductCard({
         )}
       </div>
       <div className="p-3 flex-1 flex flex-col">
-        <p className="text-xs font-bold text-foreground/80 line-clamp-2 leading-tight mb-2">{name}</p>
+        <p className="text-xs font-bold text-foreground/80 line-clamp-2 leading-tight mb-2 uppercase">{name}</p>
         <p className="text-xs text-gold font-semibold mt-auto">{typeof price === 'number' ? formatPrice(price) : formatPrice(Number(price))}</p>
       </div>
       <button
@@ -1330,7 +1330,7 @@ export function GeminiChat({ onChatStarted }: GeminiChatProps) {
   const handleResetConversation = useCallback(async () => {
     try {
       const res = await apiLabService.resetIAChatSummary();
-      addToast(res.detail || t.resetSuccess, 'success');
+      addToast(t.resetSuccess, 'success');
     } catch (err: unknown) {
       console.warn('Failed to reset AI chat summary:', err);
     } finally {

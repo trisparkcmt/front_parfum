@@ -17,16 +17,13 @@ const SHOPS = [
     lng: 11.518453228911936
   },
   {
-    name: "Accessoires Exclusifs (Central Mall)",
+    name: "Accessoires Exclusifs / NUMBA",
     addressFr: "Central Mall, Yaoundé, Cameroun",
     addressEn: "Central Mall, Yaounde, Cameroon",
     lat: 3.8669750298785748,
     lng: 11.518235437448217
   }
 ];
-
-const CENTER_LAT = (SHOPS[0].lat + SHOPS[1].lat) / 2;
-const CENTER_LNG = (SHOPS[0].lng + SHOPS[1].lng) / 2;
 
 const STORE_INFO = {
   name: "Accessoires Exclusifs",
@@ -66,7 +63,7 @@ function LeafletMap() {
       if (mapInstanceRef.current || !mapRef.current) return;
 
       const map = L.default.map(mapRef.current, {
-        center: [CENTER_LAT, CENTER_LNG],
+        center: [SHOPS[0].lat, SHOPS[0].lng],
         zoom: 14,
         zoomControl: true,
         scrollWheelZoom: false,
@@ -109,6 +106,11 @@ function LeafletMap() {
         // Open popup for the first shop by default
         if (index === 0) marker.openPopup();
       });
+
+      map.fitBounds(
+        L.default.latLngBounds(SHOPS.map((shop) => [shop.lat, shop.lng])),
+        { padding: [64, 64], maxZoom: 17 }
+      );
 
       map.whenReady(() => setIsReady(true));
     });

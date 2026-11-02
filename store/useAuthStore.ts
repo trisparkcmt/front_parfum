@@ -106,6 +106,10 @@ interface AuthState {
   isAuthenticated: boolean;
   isLoading: boolean;
   _hasHydrated: boolean;
+  showGooglePersistencePrompt: boolean;
+  setShowGooglePersistencePrompt: (open: boolean) => void;
+  googleLoginRedirectUrl: string | null;
+  setGoogleLoginRedirectUrl: (url: string | null) => void;
   setHasHydrated: (state: boolean) => void;
   login: (loginInput: string, password: string, rememberMe?: boolean) => Promise<boolean>;
   loginWithGoogle: (accessToken?: string, code?: string, idToken?: string) => Promise<boolean>;
@@ -131,6 +135,10 @@ export const useAuthStore = create<AuthState>()(
       isAuthenticated: false,
       isLoading: false,
       _hasHydrated: false,
+      showGooglePersistencePrompt: false,
+      setShowGooglePersistencePrompt: (open) => set({ showGooglePersistencePrompt: open }),
+      googleLoginRedirectUrl: null,
+      setGoogleLoginRedirectUrl: (url) => set({ googleLoginRedirectUrl: url }),
 
       setHasHydrated: (state) => {
         set({ _hasHydrated: state });
@@ -227,7 +235,7 @@ export const useAuthStore = create<AuthState>()(
             isLoading: false,
           });
           initializeTokenRefresh();
-          addToast(getLocalizedToast(`Welcome, ${meUser.firstName}!`, `Bienvenue, ${meUser.firstName} !`), 'success');
+          addToast(getLocalizedToast('Welcome', 'Bienvenue'), 'success');
 
           // Clear stale cart and sync fresh cart from backend after login
           // NOTE: Cart sync disabled until backend orders/panier endpoints are implemented
@@ -244,7 +252,7 @@ export const useAuthStore = create<AuthState>()(
         } catch (error: any) {
           console.error('Login failed:', error);
           set({ isLoading: false });
-          addToast(error.response?.data?.detail || getLocalizedToast('Login failed', 'Échec de la connexion'), 'error');
+          addToast(getLocalizedToast('Login failed', 'Échec de la connexion'), 'error');
           return false;
         }
       },
@@ -336,9 +344,10 @@ export const useAuthStore = create<AuthState>()(
             user: meUser,
             isAuthenticated: true,
             isLoading: false,
+            showGooglePersistencePrompt: true,
           });
           initializeTokenRefresh();
-          addToast(getLocalizedToast(`Welcome, ${meUser.firstName}!`, `Bienvenue, ${meUser.firstName} !`), 'success');
+          addToast(getLocalizedToast('Welcome', 'Bienvenue'), 'success');
           // NOTE: FCM device registration is handled by FCMProvider which watches
           // isAuthenticated — no need to call initializeFCM here (would cause race condition).
 
@@ -348,7 +357,7 @@ export const useAuthStore = create<AuthState>()(
         } catch (error: any) {
           console.error('Google login failed:', error);
           set({ isLoading: false });
-          addToast(error.response?.data?.detail || getLocalizedToast('Google login failed', 'Échec de la connexion Google'), 'error');
+          addToast(getLocalizedToast('Google login failed', 'Échec de la connexion Google'), 'error');
           return false;
         }
       },
@@ -606,6 +615,10 @@ export const useAuthStore = create<AuthState>()(
     {
       name: 'ae-auth',
       storage: authStateStorage,
+      partialize: (state) => ({
+        user: state.user,
+        isAuthenticated: state.isAuthenticated,
+      }),
       onRehydrateStorage: () => (state) => {
         if (state) {
           state.setHasHydrated(true);

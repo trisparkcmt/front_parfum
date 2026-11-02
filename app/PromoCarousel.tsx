@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import { shopService } from "@/services/apiService";
 import { extractCatalogList } from "@/lib/catalogUtils";
 import AppImage from "@/components/ui/AppImage";
+import { LiquidButton } from "@/components/ui/LiquidButton";
 
 interface PromoEntry {
   key: string;
@@ -25,7 +26,7 @@ interface PromoEntry {
 
 const FALLBACK_IMAGE = "/promo2.png";
 const AUTO_SLIDE_INTERVAL = 5000;
-const glass = 'rounded-full border border-white/10 bg-white/[0.06] backdrop-blur-2xl shadow-[0_4px_30px_rgba(0,0,0,0.25)] supports-[backdrop-filter]:bg-white/[0.06]';
+const glass = 'rounded-full glass-liquid shadow-lg hover:scale-105 transition-all duration-300';
 
 const textDict = {
   createPerfume: { fr: "Créez votre parfum", en: "Create your perfume" },
@@ -309,15 +310,15 @@ export default function PromoCarousel() {
 
   if (loading) {
     return (
-      <div className="w-full">
-        <div className="lg:hidden max-w-7xl mx-auto px-4 sm:px-6 pt-2">
-          <div className="flex gap-3 overflow-x-auto snap-x snap-mandatory scrollbar-hide -mx-4 px-4">
+      <div className="flex w-full flex-1 flex-col">
+        <div className="lg:hidden max-w-7xl mx-auto px-4 sm:px-6 pt-2 flex flex-1 flex-col">
+          <div className="flex flex-1 items-stretch gap-3 overflow-x-auto snap-x snap-mandatory scrollbar-hide -mx-4 px-4">
             {Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className="h-52 w-[82%] min-w-[280px] max-w-[340px] sm:w-[320px] flex-shrink-0 rounded-2xl bg-foreground/5 animate-pulse" />
+              <div key={i} className="h-full min-h-52 w-[82%] min-w-[280px] max-w-[340px] sm:w-[320px] flex-shrink-0 rounded-2xl bg-foreground/5 animate-pulse" />
             ))}
           </div>
         </div>
-        <div className="hidden lg:block w-full h-[600px] bg-foreground/5 animate-pulse" />
+        <div className="hidden lg:block w-full flex-1 min-h-[550px] bg-foreground/5 animate-pulse" />
       </div>
     );
   }
@@ -328,7 +329,7 @@ export default function PromoCarousel() {
 
   return (
     <section
-      className="w-full"
+      className="flex w-full flex-1 flex-col"
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
       onTouchStart={() => setIsPaused(true)}
@@ -340,16 +341,16 @@ export default function PromoCarousel() {
         const displayMessage = getPromoMessage(promo, isEn);
         const countdownMessage = formatCountdown(promo, isEn);
         return (
-          <div className="lg:hidden w-full mt-2">
+          <div className="lg:hidden flex w-full flex-1 flex-col mt-2">
             <motion.div
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4 }}
-              className="w-full"
+              className="flex w-full flex-1 flex-col"
             >
               <Link
                 href={promo.link}
-                className="group relative block h-64 w-full overflow-hidden bg-deep-black"
+                className="group relative flex min-h-64 flex-1 w-full flex-col overflow-hidden bg-deep-black"
               >
                 <div className="absolute inset-0 pointer-events-none">
                   <AppImage
@@ -392,11 +393,11 @@ export default function PromoCarousel() {
 
       {/* MOBILE / TABLET — multiple items: scrollable carousel, text overlaid on the photo */}
       {items.length > 1 && (
-      <div className="lg:hidden max-w-7xl mx-auto mt-2 px-4 sm:px-6">
+      <div className="lg:hidden max-w-7xl mx-auto mt-2 px-4 sm:px-6 flex w-full flex-1 flex-col">
         <div
           ref={mobileScrollRef}
           onScroll={handleMobileScroll}
-          className="flex gap-3 overflow-x-auto snap-x snap-mandatory scrollbar-hide -mx-4 px-4"
+          className="flex flex-1 items-stretch gap-3 overflow-x-auto snap-x snap-mandatory scrollbar-hide -mx-4 px-4"
           style={{ scrollbarWidth: 'none', scrollPaddingInline: '1rem' }}
         >
           {items.map((promo, idx) => {
@@ -414,12 +415,12 @@ export default function PromoCarousel() {
                   y: 0
                 }}
                 transition={{ duration: 0.4 }}
-                className="snap-center flex-shrink-0 w-[82%] min-w-[280px] max-w-[340px] sm:w-[320px]"
+                className="snap-center h-full flex-shrink-0 w-[82%] min-w-[280px] max-w-[340px] sm:w-[320px]"
               >
                 <Link
                   href={promo.link}
                   className={cn(
-                    "group relative block h-52 overflow-hidden rounded-2xl border bg-deep-black transition-colors",
+                    "group relative block h-full min-h-52 overflow-hidden rounded-2xl border bg-deep-black transition-colors",
                     isActive ? "border-gold/40" : "border-gold/15"
                   )}
                 >
@@ -483,7 +484,7 @@ export default function PromoCarousel() {
       )}
 
       {/* DESKTOP */}
-      <div className="hidden lg:block relative w-full h-[620px] overflow-hidden bg-deep-black">
+      <div className="hidden lg:block relative w-full flex-1 min-h-[550px] overflow-hidden bg-deep-black">
         <AnimatePresence mode="wait">
           <motion.div
             key={activeSlide.key}
@@ -565,22 +566,24 @@ export default function PromoCarousel() {
 
         {items.length > 1 && (
           <>
-            <button
+            <LiquidButton
               type="button"
               aria-label={isEn ? textDict.prev.en : textDict.prev.fr}
               onClick={() => goTo(slideIndex - 1)}
-              className={cn(glass, 'absolute left-6 top-1/2 -translate-y-1/2 z-20 size-12 flex items-center justify-center text-white/80 hover:text-gold hover:bg-white/10 transition-colors cursor-pointer')}
+              size="icon"
+              className="absolute left-6 top-1/2 -translate-y-1/2 z-20 size-12 text-white/90 hover:text-gold transition-colors"
             >
               <ArrowLeft size={18} />
-            </button>
-            <button
+            </LiquidButton>
+            <LiquidButton
               type="button"
               aria-label={isEn ? textDict.next.en : textDict.next.fr}
               onClick={() => goTo(slideIndex + 1)}
-              className={cn(glass, 'absolute right-6 top-1/2 -translate-y-1/2 z-20 size-12 flex items-center justify-center text-white/80 hover:text-gold hover:bg-white/10 transition-colors cursor-pointer')}
+              size="icon"
+              className="absolute right-6 top-1/2 -translate-y-1/2 z-20 size-12 text-white/90 hover:text-gold transition-colors"
             >
               <ArrowRight size={18} />
-            </button>
+            </LiquidButton>
 
             <div className="absolute bottom-7 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2">
               {items.map((_, idx) => (

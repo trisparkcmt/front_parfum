@@ -81,7 +81,7 @@ export function DiffuseurCard({
 
   const mainImage = product.image_principale || (product.images && product.images[0]) || '';
   const secondImage = product.images && product.images[1] ? product.images[1] : '';
-  const productUrl = `/shop/diffuseurs/${product.id || product.slug}`;
+  const productUrl = `/shop/diffuseurs?product=${encodeURIComponent(product.slug || product.id)}&type=diffuseur`;
 
   const techLabel = product.type_technologie
     ? (product.type_technologie === 'ultrasons'
@@ -156,12 +156,15 @@ export function DiffuseurCard({
         onClick={handleProductLinkClick}
         className="relative block w-24 shrink-0 self-stretch overflow-hidden bg-[var(--t-surface-overlay)] sm:w-36 md:w-44"
       >
-        <AppImage
-          src={getImageUrl(isHovered && secondImage ? secondImage : mainImage)}
-          alt={product.name}
-          fill
-          className="object-cover transition-transform duration-500 group-hover:scale-105"
-        />
+        {(isHovered && secondImage ? secondImage : mainImage) && (
+          <AppImage
+            src={getImageUrl(isHovered && secondImage ? secondImage : mainImage)}
+            alt={product.name}
+            fill
+            fallbackSrc={null}
+            className="object-cover transition-transform duration-500 group-hover:scale-105"
+          />
+        )}
 
         {/* Scrim so the overlay buttons stay legible over any photo, in any theme */}
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-black/25 via-transparent to-transparent" />
@@ -220,7 +223,7 @@ export function DiffuseurCard({
           <Link
             href={productUrl}
             onClick={handleProductLinkClick}
-            className="mb-1 block truncate font-serif text-sm font-medium leading-snug text-[var(--foreground)] transition-colors hover:text-[var(--color-gold)] sm:text-base md:text-lg"
+            className="mb-1 block truncate font-serif text-sm font-medium leading-snug text-[var(--foreground)] uppercase transition-colors hover:text-[var(--color-gold)] sm:text-base md:text-lg"
           >
             {product.name}
           </Link>

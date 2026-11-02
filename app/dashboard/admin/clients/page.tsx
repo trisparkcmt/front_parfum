@@ -140,7 +140,7 @@ export default function ClientsPage() {
       fetchClients();
       setSelected(null);
     } catch (error: any) {
-      addToast(error.response?.data?.detail || 'Erreur lors de la promotion', 'error');
+      addToast('Erreur lors de la promotion', 'error');
     } finally {
       setPromoting(false);
     }
@@ -157,7 +157,7 @@ export default function ClientsPage() {
       fetchClients();
       setSelected(null);
     } catch (error: any) {
-      addToast(error.response?.data?.detail || 'Erreur lors de la promotion', 'error');
+      addToast('Erreur lors de la promotion', 'error');
     } finally {
       setPromoting(false);
     }

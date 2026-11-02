@@ -40,9 +40,11 @@ interface HuileDetailModalProps {
   onClose: () => void;
   /** Optionally open a related huile inside the same modal */
   onRelatedHuileClick?: (product: Product) => void;
+  /** Optional base z-index override (default: 80) */
+  zIndex?: number;
 }
 
-export function HuileDetailModal({ productId, initialProduct, onClose, onRelatedHuileClick }: HuileDetailModalProps) {
+export function HuileDetailModal({ productId, initialProduct, onClose, onRelatedHuileClick, zIndex }: HuileDetailModalProps) {
   const { i18n } = useTranslation();
   const isEn = i18n.language?.startsWith('en');
 
@@ -119,12 +121,16 @@ export function HuileDetailModal({ productId, initialProduct, onClose, onRelated
     return () => { document.body.style.overflow = prev; };
   }, []);
 
+  const closeModal = useCallback(() => {
+    onClose();
+  }, [onClose]);
+
   // ── Escape key ─────────────────────────────────────────────────────────────
   useEffect(() => {
-    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') window.history.back(); };
+    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') closeModal(); };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, []);
+  }, [closeModal]);
 
   // ── Variant helpers ────────────────────────────────────────────────────────
   const variants = useMemo(() => product?.produits_finis || [], [product]);
@@ -195,22 +201,22 @@ export function HuileDetailModal({ productId, initialProduct, onClose, onRelated
 
     addToast(
       isEn
-        ? `${product.name} (${totalQuantity} bottle${totalQuantity > 1 ? 's' : ''}) added to bag`
-        : `${product.name} (${totalQuantity} flacon${totalQuantity > 1 ? 's' : ''}) ajouté au panier`,
+        ? 'Added'
+        : 'Ajouté',
       'success'
     );
   };
 
   const handleToggleFavorite = () => {
     if (!product) return;
-    const currentlyFav = product.is_favori ?? isFavorite(product.id);
-    if (currentlyFav) {
-      removeFavorite(product.id);
-      addToast(isEn ? `${product.name} removed from wishlist` : `${product.name} retiré des favoris`, 'info');
+    const isFav = product.is_favori ?? isFavorite(product.id, product.category);
+    if (isFav) {
+      removeFavorite(product.id, product.category);
+      addToast(isEn ? 'Removed from favorites' : 'Retiré des favoris', 'info');
       setProduct({ ...product, is_favori: false });
     } else {
       addFavorite(product);
-      addToast(isEn ? `${product.name} added to wishlist` : `${product.name} ajouté aux favoris`, 'info');
+      addToast(isEn ? 'Added to favorites' : 'Ajouté aux favoris', 'info');
       setProduct({ ...product, is_favori: true });
     }
   };
@@ -236,8 +242,12 @@ export function HuileDetailModal({ productId, initialProduct, onClose, onRelated
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         transition={{ duration: 0.2 }}
-        className="fixed inset-0 z-[80] bg-black/60 backdrop-blur-sm"
-        onClick={() => window.history.back()}
+        className={cn(
+          "fixed inset-0 bg-black/60 backdrop-blur-sm",
+          !zIndex && "z-[80]"
+        )}
+        style={zIndex ? { zIndex } : undefined}
+        onClick={closeModal}
         aria-hidden="true"
       />
 
@@ -248,16 +258,24 @@ export function HuileDetailModal({ productId, initialProduct, onClose, onRelated
         animate={{ opacity: 1, x: 0 }}
         exit={{ opacity: 0, x: '100%' }}
         transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-        className="fixed inset-0 z-[81] overflow-y-auto bg-background text-foreground"
+        className={cn(
+          "fixed inset-0 overflow-y-auto bg-background text-foreground",
+          !zIndex && "z-[81]"
+        )}
+        style={zIndex ? { zIndex: zIndex + 1 } : undefined}
         role="dialog"
         aria-modal="true"
         aria-label={product?.name ?? 'Huile essentielle'}
       >
         {/* Back button */}
         <button
-          onClick={() => window.history.back()}
+          onClick={closeModal}
           aria-label={isEn ? 'Close' : 'Fermer'}
-          className="fixed top-4 left-4 z-[82] flex items-center gap-2 text-foreground/70 hover:text-gold transition-colors bg-background/80 backdrop-blur-sm rounded-xl px-3 py-2 border border-foreground/10 hover:border-gold/30"
+          className={cn(
+            "fixed top-4 left-4 flex items-center gap-2 text-foreground/70 hover:text-gold transition-colors bg-background/80 backdrop-blur-sm rounded-xl px-3 py-2 border border-foreground/10 hover:border-gold/30",
+            !zIndex && "z-[82]"
+          )}
+          style={zIndex ? { zIndex: zIndex + 2 } : undefined}
         >
           <ArrowLeft size={18} />
           <span className="text-sm font-medium uppercase tracking-widest hidden sm:inline">
@@ -286,7 +304,7 @@ export function HuileDetailModal({ productId, initialProduct, onClose, onRelated
                 <p className="text-foreground/40 text-lg uppercase tracking-[0.2em]">
                   {isEn ? 'Oil not found' : 'Huile introuvable'}
                 </p>
-                <button onClick={() => window.history.back()} className="text-gold underline text-sm">
+                <button onClick={closeModal} className="text-gold underline text-sm">
                   {isEn ? 'Go back' : 'Retour'}
                 </button>
               </div>
@@ -296,11 +314,11 @@ export function HuileDetailModal({ productId, initialProduct, onClose, onRelated
               <>
                 {/* Breadcrumb */}
                 <nav className="mt-2 mb-8 flex items-center gap-2 text-[11px] text-foreground/40 uppercase tracking-widest overflow-x-auto whitespace-nowrap scrollbar-hide">
-                  <span className="hover:text-gold transition-colors cursor-pointer" onClick={() => window.history.back()}>
+                  <span className="hover:text-gold transition-colors cursor-pointer" onClick={closeModal}>
                     {isEn ? 'Shop' : 'Boutique'}
                   </span>
                   <ChevronRight size={11} className="shrink-0" />
-                  <span className="hover:text-gold transition-colors cursor-pointer" onClick={() => window.history.back()}>
+                  <span className="hover:text-gold transition-colors cursor-pointer" onClick={closeModal}>
                     {isEn ? 'Pure Oils' : 'Huiles Pures'}
                   </span>
                   <ChevronRight size={11} className="shrink-0" />
@@ -375,13 +393,13 @@ export function HuileDetailModal({ productId, initialProduct, onClose, onRelated
                         onClick={handleToggleFavorite}
                         className={cn(
                           'rounded-2xl border p-3.5 transition-all',
-                          (product.is_favori ?? isFavorite(product.id))
+                          (product.is_favori ?? isFavorite(product.id, product.category))
                             ? 'border-red-500 bg-red-500/10 text-red-500'
                             : 'border-foreground/10 bg-foreground/5 text-foreground hover:border-red-500/30 hover:bg-red-500/10 hover:text-red-500'
                         )}
                         aria-label="Favoris"
                       >
-                        <Heart size={18} fill={(product.is_favori ?? isFavorite(product.id)) ? 'currentColor' : 'none'} />
+                        <Heart size={18} fill={(product.is_favori ?? isFavorite(product.id, product.category)) ? 'currentColor' : 'none'} />
                       </button>
                     </div>
                   </div>
@@ -492,13 +510,11 @@ export function HuileDetailModal({ productId, initialProduct, onClose, onRelated
                                         <span className="bg-red-500/10 border border-red-500/20 text-red-400 text-[9px] font-bold px-1.5 py-0.5 uppercase tracking-wide rounded-md">Promo</span>
                                       )}
                                     </div>
-                                    <div className="text-[11px] text-foreground/45 mt-0.5">
+                                    <div className="text-[10px] mt-0.5">
                                       {isOutOfStock ? (
                                         <span className="text-red-400 font-semibold">Rupture de stock</span>
-                                      ) : v.stock_disponible <= 5 ? (
-                                        <span className="text-amber-400 font-medium">Plus que {v.stock_disponible} en stock</span>
                                       ) : (
-                                        <span>{v.stock_disponible} flacons disponibles</span>
+                                        <span className="text-emerald-400 font-semibold">En stock</span>
                                       )}
                                     </div>
                                   </div>
@@ -667,7 +683,7 @@ export function HuileDetailModal({ productId, initialProduct, onClose, onRelated
                               <tr className="border-b border-foreground/10"><td className="py-3.5 text-xs uppercase tracking-widest text-foreground/40">{isEn ? 'Brand' : 'Marque'}</td><td className="py-3.5 font-medium text-foreground">{product.brand || 'Exclusif Collection'}</td></tr>
                               {product.origine_pays && (<tr className="border-b border-foreground/10"><td className="py-3.5 text-xs uppercase tracking-widest text-foreground/40">{isEn ? 'Origin' : 'Pays d\'origine'}</td><td className="py-3.5 font-medium text-foreground">{product.origine_pays}</td></tr>)}
                               {variants.length > 0 && (<tr className="border-b border-foreground/10"><td className="py-3.5 text-xs uppercase tracking-widest text-foreground/40">{isEn ? 'Available sizes' : 'Formats disponibles'}</td><td className="py-3.5 font-medium text-foreground">{variants.map(v => `${v.taille_ml}ml (${formatPrice(v.prix_actuel)})`).join(', ')}</td></tr>)}
-                              {product.stock_total_ml != null && (<tr className="border-b border-foreground/10"><td className="py-3.5 text-xs uppercase tracking-widest text-foreground/40">{isEn ? 'Lab stock' : 'Stock laboratoire'}</td><td className="py-3.5 font-medium text-foreground font-mono">{product.stock_total_ml.toLocaleString('fr-FR')} ml</td></tr>)}
+                              
                             </tbody>
                           </table>
                         </motion.div>
@@ -732,7 +748,7 @@ export function HuileDetailModal({ productId, initialProduct, onClose, onRelated
                         <div className="h-1 w-20 bg-gold" />
                       </div>
                       <button
-                        onClick={() => window.history.back()}
+                        onClick={closeModal}
                         className="flex shrink-0 items-center gap-2 text-sm text-gold hover:underline"
                       >
                         {isEn ? 'See all oils' : 'Voir toutes les huiles'}
@@ -761,7 +777,7 @@ export function HuileDetailModal({ productId, initialProduct, onClose, onRelated
                                 <img src={resolveImageUrl(p.images[0])} alt={p.name} className="w-full aspect-square object-cover" />
                               )}
                               <div className="p-3">
-                                <p className="text-xs font-bold text-foreground truncate">{p.name}</p>
+                                <p className="text-xs font-bold text-foreground truncate uppercase">{p.name}</p>
                                 <p className="text-xs text-gold font-mono mt-1">{formatPrice(p.price)}</p>
                               </div>
                             </div>

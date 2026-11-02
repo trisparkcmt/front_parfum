@@ -236,8 +236,9 @@ export default function ProductDetailClient({
   };
 
   const handleToggleFavorite = () => {
-    if (isFavorite(product.id)) {
-      removeFavorite(product.id);
+    const isFav = isFavorite(product.id, product.category);
+    if (isFav) {
+      removeFavorite(product.id, product.category);
     } else {
       addFavorite(product);
       addToast(
@@ -291,7 +292,7 @@ export default function ProductDetailClient({
     } else {
       addProduct(p, 1);
       addToast(
-        isEn ? `${p.name} added to bag` : `${p.name} ajouté au panier`,
+        isEn ? 'Added' : 'Ajouté',
         'success'
       );
     }
@@ -326,8 +327,8 @@ export default function ProductDetailClient({
     const totalCount = items.reduce((s, it) => s + it.quantity, 0);
     addToast(
       isEn
-        ? `${essence.name} (${totalCount} bottle${totalCount > 1 ? 's' : ''}) added to bag`
-        : `${essence.name} (${totalCount} flacon${totalCount > 1 ? 's' : ''}) ajouté au panier`,
+        ? 'Added'
+        : 'Ajouté',
       'success'
     );
   };
@@ -479,13 +480,13 @@ export default function ProductDetailClient({
                     onClick={handleToggleFavorite}
                     className={cn(
                       'p-3 rounded-full border transition-all',
-                      isFavorite(product.id)
+                      isFavorite(product.id, product.category)
                         ? 'bg-red-500/10 border-red-500 text-red-500'
                         : 'bg-foreground/5 border-foreground/10 text-foreground hover:bg-foreground/10 hover:border-foreground/20'
                     )}
                     aria-label="Save to wishlist"
                   >
-                    <Heart size={18} fill={isFavorite(product.id) ? 'currentColor' : 'none'} />
+                    <Heart size={18} fill={isFavorite(product.id, product.category) ? 'currentColor' : 'none'} />
                   </button>
                 </div>
               </div>
@@ -803,15 +804,24 @@ export default function ProductDetailClient({
             </div>
 
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-              {relatedProducts.map((p) => (
-                <ProductCard
-                  key={p.id}
-                  product={p}
-                  onAddToCart={handleRelatedAddToCart}
-                  onToggleFavorite={addFavorite}
-                  isFavorite={isFavorite(p.id)}
-                />
-              ))}
+              {relatedProducts.map((p) => {
+                const isFav = isFavorite(p.id, p.category);
+                return (
+                  <ProductCard
+                    key={p.id}
+                    product={p}
+                    onAddToCart={handleRelatedAddToCart}
+                    onToggleFavorite={() => {
+                      if (isFav) {
+                        removeFavorite(p.id, p.category);
+                      } else {
+                        addFavorite(p);
+                      }
+                    }}
+                    isFavorite={isFav}
+                  />
+                );
+              })}
             </div>
           </div>
         )}

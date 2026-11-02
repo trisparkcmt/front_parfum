@@ -576,7 +576,7 @@ export default function AccessoriesPage() {
       for (const slug of slugs) {
         try { await shopService.deleteAccessory(slug); } catch (e) { console.error(`Failed to delete ${slug}:`, e); }
       }
-      addToast(`${slugs.length} ${t('accessory')} ${t('toast_bulk_ok')}`, 'success');
+      addToast(t('toast_bulk_ok'), 'success');
     } catch (error) {
       setAccessories(prev => [...snapshots, ...prev]);
       addToast(t('toast_bulk_error'), 'error');
@@ -606,7 +606,7 @@ export default function AccessoriesPage() {
         fd.append('actif', actif ? 'true' : 'false');
         return adminService.patchFormData(`shop/accessoires/${id}/`, fd);
       }));
-      addToast(`${ids.length} produits mis à jour`, 'success');
+      addToast('Produits mis à jour', 'success');
       fetchAccessories(currentPage, true);
     } catch {
       addToast(t('toast_patch_error'), 'error');
@@ -625,7 +625,7 @@ export default function AccessoriesPage() {
     if (promoForm.message_promotion) formData.append('message_promotion', promoForm.message_promotion);
     try {
       await Promise.all(ids.map(id => adminService.patchFormData(`shop/accessoires/${id}/`, formData)));
-      addToast(`Promotion appliquée à ${ids.length} produit(s)`, 'success');
+      addToast('Promotion appliquée', 'success');
       setShowPromoModal(false);
       setPromoForm({ taux_reduction: '', date_debut: '', date_fin: '', message_promotion: '' });
       fetchAccessories(currentPage, true);

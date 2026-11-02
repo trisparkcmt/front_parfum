@@ -45,7 +45,7 @@ export default function NumbaLandingClient() {
           </div>
         </div>
 
-        <div className="md:col-span-1 md:grid md:grid-rows-2 md:gap-6 xl:contents">
+        <div className="flex flex-col gap-6 md:grid md:grid-rows-2 md:gap-6 xl:contents">
           <Link
             href="/numba/ai-consultant"
             className="group block relative p-8 lg:mt-15 sm:p-12 lg:p-16 flex flex-col justify-between rounded-2xl lg:rounded-none border-2 border-gold/40 lg:border lg:border-t-0 lg:border-b-0 lg:border-l-0 lg:border-r bg-foreground/[0.01] hover:bg-gold/5 transition-all duration-500 shadow-sm shadow-gold/[0.02] lg:shadow-none md:h-full"

@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { MessageCircle } from 'lucide-react';
 import { shopService } from '@/services/apiService';
-import { buildAbsoluteUrl, buildWhatsAppUrl, getCompanyWhatsAppNumber, resolveImageUrl } from '@/lib/utils';
+import { buildAbsoluteUrl, buildWhatsAppUrl, getCompanyWhatsAppNumber } from '@/lib/utils';
 import type { Product } from '@/types';
 
 interface ProductInquiryWhatsAppButtonProps {
@@ -14,6 +14,7 @@ interface ProductInquiryWhatsAppButtonProps {
 
 export function ProductInquiryWhatsAppButton({ product, isEn, productType = 'perfume' }: ProductInquiryWhatsAppButtonProps) {
   const [whatsappNumber, setWhatsappNumber] = useState('');
+  const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -22,27 +23,40 @@ export function ProductInquiryWhatsAppButton({ product, isEn, productType = 'per
       .then((companyInfos) => {
         if (isMounted) {
           setWhatsappNumber(getCompanyWhatsAppNumber(Array.isArray(companyInfos) ? companyInfos[0] : null));
+          setLoaded(true);
         }
       })
       .catch(() => {
-        if (isMounted) setWhatsappNumber('');
+        if (isMounted) {
+          setWhatsappNumber('');
+          setLoaded(true);
+        }
       });
 
     return () => { isMounted = false; };
   }, []);
+
+  // Show a subtle skeleton while fetching — avoids the button appearing "missing"
+  if (!loaded) {
+    return (
+      <div className="w-full h-12 rounded-xl bg-emerald-500/5 border border-emerald-500/10 animate-pulse" />
+    );
+  }
 
   if (!whatsappNumber) return null;
 
   const productId = encodeURIComponent(String(product.slug || product.id));
   const productPath = product.category === 'huile'
     ? `/shop/huile/${productId}`
-    : `/shop/product/${productId}?type=${encodeURIComponent(productType)}`;
+    : productType === 'diffuseur'
+      ? `/shop/diffuseurs?product=${productId}&type=diffuseur`
+      : productType === 'accessory'
+        ? `/shop/accessories?product=${productId}&type=accessory`
+      : `/shop/perfumes?product=${productId}&type=perfume`;
   const productUrl = buildAbsoluteUrl(productPath);
-  const imageUrl = resolveImageUrl(product.image_principale || product.images?.[0] || product.image_supp_1);
   const message = [
-    isEn ? 'Can I get more information about this product?' : 'Puis-je avoir plus d’informations sur ce produit ?',
+    isEn ? 'Can I get more information about this product?' : "Puis-je avoir plus d'informations sur ce produit ?",
     `${isEn ? 'Product' : 'Produit'}: ${product.name}`,
-    imageUrl ? `${isEn ? 'Image' : 'Image'}: ${imageUrl}` : '',
     `${isEn ? 'Link' : 'Lien'}: ${productUrl}`,
   ].filter(Boolean).join('\n');
 
@@ -57,4 +71,4 @@ export function ProductInquiryWhatsAppButton({ product, isEn, productType = 'per
       {isEn ? 'Ask about this product on WhatsApp' : 'Demander des informations sur WhatsApp'}
     </a>
   );
-}
+}

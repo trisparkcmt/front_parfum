@@ -19,7 +19,6 @@ import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { WHATSAPP_BASE_URL, CURRENCY, API_BASE_URL } from './constants';
 import { API_ROOT } from '@/services/api';
-import type { CartItem } from '@/types';
 
 /**
  * Merge Tailwind classes with clsx
@@ -263,8 +262,23 @@ export async function apiFetch(endpoint: string, options: RequestInit = {}) {
 /**
  * Generate a WhatsApp link with a pre-filled order message
  */
+export type WhatsAppOrderItemType =
+  | 'perfume'
+  | 'accessory'
+  | 'huile'
+  | 'diffuser'
+  | 'custom-perfume'
+  | 'custom-essence';
+
+export interface WhatsAppOrderItem {
+  name: string;
+  type: WhatsAppOrderItemType;
+  quantity: number;
+  unitPrice: number;
+}
+
 export function generateWhatsAppLink(
-  items: CartItem[],
+  items: WhatsAppOrderItem[],
   subtotal: number,
   total: number,
   promoCode?: string | null,
@@ -277,13 +291,17 @@ export function generateWhatsAppLink(
   whatsappNumber?: string | null
 ): string {
   let message = '🛍️ *Nouvelle Commande — Accessories Exclusif*\n\n';
+  const itemTypeLabels: Record<WhatsAppOrderItemType, string> = {
+    perfume: 'Parfum',
+    accessory: 'Accessoire',
+    huile: 'Huile',
+    diffuser: 'Diffuseur',
+    'custom-perfume': 'Parfum sur mesure',
+    'custom-essence': 'Essence personnalisée',
+  };
 
   items.forEach((item, index) => {
-    const name =
-      item.type === 'product'
-        ? item.product?.name
-        : `Composition: ${item.composition?.name}`;
-    message += `${index + 1}. ${name}\n`;
+    message += `${index + 1}. *${itemTypeLabels[item.type]} :* ${item.name}\n`;
     message += `   Qté: ${item.quantity} × ${formatPrice(item.unitPrice)}\n`;
     message += `   Sous-total: ${formatPrice(item.unitPrice * item.quantity)}\n\n`;
   });
@@ -393,4 +411,100 @@ export function formatDateTime(dateString: string): string {
  */
 export function getInitials(firstName: string, lastName: string): string {
   return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
+}
+
+export interface CartLineTarget {
+  kind: 'product' | 'huile' | 'custom';
+  productId: string;
+  productType?: 'perfume' | 'accessory' | 'diffuseur';
+}
+
+/**
+ * Resolve a cart line item to its corresponding modal target (product, huile, or custom).
+ */
+export function getCartLineTarget(line: any): CartLineTarget | null {
+  if (!line) return null;
+
+  // Custom perfume or bespoke essence
+  if (line.type === 'parfum-personnalise' || line.type === 'essence-personnalisee') {
+    return { kind: 'custom', productId: String(line.id) };
+  }
+
+  // Huile / Produit fini essence
+  if (line.type === 'produit-fini-essence') {
+    const huileId =
+      line.essence ??
+      line.essence_id ??
+      line.detail_produit?.essence ??
+      line.detail_produit?.essence_id ??
+      line.produit_fini_essence ??
+      line.produit_fini_essence_id ??
+      line.slug ??
+      line.id;
+    if (huileId) {
+      return { kind: 'huile', productId: String(huileId) };
+    }
+  }
+
+  // Diffuseur
+  if (line.type === 'diffuseur-parfum') {
+    const diffId =
+      line.diffuseur ??
+      line.diffuseur_id ??
+      line.detail_produit?.id ??
+      line.accessoire ??
+      line.accessoire_id ??
+      line.slug ??
+      line.id;
+    if (diffId) {
+      return { kind: 'product', productId: String(diffId), productType: 'diffuseur' };
+    }
+  }
+
+  // Accessoire
+  if (line.type === 'accessoire') {
+    const accId =
+      line.accessoire ??
+      line.accessoire_id ??
+      line.detail_produit?.id ??
+      line.slug ??
+      line.id;
+    if (accId) {
+      return { kind: 'product', productId: String(accId), productType: 'accessory' };
+    }
+  }
+
+  // Parfum
+  if (line.type === 'parfum') {
+    const parfumId =
+      line.parfum ??
+      line.parfum_id ??
+      line.detail_produit?.id ??
+      line.slug ??
+      line.id;
+    if (parfumId) {
+      return { kind: 'product', productId: String(parfumId), productType: 'perfume' };
+    }
+  }
+
+  // Fallback checks using categories or titles
+  const category = (line.categorie || line.category || line.detail_produit?.categorie || '').toLowerCase();
+  const title = (line.nom || line.name || line.nom_snapshot || '').toLowerCase();
+
+  if (category.includes('huile') || category.includes('essence') || line.taille_ml) {
+    const id = line.essence ?? line.essence_id ?? line.produit_fini_essence ?? line.id;
+    return { kind: 'huile', productId: String(id) };
+  }
+
+  if (category.includes('diffuseur') || title.includes('diffuseur')) {
+    const id = line.diffuseur ?? line.accessoire ?? line.id;
+    return { kind: 'product', productId: String(id), productType: 'diffuseur' };
+  }
+
+  if (category.includes('accessoire') || title.includes('accessoire')) {
+    const id = line.accessoire ?? line.id;
+    return { kind: 'product', productId: String(id), productType: 'accessory' };
+  }
+
+  return { kind: 'product', productId: String(line.parfum ?? line.id), productType: 'perfume' };
 }

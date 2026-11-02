@@ -23,16 +23,12 @@ const nextConfig: NextConfig = {
     'api.accessoiresexclusifs.com',
     '0.0.0.0'
   ],
+
   // 2. 301 redirects — old WordPress/WooCommerce URLs → new Next.js pages.
   //    Google crawled these old URLs and they now cause "Duplicate without
   //    user-selected canonical" errors in Search Console.
   async redirects() {
     return [
-      {
-        source: '/shop',
-        destination: '/shop/perfumes',
-        permanent: true,
-      },
       // /index.php/categorie-produit/parfums/* → /shop/perfumes
       {
         source: '/index.php/categorie-produit/parfums/:path*',

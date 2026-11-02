@@ -69,6 +69,7 @@ export default function AccessoriesShop() {
     const typeAccessoireParam = searchParams.get('type_accessoire');
     const legacyTypeParam = searchParams.get('type');
     const searchParam = searchParams.get('search');
+    const productParam = searchParams.get('product');
 
     const nextTypeId = typeAccessoireParam
       ? Number(typeAccessoireParam)
@@ -83,6 +84,14 @@ export default function AccessoriesShop() {
     }
 
     if (searchParam) setSearch(searchParam);
+
+    // Open modal when arriving via a share link (?product=...)
+    if (productParam) {
+      setModalProductId(productParam);
+      setModalProductType(legacyTypeParam === 'diffuseur' ? 'diffuseur' : 'accessory');
+    } else {
+      setModalProductId(null);
+    }
   }, [searchParams]);
 
   useEffect(() => {
@@ -177,11 +186,13 @@ export default function AccessoriesShop() {
   };
 
   const handleToggleFavorite = (product: Product) => {
-    if (isFavorite(product.id)) {
-      removeFavorite(product.id);
+    const isFav = isFavorite(product.id, 'accessory');
+    if (isFav) {
+      removeFavorite(product.id, 'accessory');
+      addToast(t('removed_from_favorites'), 'info');
     } else {
-      addFavorite(product);
-      addToast(`${product.name} ${t('added_to_favorites')}`, 'info');
+      addFavorite({ ...product, category: 'accessory' });
+      addToast(t('added_to_favorites'), 'info');
     }
   };
 
@@ -199,10 +210,18 @@ export default function AccessoriesShop() {
     const typeHint: 'accessory' | 'diffuseur' = isDiffuseur ? 'diffuseur' : 'accessory';
     setModalProductId(productId);
     setModalProductType(typeHint);
-    window.history.pushState({ modalProductId: productId }, '', `/shop/product/${productId}?type=accessory`);
+    window.history.pushState(
+      { modalProductId: productId, modalProductType: typeHint },
+      '',
+      `/shop/accessories?product=${encodeURIComponent(productId)}&type=${typeHint}`
+    );
   }, []);
 
   const closeProductModal = useCallback(() => {
+    if (window.history.state?.modalProductId) {
+      window.history.back();
+      return;
+    }
     setModalProductId(null);
   }, []);
 
@@ -489,8 +508,7 @@ export default function AccessoriesShop() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.3 }}
-            className="flex flex-row flex-wrap justify-center sm:justify-start -mx-4 gap-2
-             md:gap-6"
+            className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4 md:gap-6"
           >
              {products.map((product, index) => (
                <motion.div
@@ -504,7 +522,7 @@ export default function AccessoriesShop() {
                   product={product}
                   onAddToCart={handleAddToCart}
                   onToggleFavorite={handleToggleFavorite}
-                  isFavorite={isFavorite(product.id)}
+                  isFavorite={isFavorite(product.id, 'accessory')}
                   onCardClick={openProductModal}
                 />
               </motion.div>

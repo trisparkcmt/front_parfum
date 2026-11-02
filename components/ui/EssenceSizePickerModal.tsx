@@ -178,12 +178,7 @@ export function EssenceSizePickerModal({ product, onConfirm, onClose }: EssenceS
               <h3 className="text-sm font-bold text-foreground line-clamp-1 leading-tight">
                 {product.name}
               </h3>
-              {product.stock_total_ml != null && (
-                <p className="text-[10px] text-foreground/45 mt-0.5 flex items-center gap-1">
-                  <Droplets size={10} className="text-gold" />
-                  Stock: {product.stock_total_ml.toLocaleString('fr-FR')} ml (Dispo: {Math.max(0, labTotalMl - totalMlUsed)} ml)
-                </p>
-              )}
+              
             </div>
             <button
               onClick={onClose}
@@ -255,13 +250,11 @@ export function EssenceSizePickerModal({ product, onConfirm, onClose }: EssenceS
                                 </span>
                               )}
                             </div>
-                            <div className="text-[10px] text-foreground/45 mt-0.5">
+                            <div className="text-[10px] mt-0.5">
                               {isOutOfStock ? (
-                                <span className="text-red-400 font-semibold">Rupture / Volume épuisé</span>
+                                <span className="text-red-400 font-semibold">Rupture de stock</span>
                               ) : (
-                                <span className={remainingQuantity <= 5 ? 'text-amber-400 font-medium' : 'text-foreground/45'}>
-                                  Max : {remainingQuantity} flacon{remainingQuantity > 1 ? 's' : ''}
-                                </span>
+                                <span className="text-emerald-400 font-semibold">En stock</span>
                               )}
                             </div>
                           </div>

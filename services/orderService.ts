@@ -100,6 +100,33 @@ export const orderService = {
     }
   },
 
+  // Get authenticated client's orders from /orders/mes-commandes/
+  async getMyOrders(params?: {
+    statut?: string;
+    statut_paiement?: string;
+    statut_livraison?: string;
+    search?: string;
+    date_debut?: string;
+    date_fin?: string;
+    page?: number;
+    page_size?: number;
+    pageSize?: number;
+    [key: string]: any;
+  }): Promise<any> {
+    try {
+      const { pageSize, ...rest } = params || {};
+      const actualParams = {
+        ...rest,
+        ...(pageSize ? { page_size: pageSize } : {}),
+      };
+      const response = await api.get('/orders/mes-commandes/', { params: actualParams });
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching client orders:', error);
+      throw error;
+    }
+  },
+
   // Get order details by numero_commande
   async getOrderDetail(numeroCommande: string): Promise<Order> {
     try {

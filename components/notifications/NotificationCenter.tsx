@@ -60,14 +60,27 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
   const panelRef = useRef<HTMLDivElement | null>(null);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
   const addToast = useToastStore((state) => state.addToast);
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const hasHydrated = useAuthStore((state) => state._hasHydrated);
+  const canFetchNotifications = hasHydrated && isAuthenticated;
 
   // Fetch notifications from backend
   const fetchNotifications = useCallback(async () => {
+    const { isAuthenticated: authenticated, user } = useAuthStore.getState();
+    if (!authenticated || !user) {
+      setNotifications([]);
+      setIsLoading(false);
+      return;
+    }
+
     setIsLoading(true);
     try {
       const data = (await deviceService.fetchNotifications()) as DeviceNotificationRow[];
-      const user = useAuthStore.getState().user;
-      const roles = (user?.roles || []).map((r: string) => String(r).toLowerCase());
+      const currentAuth = useAuthStore.getState();
+      if (!currentAuth.isAuthenticated || currentAuth.user?.id !== user.id) return;
+
+      const roles = [...(user.roles || []), ...(user.role ? [user.role] : [])]
+        .map((role: string) => String(role).toLowerCase());
       const isAdminOrServeuse = roles.some((r) => r === 'admin' || r === 'serveuse' || r === 'superadmin');
 
       let filteredData = data;
@@ -90,6 +103,12 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
 
   // Fetch on mount
   useEffect(() => {
+    if (!canFetchNotifications) {
+      setNotifications([]);
+      setIsLoading(false);
+      return;
+    }
+
     let cancelled = false;
 
     const run = async () => {
@@ -102,18 +121,18 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
     return () => {
       cancelled = true;
     };
-  }, [fetchNotifications]);
+  }, [canFetchNotifications, fetchNotifications]);
 
-  // Setup polling
+  // Refresh the notification center only while its authenticated user is viewing it.
   useEffect(() => {
-    if (pollIntervalMs <= 0) return;
+    if (!canFetchNotifications || !isOpen || pollIntervalMs <= 0) return;
 
     const interval = setInterval(() => {
       void fetchNotifications();
     }, pollIntervalMs);
 
     return () => clearInterval(interval);
-  }, [fetchNotifications, pollIntervalMs]);
+  }, [canFetchNotifications, fetchNotifications, isOpen, pollIntervalMs]);
 
   useEffect(() => {
     if (!isOpen) return;

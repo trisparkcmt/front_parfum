@@ -62,6 +62,7 @@ export function ProductCard({
   const [isHovered, setIsHovered] = useState(false);
 
   const isEn = i18n.language?.startsWith('en');
+  const inspiredBy = product.inspire_de?.trim();
 
   const perfumeText = t('perfume_label', { defaultValue: isEn ? 'Perfume' : 'Parfum' });
   const oilText = t('pure_oils', { defaultValue: isEn ? 'Oil' : 'Huile' });
@@ -86,17 +87,23 @@ export function ProductCard({
     product.produits_finis !== undefined ||
     product.prix_par_ml !== undefined;
   const productImage = product.image_principale || (product.images && product.images[0]) || '';
-  const mainImage = isEssenceProduct ? '/huile.png' : productImage;
-  const secondImage = isEssenceProduct
-    ? ''
-    : product.image_supp_1 || (product.images && product.images[1]) || '';
-  const mainImageSrc = isEssenceProduct ? '/huile.png' : productImage ? resolveImageUrl(productImage) : '';
+  const mainImage = isEssenceProduct ? (productImage || '/huile.png') : productImage;
+  const secondImage = product.image_supp_1 || (product.images && product.images[1]) || '';
+  const mainImageSrc = isEssenceProduct
+    ? (productImage ? resolveImageUrl(productImage) : '/huile.png')
+    : productImage ? resolveImageUrl(productImage) : '';
 
   const productUrl = isDiffuseur
-    ? `/shop/product/${product.slug || product.id}?type=diffuseur`
+    ? `/shop/diffuseurs?product=${encodeURIComponent(product.slug || product.id)}&type=diffuseur`
     : isEssenceProduct
     ? `/shop/huile/${product.slug || product.id}`
-    : `/shop/product/${product.slug || product.id}${product.category === 'accessory' ? '?type=accessory' : '?type=perfume'}`;
+    : product.category === 'accessory'
+    ? `/shop/accessories?product=${encodeURIComponent(product.slug || product.id)}&type=accessory`
+    : `/shop/product/${product.slug || product.id}?type=perfume`;
+
+  const shareUrl = isEssenceProduct || product.category === 'accessory'
+    ? productUrl
+    : `/shop/perfumes?product=${encodeURIComponent(product.slug || product.id)}&type=perfume`;
 
   // Derive category label
   const categoryLabel = isDiffuseur
@@ -115,10 +122,9 @@ export function ProductCard({
     e.preventDefault();
     e.stopPropagation();
     const result = await sharePage(
-      productUrl,
+      shareUrl,
       product.name,
-      `Découvrez ${product.name} sur Accessories Exclusif`,
-      mainImage ? mainImageSrc : undefined
+      `Découvrez ${product.name} sur Accessories Exclusif`
     );
     if (result === 'shared' || result === 'copied') {
       try {
@@ -247,14 +253,14 @@ export function ProductCard({
                 size={12}
                 className={cn(
                   'sm:hidden transition-all duration-300',
-                  (product.is_favori ?? isFavorite) ? 'fill-red-500 stroke-red-500' : 'stroke-white/80'
+                  isFavorite ? 'fill-red-500 stroke-red-500' : 'stroke-white/80'
                 )}
               />
               <Heart
                 size={13}
                 className={cn(
                   'hidden sm:block transition-all duration-300',
-                  (product.is_favori ?? isFavorite) ? 'fill-red-500 stroke-red-500' : 'stroke-white/80'
+                  isFavorite ? 'fill-red-500 stroke-red-500' : 'stroke-white/80'
                 )}
               />
             </button>
@@ -273,12 +279,17 @@ export function ProductCard({
         <p className="h-4 text-[9px] sm:text-[10px] font-medium text-foreground/45 truncate">
           {product.brand || '\u00a0'}
         </p>
+        {inspiredBy && (
+          <p className="text-[9px] text-foreground/40 truncate">
+            {isEn ? 'Inspired by' : 'Inspiré de'} {inspiredBy}
+          </p>
+        )}
 
         {/* Product name — clamped to 2 lines, fixed min-height reserves space */}
         <Link
           href={productUrl}
           onClick={(e) => handleProductLinkClick(e)}
-          className="mt-0.5  min-h-[2.2rem] sm:min-h-[2.6rem] font-serif font-bold text-[13px] sm:text-[14px] leading-[1.3] text-foreground transition-colors hover:text-gold"
+          className="mt-0.5 min-h-[2.2rem] sm:min-h-[2.6rem] font-serif font-bold text-[13px] sm:text-[14px] leading-[1.3] text-foreground uppercase transition-colors hover:text-gold"
         >
           {product.name}
         </Link>

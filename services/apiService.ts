@@ -500,13 +500,8 @@ export const shopService = {
     ordering?: string;
     page?: number;
   }) => {
-    try {
-      const response = await api.get('catalogue/flacons/', { params });
-      return response.data;
-    } catch (error) {
-      const response = await api.get('shop/flacons/', { params }).catch(() => null);
-      return response?.data ?? [];
-    }
+    const response = await api.get('shop/flacons/', { params });
+    return response.data;
   },
 
   /**
@@ -521,13 +516,8 @@ export const shopService = {
    * Get bottle details by ID
    */
   getBottleById: async (id: number) => {
-    try {
-      const response = await api.get(`catalogue/flacons/${id}/`);
-      return response.data;
-    } catch (error) {
-      const response = await api.get(`shop/flacons/${id}/`).catch(() => null);
-      return response?.data ?? null;
-    }
+    const response = await api.get(`shop/flacons/${id}/`);
+    return response.data;
   },
 
   /**
@@ -1479,7 +1469,10 @@ export const adminService = {
 
   // ---- BOUTIQUE ADMIN METHODS ----
 
-  getBoutiquesFinancier: async (): Promise<BoutiqueAdminFinancier[]> => {
+  getBoutiquesFinancier: async (): Promise<
+    | BoutiqueAdminFinancier[]
+    | { results?: BoutiqueAdminFinancier[]; resultats?: BoutiqueAdminFinancier[] }
+  > => {
     const response = await api.get('auth/admin/boutiques/financier/');
     return response.data;
   },
@@ -1540,6 +1533,13 @@ export const adminService = {
    * Patch FormData to the given endpoint (for image uploads in updates).
    */
    patchFormData: async (url: string, data: FormData) => {
+    const response = await api.patch(url, data);
+    return response.data;
+  },
+  /**
+   * Generic JSON PATCH helper
+   */
+  patch: async (url: string, data: Record<string, unknown>) => {
     const response = await api.patch(url, data);
     return response.data;
   },
@@ -1725,7 +1725,7 @@ export const adminService = {
    * Get profit statistics for admin financial dashboard
    * Endpoint: GET /api/v1/orders/commandes/statistiques-benefices/
    */
-  getProfitStats: async (params?: { date_debut?: string; date_fin?: string; statut?: string }) => {
+  getProfitStats: async (params?: { date_debut?: string; date_fin?: string; statut?: string; statut_paiement?: string }) => {
     const response = await api.get('orders/commandes/statistiques-benefices/', { params });
     return response.data;
   },
@@ -1900,6 +1900,25 @@ export const orderService = {
     page?: number;
   }) => {
     const response = await api.get('orders/commandes/', { params });
+    return response.data;
+  },
+
+  /**
+   * Get authenticated client's orders from /orders/mes-commandes/
+   * Query params: statut, statut_paiement, statut_livraison, search, date_debut, date_fin, page, page_size
+   */
+  getMyOrders: async (params?: {
+    statut?: string;
+    statut_paiement?: string;
+    statut_livraison?: string;
+    search?: string;
+    date_debut?: string;
+    date_fin?: string;
+    page?: number;
+    page_size?: number;
+    [key: string]: any;
+  }) => {
+    const response = await api.get('orders/mes-commandes/', { params });
     return response.data;
   },
 

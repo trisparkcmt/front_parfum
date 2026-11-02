@@ -415,14 +415,13 @@ export default function ProviderDashboardPage() {
         ...(payoutPhone ? { telephone: payoutPhone } : {}),
         external_reference: extRef
       });
-      addToast(`Ordre de virement de ${amount.toLocaleString()} FCFA initié via Monetbil`, 'success');
+      addToast('Ordre de virement initié', 'success');
       setPayoutAmount('');
       fetchDashboard(selectedProvider.id);
     } catch (error: any) {
       console.error('Payout failed:', error);
       const err = error as { response?: { data?: { detail?: string } } };
-      const errMsg = err.response?.data?.detail || error.message || 'Erreur lors du déclenchement du virement';
-      addToast(errMsg, 'error');
+      addToast('Erreur lors du déclenchement du virement', 'error');
     } finally {
       setIsInitiatingPayout(false);
     }
@@ -448,11 +447,10 @@ export default function ProviderDashboardPage() {
         )
       } : null);
 
-      addToast(`Statut de la transaction vérifié : ${newStatus === 'succes' ? 'Réussi' : newStatus === 'echec' ? 'Échoué' : newStatus}`, 'success');
+      addToast('Statut de la transaction vérifié', 'success');
     } catch (error: any) {
       console.error('Erreur de vérification:', error);
-      const errMsg = error?.response?.data?.detail || error?.message || 'Erreur lors de la vérification de la transaction';
-      addToast(errMsg, 'error');
+      addToast('Erreur lors de la vérification de la transaction', 'error');
     } finally {
       setVerifyingPayoutId(null);
     }

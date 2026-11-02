@@ -1,26 +1,89 @@
-import type { Metadata } from 'next';
-import HomeClient from './HomeClient';
+'use client';
 
-export const metadata: Metadata = {
-  title: 'Accessoires Exclusifs | Luxe & Création de Parfums',
-  description:
-    "Découvrez des accessoires de luxe, des parfums de marque et notre atelier de création olfactive sur mesure.",
-  alternates: {
-    canonical: '/',
-  },
-};
+import { useState, useEffect } from 'react';
+import HomeLoadingScreen from '@/components/ui/HomeLoadingScreen';
+import HomeHeader from './HomeHeader';
+import PromoCarousel from './PromoCarousel';
+import CategoryPills from './CategoryPills';
+import FlashSales from './FlashSales';
+import ShopByCategory from './ShopByCategory';
 
-export default function HomePage() {
+import FeatureStrip from './FeatureStrip';
+
+import EditorialQuote from './EditorialQuote';
+import WelcomeMessage from './WelcomeMessage';
+import StoreSection from './StoreSection';
+import HomeFAQ from './HomeFAQ';
+import AiFloatingButton from './AiFloatingButton';
+import TikTokCreatorEmbed from './TikTokCreatorEmbed';
+import { useTranslation } from 'react-i18next';
+import {ThemeToggle} from './Toggle'
+
+export default function Home() {
+  const [mounted, setMounted] = useState(false);
+  const { t } = useTranslation();
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) return <HomeLoadingScreen />;
+
   return (
-    <>
-      <section className="sr-only">
-        <h1>Accessoires Exclusifs | Luxe & Création de Parfums</h1>
-        <p>
-          Découvrez notre sélection d'accessoires, de parfums de marque et de créations
-          olfactives sur mesure.
-        </p>
+    <div className="flex flex-col w-full pt-14 lg:pt-0">
+      <h1 className="sr-only">Accessoires Exclusifs | Luxe & Création de Parfums</h1>
+      <section className="flex min-h-[calc(100svh-3.5rem)] flex-col lg:min-h-svh">
+        <HomeHeader />
+        <PromoCarousel />
+        <WelcomeMessage />
       </section>
-      <HomeClient />
-    </>
+
+      {/* Floating category pills row (like the reference) */}
+      {/* <section className="md:hidden relative -mt-8 lg:-mt-14 z-10 px-4 lg:px-10">
+        <div className="mx-auto max-w-7xl rounded-2xl border border-foreground/10 bg-background/80 backdrop-blur-xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.35)]">
+          <CategoryPills />
+        </div>
+      </section> */}
+
+      {/* CATEGORY PILLS */}
+      <section className="block lg:hidden">
+      <CategoryPills />
+      </section>
+          
+     
+
+      {/* SHOP BY CATEGORY */}
+      <section className="lg:block hidden">   
+        <ShopByCategory />
+      </section>
+      
+      
+
+      {/* BEST SELLERS / FLASH */}
+      <FlashSales />
+
+     
+      <section className="block ">   
+        {/* EDITORIAL / BRAND STATEMENT */}
+      <EditorialQuote />
+      </section>
+
+      
+       {/* TIKTOK CREATOR PROFILE */}
+      <TikTokCreatorEmbed />
+
+
+      {/* TRUST FEATURES
+      <FeatureStrip /> */}
+
+      {/* FAQ */}
+      <HomeFAQ />
+
+      {/* STORE LOCATION */}
+      <StoreSection />
+
+      {/* FLOATING AI CHAT BUTTON */}
+      <AiFloatingButton />
+    </div>
   );
 }

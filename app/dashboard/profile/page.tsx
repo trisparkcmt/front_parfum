@@ -180,7 +180,7 @@ const DASHBOARD_OPTIONS: DashboardOption[] = [
   {
     id: 'boutique',
     titleKey: 'dashboard_boutique_title',
-    defaultTitle: 'My Boutique',
+    defaultTitle: 'My Shop',
     defaultTitleFr: 'Ma Boutique',
     descKey: 'dashboard_boutique_desc',
     defaultDesc: 'Manage your products, sales and wallet.',
@@ -192,7 +192,7 @@ const DASHBOARD_OPTIONS: DashboardOption[] = [
   {
     id: 'serveuse',
     titleKey: 'dashboard_serveuse_title',
-    defaultTitle: 'Boutique / Staff Space',
+    defaultTitle: 'Shop / Staff Space',
     defaultTitleFr: 'Espace Boutique / Serveuse',
     descKey: 'dashboard_serveuse_desc',
     defaultDesc: 'Manage orders, catalog and lab work.',
@@ -381,17 +381,17 @@ export default function ProfilePage() {
   };
 
   const handleCancelBoutiqueApplication = async () => {
-    if (!window.confirm(isEn ? 'Cancel your pending boutique application?' : 'Annuler votre demande d\'ouverture de boutique ?')) return;
+    if (!window.confirm(isEn ? 'Cancel your pending shop application?' : 'Annuler votre demande d\'ouverture de boutique ?')) return;
 
     try {
       await boutiqueService.cancelApplication();
       setShowPartnerMenu(false);
-      addToast(isEn ? 'Boutique application cancelled.' : 'Demande de boutique annulée.', 'success');
+      addToast(isEn ? 'Shop application cancelled.' : 'Demande de boutique annulée.', 'success');
     } catch (error: unknown) {
       const errorDetails = error as { response?: { data?: { detail?: string } } };
       addToast(
         errorDetails.response?.data?.detail ||
-          (isEn ? 'Unable to cancel the boutique application.' : 'Impossible d\'annuler la demande de boutique.'),
+          (isEn ? 'Unable to cancel the shop application.' : 'Impossible d\'annuler la demande de boutique.'),
         'error'
       );
     }
@@ -492,23 +492,32 @@ export default function ProfilePage() {
 
                       <div className="h-px bg-foreground/10 my-1" />
 
-                      {/* Temporarily hidden; restore when boutique applications are enabled.
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setShowPartnerMenu(false);
-                          router.push('/apply/boutique');
-                        }}
-                        className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm text-foreground transition hover:bg-foreground/5"
-                      >
-                        <ShieldCheck size={14} className="text-gold shrink-0" />
-                        <div>
-                          <p className="font-medium">{isEn ? 'Open a Boutique' : 'Ouvrir une Boutique'}</p>
-                          <p className="text-[10px] text-foreground/40 mt-0.5">{isEn ? 'Sell your perfumes & accessories online' : 'Vendez vos parfums & accessoires en ligne'}</p>
-                        </div>
-                      </button>
+                      {/*
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowPartnerMenu(false);
+                            router.push('/apply/boutique');
+                          }}
+                          className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm text-foreground transition hover:bg-foreground/5"
+                        >
+                          <ShieldCheck size={14} className="text-gold shrink-0" />
+                          <div>
+                            <p className="font-medium">{isEn ? 'Open a Shop' : 'Ouvrir une Boutique'}</p>
+                            <p className="text-[10px] text-foreground/40 mt-0.5">{isEn ? 'Sell your perfumes & accessories online' : 'Vendez vos parfums & accessoires en ligne'}</p>
+                          </div>
+                        </button>
 
-                      <div className="h-px bg-foreground/10 my-1" />
+                        <div className="h-px bg-foreground/10 my-1" />
+
+                        <button
+                          type="button"
+                          onClick={handleCancelBoutiqueApplication}
+                          className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-red-400 transition hover:bg-red-500/5"
+                        >
+                          <X size={14} />
+                          <span>{isEn ? 'Cancel shop application' : 'Annuler ma demande boutique'}</span>
+                        </button>
                       */}
 
                       <button
@@ -520,15 +529,6 @@ export default function ProfilePage() {
                         <span>{isEn ? 'Cancel partner application' : 'Annuler ma demande prestataire'}</span>
                       </button>
 
-                      <button
-                        type="button"
-                        onClick={handleCancelBoutiqueApplication}
-                        className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-red-400 transition hover:bg-red-500/5"
-                      >
-                        <X size={14} />
-                        <span>{isEn ? 'Cancel boutique application' : 'Annuler ma demande boutique'}</span>
-                      </button>
-
                     </div>
                   )}
                 </div>
@@ -538,28 +538,32 @@ export default function ProfilePage() {
             <div className="flex flex-col items-center text-center pt-2">
               {/* Avatar */}
               <div className="relative mb-4">
-                <input
-                  id="profile-photo-input"
-                  type="file"
-                  accept="image/*"
-                  className="sr-only"
-                  onChange={handleProfilePhotoChange}
-                  disabled={isUploadingPhoto}
-                />
+                {hasBoutiqueDashboard && (
+                  <input
+                    id="profile-photo-input"
+                    type="file"
+                    accept="image/*"
+                    className="sr-only"
+                    onChange={handleProfilePhotoChange}
+                    disabled={isUploadingPhoto}
+                  />
+                )}
                 <div className="w-24 h-24 rounded-xl bg-gold/10 border border-gold/20 flex items-center justify-center text-gold text-3xl font-bold">
                   {user?.avatarUrl || user?.photo ? (
                     <img src={resolveImageUrl(user?.avatarUrl || user?.photo)} alt="" className="h-full w-full rounded-xl object-cover" />
                   ) : initials}
                 </div>
-                <button
-                  type="button"
-                  onClick={() => document.getElementById('profile-photo-input')?.click()}
-                  disabled={isUploadingPhoto}
-                  className="absolute -bottom-1 -right-1 rounded-lg p-1.5 border border-foreground/10 bg-background text-foreground/45 hover:text-gold hover:border-gold/30 transition-colors"
-                  aria-label={isEn ? 'Edit avatar' : 'Modifier la photo'}
-                >
-                  {isUploadingPhoto ? <Loader2 size={13} className="animate-spin" /> : <Edit2 size={13} />}
-                </button>
+                {hasBoutiqueDashboard && (
+                  <button
+                    type="button"
+                    onClick={() => document.getElementById('profile-photo-input')?.click()}
+                    disabled={isUploadingPhoto}
+                    className="absolute -bottom-1 -right-1 rounded-lg p-1.5 border border-foreground/10 bg-background text-foreground/45 hover:text-gold hover:border-gold/30 transition-colors"
+                    aria-label={isEn ? 'Edit avatar' : 'Modifier la photo'}
+                  >
+                    {isUploadingPhoto ? <Loader2 size={13} className="animate-spin" /> : <Edit2 size={13} />}
+                  </button>
+                )}
               </div>
 
               {/* Identity Info */}
@@ -637,6 +641,17 @@ export default function ProfilePage() {
               ? t('logging_out', { defaultValue: isEn ? 'Logging out...' : 'Déconnexion...' })
               : t('logout', { defaultValue: isEn ? 'Log Out' : 'Déconnexion' })}
           </button>
+
+          {/* DELETE ACCOUNT (Desktop only - discreet single text line in red below logout) */}
+          <div className="hidden nav:flex justify-center mt-3">
+            <button
+              type="button"
+              onClick={() => setShowDeleteAccountModal(true)}
+              className="text-xs text-red-500/70 hover:text-red-500 transition-colors underline-offset-4 hover:underline text-center"
+            >
+              {isEn ? 'Delete my account' : 'Supprimer mon compte'}
+            </button>
+          </div>
         </div>
 
         {/* ============================================================ */}
@@ -781,27 +796,6 @@ export default function ProfilePage() {
             </Panel>
           </div>
 
-          {/* ---------- CONFIDENTIALITY & DATA ---------- */}
-          <div className="pt-2">
-            <SectionLabel>{t('privacy_data', { defaultValue: isEn ? 'Privacy & Data' : 'Confidentialité et Données' })}</SectionLabel>
-            <Panel className="border-red-500/10 bg-transparent">
-              <div className="divide-y divide-foreground/10">
-                <button
-                  onClick={() => setShowDeleteAccountModal(true)}
-                  className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-red-500/5 transition-colors text-left group rounded-md"
-                >
-                  <div className="flex items-center justify-center w-7 h-7 rounded-md border border-red-500/15 bg-red-500/5 text-red-500/75 group-hover:bg-red-500/10 transition-colors shrink-0">
-                    <X size={14} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-medium text-red-500/80">{isEn ? 'Delete my account' : 'Supprimer mon compte'}</p>
-                    <p className="text-[11px] text-red-500/55 mt-0.5">{isEn ? 'Permanently remove your account and data' : 'Supprimer définitivement votre compte et vos données'}</p>
-                  </div>
-                </button>
-              </div>
-            </Panel>
-          </div>
-
           {/* LOGOUT BUTTON (Mobile only) */}
           <button
             onClick={() => setShowLogoutConfirm(true)}
@@ -813,6 +807,17 @@ export default function ProfilePage() {
               ? t('logging_out', { defaultValue: isEn ? 'Logging out...' : 'Déconnexion...' })
               : t('logout', { defaultValue: isEn ? 'Log Out' : 'Déconnexion' })}
           </button>
+
+          {/* DELETE ACCOUNT (Mobile only - discreet single text line in red below logout) */}
+          <div className="nav:hidden flex justify-center mt-3">
+            <button
+              type="button"
+              onClick={() => setShowDeleteAccountModal(true)}
+              className="text-xs text-red-500/70 hover:text-red-500 transition-colors underline-offset-4 hover:underline text-center"
+            >
+              {isEn ? 'Delete my account' : 'Supprimer mon compte'}
+            </button>
+          </div>
 
         </div>
 

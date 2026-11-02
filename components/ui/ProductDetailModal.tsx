@@ -58,6 +58,8 @@ interface ProductDetailModalProps {
   platformSupplied?: boolean;
   /** Optionally intercept card clicks inside the related products grid */
   onRelatedCardClick?: (product: Product) => void;
+  /** Optional base z-index override (default: 80) */
+  zIndex?: number;
 }
 
 export function ProductDetailModal({
@@ -67,6 +69,7 @@ export function ProductDetailModal({
   supplier,
   platformSupplied = false,
   onRelatedCardClick,
+  zIndex,
 }: ProductDetailModalProps) {
   if (!productId) return null;
 
@@ -92,6 +95,7 @@ export function ProductDetailModal({
   const { addToast } = useToastStore();
 
   const productImages = product?.images?.filter((image): image is string => Boolean(image)) ?? [];
+  const inspiredBy = product?.inspire_de?.trim();
 
   // ── Load product ─────────────────────────────────────────────────────────
   useEffect(() => {
@@ -221,11 +225,6 @@ export function ProductDetailModal({
       await addProduct(product, quantity);
     }
 
-    addToast(
-      isEn ? `${addedName} added to bag` : `${addedName} ajouté au panier`,
-      'success'
-    );
-
     try {
       const { trackAddToCart } = await import('@/lib/gtag');
       trackAddToCart({
@@ -240,8 +239,9 @@ export function ProductDetailModal({
 
   const handleToggleFavorite = () => {
     if (!product) return;
-    if (isFavorite(product.id)) {
-      removeFavorite(product.id);
+    const isFav = isFavorite(product.id, product.category);
+    if (isFav) {
+      removeFavorite(product.id, product.category);
     } else {
       addFavorite(product);
       addToast(
@@ -253,8 +253,14 @@ export function ProductDetailModal({
 
   const handleShare = async () => {
     if (!product) return;
+    const productId = encodeURIComponent(String(product.slug || product.id));
+    const productPath = productType === 'diffuseur'
+      ? `/shop/diffuseurs?product=${productId}&type=diffuseur`
+      : productType === 'accessory'
+        ? `/shop/accessories?product=${productId}&type=accessory`
+        : `/shop/perfumes?product=${productId}&type=perfume`;
     const result = await sharePage(
-      `/shop/product/${product.slug || product.id}?type=${productType}`,
+      productPath,
       product.name,
       isEn
         ? `Explore ${product.name} on Accessories Exclusif`
@@ -270,7 +276,7 @@ export function ProductDetailModal({
       setSelectedEssence(p);
     } else {
       addProduct(p, 1);
-      addToast(isEn ? `${p.name} added to bag` : `${p.name} ajouté au panier`, 'success');
+      addToast(isEn ? 'Added' : 'Ajouté', 'success');
     }
   };
 
@@ -305,8 +311,8 @@ export function ProductDetailModal({
     const totalQty = items.reduce((s, it) => s + it.quantity, 0);
     addToast(
       isEn
-        ? `${essence.name} (${totalQty} bottle${totalQty > 1 ? 's' : ''}) added to bag`
-        : `${essence.name} (${totalQty} flacon${totalQty > 1 ? 's' : ''}) ajouté au panier`,
+        ? 'Added'
+        : 'Ajouté',
       'success'
     );
   };
@@ -337,7 +343,11 @@ export function ProductDetailModal({
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         transition={{ duration: 0.2 }}
-        className="fixed inset-0 z-[80] bg-black/60 backdrop-blur-sm"
+        className={cn(
+          "fixed inset-0 bg-black/60 backdrop-blur-sm",
+          !zIndex && "z-[80]"
+        )}
+        style={zIndex ? { zIndex } : undefined}
         onClick={closeModal}
         aria-hidden="true"
       />
@@ -349,7 +359,11 @@ export function ProductDetailModal({
         animate={{ opacity: 1, x: 0 }}
         exit={{ opacity: 0, x: '100%' }}
         transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-        className="fixed inset-0 z-[81] overflow-y-auto bg-background text-foreground"
+        className={cn(
+          "fixed inset-0 overflow-y-auto bg-background text-foreground",
+          !zIndex && "z-[81]"
+        )}
+        style={zIndex ? { zIndex: zIndex + 1 } : undefined}
         role="dialog"
         aria-modal="true"
         aria-label={product?.name ?? 'Product detail'}
@@ -358,7 +372,11 @@ export function ProductDetailModal({
         <button
           onClick={closeModal}
           aria-label={isEn ? 'Close' : 'Fermer'}
-          className="fixed top-4 left-4 z-[82] flex items-center gap-2 text-foreground/70 hover:text-gold transition-colors bg-background/80 backdrop-blur-sm rounded-xl px-3 py-2 border border-foreground/10 hover:border-gold/30"
+          className={cn(
+            "fixed top-4 left-4 flex items-center gap-2 text-foreground/70 hover:text-gold transition-colors bg-background/80 backdrop-blur-sm rounded-xl px-3 py-2 border border-foreground/10 hover:border-gold/30",
+            !zIndex && "z-[82]"
+          )}
+          style={zIndex ? { zIndex: zIndex + 2 } : undefined}
         >
           <ArrowLeft size={18} />
           <span className="text-sm font-medium uppercase tracking-widest hidden sm:inline">
@@ -563,6 +581,11 @@ export function ProductDetailModal({
                           <p className="text-gold font-medium tracking-widest uppercase text-xs mb-3">
                             {product.brand || 'Exclusif Collection'}
                           </p>
+                          {inspiredBy && (
+                            <p className="text-foreground/50 text-sm mb-2">
+                              {isEn ? 'Inspired by' : 'Inspiré par'} {inspiredBy}
+                            </p>
+                          )}
                           <h1 className="text-3xl md:text-4xl lg:text-5xl font-display font-bold text-foreground leading-[1.08]">
                             {product.name}
                           </h1>
@@ -579,13 +602,13 @@ export function ProductDetailModal({
                             onClick={handleToggleFavorite}
                             className={cn(
                               'p-3 rounded-full border transition-all',
-                              isFavorite(product.id)
+                              isFavorite(product.id, product.category)
                                 ? 'bg-red-500/10 border-red-500 text-red-500'
                                 : 'bg-foreground/5 border-foreground/10 text-foreground hover:bg-foreground/10 hover:border-foreground/20'
                             )}
                             aria-label="Save to wishlist"
                           >
-                            <Heart size={18} fill={isFavorite(product.id) ? 'currentColor' : 'none'} />
+                            <Heart size={18} fill={isFavorite(product.id, product.category) ? 'currentColor' : 'none'} />
                           </button>
                         </div>
                       </div>
@@ -595,7 +618,7 @@ export function ProductDetailModal({
                           <Store size={15} className="mt-0.5 shrink-0 text-emerald-400" />
                           <div>
                             <p className="text-[10px] font-semibold uppercase tracking-wider text-foreground/40">
-                              {isEn ? 'Supplier boutique' : 'Boutique fournisseur'}
+                              {isEn ? 'Supplier shop' : 'Boutique fournisseur'}
                             </p>
                             <p className="font-medium text-foreground/85">
                               {supplier?.nom || (isEn ? 'Sold by the platform' : 'Vendu par la plateforme')}
@@ -629,6 +652,17 @@ export function ProductDetailModal({
                       <p className="text-foreground/70 leading-relaxed mb-8 text-[15px] md:text-base max-w-lg">
                         {product.description}
                       </p>
+                      {product.description_longue?.trim() &&
+                        product.description_longue.trim() !== product.description.trim() && (
+                          <div className="mb-8 max-w-lg">
+                            <h3 className="mb-2 text-xs font-bold uppercase tracking-widest text-foreground/60">
+                              {isEn ? 'Full Description' : 'Description détaillée'}
+                            </h3>
+                            <p className="whitespace-pre-line text-foreground/70 leading-relaxed text-[15px] md:text-base">
+                              {product.description_longue}
+                            </p>
+                          </div>
+                        )}
 
                       {/* Color swatches */}
                       {product.availableColors && product.availableColors.length > 0 && (
@@ -889,7 +923,7 @@ export function ProductDetailModal({
                           product={p}
                           onAddToCart={handleRelatedAddToCart}
                           onToggleFavorite={() => addFavorite(p)}
-                          isFavorite={isFavorite(p.id)}
+                          isFavorite={isFavorite(p.id, p.category)}
                           onCardClick={onRelatedCardClick ? () => onRelatedCardClick(p) : undefined}
                         />
                       ))}

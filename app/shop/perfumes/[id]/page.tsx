@@ -1,50 +1,49 @@
-import type { Metadata } from 'next';
-import { notFound } from 'next/navigation';
-import { Suspense } from 'react';
+import { Metadata } from 'next';
+import { productService } from '@/services/productService';
+import { resolveImageUrl } from '@/lib/utils';
 import ProductDetailClient from '../../product/[id]/ProductDetailClient';
-import { createProductMetadata, fetchProductPageData } from '@/lib/productPageData';
 
-type Props = { params: Promise<{ id: string }> };
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  try {
+    const { id } = await params;
+    const product = await productService.getProductById(id, 'perfume');
 
-async function loadProduct(params: Props['params']) {
-  const { id } = await params;
-  return { id, result: await fetchProductPageData('perfume', id) };
-}
+    if (!product) {
+      return { title: 'Parfum introuvable' };
+    }
 
-export async function generateMetadata(props: Props): Promise<Metadata> {
-  const { id, result } = await loadProduct(props.params);
-  if (result.status === 'unavailable') {
-    console.error('Failed to fetch perfume metadata:', result.error);
+    const rawImage = product.image_principale || (product.images && product.images[0]) || '';
+    const mainImage = rawImage
+      ? resolveImageUrl(rawImage)
+      : 'https://accessoiresexclusifs.com/og-image.svg';
+
+    const productUrl = `https://accessoiresexclusifs.com/shop/perfumes/${encodeURIComponent(product.slug || product.id)}`;
+
     return {
-      title: 'Parfum | Accessoires Exclusifs',
-      description: 'Découvrez nos parfums sur Accessoires Exclusifs.',
-      alternates: { canonical: `/shop/perfumes/${id}` },
+      title: { default: product.name, template: '%s | Accessoires Exclusifs' },
+      description: product.description || `Achetez ${product.name} sur Accessoires Exclusifs`,
+      openGraph: {
+        title: product.name,
+        description: product.description || `Découvrez ${product.name}`,
+        url: productUrl,
+        images: [{ url: mainImage, width: 800, height: 600, alt: product.name }],
+        type: 'website',
+      },
     };
+  } catch {
+    return { title: 'Parfum' };
   }
-  if (result.status === 'not-found') {
-    return { title: 'Parfum introuvable | Accessoires Exclusifs' };
-  }
-
-  return createProductMetadata(
-    result.product,
-    `/shop/perfumes/${result.product.slug || result.product.id || id}`,
-  );
 }
 
-export default async function PerfumeDetailPage(props: Props) {
-  const { id, result } = await loadProduct(props.params);
-  if (result.status === 'not-found') notFound();
-  if (result.status === 'unavailable') {
-    console.error('Failed to fetch perfume for server rendering:', result.error);
-  }
-
-  return (
-    <Suspense fallback={<div className="min-h-screen bg-background" />}>
-      <ProductDetailClient
-        id={id}
-        preferredType="perfume"
-        initialProduct={result.status === 'found' ? result.product : undefined}
-      />
-    </Suspense>
-  );
+export default async function PerfumeDetailPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = await params;
+  return <ProductDetailClient id={id} />;
 }
