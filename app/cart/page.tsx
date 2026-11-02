@@ -30,7 +30,13 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { useCartStore } from '@/store/useCartStore';
 import { useToastStore } from '@/store/useToastStore';
-import { formatPrice, generateWhatsAppLink, getCompanyWhatsAppNumber, getCartLineTarget } from '@/lib/utils';
+import {
+  formatPrice,
+  generateWhatsAppLink,
+  getCompanyWhatsAppNumber,
+  getCartLineTarget,
+  type WhatsAppOrderItem,
+} from '@/lib/utils';
 import { PRODUCT_CATEGORY_LABELS } from '@/lib/constants';
 import { useTranslation } from 'react-i18next';
 import { ProductDetailModal } from '@/components/ui/ProductDetailModal';
@@ -265,7 +271,7 @@ export default function CartPage() {
 
     const popupWindow = window.open('', '_blank');
 
-    const formattedItems = allItems.map((item) => ({
+    const formattedItems: WhatsAppOrderItem[] = allItems.map((item) => ({
       name: item.nom,
       type:
         item.type === 'parfum'
