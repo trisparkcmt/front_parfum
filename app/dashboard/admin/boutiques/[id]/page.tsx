@@ -232,6 +232,9 @@ const T = {
     toast_commission_ok: 'Commission rate updated',
     toast_commission_error: 'Error updating the commission',
     toast_payout_error: 'Error recording the payout',
+    toast_product_activated: 'Product activated',
+    toast_product_deactivated: 'Product deactivated',
+    toast_product_status_error: 'Error updating product status',
     not_found_title: 'Shop not found',
     not_found_desc: "This shop doesn't exist or is no longer available.",
     view_logo: 'View shop logo',
@@ -730,21 +733,18 @@ export default function AdminBoutiqueDetailPage() {
 
     setTogglingProducts((current) => new Set(current).add(productKey));
     try {
-      const slugOrId = editingProduct.slug || String(editingProduct.id);
+      const slugOrId = product.slug || String(product.id);
       const formData = new FormData();
-      formData.append('prix_unitaire', editPriceValue);
-      // Send empty string to clear promo price
-      formData.append('prix_promotionnel', editPromoValue);
-      if (editingProduct.type_produit === 'parfum') {
+      formData.append('actif', actif ? 'true' : 'false');
+      if (product.type_produit === 'parfum') {
         await adminService.patchFormData(`shop/parfums/${slugOrId}/`, formData);
       } else {
         await adminService.patchFormData(`shop/accessoires/${slugOrId}/`, formData);
       }
-      addToast('Prix mis à jour avec succès', 'success');
-      setShowEditPriceModal(false);
+      addToast(t(actif ? 'toast_product_activated' : 'toast_product_deactivated'), 'success');
       fetchDetail();
-    } catch (err: any) {
-      addToast('Erreur lors de la mise à jour du prix', 'error');
+    } catch {
+      addToast(t('toast_product_status_error'), 'error');
     } finally {
       setTogglingProducts((current) => {
         const next = new Set(current);
