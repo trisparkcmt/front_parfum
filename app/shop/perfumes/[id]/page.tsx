@@ -45,5 +45,5 @@ export default async function PerfumeDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  return <ProductDetailClient id={id} />;
+  return <ProductDetailClient id={id} preferredType="perfume" />;
 }

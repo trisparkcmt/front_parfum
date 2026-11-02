@@ -1,5 +1,5 @@
 import { Metadata } from 'next';
-import ShopRedirectClient from './ShopRedirectClient';
+import ClientRedirect from './ClientRedirect';
 
 export const metadata: Metadata = {
   title: 'Shop',
@@ -10,5 +10,5 @@ export const metadata: Metadata = {
 };
 
 export default function ShopPage() {
-  return <ShopRedirectClient />;
+  return <ClientRedirect fallback="/shop/perfumes" />;
 }
