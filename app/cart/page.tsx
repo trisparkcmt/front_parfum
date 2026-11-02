@@ -265,21 +265,20 @@ export default function CartPage() {
 
     const popupWindow = window.open('', '_blank');
 
-    const formattedItems = allItems.map((item: any) => ({
-      id: String(item.id),
-      type: 'product' as const,
-      product: {
-        id: String(item.id),
-        name: item.nom,
-        price: item.prix_unitaire_snapshot,
-        description: '',
-        category: 'accessory' as const,
-        images: [],
-        stock: 99,
-        inStock: true,
-        isActive: true,
-        createdAt: '',
-      },
+    const formattedItems = allItems.map((item) => ({
+      name: item.nom,
+      type:
+        item.type === 'parfum'
+          ? 'perfume'
+          : item.type === 'accessoire'
+          ? 'accessory'
+          : item.type === 'diffuseur-parfum'
+          ? 'diffuser'
+          : item.type === 'produit-fini-essence'
+          ? 'huile'
+          : item.type === 'parfum-personnalise'
+          ? 'custom-perfume'
+          : 'custom-essence',
       quantity: item.quantite,
       unitPrice: item.prix_unitaire_snapshot,
     }));

@@ -19,7 +19,6 @@ import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { WHATSAPP_BASE_URL, CURRENCY, API_BASE_URL } from './constants';
 import { API_ROOT } from '@/services/api';
-import type { CartItem } from '@/types';
 
 /**
  * Merge Tailwind classes with clsx
@@ -263,8 +262,23 @@ export async function apiFetch(endpoint: string, options: RequestInit = {}) {
 /**
  * Generate a WhatsApp link with a pre-filled order message
  */
+export type WhatsAppOrderItemType =
+  | 'perfume'
+  | 'accessory'
+  | 'huile'
+  | 'diffuser'
+  | 'custom-perfume'
+  | 'custom-essence';
+
+export interface WhatsAppOrderItem {
+  name: string;
+  type: WhatsAppOrderItemType;
+  quantity: number;
+  unitPrice: number;
+}
+
 export function generateWhatsAppLink(
-  items: CartItem[],
+  items: WhatsAppOrderItem[],
   subtotal: number,
   total: number,
   promoCode?: string | null,
@@ -277,13 +291,17 @@ export function generateWhatsAppLink(
   whatsappNumber?: string | null
 ): string {
   let message = '🛍️ *Nouvelle Commande — Accessories Exclusif*\n\n';
+  const itemTypeLabels: Record<WhatsAppOrderItemType, string> = {
+    perfume: 'Parfum',
+    accessory: 'Accessoire',
+    huile: 'Huile',
+    diffuser: 'Diffuseur',
+    'custom-perfume': 'Parfum sur mesure',
+    'custom-essence': 'Essence personnalisée',
+  };
 
   items.forEach((item, index) => {
-    const name =
-      item.type === 'product'
-        ? item.product?.name
-        : `Composition: ${item.composition?.name}`;
-    message += `${index + 1}. ${name}\n`;
+    message += `${index + 1}. *${itemTypeLabels[item.type]} :* ${item.name}\n`;
     message += `   Qté: ${item.quantity} × ${formatPrice(item.unitPrice)}\n`;
     message += `   Sous-total: ${formatPrice(item.unitPrice * item.quantity)}\n\n`;
   });
