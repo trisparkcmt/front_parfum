@@ -5,8 +5,7 @@
  * @description Cookie consent banner for GDPR/privacy compliance.
  *
  * Appears on the user's first visit. Stores choice in localStorage under
- * `ae_cookie_consent` ('accepted' | 'refused'). Shows above the mobile
- * BottomNav (which is fixed at bottom-5) to avoid overlap.
+ * `ae_cookie_consent` ('accepted' | 'refused').
  */
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
@@ -98,10 +97,8 @@ export function CookieConsentBanner() {
       aria-live="polite"
       aria-label={t('cookie_consent_aria', 'Cookie consent')}
       className={[
-        // Position: sits above the mobile BottomNav (bottom-5 + h-16 + margin ≈ 90px)
-        // On desktop (nav: breakpoint), sits near the bottom edge
         'fixed z-[200] left-0 right-0',
-        'bottom-[90px] nav:bottom-4',
+        'bottom-4',
         'mx-3 nav:mx-auto nav:max-w-2xl',
         // Glass-dark aesthetic matching the rest of the site
         'rounded-2xl border border-white/10',

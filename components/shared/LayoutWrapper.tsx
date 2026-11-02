@@ -3,7 +3,6 @@ import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { Navbar } from "@/components/shared/Navbar";
 import { Footer } from "@/components/shared/Footer";
-import BottomNav from "@/components/shared/BottomNav";
 import { CartDrawer } from "@/components/shared/CartDrawer";
 import { CookieConsentBanner } from "@/components/shared/CookieConsentBanner";
 import { useThemeStore } from '@/store/useThemeStore';
@@ -51,14 +50,9 @@ export function LayoutWrapper({ children }: { children: React.ReactNode }) {
       {!shouldHideNav && (
         <Navbar />
       )}
-      <main className={`flex-1 ${!shouldHideNav ? 'pb-32 nav:pb-0' : ''}`}>
+      <main className="flex-1">
         {children}
       </main>
-      {!shouldHideNav && (
-        <div className="nav:hidden">
-          <BottomNav />
-        </div>
-      )}
       {!shouldHideFooter && hydrated && <Footer />}
       {/* Cookie Consent Banner — only on public pages */}
       {!shouldHideNav && <CookieConsentBanner />}

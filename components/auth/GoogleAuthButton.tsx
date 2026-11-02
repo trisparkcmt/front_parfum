@@ -144,6 +144,9 @@ export default function GoogleAuthButton({
 
   const handleGoogleAuth = () => {
     if (!tokenClientRef.current || disabled || isGoogleLoading) return;
+    if (typeof window !== 'undefined') {
+      window.sessionStorage.setItem('google_auth_intent', 'true');
+    }
     setIsGoogleLoading(true);
     tokenClientRef.current.requestAccessToken({ prompt: 'select_account' });
   };

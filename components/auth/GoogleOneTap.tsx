@@ -35,6 +35,22 @@ export function GoogleOneTap() {
   const initialized = useRef(false);
 
   useEffect(() => {
+    const explicitGoogleIntent = typeof window !== 'undefined' && window.sessionStorage.getItem('google_auth_intent') === 'true';
+
+    // Never trigger one-tap automatically. Only the explicit Google sign-in flow should
+    // set the intent flag, which is handled by GoogleAuthButton.
+    if (!explicitGoogleIntent) {
+      if (window.google?.accounts?.id) {
+        try {
+          window.google.accounts.id.cancel();
+        } catch {
+          // Ignore cancel error
+        }
+      }
+      initialized.current = false;
+      return;
+    }
+
     // 1. If user is logged in, cancel any active One Tap prompt immediately
     if (isUserLoggedIn(isAuthenticated)) {
       if (window.google?.accounts?.id) {
@@ -75,6 +91,9 @@ export function GoogleOneTap() {
               // Cancel prompt immediately on selection
               window.google?.accounts?.id?.cancel();
               useAuthStore.getState().setGoogleLoginRedirectUrl(null);
+              if (typeof window !== 'undefined') {
+                window.sessionStorage.removeItem('google_auth_intent');
+              }
               await loginWithGoogle(undefined, undefined, oneTapResponse.credential);
             } catch (err) {
               console.error('[GoogleOneTap] Login failed:', err);
@@ -127,6 +146,9 @@ export function GoogleOneTap() {
         } catch {
           // Ignore
         }
+      }
+      if (typeof window !== 'undefined') {
+        window.sessionStorage.removeItem('google_auth_intent');
       }
     };
   }, [isAuthenticated, clientId, pathname, loginWithGoogle]);
