@@ -465,3 +465,20 @@ Bulk actions in admin
 Advanced filtering
 Dashboard customization
 Notification center
+
+
+
+
+
+
+
+
+
+
+
+
+
+okay so it actually worked  so stop scanning past repo
+but there are isseus first when i enter the favorite page the new customperfume i just made is not visible ,i have to completely reload the app before it apears in the favorite page and that is a probleme
+next in the favorite page the svg bottle visual doesnt show liquid full in the bottle whreas they are all full
+next isseus when im in the favorite page and click on the a custom perfume to see its detail,the listed essence doesnt correspond to the actuall composition essence whereas when i click the edith button im brought ot the atelier with the correct composion essence loaded 

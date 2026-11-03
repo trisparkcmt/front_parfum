@@ -310,11 +310,11 @@ export default function PromoCarousel() {
 
   if (loading) {
     return (
-      <div className="flex w-full flex-1 flex-col">
-        <div className="lg:hidden max-w-7xl mx-auto px-4 sm:px-6 pt-2 flex flex-1 flex-col">
-          <div className="flex flex-1 items-stretch gap-3 overflow-x-auto snap-x snap-mandatory scrollbar-hide -mx-4 px-4">
+      <div className="w-full lg:flex-1">
+        <div className="lg:hidden max-w-7xl mx-auto px-4 sm:px-6 pt-2">
+          <div className="flex gap-3 overflow-x-auto snap-x snap-mandatory scrollbar-hide -mx-4 px-4">
             {Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className="h-full min-h-52 w-[82%] min-w-[280px] max-w-[340px] sm:w-[320px] flex-shrink-0 rounded-2xl bg-foreground/5 animate-pulse" />
+              <div key={i} className="h-52 w-[82%] min-w-[280px] max-w-[340px] sm:w-[320px] flex-shrink-0 rounded-2xl bg-foreground/5 animate-pulse" />
             ))}
           </div>
         </div>
@@ -329,7 +329,7 @@ export default function PromoCarousel() {
 
   return (
     <section
-      className="flex w-full flex-1 flex-col"
+      className="w-full lg:flex-1"
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
       onTouchStart={() => setIsPaused(true)}
@@ -341,16 +341,16 @@ export default function PromoCarousel() {
         const displayMessage = getPromoMessage(promo, isEn);
         const countdownMessage = formatCountdown(promo, isEn);
         return (
-          <div className="lg:hidden flex w-full flex-1 flex-col mt-2">
+          <div className="lg:hidden w-full mt-2">
             <motion.div
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4 }}
-              className="flex w-full flex-1 flex-col"
+              className="w-full"
             >
               <Link
                 href={promo.link}
-                className="group relative flex min-h-64 flex-1 w-full flex-col overflow-hidden bg-deep-black"
+                className="group relative block h-64 w-full overflow-hidden bg-deep-black"
               >
                 <div className="absolute inset-0 pointer-events-none">
                   <AppImage
@@ -393,11 +393,11 @@ export default function PromoCarousel() {
 
       {/* MOBILE / TABLET — multiple items: scrollable carousel, text overlaid on the photo */}
       {items.length > 1 && (
-      <div className="lg:hidden max-w-7xl mx-auto mt-2 px-4 sm:px-6 flex w-full flex-1 flex-col">
+      <div className="lg:hidden max-w-7xl mx-auto mt-2 px-4 sm:px-6">
         <div
           ref={mobileScrollRef}
           onScroll={handleMobileScroll}
-          className="flex flex-1 items-stretch gap-3 overflow-x-auto snap-x snap-mandatory scrollbar-hide -mx-4 px-4"
+          className="flex gap-3 overflow-x-auto snap-x snap-mandatory scrollbar-hide -mx-4 px-4"
           style={{ scrollbarWidth: 'none', scrollPaddingInline: '1rem' }}
         >
           {items.map((promo, idx) => {
@@ -415,12 +415,12 @@ export default function PromoCarousel() {
                   y: 0
                 }}
                 transition={{ duration: 0.4 }}
-                className="snap-center h-full flex-shrink-0 w-[82%] min-w-[280px] max-w-[340px] sm:w-[320px]"
+                className="snap-center flex-shrink-0 w-[82%] min-w-[280px] max-w-[340px] sm:w-[320px]"
               >
                 <Link
                   href={promo.link}
                   className={cn(
-                    "group relative block h-full min-h-52 overflow-hidden rounded-2xl border bg-deep-black transition-colors",
+                    "group relative block h-52 overflow-hidden rounded-2xl border bg-deep-black transition-colors",
                     isActive ? "border-gold/40" : "border-gold/15"
                   )}
                 >

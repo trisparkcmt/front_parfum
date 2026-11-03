@@ -98,7 +98,7 @@ export function CookieConsentBanner() {
       aria-label={t('cookie_consent_aria', 'Cookie consent')}
       className={[
         'fixed z-[200] left-0 right-0',
-        'bottom-4',
+        'bottom-[90px] nav:bottom-4',
         'mx-3 nav:mx-auto nav:max-w-2xl',
         // Glass-dark aesthetic matching the rest of the site
         'rounded-2xl border border-white/10',
