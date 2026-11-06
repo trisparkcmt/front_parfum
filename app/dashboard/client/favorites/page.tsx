@@ -10,8 +10,8 @@ import { useAuthStore } from '@/store/useAuthStore';
 import { useCartStore } from '@/store/useCartStore';
 import { useToastStore } from '@/store/useToastStore';
 import { labService, authService } from '@/services/apiService';
-import { formatPrice, sharePage } from '@/lib/utils';
-import Image from 'next/image';
+import { formatPrice, sharePage, resolveImageUrl } from '@/lib/utils';
+import AppImage from '@/components/ui/AppImage';
 import { CustomPerfumeBottle } from '@/components/ui/CustomPerfumeBottle';
 
 interface FavoriteProduct {
@@ -269,8 +269,8 @@ export default function FavoritesPage() {
                         />
                       </div>
                     ) : product.image ? (
-                      <Image
-                        src={product.image}
+                      <AppImage
+                        src={resolveImageUrl(product.image)}
                         alt={product.name}
                         fill
                         className="object-cover transition-transform duration-500 ease-out group-hover:scale-[1.04]"
