@@ -1779,8 +1779,13 @@ export const adminService = {
   /**
    * Get tracking for all deliveries (Admin)
    */
-  getDeliveries: async () => {
-    const response = await api.get('auth/admin/livraisons/');
+  getDeliveries: async (params?: {
+    page?: number;
+    page_size?: number;
+    statut_livraison?: string;
+    livreur_id?: number | string;
+  }) => {
+    const response = await api.get('auth/admin/livraisons/', { params });
     return response.data;
   },
 

@@ -1,7 +1,9 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-import { Plus, Loader2, RefreshCw, Trash2, AlertCircle, X } from 'lucide-react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import {
+  Plus, Loader2, RefreshCw, Trash2, AlertCircle, X, Search, ChevronLeft, ChevronRight,
+} from 'lucide-react';
 import { adminService } from '@/services/apiService';
 import { useToastStore } from '@/store/useToastStore';
 import { getLocalizedToast } from '@/lib/toastMessages';
@@ -37,11 +39,14 @@ interface Delivery {
   livraison_telephone: string;
   livraison_quartier: string;
   livraison_ville: string;
+  client_nom?: string;
   methode_paiement?: string;
   statut_paiement: 'payé' | 'en attente' | 'échoué' | string;
-  total_ttc: number;
+  total_ttc: number | string;
   statut_livraison: 'en attente' | 'en cours' | 'livrée' | 'échouée' | string;
 }
+
+const DELIVERIES_PAGE_SIZE = 50;
 
 // --- Shared Primitives & Helpers ---
 
@@ -115,9 +120,18 @@ function IconButton({
 // --- Main Page Component ---
 
 export default function DeliveryPage() {
-  const [drivers, setDrivers] = useState<any[]>([]);
-  const [deliveries, setDeliveries] = useState<any[]>([]);
+  const [drivers, setDrivers] = useState<Driver[]>([]);
+  const [deliveries, setDeliveries] = useState<Delivery[]>([]);
   const [loading, setLoading] = useState(true);
+  const [deliveriesLoading, setDeliveriesLoading] = useState(true);
+  const [deliveryPage, setDeliveryPage] = useState(1);
+  const [deliveriesCount, setDeliveriesCount] = useState(0);
+  const [deliverySearch, setDeliverySearch] = useState('');
+  const [deliveryStatusFilter, setDeliveryStatusFilter] = useState('');
+  const [paymentStatusFilter, setPaymentStatusFilter] = useState('');
+  const [driverFilter, setDriverFilter] = useState('');
+  const searchResultsCache = useRef<{ key: string; results: Delivery[] } | null>(null);
+  const activeDeliveryRequest = useRef(0);
   const [showModal, setShowModal] = useState(false);
 
   // Form state
@@ -133,33 +147,114 @@ export default function DeliveryPage() {
     try {
       setLoading(true);
 
-      try {
-        const driversData = await adminService.getDeliveryDrivers();
-        const processedDrivers: Driver[] = driversData.resultats || driversData.results || (Array.isArray(driversData) ? driversData : []);
-        setDrivers(processedDrivers);
-      } catch (drvError) {
-        console.error("Error loading drivers:", drvError);
-        addToast(getLocalizedToast('Error loading delivery fleet', 'Erreur lors du chargement de la flotte de livreurs'), 'error');
-      }
-
-      try {
-        const deliveriesData = await adminService.getDeliveries();
-        const processedDeliveries: Delivery[] = deliveriesData.resultats || deliveriesData.results || (Array.isArray(deliveriesData) ? deliveriesData : []);
-        setDeliveries(processedDeliveries);
-      } catch (delError) {
-        console.error("Error loading deliveries:", delError);
-        addToast(getLocalizedToast('The delivery server encountered an error', 'Le serveur de livraison a rencontré une erreur'), 'error');
-      }
+      const driversData = await adminService.getDeliveryDrivers();
+      const processedDrivers: Driver[] = driversData.resultats || driversData.results || (Array.isArray(driversData) ? driversData : []);
+      setDrivers(processedDrivers);
     } catch (error) {
-      addToast(getLocalizedToast('Error loading delivery data', 'Erreur lors du chargement des données de livraison'), 'error');
+      console.error('Error loading delivery fleet:', error);
+      addToast(getLocalizedToast('Error loading delivery fleet', 'Erreur lors du chargement de la flotte de livreurs'), 'error');
     } finally {
       setLoading(false);
     }
   }, [addToast]);
 
+  const fetchDeliveries = useCallback(async () => {
+    const requestId = ++activeDeliveryRequest.current;
+    try {
+      setDeliveriesLoading(true);
+      const filters = {
+        statut_livraison: deliveryStatusFilter || undefined,
+        livreur_id: driverFilter || undefined,
+      };
+      const localSearch = deliverySearch.trim().toLocaleLowerCase();
+      const useLocalFiltering = Boolean(localSearch || paymentStatusFilter);
+
+      if (useLocalFiltering) {
+        const cacheKey = `${localSearch}|${paymentStatusFilter}|${deliveryStatusFilter}|${driverFilter}`;
+        let filteredResults = searchResultsCache.current?.key === cacheKey
+          ? searchResultsCache.current.results
+          : null;
+
+        if (!filteredResults) {
+          let data = await adminService.getDeliveries({
+            ...filters,
+            page: 1,
+            page_size: DELIVERIES_PAGE_SIZE,
+          });
+          const allResults: Delivery[] = [];
+          let page = 1;
+
+          while (true) {
+            const pageResults: Delivery[] = data.results ?? data.resultats ?? (Array.isArray(data) ? data : []);
+            allResults.push(...pageResults);
+            if (Array.isArray(data) || !data.next) break;
+            if (pageResults.length === 0 || page >= 1000) {
+              throw new Error('Invalid delivery pagination response.');
+            }
+            page += 1;
+            data = await adminService.getDeliveries({
+              ...filters,
+              page,
+              page_size: DELIVERIES_PAGE_SIZE,
+            });
+          }
+
+          const normalizedPaymentFilter = paymentStatusFilter.toLocaleLowerCase().replace(/\s+/g, '_');
+          filteredResults = allResults.filter((delivery) => {
+            const searchableText = [
+              delivery.numero_commande,
+              delivery.livraison_nom_complet,
+              delivery.client_nom,
+              delivery.livraison_telephone,
+              delivery.livraison_quartier,
+              delivery.livraison_ville,
+            ].filter(Boolean).join(' ').toLocaleLowerCase();
+            const paymentStatus = String(delivery.statut_paiement || '')
+              .toLocaleLowerCase()
+              .replace(/\s+/g, '_');
+            return (!localSearch || searchableText.includes(localSearch)) &&
+              (!paymentStatusFilter || paymentStatus === normalizedPaymentFilter);
+          });
+          searchResultsCache.current = { key: cacheKey, results: filteredResults };
+        }
+
+        const start = (deliveryPage - 1) * DELIVERIES_PAGE_SIZE;
+        if (requestId === activeDeliveryRequest.current) {
+          setDeliveries(filteredResults.slice(start, start + DELIVERIES_PAGE_SIZE));
+          setDeliveriesCount(filteredResults.length);
+        }
+      } else {
+        const data = await adminService.getDeliveries({
+          ...filters,
+          page: deliveryPage,
+          page_size: DELIVERIES_PAGE_SIZE,
+        });
+        const results: Delivery[] = data.results ?? data.resultats ?? (Array.isArray(data) ? data : []);
+        if (requestId === activeDeliveryRequest.current) {
+          setDeliveries(results);
+          setDeliveriesCount(Number(data.count ?? results.length));
+        }
+      }
+    } catch (error) {
+      console.error('Error loading deliveries:', error);
+      if (requestId === activeDeliveryRequest.current) {
+        addToast(getLocalizedToast('The delivery server encountered an error', 'Le serveur de livraison a rencontré une erreur'), 'error');
+      }
+    } finally {
+      if (requestId === activeDeliveryRequest.current) setDeliveriesLoading(false);
+    }
+  }, [deliveryPage, deliverySearch, deliveryStatusFilter, paymentStatusFilter, driverFilter, addToast]);
+
   useEffect(() => {
     fetchDriversAndDeliveries();
   }, [fetchDriversAndDeliveries]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      void fetchDeliveries();
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [fetchDeliveries]);
 
   useEffect(() => {
     if (!searchQuery.trim()) {
@@ -201,6 +296,8 @@ export default function DeliveryPage() {
       setSearchQuery('');
       setUserSuggestions([]);
       fetchDriversAndDeliveries();
+      searchResultsCache.current = null;
+      fetchDeliveries();
     } catch (error: any) {
       setFormError(error.response?.data?.detail || 'Erreur lors de la promotion');
     } finally {
@@ -208,8 +305,8 @@ export default function DeliveryPage() {
     }
   };
 
-  const handleToggleStatus = async (id: number, currentStatut: string) => {
-    const nextStatut = currentStatut === 'disponible' ? 'indisponible' : 'disponible';
+  const handleToggleStatus = async (id: number, currentStatut: Driver['statut']) => {
+    const nextStatut: Driver['statut'] = currentStatut === 'disponible' ? 'indisponible' : 'disponible';
     // Optimistic flip
     setDrivers(prev => prev.map(d => d.id === id ? { ...d, statut: nextStatut } : d));
     try {
@@ -238,6 +335,9 @@ export default function DeliveryPage() {
   const activeDriversCount = drivers.filter(d => d.statut === 'disponible' || d.statut === 'en_livraison').length;
   const inDeliveryCount = drivers.filter(d => d.statut === 'en_livraison').length;
   const completedDeliveriesCount = deliveries.filter(d => d.statut_livraison === 'livrée').length;
+  const totalDeliveryPages = Math.max(1, Math.ceil(deliveriesCount / DELIVERIES_PAGE_SIZE));
+  const firstDeliveryNumber = deliveriesCount === 0 ? 0 : (deliveryPage - 1) * DELIVERIES_PAGE_SIZE + 1;
+  const lastDeliveryNumber = Math.min(deliveryPage * DELIVERIES_PAGE_SIZE, deliveriesCount);
 
   return (
     <div className="space-y-6">
@@ -249,7 +349,11 @@ export default function DeliveryPage() {
         </div>
         <div className="flex items-center gap-2">
           <IconButton
-            onClick={fetchDriversAndDeliveries}
+            onClick={() => {
+              void fetchDriversAndDeliveries();
+              searchResultsCache.current = null;
+              void fetchDeliveries();
+            }}
             variant="neutral"
             title="Rafraîchir"
           >
@@ -388,10 +492,69 @@ export default function DeliveryPage() {
 
       {/* Deliveries Table */}
       <div className="rounded-xl border border-white/10 overflow-hidden bg-white/[0.02]">
-        <div className="p-4 border-b border-white/10">
+        <div className="flex flex-col gap-3 border-b border-white/10 p-4">
           <h2 className="text-[10px] font-semibold uppercase tracking-wider text-foreground/35">
             Suivi Global des Livraisons
           </h2>
+          <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-[minmax(220px,1fr)_repeat(3,minmax(150px,190px))]">
+            <label className="relative">
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-foreground/35" />
+              <input
+                type="search"
+                value={deliverySearch}
+                onChange={(event) => {
+                  setDeliverySearch(event.target.value);
+                  setDeliveryPage(1);
+                }}
+                placeholder="Rechercher commande, client, téléphone, ville…"
+                className="w-full rounded-lg border border-white/10 bg-white/[0.03] py-2 pl-9 pr-3 text-xs text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-gold/50"
+              />
+            </label>
+            <select
+              value={deliveryStatusFilter}
+              onChange={(event) => {
+                setDeliveryStatusFilter(event.target.value);
+                setDeliveryPage(1);
+              }}
+              className="rounded-lg border border-white/10 bg-[#151515] px-3 py-2 text-xs text-foreground/70 outline-none focus:border-gold/50"
+              aria-label="Filtrer par statut de livraison"
+            >
+              <option value="">Tous les statuts de livraison</option>
+              <option value="en_attente_affectation">Non assignée</option>
+              <option value="assignée">Assignée</option>
+              <option value="livrée">Livrée</option>
+              <option value="échouée">Échouée</option>
+            </select>
+            <select
+              value={paymentStatusFilter}
+              onChange={(event) => {
+                setPaymentStatusFilter(event.target.value);
+                setDeliveryPage(1);
+              }}
+              className="rounded-lg border border-white/10 bg-[#151515] px-3 py-2 text-xs text-foreground/70 outline-none focus:border-gold/50"
+              aria-label="Filtrer par statut de paiement"
+            >
+              <option value="">Tous les paiements</option>
+              <option value="en_attente">En attente</option>
+              <option value="payé">Payé</option>
+              <option value="échoué">Échoué</option>
+            </select>
+            <select
+              value={driverFilter}
+              onChange={(event) => {
+                setDriverFilter(event.target.value);
+                setDeliveryPage(1);
+              }}
+              className="rounded-lg border border-white/10 bg-[#151515] px-3 py-2 text-xs text-foreground/70 outline-none focus:border-gold/50"
+              aria-label="Filtrer par livreur"
+            >
+              <option value="">Tous les livreurs</option>
+              {drivers.map((driver) => {
+                const name = `${driver.user_details?.first_name || ''} ${driver.user_details?.last_name || ''}`.trim();
+                return <option key={driver.id} value={driver.id}>{name || `Livreur #${driver.id}`}</option>;
+              })}
+            </select>
+          </div>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
@@ -406,7 +569,7 @@ export default function DeliveryPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5">
-              {deliveries.map(del => (
+              {!deliveriesLoading && deliveries.map(del => (
                 <tr key={del.id} className="hover:bg-white/[0.02] transition-colors">
                   <td className="px-5 py-3.5 font-mono text-xs text-foreground/80">{del.numero_commande}</td>
                   <td className="px-5 py-3.5">
@@ -432,15 +595,50 @@ export default function DeliveryPage() {
                   </td>
                 </tr>
               ))}
-              {deliveries.length === 0 && (
+              {deliveriesLoading && (
+                <tr>
+                  <td colSpan={6} className="py-12 text-center text-xs text-foreground/40">
+                    <span className="inline-flex items-center gap-2"><Loader2 size={14} className="animate-spin text-gold" />Chargement des livraisons…</span>
+                  </td>
+                </tr>
+              )}
+              {!deliveriesLoading && deliveries.length === 0 && (
                 <tr>
                   <td colSpan={6} className="py-12 text-center text-sm italic text-foreground/30">
-                    Aucune livraison en cours actuellement.
+                    Aucune livraison ne correspond à ces critères.
                   </td>
                 </tr>
               )}
             </tbody>
           </table>
+        </div>
+        <div className="flex flex-col gap-3 border-t border-white/10 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-xs text-foreground/40">
+            {deliveriesCount === 0
+              ? 'Aucune livraison'
+              : `Affichage de ${firstDeliveryNumber} à ${lastDeliveryNumber} sur ${deliveriesCount} livraisons`}
+          </p>
+          <div className="flex items-center justify-end gap-2">
+            <button
+              type="button"
+              disabled={deliveryPage <= 1 || deliveriesLoading}
+              onClick={() => setDeliveryPage((page) => Math.max(1, page - 1))}
+              className="inline-flex items-center gap-1 rounded-lg border border-white/10 px-3 py-1.5 text-xs text-foreground/70 transition-colors hover:bg-white/5 disabled:cursor-not-allowed disabled:opacity-30"
+            >
+              <ChevronLeft size={14} /> Précédent
+            </button>
+            <span className="min-w-20 text-center text-xs tabular-nums text-foreground/50">
+              Page {deliveryPage} / {totalDeliveryPages}
+            </span>
+            <button
+              type="button"
+              disabled={deliveryPage >= totalDeliveryPages || deliveriesLoading}
+              onClick={() => setDeliveryPage((page) => Math.min(totalDeliveryPages, page + 1))}
+              className="inline-flex items-center gap-1 rounded-lg border border-white/10 px-3 py-1.5 text-xs text-foreground/70 transition-colors hover:bg-white/5 disabled:cursor-not-allowed disabled:opacity-30"
+            >
+              Suivant <ChevronRight size={14} />
+            </button>
+          </div>
         </div>
       </div>
 
