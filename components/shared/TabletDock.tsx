@@ -2,6 +2,8 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { Heart, Watch } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { HomeIcon, DiffuseurIcon, PerfumeIcon, LaptopIcon, ReelsIcon, CartIcon, ProfileIcon } from '@/components/icons/CustomIcons';
@@ -26,12 +28,18 @@ export function TabletDock() {
   const itemCount = useCartStore((state) => state.getItemCount());
   const openCartDrawer = useCartDrawerStore((state) => state.open);
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const portalTarget = useMemo(() => {
+    if (typeof document === 'undefined') return null;
+    return document.body;
+  }, []);
 
-  return (
+  if (!portalTarget) return null;
+
+  return createPortal(
     <nav
       aria-label={t('main_navigation', 'Navigation principale')}
-      className="fixed bottom-5 left-1/2 z-[100] hidden max-w-[calc(100vw-2rem)] -translate-x-1/2 items-center gap-1 overflow-x-auto rounded-full border border-white/10 bg-deep-black/80 p-2 shadow-[0_8px_32px_rgba(0,0,0,0.55)] backdrop-blur-2xl tablet:flex nav:hidden"
-      style={{ paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom, 0px))' }}
+      className="fixed bottom-5 left-1/2 z-[100] hidden w-max max-w-[calc(100vw-2rem)] -translate-x-1/2 items-center gap-1 overflow-x-auto rounded-full border border-white/10 bg-deep-black/80 p-2 shadow-[0_8px_32px_rgba(0,0,0,0.55)] backdrop-blur-2xl tablet:flex nav:hidden"
+      style={{ bottom: 'calc(1.25rem + env(safe-area-inset-bottom, 0px))' }}
     >
       {links.map(({ href, labelKey, fallback, icon: Icon }) => {
         const label = t(labelKey, fallback);
@@ -99,6 +107,7 @@ export function TabletDock() {
       >
         <ProfileIcon size={20} />
       </Link>
-    </nav>
+    </nav>,
+    portalTarget
   );
 }

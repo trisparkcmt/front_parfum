@@ -350,7 +350,7 @@ export default function PromoCarousel() {
             >
               <Link
                 href={promo.link}
-                className="group relative block h-64 w-full overflow-hidden bg-deep-black"
+                className="group relative block h-64 w-full overflow-hidden bg-deep-black tablet:h-[50svh]"
               >
                 <div className="absolute inset-0 pointer-events-none">
                   <AppImage
@@ -420,7 +420,7 @@ export default function PromoCarousel() {
                 <Link
                   href={promo.link}
                   className={cn(
-                    "group relative block h-52 overflow-hidden rounded-2xl border bg-deep-black transition-colors",
+                    "group relative block h-52 overflow-hidden rounded-2xl border bg-deep-black transition-colors tablet:h-[50svh]",
                     isActive ? "border-gold/40" : "border-gold/15"
                   )}
                 >

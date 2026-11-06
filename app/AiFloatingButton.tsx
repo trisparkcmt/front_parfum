@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTranslation } from "react-i18next";
 
@@ -52,10 +53,16 @@ export default function AiFloatingButton() {
   // Start hidden; reveal only after hydration to avoid SSR mismatch
   const [visible, setVisible] = useState(false);
   const [ribbonVisible, setRibbonVisible] = useState(false);
+  const portalTarget = useMemo(() => {
+    if (typeof document === "undefined") return null;
+    return document.body;
+  }, []);
 
   useEffect(() => {
-    const dismissed = sessionStorage.getItem(STORAGE_KEY);
-    if (!dismissed) setVisible(true);
+    const frame = requestAnimationFrame(() => {
+      if (!sessionStorage.getItem(STORAGE_KEY)) setVisible(true);
+    });
+    return () => cancelAnimationFrame(frame);
   }, []);
 
   // One orchestrated moment: the ribbon unfurls once, holds, then retracts
@@ -80,7 +87,9 @@ export default function AiFloatingButton() {
     setVisible(false);
   };
 
-  return (
+  if (!portalTarget) return null;
+
+  return createPortal(
     <AnimatePresence>
       {visible && (
         <motion.div
@@ -88,7 +97,7 @@ export default function AiFloatingButton() {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: 14 }}
           transition={{ type: "spring", stiffness: 300, damping: 26, delay: 0.4 }}
-          className="fixed bottom-24 right-4 lg:bottom-8 lg:right-6 z-50 flex items-center"
+          className="fixed bottom-[calc(6rem+env(safe-area-inset-bottom))] right-[max(1rem,env(safe-area-inset-right))] z-50 flex items-center lg:bottom-8 lg:right-6"
         >
           {/* Ribbon tag — unfurls from behind the medallion, once, then retracts */}
           <AnimatePresence>
@@ -137,6 +146,7 @@ export default function AiFloatingButton() {
           </div>
         </motion.div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    portalTarget
   );
 }
