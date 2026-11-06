@@ -7,10 +7,12 @@ import { useToastStore } from '@/store/useToastStore';
 import { SlideOver } from '@/components/ui/SlideOver';
 import { LaptopIcon } from '@/components/icons/CustomIcons';
 import { getLocalizedToast } from '@/lib/toastMessages';
+import { TablePagination } from '@/components/admin/TablePagination';
 
 // --- Shared Primitives & Helpers ---
 
 const cx = (...classes: (string | boolean | undefined)[]) => classes.filter(Boolean).join(' ');
+const COMPOSITIONS_PAGE_SIZE = 50;
 
 const toNumber = (value: any) => {
   if (value === null || value === undefined || value === '') return 0;
@@ -109,14 +111,23 @@ export default function CompositionsPage() {
   const [compositions, setCompositions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<any | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
   const { addToast } = useToastStore();
 
-  const fetchCompositions = useCallback(async () => {
+  const fetchCompositions = useCallback(async (page: number) => {
     try {
       setLoading(true);
-      const data = await labService.getCustomPerfumes();
-      const list = data.results || data.resultats || (Array.isArray(data) ? data : []);
-      setCompositions((Array.isArray(list) ? list : []).map(normalizeComposition));
+      const data = await labService.getCustomPerfumes({ page, page_size: COMPOSITIONS_PAGE_SIZE });
+      const list = Array.isArray(data) ? data : data?.results || data?.resultats || [];
+      const items = Array.isArray(list) ? list : [];
+      const pages = Number(data?.pages ?? data?.total_pages ?? 1);
+      const count = Number(data?.count ?? data?.total ?? items.length);
+
+      setCompositions(items.map(normalizeComposition));
+      setTotalPages(Number.isFinite(pages) && pages > 0 ? pages : 1);
+      setTotalItems(Number.isFinite(count) && count >= 0 ? count : items.length);
     } catch (error) {
       addToast(getLocalizedToast('Error loading compositions', 'Erreur lors du chargement des compositions'), 'error');
     } finally {
@@ -125,8 +136,8 @@ export default function CompositionsPage() {
   }, [addToast]);
 
   useEffect(() => {
-    fetchCompositions();
-  }, [fetchCompositions]);
+    fetchCompositions(currentPage);
+  }, [currentPage, fetchCompositions]);
 
   const iaCount = compositions.filter(c => c.isAI).length;
   const manualCount = compositions.filter(c => !c.isAI).length;
@@ -146,18 +157,18 @@ export default function CompositionsPage() {
       <div className="shadow-black/30 shadow-sm rounded-xl border border-white/10 bg-white/[0.02] grid grid-cols-2 md:grid-cols-4 divide-x divide-white/10">
         <div className="p-4">
           <p className="text-[10px] font-semibold uppercase tracking-wider text-foreground/35">Total compositions</p>
-          <p className="text-xl font-semibold tabular-nums text-foreground mt-1">{compositions.length}</p>
+          <p className="text-xl font-semibold tabular-nums text-foreground mt-1">{totalItems}</p>
         </div>
         <div className="p-4">
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-foreground/35">Via IA</p>
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-foreground/35">Via IA (page)</p>
           <p className="text-xl font-semibold tabular-nums text-foreground mt-1">{iaCount}</p>
         </div>
         <div className="p-4">
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-foreground/35">Manuelles</p>
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-foreground/35">Manuelles (page)</p>
           <p className="text-xl font-semibold tabular-nums text-foreground mt-1">{manualCount}</p>
         </div>
         <div className="p-4">
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-foreground/35">Prix moyen</p>
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-foreground/35">Prix moyen (page)</p>
           <p className="text-xl font-semibold tabular-nums text-foreground mt-1">{avgPrice.toLocaleString()} FCFA</p>
         </div>
       </div>
@@ -224,6 +235,16 @@ export default function CompositionsPage() {
               </tbody>
             </table>
           </div>
+        )}
+        {!loading && totalPages > 1 && (
+          <TablePagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={totalItems}
+            itemsPerPage={COMPOSITIONS_PAGE_SIZE}
+            onPageChange={setCurrentPage}
+            itemLabel="compositions"
+          />
         )}
       </div>
 

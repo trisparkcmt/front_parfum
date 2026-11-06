@@ -934,8 +934,8 @@ export const labService = {
   /**
    * Get user's custom perfume compositions
    */
-  getCustomPerfumes: async () => {
-    const response = await api.get('lab/parfums-perso/');
+  getCustomPerfumes: async (params?: { page?: number; page_size?: number }) => {
+    const response = await api.get('lab/parfums-perso/', { params });
     return response.data;
   },
 

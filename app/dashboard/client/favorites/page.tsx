@@ -31,6 +31,59 @@ interface FavoriteProduct {
   raw?: any;
 }
 
+type CompositionPriceValue = string | number | null | undefined;
+
+interface CompositionPriceLine {
+  quantite_ml?: CompositionPriceValue;
+  quantite?: CompositionPriceValue;
+  essence_detail?: { prix_par_ml?: CompositionPriceValue } | null;
+  ingredient_detail?: { prix_par_ml?: CompositionPriceValue } | null;
+  prix_ligne?: CompositionPriceValue;
+  prix_par_ml_snapshot?: CompositionPriceValue;
+}
+
+interface CompositionPriceData {
+  composition?: CompositionPriceData | null;
+  lignes?: CompositionPriceLine[];
+  prix_total?: CompositionPriceValue;
+  prix?: CompositionPriceValue;
+  flacon_detail?: { prix_unitaire?: CompositionPriceValue } | null;
+  prix_flacon_snapshot?: CompositionPriceValue;
+}
+
+function getCustomCompositionPrice(item: CompositionPriceData): number {
+  const composition = item?.composition ?? item;
+  const lines = Array.isArray(composition?.lignes) ? composition.lignes : [];
+  const fallbackPrice = Number(composition?.prix_total ?? composition?.prix ?? 0);
+
+  if (lines.length === 0) return Number.isFinite(fallbackPrice) ? fallbackPrice : 0;
+
+  let lineTotal = 0;
+  for (const line of lines) {
+    const quantity = Number(line?.quantite_ml ?? line?.quantite ?? 0);
+    const pricePerMl = line?.essence_detail?.prix_par_ml ?? line?.ingredient_detail?.prix_par_ml;
+    const savedLinePrice = line?.prix_ligne;
+    const savedPricePerMl = line?.prix_par_ml_snapshot;
+    const unitPrice = pricePerMl ?? savedPricePerMl;
+    const price = unitPrice != null
+      ? quantity * Number(unitPrice)
+      : savedLinePrice != null
+        ? Number(savedLinePrice)
+        : Number.NaN;
+
+    if (!Number.isFinite(price)) return Number.isFinite(fallbackPrice) ? fallbackPrice : 0;
+    lineTotal += price;
+  }
+
+  const bottlePrice = composition?.flacon_detail?.prix_unitaire ?? composition?.prix_flacon_snapshot;
+  const numericBottlePrice = Number(bottlePrice);
+  if (bottlePrice == null || !Number.isFinite(numericBottlePrice)) {
+    return Number.isFinite(fallbackPrice) ? fallbackPrice : lineTotal;
+  }
+
+  return Math.round(lineTotal + numericBottlePrice);
+}
+
 export default function FavoritesPage() {
   const { t } = useTranslation();
   const router = useRouter();
@@ -72,7 +125,7 @@ export default function FavoritesPage() {
     const customFavorites: FavoriteProduct[] = customList.map((item: any) => ({
       id: `custom-${item.id}`,
       name: item.nom || t('custom_perfume', 'Composition sur mesure'),
-      price: Number(item.prix_total || item.prix || item.composition?.prix_total || 0),
+      price: getCustomCompositionPrice(item),
       category: 'custom',
       image: undefined,
       color: item.couleur || item.composition?.couleur,
