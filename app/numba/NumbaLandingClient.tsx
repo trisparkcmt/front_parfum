@@ -48,7 +48,7 @@ export default function NumbaLandingClient() {
         <div className="flex flex-col gap-6 md:grid md:grid-rows-2 md:gap-6 xl:contents">
           <Link
             href="/numba/ai-consultant"
-            className="group block relative p-8 lg:mt-15 sm:p-12 lg:p-16 flex flex-col justify-between rounded-2xl lg:rounded-none border-2 border-gold/40 lg:border lg:border-t-0 lg:border-b-0 lg:border-l-0 lg:border-r bg-foreground/[0.01] hover:bg-gold/5 transition-all duration-500 shadow-sm shadow-gold/[0.02] lg:shadow-none md:h-full"
+            className="group block relative p-8 sm:p-12 lg:p-16 flex flex-col justify-between rounded-2xl lg:rounded-none border-2 border-gold/40 lg:border lg:border-t-0 lg:border-b-0 lg:border-l-0 lg:border-r bg-foreground/[0.01] hover:bg-gold/5 transition-all duration-500 shadow-sm shadow-gold/[0.02] lg:shadow-none md:h-full"
           >
             <div className="lg:hidden absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-gold text-deep-black text-[9px] font-mono tracking-widest uppercase px-3 py-0.5 rounded-full font-bold">
               {t('option_a', { defaultValue: 'Option A' })}
@@ -80,7 +80,7 @@ export default function NumbaLandingClient() {
 
           <Link
             href="/numba/atelier"
-            className="group block relative p-8 lg:mt-15 sm:p-12 lg:p-16 flex flex-col justify-between rounded-2xl lg:rounded-none border-2 border-blue/300 lg:border-none bg-foreground/[0.03] lg:bg-transparent hover:bg-foreground/5 transition-all duration-500 md:h-full"
+            className="group block relative p-8 sm:p-12 lg:p-16 flex flex-col justify-between rounded-2xl lg:rounded-none border-2 border-blue/300 lg:border-none bg-foreground/[0.03] lg:bg-transparent hover:bg-foreground/5 transition-all duration-500 md:h-full"
           >
             <div className="lg:hidden absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-neutral-800 text-neutral-400 text-[9px] font-mono tracking-widest uppercase px-3 py-0.5 rounded-full border border-[var(--t-border)]">
               {t('option_b', { defaultValue: 'Option B' })}

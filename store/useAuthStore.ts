@@ -233,7 +233,7 @@ export const useAuthStore = create<AuthState>()(
             user: meUser,
             isAuthenticated: true,
             isLoading: false,
-            showGooglePersistencePrompt: true,
+            showGooglePersistencePrompt: false,
           });
           initializeTokenRefresh();
           addToast(getLocalizedToast('Welcome', 'Bienvenue'), 'success');
@@ -345,6 +345,7 @@ export const useAuthStore = create<AuthState>()(
             user: meUser,
             isAuthenticated: true,
             isLoading: false,
+            showGooglePersistencePrompt: true,
           });
           initializeTokenRefresh();
           addToast(getLocalizedToast('Welcome', 'Bienvenue'), 'success');

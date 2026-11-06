@@ -43,6 +43,9 @@ const T = {
     action_validate: 'Valider la boutique',
     action_payout: 'Effectuer un versement',
     action_commission: 'Modifier la commission',
+    action_delete: 'Supprimer la boutique',
+    action_deleting: 'Suppression…',
+    confirm_delete_boutique: 'Voulez-vous vraiment supprimer définitivement la boutique "{name}" ? Cette action est irréversible.',
 
     kpi_balance: 'Solde disponible',
     kpi_received: 'Total reçu',
@@ -126,6 +129,8 @@ const T = {
     toast_commission_ok: 'Taux de commission mis à jour',
     toast_commission_error: 'Erreur lors de la mise à jour de la commission',
     toast_payout_error: 'Erreur lors du versement',
+    toast_delete_success: 'Boutique supprimée avec succès',
+    toast_delete_error: 'Erreur lors de la suppression de la boutique',
     not_found_title: 'Boutique introuvable',
     not_found_desc: "Cette boutique n'existe pas ou n'est plus accessible.",
     view_logo: 'Voir le logo de la boutique',
@@ -142,6 +147,9 @@ const T = {
     action_validate: 'Validate shop',
     action_payout: 'Make a payout',
     action_commission: 'Edit commission',
+    action_delete: 'Delete shop',
+    action_deleting: 'Deleting…',
+    confirm_delete_boutique: 'Are you sure you want to permanently delete the shop "{name}"? This action cannot be undone.',
 
     kpi_balance: 'Available balance',
     kpi_received: 'Total received',
@@ -225,6 +233,8 @@ const T = {
     toast_commission_ok: 'Commission rate updated',
     toast_commission_error: 'Error updating the commission',
     toast_payout_error: 'Error recording the payout',
+    toast_delete_success: 'Shop deleted successfully',
+    toast_delete_error: 'Error deleting the shop',
     not_found_title: 'Shop not found',
     not_found_desc: "This shop doesn't exist or is no longer available.",
     view_logo: 'View shop logo',
@@ -563,6 +573,7 @@ export default function AdminBoutiqueDetailPage() {
 
   const [panel, setPanel] = useState<PanelKey>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [isDeletingBoutique, setIsDeletingBoutique] = useState(false);
   const [commissionValue, setCommissionValue] = useState('10');
   const [commissionError, setCommissionError] = useState('');
 
@@ -620,6 +631,23 @@ export default function AdminBoutiqueDetailPage() {
   const accessoires = useMemo(() => filterProducts('accessoire'), [allProducts, search]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /* ---- actions ---- */
+  const handleDeleteBoutique = async () => {
+    const confirmation = t('confirm_delete_boutique').replace('{name}', () => boutique?.nom ?? '');
+    if (!confirm(confirmation)) return;
+
+    setIsDeletingBoutique(true);
+    try {
+      await adminService.deleteBoutique(boutiqueId);
+      addToast(t('toast_delete_success'), 'success');
+      router.push('/dashboard/admin/boutiques');
+    } catch (err: unknown) {
+      const detail = (err as { response?: { data?: { detail?: unknown } } } | null)?.response?.data?.detail;
+      addToast(typeof detail === 'string' ? detail : t('toast_delete_error'), 'error');
+    } finally {
+      setIsDeletingBoutique(false);
+    }
+  };
+
   const openCommissionPanel = (mode: 'validate' | 'commission') => {
     setCommissionValue(mode === 'commission' ? String(toNum(boutique?.taux_commission) ?? 10) : '10');
     setCommissionError('');
@@ -830,6 +858,15 @@ export default function AdminBoutiqueDetailPage() {
           </div>
 
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <button
+              type="button"
+              onClick={handleDeleteBoutique}
+              disabled={isDeletingBoutique}
+              className="inline-flex items-center justify-center gap-2 rounded-lg border border-red-400/30 bg-red-400/10 px-3.5 py-2 text-xs font-semibold text-red-300 transition-colors hover:bg-red-400/20 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {isDeletingBoutique ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+              {isDeletingBoutique ? t('action_deleting') : t('action_delete')}
+            </button>
             {statut === 'en_attente' && (
               <button onClick={() => openCommissionPanel('validate')} className={buttonPrimary}>
                 <CheckCircle size={14} />

@@ -79,13 +79,13 @@ export function Navbar() {
   return (
     <header className="fixed top-0 left-0 right-0 z-50">
       {/* Mobile offline banner — sits between phone status bar and nav content */}
-      <div className="nav:hidden">
+      <div className="tablet:hidden nav:hidden">
         <MobileOfflineBanner />
       </div>
       <div className="absolute inset-x-0 top-0 h-0.5 bg-gold opacity-0" />
 
       {/* MOBILE */}
-      <div className="flex items-center nav:hidden bg-background border-b border-foreground/10 px-4 py-2.5 relative">
+      <div className="flex items-center tablet:hidden nav:hidden bg-background border-b border-foreground/10 px-4 py-2.5 relative">
         <div className="flex items-center gap-3  flex-shrink-0">
           <LanguageSelector />
           {isAuthenticated && user ? (

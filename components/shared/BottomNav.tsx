@@ -44,7 +44,7 @@ const BottomNav = () => {
   if (!mounted) {
     return (
       <nav
-        className="fixed bottom-5 left-4 right-4 z-[100] flex items-center gap-2 nav:hidden"
+        className="fixed bottom-5 left-4 right-4 z-[100] flex items-center gap-2 tablet:hidden nav:hidden"
         style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
       >
         <div className="h-16 w-full rounded-[28px] border border-white/10 bg-deep-black/70 backdrop-blur-2xl" />
@@ -54,7 +54,7 @@ const BottomNav = () => {
 
   return (
     <nav
-      className="fixed bottom-5 left-4 right-4 z-[100] flex items-end nav:hidden"
+      className="fixed bottom-5 left-4 right-4 z-[100] flex items-end tablet:hidden nav:hidden"
       style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
     >
       <div

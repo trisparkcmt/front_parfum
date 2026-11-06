@@ -1529,6 +1529,11 @@ export const adminService = {
     return response.data;
   },
 
+  deleteBoutique: async (boutiqueId: number) => {
+    const response = await api.delete(`auth/admin/boutiques/${boutiqueId}/`);
+    return response.data;
+  },
+
   /**
    * Patch FormData to the given endpoint (for image uploads in updates).
    */

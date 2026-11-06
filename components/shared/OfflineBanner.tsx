@@ -39,7 +39,7 @@ export function OfflineBanner() {
   return (
     <div
       role="alert"
-      className="hidden sm:flex fixed inset-x-0 bottom-0 z-[200] items-center justify-center gap-2 bg-red-600 px-4 py-3 text-center text-sm font-semibold text-white shadow-lg"
+      className="hidden sm:flex fixed inset-x-0 bottom-[88px] nav:bottom-0 z-[200] items-center justify-center gap-2 bg-red-600 px-4 py-3 text-center text-sm font-semibold text-white shadow-lg"
     >
       <WifiOff size={17} />
       {t('offline_message', { defaultValue: 'Vous êtes hors ligne. Vérifiez votre connexion Internet.' })}

@@ -4,6 +4,7 @@ import { usePathname } from 'next/navigation';
 import { Navbar } from "@/components/shared/Navbar";
 import { Footer } from "@/components/shared/Footer";
 import BottomNav from "@/components/shared/BottomNav";
+import { TabletDock } from "@/components/shared/TabletDock";
 import { CartDrawer } from "@/components/shared/CartDrawer";
 import { CookieConsentBanner } from "@/components/shared/CookieConsentBanner";
 import { useThemeStore } from '@/store/useThemeStore';
@@ -51,14 +52,15 @@ export function LayoutWrapper({ children }: { children: React.ReactNode }) {
       {!shouldHideNav && (
         <Navbar />
       )}
-      <main className={`flex-1 ${!shouldHideNav ? 'pb-32 nav:pb-0' : ''}`}>
+      <main className={`flex-1 ${!shouldHideNav ? 'pb-32 tablet:pb-24 nav:pb-0' : ''}`}>
         {children}
       </main>
       {!shouldHideNav && (
-        <div className="nav:hidden">
+        <div className="tablet:hidden nav:hidden">
           <BottomNav />
         </div>
       )}
+      {!shouldHideNav && <TabletDock />}
       {!shouldHideFooter && hydrated && <Footer />}
       {/* Cookie Consent Banner — only on public pages */}
       {!shouldHideNav && <CookieConsentBanner />}
