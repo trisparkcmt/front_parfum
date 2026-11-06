@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import AppImage from '@/components/ui/AppImage';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Share2,
@@ -44,20 +45,15 @@ function getProductCollectionPath(category?: Product['category']) {
   }
 }
 
-export default function ProductDetailClient({
-  id,
-  initialProduct,
-  preferredType,
-}: {
-  id: string;
-  initialProduct?: Product;
-  preferredType: 'perfume' | 'accessory' | 'diffuseur';
-}) {
+export default function ProductDetailClient({ id }: { id: string }) {
   const { i18n } = useTranslation();
   const isEn = i18n.language?.startsWith('en');
+  const searchParams = useSearchParams();
+  const typeHints = searchParams.get('type');
+  const preferredType = typeHints === 'accessory' ? 'accessory' : typeHints === 'diffuseur' ? 'diffuseur' : 'perfume';
 
-  const [product, setProduct] = useState<Product | null>(initialProduct ?? null);
-  const [loading, setLoading] = useState(!initialProduct);
+  const [product, setProduct] = useState<Product | null>(null);
+  const [loading, setLoading] = useState(true);
   const [activeImage, setActiveImage] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [activeTab, setActiveTab] = useState<'details' | 'supplementary'>('details');
@@ -98,15 +94,11 @@ export default function ProductDetailClient({
     let isMounted = true;
 
     async function loadProduct() {
-      if (initialProduct) {
-        setProduct(initialProduct);
-        setActiveImage(0);
-      }
-      if (!initialProduct) setLoading(true);
+      setLoading(true);
       try {
         const p = await productService.getProductById(String(id), preferredType);
         if (!isMounted) return;
-        if (p || !initialProduct) setProduct(p);
+        setProduct(p);
         setActiveImage(0);
 
         // Track view_item event for GA4
@@ -149,7 +141,7 @@ export default function ProductDetailClient({
     return () => {
       isMounted = false;
     };
-  }, [id, preferredType, initialProduct]);
+  }, [id, preferredType]);
 
   if (loading) {
     return (

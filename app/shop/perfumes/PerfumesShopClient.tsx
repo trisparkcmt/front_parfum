@@ -21,7 +21,7 @@ import { EssenceSizePickerModal } from '@/components/ui/EssenceSizePickerModal';
 import { ProductDetailModal } from '@/components/ui/ProductDetailModal';
 import { HuileDetailModal } from '@/components/ui/HuileDetailModal';
 
-export default function PerfumesShopClient({ initialProducts = [] }: { initialProducts?: Product[] }) {
+export default function PerfumesShopClient() {
   const { t, i18n } = useTranslation();
   const isEn = i18n.language?.startsWith('en') ?? false;
 
@@ -39,7 +39,7 @@ export default function PerfumesShopClient({ initialProducts = [] }: { initialPr
         }
       } catch {}
     }
-    return initialProducts;
+    return [];
   });
 
   const [finishedEssenceProducts, setFinishedEssenceProducts] = useState<Product[]>(() => {
@@ -65,7 +65,7 @@ export default function PerfumesShopClient({ initialProducts = [] }: { initialPr
         }
       } catch {}
     }
-    return initialProducts.length === 0;
+    return true;
   });
 
   const [finishedEssenceLoading, setFinishedEssenceLoading] = useState(false);

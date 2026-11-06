@@ -491,11 +491,13 @@ export default function HuileDetailClient({ id }: { id: string }) {
                                 </span>
                               )}
                             </div>
-                            <div className="text-[10px] mt-0.5">
+                            <div className="text-[11px] text-foreground/45 mt-0.5">
                               {isOutOfStock ? (
                                 <span className="text-red-400 font-semibold">Rupture de stock</span>
+                              ) : v.stock_disponible <= 5 ? (
+                                <span className="text-amber-400 font-medium">Plus que {v.stock_disponible} en stock</span>
                               ) : (
-                                <span className="text-emerald-400 font-semibold">En stock</span>
+                                <span>{v.stock_disponible} flacons disponibles</span>
                               )}
                             </div>
                           </div>
@@ -766,7 +768,16 @@ export default function HuileDetailClient({ id }: { id: string }) {
                           </td>
                         </tr>
                       )}
-                      
+                      {product.stock_total_ml != null && (
+                        <tr className="border-b border-foreground/10">
+                          <td className="py-3.5 text-xs uppercase tracking-widest text-foreground/40">
+                            {isEn ? 'Lab stock' : 'Stock laboratoire'}
+                          </td>
+                          <td className="py-3.5 font-medium text-foreground font-mono">
+                            {product.stock_total_ml.toLocaleString('fr-FR')} ml
+                          </td>
+                        </tr>
+                      )}
                     </tbody>
                   </table>
                 </motion.div>

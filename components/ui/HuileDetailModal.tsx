@@ -510,11 +510,13 @@ export function HuileDetailModal({ productId, initialProduct, onClose, onRelated
                                         <span className="bg-red-500/10 border border-red-500/20 text-red-400 text-[9px] font-bold px-1.5 py-0.5 uppercase tracking-wide rounded-md">Promo</span>
                                       )}
                                     </div>
-                                    <div className="text-[10px] mt-0.5">
+                                    <div className="text-[11px] text-foreground/45 mt-0.5">
                                       {isOutOfStock ? (
                                         <span className="text-red-400 font-semibold">Rupture de stock</span>
+                                      ) : v.stock_disponible <= 5 ? (
+                                        <span className="text-amber-400 font-medium">Plus que {v.stock_disponible} en stock</span>
                                       ) : (
-                                        <span className="text-emerald-400 font-semibold">En stock</span>
+                                        <span>{v.stock_disponible} flacons disponibles</span>
                                       )}
                                     </div>
                                   </div>
@@ -683,7 +685,7 @@ export function HuileDetailModal({ productId, initialProduct, onClose, onRelated
                               <tr className="border-b border-foreground/10"><td className="py-3.5 text-xs uppercase tracking-widest text-foreground/40">{isEn ? 'Brand' : 'Marque'}</td><td className="py-3.5 font-medium text-foreground">{product.brand || 'Exclusif Collection'}</td></tr>
                               {product.origine_pays && (<tr className="border-b border-foreground/10"><td className="py-3.5 text-xs uppercase tracking-widest text-foreground/40">{isEn ? 'Origin' : 'Pays d\'origine'}</td><td className="py-3.5 font-medium text-foreground">{product.origine_pays}</td></tr>)}
                               {variants.length > 0 && (<tr className="border-b border-foreground/10"><td className="py-3.5 text-xs uppercase tracking-widest text-foreground/40">{isEn ? 'Available sizes' : 'Formats disponibles'}</td><td className="py-3.5 font-medium text-foreground">{variants.map(v => `${v.taille_ml}ml (${formatPrice(v.prix_actuel)})`).join(', ')}</td></tr>)}
-                              
+                              {product.stock_total_ml != null && (<tr className="border-b border-foreground/10"><td className="py-3.5 text-xs uppercase tracking-widest text-foreground/40">{isEn ? 'Lab stock' : 'Stock laboratoire'}</td><td className="py-3.5 font-medium text-foreground font-mono">{product.stock_total_ml.toLocaleString('fr-FR')} ml</td></tr>)}
                             </tbody>
                           </table>
                         </motion.div>
@@ -777,7 +779,7 @@ export function HuileDetailModal({ productId, initialProduct, onClose, onRelated
                                 <img src={resolveImageUrl(p.images[0])} alt={p.name} className="w-full aspect-square object-cover" />
                               )}
                               <div className="p-3">
-                                <p className="text-xs font-bold text-foreground truncate uppercase">{p.name}</p>
+                                <p className="text-xs font-bold text-foreground truncate">{p.name}</p>
                                 <p className="text-xs text-gold font-mono mt-1">{formatPrice(p.price)}</p>
                               </div>
                             </div>

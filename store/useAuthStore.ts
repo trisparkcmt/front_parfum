@@ -233,6 +233,7 @@ export const useAuthStore = create<AuthState>()(
             user: meUser,
             isAuthenticated: true,
             isLoading: false,
+            showGooglePersistencePrompt: true,
           });
           initializeTokenRefresh();
           addToast(getLocalizedToast('Welcome', 'Bienvenue'), 'success');
@@ -344,7 +345,6 @@ export const useAuthStore = create<AuthState>()(
             user: meUser,
             isAuthenticated: true,
             isLoading: false,
-            showGooglePersistencePrompt: true,
           });
           initializeTokenRefresh();
           addToast(getLocalizedToast('Welcome', 'Bienvenue'), 'success');
@@ -615,10 +615,6 @@ export const useAuthStore = create<AuthState>()(
     {
       name: 'ae-auth',
       storage: authStateStorage,
-      partialize: (state) => ({
-        user: state.user,
-        isAuthenticated: state.isAuthenticated,
-      }),
       onRehydrateStorage: () => (state) => {
         if (state) {
           state.setHasHydrated(true);

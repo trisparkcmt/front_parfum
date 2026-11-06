@@ -210,13 +210,15 @@ export const useFavoritesStore = create<FavoritesState>()(
             const isCustom = typeProduit === 'parfum-personnalise' || typeProduit === 'custom' || typeProduit === 'numba-creation';
             const isFinishedEssence = typeProduit === 'produit_fini_essence' || typeProduit === 'produit-fini-essence' || typeProduit === 'huile' || fav.essence_id || fav.taille_ml;
             const isDiffuseur = typeProduit === 'diffuseur' || typeProduit === 'diffuser';
+            const image = fav.image_produit || fav.image_principale || fav.image || fav.images?.[0];
             return {
               id: String(fav.produit_id || fav.id_produit || fav.id),
               name: fav.nom_produit || fav.nom || 'Produit',
               description: '',
               price: parseFloat(fav.prix_produit || fav.price || '0'),
               category: isAccessory ? 'accessory' : isCustom ? 'numba-creation' : isFinishedEssence ? 'produit-fini-essence' : isDiffuseur ? 'diffuseur' : 'perfume-brand',
-              images: fav.image_produit ? [fav.image_produit] : [],
+              images: image ? [image] : [],
+              image_principale: image,
               inStock: true,
               slug: fav.slug_produit || fav.slug || '',
               createdAt: fav.date_ajout || new Date().toISOString(),

@@ -310,7 +310,7 @@ export default function PromoCarousel() {
 
   if (loading) {
     return (
-      <div className="w-full lg:flex-1">
+      <div className="flex w-full flex-col lg:flex-1 lg:min-h-0">
         <div className="lg:hidden max-w-7xl mx-auto px-4 sm:px-6 pt-2">
           <div className="flex gap-3 overflow-x-auto snap-x snap-mandatory scrollbar-hide -mx-4 px-4">
             {Array.from({ length: 3 }).map((_, i) => (
@@ -318,7 +318,7 @@ export default function PromoCarousel() {
             ))}
           </div>
         </div>
-        <div className="hidden lg:block w-full flex-1 min-h-[550px] bg-foreground/5 animate-pulse" />
+        <div className="hidden lg:block w-full flex-1 min-h-0 bg-foreground/5 animate-pulse" />
       </div>
     );
   }
@@ -329,7 +329,7 @@ export default function PromoCarousel() {
 
   return (
     <section
-      className="w-full lg:flex-1"
+      className="flex w-full flex-col lg:flex-1 lg:min-h-0"
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
       onTouchStart={() => setIsPaused(true)}
@@ -484,7 +484,7 @@ export default function PromoCarousel() {
       )}
 
       {/* DESKTOP */}
-      <div className="hidden lg:block relative w-full flex-1 min-h-[550px] overflow-hidden bg-deep-black">
+      <div className="hidden lg:block relative w-full flex-1 min-h-0 overflow-hidden bg-deep-black">
         <AnimatePresence mode="wait">
           <motion.div
             key={activeSlide.key}

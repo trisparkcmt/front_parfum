@@ -21,7 +21,7 @@ import {
   Wallet,
   X,
 } from 'lucide-react';
-import { adminService, api, shopService } from '@/services/apiService';
+import { adminService, shopService } from '@/services/apiService';
 import { BoutiqueFullDetail, BoutiqueEffectuerVersementPayload } from '@/types';
 import { useToastStore } from '@/store/useToastStore';
 import { resolveImageUrl } from '@/lib/utils';
@@ -77,8 +77,6 @@ const T = {
     price_modal_desc: 'Mettez à jour le prix de vente et le prix promotionnel du produit.',
     field_promo_price: 'Prix promotionnel',
     delete_product: 'Supprimer le produit',
-    activate_product: 'Activer le produit',
-    deactivate_product: 'Désactiver le produit',
     col_date: 'Date',
     col_reference: 'Référence',
     col_method: 'Mode / destination',
@@ -103,11 +101,6 @@ const T = {
     commission_title: 'Modifier la commission',
     commission_desc: 'Le nouveau taux sera appliqué aux prochaines ventes de cette boutique.',
     field_commission: 'Taux de commission (%)',
-    promo_guard_loading: 'Vérification des codes promo admin actifs…',
-    promo_guard_unavailable: 'Impossible de vérifier les codes promo actifs. Réessayez avant de modifier ce taux.',
-    promo_guard_none: 'Aucun code promo admin actif : aucun seuil minimal à appliquer.',
-    promo_guard_minimum: 'Commission minimale requise : {reduction}% (réduction admin active la plus élevée).',
-    promo_guard_limit: '🚨 SÉCURITÉ FINANCIÈRE : Ce taux de commission ({commission}%) est inférieur au coût du code promo actif le plus élevé ({reduction}%). Ajustez d’abord vos codes promo pour éviter toute perte financière.',
     validate_btn: 'Valider',
     save_btn: 'Enregistrer',
     saving: 'Enregistrement…',
@@ -133,9 +126,6 @@ const T = {
     toast_commission_ok: 'Taux de commission mis à jour',
     toast_commission_error: 'Erreur lors de la mise à jour de la commission',
     toast_payout_error: 'Erreur lors du versement',
-    toast_product_activated: 'Produit activé',
-    toast_product_deactivated: 'Produit désactivé',
-    toast_product_status_error: 'Erreur lors de la mise à jour du statut du produit',
     not_found_title: 'Boutique introuvable',
     not_found_desc: "Cette boutique n'existe pas ou n'est plus accessible.",
     view_logo: 'Voir le logo de la boutique',
@@ -186,8 +176,6 @@ const T = {
     price_modal_desc: 'Update the product sale price and promotional price.',
     field_promo_price: 'Promotional price',
     delete_product: 'Delete product',
-    activate_product: 'Activate product',
-    deactivate_product: 'Deactivate product',
     col_date: 'Date',
     col_reference: 'Reference',
     col_method: 'Method / destination',
@@ -212,11 +200,6 @@ const T = {
     commission_title: 'Edit commission',
     commission_desc: "The new rate applies to this shop's upcoming sales.",
     field_commission: 'Commission rate (%)',
-    promo_guard_loading: 'Checking active admin promo codes…',
-    promo_guard_unavailable: 'Unable to verify active promo codes. Retry before changing this rate.',
-    promo_guard_none: 'No active admin promo code: no minimum rate applies.',
-    promo_guard_minimum: 'Minimum commission required: {reduction}% (highest active admin discount).',
-    promo_guard_limit: '🚨 FINANCIAL SAFETY: This commission rate ({commission}%) is below the highest active promo discount ({reduction}%). Adjust promo codes first to avoid a financial loss.',
     validate_btn: 'Validate',
     save_btn: 'Save',
     saving: 'Saving…',
@@ -242,9 +225,6 @@ const T = {
     toast_commission_ok: 'Commission rate updated',
     toast_commission_error: 'Error updating the commission',
     toast_payout_error: 'Error recording the payout',
-    toast_product_activated: 'Product activated',
-    toast_product_deactivated: 'Product deactivated',
-    toast_product_status_error: 'Error updating product status',
     not_found_title: 'Shop not found',
     not_found_desc: "This shop doesn't exist or is no longer available.",
     view_logo: 'View shop logo',
@@ -432,16 +412,14 @@ function ProductsTable({
   rows,
   kind,
   t,
+  onEditPrice,
   onDeleteProduct,
-  onToggleProduct,
-  togglingProducts,
 }: {
   rows: ProductRow[];
   kind: 'parfum' | 'accessoire';
   t: (k: TKey) => string;
+  onEditPrice: (product: ProductRow) => void;
   onDeleteProduct: (product: ProductRow) => Promise<void>;
-  onToggleProduct: (product: ProductRow, actif: boolean) => Promise<void>;
-  togglingProducts: Set<string>;
 }) {
   const categoryOf = (p: ProductRow) => (kind === 'parfum' ? p.categorie?.nom : p.type_accessoire?.nom) || '—';
 
@@ -461,43 +439,16 @@ function ProductsTable({
     return <span className={cx('tabular-nums', q <= 5 ? 'text-amber-400' : 'text-foreground/70')}>{q}</span>;
   };
 
-  const Visibility = ({ p }: { p: ProductRow }) => {
-    const isActive = Boolean(p.actif);
-    const isToggling = togglingProducts.has(`${p.type_produit}-${p.id}`);
-    const actionLabel = isActive ? t('deactivate_product') : t('activate_product');
-    return (
-      <div className="flex items-center gap-2">
-        <span
-          className={cx(
-            'inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ring-inset',
-            isActive ? 'bg-green-500/10 text-green-400 ring-green-500/20' : 'bg-white/5 text-foreground/45 ring-white/10'
-          )}
-        >
-          {isActive ? t('online') : t('hidden')}
-        </span>
-        <button
-          type="button"
-          role="switch"
-          aria-checked={isActive}
-          aria-label={`${actionLabel}: ${p.nom}`}
-          title={`${actionLabel}: ${p.nom}`}
-          disabled={isToggling}
-          onClick={() => { void onToggleProduct(p, !isActive); }}
-          className={cx(
-            'relative h-5 w-9 flex-shrink-0 rounded-full transition-colors disabled:cursor-wait disabled:opacity-60',
-            isActive ? 'bg-gold' : 'bg-white/10'
-          )}
-        >
-          <span
-            className={cx(
-              'absolute top-0.5 h-4 w-4 rounded-full bg-black transition-all',
-              isActive ? 'left-[18px]' : 'left-0.5'
-            )}
-          />
-        </button>
-      </div>
-    );
-  };
+  const Visibility = ({ p }: { p: ProductRow }) => (
+    <span
+      className={cx(
+        'inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ring-inset',
+        p.actif ? 'bg-green-500/10 text-green-400 ring-green-500/20' : 'bg-white/5 text-foreground/45 ring-white/10'
+      )}
+    >
+      {p.actif ? t('online') : t('hidden')}
+    </span>
+  );
 
   if (rows.length === 0) {
     return <div className="py-12 text-center text-sm italic text-foreground/30">{t('no_results')}</div>;
@@ -537,6 +488,9 @@ function ProductsTable({
                 <td className="px-4 py-2.5"><Visibility p={p} /></td>
                 <td className="px-4 py-2.5">
                   <div className="flex items-center justify-end gap-1">
+                    <button type="button" onClick={() => onEditPrice(p)} title={`${t('edit_price')}: ${p.nom}`} aria-label={`${t('edit_price')}: ${p.nom}`} className="rounded-md p-1.5 text-foreground/50 transition-colors hover:bg-gold/10 hover:text-gold">
+                      <Edit2 size={14} />
+                    </button>
                     <button type="button" onClick={() => { void onDeleteProduct(p); }} title={`${t('delete_product')}: ${p.nom}`} aria-label={`${t('delete_product')}: ${p.nom}`} className="rounded-md p-1.5 text-foreground/50 transition-colors hover:bg-red-500/10 hover:text-red-400">
                       <Trash2 size={14} />
                     </button>
@@ -572,6 +526,9 @@ function ProductsTable({
               </div>
             </div>
             <div className="flex justify-end gap-2 border-t border-white/5 pt-2">
+              <button type="button" onClick={() => onEditPrice(p)} className="inline-flex items-center gap-1.5 rounded-md border border-white/10 px-2.5 py-1.5 text-[11px] text-foreground/60 hover:border-gold/30 hover:text-gold">
+                <Edit2 size={12} />{t('edit_price')}
+              </button>
               <button type="button" onClick={() => { void onDeleteProduct(p); }} aria-label={`${t('delete_product')}: ${p.nom}`} title={`${t('delete_product')}: ${p.nom}`} className="rounded-md border border-white/10 p-1.5 text-foreground/50 hover:border-red-500/30 hover:text-red-400">
                 <Trash2 size={13} />
               </button>
@@ -608,9 +565,6 @@ export default function AdminBoutiqueDetailPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [commissionValue, setCommissionValue] = useState('10');
   const [commissionError, setCommissionError] = useState('');
-  const [maximumActivePromoReduction, setMaximumActivePromoReduction] = useState<number | null>(null);
-  const [promoSafetyLoading, setPromoSafetyLoading] = useState(false);
-  const [promoSafetyError, setPromoSafetyError] = useState('');
 
   const [amount, setAmount] = useState('');
   const [payoutMode, setPayoutMode] = useState('');
@@ -620,7 +574,11 @@ export default function AdminBoutiqueDetailPage() {
   const payoutIdempotencyKey = useRef<string | null>(null);
 
   // Product edit / delete state
-  const [togglingProducts, setTogglingProducts] = useState<Set<string>>(() => new Set());
+  const [editingProduct, setEditingProduct] = useState<ProductRow | null>(null);
+  const [editPriceValue, setEditPriceValue] = useState('');
+  const [editPromoValue, setEditPromoValue] = useState('');
+  const [showEditPriceModal, setShowEditPriceModal] = useState(false);
+  const [isSavingProduct, setIsSavingProduct] = useState(false);
 
   const fetchDetail = useCallback(async () => {
     setRefreshing(true);
@@ -634,53 +592,6 @@ export default function AdminBoutiqueDetailPage() {
       setInitialLoading(false);
     }
   }, [boutiqueId, productsPage, addToast, t]);
-
-  const fetchPromoSafetyThreshold = useCallback(async () => {
-    try {
-      const endpoint = 'orders/admin/codes-promo/';
-      let response = await api.get(endpoint);
-      let data = response.data;
-      const promoCodes: Array<{ est_actif?: boolean; reduction_pourcentage?: string | number }> = [];
-      let page = 1;
-
-      while (true) {
-        const pageCodes = Array.isArray(data)
-          ? data
-          : data?.results ?? data?.resultats;
-        if (!Array.isArray(pageCodes)) {
-          throw new Error('Réponse invalide lors du chargement des codes promo.');
-        }
-        promoCodes.push(...pageCodes);
-        if (Array.isArray(data) || !data.next) break;
-        if (pageCodes.length === 0 || page > 1000) {
-          throw new Error('La pagination des codes promo est invalide.');
-        }
-        page += 1;
-        response = await api.get(endpoint, { params: { page } });
-        data = response.data;
-      }
-
-      const activePromoCodes = promoCodes.filter((promo) => promo.est_actif);
-      const reductions = activePromoCodes.map((promo) => Number(promo.reduction_pourcentage));
-      if (reductions.some((reduction) => !Number.isFinite(reduction) || reduction < 0 || reduction > 100)) {
-        throw new Error('Un taux de réduction promo actif est invalide.');
-      }
-      setMaximumActivePromoReduction(reductions.length > 0 ? Math.max(...reductions) : null);
-    } catch {
-      setMaximumActivePromoReduction(null);
-      setPromoSafetyError(t('promo_guard_unavailable'));
-      addToast(t('promo_guard_unavailable'), 'error');
-    } finally {
-      setPromoSafetyLoading(false);
-    }
-  }, [addToast, t]);
-
-  const retryPromoSafetyThreshold = () => {
-    setCommissionError('');
-    setPromoSafetyLoading(true);
-    setPromoSafetyError('');
-    void fetchPromoSafetyThreshold();
-  };
 
   useEffect(() => {
     if (boutiqueId) fetchDetail();
@@ -712,9 +623,6 @@ export default function AdminBoutiqueDetailPage() {
   const openCommissionPanel = (mode: 'validate' | 'commission') => {
     setCommissionValue(mode === 'commission' ? String(toNum(boutique?.taux_commission) ?? 10) : '10');
     setCommissionError('');
-    setPromoSafetyLoading(true);
-    setPromoSafetyError('');
-    void fetchPromoSafetyThreshold();
     setPanel(mode);
   };
 
@@ -733,18 +641,6 @@ export default function AdminBoutiqueDetailPage() {
     const commission = Number(commissionValue);
     if (!Number.isFinite(commission) || commission < 0 || commission > 100) {
       setCommissionError(t('err_commission'));
-      return;
-    }
-    if (promoSafetyLoading || promoSafetyError) {
-      setCommissionError(promoSafetyError || t('promo_guard_loading'));
-      return;
-    }
-    if (maximumActivePromoReduction !== null && commission < maximumActivePromoReduction) {
-      setCommissionError(
-        t('promo_guard_limit')
-          .replace('{commission}', commission.toFixed(2))
-          .replace('{reduction}', maximumActivePromoReduction.toFixed(2))
-      );
       return;
     }
     setIsSaving(true);
@@ -802,30 +698,34 @@ export default function AdminBoutiqueDetailPage() {
     }
   };
 
-  const handleToggleProduct = async (product: ProductRow, actif: boolean) => {
-    const productKey = `${product.type_produit}-${product.id}`;
-    if (togglingProducts.has(productKey)) return;
+  const handleEditPrice = (p: ProductRow) => {
+    setEditingProduct(p);
+    setEditPriceValue(String(p.prix_unitaire || ''));
+    setEditPromoValue(String((p as any).prix_promotionnel || p.prix_promo || ''));
+    setShowEditPriceModal(true);
+  };
 
-    setTogglingProducts((current) => new Set(current).add(productKey));
+  const handleSaveProductPrice = async () => {
+    if (!editingProduct) return;
+    setIsSavingProduct(true);
     try {
-      const slugOrId = product.slug || String(product.id);
+      const slugOrId = editingProduct.slug || String(editingProduct.id);
       const formData = new FormData();
-      formData.append('actif', actif ? 'true' : 'false');
-      if (product.type_produit === 'parfum') {
+      formData.append('prix_unitaire', editPriceValue);
+      // Send empty string to clear promo price
+      formData.append('prix_promotionnel', editPromoValue);
+      if (editingProduct.type_produit === 'parfum') {
         await adminService.patchFormData(`shop/parfums/${slugOrId}/`, formData);
       } else {
         await adminService.patchFormData(`shop/accessoires/${slugOrId}/`, formData);
       }
-      addToast(t(actif ? 'toast_product_activated' : 'toast_product_deactivated'), 'success');
+      addToast('Prix mis à jour avec succès', 'success');
+      setShowEditPriceModal(false);
       fetchDetail();
-    } catch {
-      addToast(t('toast_product_status_error'), 'error');
+    } catch (err: any) {
+      addToast('Erreur lors de la mise à jour du prix', 'error');
     } finally {
-      setTogglingProducts((current) => {
-        const next = new Set(current);
-        next.delete(productKey);
-        return next;
-      });
+      setIsSavingProduct(false);
     }
   };
 
@@ -888,16 +788,6 @@ export default function AdminBoutiqueDetailPage() {
     panel === 'validate' ? t('validate_title') : panel === 'commission' ? t('commission_title') : t('payout_title');
   const panelDescription =
     panel === 'validate' ? t('validate_desc') : panel === 'commission' ? t('commission_desc') : t('payout_desc');
-  const enteredCommission = Number(commissionValue);
-  const promoCommissionError =
-    panel !== 'payout' &&
-    maximumActivePromoReduction !== null &&
-    Number.isFinite(enteredCommission) &&
-    enteredCommission < maximumActivePromoReduction
-      ? t('promo_guard_limit')
-          .replace('{commission}', enteredCommission.toFixed(2))
-          .replace('{reduction}', maximumActivePromoReduction.toFixed(2))
-      : '';
 
   return (
     <>
@@ -1026,14 +916,14 @@ export default function AdminBoutiqueDetailPage() {
                 ((boutique.nb_produits_parfums ?? 0) === 0 && allProducts.every((p) => p.type_produit !== 'parfum') ? (
                   <EmptyState icon={<FlaskConical size={48} />} title={t('empty_parfums_title')} description={t('empty_products_desc')} />
                 ) : (
-                  <ProductsTable rows={parfums} kind="parfum" t={t} onDeleteProduct={handleDeleteProduct} onToggleProduct={handleToggleProduct} togglingProducts={togglingProducts} />
+                  <ProductsTable rows={parfums} kind="parfum" t={t} onEditPrice={handleEditPrice} onDeleteProduct={handleDeleteProduct} />
                 ))}
 
               {activeTab === 'accessoires' &&
                 ((boutique.nb_produits_accessoires ?? 0) === 0 && allProducts.every((p) => p.type_produit !== 'accessoire') ? (
                   <EmptyState icon={<Gem size={48} />} title={t('empty_accessoires_title')} description={t('empty_products_desc')} />
                 ) : (
-                  <ProductsTable rows={accessoires} kind="accessoire" t={t} onDeleteProduct={handleDeleteProduct} onToggleProduct={handleToggleProduct} togglingProducts={togglingProducts} />
+                  <ProductsTable rows={accessoires} kind="accessoire" t={t} onEditPrice={handleEditPrice} onDeleteProduct={handleDeleteProduct} />
                 ))}
 
               {activeTab === 'versements' &&
@@ -1169,12 +1059,7 @@ export default function AdminBoutiqueDetailPage() {
             </button>
             <button
               onClick={panel === 'payout' ? handlePayout : handleCommissionSubmit}
-              disabled={
-                isSaving ||
-                (panel === 'payout' && !amount) ||
-                (panel !== 'payout' &&
-                  (promoSafetyLoading || Boolean(promoSafetyError) || Boolean(promoCommissionError)))
-              }
+              disabled={isSaving || (panel === 'payout' && !amount)}
               className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-gold px-4 py-2 text-xs font-semibold text-black transition-colors hover:bg-gold/85 disabled:opacity-60"
             >
               {isSaving ? <Loader2 size={13} className="animate-spin" /> : null}
@@ -1275,31 +1160,7 @@ export default function AdminBoutiqueDetailPage() {
           </div>
         ) : (
           <FormSection>
-            <p className="mb-4 flex items-start gap-2 text-[11px] text-foreground/55">
-              <AlertCircle size={13} className="mt-0.5 shrink-0 text-gold" />
-              <span>
-                {promoSafetyLoading
-                  ? t('promo_guard_loading')
-                  : promoSafetyError
-                  ? promoSafetyError
-                  : maximumActivePromoReduction === null
-                  ? t('promo_guard_none')
-                  : t('promo_guard_minimum').replace(
-                      '{reduction}',
-                      maximumActivePromoReduction.toFixed(2)
-                    )}
-              </span>
-            </p>
-            {promoSafetyError && (
-              <button
-                type="button"
-                onClick={retryPromoSafetyThreshold}
-                className="mb-4 text-[11px] font-medium text-gold underline underline-offset-2"
-              >
-                {isEn ? 'Retry verification' : 'Réessayer la vérification'}
-              </button>
-            )}
-            <Field label={t('field_commission')} required error={commissionError || promoCommissionError}>
+            <Field label={t('field_commission')} required error={commissionError}>
               <input
                 type="number"
                 min="0"
@@ -1315,6 +1176,58 @@ export default function AdminBoutiqueDetailPage() {
             </Field>
           </FormSection>
         )}
+      </SlideOver>
+
+      <SlideOver
+        isOpen={showEditPriceModal}
+        onClose={() => !isSavingProduct && setShowEditPriceModal(false)}
+        title={t('edit_price')}
+        description={t('price_modal_desc')}
+        size={FORM_PANEL_SIZE}
+        footer={
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={() => setShowEditPriceModal(false)}
+              disabled={isSavingProduct}
+              className="flex-1 rounded-lg border border-white/10 px-4 py-2 text-xs font-medium text-foreground/60 transition-colors hover:bg-white/5 disabled:opacity-60"
+            >
+              {t('cancel')}
+            </button>
+            <button
+              type="button"
+              onClick={handleSaveProductPrice}
+              disabled={isSavingProduct || !editPriceValue}
+              className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-gold px-4 py-2 text-xs font-semibold text-black transition-colors hover:bg-gold/85 disabled:opacity-60"
+            >
+              {isSavingProduct ? <Loader2 size={13} className="animate-spin" /> : null}
+              {isSavingProduct ? t('saving') : t('save_btn')}
+            </button>
+          </div>
+        }
+      >
+        <div className="space-y-4">
+          <Field label={t('col_price')} required>
+            <input
+              type="number"
+              min="0"
+              step="1"
+              value={editPriceValue}
+              onChange={(event) => setEditPriceValue(event.target.value)}
+              className={inputClassName}
+            />
+          </Field>
+          <Field label={t('field_promo_price')} hint={t('field_optional')}>
+            <input
+              type="number"
+              min="0"
+              step="1"
+              value={editPromoValue}
+              onChange={(event) => setEditPromoValue(event.target.value)}
+              className={inputClassName}
+            />
+          </Field>
+        </div>
       </SlideOver>
 
       {/* Logo preview */}

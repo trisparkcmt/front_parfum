@@ -48,10 +48,10 @@ export function CustomPerfumeBottle({
     };
   }, [color]);
 
-  // Height calculations based on 260x480 viewbox (matching atelier 100ml / 50ml flacons)
-  const pct = Math.max(0.1, Math.min(0.95, fillLevel));
-  const liquidTopY = Math.round(420 - pct * 290);
-  const liquidHeight = Math.max(20, 426 - liquidTopY);
+  // The bottle body spans y=118..428 in the 260x480 viewBox.
+  const pct = Math.max(0, Math.min(1, fillLevel));
+  const liquidTopY = Math.round(426 - pct * 308);
+  const liquidHeight = 426 - liquidTopY;
 
   const displayLabel = customLabel || (name && name.length <= 16 ? name : 'ATELIER');
 

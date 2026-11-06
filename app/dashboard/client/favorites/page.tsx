@@ -58,7 +58,7 @@ export default function FavoritesPage() {
       price: Number(fav.price || fav.prix_produit || 0),
       slug: fav.slug || fav.slug_produit,
       category: fav.category,
-      image: fav.image || fav.images?.[0] || fav.image_produit,
+      image: fav.image || fav.images?.[0] || fav.image_produit || fav.image_principale,
       color: fav.couleur || fav.composition?.couleur,
       type: fav.category === 'accessory' ? 'accessory' : (fav.isCustomComposition || fav.category === 'numba-creation') ? 'custom' : 'perfume',
       isCustomComposition: !!fav.isCustomComposition,
@@ -264,6 +264,7 @@ export default function FavoritesPage() {
                           name={product.name}
                           customLabel={product.raw?.nom_sur_flacon}
                           bottleName={product.bottleName}
+                          fillLevel={1}
                           className="h-full w-full max-h-[92%] transition-transform duration-500 ease-out group-hover:scale-[1.06]"
                         />
                       </div>
@@ -313,7 +314,7 @@ export default function FavoritesPage() {
                       {product.type === 'custom' ? t('custom_perfume', 'Parfum sur mesure') : product.type === 'perfume' ? t('perfume', 'Parfum') : t('accessory', 'Accessoire')}
                     </p>
                     <h3
-                      className="cursor-pointer truncate font-serif text-[15px] text-foreground/90 uppercase transition-colors hover:text-gold"
+                      className="cursor-pointer truncate font-serif text-[15px] text-foreground/90 transition-colors hover:text-gold"
                       onClick={() => handleViewProduct(product)}
                     >
                       {product.name}
