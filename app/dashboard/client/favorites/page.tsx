@@ -27,7 +27,7 @@ interface FavoriteProduct {
   description?: string;
   status?: string;
   bottleName?: string;
-  lines?: Array<{ essence_nom?: string; quantite_ml?: string; prix_ligne?: string }>;
+  lines?: CompositionPriceLine[];
   raw?: any;
 }
 
@@ -36,52 +36,54 @@ type CompositionPriceValue = string | number | null | undefined;
 interface CompositionPriceLine {
   quantite_ml?: CompositionPriceValue;
   quantite?: CompositionPriceValue;
-  essence_detail?: { prix_par_ml?: CompositionPriceValue } | null;
+  essence_detail?: { nom?: string; prix_par_ml?: CompositionPriceValue } | null;
   ingredient_detail?: { prix_par_ml?: CompositionPriceValue } | null;
   prix_ligne?: CompositionPriceValue;
   prix_par_ml_snapshot?: CompositionPriceValue;
+  essence_nom?: string;
 }
 
 interface CompositionPriceData {
   composition?: CompositionPriceData | null;
   lignes?: CompositionPriceLine[];
   prix_total?: CompositionPriceValue;
+  prix_essences?: CompositionPriceValue;
   prix?: CompositionPriceValue;
-  flacon_detail?: { prix_unitaire?: CompositionPriceValue } | null;
+  flacon_detail?: { nom?: string; prix_unitaire?: CompositionPriceValue } | null;
   prix_flacon_snapshot?: CompositionPriceValue;
 }
 
 function getCustomCompositionPrice(item: CompositionPriceData): number {
   const composition = item?.composition ?? item;
+  const rawTotalPrice = composition?.prix_total ?? composition?.prix;
+  const totalPrice = rawTotalPrice == null || rawTotalPrice === '' ? Number.NaN : Number(rawTotalPrice);
+  if (Number.isFinite(totalPrice)) return totalPrice;
+
+  const rawEssencePrice = composition?.prix_essences;
+  const essencePrice = rawEssencePrice == null || rawEssencePrice === '' ? Number.NaN : Number(rawEssencePrice);
+  const bottlePrice = composition?.flacon_detail?.prix_unitaire ?? composition?.prix_flacon_snapshot;
+  if (Number.isFinite(essencePrice) && bottlePrice != null && Number.isFinite(Number(bottlePrice))) {
+    return Math.round(essencePrice + Number(bottlePrice));
+  }
+
   const lines = Array.isArray(composition?.lignes) ? composition.lignes : [];
-  const fallbackPrice = Number(composition?.prix_total ?? composition?.prix ?? 0);
-
-  if (lines.length === 0) return Number.isFinite(fallbackPrice) ? fallbackPrice : 0;
-
   let lineTotal = 0;
   for (const line of lines) {
     const quantity = Number(line?.quantite_ml ?? line?.quantite ?? 0);
-    const pricePerMl = line?.essence_detail?.prix_par_ml ?? line?.ingredient_detail?.prix_par_ml;
-    const savedLinePrice = line?.prix_ligne;
     const savedPricePerMl = line?.prix_par_ml_snapshot;
-    const unitPrice = pricePerMl ?? savedPricePerMl;
-    const price = unitPrice != null
-      ? quantity * Number(unitPrice)
+    const savedLinePrice = line?.prix_ligne;
+    const price = savedPricePerMl != null
+      ? quantity * Number(savedPricePerMl)
       : savedLinePrice != null
         ? Number(savedLinePrice)
         : Number.NaN;
 
-    if (!Number.isFinite(price)) return Number.isFinite(fallbackPrice) ? fallbackPrice : 0;
+    if (!Number.isFinite(price)) return 0;
     lineTotal += price;
   }
 
-  const bottlePrice = composition?.flacon_detail?.prix_unitaire ?? composition?.prix_flacon_snapshot;
   const numericBottlePrice = Number(bottlePrice);
-  if (bottlePrice == null || !Number.isFinite(numericBottlePrice)) {
-    return Number.isFinite(fallbackPrice) ? fallbackPrice : lineTotal;
-  }
-
-  return Math.round(lineTotal + numericBottlePrice);
+  return Math.round(lineTotal + (Number.isFinite(numericBottlePrice) ? numericBottlePrice : 0));
 }
 
 export default function FavoritesPage() {
@@ -133,7 +135,7 @@ export default function FavoritesPage() {
       isCustomComposition: true,
       description: item.description || item.composition?.description || '',
       status: item.statut || item.composition?.statut || item.composition?.statut_laboratoire || '',
-      bottleName: item.flacon_nom || item.composition?.flacon_nom || '',
+      bottleName: item.flacon_detail?.nom || item.flacon_nom || item.composition?.flacon_detail?.nom || item.composition?.flacon_nom || '',
       lines: item.lignes || item.composition?.lignes || [],
       raw: item,
     }));
@@ -394,6 +396,12 @@ export default function FavoritesPage() {
           {selectedCustom && (() => {
             const raw = selectedCustom.raw as any;
             const totalMlComposed = (selectedCustom.lines || []).reduce((s, l) => s + Number(l.quantite_ml || 0), 0);
+            const rawBottlePrice =
+              raw?.flacon_detail?.prix_unitaire ??
+              raw?.prix_flacon_snapshot ??
+              raw?.composition?.flacon_detail?.prix_unitaire ??
+              raw?.composition?.prix_flacon_snapshot;
+            const bottlePrice = rawBottlePrice == null ? null : Number(rawBottlePrice);
             const statusColor = (selectedCustom.status || '') === 'validé'
               ? 'text-emerald-400 bg-emerald-400/10 border-emerald-400/20'
               : (selectedCustom.status || '') === 'en_preparation'
@@ -490,12 +498,16 @@ export default function FavoritesPage() {
                           {selectedCustom.lines.map((line, index) => {
                             const qty = Number(line.quantite_ml || 0);
                             const pct = totalMlComposed > 0 ? (qty / totalMlComposed) * 100 : 0;
-                            const prixLigne = Number((line as any).prix_ligne || 0);
+                            const prixParMl = line.prix_par_ml_snapshot ?? line.essence_detail?.prix_par_ml ?? line.ingredient_detail?.prix_par_ml;
+                            const prixLigne = prixParMl != null
+                              ? qty * Number(prixParMl)
+                              : Number(line.prix_ligne || 0);
+                            const essenceName = line.essence_nom || line.essence_detail?.nom || 'Essence';
                             const qtyDisplay = qty % 1 === 0 ? qty.toFixed(0) : qty.toFixed(1);
                             const dotColors = ['#c5a059', '#a0785a', '#7a9e7e', '#7a8ea0', '#a07a9e'];
 
                             return (
-                              <div key={`${line.essence_nom}-${index}`} className="group/line rounded-2xl border border-white/[0.06] bg-white/[0.02] px-4 py-3 transition-colors hover:border-gold/15 hover:bg-gold/[0.02]">
+                              <div key={`${essenceName}-${index}`} className="group/line rounded-2xl border border-white/[0.06] bg-white/[0.02] px-4 py-3 transition-colors hover:border-gold/15 hover:bg-gold/[0.02]">
                                 <div className="flex items-center justify-between gap-3">
                                   <div className="flex items-center gap-2 min-w-0">
                                     <span
@@ -503,7 +515,7 @@ export default function FavoritesPage() {
                                       style={{ backgroundColor: dotColors[index % dotColors.length] }}
                                     />
                                     <span className="truncate text-sm text-foreground/85 transition-colors group-hover/line:text-foreground">
-                                      {line.essence_nom || 'Essence'}
+                                      {essenceName}
                                     </span>
                                   </div>
                                   <div className="flex shrink-0 items-center gap-3">
@@ -526,6 +538,21 @@ export default function FavoritesPage() {
                               </div>
                             );
                           })}
+                        </div>
+                      </div>
+                    )}
+
+                    {(selectedCustom.bottleName || bottlePrice !== null) && (
+                      <div className="rounded-2xl border border-gold/15 bg-gold/[0.03] px-4 py-3">
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="text-sm font-medium text-foreground/85">
+                            {t('bottle', 'Flacon')}{selectedCustom.bottleName ? ` · ${selectedCustom.bottleName}` : ''}
+                          </span>
+                          {bottlePrice !== null && Number.isFinite(bottlePrice) && (
+                            <span className="text-[11px] tabular-nums text-gold/80">
+                              {formatPrice(bottlePrice)}
+                            </span>
+                          )}
                         </div>
                       </div>
                     )}
