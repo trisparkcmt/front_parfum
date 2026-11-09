@@ -45,19 +45,26 @@ function getProductCollectionPath(category?: Product['category']) {
   }
 }
 
-export default function ProductDetailClient({ id }: { id: string }) {
+interface ProductDetailClientProps {
+  id: string;
+  initialProduct?: Product | null;
+}
+
+export default function ProductDetailClient({ id, initialProduct }: ProductDetailClientProps) {
   const { i18n } = useTranslation();
   const isEn = i18n.language?.startsWith('en');
   const searchParams = useSearchParams();
   const typeHints = searchParams.get('type');
   const preferredType = typeHints === 'accessory' ? 'accessory' : typeHints === 'diffuseur' ? 'diffuseur' : 'perfume';
 
-  const [product, setProduct] = useState<Product | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [product, setProduct] = useState<Product | null>(initialProduct || null);
+  const [loading, setLoading] = useState(!initialProduct);
   const [activeImage, setActiveImage] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [activeTab, setActiveTab] = useState<'details' | 'supplementary'>('details');
-  const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
+  const [relatedProducts, setRelatedProducts] = useState<Product[]>(
+    initialProduct?.relatedProducts?.slice(0, 4) || []
+  );
   const [selectedVariant, setSelectedVariant] = useState<ProduitFiniEssence | null>(null);
   const [selectedEssence, setSelectedEssence] = useState<Product | null>(null);
   const [returnCollectionHref, setReturnCollectionHref] = useState('/shop/perfumes');
@@ -94,9 +101,18 @@ export default function ProductDetailClient({ id }: { id: string }) {
     let isMounted = true;
 
     async function loadProduct() {
-      setLoading(true);
+      const hasInitial = !!(
+        initialProduct &&
+        (String(initialProduct.id) === String(id) || initialProduct.slug === id)
+      );
+
+      if (!hasInitial && !product) {
+        setLoading(true);
+      }
       try {
-        const p = await productService.getProductById(String(id), preferredType);
+        const p = hasInitial
+          ? initialProduct
+          : await productService.getProductById(String(id), preferredType);
         if (!isMounted) return;
         setProduct(p);
         setActiveImage(0);
@@ -131,7 +147,7 @@ export default function ProductDetailClient({ id }: { id: string }) {
         }
       } catch (error) {
         console.error('Failed to load product details:', error);
-        if (isMounted) setProduct(null);
+        if (!hasInitial && isMounted) setProduct(null);
       } finally {
         if (isMounted) setLoading(false);
       }
@@ -141,7 +157,7 @@ export default function ProductDetailClient({ id }: { id: string }) {
     return () => {
       isMounted = false;
     };
-  }, [id, preferredType]);
+  }, [id, preferredType, initialProduct]);
 
   if (loading) {
     return (

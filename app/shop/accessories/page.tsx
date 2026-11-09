@@ -29,7 +29,7 @@ export async function generateMetadata({
           ? resolveImageUrl(rawImage)
           : 'https://accessoiresexclusifs.com/og-image.svg';
 
-        const productUrl = `https://accessoiresexclusifs.com/shop/accessories?product=${encodeURIComponent(product.slug || product.id)}&type=accessory`;
+        const productUrl = `https://accessoiresexclusifs.com/shop/accessories/${encodeURIComponent(product.slug || product.id)}`;
 
         return {
           title: { default: product.name, template: '%s | Accessoires Exclusifs' },

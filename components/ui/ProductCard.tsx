@@ -24,7 +24,7 @@
 
 import Link from 'next/link';
 import AppImage from '@/components/ui/AppImage';
-import { Heart, ShoppingBag, BellRing, Share2 } from 'lucide-react';
+import { Heart, ShoppingBag, BellRing, Share2, ImageOff } from 'lucide-react';
 import { cn, formatPrice, sharePage, resolveImageUrl, isProductSoldOut } from '@/lib/utils';
 import type { Product } from '@/types';
 import { useTranslation } from 'react-i18next';
@@ -199,31 +199,40 @@ export function ProductCard({
             </div>
           ) : null}
 
-          {/* Main image */}
-          {mainImage && (
+          {/* Main image or placeholder */}
+          {mainImage ? (
             <AppImage
               src={mainImageSrc}
               alt={product.name}
               fill
               className={cn(
                 'object-cover transition-all duration-500 ease-out',
-                isSoldOut && 'blur-[3px] grayscale-[30%] opacity-85', isHovered && secondImage ? 'opacity-0 scale-[1.04]' : 'opacity-100 scale-100 group-hover:scale-[1.04]'
+                isSoldOut && 'blur-[3px] grayscale-[30%] opacity-85',
+                isHovered && secondImage ? 'opacity-0 scale-[1.04]' : 'opacity-100 scale-100 group-hover:scale-[1.04]'
               )}
               priority={false}
               loading="lazy"
               sizes="(max-width: 480px) 46vw, (max-width: 768px) 31vw, (max-width: 1024px) 23vw, 210px"
             />
+          ) : (
+            <div className="absolute inset-0 flex flex-col items-center justify-center p-4 text-center select-none bg-foreground/[0.02]">
+              <ImageOff className="w-6 h-6 sm:w-7 sm:h-7 text-foreground/20 mb-2" strokeWidth={1.5} />
+              <span className="text-[10px] sm:text-[11px] text-foreground/40 font-light tracking-wide max-w-[140px] leading-snug">
+                {isEn ? 'No image available for this product' : 'Aucune image disponible pour ce produit'}
+              </span>
+            </div>
           )}
 
           {/* Secondary image crossfade */}
-          {secondImage && (
+          {mainImage && secondImage && (
             <AppImage
               src={resolveImageUrl(secondImage)}
               alt={`${product.name} - vue 2`}
               fill
               className={cn(
                 'object-cover transition-all duration-500 ease-out absolute inset-0',
-                isSoldOut && 'blur-[3px] grayscale-[30%] opacity-85', isHovered ? 'opacity-100 scale-[1.04]' : 'opacity-0 scale-100'
+                isSoldOut && 'blur-[3px] grayscale-[30%] opacity-85',
+                isHovered ? 'opacity-100 scale-[1.04]' : 'opacity-0 scale-100'
               )}
               priority={false}
               loading="lazy"

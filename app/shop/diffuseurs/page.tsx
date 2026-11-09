@@ -28,7 +28,7 @@ export async function generateMetadata({
           ? resolveImageUrl(rawImage)
           : 'https://accessoiresexclusifs.com/og-image.svg';
 
-        const productUrl = `https://accessoiresexclusifs.com/shop/diffuseurs?product=${encodeURIComponent(product.slug || product.id)}&type=diffuseur`;
+        const productUrl = `https://accessoiresexclusifs.com/shop/diffuseurs/${encodeURIComponent(product.slug || product.id)}`;
 
         return {
           title: { default: product.name, template: '%s | Accessoires Exclusifs' },

@@ -26,7 +26,7 @@ const nextConfig: NextConfig = {
 
   // 2. 301 redirects — old WordPress/WooCommerce URLs → new Next.js pages.
   //    Google crawled these old URLs and they now cause "Duplicate without
-  //    user-selected canonical" errors in Search Console.
+  //    user-selected canonical" or 404 errors in Search Console.
   async redirects() {
     return [
       // /index.php/categorie-produit/parfums/* → /shop/perfumes
@@ -45,6 +45,39 @@ const nextConfig: NextConfig = {
       {
         source: '/index.php/categorie-produit/diffuseurs/:path*',
         destination: '/shop/diffuseurs',
+        permanent: true,
+      },
+      // Old WordPress marque / brand pages
+      {
+        source: '/index.php/marque/:path*',
+        destination: '/',
+        permanent: true,
+      },
+      {
+        source: '/marque/:path*',
+        destination: '/',
+        permanent: true,
+      },
+      // General old categories
+      {
+        source: '/categorie-produit/:path*',
+        destination: '/shop/perfumes',
+        permanent: true,
+      },
+      {
+        source: '/product-category/:path*',
+        destination: '/shop/perfumes',
+        permanent: true,
+      },
+      // Old WordPress feeds
+      {
+        source: '/feed',
+        destination: '/',
+        permanent: true,
+      },
+      {
+        source: '/:path*/feed',
+        destination: '/',
         permanent: true,
       },
       // Any remaining /index.php/* WordPress path → home

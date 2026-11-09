@@ -20,7 +20,7 @@ export async function generateMetadata({
           ? resolveImageUrl(rawImage)
           : 'https://accessoiresexclusifs.com/og-image.svg';
 
-        const productUrl = `https://accessoiresexclusifs.com/shop/perfumes?product=${encodeURIComponent(product.slug || product.id)}&type=perfume`;
+        const productUrl = `https://accessoiresexclusifs.com/shop/perfumes/${encodeURIComponent(product.slug || product.id)}`;
 
         return {
           title: { default: product.name, template: '%s | Accessoires Exclusifs' },
