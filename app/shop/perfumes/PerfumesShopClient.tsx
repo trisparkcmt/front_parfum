@@ -129,7 +129,6 @@ export default function PerfumesShopClient() {
   const [search, setSearch] = useState(initialSearchParam);
   const [debouncedSearch, setDebouncedSearch] = useState(initialSearchParam);
   const [genre, setGenre] = useState<'all' | 'homme' | 'femme' | 'mixte'>('all');
-  const [olfactiveFamily, setOlfactiveFamily] = useState<string>('all');
   const [intensity, setIntensity] = useState<string>('all');
   const [maxPrice, setMaxPrice] = useState<number>(150000);
   const [showFilters, setShowFilters] = useState(false);
@@ -188,7 +187,6 @@ export default function PerfumesShopClient() {
   // Ref to track actual user filter changes (avoids resetting page on re-mount or debounce init)
   const prevFiltersRef = useRef({
     genre,
-    olfactiveFamily,
     intensity,
     maxPrice,
     debouncedSearch,
@@ -259,7 +257,6 @@ export default function PerfumesShopClient() {
     const prev = prevFiltersRef.current;
     const hasChanged =
       prev.genre !== genre ||
-      prev.olfactiveFamily !== olfactiveFamily ||
       prev.intensity !== intensity ||
       prev.maxPrice !== maxPrice ||
       prev.debouncedSearch !== debouncedSearch ||
@@ -268,7 +265,6 @@ export default function PerfumesShopClient() {
     if (hasChanged) {
       prevFiltersRef.current = {
         genre,
-        olfactiveFamily,
         intensity,
         maxPrice,
         debouncedSearch,
@@ -283,7 +279,7 @@ export default function PerfumesShopClient() {
       setCurrentPage(1);
       scrollCatalogToTop();
     }
-  }, [genre, olfactiveFamily, intensity, maxPrice, debouncedSearch, activeTab]);
+  }, [genre, intensity, maxPrice, debouncedSearch, activeTab]);
 
   // Sync currentPage and activeTab with URL & session storage
   useEffect(() => {
@@ -383,7 +379,6 @@ export default function PerfumesShopClient() {
       const filters: any = {};
       if (debouncedSearch) filters.search = debouncedSearch;
       if (genre !== 'all') filters.genre = genre;
-      if (olfactiveFamily !== 'all') filters.famille_olfactive = olfactiveFamily;
       if (intensity !== 'all') filters.intensite = intensity;
       if (maxPrice < 150000) filters.prix_max = maxPrice;
       if (activeTab !== 'all' && activeTab !== 'huile') filters.categorie = Number(activeTab);
@@ -466,7 +461,7 @@ export default function PerfumesShopClient() {
     }
 
     fetchData();
-  }, [mounted, activeTab, genre, olfactiveFamily, intensity, maxPrice, debouncedSearch, currentPage, categories.length]);
+  }, [mounted, activeTab, genre, intensity, maxPrice, debouncedSearch, currentPage, categories.length]);
 
   useEffect(() => {
     setMounted(true);
@@ -490,7 +485,6 @@ export default function PerfumesShopClient() {
         const response = await productService.getEssencesAsProducts({
           search: debouncedSearch || undefined,
           genre: genre !== 'all' ? genre : undefined,
-          famille_olfactive: olfactiveFamily !== 'all' ? olfactiveFamily : undefined,
           intensite: intensity !== 'all' ? intensity : undefined,
           prix_max: maxPrice < 150000 ? maxPrice : undefined,
           // Always pass the current page so we get the matching slice of essences,
@@ -521,7 +515,7 @@ export default function PerfumesShopClient() {
     }
 
     loadEssenceProducts();
-  }, [mounted, activeTab, debouncedSearch, genre, olfactiveFamily, intensity, maxPrice, currentPage]);
+  }, [mounted, activeTab, debouncedSearch, genre, intensity, maxPrice, currentPage]);
 
   // Scroll active tab to center
   useEffect(() => {
@@ -793,30 +787,15 @@ export default function PerfumesShopClient() {
     scrollCatalogToTop();
     setSearch('');
     setGenre('all');
-    setOlfactiveFamily('all');
     setIntensity('all');
     setMaxPrice(150000);
   };
 
   const activeFiltersCount =
     (genre !== 'all' ? 1 : 0) +
-    (olfactiveFamily !== 'all' ? 1 : 0) +
     (intensity !== 'all' ? 1 : 0) +
     (maxPrice < 150000 ? 1 : 0);
 
-  const families = [
-    { value: 'all', label: t('family_all') },
-    { value: 'floral', label: t('family_floral') },
-    { value: 'woody', label: t('family_woody') },
-    { value: 'citrus', label: t('family_citrus') },
-    { value: 'oriental', label: t('family_oriental') },
-    { value: 'fresh', label: t('family_fresh') },
-    { value: 'spicy', label: t('family_spicy') },
-    { value: 'fruity', label: t('family_fruity') },
-    { value: 'aquatic', label: t('family_aquatic') },
-    { value: 'gourmand', label: t('family_gourmand') },
-    { value: 'musk', label: t('family_musk') },
-  ];
 
   if (!mounted) return null;
 
@@ -863,7 +842,7 @@ export default function PerfumesShopClient() {
               }`}
             >
               <SlidersHorizontal className="w-4 h-4" />
-              <span className="hidden md:block">{t('refine')}</span>
+              <span className="hidden md:block">{isEn ? 'Filter' : 'Filtres'}</span>
               {activeFiltersCount > 0 && (
                 <span className="bg-gold text-black rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold font-sans">
                   {activeFiltersCount}
@@ -884,7 +863,7 @@ export default function PerfumesShopClient() {
             transition={{ duration: 0.3 }}
             className="overflow-hidden mb-8"
           >
-            <div className="bg-[var(--t-surface-raised)] border border-[var(--t-border)] rounded-2xl p-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 relative shadow-[0_10px_30px_rgba(0,0,0,0.04)] backdrop-blur-sm">
+            <div className="bg-[var(--t-surface-raised)] border border-[var(--t-border)] rounded-2xl p-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 relative shadow-[0_10px_30px_rgba(0,0,0,0.04)] backdrop-blur-sm">
               {/* Gender Filter */}
               <div className="flex flex-col gap-2">
                 <span className="text-xs font-bold uppercase tracking-widest text-gold mb-2">
@@ -909,27 +888,6 @@ export default function PerfumesShopClient() {
                       {item.label}
                     </button>
                   ))}
-                </div>
-              </div>
-
-              {/* Olfactive Family Filter */}
-              <div className="flex flex-col gap-2">
-                <span className="text-xs font-bold uppercase tracking-widest text-gold mb-2">
-                  {t('olfactive_family')}
-                </span>
-                <div className="relative">
-                  <select
-                    value={olfactiveFamily}
-                    onChange={(e) => setOlfactiveFamily(e.target.value)}
-                    className="w-full appearance-none bg-[var(--t-input-bg)] border border-[var(--t-border)] rounded-xl py-2 px-4 text-xs text-foreground/80 outline-none focus:border-gold cursor-pointer"
-                  >
-                    {families.map((fam) => (
-                      <option key={fam.value} value={fam.value} className="bg-background text-foreground">
-                        {fam.label}
-                      </option>
-                    ))}
-                  </select>
-                  <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-foreground/40 pointer-events-none" />
                 </div>
               </div>
 

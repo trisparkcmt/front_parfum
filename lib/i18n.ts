@@ -631,7 +631,7 @@ const resources = {
       "perfume_shop_title": "Brand perfumes, inspirations & custom essences",
       "perfume_shop_subtitle": "Explore a curated selection of luxury perfumes, dupes, and finished essences, or create your own custom fragrance.",
       "search_perfumes_placeholder": "Search by perfume, brand, or note...",
-      "refine": "Refine",
+      "refine": "Filter",
       "gender_profile": "Gender Profile",
       "olfactive_family": "Olfactive Family",
       "intensity": "Intensity",

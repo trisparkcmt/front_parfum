@@ -461,18 +461,10 @@ export default function POSPage() {
         return [...prev, { product, quantity }];
       });
 
-      addToast(
-        t('pos_item_added', {
-          defaultValue: isEn
-            ? `${getProductName(product)} added to the order`
-            : `${getProductName(product)} ajouté à la commande`,
-        }),
-        'success'
-      );
       setExpandedId(null);
       setDraftQty(1);
     },
-    [addToast]
+    []
   );
 
   const handleRemoveFromCart = useCallback((productId: string) => {
@@ -649,6 +641,8 @@ export default function POSPage() {
             <StatusChip
               status="gold"
               label={t('pos_item_count', {
+                count: totals.itemCount,
+                plural: totals.itemCount > 1 ? 's' : '',
                 defaultValue: isEn
                   ? `${totals.itemCount} item${totals.itemCount > 1 ? 's' : ''}`
                   : `${totals.itemCount} article${totals.itemCount > 1 ? 's' : ''}`,

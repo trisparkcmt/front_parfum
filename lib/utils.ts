@@ -508,3 +508,33 @@ export function getCartLineTarget(line: any): CartLineTarget | null {
 
   return { kind: 'product', productId: String(line.parfum ?? line.id), productType: 'perfume' };
 }
+/**
+ * Determines whether a product has stock less than 1 (sold out).
+ */
+export function isProductSoldOut(product?: any | null, soldOutProp?: boolean): boolean {
+  if (soldOutProp) return true;
+  if (!product) return false;
+
+  if (product.stock_quantite !== undefined && product.stock_quantite !== null) {
+    return Number(product.stock_quantite) < 1;
+  }
+  if (product.stock_disponible !== undefined && product.stock_disponible !== null) {
+    return Number(product.stock_disponible) < 1;
+  }
+  if (product.stock !== undefined && product.stock !== null) {
+    return Number(product.stock) < 1;
+  }
+  if (Array.isArray(product.produits_finis) && product.produits_finis.length > 0) {
+    const hasAnyStock = product.produits_finis.some(
+      (v: any) => (v.stock_disponible != null ? Number(v.stock_disponible) : 0) > 0
+    );
+    return !hasAnyStock;
+  }
+  if (product.stock_total_ml !== undefined && product.stock_total_ml !== null) {
+    return Number(product.stock_total_ml) < 1;
+  }
+  if (product.inStock === false) {
+    return true;
+  }
+  return false;
+}

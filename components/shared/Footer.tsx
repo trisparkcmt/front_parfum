@@ -47,7 +47,7 @@ export function Footer() {
               <img
                 src="/logo/Logo Accessoirs Exclusifs black transparent.svg"
                 alt="Accessoires Exclusifs"
-                className="h-24 w-auto object-contain dark:invert"
+                className="h-24 w-auto object-contain invert"
               />
               <span className="font-display text-lg font-bold">
                 <span className="text-gold">Accessoires</span>{' '}

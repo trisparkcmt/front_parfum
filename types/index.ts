@@ -139,6 +139,8 @@ export interface Product {
   images: string[];
   brand?: string;
   inStock: boolean;
+  stock_quantite?: number;
+  stock_disponible?: number;
   rating?: number;
   reviews?: number;
   // Perfume-specific

@@ -25,7 +25,7 @@
 import Link from 'next/link';
 import AppImage from '@/components/ui/AppImage';
 import { Heart, ShoppingBag, BellRing, Share2 } from 'lucide-react';
-import { cn, formatPrice, sharePage, resolveImageUrl } from '@/lib/utils';
+import { cn, formatPrice, sharePage, resolveImageUrl, isProductSoldOut } from '@/lib/utils';
 import type { Product } from '@/types';
 import { useTranslation } from 'react-i18next';
 import { useState, type MouseEvent } from 'react';
@@ -62,6 +62,7 @@ export function ProductCard({
   const [isHovered, setIsHovered] = useState(false);
 
   const isEn = i18n.language?.startsWith('en');
+  const isSoldOut = isProductSoldOut(product, soldOut);
   const inspiredBy = product.inspire_de?.trim();
 
   const perfumeText = t('perfume_label', { defaultValue: isEn ? 'Perfume' : 'Parfum' });
@@ -183,19 +184,20 @@ export function ProductCard({
           tabIndex={-1} 
           aria-hidden="true"
         >
-          {/* Discount badge */}
-          {hasReduction && (
+          {/* Sold out badge */}
+          {isSoldOut ? (
+            <div className="absolute top-1.5 left-1.5 sm:top-2 sm:left-2 z-20 bg-black/85 text-white border border-white/20 text-[9px] sm:text-[10px] font-bold px-1.5 sm:px-2 py-0.5 uppercase tracking-wider backdrop-blur-sm shadow-sm">
+              {isEn ? 'Sold Out' : 'Épuisé'}
+            </div>
+          ) : hasReduction ? (
             <div className="absolute top-1.5 left-1.5 sm:top-2 sm:left-2 z-20 bg-red-600 text-white text-[9px] sm:text-[10px] font-bold px-1.5 sm:px-2 py-0.5 uppercase tracking-wider">
               -{parseFloat(product.taux_reduction!)}%
             </div>
-          )}
-
-          {/* New badge */}
-          {product.is_new && !hasReduction && (
+          ) : product.is_new ? (
             <div className="absolute top-1.5 left-1.5 sm:top-2 sm:left-2 z-20 bg-gold/90 text-black text-[9px] sm:text-[10px] font-bold px-1.5 sm:px-2 py-0.5 uppercase tracking-wider">
               Nouveau
             </div>
-          )}
+          ) : null}
 
           {/* Main image */}
           {mainImage && (
@@ -205,7 +207,7 @@ export function ProductCard({
               fill
               className={cn(
                 'object-cover transition-all duration-500 ease-out',
-                isHovered && secondImage ? 'opacity-0 scale-[1.04]' : 'opacity-100 scale-100 group-hover:scale-[1.04]'
+                isSoldOut && 'blur-[3px] grayscale-[30%] opacity-85', isHovered && secondImage ? 'opacity-0 scale-[1.04]' : 'opacity-100 scale-100 group-hover:scale-[1.04]'
               )}
               priority={false}
               loading="lazy"
@@ -221,7 +223,7 @@ export function ProductCard({
               fill
               className={cn(
                 'object-cover transition-all duration-500 ease-out absolute inset-0',
-                isHovered ? 'opacity-100 scale-[1.04]' : 'opacity-0 scale-100'
+                isSoldOut && 'blur-[3px] grayscale-[30%] opacity-85', isHovered ? 'opacity-100 scale-[1.04]' : 'opacity-0 scale-100'
               )}
               priority={false}
               loading="lazy"
@@ -313,7 +315,7 @@ export function ProductCard({
 
       {/* ─── CTA Button ──────────────────────────────────────── */}
       <div className="mt-auto pt-2.5 sm:pt-3.5">
-        {soldOut ? (
+        {isSoldOut ? (
           <button className="w-full flex items-center justify-center gap-1.5 sm:gap-2 border border-foreground/20 py-2 sm:py-2.5 text-[10px] sm:text-[11px] font-semibold uppercase tracking-[0.12em] sm:tracking-[0.15em] text-foreground/50 hover:border-foreground/40 transition-colors">
             <BellRing size={12} className="sm:hidden" />
             <BellRing size={13} className="hidden sm:block" />

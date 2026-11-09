@@ -55,9 +55,7 @@ export default function AccessoriesShop() {
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [activeTypeId, setActiveTypeId] = useState<number | 'all'>('all');
   const [maxPrice, setMaxPrice] = useState<number>(200000);
-  const [color, setColor] = useState<string>('all');
   const [material, setMaterial] = useState<string>('all');
-  const [inStockOnly, setInStockOnly] = useState<boolean>(false);
   const [ordering, setOrdering] = useState<string>('-date_creation');
   const [showFilters, setShowFilters] = useState(false);
 
@@ -104,12 +102,12 @@ export default function AccessoriesShop() {
   useEffect(() => {
     if (!mounted) return;
     window.scrollTo({ top: 0, left: 0 });
-  }, [mounted, activeTypeId, maxPrice, color, material, inStockOnly, debouncedSearch, ordering]);
+  }, [mounted, activeTypeId, maxPrice, material, debouncedSearch, ordering]);
 
   useEffect(() => {
     if (!mounted) return;
     scrollCatalogToTop();
-  }, [mounted, activeTypeId, maxPrice, color, material, inStockOnly, debouncedSearch, ordering]);
+  }, [mounted, activeTypeId, maxPrice, material, debouncedSearch, ordering]);
 
   useEffect(() => {
     if (!mounted) return;
@@ -169,7 +167,7 @@ export default function AccessoriesShop() {
     }
 
     fetchProducts();
-  }, [mounted, activeTypeId, maxPrice, color, material, inStockOnly, debouncedSearch, ordering, addToast, t]);
+  }, [mounted, activeTypeId, maxPrice, material, debouncedSearch, ordering, addToast, t]);
 
   const handleAddToCart = async (product: Product) => {
     try {
@@ -238,25 +236,14 @@ export default function AccessoriesShop() {
     setSearch('');
     setActiveTypeId('all');
     setMaxPrice(200000);
-    setColor('all');
     setMaterial('all');
-    setInStockOnly(false);
     setOrdering('-date_creation');
   };
 
   const activeFiltersCount =
     (maxPrice < 200000 ? 1 : 0) +
-    (color !== 'all' ? 1 : 0) +
-    (material !== 'all' ? 1 : 0) +
-    (inStockOnly ? 1 : 0);
+    (material !== 'all' ? 1 : 0);
 
-  const colors = [
-    { value: 'all', label: i18n.language === 'en' ? 'All Colors' : 'Toutes les couleurs' },
-    { value: 'Or', label: i18n.language === 'en' ? 'Gold' : 'Or' },
-    { value: 'Argent', label: i18n.language === 'en' ? 'Silver' : 'Argent' },
-    { value: 'Noir', label: i18n.language === 'en' ? 'Black' : 'Noir' },
-    { value: 'Rose', label: i18n.language === 'en' ? 'Rose Gold' : 'Or Rose' },
-  ];
 
   const materials = [
     { value: 'all', label: i18n.language === 'en' ? 'All Materials' : 'Toutes les matières' },
@@ -386,28 +373,7 @@ export default function AccessoriesShop() {
             transition={{ duration: 0.3 }}
             className="overflow-hidden mb-8"
           >
-<div className="bg-[var(--t-surface-raised)] border border-[var(--t-border)] rounded-2xl p-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 relative shadow-[0_10px_30px_rgba(0,0,0,0.04)] backdrop-blur-sm">
-              
-              {/* Color Filter */}
-              <div className="flex flex-col gap-2">
-                <span className="text-xs font-bold uppercase tracking-widest text-gold mb-2">
-                  {i18n.language === 'en' ? 'Color' : 'Couleur'}
-                </span>
-                <div className="relative">
-                  <select
-                    value={color}
-                    onChange={(e) => setColor(e.target.value)}
-                    className="w-full appearance-none bg-[var(--t-input-bg)] border border-[var(--t-border)] rounded-xl py-2 px-4 text-xs text-foreground/80 outline-none focus:border-gold cursor-pointer"
-                  >
-                    {colors.map((c) => (
-                      <option key={c.value} value={c.value} className="bg-background text-foreground">
-                        {c.label}
-                      </option>
-                    ))}
-                  </select>
-                  <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-foreground/40 pointer-events-none" />
-                </div>
-              </div>
+<div className="bg-[var(--t-surface-raised)] border border-[var(--t-border)] rounded-2xl p-6 grid grid-cols-1 sm:grid-cols-2 gap-6 relative shadow-[0_10px_30px_rgba(0,0,0,0.04)] backdrop-blur-sm">
 
               {/* Material Filter */}
               <div className="flex flex-col gap-2">
@@ -427,27 +393,6 @@ export default function AccessoriesShop() {
                     ))}
                   </select>
                   <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-foreground/40 pointer-events-none" />
-                </div>
-              </div>
-
-              {/* Availability Filter */}
-              <div className="flex flex-col gap-2">
-                <span className="text-xs font-bold uppercase tracking-widest text-gold mb-2">
-                  {i18n.language === 'en' ? 'Availability' : 'Disponibilité'}
-                </span>
-                <div className="flex items-center mt-2">
-                  <label className="relative flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={inStockOnly}
-                      onChange={(e) => setInStockOnly(e.target.checked)}
-                      className="sr-only peer"
-                    />
-                    <div className="w-10 h-6 bg-[var(--t-border)] rounded-full peer peer-focus:ring-0 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-[var(--t-surface)] peer-checked:after:bg-gold after:border-[var(--t-border)] after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[var(--t-glass-gold-bg)]" />
-                    <span className="ml-3 text-xs font-medium text-foreground/70">
-                      {i18n.language === 'en' ? 'In stock only' : 'En stock uniquement'}
-                    </span>
-                  </label>
                 </div>
               </div>
 

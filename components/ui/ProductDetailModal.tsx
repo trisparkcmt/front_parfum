@@ -96,6 +96,7 @@ export function ProductDetailModal({
 
   const productImages = product?.images?.filter((image): image is string => Boolean(image)) ?? [];
   const inspiredBy = product?.inspire_de?.trim();
+  const isSoldOut = isProductSoldOut(product);
 
   // ── Load product ─────────────────────────────────────────────────────────
   useEffect(() => {
@@ -465,7 +466,13 @@ export function ProductDetailModal({
                         }
                       }}
                     >
-                      {(product.is_new || product.is_bestseller) && (
+                      {isSoldOut ? (
+                        <div className="absolute top-4 left-4 z-10 flex gap-2">
+                          <span className="px-3 py-1.5 rounded-full bg-black/85 text-white border border-white/20 text-[10px] font-bold uppercase tracking-widest backdrop-blur-sm shadow-md">
+                            {isEn ? 'Sold Out' : 'Épuisé'}
+                          </span>
+                        </div>
+                      ) : (product.is_new || product.is_bestseller) && (
                         <div className="absolute top-4 left-4 z-10 flex gap-2">
                           {product.is_new && (
                             <span className="px-3 py-1.5 rounded-full bg-gold text-black text-[10px] font-bold uppercase tracking-widest">
@@ -495,7 +502,7 @@ export function ProductDetailModal({
                               alt={product.name}
                               fallbackSrc={null}
                               fill
-                              className="object-cover transition-transform duration-700 group-hover:scale-105"
+                              className={cn("object-cover transition-transform duration-700 group-hover:scale-105", isSoldOut && "blur-[3px] grayscale-[30%] opacity-85")}
                               priority
                             />
                           )}
@@ -527,7 +534,7 @@ export function ProductDetailModal({
                                   : 'border-foreground/10 hover:border-foreground/30'
                               )}
                             >
-                              <AppImage src={img} alt={`${product.name} vue ${idx + 1}`} fallbackSrc={null} fill loading="eager" className="object-cover" />
+                              <AppImage src={img} alt={`${product.name} vue ${idx + 1}`} fallbackSrc={null} fill loading="eager" className={cn("object-cover", isSoldOut && "blur-[2px] grayscale-[30%] opacity-85")} />
                             </motion.button>
                           ))}
                       </div>
@@ -664,25 +671,6 @@ export function ProductDetailModal({
                           </div>
                         )}
 
-                      {/* Color swatches */}
-                      {product.availableColors && product.availableColors.length > 0 && (
-                        <div className="mb-8">
-                          <h3 className="text-xs font-bold uppercase tracking-widest text-foreground/60 mb-4">
-                            {isEn ? 'Available Finishes' : 'Couleurs Disponibles'}
-                          </h3>
-                          <div className="flex gap-3">
-                            {product.availableColors.map((color, idx) => (
-                              <button
-                                key={idx}
-                                className="w-10 h-10 rounded-full border-2 border-foreground/15 hover:border-gold transition-all"
-                                style={{ backgroundColor: color }}
-                                aria-label={`Color ${idx + 1}`}
-                              />
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
                       {/* Huile variant picker */}
                       {product.category === 'huile' && product.produits_finis && product.produits_finis.length > 0 && (
                         <div className="mb-8">
@@ -749,11 +737,13 @@ export function ProductDetailModal({
                         </div>
                         <button
                           onClick={handleAddToCart}
-                          disabled={product.category === 'huile' && !selectedVariant}
+                          disabled={isSoldOut || (product.category === 'huile' && !selectedVariant)}
                           className="flex-1 min-w-0 h-14 px-3 bg-foreground text-background font-bold uppercase tracking-widest text-xs sm:text-sm rounded-xl hover:bg-gold hover:text-black transition-all duration-300 flex items-center justify-center gap-2 sm:gap-3 group disabled:opacity-40 whitespace-nowrap"
                         >
                           <ShoppingBag size={18} className="group-hover:scale-110 transition-transform" />
-                          {isEn ? 'Add to Shopping Bag' : 'Ajouter au panier'}
+                          {isSoldOut
+                            ? isEn ? 'Sold Out' : 'Épuisé'
+                            : isEn ? 'Add to Shopping Bag' : 'Ajouter au panier'}
                         </button>
                       </div>
 
