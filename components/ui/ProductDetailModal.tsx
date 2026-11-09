@@ -35,7 +35,7 @@ import {
   Store,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { cn, formatPrice, sharePage, resolveImageUrl } from '@/lib/utils';
+import { cn, formatPrice, sharePage, resolveImageUrl, isProductSoldOut } from '@/lib/utils';
 import { productService } from '@/services/productService';
 import { ProductCard } from '@/components/ui/ProductCard';
 import { useCartStore } from '@/store/useCartStore';
