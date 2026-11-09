@@ -49,6 +49,7 @@ const T = {
     field_whatsapp: 'WhatsApp',
     field_facebook: 'Facebook',
     field_instagram: 'Instagram',
+    field_tiktok: 'TikTok',
     not_set: 'Non renseigné',
     apply_to_all: 'Appliquer à tous les jours ouverts',
     note: 'Note',
@@ -450,6 +451,7 @@ export default function AdminCompanyInfoPage() {
       const whatsapp = normalizeCameroonPhone(formState.whatsapp);
       const facebookUrl = normalizeSocialProfileUrl('facebook', formState.facebook_url);
       const instagramUrl = normalizeSocialProfileUrl('instagram', formState.instagram_url);
+      const tiktokUrl = normalizeSocialProfileUrl('tiktok', formState.tiktok_url);
 
       if (whatsapp && whatsapp.length !== 9) {
         setFormError(t('error_whatsapp'));
@@ -490,7 +492,7 @@ export default function AdminCompanyInfoPage() {
   const phonesFilled = companyInfo
     ? [companyInfo.telephone_principal, companyInfo.telephone_secondaire, companyInfo.whatsapp].filter(Boolean).length
     : 0;
-  const socialFilled = companyInfo ? [companyInfo.facebook_url, companyInfo.instagram_url].filter(Boolean).length : 0;
+  const socialFilled = companyInfo ? [companyInfo.facebook_url, companyInfo.instagram_url, companyInfo.tiktok_url].filter(Boolean).length : 0;
 
   return (
     <div className="space-y-6">
@@ -526,7 +528,7 @@ export default function AdminCompanyInfoPage() {
           </div>
           <div className="flex-1 min-w-[140px] p-4">
             <p className="text-[10px] font-semibold uppercase tracking-wider text-foreground/35">{t('kpi_social')}</p>
-            <p className="text-xl font-semibold tabular-nums text-foreground mt-0.5">{socialFilled}/2</p>
+            <p className="text-xl font-semibold tabular-nums text-foreground mt-0.5">{socialFilled}/3</p>
           </div>
         </div>
       )}
@@ -604,6 +606,7 @@ export default function AdminCompanyInfoPage() {
               />
               <InfoRow icon={<Link2 size={14} />} label={t('field_facebook')} value={companyInfo.facebook_url} href={companyInfo.facebook_url} emptyLabel={t('not_set')} />
               <InfoRow icon={<Link2 size={14} />} label={t('field_instagram')} value={companyInfo.instagram_url} href={companyInfo.instagram_url} emptyLabel={t('not_set')} />
+              <InfoRow icon={<Link2 size={14} />} label={t('field_tiktok')} value={companyInfo.tiktok_url} href={companyInfo.tiktok_url} emptyLabel={t('not_set')} />
             </div>
           </div>
 
@@ -681,7 +684,7 @@ export default function AdminCompanyInfoPage() {
             </FormSection>
 
             <FormSection title={t('section_social')} icon={<Link2 size={11} />}>
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                 <Field label={t('field_facebook')}>
                   <input
                     placeholder="https://www.facebook.com/votre_nom"
@@ -695,6 +698,14 @@ export default function AdminCompanyInfoPage() {
                     placeholder="https://www.instagram.com/votre_nom"
                     value={formState.instagram_url ?? ''}
                     onChange={(e) => updateForm('instagram_url', e.target.value.trim())}
+                    className={inputCls}
+                  />
+                </Field>
+                <Field label={t('field_tiktok')}>
+                  <input
+                    placeholder="https://www.tiktok.com/@votre_nom"
+                    value={formState.tiktok_url ?? ''}
+                    onChange={(e) => updateForm('tiktok_url', e.target.value.trim())}
                     className={inputCls}
                   />
                 </Field>

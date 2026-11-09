@@ -101,7 +101,7 @@ export function normalizeSocialUsername(value?: string | null): string {
   const cleaned = (value || '').trim();
   if (!cleaned) return '';
 
-  const urlMatch = cleaned.match(/^https?:\/\/(?:www\.)?(facebook|instagram)\.com\/([^\s/?#]+)/i);
+  const urlMatch = cleaned.match(/^https?:\/\/(?:www\.)?(facebook|instagram|tiktok)\.com\/(?:@)?([^\s/?#]+)/i);
   if (urlMatch?.[2]) {
     return urlMatch[2].replace(/^@/, '').replace(/\/$/, '');
   }
@@ -112,13 +112,23 @@ export function normalizeSocialUsername(value?: string | null): string {
     .replace(/\/$/, '');
 }
 
-export function normalizeSocialProfileUrl(platform: 'facebook' | 'instagram', value?: string | null): string {
-  const username = normalizeSocialUsername(value);
+export function normalizeSocialProfileUrl(platform: 'facebook' | 'instagram' | 'tiktok', value?: string | null): string {
+  const cleaned = (value || '').trim();
+  if (!cleaned) return '';
+
+  if (cleaned.startsWith('http://') || cleaned.startsWith('https://')) {
+    if (platform === 'tiktok') {
+      const username = normalizeSocialUsername(cleaned);
+      return username ? `https://www.tiktok.com/@${username}` : cleaned;
+    }
+    return cleaned;
+  }
+
+  const username = normalizeSocialUsername(cleaned);
   if (!username) return '';
 
-  const startsWithPlatformUrl = /^(https?:\/\/)?(www\.)?(facebook|instagram)\.com\//i.test(value || '');
-  if (startsWithPlatformUrl) {
-    return `https://www.${platform}.com/${normalizeSocialUsername(value)}`;
+  if (platform === 'tiktok') {
+    return `https://www.tiktok.com/@${username}`;
   }
 
   return `https://www.${platform}.com/${username}`;
@@ -130,7 +140,7 @@ export function buildWhatsAppUrl(phone?: string | null, message?: string): strin
   return `${WHATSAPP_BASE_URL}/237${number}${query}`;
 }
 
-export function buildSocialUrl(platform: 'facebook' | 'instagram', username?: string | null): string {
+export function buildSocialUrl(platform: 'facebook' | 'instagram' | 'tiktok', username?: string | null): string {
   return normalizeSocialProfileUrl(platform, username);
 }
 

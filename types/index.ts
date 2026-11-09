@@ -217,6 +217,7 @@ export interface CompanyInfo {
   whatsapp?: string | null;
   facebook_url?: string | null;
   instagram_url?: string | null;
+  tiktok_url?: string | null;
   localisation?: string;
   date_creation: string;
   date_modification: string;
