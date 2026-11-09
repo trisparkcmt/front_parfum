@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { shopService } from '@/services/shopService';
+import { shopService } from '@/services/apiService';
+import type { CompanyInfo } from '@/types';
 import { buildSocialUrl, normalizeSocialUsername } from '@/lib/utils';
 
 export default function TikTokCreatorEmbed() {
@@ -11,7 +12,7 @@ export default function TikTokCreatorEmbed() {
     let isSubscribed = true;
     shopService
       .getCompanyInfos()
-      .then((data) => {
+      .then((data: CompanyInfo[]) => {
         if (!isSubscribed) return;
         const info = Array.isArray(data) && data.length > 0 ? data[0] : null;
         if (info?.tiktok_url) {

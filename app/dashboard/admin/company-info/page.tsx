@@ -92,6 +92,7 @@ const T = {
     field_whatsapp: 'WhatsApp',
     field_facebook: 'Facebook',
     field_instagram: 'Instagram',
+    field_tiktok: 'TikTok',
     not_set: 'Not set',
     apply_to_all: 'Apply to every open day',
     note: 'Note',
