@@ -689,7 +689,7 @@ export default function AdminCompanyInfoPage() {
                   <input
                     placeholder="https://www.facebook.com/votre_nom"
                     value={formState.facebook_url ?? ''}
-                    onChange={(e) => updateForm('facebook_url', e.target.value.trim())}
+                    onChange={(e) => updateForm('facebook_url', e.target.value)}
                     className={inputCls}
                   />
                 </Field>
@@ -697,7 +697,7 @@ export default function AdminCompanyInfoPage() {
                   <input
                     placeholder="https://www.instagram.com/votre_nom"
                     value={formState.instagram_url ?? ''}
-                    onChange={(e) => updateForm('instagram_url', e.target.value.trim())}
+                    onChange={(e) => updateForm('instagram_url', e.target.value)}
                     className={inputCls}
                   />
                 </Field>
@@ -705,7 +705,7 @@ export default function AdminCompanyInfoPage() {
                   <input
                     placeholder="https://www.tiktok.com/@votre_nom"
                     value={formState.tiktok_url ?? ''}
-                    onChange={(e) => updateForm('tiktok_url', e.target.value.trim())}
+                    onChange={(e) => updateForm('tiktok_url', e.target.value)}
                     className={inputCls}
                   />
                 </Field>

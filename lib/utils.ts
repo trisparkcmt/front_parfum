@@ -112,26 +112,45 @@ export function normalizeSocialUsername(value?: string | null): string {
     .replace(/\/$/, '');
 }
 
-export function normalizeSocialProfileUrl(platform: 'facebook' | 'instagram' | 'tiktok', value?: string | null): string {
+export function normalizeSocialProfileUrl(
+  platform: 'facebook' | 'instagram' | 'tiktok',
+  value?: string | null
+): string {
   const cleaned = (value || '').trim();
   if (!cleaned) return '';
 
-  if (cleaned.startsWith('http://') || cleaned.startsWith('https://')) {
+  // 1. If already a full URL (http:// or https://), keep it completely intact!
+  if (/^https?:\/\//i.test(cleaned)) {
     if (platform === 'tiktok') {
-      const username = normalizeSocialUsername(cleaned);
-      return username ? `https://www.tiktok.com/@${username}` : cleaned;
+      const match = cleaned.match(/^https?:\/\/(?:www\.)?tiktok\.com\/([^@\s/?#][^\s/?#]*)/i);
+      if (match?.[1]) {
+        return `https://www.tiktok.com/@${match[1]}`;
+      }
     }
     return cleaned;
   }
 
-  const username = normalizeSocialUsername(cleaned);
-  if (!username) return '';
-
-  if (platform === 'tiktok') {
-    return `https://www.tiktok.com/@${username}`;
+  // 2. If it starts with a platform domain (e.g. facebook.com/... or www.facebook.com/...)
+  if (/^(?:www\.)?(?:facebook|instagram|tiktok)\.com\//i.test(cleaned)) {
+    const fullUrl = `https://${cleaned.replace(/^www\./i, 'www.')}`;
+    if (platform === 'tiktok') {
+      const match = fullUrl.match(/^https?:\/\/(?:www\.)?tiktok\.com\/([^@\s/?#][^\s/?#]*)/i);
+      if (match?.[1]) {
+        return `https://www.tiktok.com/@${match[1]}`;
+      }
+    }
+    return fullUrl;
   }
 
-  return `https://www.${platform}.com/${username}`;
+  // 3. Otherwise treat as a username or handle
+  const rawHandle = cleaned.replace(/^@/, '').replace(/\/$/, '');
+  if (!rawHandle) return '';
+
+  if (platform === 'tiktok') {
+    return `https://www.tiktok.com/@${rawHandle}`;
+  }
+
+  return `https://www.${platform}.com/${rawHandle}`;
 }
 
 export function buildWhatsAppUrl(phone?: string | null, message?: string): string {
