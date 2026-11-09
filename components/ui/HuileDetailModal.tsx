@@ -439,7 +439,7 @@ export function HuileDetailModal({ productId, initialProduct, onClose, onRelated
                       </div>
                       <div>
                         <p className="text-[9px] font-bold uppercase tracking-wider text-foreground/40">{isEn ? 'Category' : 'Catégorie'}</p>
-                        <p className="text-xs font-bold text-foreground capitalize">Pure Oil</p>
+                        <p className="text-xs font-bold text-foreground capitalize">{isEn ? 'Pure Oil' : 'Huile Pure'}</p>
                       </div>
                     </div>
                   </div>

@@ -407,7 +407,7 @@ export default function HuileDetailClient({ id }: { id: string }) {
               </div>
               <div>
                 <p className="text-[9px] font-bold uppercase tracking-wider text-foreground/40">{isEn ? 'Category' : 'Catégorie'}</p>
-                <p className="text-xs font-bold text-foreground capitalize">{product.category === 'huile' ? 'Pure Oil' : product.category}</p>
+                <p className="text-xs font-bold text-foreground capitalize">{product.category === 'huile' ? (isEn ? 'Pure Oil' : 'Huile Pure') : product.category}</p>
               </div>
             </div>
           </div>

@@ -24,7 +24,7 @@
 
 import Link from 'next/link';
 import AppImage from '@/components/ui/AppImage';
-import { Heart, ShoppingBag, BellRing, Share2, ImageOff } from 'lucide-react';
+import { Heart, ShoppingBag, Share2, ImageOff } from 'lucide-react';
 import { cn, formatPrice, sharePage, resolveImageUrl, isProductSoldOut } from '@/lib/utils';
 import type { Product } from '@/types';
 import { useTranslation } from 'react-i18next';
@@ -325,10 +325,14 @@ export function ProductCard({
       {/* ─── CTA Button ──────────────────────────────────────── */}
       <div className="mt-auto pt-2.5 sm:pt-3.5">
         {isSoldOut ? (
-          <button className="w-full flex items-center justify-center gap-1.5 sm:gap-2 border border-foreground/20 py-2 sm:py-2.5 text-[10px] sm:text-[11px] font-semibold uppercase tracking-[0.12em] sm:tracking-[0.15em] text-foreground/50 hover:border-foreground/40 transition-colors">
-            <BellRing size={12} className="sm:hidden" />
-            <BellRing size={13} className="hidden sm:block" />
-            {t('notify_when_available') ?? 'Me notifier'}
+          <button 
+            disabled 
+            aria-disabled="true"
+            className="w-full flex items-center justify-center border border-foreground/20 py-2 sm:py-2.5 px-2 text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider text-foreground/50 cursor-not-allowed select-none"
+          >
+            <span className="truncate">
+              {isEn ? 'Out of Stock' : 'En rupture'}
+            </span>
           </button>
         ) : (
           onAddToCart && (

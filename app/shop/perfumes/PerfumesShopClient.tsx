@@ -69,7 +69,34 @@ export default function PerfumesShopClient() {
   });
 
   const [finishedEssenceLoading, setFinishedEssenceLoading] = useState(false);
-  const [categories, setCategories] = useState<{ id: string | number; label: string; desc?: string }[]>([]);
+  const [backendCategories, setBackendCategories] = useState<{ id: number; name: string }[]>([]);
+
+  const categories = useMemo(() => {
+    return [
+      {
+        id: 'all',
+        label: t('all_fragrances', { defaultValue: isEn ? 'All Fragrances' : 'Tous les Parfums' }),
+        desc: '',
+      },
+      {
+        id: 'huile',
+        label: t('pure_oils', { defaultValue: isEn ? 'Pure Oils' : 'Huiles Pures' }),
+        desc: t('pure_oils_desc', {
+          defaultValue: isEn
+            ? 'Our selection of pure, concentrated perfume oils'
+            : "Notre sélection d'huiles de parfum pures et concentrées",
+        }),
+      },
+      ...backendCategories.map((cat) => {
+        const isOil = cat.name.toLowerCase() === 'pure oils' || cat.name.toLowerCase() === 'pure oil' || cat.name.toLowerCase() === 'huiles' || cat.name.toLowerCase() === 'huile';
+        return {
+          id: cat.id,
+          label: isOil ? (isEn ? 'Pure Oils' : 'Huiles Pures') : cat.name,
+          desc: isOil ? t('pure_oils_desc', { defaultValue: isEn ? 'Our selection of pure, concentrated perfume oils' : "Notre sélection d'huiles de parfum pures et concentrées" }) : '',
+        };
+      }),
+    ];
+  }, [backendCategories, isEn, t, i18n.language]);
 
   // Track if products were already restored from frozen state so we don't re-fetch or re-shuffle on mount
   const hasRestoredFrozenProducts = useRef<boolean>(
@@ -342,26 +369,9 @@ export default function PerfumesShopClient() {
       setLoading(true);
 
       // Load dynamic categories from backend (once)
-      if (categories.length === 0) {
+      if (backendCategories.length === 0) {
         const backendCats = await productService.getPerfumeCategories();
-        const mappedTabs = [
-          {
-            id: 'all',
-            label: t('all_fragrances'),
-            desc: '',
-          },
-          {
-            id: 'huile',
-            label: t('pure_oils'),
-            desc: t('pure_oils_desc'),
-          },
-          ...backendCats.map((cat) => ({
-            id: cat.id,
-            label: cat.name,
-            desc: '',
-          })),
-        ];
-        setCategories(mappedTabs);
+        setBackendCategories(backendCats);
 
         const catParam = searchParams?.get('categorie');
         if (catParam) {
@@ -461,7 +471,7 @@ export default function PerfumesShopClient() {
     }
 
     fetchData();
-  }, [mounted, activeTab, genre, intensity, maxPrice, debouncedSearch, currentPage, categories.length]);
+  }, [mounted, activeTab, genre, intensity, maxPrice, debouncedSearch, currentPage, backendCategories.length]);
 
   useEffect(() => {
     setMounted(true);
