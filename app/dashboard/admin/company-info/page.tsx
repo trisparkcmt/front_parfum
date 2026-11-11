@@ -468,6 +468,7 @@ export default function AdminCompanyInfoPage() {
         whatsapp: whatsapp || '',
         facebook_url: facebookUrl || '',
         instagram_url: instagramUrl || '',
+        tiktok_url: tiktokUrl || '',
         jours_ouverture: jours,
       };
 

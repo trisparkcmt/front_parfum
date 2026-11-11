@@ -1454,7 +1454,19 @@ function AtelierContent() {
 
                 {/* List of Premium Essences */}
                 <div className="grid grid-cols-1 gap-px bg-[var(--t-border)] border border-[var(--t-border)] rounded-sm overflow-hidden">
-                  {paginatedEssences.map(item => {
+                  {currentEssencesFiltered.length === 0 ? (
+                    <div role="status" className="col-span-full flex min-h-40 items-center justify-center bg-[var(--t-surface)] px-4 py-10 text-center">
+                      <p className="text-sm text-foreground/50">
+                        {searchQuery.trim()
+                          ? i18n.language === 'en'
+                            ? 'No essences match your search.'
+                            : 'Aucune essence ne correspond à votre recherche.'
+                          : i18n.language === 'en'
+                            ? 'No essences are available in this category.'
+                            : "Aucune essence n'est disponible dans cette catégorie."}
+                      </p>
+                    </div>
+                  ) : paginatedEssences.map(item => {
                     const qty = quantities[item.id] || 0;
                     const sel = qty > 0;
                     return (

@@ -23,7 +23,7 @@ const faqData: { fr: FAQItem[]; en: FAQItem[] } = {
     },
     {
       q: "Puis-je retourner un article ?",
-      a: "Oui, vous disposez de 30 jours à compter de la réception pour retourner tout article non personnalisé dans son emballage d'origine. Les parfums sur mesure ne sont pas éligibles au retour.",
+      a: "Oui, vous disposez de 3 jours à compter de la réception pour retourner tout article non personnalisé dans son emballage d'origine. Les parfums sur mesure ne sont pas éligibles au retour.",
     },
     {
       q: "Comment fonctionne l'assistant IA ?",
@@ -45,7 +45,7 @@ const faqData: { fr: FAQItem[]; en: FAQItem[] } = {
     },
     {
       q: "Can I return an item?",
-      a: "Yes, you have 30 days from receipt to return any non-personalised item in its original packaging. Custom-made perfumes are not eligible for returns.",
+      a: "Yes, you have 3 days from receipt to return any non-personalised item in its original packaging. Custom-made perfumes are not eligible for returns.",
     },
     {
       q: "How does the AI assistant work?",
