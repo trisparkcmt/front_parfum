@@ -30,7 +30,7 @@ export default function Home() {
   if (!mounted) return <HomeLoadingScreen />;
 
   return (
-    <div className="flex flex-col w-full pt-14 lg:pt-0">
+    <div className="flex flex-col w-full pt-14 tablet:pt-0 lg:pt-0">
       <h1 className="sr-only">Accessoires Exclusifs | Luxe & Création de Parfums</h1>
       <HomeHeader />
 
