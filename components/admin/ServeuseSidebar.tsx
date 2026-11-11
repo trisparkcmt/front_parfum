@@ -129,7 +129,7 @@ export default function ServeuseSidebar({ open, setOpen }: SidebarProps) {
     { label: t('perfumes', { defaultValue: isEn ? 'Perfumes' : 'Parfums' }), icon: <PerfumeIcon size={18} />, href: '/dashboard/serveuse/perfume' },
     { label: t('admin_nav_categories', { defaultValue: isEn ? 'Categories' : 'Catégories' }), icon: <Package size={18} />, href: '/dashboard/serveuse/categories' },
     { label: t('essences', { defaultValue: 'Essences' }), icon: <EssenceIcon size={18} />, href: '/dashboard/serveuse/essences' },
-    { label: t('finished_essence_products', { defaultValue: isEn ? 'Essence Products' : 'Produits finis à base d’essence' }), icon: <EssenceIcon size={18} />, href: '/dashboard/serveuse/produits-essence' },
+    { label: isEn ? 'Oil' : 'Huile', icon: <EssenceIcon size={18} />, href: '/dashboard/serveuse/produits-essence' },
     { label: t('laboratory', { defaultValue: isEn ? 'Laboratory' : 'Laboratoire' }), icon: <LaptopIcon size={18} />, href: '/dashboard/serveuse/lab' },
     { label: t('bottles', { defaultValue: isEn ? 'Bottles' : 'Flacons' }), icon: <Package size={18} />, href: '/dashboard/serveuse/flacons' },
     { label: t('accessories', { defaultValue: isEn ? 'Accessories' : 'Accessoires' }), icon: <Gem size={18} />, href: '/dashboard/serveuse/accessories' },
