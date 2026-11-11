@@ -73,6 +73,7 @@ function withLabels(meta: Record<string, { color: string; dot: string }>, labels
 
 const LOCAL_STRINGS: Record<string, Record<string, string>> = {
   fr: {
+    back: 'Retour',
     page_title: 'Commandes',
     orders_word_singular: 'commande',
     orders_word_plural: 'commandes',
@@ -198,6 +199,7 @@ const LOCAL_STRINGS: Record<string, Record<string, string>> = {
     finished_product_fallback: 'Produit fini',
   },
   en: {
+    back: 'Back',
     page_title: 'Orders',
     orders_word_singular: 'order',
     orders_word_plural: 'orders',
@@ -525,7 +527,7 @@ function OrderPopupModal({
 
 export default function OrdersPage() {
   const { i18n } = useTranslation();
-  const lang = LOCAL_STRINGS[i18n.language] ? i18n.language : 'fr';
+  const lang = (i18n.resolvedLanguage || i18n.language || 'fr').startsWith('en') ? 'en' : 'fr';
   const t = (key: string, vars?: Record<string, string | number>) => translate(lang, key, vars);
 
   const statutCfg    = useMemo(() => withLabels(STATUT_META, STATUS_LABELS[lang].commande), [lang]);
@@ -822,7 +824,7 @@ export default function OrdersPage() {
         <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center group-hover:bg-gold/10 group-hover:scale-110 transition-all">
           <ArrowLeft size={18} />
         </div>
-        <span className="text-sm font-medium uppercase tracking-widest">Retour</span>
+        <span className="text-sm font-medium uppercase tracking-widest">{t('back')}</span>
       </button>
 
       {/* Header ------------------------------------------------------------ */}

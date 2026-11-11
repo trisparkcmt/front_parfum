@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useTranslation } from 'react-i18next';
 import { useNotificationCountStore } from '@/store/useNotificationCountStore';
 import {
   LayoutDashboard, ShoppingCart, BarChart2,
@@ -112,26 +113,28 @@ function SectionLabel({ label }: { label: string }) {
 }
 
 export default function ServeuseSidebar({ open, setOpen }: SidebarProps) {
+  const { t, i18n } = useTranslation();
+  const isEn = i18n.language?.startsWith('en');
   const { unreadNotificationCount, pendingActionCount } = useNotificationCountStore();
 
   const menuItems: NavItem[] = [
-    { label: 'Dashboard', icon: <LayoutDashboard size={18} />, href: '/dashboard/serveuse/dashboard' },
-    { label: 'Expenses', icon: <DollarSign size={18} />, href: '/dashboard/serveuse/expenses' },
-    { label: 'Notifications', icon: <Bell size={18} />, href: '/dashboard/serveuse/notifications', badge: unreadNotificationCount > 0 ? String(unreadNotificationCount) : undefined }
+    { label: t('my_dashboard', { defaultValue: isEn ? 'Dashboard' : 'Tableau de bord' }), icon: <LayoutDashboard size={18} />, href: '/dashboard/serveuse/dashboard' },
+    { label: t('daily_expenses', { defaultValue: isEn ? 'Expenses' : 'Dépenses' }), icon: <DollarSign size={18} />, href: '/dashboard/serveuse/expenses' },
+    { label: t('notifications', { defaultValue: 'Notifications' }), icon: <Bell size={18} />, href: '/dashboard/serveuse/notifications', badge: unreadNotificationCount > 0 ? String(unreadNotificationCount) : undefined }
   ];
 
   const boutiqueItems: NavItem[] = [
-    { label: 'Orders', icon: <ShoppingCart size={18} />, href: '/dashboard/serveuse/order', badge: pendingActionCount > 0 ? String(pendingActionCount) : undefined },
+    { label: t('orders', { defaultValue: isEn ? 'Orders' : 'Commandes' }), icon: <ShoppingCart size={18} />, href: '/dashboard/serveuse/order', badge: pendingActionCount > 0 ? String(pendingActionCount) : undefined },
 
-    { label: 'Perfumes', icon: <PerfumeIcon size={18} />, href: '/dashboard/serveuse/perfume' },
-    { label: 'Categories', icon: <Package size={18} />, href: '/dashboard/serveuse/categories' },
-    { label: 'Essences', icon: <EssenceIcon size={18} />, href: '/dashboard/serveuse/essences' },
-    { label: 'Essence Products', icon: <EssenceIcon size={18} />, href: '/dashboard/serveuse/produits-essence' },
-    { label: 'Laboratory', icon: <LaptopIcon size={18} />, href: '/dashboard/serveuse/lab' },
-    { label: 'Flacons', icon: <Package size={18} />, href: '/dashboard/serveuse/flacons' },
-    { label: 'Accessories', icon: <Gem size={18} />, href: '/dashboard/serveuse/accessories' },
-    { label: 'Diffusers', icon: <Sparkles size={18} />, href: '/dashboard/serveuse/diffuseurs' },
-    { label: 'Compositions', icon: <LaptopIcon size={18} />, href: '/dashboard/serveuse/compositions' },
+    { label: t('perfumes', { defaultValue: isEn ? 'Perfumes' : 'Parfums' }), icon: <PerfumeIcon size={18} />, href: '/dashboard/serveuse/perfume' },
+    { label: t('admin_nav_categories', { defaultValue: isEn ? 'Categories' : 'Catégories' }), icon: <Package size={18} />, href: '/dashboard/serveuse/categories' },
+    { label: t('essences', { defaultValue: 'Essences' }), icon: <EssenceIcon size={18} />, href: '/dashboard/serveuse/essences' },
+    { label: t('finished_essence_products', { defaultValue: isEn ? 'Essence Products' : 'Produits finis à base d’essence' }), icon: <EssenceIcon size={18} />, href: '/dashboard/serveuse/produits-essence' },
+    { label: t('laboratory', { defaultValue: isEn ? 'Laboratory' : 'Laboratoire' }), icon: <LaptopIcon size={18} />, href: '/dashboard/serveuse/lab' },
+    { label: t('bottles', { defaultValue: isEn ? 'Bottles' : 'Flacons' }), icon: <Package size={18} />, href: '/dashboard/serveuse/flacons' },
+    { label: t('accessories', { defaultValue: isEn ? 'Accessories' : 'Accessoires' }), icon: <Gem size={18} />, href: '/dashboard/serveuse/accessories' },
+    { label: t('diffusers', { defaultValue: isEn ? 'Diffusers' : 'Diffuseurs' }), icon: <Sparkles size={18} />, href: '/dashboard/serveuse/diffuseurs' },
+    { label: t('composition', { defaultValue: isEn ? 'Compositions' : 'Compositions' }), icon: <LaptopIcon size={18} />, href: '/dashboard/serveuse/compositions' },
   ];
 
   return (
@@ -157,24 +160,24 @@ export default function ServeuseSidebar({ open, setOpen }: SidebarProps) {
             <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-gold to-gold-dark flex items-center justify-center shadow-lg shadow-gold/20 group-hover:shadow-gold/40 transition-shadow">
               <BarChart2 size={18} className="text-black" />
             </div>
-            <span className="font-bold text-foreground text-lg tracking-tight">Waitstaff Shop</span>
+            <span className="font-bold text-foreground text-lg tracking-tight">{t('serveuse_space', { defaultValue: isEn ? 'Store Staff Space' : 'Espace Serveuse' })}</span>
           </Link> 
           <button 
             className="xl:hidden text-foreground/40 hover:text-foreground transition-colors" 
             onClick={() => setOpen(false)}
-            aria-label="Close menu"
+            aria-label={t('close_menu', { defaultValue: isEn ? 'Close menu' : 'Fermer le menu' })}
           >
             <X size={18} />
           </button>
         </div>
 
         <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1 scrollbar-thin">
-          <SectionLabel label="SPACE" />
+          <SectionLabel label={isEn ? 'SPACE' : 'ESPACE'} />
           {menuItems.map(item => (
             <NavItemComponent key={item.label} item={item} onNavigate={() => setOpen(false)} />
           ))}
 
-          <SectionLabel label="SHOP" />
+          <SectionLabel label={isEn ? 'SHOP' : 'BOUTIQUE'} />
           {boutiqueItems.map(item => (
             <NavItemComponent key={item.label} item={item} onNavigate={() => setOpen(false)} />
           ))}
@@ -187,7 +190,7 @@ export default function ServeuseSidebar({ open, setOpen }: SidebarProps) {
             </div>
             <div>
               <p className="text-xs font-semibold text-foreground">Accessories Exclusif</p>
-              <p className="text-[10px] text-foreground/40">v1.0 · Waitstaff Panel</p>
+              <p className="text-[10px] text-foreground/40">v1.0 · {isEn ? 'Waitstaff Panel' : 'Espace Serveuse'}</p>
             </div>
           </div>
         </div>

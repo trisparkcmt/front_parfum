@@ -596,7 +596,7 @@ export default function PromoCarousel() {
               <DiscountRibbon discount={activeSlide.discount} isEn={isEn} size="lg" />
             )}
 
-            <div className="relative z-10 mx-auto flex h-full max-w-7xl items-end px-6 pb-28 pt-32 lg:px-8">
+            <div className="relative z-10 mx-auto flex h-full max-w-7xl items-end px-6 pb-20 pt-32 lg:px-8">
               <motion.div
                 variants={stagger}
                 initial="hidden"

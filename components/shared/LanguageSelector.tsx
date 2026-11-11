@@ -16,13 +16,18 @@ export function LanguageSelector() {
   const { i18n } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const activeLanguageCode = (i18n.resolvedLanguage || i18n.language || 'fr')
+    .toLowerCase()
+    .startsWith('en')
+    ? 'en'
+    : 'fr';
 
   const theme = useThemeStore((s) => s.theme);
   const iconColor = cn(
     theme === 'dark' ? 'text-white' : 'text-black'
   );
 
-  const currentLanguage = languages.find(lang => lang.code === i18n.language) || languages[0];
+  const currentLanguage = languages.find(lang => lang.code === activeLanguageCode) || languages[0];
 
   const toggleLanguage = (code: string) => {
     i18n.changeLanguage(code);
@@ -75,7 +80,7 @@ export function LanguageSelector() {
                   onClick={() => toggleLanguage(lang.code)}
                   className={cn(
                     "w-full flex items-center justify-between px-4 py-2.5 text-sm transition-colors",
-                    i18n.language === lang.code
+                    activeLanguageCode === lang.code
                       ? "text-gold bg-gold/10"
                       : "text-foreground/70 hover:text-gold hover:bg-foreground/5"
                   )}
@@ -84,7 +89,7 @@ export function LanguageSelector() {
                     <span>{lang.flag}</span>
                     {lang.label}
                   </span>
-                  {i18n.language === lang.code && (
+                  {activeLanguageCode === lang.code && (
                     <div className="w-1.5 h-1.5 rounded-full bg-gold shadow-[0_0_8px_rgba(212,175,55,0.6)]" />
                   )}
                 </button>

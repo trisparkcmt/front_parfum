@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, ArrowRight, RotateCcw, Sparkles, FlaskConical } from 'lucide-react';
 import Link from 'next/link';
+import { useTranslation } from 'react-i18next';
 
 /* ───── Types ───── */
 interface Step {
@@ -129,6 +130,8 @@ function generateFormula(answers: Record<string, string>): FormulaLine[] {
 
 /* ───── Component ───── */
 export default function OlfactivQuizPage() {
+  const { i18n } = useTranslation();
+  const isEn = (i18n.resolvedLanguage || i18n.language)?.startsWith('en');
   const [currentStep, setCurrentStep] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [direction, setDirection] = useState(1);
@@ -190,7 +193,7 @@ export default function OlfactivQuizPage() {
           className="flex items-center gap-2 text-foreground/40 hover:text-foreground transition-colors disabled:opacity-20 text-xs uppercase tracking-widest font-mono"
         >
           <ArrowLeft size={14} />
-          {done ? 'Modifier' : 'Retour'}
+          {done ? (isEn ? 'Edit' : 'Modifier') : (isEn ? 'Back' : 'Retour')}
         </button>
 
         <Link

@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
+import { useTranslation } from 'react-i18next';
 import { 
   Menu, Search, Moon, Sun, Bell, User, ArrowLeft, 
   ShoppingCart, Package, Sparkles, Gem, Users2, Check 
@@ -27,6 +28,7 @@ type Suggestion = {
 export default function Header({ onMenuClick }: HeaderProps) {
   const router = useRouter();
   const pathname = usePathname();
+  const { t } = useTranslation();
   const { user } = useAuthStore();
   const { theme, toggleTheme, initTheme } = useThemeStore();
   
@@ -233,7 +235,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
           className="flex items-center gap-2 text-foreground/60 hover:text-gold transition-colors group"
         >
           <ArrowLeft size={18} className="group-hover:-translate-x-1 transition-transform" />
-          <span className="text-xs font-bold uppercase tracking-wider hidden sm:block">Back</span>
+          <span className="text-xs font-bold uppercase tracking-wider hidden sm:block">{t('go_back', { defaultValue: 'Back' })}</span>
         </button>
       </div>
 

@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
+import Link from 'next/link';
 import { Navbar } from "@/components/shared/Navbar";
 import { Footer } from "@/components/shared/Footer";
 import BottomNav from "@/components/shared/BottomNav";
@@ -47,12 +48,23 @@ export function LayoutWrapper({ children }: { children: React.ReactNode }) {
   const canPullToRefresh = !isDashboard && !isAuth;
 
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="flex min-h-screen w-full min-w-0 flex-col overflow-x-clip">
       <PullToRefresh enabled={canPullToRefresh} onRefresh={() => window.location.reload()} />
+      {!shouldHideNav && (
+        <header className="hidden w-full shrink-0 items-center justify-center border-b border-foreground/10 bg-background px-4 py-2 tablet:flex nav:hidden">
+          <Link href="/" aria-label="Accessoires Exclusifs - Accueil" className="flex items-center justify-center">
+            <img
+              src="/logo/Logo Accessoirs Exclusifs gold transparent.svg"
+              alt="Accessoires Exclusifs"
+              className="h-12 w-auto object-contain"
+            />
+          </Link>
+        </header>
+      )}
       {!shouldHideNav && (
         <Navbar />
       )}
-      <main className={`flex-1 ${!shouldHideNav ? 'pb-32 tablet:pb-24 nav:pb-0' : ''}`}>
+      <main className={`w-full min-w-0 flex-1 ${!shouldHideNav ? 'pb-32 tablet:pb-24 nav:pb-0' : ''}`}>
         {children}
       </main>
       {!shouldHideNav && (
