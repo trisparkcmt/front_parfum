@@ -596,28 +596,28 @@ export default function PromoCarousel() {
               <DiscountRibbon discount={activeSlide.discount} isEn={isEn} size="lg" />
             )}
 
-            <div className="relative z-10 mx-auto flex h-full max-w-7xl items-end px-6 pb-20 pt-32 lg:px-8">
+            <div className="relative z-10 mx-auto flex h-full max-w-7xl items-end px-6 pb-16 pt-12 lg:px-8 [@media(max-height:700px)]:pb-8 [@media(max-height:700px)]:pt-6">
               <motion.div
                 variants={stagger}
                 initial="hidden"
                 animate="show"
                 className="max-w-3xl"
               >
-                <motion.div variants={reveal} className="mb-6">
+                <motion.div variants={reveal} className="mb-4">
                   <Eyebrow promo={activeSlide} isEn={isEn} />
                 </motion.div>
 
                 <motion.h2
                   variants={reveal}
-                  className="mb-5 font-display text-5xl font-light leading-[1.02] tracking-tight text-white xl:text-6xl 2xl:text-7xl"
+                  className="mb-4 font-display text-4xl font-light leading-[1.02] text-white xl:text-5xl 2xl:text-6xl"
                 >
                   <HeadlineText promo={activeSlide} isEn={isEn} />
                 </motion.h2>
 
                 {activeSlide.discount > 0 && (
-                  <motion.p variants={reveal} className="mb-4 font-display text-xl text-white/80">
+                  <motion.p variants={reveal} className="mb-3 font-display text-lg text-white/80">
                     {isEn ? textDict.upTo.en : textDict.upTo.fr}{" "}
-                    <span className="px-1 text-4xl font-medium text-red-500">-{activeSlide.discount}%</span>{" "}
+                    <span className="px-1 text-3xl font-medium text-red-500">-{activeSlide.discount}%</span>{" "}
                     {isEn ? textDict.off.en : textDict.off.fr}
                   </motion.p>
                 )}
@@ -625,22 +625,22 @@ export default function PromoCarousel() {
                 {activeMessage && (
                   <motion.p
                     variants={reveal}
-                    className="mb-8 line-clamp-2 max-w-md text-base font-light leading-relaxed text-white/75"
+                    className="mb-4 line-clamp-2 max-w-md text-sm font-light leading-relaxed text-white/75 [@media(max-height:700px)]:hidden"
                   >
                     {activeMessage}
                   </motion.p>
                 )}
 
                 {activeCountdownMessage && (
-                  <motion.div variants={reveal} className="mb-8">
+                  <motion.div variants={reveal} className="mb-4 [@media(max-height:700px)]:hidden">
                     <CountdownChip message={activeCountdownMessage} />
                   </motion.div>
                 )}
 
-                <motion.div variants={reveal} className="flex flex-wrap items-center gap-8">
+                <motion.div variants={reveal} className="flex flex-wrap items-center gap-6">
                   <Link
                     href={activeSlide.link}
-                    className="group inline-flex items-center gap-3 bg-gold px-8 py-4 text-[11px] font-semibold uppercase tracking-[0.22em] text-deep-black transition-colors duration-300 hover:bg-white"
+                    className="group inline-flex items-center gap-3 bg-gold px-6 py-3 text-[11px] font-semibold uppercase tracking-[0.22em] text-deep-black transition-colors duration-300 hover:bg-white"
                   >
                     {isEn ? textDict.discover.en : textDict.discover.fr}
                     <ArrowRight size={15} className="transition-transform duration-300 group-hover:translate-x-1" />

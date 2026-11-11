@@ -51,12 +51,12 @@ export function LayoutWrapper({ children }: { children: React.ReactNode }) {
     <div className="flex min-h-screen w-full min-w-0 flex-col overflow-x-clip">
       <PullToRefresh enabled={canPullToRefresh} onRefresh={() => window.location.reload()} />
       {!shouldHideNav && (
-        <header className="hidden w-full shrink-0 items-center justify-center border-b border-foreground/10 bg-background px-4 py-4 tablet:flex nav:hidden">
+        <header className="hidden h-32 w-full shrink-0 items-center justify-center border-b border-foreground/10 bg-background px-4 py-0 tablet:flex nav:hidden">
           <Link href="/" aria-label="Accessoires Exclusifs - Accueil" className="flex items-center justify-center">
             <img
-              src="/logo/Logo Accessoirs Exclusifs gold transparent.svg"
+              src="/logo/Longo only2.svg"
               alt="Accessoires Exclusifs"
-              className="h-24 w-auto object-contain"
+              className="h-28 w-auto object-contain"
             />
           </Link>
         </header>
