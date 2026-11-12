@@ -32,7 +32,7 @@ export default function Home() {
   return (
     <div className="flex flex-col w-full pt-14 tablet:pt-0 lg:pt-0">
       <h1 className="sr-only">Accessoires Exclusifs | Luxe & Création de Parfums </h1>
-      <section className="flex flex-col lg:min-h-svh">
+      <section className="flex flex-col nav:min-h-svh">
         <HomeHeader />
         <PromoCarousel />
         <WelcomeMessage />

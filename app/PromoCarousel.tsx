@@ -426,15 +426,15 @@ export default function PromoCarousel() {
 
   if (loading) {
     return (
-      <div className="flex w-full flex-col lg:flex-1 lg:min-h-0">
-        <div className="lg:hidden max-w-7xl mx-auto px-4 sm:px-6 pt-2">
+      <div className="flex w-full flex-col tablet:h-[440px] lg:h-[480px] nav:h-auto nav:flex-1 nav:min-h-0">
+        <div className="tablet:hidden max-w-7xl mx-auto px-4 sm:px-6 pt-2">
           <div className="flex gap-3 overflow-x-auto snap-x snap-mandatory scrollbar-hide -mx-4 px-4">
             {Array.from({ length: 3 }).map((_, i) => (
               <div key={i} className="h-52 w-[82%] min-w-[280px] max-w-[340px] sm:w-[320px] flex-shrink-0 bg-foreground/5 animate-pulse" />
             ))}
           </div>
         </div>
-        <div className="hidden lg:block w-full flex-1 min-h-0 bg-foreground/5 animate-pulse" />
+        <div className="hidden tablet:block w-full flex-1 min-h-0 bg-foreground/5 animate-pulse" />
       </div>
     );
   }
@@ -447,7 +447,7 @@ export default function PromoCarousel() {
 
   return (
     <section
-      className="flex w-full flex-col lg:flex-1 lg:min-h-0"
+      className="flex w-full flex-col tablet:h-[440px] lg:h-[480px] nav:h-auto nav:flex-1 nav:min-h-0"
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
       onTouchStart={() => setIsPaused(true)}
@@ -455,7 +455,7 @@ export default function PromoCarousel() {
     >
       {/* MOBILE / TABLET — single item: edge-to-edge header image, text overlaid on the photo */}
       {isSingle && (
-        <div className="lg:hidden w-full mt-2">
+        <div className="tablet:hidden w-full mt-2">
           <motion.div
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
@@ -464,7 +464,7 @@ export default function PromoCarousel() {
           >
             <Link
               href={items[0].link}
-              className="group relative block h-72 w-full overflow-hidden bg-deep-black tablet:h-[50svh]"
+              className="group relative block h-72 w-full overflow-hidden bg-deep-black"
             >
               <div className="absolute inset-0 pointer-events-none">
                 <AppImage
@@ -490,7 +490,7 @@ export default function PromoCarousel() {
 
       {/* MOBILE / TABLET — multiple items: scrollable carousel, text overlaid on the photo */}
       {!isSingle && (
-        <div className="lg:hidden max-w-7xl mx-auto mt-2 px-4 sm:px-6">
+        <div className="tablet:hidden max-w-7xl mx-auto mt-2 px-4 sm:px-6">
           <div
             ref={mobileScrollRef}
             onScroll={handleMobileScroll}
@@ -515,7 +515,7 @@ export default function PromoCarousel() {
                   <Link
                     href={promo.link}
                     className={cn(
-                      "group relative block h-56 overflow-hidden border bg-deep-black transition-colors tablet:h-[50svh]",
+                      "group relative block h-56 overflow-hidden border bg-deep-black transition-colors",
                       isActive ? "border-gold/50" : "border-gold/15"
                     )}
                   >
@@ -560,7 +560,7 @@ export default function PromoCarousel() {
       )}
 
       {/* DESKTOP */}
-      <div className="hidden lg:block relative w-full flex-1 min-h-0 overflow-hidden bg-deep-black">
+      <div className="hidden tablet:block relative w-full h-full flex-1 min-h-0 overflow-hidden bg-deep-black">
         <AnimatePresence mode="wait">
           <motion.div
             key={activeSlide.key}
@@ -596,7 +596,7 @@ export default function PromoCarousel() {
               <DiscountRibbon discount={activeSlide.discount} isEn={isEn} size="lg" />
             )}
 
-            <div className="relative z-10 mx-auto flex h-full max-w-7xl items-end px-6 pb-16 pt-12 lg:px-8 [@media(max-height:700px)]:pb-8 [@media(max-height:700px)]:pt-6">
+            <div className="relative z-10 mx-auto flex h-full max-w-7xl items-end px-6 pb-12 pt-8 tablet:pb-12 tablet:pt-8 nav:pb-16 nav:pt-12 lg:px-8 [@media(max-height:700px)]:pb-8 [@media(max-height:700px)]:pt-6">
               <motion.div
                 variants={stagger}
                 initial="hidden"
@@ -662,7 +662,7 @@ export default function PromoCarousel() {
 
         {/* Bottom bar: progress + counter + arrows (multi-slide), or a quiet scroll cue (single) */}
         <div className="absolute inset-x-0 bottom-0 z-20">
-          <div className="mx-auto flex max-w-7xl items-center justify-between gap-6 px-6 pb-8 lg:px-8">
+          <div className="mx-auto flex max-w-7xl items-center justify-between gap-6 px-6 pb-5 tablet:pb-5 nav:pb-8 lg:px-8">
             {isSingle ? (
               <div className="flex items-center gap-4">
                 <span className="h-px w-12 bg-gold/70" />
