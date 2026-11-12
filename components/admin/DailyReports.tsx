@@ -684,7 +684,7 @@ function ReportList({ title, items }: { title: string; items: Array<DailyReportI
       {items.length ? (
         <ul className="space-y-2">
           {items.map((item, index) => (
-            <li key={`${'nom' in item ? item.nom : 'titre' in item ? item.titre : item.id}-${index}`} className="flex flex-wrap justify-between gap-2 border-b border-white/5 pb-2 text-sm last:border-0 last:pb-0">
+            <li key={`${'nom' in item ? item.nom : item.titre}-${index}`} className="flex flex-wrap justify-between gap-2 border-b border-white/5 pb-2 text-sm last:border-0 last:pb-0">
               <span className="text-foreground/75">
                 {'nom' in item
                   ? `${item.nom} · ${'quantite' in item ? `× ${item.quantite}` : `+${item.quantite_ajoutee}`}`
