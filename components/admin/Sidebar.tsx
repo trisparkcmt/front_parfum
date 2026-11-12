@@ -13,6 +13,7 @@ import {
   LayoutDashboard, ShoppingCart, BarChart2, Users2,
   TrendingUp, Package, DollarSign, Truck,
   Sparkles, Gem, X, ChevronDown, Bell, FileText, Tag, Store,
+  ClipboardList,
 } from 'lucide-react';
 import { PerfumeIcon, EssenceIcon, DiffuseurIcon, LaptopIcon } from '@/components/icons/CustomIcons';
 
@@ -249,6 +250,11 @@ export default function Sidebar({ open, setOpen }: SidebarProps) {
   ];
 
   const bottomItems: NavItem[] = [
+    {
+      label: isEn ? 'Daily Reports' : 'Rapports journaliers',
+      icon: <ClipboardList size={18} />,
+      href: '/dashboard/admin/rapports-journaliers',
+    },
     {
       label: t('admin_nav_expenses', { defaultValue: isEn ? 'Expenses' : 'Dépenses' }),
       icon: <DollarSign size={18} />,

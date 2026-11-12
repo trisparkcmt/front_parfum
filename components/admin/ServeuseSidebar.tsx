@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation';
 import { useTranslation } from 'react-i18next';
 import { useNotificationCountStore } from '@/store/useNotificationCountStore';
 import {
-  LayoutDashboard, ShoppingCart, BarChart2,
+  LayoutDashboard, ShoppingCart, BarChart2, ClipboardList,
   Package, Gem, X, ChevronDown, Sparkles, Bell, DollarSign
 } from 'lucide-react';
 import { PerfumeIcon, EssenceIcon, LaptopIcon } from '@/components/icons/CustomIcons';
@@ -119,6 +119,7 @@ export default function ServeuseSidebar({ open, setOpen }: SidebarProps) {
 
   const menuItems: NavItem[] = [
     { label: t('my_dashboard', { defaultValue: isEn ? 'Dashboard' : 'Tableau de bord' }), icon: <LayoutDashboard size={18} />, href: '/dashboard/serveuse/dashboard' },
+    { label: t('daily_reports', { defaultValue: isEn ? 'Daily reports' : 'Rapports journaliers' }), icon: <ClipboardList size={18} />, href: '/dashboard/serveuse/rapports-journaliers' },
     { label: t('daily_expenses', { defaultValue: isEn ? 'Expenses' : 'Dépenses' }), icon: <DollarSign size={18} />, href: '/dashboard/serveuse/expenses' },
     { label: t('notifications', { defaultValue: 'Notifications' }), icon: <Bell size={18} />, href: '/dashboard/serveuse/notifications', badge: unreadNotificationCount > 0 ? String(unreadNotificationCount) : undefined }
   ];
