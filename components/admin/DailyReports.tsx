@@ -54,7 +54,7 @@ interface ReportFilters {
   caissiere_id: string;
 }
 
-const TYPES_PRODUIT = ['parfum', 'essence', 'accessoire', 'autre'];
+const TYPES_PRODUIT = ['parfum', 'essence', 'accessoire'];
 
 function todayAsLocalDate() {
   const now = new Date();
@@ -183,7 +183,7 @@ export default function DailyReports({ isAdmin }: DailyReportsProps) {
   }, [addToast, isAdmin]);
 
   useEffect(() => {
-    loadCashiers();
+    void Promise.resolve().then(loadCashiers);
   }, [loadCashiers]);
 
   const loadPreview = useCallback(async () => {
@@ -206,7 +206,7 @@ export default function DailyReports({ isAdmin }: DailyReportsProps) {
   }, [addToast, cashierId, isAdmin, reportDate]);
 
   useEffect(() => {
-    loadPreview();
+    void Promise.resolve().then(loadPreview);
   }, [loadPreview]);
 
   const loadReports = useCallback(async () => {
@@ -226,7 +226,7 @@ export default function DailyReports({ isAdmin }: DailyReportsProps) {
   }, [addToast, appliedFilters, isAdmin]);
 
   useEffect(() => {
-    loadReports();
+    void Promise.resolve().then(loadReports);
   }, [loadReports]);
 
   const previewText = useMemo(
@@ -284,7 +284,8 @@ export default function DailyReports({ isAdmin }: DailyReportsProps) {
     const stockRows = manualStock.filter((row) => row.nom.trim() || row.quantite_ajoutee || row.type_produit);
     const invalidArticle = articleRows.some((row) =>
       !row.nom.trim() || Number(row.quantite) <= 0 || !Number.isFinite(Number(row.quantite)) ||
-      Number(row.sous_total) < 0 || !Number.isFinite(Number(row.sous_total)) || !row.type
+      !row.sous_total.trim() || Number(row.sous_total) < 0 ||
+      !Number.isFinite(Number(row.sous_total)) || !row.type
     );
     const invalidStock = stockRows.some((row) =>
       !row.nom.trim() || Number(row.quantite_ajoutee) <= 0 ||
@@ -420,9 +421,11 @@ export default function DailyReports({ isAdmin }: DailyReportsProps) {
                   <select
                     value={cashierId}
                     onChange={(event) => {
-                      setPreviewLoading(Boolean(event.target.value));
-                      setPreviewError(event.target.value ? '' : 'Sélectionnez une caissière pour afficher son aperçu.');
-                      setCashierId(event.target.value);
+                      const nextCashierId = event.target.value;
+                      setPreviewLoading(Boolean(nextCashierId));
+                      setPreviewError(nextCashierId ? '' : 'Sélectionnez une caissière pour afficher son aperçu.');
+                      if (!nextCashierId) setPreview(null);
+                      setCashierId(nextCashierId);
                     }}
                     disabled={cashierLoading}
                     className="w-full rounded-xl border border-white/10 bg-[#151515] px-3 py-2.5 text-sm text-foreground outline-none focus:border-gold/60 disabled:opacity-60"
