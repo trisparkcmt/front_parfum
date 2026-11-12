@@ -165,12 +165,18 @@ export default function DailyReports({ isAdmin }: DailyReportsProps) {
   const loadCashiers = useCallback(async () => {
     if (!isAdmin) return;
     try {
-      setCashierLoading(true);
       const options = getCashierOptions(await adminService.getServeuses());
       setCashiers(options);
       setCashierId((current) => current || String(options.find((cashier) => cashier.active)?.id ?? ''));
+      if (!options.some((cashier) => cashier.active)) {
+        setPreview(null);
+        setPreviewError('Aucune serveuse active disponible.');
+        setPreviewLoading(false);
+      }
     } catch (error) {
       addToast(extractApiError(error, 'Impossible de charger la liste des serveuses.'), 'error');
+      setPreviewError('Impossible de charger la liste des serveuses.');
+      setPreviewLoading(false);
     } finally {
       setCashierLoading(false);
     }
@@ -181,20 +187,14 @@ export default function DailyReports({ isAdmin }: DailyReportsProps) {
   }, [loadCashiers]);
 
   const loadPreview = useCallback(async () => {
-    if (isAdmin && !cashierId) {
-      setPreview(null);
-      setPreviewLoading(false);
-      setPreviewError('Sélectionnez une caissière pour afficher son aperçu.');
-      return;
-    }
+    if (isAdmin && !cashierId) return;
     try {
-      setPreviewLoading(true);
-      setPreviewError('');
       const data = await dailyReportService.getPreview({
         date: reportDate,
         ...(isAdmin && cashierId ? { caissiere_id: Number(cashierId) } : {}),
       });
       setPreview(data);
+      setPreviewError('');
     } catch (error) {
       setPreview(null);
       const message = extractApiError(error, 'Impossible de charger l’aperçu du rapport.');
@@ -211,7 +211,6 @@ export default function DailyReports({ isAdmin }: DailyReportsProps) {
 
   const loadReports = useCallback(async () => {
     try {
-      setReportsLoading(true);
       const result = await dailyReportService.getReports({
         ...(appliedFilters.date ? { date: appliedFilters.date } : {}),
         ...(appliedFilters.date_debut ? { date_debut: appliedFilters.date_debut } : {}),
@@ -334,6 +333,8 @@ export default function DailyReports({ isAdmin }: DailyReportsProps) {
       const report = await dailyReportService.closeDay(payload);
       setSelectedReport(report);
       addToast('La journée a été clôturée et le rapport a été généré.', 'success');
+      setPreviewLoading(true);
+      setReportsLoading(true);
       await Promise.all([loadReports(), loadPreview()]);
     } catch (error) {
       const message = extractApiError(error, 'Impossible de clôturer la journée.');
@@ -358,6 +359,7 @@ export default function DailyReports({ isAdmin }: DailyReportsProps) {
 
   const clearFilters = () => {
     const empty = { date: '', date_debut: '', date_fin: '', caissiere_id: '' };
+    setReportsLoading(true);
     setFilters(empty);
     setAppliedFilters(empty);
   };
@@ -380,7 +382,7 @@ export default function DailyReports({ isAdmin }: DailyReportsProps) {
         </div>
         <button
           type="button"
-          onClick={() => { loadPreview(); loadReports(); }}
+          onClick={() => { setPreviewLoading(true); setReportsLoading(true); loadPreview(); loadReports(); }}
           disabled={previewLoading || reportsLoading}
           className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/10 px-4 py-2.5 text-sm text-foreground/70 transition-colors hover:bg-white/5 disabled:opacity-50"
         >
@@ -406,13 +408,22 @@ export default function DailyReports({ isAdmin }: DailyReportsProps) {
             )}
           >
             <div className="mb-4 grid gap-3 sm:grid-cols-2">
-              <TextField label="Date du rapport" type="date" value={reportDate} onChange={setReportDate} />
+              <TextField
+                label="Date du rapport"
+                type="date"
+                value={reportDate}
+                onChange={(value) => { setPreviewLoading(true); setPreviewError(''); setReportDate(value); }}
+              />
               {isAdmin && (
                 <label className="block space-y-1.5">
                   <span className="text-xs font-medium text-foreground/60">Caissière</span>
                   <select
                     value={cashierId}
-                    onChange={(event) => setCashierId(event.target.value)}
+                    onChange={(event) => {
+                      setPreviewLoading(Boolean(event.target.value));
+                      setPreviewError(event.target.value ? '' : 'Sélectionnez une caissière pour afficher son aperçu.');
+                      setCashierId(event.target.value);
+                    }}
                     disabled={cashierLoading}
                     className="w-full rounded-xl border border-white/10 bg-[#151515] px-3 py-2.5 text-sm text-foreground outline-none focus:border-gold/60 disabled:opacity-60"
                   >
@@ -556,7 +567,7 @@ export default function DailyReports({ isAdmin }: DailyReportsProps) {
         action={<span className="text-xs text-foreground/40">{reports.length} rapport{reports.length > 1 ? 's' : ''}</span>}
       >
         <form
-          onSubmit={(event) => { event.preventDefault(); setAppliedFilters(filters); }}
+          onSubmit={(event) => { event.preventDefault(); setReportsLoading(true); setAppliedFilters(filters); }}
           className="mb-5 grid gap-3 rounded-xl border border-white/10 bg-black/10 p-4 sm:grid-cols-2 xl:grid-cols-5"
         >
           <TextField label="Date précise" type="date" value={filters.date} onChange={(value) => setFilters((current) => ({ ...current, date: value, date_debut: '', date_fin: '' }))} />
