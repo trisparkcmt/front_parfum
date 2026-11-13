@@ -980,8 +980,8 @@ function ManualStockEditor({
         <button type="button" onClick={onAdd} className="inline-flex items-center gap-1 text-xs text-gold hover:text-gold/80"><Plus size={13} /> {translate(isEn, 'add')}</button>
       </div>
       {rows.map((row, index) => (
-        <div key={index} className="grid grid-cols-2 gap-2 rounded-lg border border-white/10 p-2 sm:grid-cols-[1.3fr_0.8fr_1fr_0.9fr_auto]">
-          <input value={row.nom} onChange={(event) => onChange(index, 'nom', event.target.value)} placeholder={translate(isEn, 'productName')} className="col-span-2 rounded-lg bg-black/20 px-2.5 py-2 text-xs text-foreground outline-none focus:ring-1 focus:ring-gold/60 sm:col-span-1" />
+        <div key={index} className="grid grid-cols-1 gap-2 rounded-lg border border-white/10 p-2">
+          <input value={row.nom} onChange={(event) => onChange(index, 'nom', event.target.value)} placeholder={translate(isEn, 'productName')} className="w-full rounded-lg bg-black/20 px-2.5 py-2 text-xs text-foreground outline-none focus:ring-1 focus:ring-gold/60" />
           <input type="number" min="0.01" step="any" value={row.quantite_ajoutee} onChange={(event) => onChange(index, 'quantite_ajoutee', event.target.value)} placeholder={translate(isEn, 'quantity')} className="rounded-lg bg-black/20 px-2.5 py-2 text-xs text-foreground outline-none focus:ring-1 focus:ring-gold/60" />
           <select value={row.type_produit} onChange={(event) => onChange(index, 'type_produit', event.target.value)} className="rounded-lg bg-[#151515] px-2.5 py-2 text-xs text-foreground outline-none focus:ring-1 focus:ring-gold/60">{TYPES_PRODUIT.map((type) => <option key={type} value={type}>{translateProductType(type, isEn)}</option>)}</select>
           <input value={row.date} onChange={(event) => onChange(index, 'date', event.target.value)} placeholder={translate(isEn, 'timeExample')} className="rounded-lg bg-black/20 px-2.5 py-2 text-xs text-foreground outline-none focus:ring-1 focus:ring-gold/60" />
