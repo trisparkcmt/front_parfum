@@ -21,6 +21,7 @@ import {
   type DailyStockEntry,
 } from '@/services/dailyReportService';
 import { extractApiError } from '@/lib/apiError';
+import { useDashboardLang } from '@/lib/dashboardI18n';
 import { useToastStore } from '@/store/useToastStore';
 
 interface DailyReportsProps {
@@ -56,6 +57,213 @@ interface ReportFilters {
 
 const TYPES_PRODUIT = ['parfum', 'essence', 'accessoire'];
 
+const TRANSLATIONS = {
+  fr: {
+    cashierFallback: 'Serveuse',
+    noActiveCashier: 'Aucune serveuse active disponible.',
+    loadCashiersError: 'Impossible de charger la liste des serveuses.',
+    previewError: 'Impossible de charger l’aperçu du rapport.',
+    historyError: 'Impossible de charger l’historique des rapports.',
+    copySuccess: 'Texte copié dans le presse-papiers.',
+    copyError: 'Impossible de copier le texte. Vérifiez les permissions du navigateur.',
+    reportLoadError: 'Impossible de charger ce rapport.',
+    pdfRefreshSuccess: 'Le PDF du rapport a été actualisé.',
+    pdfRefreshError: 'Impossible de régénérer le PDF.',
+    closeSuccess: 'La journée a été clôturée et le rapport a été généré.',
+    closeError: 'Impossible de clôturer la journée.',
+    title: 'Rapports journaliers',
+    subtitle: 'Aperçu des transactions, clôture de caisse et historique PDF.',
+    cashAndSales: 'Caisse & ventes',
+    refresh: 'Actualiser',
+    previewBeforeClose: 'Aperçu avant clôture',
+    copyWhatsapp: 'Copier WhatsApp',
+    reportDate: 'Date du rapport',
+    date: 'Date',
+    cashier: 'Caissière',
+    selectCashier: 'Sélectionner une caissière',
+    inactive: ' (inactif)',
+    selectCashierPreview: 'Sélectionnez une caissière pour afficher son aperçu.',
+    loadingSales: 'Chargement des ventes et mouvements…',
+    sales: 'Ventes',
+    revenue: 'Recette',
+    expenses: 'Dépenses',
+    cashRemaining: 'Reste en caisse',
+    noPreviewText: 'Le serveur n’a pas fourni le texte de prévisualisation.',
+    dailyDetails: 'Ventes, entrées et dépenses du jour',
+    loading: 'Chargement…',
+    detailsUnavailable: 'Les données détaillées s’afficheront lorsqu’un aperçu sera disponible.',
+    articleOutflows: 'Sorties d’articles',
+    stockEntries: 'Entrées de stock',
+    noDetailedSales: 'Aucune vente détaillée.',
+    noStockEntries: 'Aucune entrée de stock.',
+    noExpenses: 'Aucune dépense.',
+    closeDay: 'Clôturer la journée',
+    closeDescription: 'Les ventes, dépenses et mouvements enregistrés seront consolidés automatiquement avec vos éventuelles saisies manuelles. Le reste en caisse est calculé à partir des ventes moins les dépenses.',
+    arrivalTime: 'Heure d’arrivée',
+    departureTime: 'Heure de départ',
+    otherManualData: 'Autres données manuelles',
+    add: 'Ajouter',
+    manualLabelPlaceholder: 'Libellé, ex. Reçu cash',
+    valuePlaceholder: 'Valeur',
+    removeManualData: 'Supprimer cette donnée',
+    manualArticles: 'Articles vendus hors système',
+    manualArticleName: 'Nom',
+    quantityShort: 'Qté',
+    subtotal: 'Sous-total',
+    removeArticle: 'Supprimer cet article',
+    forgottenStock: 'Entrées de stock oubliées',
+    productName: 'Nom du produit',
+    quantity: 'Quantité',
+    timeExample: 'Heure, ex. 10:15',
+    removeStockEntry: 'Supprimer cette entrée',
+    communicationActions: 'Actions de communication',
+    communicationPlaceholder: 'WhatsApp, TikTok…',
+    observations: 'Observations',
+    selectCashierBeforeClose: 'Sélectionnez une caissière avant de clôturer.',
+    completeManualRows: 'Complétez les champs des articles et entrées de stock ajoutés manuellement.',
+    generatingReport: 'Génération du rapport…',
+    closeAndGeneratePdf: 'Clôturer et générer le PDF',
+    history: 'Historique des rapports',
+    reportSingular: 'rapport',
+    reportPlural: 'rapports',
+    exactDate: 'Date précise',
+    from: 'Du',
+    to: 'Au',
+    allCashiers: 'Toutes les caissières',
+    filter: 'Filtrer',
+    clear: 'Effacer',
+    loadingHistory: 'Chargement de l’historique…',
+    noReports: 'Aucun rapport pour ces critères.',
+    remainingCash: 'Caisse restante',
+    details: 'Détails',
+    reportDetails: 'Détail du rapport',
+    close: 'Fermer',
+    schedule: 'Horaires',
+    openPdf: 'Ouvrir le PDF',
+    regeneratePdf: 'Régénérer le PDF',
+    noPdf: 'Aucun lien PDF disponible.',
+    otherData: 'Autres données',
+    communication: 'Communication',
+    reportText: 'Texte du rapport',
+    unavailableText: 'Texte indisponible.',
+    noData: 'Aucune donnée.',
+    at: 'à',
+    perfume: 'Parfum',
+    essence: 'Essence',
+    accessory: 'Accessoire',
+  },
+  en: {
+    cashierFallback: 'Waitress',
+    noActiveCashier: 'No active waitress is available.',
+    loadCashiersError: 'Unable to load the waitress list.',
+    previewError: 'Unable to load the report preview.',
+    historyError: 'Unable to load report history.',
+    copySuccess: 'Text copied to clipboard.',
+    copyError: 'Unable to copy the text. Check your browser permissions.',
+    reportLoadError: 'Unable to load this report.',
+    pdfRefreshSuccess: 'The report PDF has been refreshed.',
+    pdfRefreshError: 'Unable to regenerate the PDF.',
+    closeSuccess: 'The day was closed and the report was generated.',
+    closeError: 'Unable to close the day.',
+    title: 'Daily Reports',
+    subtitle: 'Transaction overview, cash closing, and PDF history.',
+    cashAndSales: 'Cash & Sales',
+    refresh: 'Refresh',
+    previewBeforeClose: 'Preview Before Closing',
+    copyWhatsapp: 'Copy for WhatsApp',
+    reportDate: 'Report Date',
+    date: 'Date',
+    cashier: 'Cashier',
+    selectCashier: 'Select a cashier',
+    inactive: ' (inactive)',
+    selectCashierPreview: 'Select a cashier to view the preview.',
+    loadingSales: 'Loading sales and transactions…',
+    sales: 'Sales',
+    revenue: 'Revenue',
+    expenses: 'Expenses',
+    cashRemaining: 'Cash Remaining',
+    noPreviewText: 'The server did not provide preview text.',
+    dailyDetails: 'Today’s Sales, Stock Entries & Expenses',
+    loading: 'Loading…',
+    detailsUnavailable: 'Detailed data will appear when a preview is available.',
+    articleOutflows: 'Items Sold',
+    stockEntries: 'Stock Entries',
+    noDetailedSales: 'No sales details.',
+    noStockEntries: 'No stock entries.',
+    noExpenses: 'No expenses.',
+    closeDay: 'Close the Day',
+    closeDescription: 'Recorded sales, expenses, and transactions will be consolidated automatically with any manual entries. Cash remaining is calculated as sales minus expenses.',
+    arrivalTime: 'Arrival Time',
+    departureTime: 'Departure Time',
+    otherManualData: 'Other Manual Data',
+    add: 'Add',
+    manualLabelPlaceholder: 'Label, e.g. Cash received',
+    valuePlaceholder: 'Value',
+    removeManualData: 'Remove this entry',
+    manualArticles: 'Items Sold Outside the System',
+    manualArticleName: 'Name',
+    quantityShort: 'Qty',
+    subtotal: 'Subtotal',
+    removeArticle: 'Remove this item',
+    forgottenStock: 'Unrecorded Stock Entries',
+    productName: 'Product name',
+    quantity: 'Quantity',
+    timeExample: 'Time, e.g. 10:15',
+    removeStockEntry: 'Remove this entry',
+    communicationActions: 'Communication Activities',
+    communicationPlaceholder: 'WhatsApp, TikTok…',
+    observations: 'Notes',
+    selectCashierBeforeClose: 'Select a cashier before closing the day.',
+    completeManualRows: 'Complete all manually added article and stock-entry fields.',
+    generatingReport: 'Generating report…',
+    closeAndGeneratePdf: 'Close Day and Generate PDF',
+    history: 'Report History',
+    reportSingular: 'report',
+    reportPlural: 'reports',
+    exactDate: 'Specific date',
+    from: 'From',
+    to: 'To',
+    allCashiers: 'All cashiers',
+    filter: 'Filter',
+    clear: 'Clear',
+    loadingHistory: 'Loading report history…',
+    noReports: 'No reports match these filters.',
+    remainingCash: 'Cash Remaining',
+    details: 'Details',
+    reportDetails: 'Report Details',
+    close: 'Close',
+    schedule: 'Working Hours',
+    openPdf: 'Open PDF',
+    regeneratePdf: 'Regenerate PDF',
+    noPdf: 'No PDF link available.',
+    otherData: 'Other Data',
+    communication: 'Communication',
+    reportText: 'Report Text',
+    unavailableText: 'Text unavailable.',
+    noData: 'No data.',
+    at: 'at',
+    perfume: 'Perfume',
+    essence: 'Essence',
+    accessory: 'Accessory',
+  },
+} as const;
+
+type TranslationKey = keyof typeof TRANSLATIONS.fr;
+
+function translate(isEn: boolean, key: TranslationKey) {
+  return isEn ? TRANSLATIONS.en[key] : TRANSLATIONS.fr[key];
+}
+
+function translateProductType(type: string, isEn: boolean) {
+  const keys: Record<string, TranslationKey> = {
+    parfum: 'perfume',
+    essence: 'essence',
+    accessoire: 'accessory',
+  };
+  const key = keys[type];
+  return key ? translate(isEn, key) : type;
+}
+
 function todayAsLocalDate() {
   const now = new Date();
   const offset = now.getTimezoneOffset() * 60_000;
@@ -67,7 +275,7 @@ function readList<T>(data: T[] | { results?: T[]; resultats?: T[] } | null | und
   return data?.results ?? data?.resultats ?? [];
 }
 
-function getCashierOptions(data: unknown): CashierOption[] {
+function getCashierOptions(data: unknown, isEn: boolean): CashierOption[] {
   const rows = readList(data as Array<Record<string, unknown>> | { results?: Array<Record<string, unknown>>; resultats?: Array<Record<string, unknown>> });
   return rows.map((row) => {
     const details = (row.user_details ?? row) as Record<string, unknown>;
@@ -75,23 +283,28 @@ function getCashierOptions(data: unknown): CashierOption[] {
     const lastName = String(details.last_name ?? '');
     return {
       id: Number(details.id ?? row.user_id ?? row.id),
-      name: `${firstName} ${lastName}`.trim() || String(details.email ?? `Serveuse #${row.id}`),
+      name: `${firstName} ${lastName}`.trim() || String(details.email ?? `${translate(isEn, 'cashierFallback')} #${row.id}`),
       active: row.actif === undefined ? true : Boolean(row.actif),
     };
   }).filter((cashier) => Number.isFinite(cashier.id));
 }
 
-function formatAmount(value: number | string | undefined) {
+function formatAmount(value: number | string | undefined, isEn: boolean) {
   if (value === undefined || value === null || value === '') return '—';
   const amount = Number(value);
-  return Number.isFinite(amount) ? `${amount.toLocaleString('fr-FR')} FCFA` : String(value);
+  return Number.isFinite(amount) ? `${amount.toLocaleString(isEn ? 'en-US' : 'fr-FR')} FCFA` : String(value);
 }
 
-function formatDate(value: string) {
+function formatCashRemaining(report: Pick<DailyReport, 'recette_totale' | 'total_depenses' | 'reste_en_caisse'>, isEn: boolean) {
+  const amount = Number(report.recette_totale) - Number(report.total_depenses);
+  return Number.isFinite(amount) ? formatAmount(amount, isEn) : report.reste_en_caisse || '—';
+}
+
+function formatDate(value: string, isEn: boolean) {
   const date = new Date(`${value}T12:00:00`);
   return Number.isNaN(date.getTime())
     ? value
-    : date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
+    : date.toLocaleDateString(isEn ? 'en-US' : 'fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
 }
 
 function SectionCard({ title, children, action }: { title: string; children: React.ReactNode; action?: React.ReactNode }) {
@@ -134,6 +347,8 @@ function TextField({
 }
 
 export default function DailyReports({ isAdmin }: DailyReportsProps) {
+  const isEn = useDashboardLang();
+  const t = useCallback((key: TranslationKey) => translate(isEn, key), [isEn]);
   const { addToast } = useToastStore();
   const [reportDate, setReportDate] = useState(todayAsLocalDate);
   const [cashiers, setCashiers] = useState<CashierOption[]>([]);
@@ -155,7 +370,6 @@ export default function DailyReports({ isAdmin }: DailyReportsProps) {
   const [closeError, setCloseError] = useState('');
   const [heureArrivee, setHeureArrivee] = useState('');
   const [heureDepart, setHeureDepart] = useState('');
-  const [resteEnCaisse, setResteEnCaisse] = useState('');
   const [actionsCommunication, setActionsCommunication] = useState('');
   const [observations, setObservations] = useState('');
   const [manualData, setManualData] = useState<Array<{ key: string; value: string }>>([]);
@@ -165,22 +379,22 @@ export default function DailyReports({ isAdmin }: DailyReportsProps) {
   const loadCashiers = useCallback(async () => {
     if (!isAdmin) return;
     try {
-      const options = getCashierOptions(await adminService.getServeuses());
+      const options = getCashierOptions(await adminService.getServeuses(), isEn);
       setCashiers(options);
       setCashierId((current) => current || String(options.find((cashier) => cashier.active)?.id ?? ''));
       if (!options.some((cashier) => cashier.active)) {
         setPreview(null);
-        setPreviewError('Aucune serveuse active disponible.');
+        setPreviewError(t('noActiveCashier'));
         setPreviewLoading(false);
       }
     } catch (error) {
-      addToast(extractApiError(error, 'Impossible de charger la liste des serveuses.'), 'error');
-      setPreviewError('Impossible de charger la liste des serveuses.');
+      addToast(extractApiError(error, t('loadCashiersError')), 'error');
+      setPreviewError(t('loadCashiersError'));
       setPreviewLoading(false);
     } finally {
       setCashierLoading(false);
     }
-  }, [addToast, isAdmin]);
+  }, [addToast, isAdmin, isEn, t]);
 
   useEffect(() => {
     void Promise.resolve().then(loadCashiers);
@@ -197,13 +411,13 @@ export default function DailyReports({ isAdmin }: DailyReportsProps) {
       setPreviewError('');
     } catch (error) {
       setPreview(null);
-      const message = extractApiError(error, 'Impossible de charger l’aperçu du rapport.');
+      const message = extractApiError(error, t('previewError'));
       setPreviewError(message);
       if (!isAdmin || cashierId) addToast(message, 'error');
     } finally {
       setPreviewLoading(false);
     }
-  }, [addToast, cashierId, isAdmin, reportDate]);
+  }, [addToast, cashierId, isAdmin, reportDate, t]);
 
   useEffect(() => {
     void Promise.resolve().then(loadPreview);
@@ -219,11 +433,11 @@ export default function DailyReports({ isAdmin }: DailyReportsProps) {
       });
       setReports(readList(result));
     } catch (error) {
-      addToast(extractApiError(error, 'Impossible de charger l’historique des rapports.'), 'error');
+      addToast(extractApiError(error, t('historyError')), 'error');
     } finally {
       setReportsLoading(false);
     }
-  }, [addToast, appliedFilters, isAdmin]);
+  }, [addToast, appliedFilters, isAdmin, t]);
 
   useEffect(() => {
     void Promise.resolve().then(loadReports);
@@ -239,10 +453,10 @@ export default function DailyReports({ isAdmin }: DailyReportsProps) {
     try {
       await navigator.clipboard.writeText(previewText);
       setCopied(true);
-      addToast('Texte copié dans le presse-papiers.', 'success');
+      addToast(t('copySuccess'), 'success');
       window.setTimeout(() => setCopied(false), 1800);
     } catch {
-      addToast('Impossible de copier le texte. Vérifiez les permissions du navigateur.', 'error');
+      addToast(t('copyError'), 'error');
     }
   };
 
@@ -252,7 +466,7 @@ export default function DailyReports({ isAdmin }: DailyReportsProps) {
       const report = await dailyReportService.getReport(id);
       setSelectedReport(report);
     } catch (error) {
-      addToast(extractApiError(error, 'Impossible de charger ce rapport.'), 'error');
+      addToast(extractApiError(error, t('reportLoadError')), 'error');
     } finally {
       setDetailLoading(false);
     }
@@ -264,9 +478,9 @@ export default function DailyReports({ isAdmin }: DailyReportsProps) {
       setRegeneratingPdf(true);
       const report = await dailyReportService.getReport(selectedReport.id, true);
       setSelectedReport(report);
-      addToast('Le PDF du rapport a été actualisé.', 'success');
+      addToast(t('pdfRefreshSuccess'), 'success');
     } catch (error) {
-      addToast(extractApiError(error, 'Impossible de régénérer le PDF.'), 'error');
+      addToast(extractApiError(error, t('pdfRefreshError')), 'error');
     } finally {
       setRegeneratingPdf(false);
     }
@@ -276,7 +490,7 @@ export default function DailyReports({ isAdmin }: DailyReportsProps) {
     event.preventDefault();
     setCloseError('');
     if (isAdmin && !cashierId) {
-      setCloseError('Sélectionnez une caissière avant de clôturer.');
+      setCloseError(t('selectCashierBeforeClose'));
       return;
     }
 
@@ -292,7 +506,7 @@ export default function DailyReports({ isAdmin }: DailyReportsProps) {
       !Number.isFinite(Number(row.quantite_ajoutee)) || !row.type_produit
     );
     if (invalidArticle || invalidStock) {
-      setCloseError('Complétez les champs des articles et entrées de stock ajoutés manuellement.');
+      setCloseError(t('completeManualRows'));
       return;
     }
 
@@ -301,7 +515,6 @@ export default function DailyReports({ isAdmin }: DailyReportsProps) {
       ...(isAdmin ? { caissiere_id: Number(cashierId) } : {}),
       ...(heureArrivee.trim() ? { heure_arrivee: heureArrivee.trim() } : {}),
       ...(heureDepart.trim() ? { heure_depart: heureDepart.trim() } : {}),
-      ...(resteEnCaisse.trim() ? { reste_en_caisse: resteEnCaisse.trim() } : {}),
       ...(actionsCommunication.trim() ? { actions_communication: actionsCommunication.trim() } : {}),
       ...(observations.trim() ? { observations: observations.trim() } : {}),
       ...(manualData.some((row) => row.key.trim())
@@ -333,12 +546,12 @@ export default function DailyReports({ isAdmin }: DailyReportsProps) {
       setClosing(true);
       const report = await dailyReportService.closeDay(payload);
       setSelectedReport(report);
-      addToast('La journée a été clôturée et le rapport a été généré.', 'success');
+      addToast(t('closeSuccess'), 'success');
       setPreviewLoading(true);
       setReportsLoading(true);
       await Promise.all([loadReports(), loadPreview()]);
     } catch (error) {
-      const message = extractApiError(error, 'Impossible de clôturer la journée.');
+      const message = extractApiError(error, t('closeError'));
       setCloseError(message);
       addToast(message, 'error');
     } finally {
@@ -374,11 +587,11 @@ export default function DailyReports({ isAdmin }: DailyReportsProps) {
         <div>
           <div className="mb-2 flex items-center gap-2 text-gold">
             <ClipboardList size={19} />
-            <span className="text-xs font-semibold uppercase tracking-[0.18em]">Caisse & ventes</span>
+            <span className="text-xs font-semibold uppercase tracking-[0.18em]">{t('cashAndSales')}</span>
           </div>
-          <h1 className="text-2xl font-bold text-foreground">Rapports journaliers</h1>
+          <h1 className="text-2xl font-bold text-foreground">{t('title')}</h1>
           <p className="mt-1 text-sm text-foreground/45">
-            Aperçu des transactions, clôture de caisse et historique PDF.
+            {t('subtitle')}
           </p>
         </div>
         <button
@@ -388,14 +601,14 @@ export default function DailyReports({ isAdmin }: DailyReportsProps) {
           className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/10 px-4 py-2.5 text-sm text-foreground/70 transition-colors hover:bg-white/5 disabled:opacity-50"
         >
           <RefreshCw size={15} className={previewLoading || reportsLoading ? 'animate-spin' : ''} />
-          Actualiser
+          {t('refresh')}
         </button>
       </header>
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.1fr)_minmax(340px,0.9fr)]">
         <div className="space-y-6">
           <SectionCard
-            title="Aperçu avant clôture"
+            title={t('previewBeforeClose')}
             action={(
               <button
                 type="button"
@@ -404,36 +617,36 @@ export default function DailyReports({ isAdmin }: DailyReportsProps) {
                 className="inline-flex items-center gap-2 rounded-lg border border-white/10 px-3 py-2 text-xs font-medium text-foreground/70 transition-colors hover:bg-white/5 disabled:opacity-40"
               >
                 {copied ? <Check size={14} /> : <Copy size={14} />}
-                Copier WhatsApp
+                {t('copyWhatsapp')}
               </button>
             )}
           >
             <div className="mb-4 grid gap-3 sm:grid-cols-2">
               <TextField
-                label="Date du rapport"
+                label={t('reportDate')}
                 type="date"
                 value={reportDate}
                 onChange={(value) => { setPreviewLoading(true); setPreviewError(''); setReportDate(value); }}
               />
               {isAdmin && (
                 <label className="block space-y-1.5">
-                  <span className="text-xs font-medium text-foreground/60">Caissière</span>
+                  <span className="text-xs font-medium text-foreground/60">{t('cashier')}</span>
                   <select
                     value={cashierId}
                     onChange={(event) => {
                       const nextCashierId = event.target.value;
                       setPreviewLoading(Boolean(nextCashierId));
-                      setPreviewError(nextCashierId ? '' : 'Sélectionnez une caissière pour afficher son aperçu.');
+                      setPreviewError(nextCashierId ? '' : t('selectCashierPreview'));
                       if (!nextCashierId) setPreview(null);
                       setCashierId(nextCashierId);
                     }}
                     disabled={cashierLoading}
                     className="w-full rounded-xl border border-white/10 bg-[#151515] px-3 py-2.5 text-sm text-foreground outline-none focus:border-gold/60 disabled:opacity-60"
                   >
-                    <option value="">Sélectionner une caissière</option>
+                    <option value="">{t('selectCashier')}</option>
                     {cashiers.map((cashier) => (
                       <option key={cashier.id} value={cashier.id}>
-                        {cashier.name}{cashier.active ? '' : ' (inactive)'}
+                        {cashier.name}{cashier.active ? '' : t('inactive')}
                       </option>
                     ))}
                   </select>
@@ -443,18 +656,19 @@ export default function DailyReports({ isAdmin }: DailyReportsProps) {
             {previewLoading ? (
               <div className="flex min-h-44 items-center justify-center gap-2 text-sm text-foreground/45">
                 <Loader2 className="animate-spin text-gold" size={18} />
-                Chargement des ventes et mouvements…
+                {t('loadingSales')}
               </div>
             ) : previewError ? (
               <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-4 text-sm text-amber-200/80">{previewError}</div>
             ) : preview ? (
               <>
-                <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+                <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-5">
                   {[
-                    ['Recette', formatAmount(preview.recette_totale)],
-                    ['Ventes', preview.nombre_ventes ?? '—'],
-                    ['Dépenses', formatAmount(preview.total_depenses)],
-                    ['Caissière', preview.caissiere_nom || selectedCashierName || '—'],
+                    [t('revenue'), formatAmount(preview.recette_totale, isEn)],
+                    [t('sales'), preview.nombre_ventes ?? '—'],
+                    [t('expenses'), formatAmount(preview.total_depenses, isEn)],
+                    [t('cashRemaining'), formatCashRemaining(preview, isEn)],
+                    [t('cashier'), preview.caissiere_nom || selectedCashierName || '—'],
                   ].map(([label, value]) => (
                     <div key={label} className="rounded-xl border border-white/10 bg-black/15 p-3">
                       <p className="text-[10px] font-semibold uppercase tracking-wider text-foreground/40">{label}</p>
@@ -466,54 +680,54 @@ export default function DailyReports({ isAdmin }: DailyReportsProps) {
                   {previewText ? (
                     <pre className="whitespace-pre-wrap break-words font-sans text-sm leading-6 text-foreground/80">{previewText}</pre>
                   ) : (
-                    <p className="text-sm text-foreground/45">Le serveur n’a pas fourni le texte de prévisualisation.</p>
+                    <p className="text-sm text-foreground/45">{t('noPreviewText')}</p>
                   )}
                 </div>
               </>
             ) : null}
           </SectionCard>
 
-          <SectionCard title="Ventes, entrées et dépenses du jour">
+          <SectionCard title={t('dailyDetails')}>
             {previewLoading ? (
-              <div className="flex items-center gap-2 text-sm text-foreground/45"><Loader2 className="animate-spin" size={16} /> Chargement…</div>
+              <div className="flex items-center gap-2 text-sm text-foreground/45"><Loader2 className="animate-spin" size={16} /> {t('loading')}</div>
             ) : !preview ? (
-              <p className="text-sm text-foreground/45">Les données détaillées s’afficheront lorsqu’un aperçu sera disponible.</p>
+              <p className="text-sm text-foreground/45">{t('detailsUnavailable')}</p>
             ) : (
               <div className="grid gap-5 lg:grid-cols-3">
                 <div>
-                  <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-foreground/45">Sorties d’articles</h3>
+                  <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-foreground/45">{t('articleOutflows')}</h3>
                   <ul className="space-y-2">
                     {(preview.sorties_articles ?? []).map((item, index) => (
                       <li key={`${item.nom}-${index}`} className="flex justify-between gap-3 border-b border-white/5 pb-2 text-xs">
                         <span className="text-foreground/75">{item.nom} <span className="text-foreground/40">× {item.quantite}</span></span>
-                        <span className="shrink-0 text-foreground/55">{formatAmount(item.sous_total)}</span>
+                        <span className="shrink-0 text-foreground/55">{formatAmount(item.sous_total, isEn)}</span>
                       </li>
                     ))}
-                    {!preview.sorties_articles?.length && <li className="text-xs text-foreground/35">Aucune vente détaillée.</li>}
+                    {!preview.sorties_articles?.length && <li className="text-xs text-foreground/35">{t('noDetailedSales')}</li>}
                   </ul>
                 </div>
                 <div>
-                  <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-foreground/45">Entrées de stock</h3>
+                  <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-foreground/45">{t('stockEntries')}</h3>
                   <ul className="space-y-2">
                     {(preview.entrees_stock ?? []).map((entry, index) => (
                       <li key={`${entry.nom}-${index}`} className="border-b border-white/5 pb-2 text-xs text-foreground/75">
                         {entry.nom} <span className="text-foreground/40">(+{entry.quantite_ajoutee})</span>
-                        {entry.date && <span className="ml-1 text-foreground/40">à {entry.date}</span>}
+                        {entry.date && <span className="ml-1 text-foreground/40">{t('at')} {entry.date}</span>}
                       </li>
                     ))}
-                    {!preview.entrees_stock?.length && <li className="text-xs text-foreground/35">Aucune entrée de stock.</li>}
+                    {!preview.entrees_stock?.length && <li className="text-xs text-foreground/35">{t('noStockEntries')}</li>}
                   </ul>
                 </div>
                 <div>
-                  <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-foreground/45">Dépenses</h3>
+                  <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-foreground/45">{t('expenses')}</h3>
                   <ul className="space-y-2">
                     {(preview.depenses ?? []).map((expense) => (
                       <li key={expense.id} className="flex justify-between gap-3 border-b border-white/5 pb-2 text-xs">
                         <span className="text-foreground/75">{expense.titre}</span>
-                        <span className="shrink-0 text-red-300">{formatAmount(expense.montant)}</span>
+                        <span className="shrink-0 text-red-300">{formatAmount(expense.montant, isEn)}</span>
                       </li>
                     ))}
-                    {!preview.depenses?.length && <li className="text-xs text-foreground/35">Aucune dépense.</li>}
+                    {!preview.depenses?.length && <li className="text-xs text-foreground/35">{t('noExpenses')}</li>}
                   </ul>
                 </div>
               </div>
@@ -521,103 +735,102 @@ export default function DailyReports({ isAdmin }: DailyReportsProps) {
           </SectionCard>
         </div>
 
-        <SectionCard title="Clôturer la journée">
+        <SectionCard title={t('closeDay')}>
           <form onSubmit={handleCloseDay} className="space-y-5">
             <p className="text-xs leading-5 text-foreground/45">
-              Les ventes, dépenses et mouvements enregistrés seront consolidés automatiquement avec vos éventuelles saisies manuelles.
+              {t('closeDescription')}
             </p>
             <div className="grid gap-3 sm:grid-cols-2">
-              <TextField label="Heure d’arrivée" value={heureArrivee} onChange={setHeureArrivee} placeholder="09h ou 08h30" />
-              <TextField label="Heure de départ" value={heureDepart} onChange={setHeureDepart} placeholder="18h" />
+              <TextField label={t('arrivalTime')} type="time" value={heureArrivee} onChange={setHeureArrivee} />
+              <TextField label={t('departureTime')} type="time" value={heureDepart} onChange={setHeureDepart} />
             </div>
-            <TextField label="Reste en caisse" value={resteEnCaisse} onChange={setResteEnCaisse} placeholder="97.500f" />
 
             <div className="space-y-2">
               <div className="flex items-center justify-between gap-2">
-                <h3 className="text-xs font-semibold text-foreground/70">Autres données manuelles</h3>
+                <h3 className="text-xs font-semibold text-foreground/70">{t('otherManualData')}</h3>
                 <button type="button" onClick={() => setManualData((rows) => [...rows, { key: '', value: '' }])} className="inline-flex items-center gap-1 text-xs text-gold hover:text-gold/80">
-                  <Plus size={13} /> Ajouter
+                  <Plus size={13} /> {t('add')}
                 </button>
               </div>
               {manualData.map((row, index) => (
                 <div key={index} className="flex items-center gap-2">
-                  <input value={row.key} onChange={(event) => updateManualData(index, 'key', event.target.value)} placeholder="Libellé, ex. Reçu cash" className="min-w-0 flex-1 rounded-lg border border-white/10 bg-black/20 px-3 py-2 text-xs text-foreground outline-none focus:border-gold/60" />
-                  <input value={row.value} onChange={(event) => updateManualData(index, 'value', event.target.value)} placeholder="Valeur" className="min-w-0 flex-1 rounded-lg border border-white/10 bg-black/20 px-3 py-2 text-xs text-foreground outline-none focus:border-gold/60" />
-                  <button type="button" aria-label="Supprimer cette donnée" onClick={() => setManualData((rows) => rows.filter((_, rowIndex) => rowIndex !== index))} className="rounded-lg p-2 text-foreground/35 hover:bg-red-500/10 hover:text-red-300"><Trash2 size={14} /></button>
+                  <input value={row.key} onChange={(event) => updateManualData(index, 'key', event.target.value)} placeholder={t('manualLabelPlaceholder')} className="min-w-0 flex-1 rounded-lg border border-white/10 bg-black/20 px-3 py-2 text-xs text-foreground outline-none focus:border-gold/60" />
+                  <input value={row.value} onChange={(event) => updateManualData(index, 'value', event.target.value)} placeholder={t('valuePlaceholder')} className="min-w-0 flex-1 rounded-lg border border-white/10 bg-black/20 px-3 py-2 text-xs text-foreground outline-none focus:border-gold/60" />
+                  <button type="button" aria-label={t('removeManualData')} onClick={() => setManualData((rows) => rows.filter((_, rowIndex) => rowIndex !== index))} className="rounded-lg p-2 text-foreground/35 hover:bg-red-500/10 hover:text-red-300"><Trash2 size={14} /></button>
                 </div>
               ))}
             </div>
 
-            <ManualArticleEditor rows={manualArticles} onAdd={() => setManualArticles((rows) => [...rows, { nom: '', quantite: '', sous_total: '', type: 'parfum' }])} onChange={updateManualArticle} onRemove={(index) => setManualArticles((rows) => rows.filter((_, rowIndex) => rowIndex !== index))} />
-            <ManualStockEditor rows={manualStock} onAdd={() => setManualStock((rows) => [...rows, { nom: '', quantite_ajoutee: '', type_produit: 'parfum', date: '' }])} onChange={updateManualStock} onRemove={(index) => setManualStock((rows) => rows.filter((_, rowIndex) => rowIndex !== index))} />
+            <ManualArticleEditor isEn={isEn} rows={manualArticles} onAdd={() => setManualArticles((rows) => [...rows, { nom: '', quantite: '', sous_total: '', type: 'parfum' }])} onChange={updateManualArticle} onRemove={(index) => setManualArticles((rows) => rows.filter((_, rowIndex) => rowIndex !== index))} />
+            <ManualStockEditor isEn={isEn} rows={manualStock} onAdd={() => setManualStock((rows) => [...rows, { nom: '', quantite_ajoutee: '', type_produit: 'parfum', date: '' }])} onChange={updateManualStock} onRemove={(index) => setManualStock((rows) => rows.filter((_, rowIndex) => rowIndex !== index))} />
 
-            <TextField label="Actions de communication" value={actionsCommunication} onChange={setActionsCommunication} placeholder="WhatsApp, TikTok…" />
+            <TextField label={t('communicationActions')} value={actionsCommunication} onChange={setActionsCommunication} placeholder={t('communicationPlaceholder')} />
             <label className="block space-y-1.5">
-              <span className="text-xs font-medium text-foreground/60">Observations</span>
+              <span className="text-xs font-medium text-foreground/60">{t('observations')}</span>
               <textarea value={observations} onChange={(event) => setObservations(event.target.value)} rows={3} className="w-full resize-y rounded-xl border border-white/10 bg-black/20 px-3 py-2.5 text-sm text-foreground outline-none focus:border-gold/60" />
             </label>
             {closeError && <p role="alert" className="rounded-lg border border-red-500/20 bg-red-500/5 px-3 py-2 text-xs text-red-300">{closeError}</p>}
             <button type="submit" disabled={closing || cashierLoading} className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-gold px-4 py-3 text-sm font-semibold text-black transition-colors hover:bg-gold/90 disabled:cursor-not-allowed disabled:opacity-50">
               {closing ? <Loader2 className="animate-spin" size={16} /> : <CalendarDays size={16} />}
-              {closing ? 'Génération du rapport…' : 'Clôturer et générer le PDF'}
+              {closing ? t('generatingReport') : t('closeAndGeneratePdf')}
             </button>
           </form>
         </SectionCard>
       </div>
 
       <SectionCard
-        title="Historique des rapports"
-        action={<span className="text-xs text-foreground/40">{reports.length} rapport{reports.length > 1 ? 's' : ''}</span>}
+        title={t('history')}
+        action={<span className="text-xs text-foreground/40">{reports.length} {reports.length === 1 ? t('reportSingular') : t('reportPlural')}</span>}
       >
         <form
           onSubmit={(event) => { event.preventDefault(); setReportsLoading(true); setAppliedFilters(filters); }}
           className="mb-5 grid gap-3 rounded-xl border border-white/10 bg-black/10 p-4 sm:grid-cols-2 xl:grid-cols-5"
         >
-          <TextField label="Date précise" type="date" value={filters.date} onChange={(value) => setFilters((current) => ({ ...current, date: value, date_debut: '', date_fin: '' }))} />
-          <TextField label="Du" type="date" value={filters.date_debut} onChange={(value) => setFilters((current) => ({ ...current, date_debut: value, date: '' }))} />
-          <TextField label="Au" type="date" value={filters.date_fin} onChange={(value) => setFilters((current) => ({ ...current, date_fin: value, date: '' }))} />
+          <TextField label={t('exactDate')} type="date" value={filters.date} onChange={(value) => setFilters((current) => ({ ...current, date: value, date_debut: '', date_fin: '' }))} />
+          <TextField label={t('from')} type="date" value={filters.date_debut} onChange={(value) => setFilters((current) => ({ ...current, date_debut: value, date: '' }))} />
+          <TextField label={t('to')} type="date" value={filters.date_fin} onChange={(value) => setFilters((current) => ({ ...current, date_fin: value, date: '' }))} />
           {isAdmin && (
             <label className="block space-y-1.5">
-              <span className="text-xs font-medium text-foreground/60">Caissière</span>
+              <span className="text-xs font-medium text-foreground/60">{t('cashier')}</span>
               <select value={filters.caissiere_id} onChange={(event) => setFilters((current) => ({ ...current, caissiere_id: event.target.value }))} className="w-full rounded-xl border border-white/10 bg-[#151515] px-3 py-2.5 text-sm text-foreground outline-none focus:border-gold/60">
-                <option value="">Toutes les caissières</option>
+                <option value="">{t('allCashiers')}</option>
                 {cashiers.map((cashier) => <option key={cashier.id} value={cashier.id}>{cashier.name}</option>)}
               </select>
             </label>
           )}
           <div className="flex items-end gap-2">
-            <button type="submit" className="flex-1 rounded-xl bg-white/10 px-3 py-2.5 text-sm font-medium text-foreground hover:bg-white/15">Filtrer</button>
-            <button type="button" onClick={clearFilters} className="rounded-xl border border-white/10 px-3 py-2.5 text-sm text-foreground/60 hover:bg-white/5">Effacer</button>
+            <button type="submit" className="flex-1 rounded-xl bg-white/10 px-3 py-2.5 text-sm font-medium text-foreground hover:bg-white/15">{t('filter')}</button>
+            <button type="button" onClick={clearFilters} className="rounded-xl border border-white/10 px-3 py-2.5 text-sm text-foreground/60 hover:bg-white/5">{t('clear')}</button>
           </div>
         </form>
 
         {reportsLoading ? (
-          <div className="flex items-center justify-center gap-2 py-10 text-sm text-foreground/45"><Loader2 className="animate-spin text-gold" size={17} /> Chargement de l’historique…</div>
+          <div className="flex items-center justify-center gap-2 py-10 text-sm text-foreground/45"><Loader2 className="animate-spin text-gold" size={17} /> {t('loadingHistory')}</div>
         ) : reports.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-white/10 py-10 text-center text-sm text-foreground/40">Aucun rapport pour ces critères.</div>
+          <div className="rounded-xl border border-dashed border-white/10 py-10 text-center text-sm text-foreground/40">{t('noReports')}</div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full min-w-[560px] text-left text-sm">
               <thead className="text-[10px] font-semibold uppercase tracking-wider text-foreground/40">
                 <tr className="border-b border-white/10">
-                  <th className="px-3 py-3">Date</th>
-                  <th className="px-3 py-3">Caissière</th>
-                  <th className="px-3 py-3">Ventes</th>
-                  <th className="px-3 py-3">Dépenses</th>
-                  <th className="px-3 py-3">Caisse restante</th>
+                  <th className="px-3 py-3">{t('date')}</th>
+                  <th className="px-3 py-3">{t('cashier')}</th>
+                  <th className="px-3 py-3">{t('sales')}</th>
+                  <th className="px-3 py-3">{t('expenses')}</th>
+                  <th className="px-3 py-3">{t('remainingCash')}</th>
                   <th className="px-3 py-3"></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
                 {reports.map((report) => (
                   <tr key={report.id} className="hover:bg-white/[0.025]">
-                    <td className="px-3 py-3 text-foreground/75">{formatDate(report.date)}</td>
+                    <td className="px-3 py-3 text-foreground/75">{formatDate(report.date, isEn)}</td>
                     <td className="px-3 py-3 text-foreground/65">{report.caissiere_nom || `#${report.caissiere}`}</td>
-                    <td className="px-3 py-3 font-medium text-foreground">{formatAmount(report.recette_totale)}</td>
-                    <td className="px-3 py-3 text-red-300">{formatAmount(report.total_depenses)}</td>
-                    <td className="px-3 py-3 text-foreground/65">{report.reste_en_caisse || '—'}</td>
+                    <td className="px-3 py-3 font-medium text-foreground">{formatAmount(report.recette_totale, isEn)}</td>
+                    <td className="px-3 py-3 text-red-300">{formatAmount(report.total_depenses, isEn)}</td>
+                    <td className="px-3 py-3 text-foreground/65">{formatCashRemaining(report, isEn)}</td>
                     <td className="px-3 py-3 text-right">
-                      <button type="button" onClick={() => openReport(report.id)} className="rounded-lg border border-white/10 px-3 py-1.5 text-xs text-gold hover:bg-gold/10">Détails</button>
+                      <button type="button" onClick={() => openReport(report.id)} className="rounded-lg border border-white/10 px-3 py-1.5 text-xs text-gold hover:bg-gold/10">{t('details')}</button>
                     </td>
                   </tr>
                 ))}
@@ -628,50 +841,50 @@ export default function DailyReports({ isAdmin }: DailyReportsProps) {
       </SectionCard>
 
       {(selectedReport || detailLoading) && (
-        <div role="dialog" aria-modal="true" aria-label="Détail du rapport" className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/75 p-4 backdrop-blur-sm" onClick={(event) => { if (event.target === event.currentTarget) setSelectedReport(null); }}>
+        <div role="dialog" aria-modal="true" aria-label={t('reportDetails')} className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/75 p-4 backdrop-blur-sm" onClick={(event) => { if (event.target === event.currentTarget) setSelectedReport(null); }}>
           <div className="my-auto max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-2xl border border-white/10 bg-[#101010] shadow-2xl">
             <div className="sticky top-0 z-10 flex items-center justify-between gap-4 border-b border-white/10 bg-[#101010] px-5 py-4">
               <div>
-                <h2 className="font-semibold text-foreground">Détail du rapport</h2>
-                {selectedReport && <p className="mt-0.5 text-xs text-foreground/45">{formatDate(selectedReport.date)} · {selectedReport.caissiere_nom}</p>}
+                <h2 className="font-semibold text-foreground">{t('reportDetails')}</h2>
+                {selectedReport && <p className="mt-0.5 text-xs text-foreground/45">{formatDate(selectedReport.date, isEn)} · {selectedReport.caissiere_nom}</p>}
               </div>
-              <button type="button" onClick={() => setSelectedReport(null)} className="rounded-lg border border-white/10 px-3 py-1.5 text-xs text-foreground/60 hover:bg-white/5">Fermer</button>
+              <button type="button" onClick={() => setSelectedReport(null)} className="rounded-lg border border-white/10 px-3 py-1.5 text-xs text-foreground/60 hover:bg-white/5">{t('close')}</button>
             </div>
             {detailLoading || !selectedReport ? (
-              <div className="flex items-center justify-center gap-2 py-16 text-sm text-foreground/45"><Loader2 className="animate-spin text-gold" size={18} /> Chargement…</div>
+              <div className="flex items-center justify-center gap-2 py-16 text-sm text-foreground/45"><Loader2 className="animate-spin text-gold" size={18} /> {t('loading')}</div>
             ) : (
               <div className="space-y-4 p-5">
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                  <Summary label="Recette" value={formatAmount(selectedReport.recette_totale)} />
-                  <Summary label="Dépenses" value={formatAmount(selectedReport.total_depenses)} />
-                  <Summary label="Reste en caisse" value={selectedReport.reste_en_caisse || '—'} />
-                  <Summary label="Horaires" value={`${selectedReport.heure_arrivee || '—'} → ${selectedReport.heure_depart || '—'}`} />
+                  <Summary label={t('revenue')} value={formatAmount(selectedReport.recette_totale, isEn)} />
+                  <Summary label={t('expenses')} value={formatAmount(selectedReport.total_depenses, isEn)} />
+                  <Summary label={t('cashRemaining')} value={formatCashRemaining(selectedReport, isEn)} />
+                  <Summary label={t('schedule')} value={`${selectedReport.heure_arrivee || '—'} → ${selectedReport.heure_depart || '—'}`} />
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  {pdfUrl && <a href={pdfUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-lg bg-gold px-3 py-2 text-xs font-semibold text-black hover:bg-gold/90"><Download size={14} /> Ouvrir le PDF</a>}
+                  {pdfUrl && <a href={pdfUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-lg bg-gold px-3 py-2 text-xs font-semibold text-black hover:bg-gold/90"><Download size={14} /> {t('openPdf')}</a>}
                   <button type="button" onClick={regeneratePdf} disabled={regeneratingPdf} className="inline-flex items-center gap-2 rounded-lg border border-white/10 px-3 py-2 text-xs text-foreground/70 hover:bg-white/5 disabled:opacity-50">
-                    {regeneratingPdf ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />} Régénérer le PDF
+                    {regeneratingPdf ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />} {t('regeneratePdf')}
                   </button>
-                  {!pdfUrl && <span className="self-center text-xs text-foreground/40">Aucun lien PDF disponible.</span>}
+                  {!pdfUrl && <span className="self-center text-xs text-foreground/40">{t('noPdf')}</span>}
                 </div>
-                <ReportList title="Sorties d’articles" items={selectedReport.sorties_articles ?? []} />
-                <ReportList title="Entrées de stock" items={selectedReport.entrees_stock ?? []} />
-                <ReportList title="Dépenses" items={selectedReport.depenses ?? []} />
+                <ReportList isEn={isEn} title={t('articleOutflows')} items={selectedReport.sorties_articles ?? []} />
+                <ReportList isEn={isEn} title={t('stockEntries')} items={selectedReport.entrees_stock ?? []} />
+                <ReportList isEn={isEn} title={t('expenses')} items={selectedReport.depenses ?? []} />
                 {selectedReport.autres_donnees_manuelles && Object.entries(selectedReport.autres_donnees_manuelles).length > 0 && (
                   <div className="rounded-xl border border-white/10 p-4">
-                    <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-foreground/45">Autres données</h3>
+                    <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-foreground/45">{t('otherData')}</h3>
                     {Object.entries(selectedReport.autres_donnees_manuelles).map(([key, value]) => <p key={key} className="text-sm text-foreground/75">{key} : {value}</p>)}
                   </div>
                 )}
                 {(selectedReport.actions_communication || selectedReport.observations) && (
                   <div className="grid gap-3 sm:grid-cols-2">
-                    {selectedReport.actions_communication && <Summary label="Communication" value={selectedReport.actions_communication} />}
-                    {selectedReport.observations && <Summary label="Observations" value={selectedReport.observations} />}
+                    {selectedReport.actions_communication && <Summary label={t('communication')} value={selectedReport.actions_communication} />}
+                    {selectedReport.observations && <Summary label={t('observations')} value={selectedReport.observations} />}
                   </div>
                 )}
                 <div className="rounded-xl border border-white/10 bg-black/20 p-4">
-                  <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-foreground/45">Texte du rapport</h3>
-                  <pre className="whitespace-pre-wrap break-words font-sans text-sm leading-6 text-foreground/75">{selectedReport.texte_formate || 'Texte indisponible.'}</pre>
+                  <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-foreground/45">{t('reportText')}</h3>
+                  <pre className="whitespace-pre-wrap break-words font-sans text-sm leading-6 text-foreground/75">{selectedReport.texte_formate || t('unavailableText')}</pre>
                 </div>
               </div>
             )}
@@ -691,7 +904,7 @@ function Summary({ label, value }: { label: string; value: string }) {
   );
 }
 
-function ReportList({ title, items }: { title: string; items: Array<DailyReportItem | DailyStockEntry | { id: number; titre: string; montant: number; description: string }> }) {
+function ReportList({ title, items, isEn }: { title: string; items: Array<DailyReportItem | DailyStockEntry | { id: number; titre: string; montant: number; description: string }>; isEn: boolean }) {
   return (
     <div className="rounded-xl border border-white/10 p-4">
       <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-foreground/45">{title}</h3>
@@ -705,12 +918,12 @@ function ReportList({ title, items }: { title: string; items: Array<DailyReportI
                   : item.titre}
               </span>
               <span className="text-foreground/50">
-                {'sous_total' in item ? formatAmount(item.sous_total) : 'montant' in item ? formatAmount(item.montant) : item.date || ''}
+                {'sous_total' in item ? formatAmount(item.sous_total, isEn) : 'montant' in item ? formatAmount(item.montant, isEn) : item.date || ''}
               </span>
             </li>
           ))}
         </ul>
-      ) : <p className="text-xs text-foreground/35">Aucune donnée.</p>}
+      ) : <p className="text-xs text-foreground/35">{translate(isEn, 'noData')}</p>}
     </div>
   );
 }
@@ -720,25 +933,27 @@ function ManualArticleEditor({
   onAdd,
   onChange,
   onRemove,
+  isEn,
 }: {
   rows: ManualArticleRow[];
   onAdd: () => void;
   onChange: (index: number, key: keyof ManualArticleRow, value: string) => void;
   onRemove: (index: number) => void;
+  isEn: boolean;
 }) {
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between gap-2">
-        <h3 className="text-xs font-semibold text-foreground/70">Articles vendus hors système</h3>
-        <button type="button" onClick={onAdd} className="inline-flex items-center gap-1 text-xs text-gold hover:text-gold/80"><Plus size={13} /> Ajouter</button>
+        <h3 className="text-xs font-semibold text-foreground/70">{translate(isEn, 'manualArticles')}</h3>
+        <button type="button" onClick={onAdd} className="inline-flex items-center gap-1 text-xs text-gold hover:text-gold/80"><Plus size={13} /> {translate(isEn, 'add')}</button>
       </div>
       {rows.map((row, index) => (
-        <div key={index} className="grid grid-cols-2 gap-2 rounded-lg border border-white/10 p-2 sm:grid-cols-[1.3fr_0.7fr_0.9fr_0.9fr_auto]">
-          <input value={row.nom} onChange={(event) => onChange(index, 'nom', event.target.value)} placeholder="Nom" className="col-span-2 rounded-lg bg-black/20 px-2.5 py-2 text-xs text-foreground outline-none focus:ring-1 focus:ring-gold/60 sm:col-span-1" />
-          <input type="number" min="1" step="any" value={row.quantite} onChange={(event) => onChange(index, 'quantite', event.target.value)} placeholder="Qté" className="rounded-lg bg-black/20 px-2.5 py-2 text-xs text-foreground outline-none focus:ring-1 focus:ring-gold/60" />
-          <input type="number" min="0" step="any" value={row.sous_total} onChange={(event) => onChange(index, 'sous_total', event.target.value)} placeholder="Sous-total" className="rounded-lg bg-black/20 px-2.5 py-2 text-xs text-foreground outline-none focus:ring-1 focus:ring-gold/60" />
-          <select value={row.type} onChange={(event) => onChange(index, 'type', event.target.value)} className="rounded-lg bg-[#151515] px-2.5 py-2 text-xs text-foreground outline-none focus:ring-1 focus:ring-gold/60">{TYPES_PRODUIT.map((type) => <option key={type} value={type}>{type}</option>)}</select>
-          <button type="button" aria-label="Supprimer cet article" onClick={() => onRemove(index)} className="justify-self-end rounded-lg p-2 text-foreground/35 hover:bg-red-500/10 hover:text-red-300"><Trash2 size={14} /></button>
+        <div key={index} className="grid grid-cols-1 gap-2 rounded-lg border border-white/10 p-2">
+          <input value={row.nom} onChange={(event) => onChange(index, 'nom', event.target.value)} placeholder={translate(isEn, 'manualArticleName')} className="w-full rounded-lg bg-black/20 px-2.5 py-2 text-xs text-foreground outline-none focus:ring-1 focus:ring-gold/60" />
+          <input type="number" min="1" step="any" value={row.quantite} onChange={(event) => onChange(index, 'quantite', event.target.value)} placeholder={translate(isEn, 'quantityShort')} className="rounded-lg bg-black/20 px-2.5 py-2 text-xs text-foreground outline-none focus:ring-1 focus:ring-gold/60" />
+          <input type="number" min="0" step="any" value={row.sous_total} onChange={(event) => onChange(index, 'sous_total', event.target.value)} placeholder={translate(isEn, 'subtotal')} className="rounded-lg bg-black/20 px-2.5 py-2 text-xs text-foreground outline-none focus:ring-1 focus:ring-gold/60" />
+          <select value={row.type} onChange={(event) => onChange(index, 'type', event.target.value)} className="rounded-lg bg-[#151515] px-2.5 py-2 text-xs text-foreground outline-none focus:ring-1 focus:ring-gold/60">{TYPES_PRODUIT.map((type) => <option key={type} value={type}>{translateProductType(type, isEn)}</option>)}</select>
+          <button type="button" aria-label={translate(isEn, 'removeArticle')} onClick={() => onRemove(index)} className="justify-self-end rounded-lg p-2 text-foreground/35 hover:bg-red-500/10 hover:text-red-300"><Trash2 size={14} /></button>
         </div>
       ))}
     </div>
@@ -750,25 +965,27 @@ function ManualStockEditor({
   onAdd,
   onChange,
   onRemove,
+  isEn,
 }: {
   rows: ManualStockRow[];
   onAdd: () => void;
   onChange: (index: number, key: keyof ManualStockRow, value: string) => void;
   onRemove: (index: number) => void;
+  isEn: boolean;
 }) {
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between gap-2">
-        <h3 className="text-xs font-semibold text-foreground/70">Entrées de stock oubliées</h3>
-        <button type="button" onClick={onAdd} className="inline-flex items-center gap-1 text-xs text-gold hover:text-gold/80"><Plus size={13} /> Ajouter</button>
+        <h3 className="text-xs font-semibold text-foreground/70">{translate(isEn, 'forgottenStock')}</h3>
+        <button type="button" onClick={onAdd} className="inline-flex items-center gap-1 text-xs text-gold hover:text-gold/80"><Plus size={13} /> {translate(isEn, 'add')}</button>
       </div>
       {rows.map((row, index) => (
         <div key={index} className="grid grid-cols-2 gap-2 rounded-lg border border-white/10 p-2 sm:grid-cols-[1.3fr_0.8fr_1fr_0.9fr_auto]">
-          <input value={row.nom} onChange={(event) => onChange(index, 'nom', event.target.value)} placeholder="Nom du produit" className="col-span-2 rounded-lg bg-black/20 px-2.5 py-2 text-xs text-foreground outline-none focus:ring-1 focus:ring-gold/60 sm:col-span-1" />
-          <input type="number" min="0.01" step="any" value={row.quantite_ajoutee} onChange={(event) => onChange(index, 'quantite_ajoutee', event.target.value)} placeholder="Quantité" className="rounded-lg bg-black/20 px-2.5 py-2 text-xs text-foreground outline-none focus:ring-1 focus:ring-gold/60" />
-          <select value={row.type_produit} onChange={(event) => onChange(index, 'type_produit', event.target.value)} className="rounded-lg bg-[#151515] px-2.5 py-2 text-xs text-foreground outline-none focus:ring-1 focus:ring-gold/60">{TYPES_PRODUIT.map((type) => <option key={type} value={type}>{type}</option>)}</select>
-          <input value={row.date} onChange={(event) => onChange(index, 'date', event.target.value)} placeholder="Heure, ex. 10:15" className="rounded-lg bg-black/20 px-2.5 py-2 text-xs text-foreground outline-none focus:ring-1 focus:ring-gold/60" />
-          <button type="button" aria-label="Supprimer cette entrée" onClick={() => onRemove(index)} className="justify-self-end rounded-lg p-2 text-foreground/35 hover:bg-red-500/10 hover:text-red-300"><Trash2 size={14} /></button>
+          <input value={row.nom} onChange={(event) => onChange(index, 'nom', event.target.value)} placeholder={translate(isEn, 'productName')} className="col-span-2 rounded-lg bg-black/20 px-2.5 py-2 text-xs text-foreground outline-none focus:ring-1 focus:ring-gold/60 sm:col-span-1" />
+          <input type="number" min="0.01" step="any" value={row.quantite_ajoutee} onChange={(event) => onChange(index, 'quantite_ajoutee', event.target.value)} placeholder={translate(isEn, 'quantity')} className="rounded-lg bg-black/20 px-2.5 py-2 text-xs text-foreground outline-none focus:ring-1 focus:ring-gold/60" />
+          <select value={row.type_produit} onChange={(event) => onChange(index, 'type_produit', event.target.value)} className="rounded-lg bg-[#151515] px-2.5 py-2 text-xs text-foreground outline-none focus:ring-1 focus:ring-gold/60">{TYPES_PRODUIT.map((type) => <option key={type} value={type}>{translateProductType(type, isEn)}</option>)}</select>
+          <input value={row.date} onChange={(event) => onChange(index, 'date', event.target.value)} placeholder={translate(isEn, 'timeExample')} className="rounded-lg bg-black/20 px-2.5 py-2 text-xs text-foreground outline-none focus:ring-1 focus:ring-gold/60" />
+          <button type="button" aria-label={translate(isEn, 'removeStockEntry')} onClick={() => onRemove(index)} className="justify-self-end rounded-lg p-2 text-foreground/35 hover:bg-red-500/10 hover:text-red-300"><Trash2 size={14} /></button>
         </div>
       ))}
     </div>

@@ -59,7 +59,6 @@ export interface CloseDailyReportPayload {
   caissiere_id?: number;
   heure_arrivee?: string;
   heure_depart?: string;
-  reste_en_caisse?: string;
   autres_donnees_manuelles?: Record<string, string>;
   actions_communication?: string;
   observations?: string;
