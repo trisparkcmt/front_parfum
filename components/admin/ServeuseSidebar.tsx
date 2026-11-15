@@ -7,7 +7,7 @@ import { useTranslation } from 'react-i18next';
 import { useNotificationCountStore } from '@/store/useNotificationCountStore';
 import {
   LayoutDashboard, ShoppingCart, BarChart2, ClipboardList,
-  Package, Gem, X, ChevronDown, Sparkles, Bell, DollarSign
+  Package, Gem, X, ChevronDown, Sparkles, Bell, DollarSign, Tablet
 } from 'lucide-react';
 import { PerfumeIcon, EssenceIcon, LaptopIcon } from '@/components/icons/CustomIcons';
 
@@ -130,6 +130,7 @@ export default function ServeuseSidebar({ open, setOpen }: SidebarProps) {
     { label: t('perfumes', { defaultValue: isEn ? 'Perfumes' : 'Parfums' }), icon: <PerfumeIcon size={18} />, href: '/dashboard/serveuse/perfume' },
     { label: t('admin_nav_categories', { defaultValue: isEn ? 'Categories' : 'Catégories' }), icon: <Package size={18} />, href: '/dashboard/serveuse/categories' },
     { label: t('essences', { defaultValue: 'Essences' }), icon: <EssenceIcon size={18} />, href: '/dashboard/serveuse/essences' },
+    { label: isEn ? 'Tablet Catalogue' : 'Catalogue Tablette', icon: <Tablet size={18} />, href: '/catalogue-essences' },
     { label: isEn ? 'Oil' : 'Huile', icon: <EssenceIcon size={18} />, href: '/dashboard/serveuse/produits-essence' },
     { label: t('laboratory', { defaultValue: isEn ? 'Laboratory' : 'Laboratoire' }), icon: <LaptopIcon size={18} />, href: '/dashboard/serveuse/lab' },
     { label: t('bottles', { defaultValue: isEn ? 'Bottles' : 'Flacons' }), icon: <Package size={18} />, href: '/dashboard/serveuse/flacons' },
@@ -161,7 +162,7 @@ export default function ServeuseSidebar({ open, setOpen }: SidebarProps) {
             <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-gold to-gold-dark flex items-center justify-center shadow-lg shadow-gold/20 group-hover:shadow-gold/40 transition-shadow">
               <BarChart2 size={18} className="text-black" />
             </div>
-            <span className="font-bold text-foreground text-lg tracking-tight">{t('serveuse_space', { defaultValue: isEn ? 'Store Staff Space' : 'Espace Serveuse' })}</span>
+            <span className="font-bold text-foreground text-lg tracking-tight">{t('serveuse_space', { defaultValue: isEn ? 'Collaborator Space' : 'Espace Collaboratrice' })}</span>
           </Link> 
           <button 
             className="xl:hidden text-foreground/40 hover:text-foreground transition-colors" 
@@ -191,7 +192,7 @@ export default function ServeuseSidebar({ open, setOpen }: SidebarProps) {
             </div>
             <div>
               <p className="text-xs font-semibold text-foreground">Accessories Exclusif</p>
-              <p className="text-[10px] text-foreground/40">v1.0 · {isEn ? 'Waitstaff Panel' : 'Espace Serveuse'}</p>
+              <p className="text-[10px] text-foreground/40">v1.0 · {isEn ? 'Collaborator Panel' : 'Espace Collaboratrice'}</p>
             </div>
           </div>
         </div>

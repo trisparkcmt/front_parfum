@@ -226,7 +226,7 @@ export function HuileDetailModal({ productId, initialProduct, onClose, onRelated
     const result = await sharePage(
       `/shop/huile/${product.slug || product.id}`,
       product.name,
-      isEn ? `Discover pure oil ${product.name} on Accessories Exclusif` : `Découvrez l'huile pure ${product.name} sur Accessoires Exclusifs`
+      isEn ? `Discover perfume oil ${product.name} on Accessories Exclusif` : `Découvrez l'huile de parfum ${product.name} sur Accessoires Exclusifs`
     );
     if (result === 'shared') addToast(isEn ? 'Link shared' : 'Lien partagé', 'success');
     else if (result === 'copied') addToast(isEn ? 'Link copied' : 'Lien copié', 'success');
@@ -319,7 +319,7 @@ export function HuileDetailModal({ productId, initialProduct, onClose, onRelated
                   </span>
                   <ChevronRight size={11} className="shrink-0" />
                   <span className="hover:text-gold transition-colors cursor-pointer" onClick={closeModal}>
-                    {isEn ? 'Pure Oils' : 'Huiles Pures'}
+                    {isEn ? 'Perfume Oils' : 'Huiles de Parfum'}
                   </span>
                   <ChevronRight size={11} className="shrink-0" />
                   <span className="text-foreground/60 truncate max-w-[240px]">{product.name}</span>
@@ -332,7 +332,7 @@ export function HuileDetailModal({ productId, initialProduct, onClose, onRelated
                       <div className="flex flex-wrap items-center gap-2.5">
                         <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-emerald-400 inline-flex items-center gap-1.5">
                           <Leaf size={11} />
-                          {isEn ? '100% Pure Essential Oil' : 'Huile Essentielle 100% Pure'}
+                          {isEn ? '100% Pure Perfume Oil' : 'Huile de Parfum 100% Pure'}
                         </span>
                         {product.intensite && (
                           <span className="rounded-full border border-gold/30 bg-gold/10 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-gold capitalize">
@@ -439,7 +439,7 @@ export function HuileDetailModal({ productId, initialProduct, onClose, onRelated
                       </div>
                       <div>
                         <p className="text-[9px] font-bold uppercase tracking-wider text-foreground/40">{isEn ? 'Category' : 'Catégorie'}</p>
-                        <p className="text-xs font-bold text-foreground capitalize">{isEn ? 'Pure Oil' : 'Huile Pure'}</p>
+                        <p className="text-xs font-bold text-foreground capitalize">{isEn ? 'Perfume Oil' : 'Huile de Parfum'}</p>
                       </div>
                     </div>
                   </div>
@@ -681,7 +681,7 @@ export function HuileDetailModal({ productId, initialProduct, onClose, onRelated
                               {product.intensite && (<tr className="border-b border-foreground/10"><td className="py-3.5 text-xs uppercase tracking-widest text-foreground/40">{isEn ? 'Intensity' : 'Intensité'}</td><td className="py-3.5 font-medium text-foreground capitalize">{product.intensite}</td></tr>)}
                               {product.genre_cible && (<tr className="border-b border-foreground/10"><td className="py-3.5 text-xs uppercase tracking-widest text-foreground/40">{isEn ? 'Target' : 'Cible'}</td><td className="py-3.5 font-medium text-foreground capitalize">{product.genre_cible}</td></tr>)}
                               {product.famille_olfactive && product.famille_olfactive.length > 0 && (<tr className="border-b border-foreground/10"><td className="py-3.5 text-xs uppercase tracking-widest text-foreground/40">{isEn ? 'Olfactive Family' : 'Famille olfactive'}</td><td className="py-3.5 font-medium text-foreground">{product.famille_olfactive.join(', ')}</td></tr>)}
-                              <tr className="border-b border-foreground/10"><td className="py-3.5 text-xs uppercase tracking-widest text-foreground/40">Type</td><td className="py-3.5 font-medium text-foreground">{isEn ? 'Pure Essential Oil' : 'Huile Essentielle Pure'}</td></tr>
+                              <tr className="border-b border-foreground/10"><td className="py-3.5 text-xs uppercase tracking-widest text-foreground/40">Type</td><td className="py-3.5 font-medium text-foreground">{isEn ? 'Perfume Oil' : 'Huile de Parfum'}</td></tr>
                               <tr className="border-b border-foreground/10"><td className="py-3.5 text-xs uppercase tracking-widest text-foreground/40">{isEn ? 'Brand' : 'Marque'}</td><td className="py-3.5 font-medium text-foreground">{product.brand || 'Exclusif Collection'}</td></tr>
                               {product.origine_pays && (<tr className="border-b border-foreground/10"><td className="py-3.5 text-xs uppercase tracking-widest text-foreground/40">{isEn ? 'Origin' : 'Pays d\'origine'}</td><td className="py-3.5 font-medium text-foreground">{product.origine_pays}</td></tr>)}
                               {variants.length > 0 && (<tr className="border-b border-foreground/10"><td className="py-3.5 text-xs uppercase tracking-widest text-foreground/40">{isEn ? 'Available sizes' : 'Formats disponibles'}</td><td className="py-3.5 font-medium text-foreground">{variants.map(v => `${v.taille_ml}ml (${formatPrice(v.prix_actuel)})`).join(', ')}</td></tr>)}

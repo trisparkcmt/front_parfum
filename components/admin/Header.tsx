@@ -6,7 +6,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { useTranslation } from 'react-i18next';
 import { 
   Menu, Search, Moon, Sun, Bell, User, ArrowLeft, 
-  ShoppingCart, Package, Sparkles, Gem, Users2, Check 
+  ShoppingCart, Package, Sparkles, Gem, Users2, Check, Tablet 
 } from 'lucide-react';
 
 import { useAuthStore } from '@/store/useAuthStore';
@@ -307,6 +307,16 @@ export default function Header({ onMenuClick }: HeaderProps) {
       </div>
 
       <div className="ml-auto flex items-center gap-1 sm:gap-2">
+        {(user?.roles?.includes('serveuse') || user?.roles?.includes('superadmin') || user?.roles?.includes('admin') || user?.role === 'superadmin' || user?.role === 'serveuse') && (
+          <Link
+            href="/catalogue-essences"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-gold/30 bg-gold/10 text-gold hover:bg-gold hover:text-black transition-all text-xs font-semibold mr-1"
+            title="Catalogue Tablette (Entrée)"
+          >
+            <Tablet size={15} />
+            <span className="hidden md:inline">Catalogue Tablette</span>
+          </Link>
+        )}
         <button
           onClick={toggleTheme}
           className="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-foreground/5 text-foreground/60 transition-colors"

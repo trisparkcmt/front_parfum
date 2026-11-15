@@ -43,7 +43,8 @@ export function LayoutWrapper({ children }: { children: React.ReactNode }) {
   const isAuth = pathname === '/login' || pathname === '/register';
   const isAtelier = pathname === '/numba/atelier';
   const isAiConsultant = pathname === '/numba/ai-consultant';
-  const shouldHideNav = isDashboard || isAuth || isAtelier || isAiConsultant;
+  const isCatalogueEssences = pathname?.startsWith('/catalogue-essences');
+  const shouldHideNav = isDashboard || isAuth || isAtelier || isAiConsultant || isCatalogueEssences;
   const shouldHideFooter = shouldHideNav;
   const canPullToRefresh = !isDashboard && !isAuth;
 

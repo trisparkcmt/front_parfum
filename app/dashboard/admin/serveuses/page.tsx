@@ -84,7 +84,7 @@ export default function ServeusesPage() {
       const list = data.resultats || data.results || (Array.isArray(data) ? data : []);
       setServeuses(list);
     } catch (error) {
-      addToast(getLocalizedToast('Error loading serveuses', 'Erreur lors du chargement des serveuses'), 'error');
+      addToast(getLocalizedToast('Error loading team', 'Erreur lors du chargement des collaboratrices'), 'error');
     } finally {
       setLoading(false);
     }
@@ -122,7 +122,7 @@ export default function ServeusesPage() {
     try {
       setSaving(true);
       await adminService.promoteToServeuse(parseInt(userIdVal));
-      addToast(getLocalizedToast('User promoted to serveuse successfully', 'Utilisateur promu au rang de serveuse avec succès'), 'success');
+      addToast(getLocalizedToast('User promoted to collaborator successfully', 'Utilisateur promu au rang de collaboratrice avec succès'), 'success');
       setShowModal(false);
       setUserIdVal('');
       fetchServeuses();
@@ -140,7 +140,7 @@ export default function ServeusesPage() {
     setServeuses(prev => prev.map(s => s.id === id ? { ...s, actif: !currentActif } : s));
     try {
       await adminService.updateServeuse(id, { actif: !currentActif });
-      addToast(getLocalizedToast('Serveuse status updated', 'Statut de la serveuse mis à jour'), 'success');
+      addToast(getLocalizedToast('Collaborator status updated', 'Statut de la collaboratrice mis à jour'), 'success');
     } catch (error: any) {
       // Rollback
       setServeuses(prev => prev.map(s => s.id === id ? { ...s, actif: currentActif } : s));
@@ -149,12 +149,12 @@ export default function ServeusesPage() {
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm('Voulez-vous vraiment supprimer cette serveuse ?')) return;
+    if (!confirm('Voulez-vous vraiment supprimer cette collaboratrice ?')) return;
     const snapshot = serveuses.find(s => s.id === id);
     setServeuses(prev => prev.filter(s => s.id !== id));
     try {
       await adminService.deleteServeuse(id);
-      addToast(getLocalizedToast('Serveuse deleted successfully', 'Serveuse supprimée avec succès'), 'success');
+      addToast(getLocalizedToast('Collaborator deleted successfully', 'Collaboratrice supprimée avec succès'), 'success');
     } catch (error: any) {
       if (snapshot) setServeuses(prev => [snapshot, ...prev]);
       addToast('Erreur lors de la suppression', 'error');
@@ -166,9 +166,9 @@ export default function ServeusesPage() {
       {/* Header Read-Only */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10 pb-4">
         <div>
-          <h1 className="text-xl font-semibold text-foreground">Gestion des Serveuses</h1>
+          <h1 className="text-xl font-semibold text-foreground">Gestion des Collaboratrices</h1>
           <p className="text-sm text-foreground/40 mt-0.5">
-            Promouvoir, désactiver et gérer les serveuses de la boutique
+            Promouvoir, désactiver et gérer les collaboratrices de la boutique
           </p>
         </div>
 
@@ -188,7 +188,7 @@ export default function ServeusesPage() {
             className="flex items-center gap-2 bg-gold text-black px-3.5 py-2 rounded-lg text-xs font-semibold hover:bg-gold/90 transition-colors"
           >
             <Plus size={14} />
-            <span>Promouvoir une serveuse</span>
+            <span>Promouvoir une collaboratrice</span>
           </button>
         </div>
       </div>
@@ -197,7 +197,7 @@ export default function ServeusesPage() {
       <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
         <div className="grid grid-cols-3 divide-x divide-white/10">
           <div className="px-3 first:pl-0">
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-foreground/35">Total Serveuses</p>
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-foreground/35">Total Collaboratrices</p>
             <p className="text-xl font-semibold tabular-nums text-foreground mt-1">{serveuses.length}</p>
           </div>
           <div className="px-3">
@@ -220,17 +220,17 @@ export default function ServeusesPage() {
         {loading ? (
           <div className="flex items-center justify-center gap-2 py-20 text-xs text-foreground/40">
             <Loader2 size={16} className="animate-spin text-gold" />
-            <span>Chargement des serveuses...</span>
+            <span>Chargement des collaboratrices...</span>
           </div>
         ) : serveuses.length === 0 ? (
           <div className="text-center py-12 text-sm italic text-foreground/30">
-            Aucune serveuse dans l'équipe actuellement.
+            Aucune collaboratrice dans l'équipe actuellement.
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {serveuses.map(s => {
               const details = s.user_details || s;
-              const name = `${details.first_name || ''} ${details.last_name || ''}`.trim() || 'Serveuse';
+              const name = `${details.first_name || ''} ${details.last_name || ''}`.trim() || 'Collaboratrice';
               const email = details.email || '';
               const phone = details.telephone || '—';
               const isActive = s.actif !== undefined ? s.actif : true;
@@ -257,7 +257,7 @@ export default function ServeusesPage() {
                           onClick={() => handleDelete(s.id)}
                           icon={Trash2}
                           variant="red"
-                          title="Supprimer la serveuse"
+                          title="Supprimer la collaboratrice"
                         />
                       </div>
                     </div>
@@ -298,7 +298,7 @@ export default function ServeusesPage() {
       <SlideOver
         isOpen={showModal}
         onClose={() => setShowModal(false)}
-        title="Promouvoir en tant que Serveuse"
+        title="Promouvoir en tant que Collaboratrice"
         description="Attribue le rôle opérationnel à l'utilisateur."
         size="md"
         footer={

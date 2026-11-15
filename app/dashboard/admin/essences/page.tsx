@@ -1,9 +1,10 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import Link from 'next/link';
 import { type LucideIcon,
   Search, Plus, Edit2, Trash2, Loader2,
-  ShoppingBag, RefreshCw, X, AlertCircle, Filter
+  ShoppingBag, RefreshCw, X, AlertCircle, Filter, Tablet
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { InlineCell } from '@/components/admin/InlineCell';
@@ -657,6 +658,14 @@ export default function EssencesPage() {
               {t('delete_selected')} ({selectedEssences.size})
             </button>
           )}
+          <Link
+            href="/catalogue-essences"
+            className="border border-gold/40 bg-gold/10 text-gold hover:bg-gold hover:text-black font-semibold rounded-lg px-3 py-1.5 text-xs transition-colors flex items-center gap-1.5"
+            title="Catalogue Tablette (Entrée Boutique)"
+          >
+            <Tablet size={14} />
+            <span>Catalogue Tablette</span>
+          </Link>
           <IconButton 
             icon={RefreshCw} 
             onClick={fetchData} 

@@ -34,7 +34,7 @@ export default function DashboardSelectorPage() {
 
   const ROLE_LABELS: Record<UserRole, string> = {
     superadmin: t('dashboard_role_superadmin', { defaultValue: i18n.language?.startsWith('en') ? 'Superadmin' : 'Superadmin' }),
-    serveuse: t('dashboard_role_serveuse', { defaultValue: i18n.language?.startsWith('en') ? 'Sales Associate' : 'Serveuse' }),
+    serveuse: t('dashboard_role_serveuse', { defaultValue: i18n.language?.startsWith('en') ? 'Collaborator' : 'Collaboratrice' }),
     partner: t('dashboard_role_partner', { defaultValue: i18n.language?.startsWith('en') ? 'Partner' : 'Prestataire' }),
     delivery: t('dashboard_role_delivery', { defaultValue: i18n.language?.startsWith('en') ? 'Delivery Agent' : 'Livreur' }),
     client: t('dashboard_role_client', { defaultValue: i18n.language?.startsWith('en') ? 'Client' : 'Client' }),

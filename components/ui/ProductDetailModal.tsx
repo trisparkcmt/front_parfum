@@ -756,7 +756,7 @@ export function ProductDetailModal({
                         {[
                           { icon: Truck, label: isEn ? 'Free Delivery' : 'Livraison offerte', sub: isEn ? 'From 50 000 FCFA' : 'Dès 50 000 FCFA' },
                           { icon: ShieldCheck, label: isEn ? 'Authenticity' : 'Authenticité', sub: isEn ? 'Certified genuine' : 'Certifié authentique' },
-                          { icon: RotateCcw, label: isEn ? 'Returns' : 'Retours', sub: isEn ? '14 days' : '14 jours' },
+                          { icon: RotateCcw, label: isEn ? 'Returns' : 'Retours', sub: isEn ? '3 days' : '3 jours' },
                         ].map(({ icon: Icon, label, sub }) => (
                           <div key={label} className="flex flex-col items-center text-center gap-1.5">
                             <Icon size={18} className="text-gold" />

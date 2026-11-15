@@ -13,7 +13,7 @@ import {
   LayoutDashboard, ShoppingCart, BarChart2, Users2,
   TrendingUp, Package, DollarSign, Truck,
   Sparkles, Gem, X, ChevronDown, Bell, FileText, Tag, Store,
-  ClipboardList,
+  ClipboardList, Tablet,
 } from 'lucide-react';
 import { PerfumeIcon, EssenceIcon, DiffuseurIcon, LaptopIcon } from '@/components/icons/CustomIcons';
 
@@ -185,6 +185,11 @@ export default function Sidebar({ open, setOpen }: SidebarProps) {
       href: '/dashboard/admin/essences',
     },
     {
+      label: isEn ? 'Tablet Catalogue' : 'Catalogue Tablette',
+      icon: <Tablet size={18} />,
+      href: '/catalogue-essences',
+    },
+    {
       label: isEn ? 'Oil' : 'Huile',
       icon: <EssenceIcon size={18} />,
       href: '/dashboard/admin/produits-essence',
@@ -238,7 +243,7 @@ export default function Sidebar({ open, setOpen }: SidebarProps) {
       href: '/dashboard/admin/delivery',
     },
     {
-      label: t('admin_nav_waitstaff', { defaultValue: isEn ? 'Waitstaff' : 'Serveuses' }),
+      label: t('admin_nav_waitstaff', { defaultValue: isEn ? 'Collaborators' : 'Collaboratrices' }),
       icon: <Users2 size={18} />,
       href: '/dashboard/admin/serveuses',
     },

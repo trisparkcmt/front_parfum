@@ -63,7 +63,7 @@ export default function ServeuseDashboardPage() {
   return (
     <div className="space-y-6">
       <DashboardPageHeader
-        title={t('serveuse_space', { defaultValue: 'Espace Serveuse' })}
+        title={t('serveuse_space', { defaultValue: 'Espace Collaboratrice' })}
         description={t('serveuse_overview', { defaultValue: "Vue d'ensemble des activités de la boutique" })}
         actions={(
           <Link

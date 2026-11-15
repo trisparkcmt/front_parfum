@@ -124,9 +124,9 @@ export function Navbar() {
             className="flex-shrink-0 flex items-center group relative z-10"
           >
             <img
-              src="/logo/Logo Accessoirs Exclusifs gold transparent.svg"
+              src="/logo/Longo only2.svg"
               alt="Accessoires Exclusifs"
-              className="h-20 w-auto object-contain  group-hover:scale-105 transition-transform duration-300"
+              className="h-20 w-auto object-contain group-hover:scale-105 transition-transform duration-300"
             />
           </Link>
         </div>

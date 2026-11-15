@@ -80,7 +80,7 @@ export default function PerfumesShopClient() {
       },
       {
         id: 'huile',
-        label: t('pure_oils', { defaultValue: isEn ? 'Pure Oils' : 'Huiles Pures' }),
+        label: t('pure_oils', { defaultValue: isEn ? 'Perfume Oils' : 'Huiles de Parfum' }),
         desc: t('pure_oils_desc', {
           defaultValue: isEn
             ? 'Our selection of pure, concentrated perfume oils'
@@ -88,10 +88,10 @@ export default function PerfumesShopClient() {
         }),
       },
       ...backendCategories.map((cat) => {
-        const isOil = cat.name.toLowerCase() === 'pure oils' || cat.name.toLowerCase() === 'pure oil' || cat.name.toLowerCase() === 'huiles' || cat.name.toLowerCase() === 'huile';
+        const isOil = cat.name.toLowerCase() === 'pure oils' || cat.name.toLowerCase() === 'pure oil' || cat.name.toLowerCase() === 'huiles' || cat.name.toLowerCase() === 'huile' || cat.name.toLowerCase() === 'huiles de parfum' || cat.name.toLowerCase() === 'perfume oils';
         return {
           id: cat.id,
-          label: isOil ? (isEn ? 'Pure Oils' : 'Huiles Pures') : cat.name,
+          label: isOil ? (isEn ? 'Perfume Oils' : 'Huiles de Parfum') : cat.name,
           desc: isOil ? t('pure_oils_desc', { defaultValue: isEn ? 'Our selection of pure, concentrated perfume oils' : "Notre sélection d'huiles de parfum pures et concentrées" }) : '',
         };
       }),
