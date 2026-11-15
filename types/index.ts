@@ -171,6 +171,7 @@ export interface Product {
   nom?: string;
   description_courte?: string;
   description_longue?: string;
+  categorie?: string;
   inspire_de?: string;
   prix_unitaire?: number | string;
   capacite_reservoir_ml?: number;

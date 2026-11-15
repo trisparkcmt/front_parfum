@@ -361,6 +361,7 @@ export function mapBackendFinishedEssenceToProduct(p: any): Product {
         ? String(Math.round((1 - currentPrice / originalPrice) * 100))
         : undefined
     ),
+    description_longue: e.description_longue || e.description_ia || '',
     category: 'huile',
     images,
     brand: p.marque || p.essence_details?.marque || 'Exclusif Collection',
@@ -424,6 +425,7 @@ export function mapBackendEssenceToProduct(e: any): Product {
     name: e.nom || `Essence #${e.id}`,
     nom: e.nom,
     description: e.description || e.description_ia || '',
+    description_longue: e.description_longue || e.description_ia || '',
     price: lowestPrice || parseFloat(e.prix_par_ml || '0'),
     category: 'huile',
     images,
@@ -443,6 +445,7 @@ export function mapBackendEssenceToProduct(e: any): Product {
     produits_finis: activePF,
     intensite: e.intensite,
     genre_cible: e.genre_cible,
+    categorie: e.categorie,
     code_reference: e.code_reference,
     famille_olfactive: Array.isArray(e.famille_olfactive) ? e.famille_olfactive : [],
     humeurs_compatibles: Array.isArray(e.humeurs_compatibles) ? e.humeurs_compatibles : [],
@@ -668,6 +671,7 @@ export const productService = {
     intensite?: string;
     prix_max?: number;
     page?: number;
+    includeUnavailable?: boolean;
   }): Promise<Product[] | { results: Product[]; pages: number; count: number }> {
     const params: any = {};
     if (filters) {
@@ -695,7 +699,7 @@ export const productService = {
 
     const mappedResults = results
       .map(mapBackendEssenceToProduct)
-      .filter((product) => product.inStock);
+      .filter((product) => filters?.includeUnavailable || product.inStock);
 
     if (response && typeof response === 'object' && !Array.isArray(response) && (response.count !== undefined || response.pages !== undefined || response.total_pages !== undefined)) {
       const count = response.count ?? response.total_count ?? response.total ?? mappedResults.length;

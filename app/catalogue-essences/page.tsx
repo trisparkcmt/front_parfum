@@ -2,10 +2,10 @@ import type { Metadata } from 'next';
 import CatalogueEssencesClient from './CatalogueEssencesClient';
 
 export const metadata: Metadata = {
-  title: 'Catalogue des Essences | Accessoires Exclusifs',
-  description: "Catalogue interactif des essences d'exception et de leurs tarifs au millilitre, adapté pour tablette en boutique.",
+  title: 'Catalogue des Huiles | Accessoires Exclusifs',
+  description: 'Catalogue des huiles de parfum, de leurs formats disponibles et de leurs caractéristiques.',
 };
 
-export default function CatalogueEssencesPage() {
+export default function CatalogueHuilesPage() {
   return <CatalogueEssencesClient />;
 }
