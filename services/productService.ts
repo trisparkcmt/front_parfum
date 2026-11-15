@@ -361,7 +361,6 @@ export function mapBackendFinishedEssenceToProduct(p: any): Product {
         ? String(Math.round((1 - currentPrice / originalPrice) * 100))
         : undefined
     ),
-    description_longue: e.description_longue || e.description_ia || '',
     category: 'huile',
     images,
     brand: p.marque || p.essence_details?.marque || 'Exclusif Collection',
