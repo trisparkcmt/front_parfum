@@ -233,7 +233,7 @@ export default function CatalogueEssencesClient() {
                 <button
                   key={tab.id}
                   onClick={() => setSelectedCategory(tab.id as CategoryFilter)}
-                  className={`flex-1 min-w-[85px] py-2.5 px-3 rounded-xl text-xs font-semibold whitespace-nowrap transition-all duration-200 flex items-center justify-center gap-1.5 ${
+                  className={`flex-none min-w-[85px] py-2.5 px-3 rounded-xl text-xs font-semibold whitespace-nowrap transition-all duration-200 flex items-center justify-center gap-1.5 ${
                     isActive
                       ? 'bg-gold text-black shadow-lg shadow-gold/20 font-bold'
                       : 'bg-foreground/5 border border-foreground/10 text-foreground/70 hover:bg-foreground/10 hover:text-foreground'
@@ -241,7 +241,7 @@ export default function CatalogueEssencesClient() {
                 >
                   <span>{tab.label}</span>
                   <span
-                    className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
+                    className={`shrink-0 text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
                       isActive ? 'bg-black/20 text-black' : 'bg-foreground/10 text-foreground/60'
                     }`}
                   >

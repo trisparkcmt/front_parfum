@@ -126,7 +126,7 @@ export function Navbar() {
             <img
               src="/logo/Longo only2.svg"
               alt="Accessoires Exclusifs"
-              className="h-20 w-auto object-contain group-hover:scale-105 transition-transform duration-300"
+              className="h-12 w-12 object-contain group-hover:scale-105 transition-transform duration-300"
             />
           </Link>
         </div>
