@@ -30,7 +30,6 @@ export default function CatalogueEssencesClient() {
     const directRole = user.role;
     return (
       roles.includes('superadmin') ||
-      roles.includes('admin') ||
       roles.includes('serveuse') ||
       directRole === 'superadmin' ||
       directRole === 'serveuse'

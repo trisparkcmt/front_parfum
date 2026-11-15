@@ -307,7 +307,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
       </div>
 
       <div className="ml-auto flex items-center gap-1 sm:gap-2">
-        {(user?.roles?.includes('serveuse') || user?.roles?.includes('superadmin') || user?.roles?.includes('admin') || user?.role === 'superadmin' || user?.role === 'serveuse') && (
+        {(user?.roles?.includes('serveuse') || user?.roles?.includes('superadmin') || user?.role === 'superadmin' || user?.role === 'serveuse') && (
           <Link
             href="/catalogue-essences"
             className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-gold/30 bg-gold/10 text-gold hover:bg-gold hover:text-black transition-all text-xs font-semibold mr-1"
