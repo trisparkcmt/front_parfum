@@ -6,6 +6,7 @@ import { lora } from "@/lib/fonts";
 import { LayoutWrapper } from "@/components/shared/LayoutWrapper";
 import { ToastProvider } from "@/components/shared/ToastProvider";
 import { FCMProvider } from "@/components/pwa/FCMProvider";
+import { PWAUpdateManager } from "@/components/pwa/PWAUpdateManager";
 import { InstallPrompt } from "@/components/pwa/InstallPrompt";
 import { OfflineBanner } from "@/components/shared/OfflineBanner";
 import { GoogleOneTap } from "@/components/auth/GoogleOneTap";
@@ -156,6 +157,7 @@ export default function RootLayout({
           {children}
         </LayoutWrapper>
         <ToastProvider />
+        <PWAUpdateManager />
         <FCMProvider />
         <InstallPrompt />
         <OfflineBanner />

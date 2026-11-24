@@ -7,23 +7,12 @@ import { useNotificationCountStore } from '@/store/useNotificationCountStore';
 
 /**
  * FCMProvider — mounts once in layout.
- * - Registers the PWA service worker (sw.js)
  * - Initializes Firebase Cloud Messaging for authenticated users
  * - Sets up foreground FCM message listener for in-app toast notifications
  */
 export function FCMProvider() {
   const { isAuthenticated, _hasHydrated, user } = useAuthStore();
   const prevAuthRef = useRef<boolean | null>(null);
-
-  // Register main PWA service worker once on mount
-  useEffect(() => {
-    if (typeof window === 'undefined' || !('serviceWorker' in navigator)) return;
-
-    navigator.serviceWorker
-      .register('/sw.js')
-      .then((reg) => console.log('[SW] Registered:', reg.scope))
-      .catch((err) => console.error('[SW] Registration failed:', err));
-  }, []);
 
   // Watch auth state — initialize FCM after login and cleanup on logout
   useEffect(() => {

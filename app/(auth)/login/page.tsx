@@ -93,7 +93,12 @@ function LoginFormContent() {
         } else {
           localStorage.removeItem('remembered_login');
         }
-        router.push(redirectUrl);
+        if (typeof window !== 'undefined') {
+          // Hard navigation ensures clean document reload with fresh chunks, cookies, and tokens
+          window.location.href = redirectUrl;
+        } else {
+          router.push(redirectUrl);
+        }
       } else {
         setFormError(t('login_error', { defaultValue: 'Identifiant ou mot de passe incorrect.' }));
       }
