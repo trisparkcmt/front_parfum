@@ -4,6 +4,19 @@ import { shopService as apiShopService, labService } from './apiService';
 export type ProductLookupKind = 'perfume' | 'accessory' | 'diffuseur' | 'essence' | 'finished-essence';
 
 function getLookupOrder(preferredType?: ProductLookupKind): ProductLookupKind[] {
+  if (preferredType === 'essence') {
+    return ['essence', 'finished-essence'];
+  }
+  if (preferredType === 'finished-essence') {
+    return ['finished-essence', 'essence'];
+  }
+  if (preferredType === 'diffuseur') {
+    return ['diffuseur', 'accessory'];
+  }
+  if (preferredType === 'accessory') {
+    return ['accessory', 'diffuseur'];
+  }
+
   const base: ProductLookupKind[] = ['perfume', 'essence', 'finished-essence', 'accessory', 'diffuseur'];
 
   if (!preferredType) return base;
@@ -195,9 +208,17 @@ function inferCatalogItemKind(item: any): 'perfume' | 'accessory' | 'diffuseur' 
     typeTokens.includes('produit-fini') ||
     item?.essence != null ||           // wrapper field used by catalog endpoints
     payload?.essence != null ||
+    payload?.essence_id != null ||
+    payload?.essence_details != null ||
     payload?.taille_ml != null ||      // ProduitFiniEssence-specific field
+    payload?.prix_par_ml != null ||
+    payload?.code_reference != null ||
+    payload?.humeurs_compatibles != null ||
     payload?.stock_total_ml != null ||
-    payload?.produits_finis != null    // parent essence object
+    payload?.produits_finis != null || // parent essence object
+    payload?.category === 'huile' ||
+    payload?.categorie === 'huile' ||
+    payload?.categorie === 'essence'
   ) {
     return 'essence';
   }
@@ -731,13 +752,48 @@ export const productService = {
           }
 
           if (kind === 'essence') {
-            const essence = await labService.getEssenceBySlug(candidate).catch(() => null);
+            let essence = await labService.getEssenceBySlug(candidate).catch(() => null);
+            if (!essence) {
+              const publicList = await apiShopService.getPublicEssences({ search: candidate }).catch(() => null);
+              const items: any[] = Array.isArray(publicList)
+                ? publicList
+                : Array.isArray(publicList?.results)
+                  ? publicList.results
+                  : Array.isArray(publicList?.resultats)
+                    ? publicList.resultats
+                    : [];
+              essence = items.find((e: any) =>
+                String(e.id) === candidate ||
+                e.slug === candidate ||
+                (e.nom && String(e.nom).toLowerCase() === candidate.toLowerCase())
+              ) ?? null;
+            }
             if (essence) return mapBackendEssenceToProduct(essence);
             continue;
           }
 
-          if (kind === 'finished-essence' && /^\d+$/.test(candidate)) {
-            const finishedEssence = await apiShopService.getFinishedEssenceById(Number(candidate)).catch(() => null);
+          if (kind === 'finished-essence') {
+            let finishedEssence = /^\d+$/.test(candidate)
+              ? await apiShopService.getFinishedEssenceById(Number(candidate)).catch(() => null)
+              : null;
+
+            if (!finishedEssence) {
+              const finishedList = await apiShopService.getFinishedEssences({ search: candidate }).catch(() => null);
+              const items: any[] = Array.isArray(finishedList)
+                ? finishedList
+                : Array.isArray(finishedList?.results)
+                  ? finishedList.results
+                  : Array.isArray(finishedList?.resultats)
+                    ? finishedList.resultats
+                    : [];
+              finishedEssence = items.find((fe: any) =>
+                String(fe.id) === candidate ||
+                fe.slug === candidate ||
+                (fe.nom && String(fe.nom).toLowerCase() === candidate.toLowerCase()) ||
+                fe.essence_details?.slug === candidate
+              ) ?? null;
+            }
+
             if (finishedEssence) {
               if (finishedEssence.essence) {
                 const parentEssence = await labService.getEssenceBySlug(String(finishedEssence.essence)).catch(() => null);

@@ -1144,7 +1144,7 @@ export const labService = {
    */
   getEssenceBySlug: async (slug: string) => {
     const response = await api.get(`lab/essences/${slug}/`, {
-      headers: { 'X-Context': typeof window !== 'undefined' && isDashboardContext() ? 'dashboard' : 'labo' },
+      headers: { 'X-Context': typeof window !== 'undefined' && isDashboardContext() ? 'dashboard' : 'boutique' },
     });
     return response.data;
   },

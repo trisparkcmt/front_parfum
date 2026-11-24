@@ -180,6 +180,9 @@ export function buildAbsoluteUrl(path: string): string {
 export function resolveImageUrl(url?: string | null): string {
   if (!url) return '';
   if (url.startsWith('http')) return url;
+  if (url === '/huile.png' || url.endsWith('/huile.png')) {
+    return 'https://accessoiresexclusifs.com/huile.png';
+  }
   return `${API_ROOT}${url.startsWith('/') ? '' : '/'}${url}`;
 }
 
