@@ -178,12 +178,31 @@ export default function PerfumesShopClient() {
         : 'perfume'
       );
     }
+
+    // Open HuileDetailModal when arriving via a shared /shop/huile/[id] link
+    // which redirects here as ?tab=huile&huile={id}
+    const huileParam = searchParams?.get('huile');
+    if (huileParam) {
+      setHuileModalProductId(huileParam);
+      setHuileModalInitialProduct(null); // HuileDetailModal fetches the product itself
+    }
+
+    // Switch to the huile tab when ?tab=huile is in the URL
+    const tabParam = searchParams?.get('tab');
+    if (tabParam === 'huile') {
+      setActiveTab('huile');
+    }
   }, [searchParams]);
 
   // Initialise activeTab from URL or session storage when returning from product
   const [activeTab, setActiveTab] = useState<string | number>(() => {
     if (typeof window !== 'undefined') {
       const sp = new URLSearchParams(window.location.search);
+
+      // ?tab=huile comes from shared /shop/huile/[id] links
+      const tabParam = sp.get('tab');
+      if (tabParam === 'huile') return 'huile';
+
       const catParam = sp.get('categorie');
       if (catParam) return Number(catParam);
 
@@ -192,6 +211,8 @@ export default function PerfumesShopClient() {
         if (savedTab) return isNaN(Number(savedTab)) ? savedTab : Number(savedTab);
       }
     }
+    const tabParam = searchParams?.get('tab');
+    if (tabParam === 'huile') return 'huile';
     const catParam = searchParams?.get('categorie');
     return catParam ? Number(catParam) : 'all';
   });

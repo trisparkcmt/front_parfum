@@ -937,6 +937,7 @@ function AtelierContent() {
       }
 
       setCtaSuccess(true);
+      setCartAdded(true);
       addToast('Added', 'success');
       playSound('success');
       setTimeout(() => setCtaSuccess(false), 3000);
@@ -1683,21 +1684,31 @@ function AtelierContent() {
                </button>
              )}
 
-            {/* Add to cart button */}
-            <button 
-              onClick={handleAddToCart}
-              disabled={totalMl === 0 || isAddingToCart || (isAuthenticated && !savedParfumId)}
-              className={`w-full px-8 py-4 text-[10px] uppercase tracking-[0.2em] font-medium rounded-lg transition-all duration-300
-                ${ctaSuccess ? 'bg-green-600 text-foreground' : 'bg-gold text-black hover:bg-cream disabled:opacity-20'}
-              `}
-            >
-              {ctaSuccess ? '✓ Ajouté' : (isAddingToCart ? <Loader2 size={14} className="inline animate-spin" /> : <>
-                <ShoppingCart size={14} className="inline mr-1" />
-                {isAuthenticated && !savedParfumId 
-                  ? (i18n.language === 'en' ? 'Save first' : 'Sauvegarder d’abord')
-                  : (i18n.language === 'en' ? 'Add to Cart' : 'Ajouter au Panier')}
-              </>)}
-            </button>
+            {/* Add to cart / View cart button */}
+            {cartAdded ? (
+              <Link
+                href="/cart"
+                className="w-full px-8 py-4 text-[10px] uppercase tracking-[0.2em] font-medium rounded-lg transition-all duration-300 bg-gold text-black hover:bg-cream flex items-center justify-center gap-2"
+              >
+                <ShoppingCart size={14} />
+                {i18n.language === 'en' ? 'View Cart' : 'Voir le panier'}
+              </Link>
+            ) : (
+              <button
+                onClick={handleAddToCart}
+                disabled={totalMl === 0 || isAddingToCart || (isAuthenticated && !savedParfumId)}
+                className={`w-full px-8 py-4 text-[10px] uppercase tracking-[0.2em] font-medium rounded-lg transition-all duration-300
+                  ${ctaSuccess ? 'bg-green-600 text-foreground' : 'bg-gold text-black hover:bg-cream disabled:opacity-20'}
+                `}
+              >
+                {ctaSuccess ? '✓ Ajouté' : (isAddingToCart ? <Loader2 size={14} className="inline animate-spin" /> : <>
+                  <ShoppingCart size={14} className="inline mr-1" />
+                  {isAuthenticated && !savedParfumId
+                    ? (i18n.language === 'en' ? 'Save first' : 'Sauvegarder d’abord')
+                    : (i18n.language === 'en' ? 'Add to Cart' : 'Ajouter au Panier')}
+                </>)}
+              </button>
+            )}
 
             {/* Direct Order button */}
             <button

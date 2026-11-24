@@ -1,7 +1,7 @@
 import { Metadata } from 'next';
 import { productService } from '@/services/productService';
 import { resolveImageUrl } from '@/lib/utils';
-import ClientRedirect from '../../ClientRedirect';
+import HuileClientRedirect from './HuileClientRedirect';
 
 export async function generateMetadata({
   params,
@@ -39,6 +39,15 @@ export async function generateMetadata({
   }
 }
 
-export default function HuileDetailPage() {
-  return <ClientRedirect fallback="/shop/perfumes?tab=huile" />;
+/**
+ * When a user opens a shared /shop/huile/[id] link, redirect them to the
+ * perfumes shop with the huile tab active and the modal pre-opened via ?huile=.
+ */
+export default async function HuileDetailPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = await params;
+  return <HuileClientRedirect id={id} />;
 }
