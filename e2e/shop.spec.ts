@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+ import { test, expect } from '@playwright/test';
 
 test.describe('Shop Catalog', () => {
   test('navigates to shop and verifies catalog page loads', async ({ page }) => {
