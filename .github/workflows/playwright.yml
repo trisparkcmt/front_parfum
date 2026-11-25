@@ -62,3 +62,22 @@ jobs:
           name: playwright-report
           path: playwright-report/
           retention-days: 7
+
+      # ─── WhatsApp Notification via TextMeBot (Success or Failure) ─────────
+      - name: Send WhatsApp Notification
+        if: always()
+        run: |
+          STATUS="${{ job.status }}"
+          REPO="${{ github.repository }}"
+          COMMIT_MSG="${{ github.event.head_commit.message }}"
+          RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          
+          if [ "$STATUS" = "success" ]; then
+            TEXT="✅ *E2E Tests SUCCEEDED!*%0A%0A*Repo:* $REPO%0A*Status:* Tests Passed successfully%0A*Commit:* $COMMIT_MSG%0A*Run:* $RUN_URL"
+          else
+            TEXT="❌ *E2E Tests FAILED!*%0A%0A*Repo:* $REPO%0A*Status:* Errors detected%0A*Commit:* $COMMIT_MSG%0A*Run:* $RUN_URL"
+          fi
+
+          if [ -n "${{ secrets.WHATSAPP_PHONE }}" ] && [ -n "${{ secrets.TEXTMEBOT_APIKEY }}" ]; then
+            curl -s "https://api.textmebot.com/send.php?recipient=${{ secrets.WHATSAPP_PHONE }}&apikey=${{ secrets.TEXTMEBOT_APIKEY }}&text=$TEXT"
+          fi
